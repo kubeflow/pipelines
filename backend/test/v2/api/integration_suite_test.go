@@ -92,10 +92,8 @@ func writeLogFile(specReport types.SpecReport) {
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 	suiteConfig, reporterConfig := GinkgoConfiguration()
-	suiteConfig.EmitSpecProgress = true
 	suiteConfig.FailFast = false
 	reporterConfig.GithubOutput = true
-	reporterConfig.ShowNodeEvents = true
 	reporterConfig.JUnitReport = filepath.Join(testReportDirectory, junitReportFilename)
 	reporterConfig.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
 	RunSpecs(t, "API Tests Suite", suiteConfig, reporterConfig)
