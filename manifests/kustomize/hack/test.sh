@@ -36,7 +36,6 @@ kustomization_yamls=(
   "env/platform-agnostic"
   "env/platform-agnostic-emissary"
   "env/aws"
-  # "env/azure"
 )
 for path in "${kustomization_yamls[@]}"
 do
