@@ -15,7 +15,7 @@
 package model
 
 type ExecutionCache struct {
-	ID                int64  `gorm:"column:ID; not null; primary_key; AUTO_INCREMENT; index:composite_id_idx"`
+	ID                int64  `gorm:"column:ID; not null; primaryKey; AUTO_INCREMENT; index:composite_id_idx"`
 	ExecutionCacheKey string `gorm:"column:ExecutionCacheKey; not null; index:idx_cache_key;"`
 	ExecutionTemplate string `gorm:"column:ExecutionTemplate; not null;"`
 	ExecutionOutput   string `gorm:"column:ExecutionOutput; not null;"`
