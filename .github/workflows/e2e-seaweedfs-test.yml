@@ -59,7 +59,7 @@ jobs:
         id: deploy-platform-agnostic-multi-user
         if: ${{ steps.install-profile-resources.outcome == 'success' }}
         run: |
-          kubectl apply -f manifests/kustomize/env/platform-agnostic-multi-user
+          kubectl apply -k manifests/kustomize/env/platform-agnostic-multi-user
           kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=600s --field-selector=status.phase!=Succeeded
         continue-on-error: true
 
