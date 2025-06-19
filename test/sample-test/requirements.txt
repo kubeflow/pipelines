@@ -114,7 +114,7 @@ platformdirs==4.2.2
     #   jupyter-core
 proto-plus==1.24.0
     # via google-api-core
-protobuf==4.25.4
+protobuf==4.25.8
     # via
     #   google-api-core
     #   googleapis-common-protos
