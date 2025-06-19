@@ -33,9 +33,39 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
         continue-on-error: true
 
+      - name: Install istio
+        id: install-istio
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          kubectl apply -k https://github.com/kubeflow/manifests//common/istio-cni-1-24/istio-crds/base?ref=v1.10-branch
+          kubectl apply -k https://github.com/kubeflow/manifests//common/istio-cni-1-24/istio-namespace/base?ref=v1.10-branch
+          kubectl apply -k https://github.com/kubeflow/manifests//common/istio-cni-1-24/istio-install/base?ref=v1.10-branch
+          echo "Waiting for all Istio Pods to become ready..."
+          kubectl wait --for=condition=Ready pods --all -n istio-system --timeout 300s
+        continue-on-error: true
+
+      - name: Install Profile Controller Resources
+        id: install-profile-resources
+        if: ${{ steps.install-istio.outcome == 'success' }}
+        run: |
+          echo "Installing Profile Controller resources..."
+          kubectl apply -k https://github.com/kubeflow/manifests/apps/profiles/upstream/overlays/kubeflow?ref=master
+          # Wait for profile controller to be ready
+          kubectl -n kubeflow wait --for=condition=Ready pods -l control-plane=controller-manager --timeout 180s || true
+          echo "Profile Controller resources installed successfully"
+        continue-on-error: true
+      
+      - name: Deploy Platform Agnostic Multi-User
+        id: deploy-platform-agnostic-multi-user
+        if: ${{ steps.install-profile-resources.outcome == 'success' }}
+        run: |
+          kubectl apply -f manifests/kustomize/env/platform-agnostic-multi-user
+          kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=600s --field-selector=status.phase!=Succeeded
+        continue-on-error: true
+
       - name: Create KF Profile
         id: create-kf-profile
-        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        if: ${{ steps.deploy-platform-agnostic-multi-user.outcome == 'success' }}
         run: |
           echo "Creating KF Profile..."
           kubectl apply -f test/seaweedfs/test-profiles.yaml
@@ -86,7 +116,7 @@ jobs:
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.install-istio.outcome != 'success' || steps.install-profile-resources.outcome != 'success' || steps.deploy-profile-controller.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
         run: |
           echo "Collecting logs for troubleshooting..."
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
