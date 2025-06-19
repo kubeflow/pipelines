@@ -124,6 +124,16 @@ func Test_argo_compiler(t *testing.T) {
 			platformSpecPath: "",
 			argoYAMLPath:     "testdata/final_status_state.yaml",
 		},
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "../testdata/pipeline_config_semaphore_platform.json",
+			argoYAMLPath:     "testdata/hello_world_semaphore.yaml",
+		},
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "../testdata/pipeline_config_mutex_platform.json",
+			argoYAMLPath:     "testdata/hello_world_mutex.yaml",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("%+v", tt), func(t *testing.T) {
@@ -193,9 +203,7 @@ func Test_argo_compiler(t *testing.T) {
 				t.Errorf("compiler.Compile(%s)!=expected, diff: %s\n", tt.jobPath, cmp.Diff(&expected, wf))
 			}
 		})
-
 	}
-
 }
 
 func load(t *testing.T, path string, platformSpecPath string) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {

@@ -94,6 +94,33 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		}
 	}
 
+	var sync *wfapi.Synchronization
+
+	pipelineConfig := kubernetesSpec.GetPipelineConfig()
+	if pipelineConfig != nil {
+		if pipelineConfig.GetSemaphoreKey() != "" {
+			sync = &wfapi.Synchronization{
+				Semaphore: &wfapi.SemaphoreRef{
+					ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+						LocalObjectReference: k8score.LocalObjectReference{
+							Name: common.GetSemaphoreConfigMapName(),
+						},
+						Key: pipelineConfig.GetSemaphoreKey(),
+					},
+				},
+			}
+		}
+
+		if pipelineConfig.GetMutexName() != "" {
+			if sync == nil {
+				sync = &wfapi.Synchronization{}
+			}
+			sync.Mutex = &wfapi.Mutex{
+				Name: pipelineConfig.GetMutexName(),
+			}
+		}
+	}
+
 	// initialization
 	wf := &wfapi.Workflow{
 		TypeMeta: k8smeta.TypeMeta{
@@ -112,6 +139,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			// },
 		},
 		Spec: wfapi.WorkflowSpec{
+			Synchronization: sync,
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",

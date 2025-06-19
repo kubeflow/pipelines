@@ -2063,14 +2063,18 @@ def write_pipeline_spec_to_file(
 
 def _merge_pipeline_config(pipelineConfig: pipeline_config.PipelineConfig,
                            platformSpec: pipeline_spec_pb2.PlatformSpec):
-    workspace = pipelineConfig.workspace
-    if workspace is None:
+    pipeline_config = pipelineConfig.get_pipeline_config()
+    if not pipeline_config:
         return platformSpec
 
+    if 'kubernetes' not in platformSpec.platforms:
+        platformSpec.platforms['kubernetes'].CopyFrom(
+            pipeline_spec_pb2.SinglePlatformSpec())
+
     json_format.ParseDict(
-        {'pipelineConfig': {
-            'workspace': workspace.get_workspace(),
-        }}, platformSpec.platforms['kubernetes'])
+        {'pipelineConfig': pipeline_config},
+        platformSpec.platforms['kubernetes'],
+    )
 
     return platformSpec
 

@@ -35,6 +35,8 @@ See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/components/pi
 
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/stable/) when writing pipelines using the Python SDK.
 
+For configuration options, see the [Configuration documentation](./docs/configuration.md).
+
 ## Deep Wiki
 Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines). 
 
