@@ -15,6 +15,7 @@ components:
                 componentInputArtifact: pipelinechannel--make-artifacts-Output-loop-item
           taskInfo:
             name: print-artifact-name
+            taskName: print-artifact-name
     inputDefinitions:
       artifacts:
         pipelinechannel--make-artifacts-Output:
@@ -46,6 +47,7 @@ components:
                 componentInputParameter: pipelinechannel--texts-loop-item
           taskInfo:
             name: make-artifact
+            taskName: make-artifact
     inputDefinitions:
       parameters:
         pipelinechannel--texts:
@@ -79,6 +81,7 @@ components:
                 componentInputParameter: pipelinechannel--texts-loop-item
           taskInfo:
             name: make-dataset
+            taskName: make-dataset
     inputDefinitions:
       parameters:
         pipelinechannel--texts:
@@ -106,6 +109,7 @@ components:
                 componentInputArtifact: pipelinechannel--make-datasets-Output-loop-item
           taskInfo:
             name: print-artifact-name-2
+            taskName: print-artifact-name-2
     inputDefinitions:
       artifacts:
         pipelinechannel--make-datasets-Output:
@@ -257,7 +261,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -287,7 +291,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -317,7 +321,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -346,7 +350,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -409,6 +413,7 @@ root:
           name: comp-make-artifacts
         taskInfo:
           name: make-artifacts
+          taskName: make-artifacts
       make-datasets:
         cachingOptions:
           enableCache: true
@@ -416,5 +421,6 @@ root:
           name: comp-make-datasets
         taskInfo:
           name: make-datasets
+          taskName: make-datasets
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

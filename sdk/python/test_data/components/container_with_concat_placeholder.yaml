@@ -59,6 +59,7 @@ root:
               componentInputParameter: text1
         taskInfo:
           name: container-with-concat-placeholder
+          taskName: container-with-concat-placeholder
   inputDefinitions:
     parameters:
       text1:
@@ -73,4 +74,4 @@ root:
       output_path:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

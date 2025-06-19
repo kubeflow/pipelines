@@ -51,7 +51,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -66,7 +66,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef accelerator_limit() -> str:\n    return '1'\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-accelerator-type:
       container:
         args:
@@ -79,7 +79,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -94,7 +94,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef accelerator_type() -> str:\n    return 'NVIDIA_TESLA_P4'\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-cpu-limit:
       container:
         args:
@@ -107,7 +107,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -122,7 +122,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef cpu_limit() -> str:\n    return '4000m'\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-memory-limit:
       container:
         args:
@@ -135,7 +135,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -150,7 +150,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef memory_limit() -> str:\n    return '15G'\n\n"
-        image: python:3.8
+        image: python:3.9
     exec-sum-numbers:
       container:
         args:
@@ -163,7 +163,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.8.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -177,8 +177,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef sum_numbers(a: int, b:int) -> int:\n    return a + b\n\n"
-        image: python:3.8
+          \ *\n\ndef sum_numbers(a: int, b: int) -> int:\n    return a + b\n\n"
+        image: python:3.9
         resources:
           accelerator:
             resourceCount: '{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}'
@@ -197,6 +197,7 @@ root:
           name: comp-accelerator-limit
         taskInfo:
           name: accelerator-limit
+          taskName: accelerator-limit
       accelerator-type:
         cachingOptions:
           enableCache: true
@@ -204,6 +205,7 @@ root:
           name: comp-accelerator-type
         taskInfo:
           name: accelerator-type
+          taskName: accelerator-type
       cpu-limit:
         cachingOptions:
           enableCache: true
@@ -211,6 +213,7 @@ root:
           name: comp-cpu-limit
         taskInfo:
           name: cpu-limit
+          taskName: cpu-limit
       memory-limit:
         cachingOptions:
           enableCache: true
@@ -218,6 +221,7 @@ root:
           name: comp-memory-limit
         taskInfo:
           name: memory-limit
+          taskName: memory-limit
       sum-numbers:
         cachingOptions:
           enableCache: true
@@ -261,5 +265,6 @@ root:
                 producerTask: memory-limit
         taskInfo:
           name: sum-numbers
+          taskName: sum-numbers
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.8.0
+sdkVersion: kfp-2.13.0
