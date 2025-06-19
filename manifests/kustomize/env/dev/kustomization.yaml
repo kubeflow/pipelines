@@ -2,38 +2,41 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-# Application controller is used to provide Google Cloud Console integration.
-- ../../third-party/application
-- ../../base/application
-- ../platform-agnostic
-- ../gcp/inverse-proxy
+  # Application controller is used to provide Google Cloud Console integration.
+  - ../../third-party/application
+  - ../../base/application
+  - ../platform-agnostic
+  - ../gcp/inverse-proxy
 
 images:
-- name: ghcr.io/kubeflow/kfp-api-server
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-frontend
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-persistence-agent
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-cache-deployer
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-cache-server
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-metadata-envoy
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-metadata-writer
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-viewer-crd-controller
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-visualization-server
-  newTag: master
-- name: ghcr.io/kubeflow/kfp-inverse-proxy-agent
-  newTag: master
+  - name: ghcr.io/kubeflow/kfp-api-server
+    newName: apiserver
+    newTag: latest
+  - name: ghcr.io/kubeflow/kfp-frontend
+    newTag: master
+  - name: ghcr.io/kubeflow/kfp-persistence-agent
+    newTag: master
+  - name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
+    newTag: master
+  - name: ghcr.io/kubeflow/kfp-cache-deployer
+    newTag: master
+  - name: ghcr.io/kubeflow/kfp-cache-server
+    newTag: master
+  - name: ghcr.io/kubeflow/kfp-metadata-envoy
+    newTag: master
+  - name: ghcr.io/kubeflow/kfp-metadata-writer
+    newTag: master
+  - name: ghcr.io/kubeflow/kfp-viewer-crd-controller
+    newTag: master
+  - name: ghcr.io/kubeflow/kfp-visualization-server
+    newTag: master
+  - name: ghcr.io/kubeflow/kfp-inverse-proxy-agent
+    newTag: master
 
 patches:
   - path: api-server-patch.yaml
+  - path: service-patch.yaml
+
 # !!! If you want to customize the namespace,
 # please refer sample/cluster-scoped-resources to update the namespace for cluster-scoped-resources
 namespace: kubeflow
@@ -41,6 +44,6 @@ namespace: kubeflow
 # The ownerReference ensures the resources get garbage collected
 # when application is deleted.
 labels:
-- includeSelectors: true
-  pairs:
-    application-crd-id: kubeflow-pipelines
+  - includeSelectors: true
+    pairs:
+      application-crd-id: kubeflow-pipelines
