@@ -20,7 +20,7 @@ deploymentSpec:
           \ \nexport PIP_DISABLE_PIP_VERSION_CHECK=1\ntmp=$(mktemp -d)\npython3 -m\
           \ venv \"$tmp/venv\" --system-site-packages\n. \"$tmp/venv/bin/activate\"\
           \n python3 -m pip install --quiet --no-warn-script-location --index-url\
-          \ https://pypi.org/simple --trusted-host https://pypi.org/simple 'kfp==2.9.0'\
+          \ https://pypi.org/simple --trusted-host https://pypi.org/simple 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
           \  python3 -m pip install --quiet --no-warn-script-location --index-url\
           \ https://pypi.org/simple --trusted-host https://pypi.org/simple 'yapf'\
@@ -51,5 +51,6 @@ root:
           name: comp-component-with-pip-install
         taskInfo:
           name: component-with-pip-install
+          taskName: component-with-pip-install
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.9.0
+sdkVersion: kfp-2.13.0

@@ -91,7 +91,17 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	if err != nil {
 		return execution, err
 	}
-	ecfg.TaskName = opts.Task.GetTaskInfo().GetName()
+
+	// Set task name to display name if not specified. This is the case of
+	// specialty tasks such as OneOfs and ParallelFors where there are not
+	// explicit dag tasks defined in the pipeline, but rather generated at
+	// compile time and assigned a display name.
+	taskName := opts.Task.GetTaskInfo().GetTaskName()
+	if taskName == "" {
+		taskName = opts.Task.GetTaskInfo().GetName()
+	}
+	ecfg.TaskName = taskName
+	ecfg.DisplayName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.DagExecutionTypeName
 	ecfg.ParentDagID = dag.Execution.GetID()
 	ecfg.IterationIndex = iterationIndex

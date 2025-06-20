@@ -179,6 +179,7 @@ root:
                 producerTask: upstream
         taskInfo:
           name: downstream
+          taskName: downstream
       upstream:
         cachingOptions:
           enableCache: true
@@ -198,6 +199,7 @@ root:
               componentInputParameter: input4
         taskInfo:
           name: upstream
+          taskName: upstream
   inputDefinitions:
     artifacts:
       input3:
@@ -212,4 +214,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

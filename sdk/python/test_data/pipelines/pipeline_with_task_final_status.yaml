@@ -18,6 +18,7 @@ components:
                   constant: Task failed.
           taskInfo:
             name: fail-op
+            taskName: fail-op
         print-op:
           cachingOptions:
             enableCache: true
@@ -29,6 +30,7 @@ components:
                 componentInputParameter: pipelinechannel--message
           taskInfo:
             name: print-op
+            taskName: print-op
     inputDefinitions:
       parameters:
         pipelinechannel--message:
@@ -68,7 +70,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -101,7 +103,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -130,7 +132,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -177,6 +179,7 @@ root:
               componentInputParameter: message
         taskInfo:
           name: exit-op
+          taskName: exit-op
         triggerPolicy:
           strategy: ALL_UPSTREAM_TASKS_COMPLETED
   inputDefinitions:
@@ -186,4 +189,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

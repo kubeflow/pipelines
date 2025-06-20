@@ -23,5 +23,6 @@ root:
           name: comp-container-no-input
         taskInfo:
           name: container-no-input
+          taskName: container-no-input
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

@@ -26,6 +26,7 @@ components:
             name: comp-args-generator-op-2
           taskInfo:
             name: args-generator-op-2
+            taskName: args-generator-op-2
         for-loop-2:
           componentRef:
             name: comp-for-loop-2
@@ -76,6 +77,7 @@ components:
                   constant: '1'
           taskInfo:
             name: print-text-8
+            taskName: print-text-8
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-op-Output:
@@ -122,6 +124,7 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["B_b"]
           taskInfo:
             name: print-text-2
+            taskName: print-text-2
     inputDefinitions:
       parameters:
         pipelinechannel--args-generator-op-Output-loop-item:
@@ -145,6 +148,7 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["B_b"]
           taskInfo:
             name: print-text-3
+            taskName: print-text-3
     inputDefinitions:
       parameters:
         pipelinechannel--args-generator-op-Output-loop-item:
@@ -200,6 +204,7 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["A_a"]
           taskInfo:
             name: print-text-6
+            taskName: print-text-6
     inputDefinitions:
       parameters:
         pipelinechannel--args-generator-op-2-Output:
@@ -238,6 +243,7 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-11
           taskInfo:
             name: print-text-7
+            taskName: print-text-7
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-op-Output:
@@ -282,6 +288,7 @@ components:
                 componentInputParameter: pipelinechannel--loop_parameter-loop-item-subvar-B_b-loop-item
           taskInfo:
             name: print-text-9
+            taskName: print-text-9
     inputDefinitions:
       parameters:
         pipelinechannel--loop_parameter-loop-item:
@@ -400,6 +407,7 @@ components:
                 componentInputParameter: pipelinechannel--msg
           taskInfo:
             name: print-text
+            taskName: print-text
     inputDefinitions:
       parameters:
         pipelinechannel--args-generator-op-2-Output:
@@ -428,6 +436,7 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-6
           taskInfo:
             name: print-struct
+            taskName: print-struct
     inputDefinitions:
       parameters:
         pipelinechannel--args-generator-op-Output-loop-item:
@@ -450,6 +459,7 @@ components:
                 componentInputParameter: pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b-loop-item
           taskInfo:
             name: print-text-4
+            taskName: print-text-4
     inputDefinitions:
       parameters:
         pipelinechannel--args-generator-op-Output-loop-item:
@@ -491,6 +501,7 @@ components:
                 componentInputParameter: pipelinechannel--loop_parameter-loop-item
           taskInfo:
             name: print-text-5
+            taskName: print-text-5
     inputDefinitions:
       parameters:
         pipelinechannel--args-generator-op-2-Output:
@@ -602,7 +613,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -633,7 +644,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -664,7 +675,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -694,7 +705,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -722,7 +733,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -751,7 +762,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -780,7 +791,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -809,7 +820,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -838,7 +849,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -867,7 +878,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -896,7 +907,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -925,7 +936,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -954,7 +965,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -983,6 +994,7 @@ root:
           name: comp-args-generator-op
         taskInfo:
           name: args-generator-op
+          taskName: args-generator-op
       condition-1:
         componentRef:
           name: comp-condition-1
@@ -1015,6 +1027,7 @@ root:
           name: comp-flip-coin-op
         taskInfo:
           name: flip-coin-op
+          taskName: flip-coin-op
       for-loop-14:
         componentRef:
           name: comp-for-loop-14
@@ -1048,4 +1061,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0
