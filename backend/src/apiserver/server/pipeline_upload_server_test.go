@@ -195,19 +195,19 @@ func TestUploadPipeline(t *testing.T) {
 }
 
 func TestUploadPipelineV2_NameValidation(t *testing.T) {
-	v2Template, _ := template.New([]byte(v2SpecHelloWorld), true)
+	v2Template, _ := template.New([]byte(v2SpecHelloWorld), true, nil)
 	v2spec := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldDash), true)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldDash), true, nil)
 	v2specDash := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldCapitalized), true)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldCapitalized), true, nil)
 	invalidV2specCapitalized := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldDot), true)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldDot), true, nil)
 	invalidV2specDot := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldLong), true)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldLong), true, nil)
 	invalidV2specLong := string(v2Template.Bytes())
 
 	tt := []struct {

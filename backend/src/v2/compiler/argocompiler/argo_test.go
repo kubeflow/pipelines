@@ -101,6 +101,11 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/hello_world_cache_disabled.yaml",
 			compilerOptions:  argocompiler.Options{CacheDisabled: true},
 		},
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "../testdata/hello_world_pvc_workspace.json",
+			argoYAMLPath:     "testdata/hello_world_pvc_workspace.yaml",
+		},
 		// retry set at pipeline level only.
 		{
 			jobPath:          "../testdata/nested_pipeline_pipeline_retry.json",

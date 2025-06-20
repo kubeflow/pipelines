@@ -30,6 +30,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -43,8 +44,14 @@ type Options struct {
 	PipelineRoot string
 	// optional
 	CacheDisabled bool
+	// optional
+	DefaultPVCSpec *k8score.PersistentVolumeClaimSpec
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 }
+
+const (
+	kfpWorkspaceSize = "10Gi"
+)
 
 func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options) (*wfapi.Workflow, error) {
 	// clone jobArg, because we don't want to change it
@@ -93,6 +100,67 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			return nil, fmt.Errorf("bug: cloned Kubernetes spec message does not have expected type")
 		}
 	}
+	var volumeClaimTemplates []k8score.PersistentVolumeClaim
+	if kubernetesSpec != nil {
+		if pipelineConfig := kubernetesSpec.GetPipelineConfig(); pipelineConfig != nil {
+			if workspace := pipelineConfig.GetWorkspace(); workspace != nil {
+				sizeStr := workspace.GetSize()
+				if sizeStr == "" {
+					sizeStr = kfpWorkspaceSize
+				}
+
+				if k8sWorkspace := workspace.GetKubernetes(); k8sWorkspace != nil {
+					volumeName := "kfp-workspace"
+
+					var pvcSpec k8score.PersistentVolumeClaimSpec
+					if opts.DefaultPVCSpec != nil {
+						pvcSpec = *opts.DefaultPVCSpec.DeepCopy()
+					}
+					if k8sWorkspacePVCSpec := k8sWorkspace.GetPvcSpecPatch(); k8sWorkspacePVCSpec != nil {
+						fields := k8sWorkspacePVCSpec.GetFields()
+
+						if val, ok := fields["storageClassName"]; ok {
+							if strVal, ok := val.Kind.(*structpb.Value_StringValue); ok {
+								storageClass := strVal.StringValue
+								pvcSpec.StorageClassName = &storageClass
+							}
+						}
+
+						if val, ok := fields["accessModes"]; ok {
+							if listVal, ok := val.Kind.(*structpb.Value_ListValue); ok {
+								var modes []k8score.PersistentVolumeAccessMode
+								for _, v := range listVal.ListValue.Values {
+									if strVal, ok := v.Kind.(*structpb.Value_StringValue); ok {
+										modes = append(modes, k8score.PersistentVolumeAccessMode(strVal.StringValue))
+									}
+								}
+								if len(modes) > 0 {
+									pvcSpec.AccessModes = modes
+								}
+							}
+						}
+					}
+
+					quantity, err := resource.ParseQuantity(sizeStr)
+					if err != nil {
+						return nil, fmt.Errorf("invalid size value for workspace PVC: %v", err)
+					}
+					if pvcSpec.Resources.Requests == nil {
+						pvcSpec.Resources.Requests = make(map[k8score.ResourceName]resource.Quantity)
+					}
+					pvcSpec.Resources.Requests[k8score.ResourceStorage] = quantity
+
+					// Create PVC
+					volumeClaimTemplates = append(volumeClaimTemplates, k8score.PersistentVolumeClaim{
+						ObjectMeta: k8smeta.ObjectMeta{
+							Name: volumeName,
+						},
+						Spec: pvcSpec,
+					})
+				}
+			}
+		}
+	}
 
 	// initialization
 	wf := &wfapi.Workflow{
@@ -123,8 +191,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			Arguments: wfapi.Arguments{
 				Parameters: []wfapi.Parameter{},
 			},
-			ServiceAccountName: common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
-			Entrypoint:         tmplEntrypoint,
+			ServiceAccountName:   common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
+			Entrypoint:           tmplEntrypoint,
+			VolumeClaimTemplates: volumeClaimTemplates,
 		},
 	}
 
@@ -147,6 +216,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	}
 	if opts != nil {
 		c.cacheDisabled = opts.CacheDisabled
+		c.defaultPVCSpec = opts.DefaultPVCSpec
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -182,6 +252,7 @@ type workflowCompiler struct {
 	launcherImage   string
 	launcherCommand []string
 	cacheDisabled   bool
+	defaultPVCSpec  *k8score.PersistentVolumeClaimSpec
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
