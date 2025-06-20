@@ -47,17 +47,13 @@ jobs:
       - name: Install protobuf
         run: pip3 install protobuf==4.25.3
 
-      - name: Generate API proto files
-        working-directory: ./api
-        run: make clean python
-
-      - name: Install kfp-pipeline-spec from source
-        run: |
-          python3 -m pip install api/v2alpha1/python
-
       - name: Install kfp-sdk from source
         run: |
           python3 -m pip install sdk/python
+
+      - name: Generate API proto files
+        working-directory: ./api
+        run: make clean python
 
       - name: Generate kfp-kubernetes proto files from source
         working-directory: ./kubernetes_platform
@@ -66,6 +62,10 @@ jobs:
       - name: Install kfp-kubernetes from source
         run: |
           pip install -e ./kubernetes_platform/python[dev]
+
+      - name: Install kfp-pipeline-spec from source
+        run: |
+          python3 -m pip install -I api/v2alpha1/python
 
       - name: Run tests
         run: pytest ./kubernetes_platform/python/test -n auto
