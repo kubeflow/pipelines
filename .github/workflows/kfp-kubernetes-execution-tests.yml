@@ -89,15 +89,9 @@ jobs:
         working-directory: ./api
         run: make clean python
 
-      - name: Install kfp-pipeline-spec from source
-        id: install-kfp-pipeline-spec
-        if: ${{ steps.generate-api-proto-files.outcome == 'success' }}
-        run: |
-          python3 -m pip install api/v2alpha1/python
-
       - name: Generate kfp-kubernetes proto files from source
         id: generate-kfp-kubernetes-proto-files
-        if: ${{ steps.install-kfp-pipeline-spec.outcome == 'success' }}
+        if: ${{ steps.generate-api-proto-files.outcome == 'success' }}
         working-directory: ./kubernetes_platform
         run: make clean python
 
@@ -111,6 +105,12 @@ jobs:
         id: install-requirements
         if: ${{ steps.install-kfp-kubernetes.outcome == 'success' }}
         run: pip install -r ./test/kfp-kubernetes-execution-tests/requirements.txt
+
+      - name: Install kfp-pipeline-spec from source
+        id: install-kfp-pipeline-spec
+        if: ${{ steps.generate-api-proto-files.outcome == 'success' }}
+        run: |
+          python3 -m pip install -I api/v2alpha1/python
 
       - name: Run tests
         id: test

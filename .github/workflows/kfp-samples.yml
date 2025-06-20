@@ -2,8 +2,7 @@ name: KFP Samples
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
     paths:
       - '.github/resources/**'
@@ -63,13 +62,13 @@ jobs:
       working-directory: ./api
       run: make python
 
-    - name: Install kfp-pipeline-spec from source
-      run: |
-        python3 -m pip install api/v2alpha1/python
-
     - name: Generate, Build, and Install Kubernetes API proto files & packages
       working-directory: ./kubernetes_platform
       run: make python && pip install python/dist/*.whl
+
+    - name: Install kfp-pipeline-spec from source
+      run: |
+        python3 -m pip install -I api/v2alpha1/python
 
     - name: Create KFP cluster
       id: create-kfp-cluster
