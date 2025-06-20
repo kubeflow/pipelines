@@ -16,7 +16,10 @@
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
-__version__ = '2.13.0'
+try:
+    from .version import __version__
+except ImportError:
+    __version__ = 'dev'
 
 import sys
 import warnings
