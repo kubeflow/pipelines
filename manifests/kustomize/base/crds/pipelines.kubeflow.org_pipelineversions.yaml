@@ -43,8 +43,6 @@ spec:
                 type: string
               description:
                 type: string
-              displayName:
-                type: string
               pipelineName:
                 type: string
               pipelineSpec:
