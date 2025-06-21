@@ -24,5 +24,8 @@
   "CacheEnabled": "true",
   "CRON_SCHEDULE_TIMEZONE": "UTC",
   "CACHE_IMAGE": "registry.k8s.io/busybox",
-  "CACHE_NODE_RESTRICTIONS": "false"
+  "CACHE_NODE_RESTRICTIONS": "false",
+  "ArgoWorkflowsConfig": {
+    "SemaphoreConfigMapName": "kfp-argo-workflows-semaphore"
+  }
 }
