@@ -7,11 +7,10 @@ spec:
   template:
     spec:
       containers:
-        - name: ml-pipeline-api-server
-          image: apiserver
-          env:
+        - env:
             - name: V2_DRIVER_IMAGE
               value: ghcr.io/kubeflow/kfp-driver:master
             - name: V2_LAUNCHER_IMAGE
               value: ghcr.io/kubeflow/kfp-launcher:master
+          name: ml-pipeline-api-server
       serviceAccountName: ml-pipeline

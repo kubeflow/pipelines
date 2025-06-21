@@ -131,26 +131,16 @@ spec:
             - name: grpc
               containerPort: 8887
           readinessProbe:
-            exec:
-              command:
-                - wget
-                - -q # quiet
-                - -S # show server response
-                - -O
-                - "-" # Redirect output to stdout
-                - http://localhost:8888/apis/v1beta1/healthz
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
             initialDelaySeconds: 3
             periodSeconds: 5
             timeoutSeconds: 2
           livenessProbe:
-            exec:
-              command:
-                - wget
-                - -q # quiet
-                - -S # show server response
-                - -O
-                - "-" # Redirect output to stdout
-                - http://localhost:8888/apis/v1beta1/healthz
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
             initialDelaySeconds: 3
             periodSeconds: 5
             timeoutSeconds: 2
@@ -158,14 +148,9 @@ spec:
           # liveness probe takes over to accomodate the occasional database
           # migration.
           startupProbe:
-            exec:
-              command:
-                - wget
-                - -q # quiet
-                - -S # show server response
-                - -O
-                - "-" # Redirect output to stdout
-                - http://localhost:8888/apis/v1beta1/healthz
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 8888
             failureThreshold: 12
             periodSeconds: 5
             timeoutSeconds: 2
