@@ -216,7 +216,7 @@ func initPodSpecPatch(
 		"--ca_cert_path", caCertPath,
 	}
 	if cacheDisabled == "true" {
-		launcherCmd = append(launcherCmd, "--cache_disabled", cacheDisabled)
+		launcherCmd = append(launcherCmd, "--cache_disabled")
 	}
 	if pipelineLogLevel != "1" {
 		// Add log level to user code launcher if not default (set to 1)

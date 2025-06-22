@@ -565,7 +565,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--ca_cert_path", common.GetCaCertPath(),
 	}
 	if c.cacheDisabled {
-		args = append(args, "--cache_disabled", "true")
+		args = append(args, "--cache_disabled")
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
