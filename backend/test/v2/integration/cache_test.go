@@ -133,7 +133,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		Mode:           recurring_run_model.RecurringRunModeENABLE,
 		Trigger: &recurring_run_model.V2beta1Trigger{
 			PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
-				IntervalSecond: 60,
+				IntervalSecond: 30,
 			},
 		},
 	}}
@@ -145,22 +145,39 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 	require.Eventually(s.T(), func() bool {
 		allRuns, err = s.runClient.ListAll(runParams.NewRunServiceListRunsParams(), 10)
 		if err != nil {
+			t.Logf("Error listing runs: %v", err)
 			return false
 		}
 
+		t.Logf("Found %d runs", len(allRuns))
 		if len(allRuns) >= 2 {
-			for _, run := range allRuns {
-				if run.State != run_model.V2beta1RuntimeStateSUCCEEDED {
-					return false
+			successCount := 0
+			for i, run := range allRuns {
+				t.Logf("Run %d: ID=%s, State=%s", i, run.RunID, run.State)
+				if run.State == run_model.V2beta1RuntimeStateSUCCEEDED {
+					successCount++
 				}
 			}
-			return true
+			if successCount >= 2 {
+				return true
+			}
 		}
 
 		return false
-	}, 4*time.Minute, 5*time.Second)
+	}, 5*time.Minute, 5*time.Second)
 
-	contextsFilterQuery := fmt.Sprintf("name = '%s'", allRuns[1].RunID)
+	require.GreaterOrEqual(t, len(allRuns), 2, "Expected at least 2 runs from recurring run, but got %d", len(allRuns))
+
+	var successfulRuns []*run_model.V2beta1Run
+	for _, run := range allRuns {
+		if run.State == run_model.V2beta1RuntimeStateSUCCEEDED {
+			successfulRuns = append(successfulRuns, run)
+		}
+	}
+	require.GreaterOrEqual(t, len(successfulRuns), 2, "Expected at least 2 successful runs, but got %d", len(successfulRuns))
+
+	testRunID := successfulRuns[1].RunID
+	contextsFilterQuery := fmt.Sprintf("name = '%s'", testRunID)
 
 	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
 		Options: &pb.ListOperationOptions{

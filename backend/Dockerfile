@@ -14,7 +14,11 @@
 
 # 1. Build api server application
 FROM golang:1.23-bookworm as builder
-RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    apt-get update && \
+    (apt-get install -y cmake clang musl-dev openssl || \
+        (apt-get clean && apt-get update --fix-missing && apt-get install -y cmake clang musl-dev openssl) || \
+        (sleep 10 && apt-get update && apt-get install -y cmake clang musl-dev openssl))
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
@@ -51,7 +55,7 @@ RUN set -e; \
     < /samples/sample_config.json jq ".pipelines[].file" --raw-output | while read pipeline_yaml; do \
     pipeline_py="${pipeline_yaml%.yaml}"; \
     echo "Compiling: \"$pipeline_py\"" && python3 "$pipeline_py" && echo -n "Output: " && ls "$pipeline_py.yaml"; \
-    done
+done
 
 # 3. Start api web server
 FROM debian:stable
@@ -60,7 +64,7 @@ ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=${COMMIT_SHA}
 ARG TAG_NAME=unknown
 ENV TAG_NAME=${TAG_NAME}
-ENV LOG_LEVEL info 
+ENV LOG_LEVEL info
 
 WORKDIR /bin
 
