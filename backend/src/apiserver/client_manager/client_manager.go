@@ -23,6 +23,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cenkalti/backoff"
 	"github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
@@ -36,7 +38,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
-	"github.com/minio/minio-go/v6"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -624,7 +625,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 }
 
 func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
-	// Create minio client.
+	// Create S3 client for SeaweedFS.
 	minioServiceHost := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
 	minioServicePort := common.GetStringConfigWithDefault(
@@ -639,27 +640,38 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", os.Getenv(pipelinePath))
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
-	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
+	s3Client := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
 		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
-	createMinioBucket(minioClient, bucketName, minioServiceRegion)
+	createS3Bucket(s3Client, bucketName, minioServiceRegion)
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelinePath, disableMultipart)
+	return storage.NewMinioObjectStore(&storage.MinioClient{Client: s3Client}, bucketName, pipelinePath, disableMultipart)
 }
 
-func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
-	// Check to see if it exists, and we have permission to access it.
-	exists, err := minioClient.BucketExists(bucketName)
-	if err != nil {
-		glog.Fatalf("Failed to check if object store bucket exists. Error: %v", err)
-	}
-	if exists {
-		glog.Infof("We already own %s\n", bucketName)
+func createS3Bucket(s3Client *s3.S3, bucketName, region string) {
+	// Check to see if bucket exists and we have permission to access it
+	_, err := s3Client.HeadBucket(&s3.HeadBucketInput{
+		Bucket: aws.String(bucketName),
+	})
+	if err == nil {
+		glog.Infof("We already have access to bucket %s\n", bucketName)
 		return
 	}
+
 	// Create bucket if it does not exist
-	err = minioClient.MakeBucket(bucketName, region)
+	createBucketInput := &s3.CreateBucketInput{
+		Bucket: aws.String(bucketName),
+	}
+
+	// Only set CreateBucketConfiguration for regions other than us-east-1
+	if region != "us-east-1" {
+		createBucketInput.CreateBucketConfiguration = &s3.CreateBucketConfiguration{
+			LocationConstraint: aws.String(region),
+		}
+	}
+
+	_, err = s3Client.CreateBucket(createBucketInput)
 	if err != nil {
-		glog.Fatalf("Failed to create object store bucket. Error: %v", err)
+		glog.Fatalf("Failed to create S3 bucket. Error: %v", err)
 	}
 	glog.Infof("Successfully created bucket %s\n", bucketName)
 }

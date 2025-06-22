@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	minio "github.com/minio/minio-go/v6"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -31,14 +30,12 @@ type Foo struct{ ID int }
 type FakeBadMinioClient struct{}
 
 func (c *FakeBadMinioClient) PutObject(bucketName, objectName string, reader io.Reader,
-	objectSize int64, opts minio.PutObjectOptions,
+	objectSize int64, contentType string,
 ) (n int64, err error) {
 	return 0, errors.New("some error")
 }
 
-func (c *FakeBadMinioClient) GetObject(bucketName, objectName string,
-	opts minio.GetObjectOptions,
-) (io.Reader, error) {
+func (c *FakeBadMinioClient) GetObject(bucketName, objectName string) (io.ReadCloser, error) {
 	return nil, errors.New("some error")
 }
 
@@ -105,7 +102,7 @@ func TestGetFromYamlFile(t *testing.T) {
 	manager.minioClient.PutObject(
 		"", manager.GetPipelineKey("1"),
 		bytes.NewReader([]byte("id: 1")), -1,
-		minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		"application/octet-stream")
 	expectedFoo := Foo{ID: 1}
 	var foo Foo
 	error := manager.GetFromYamlFile(&foo, manager.GetPipelineKey("1"))
@@ -119,7 +116,7 @@ func TestGetFromYamlFile_UnmarshalError(t *testing.T) {
 	manager.minioClient.PutObject(
 		"", manager.GetPipelineKey("1"),
 		bytes.NewReader([]byte("invalid")), -1,
-		minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		"application/octet-stream")
 	var foo Foo
 	error := manager.GetFromYamlFile(&foo, manager.GetPipelineKey("1"))
 	assert.Equal(t, codes.Internal, error.(*util.UserError).ExternalStatusCode())

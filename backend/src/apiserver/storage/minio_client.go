@@ -15,30 +15,70 @@
 package storage
 
 import (
+	"bytes"
 	"io"
 
-	minio "github.com/minio/minio-go/v6"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 )
 
-// Create interface for minio client struct, making it more unit testable.
+// Create interface for S3 client struct, making it more unit testable.
+// Renamed from MinioClientInterface but keeping same method signatures for compatibility
 type MinioClientInterface interface {
-	PutObject(bucketName, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (n int64, err error)
-	GetObject(bucketName, objectName string, opts minio.GetObjectOptions) (io.Reader, error)
+	PutObject(bucketName, objectName string, reader io.Reader, objectSize int64, contentType string) (n int64, err error)
+	GetObject(bucketName, objectName string) (io.ReadCloser, error)
 	DeleteObject(bucketName, objectName string) error
 }
 
 type MinioClient struct {
-	Client *minio.Client
+	Client s3iface.S3API
 }
 
-func (c *MinioClient) PutObject(bucketName, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (n int64, err error) {
-	return c.Client.PutObject(bucketName, objectName, reader, objectSize, opts)
+func (c *MinioClient) PutObject(bucketName, objectName string, reader io.Reader, objectSize int64, contentType string) (n int64, err error) {
+	// Read the content into a buffer to create a ReadSeeker
+	buf := new(bytes.Buffer)
+	n, err = buf.ReadFrom(reader)
+	if err != nil {
+		return 0, err
+	}
+
+	input := &s3.PutObjectInput{
+		Bucket:        aws.String(bucketName),
+		Key:           aws.String(objectName),
+		Body:          bytes.NewReader(buf.Bytes()),
+		ContentType:   aws.String(contentType),
+		ContentLength: aws.Int64(n),
+	}
+
+	_, err = c.Client.PutObject(input)
+	if err != nil {
+		return 0, err
+	}
+
+	return n, nil
 }
 
-func (c *MinioClient) GetObject(bucketName, objectName string, opts minio.GetObjectOptions) (io.Reader, error) {
-	return c.Client.GetObject(bucketName, objectName, opts)
+func (c *MinioClient) GetObject(bucketName, objectName string) (io.ReadCloser, error) {
+	input := &s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(objectName),
+	}
+
+	result, err := c.Client.GetObject(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Body, nil
 }
 
 func (c *MinioClient) DeleteObject(bucketName, objectName string) error {
-	return c.Client.RemoveObject(bucketName, objectName)
+	input := &s3.DeleteObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(objectName),
+	}
+
+	_, err := c.Client.DeleteObject(input)
+	return err
 }

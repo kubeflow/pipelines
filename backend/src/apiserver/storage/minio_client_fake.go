@@ -18,9 +18,14 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/minio/minio-go/v6"
 	"github.com/pkg/errors"
 )
+
+type nopCloser struct {
+	io.Reader
+}
+
+func (nopCloser) Close() error { return nil }
 
 type FakeMinioClient struct {
 	minioClient map[string][]byte
@@ -33,21 +38,22 @@ func NewFakeMinioClient() *FakeMinioClient {
 }
 
 func (c *FakeMinioClient) PutObject(bucketName, objectName string, reader io.Reader,
-	objectSize int64, opts minio.PutObjectOptions,
+	objectSize int64, contentType string,
 ) (int64, error) {
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(reader)
+	n, err := buf.ReadFrom(reader)
+	if err != nil {
+		return 0, err
+	}
 	c.minioClient[objectName] = buf.Bytes()
-	return 1, nil
+	return n, nil
 }
 
-func (c *FakeMinioClient) GetObject(bucketName, objectName string,
-	opts minio.GetObjectOptions,
-) (io.Reader, error) {
+func (c *FakeMinioClient) GetObject(bucketName, objectName string) (io.ReadCloser, error) {
 	if _, ok := c.minioClient[objectName]; !ok {
 		return nil, errors.New("object not found")
 	}
-	return bytes.NewReader(c.minioClient[objectName]), nil
+	return nopCloser{bytes.NewReader(c.minioClient[objectName])}, nil
 }
 
 func (c *FakeMinioClient) DeleteObject(bucketName, objectName string) error {
