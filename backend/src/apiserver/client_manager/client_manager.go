@@ -362,6 +362,40 @@ func addDisplayNameColumn(db *gorm.DB, quotedTableName string, driverName string
 	return nil
 }
 
+// This helper function enforces a composite unique index on a given model.
+// It checks both the existence of a database-level constraint and the corresponding index.
+// This function serves as a safety fallback in case AutoMigrate fails to create the index
+// due to GORM's conservative merge strategy or legacy residual indexes from earlier versions.
+//
+// This is particularly critical when upgrading from GORM v1 to v2, as v1's tag-based index
+// declarations were often silently ignored or misapplied, especially when partial indexes
+// (e.g., on "Name" only) were created before a composite index (e.g., on "Name"+"Namespace").
+//
+// Arguments:
+// - db: the active GORM database connection
+// - model: the target model (passed by reference)
+// - indexName: the logical name of the composite unique index as defined in the model's GORM tag
+func ensureUniqueCompositeIndex(db *gorm.DB, model interface{}, indexName string) {
+	if !db.Migrator().HasConstraint(model, indexName) {
+		if err := db.Migrator().CreateConstraint(model, indexName); err != nil {
+			glog.Fatalf("Failed to create constraint %s. Error: %v", indexName, err)
+		}
+	}
+	if !db.Migrator().HasIndex(model, indexName) {
+		if err := db.Migrator().CreateIndex(model, indexName); err != nil {
+			glog.Fatalf("Failed to create index %s. Error: %v", indexName, err)
+		}
+	}
+}
+
+// This helper function enforces a composite unique index on a given model.
+// Refer to ensureUniqueCompositeIndex for details.
+// func ensureIndex(db *gorm.DB, model interface{}, indexName string) {
+// 	if err := db.Migrator().CreateIndex(model, indexName); err != nil {
+// 		glog.Fatalf("Failed to create index %s. Error: %s", indexName, err)
+// 	}
+// }
+
 func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
@@ -452,14 +486,14 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response)
 	}
 
-	// NOTE: Manual AddIndex/AddUniqueIndex calls have been removed.
-	// All index definitions are now declared via GORM struct tags in the model types:
-	//   – experimentuuid_createatinsec
-	//   – experimentuuid_conditions_finishedatinsec
-	//   – namespace_createatinsec
-	//   – namespace_conditions_finishedatinsec
-	//   – name_namespace_index
-	// See the `index:` and `uniqueIndex:` tags in model.Run and model.Pipeline.
+	ensureUniqueCompositeIndex(db, &model.Pipeline{}, "namespace_name")
+	ensureUniqueCompositeIndex(db, &model.Experiment{}, "idx_name_namespace")
+	ensureUniqueCompositeIndex(db, &model.PipelineVersion{}, "idx_pipelineid_name")
+
+	// ensureIndex(db, &model.Run{}, "experimentuuid_createatinsec")
+	// ensureIndex(db, &model.Run{}, "experimentuuid_conditions_finishedatinsec")
+	// ensureIndex(db, &model.Run{}, "namespace_createatinsec")
+	// ensureIndex(db, &model.Run{}, "namespace_conditions_finishedatinsec")
 
 	// Manual AddForeignKey() calls have been removed.
 	// Foreign key constraints are now defined and managed by GORM via struct tags 'constraint'
