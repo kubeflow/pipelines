@@ -16,11 +16,12 @@ package storage
 
 import (
 	"bytes"
+	"context"
 	"path"
 	"regexp"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	minio "github.com/minio/minio-go/v6"
+	minio "github.com/minio/minio-go/v7"
 	"sigs.k8s.io/yaml"
 )
 
@@ -30,11 +31,11 @@ const (
 
 // Interface for object store.
 type ObjectStoreInterface interface {
-	AddFile(template []byte, filePath string) error
-	DeleteFile(filePath string) error
-	GetFile(filePath string) ([]byte, error)
-	AddAsYamlFile(o interface{}, filePath string) error
-	GetFromYamlFile(o interface{}, filePath string) error
+	AddFile(ctx context.Context, template []byte, filePath string) error
+	DeleteFile(ctx context.Context, filePath string) error
+	GetFile(ctx context.Context, filePath string) ([]byte, error)
+	AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error
+	GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string
 }
 
@@ -51,7 +52,7 @@ func (m *MinioObjectStore) GetPipelineKey(pipelineID string) string {
 	return path.Join(m.baseFolder, pipelineID)
 }
 
-func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
+func (m *MinioObjectStore) AddFile(ctx context.Context, file []byte, filePath string) error {
 	var parts int64
 
 	if m.disableMultipart {
@@ -61,6 +62,7 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 	}
 
 	_, err := m.minioClient.PutObject(
+		ctx,
 		m.bucketName, filePath, bytes.NewReader(file),
 		parts, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
@@ -69,16 +71,16 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 	return nil
 }
 
-func (m *MinioObjectStore) DeleteFile(filePath string) error {
-	err := m.minioClient.DeleteObject(m.bucketName, filePath)
+func (m *MinioObjectStore) DeleteFile(ctx context.Context, filePath string) error {
+	err := m.minioClient.DeleteObject(ctx, m.bucketName, filePath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to delete file %v", filePath)
 	}
 	return nil
 }
 
-func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
-	reader, err := m.minioClient.GetObject(m.bucketName, filePath, minio.GetObjectOptions{})
+func (m *MinioObjectStore) GetFile(ctx context.Context, filePath string) ([]byte, error) {
+	reader, err := m.minioClient.GetObject(ctx, m.bucketName, filePath, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get file %v", filePath)
 	}
@@ -97,20 +99,20 @@ func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
 	return bytes, nil
 }
 
-func (m *MinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
+func (m *MinioObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
 	bytes, err := yaml.Marshal(o)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to marshal file %v: %v", filePath, err.Error())
 	}
-	err = m.AddFile(bytes, filePath)
+	err = m.AddFile(ctx, bytes, filePath)
 	if err != nil {
 		return util.Wrap(err, "Failed to add a yaml file")
 	}
 	return nil
 }
 
-func (m *MinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
-	bytes, err := m.GetFile(filePath)
+func (m *MinioObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	bytes, err := m.GetFile(ctx, filePath)
 	if err != nil {
 		return util.Wrap(err, "Failed to read from a yaml file")
 	}

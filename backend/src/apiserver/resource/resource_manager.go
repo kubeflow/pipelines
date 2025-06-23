@@ -997,7 +997,7 @@ func (r *ResourceManager) readRunLogFromArchive(workflowManifest string, nodeId 
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeId)
 	}
 
-	logContent, err := r.objectStore.GetFile(logPath)
+	logContent, err := r.objectStore.GetFile(context.TODO(), logPath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeId)
 	}
@@ -1514,13 +1514,13 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		return bytes, pipelineVersion.PipelineSpecURI, nil
 	} else {
 		// Try reading object store from pipeline_spec_uri
-		template, errUri := r.objectStore.GetFile(pipelineVersion.PipelineSpecURI)
+		template, errUri := r.objectStore.GetFile(context.TODO(), pipelineVersion.PipelineSpecURI)
 		if errUri != nil {
 			// Try reading object store from pipeline_version_id
-			template, errUUID := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
+			template, errUUID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineId := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				template, errPipelineId := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
 				if errPipelineId != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
@@ -1609,7 +1609,7 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 		return nil, util.NewResourceNotFoundError(
 			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
-	return r.objectStore.GetFile(artifactPath)
+	return r.objectStore.GetFile(context.TODO(), artifactPath)
 }
 
 // Fetches the default experiment id.
