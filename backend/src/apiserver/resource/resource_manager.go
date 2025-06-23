@@ -63,19 +63,19 @@ var (
 	// Count the removed workflows due to garbage collection.
 	workflowGCCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "resource_manager_workflow_gc",
-		Help: "The number of gabarage-collected workflows",
+		Help: "The number of garbage-collected workflows",
 	})
 
-	// Count the successfull workflow runs
+	// Count the successful workflow runs
 	workflowSuccessCounter = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "resource_manager_workflow_runs_success",
-		Help: "The current number of successfully workflows runs",
+		Help: "The current number of successful workflow runs",
 	}, extraLabels)
 
 	// Count the failed workflow runs
 	workflowFailedCounter = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "resource_manager_workflow_runs_failed",
-		Help: "The current number of failed workflows runs",
+		Help: "The current number of failed workflow runs",
 	}, extraLabels)
 )
 
@@ -887,7 +887,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	}
 
 	if err := execSpec.CanRetry(); err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s as it does not allow reties", runId)
+		return util.NewInternalServerError(err, "Failed to retry run %s as it does not allow retries", runId)
 	}
 
 	newExecSpec, podsToDelete, err := execSpec.GenerateRetryExecution()
