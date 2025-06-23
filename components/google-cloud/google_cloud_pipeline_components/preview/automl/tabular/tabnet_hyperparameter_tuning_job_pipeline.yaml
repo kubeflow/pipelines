@@ -2826,7 +2826,7 @@ deploymentSpec:
           \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
           "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
           {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250129_0625", "\",
+          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250620_0525", "\",
           \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
           "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
@@ -2841,7 +2841,7 @@ deploymentSpec:
         args:
         - --executor_input
         - '{{$}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20250620_0525
         resources:
           cpuLimit: 8.0
           memoryLimit: 52.0
@@ -2866,7 +2866,7 @@ deploymentSpec:
           \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
           \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
           \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-feature-transform-engine:
       container:
         args:
@@ -2951,8 +2951,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250129_0625
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250129_0625
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -2969,7 +2969,7 @@ deploymentSpec:
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
         - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
         resources:
           cpuLimit: 8.0
           memoryLimit: 30.0
@@ -3037,7 +3037,7 @@ deploymentSpec:
           \ = {\n      'instanceSchemaUri': instance_schema_uri,\n      'predictionSchemaUri':\
           \ prediction_schema_uri,\n  }\n  unmanaged_container_model.uri = os.path.join(\n\
           \      trials_dir, 'trial_{}'.format(best_trial['id']), 'model'\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-model-display-name:
       container:
         args:
@@ -3064,7 +3064,7 @@ deploymentSpec:
           \n  return collections.namedtuple(\n      'Outputs',\n      [\n        \
           \  'model_display_name',\n      ],\n  )(\n      model_display_name,\n  )\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-tabnet-study-spec-parameters:
       container:
         args:
@@ -3580,7 +3580,7 @@ deploymentSpec:
           \ = ', '.join(extra_overrides)\n    warnings.warn(\n        f'The overrides\
           \ {extra_override_str} were not found in the params and '\n        'will\
           \ be ignored.'\n    )\n\n  return study_spec_parameters\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-model-batch-predict:
       container:
         args:
@@ -3821,7 +3821,7 @@ deploymentSpec:
           \   'training_disk_spec',\n          'eval_machine_spec',\n          'eval_replica_count',\n\
           \      ],\n  )(\n      training_machine_spec,\n      training_disk_spec,\n\
           \      eval_machine_spec,\n      eval_replica_count,\n  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-set-optional-inputs:
       container:
         args:
@@ -3869,7 +3869,7 @@ deploymentSpec:
           \ 'data_source_csv_filenames',\n          'data_source_bigquery_table_path',\n\
           \      ],\n  )(\n      data_source_csv_filenames,\n      data_source_bigquery_table_path,\n\
           \  )\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-split-materialized-data:
       container:
         args:
@@ -3915,7 +3915,7 @@ deploymentSpec:
           \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
           \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
           \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525
     exec-tabnet-hyperparameter-tuning-job:
       container:
         args:
@@ -3943,11 +3943,11 @@ deploymentSpec:
           ", \"trial_job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"",
           "1", "\", \"machine_spec\": ", "{{$.inputs.parameters[''training_machine_spec'']}}",
           ", \"disk_spec\": ", "{{$.inputs.parameters[''training_disk_spec'']}}",
-          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20250129_0625",
+          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20250620_0525",
           "\", \"args\": [\"--target_column=", "{{$.inputs.parameters[''target_column'']}}",
           "\", \"--weight_column=", "{{$.inputs.parameters[''weight_column'']}}",
           "\", \"--model_type=", "{{$.inputs.parameters[''prediction_type'']}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20250129_0625",
+          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20250620_0525",
           "\", \"--prediction_docker_uri_artifact_path=", "{{$.outputs.parameters[''prediction_docker_uri_output''].output_file}}",
           "\", \"--baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
           "\", \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\",
@@ -4016,7 +4016,7 @@ deploymentSpec:
           ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
 pipelineInfo:
   description: The TabNet built-in algorithm HyperparameterTuningJob pipeline.
   name: automl-tabular-tabnet-hyperparameter-tuning-job

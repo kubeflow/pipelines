@@ -77,7 +77,7 @@ def distillation_stage_feature_transform_engine(
   # fmt: on
 
   return dsl.ContainerSpec(
-      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250129_0625',
+      image='us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525',
       command=[],
       args=[
           'distillation_stage_feature_transform_engine',
@@ -185,7 +185,7 @@ def distillation_stage_feature_transform_engine(
                   dataflow_machine_type,
               ]
           ),
-          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250129_0625',
+          '--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525',
           dsl.ConcatPlaceholder(
               items=[
                   '--dataflow_disk_size_gb=',
