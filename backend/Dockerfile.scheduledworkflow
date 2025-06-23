@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.23-alpine as builder
+FROM golang:1.23-alpine AS builder
 
 # Needed musl-dev for github.com/mattn/go-sqlite3
 RUN apk update && apk upgrade && \
@@ -41,7 +41,7 @@ USER appuser
 WORKDIR /bin
 
 COPY --from=builder /bin/controller /bin/controller
-ENV NAMESPACE ""
-ENV LOG_LEVEL info
+ENV NAMESPACE=""
+ENV LOG_LEVEL=info
 
 CMD /bin/controller --logtostderr=true --namespace=${NAMESPACE} --logLevel=${LOG_LEVEL}
