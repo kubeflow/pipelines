@@ -31,8 +31,12 @@ const (
 type PipelineVersion struct {
 	UUID           string `gorm:"column:UUID; not null; primaryKey;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
-	Name           string `gorm:"column:Name; not null; type:varchar(255); uniqueIndex:idx_pipelineid_name;"`
-	DisplayName    string `gorm:"column:DisplayName; not null"`
+	// Explicitly specify type:varchar(255) to ensure MySQL can create index on this column.
+	// In GORM v1, omitting type still allowed index creation due to default behavior.
+	// However, GORM v2 requires explicit type declaration for indexed string fields,
+	// otherwise it may default to longtext, which is not indexable in MySQL.
+	Name        string `gorm:"column:Name; not null; type:varchar(255); uniqueIndex:idx_pipelineid_name;"`
+	DisplayName string `gorm:"column:DisplayName; not null"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	Parameters string `gorm:"column:Parameters; not null; type:text;"` // deprecated
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID

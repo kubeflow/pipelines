@@ -388,14 +388,6 @@ func ensureUniqueCompositeIndex(db *gorm.DB, model interface{}, indexName string
 	}
 }
 
-// This helper function enforces a composite unique index on a given model.
-// Refer to ensureUniqueCompositeIndex for details.
-// func ensureIndex(db *gorm.DB, model interface{}, indexName string) {
-// 	if err := db.Migrator().CreateIndex(model, indexName); err != nil {
-// 		glog.Fatalf("Failed to create index %s. Error: %s", indexName, err)
-// 	}
-// }
-
 func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
@@ -486,22 +478,18 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response)
 	}
 
+	// Manual AddForeignKey() and AddIndex() calls have been removed.
+	// Both Methods are GORM v1 legacy which no longer exist in GORM v2.
+	// Foreign key constraints are now defined and managed by GORM via struct tags 'constraint' and 'index'.
+	// This ensures a single source of truth for schema definitions and avoids duplicate or out-of-sync DDL.
+
+	// The ensureUniqueCompositeIndex() method is called to replace the GORM v1 legacy AddUniqueIndex method.
 	ensureUniqueCompositeIndex(db, &model.Pipeline{}, "namespace_name")
 	ensureUniqueCompositeIndex(db, &model.Experiment{}, "idx_name_namespace")
 	ensureUniqueCompositeIndex(db, &model.PipelineVersion{}, "idx_pipelineid_name")
 
-	// ensureIndex(db, &model.Run{}, "experimentuuid_createatinsec")
-	// ensureIndex(db, &model.Run{}, "experimentuuid_conditions_finishedatinsec")
-	// ensureIndex(db, &model.Run{}, "namespace_createatinsec")
-	// ensureIndex(db, &model.Run{}, "namespace_conditions_finishedatinsec")
-
-	// Manual AddForeignKey() calls have been removed.
-	// Foreign key constraints are now defined and managed by GORM via struct tags 'constraint'
-	// on RunMetric.RunUUID, PipelineVersion.PipelineId, Task.RunUUID, etc.).
-	// This ensures a single source of truth for schema definitions and avoids duplicate or out-of-sync DDL.
-
 	// Removed invalid ModifyColumn on Job.WorkflowSpecManifest.
-	// This field never existed on Job; original reference likely confused with PipelineSpec.
+	// This field does not exist on Job; original reference likely confused with PipelineSpec.
 
 	// Data backfill for pipeline_versions if this is the first time for
 	// pipeline_versions to enter mlpipeline DB.
