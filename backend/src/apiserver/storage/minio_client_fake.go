@@ -16,9 +16,10 @@ package storage
 
 import (
 	"bytes"
+	"context"
 	"io"
 
-	"github.com/minio/minio-go/v6"
+	"github.com/minio/minio-go/v7"
 	"github.com/pkg/errors"
 )
 
@@ -32,7 +33,7 @@ func NewFakeMinioClient() *FakeMinioClient {
 	}
 }
 
-func (c *FakeMinioClient) PutObject(bucketName, objectName string, reader io.Reader,
+func (c *FakeMinioClient) PutObject(ctx context.Context, bucketName, objectName string, reader io.Reader,
 	objectSize int64, opts minio.PutObjectOptions,
 ) (int64, error) {
 	buf := new(bytes.Buffer)
@@ -41,7 +42,7 @@ func (c *FakeMinioClient) PutObject(bucketName, objectName string, reader io.Rea
 	return 1, nil
 }
 
-func (c *FakeMinioClient) GetObject(bucketName, objectName string,
+func (c *FakeMinioClient) GetObject(ctx context.Context, bucketName, objectName string,
 	opts minio.GetObjectOptions,
 ) (io.Reader, error) {
 	if _, ok := c.minioClient[objectName]; !ok {
@@ -50,7 +51,7 @@ func (c *FakeMinioClient) GetObject(bucketName, objectName string,
 	return bytes.NewReader(c.minioClient[objectName]), nil
 }
 
-func (c *FakeMinioClient) DeleteObject(bucketName, objectName string) error {
+func (c *FakeMinioClient) DeleteObject(ctx context.Context, bucketName, objectName string) error {
 	if _, ok := c.minioClient[objectName]; !ok {
 		return errors.New("object not found")
 	}

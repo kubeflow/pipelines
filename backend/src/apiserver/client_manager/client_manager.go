@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"github.com/minio/minio-go/v6"
 
 	"github.com/cenkalti/backoff"
 	"github.com/go-sql-driver/mysql"
@@ -39,6 +38,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
+	"github.com/minio/minio-go/v7"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -292,7 +292,7 @@ func (c *ClientManager) init(options *Options) error {
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
 	glog.Info("Initializing Minio client...")
-	c.objectStore = initMinioClient(common.GetDurationConfig(initConnectionTimeout))
+	c.objectStore = initMinioClient(options.Context, common.GetDurationConfig(initConnectionTimeout))
 	glog.Info("Minio client initialized successfully")
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
@@ -637,7 +637,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	return sqlConfig
 }
 
-func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
+func initMinioClient(ctx context.Context, initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
 	// Create minio client.
 	minioServiceHost := common.GetStringConfigWithDefault(
 		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
@@ -655,14 +655,14 @@ func initMinioClient(initConnectionTimeout time.Duration) storage.ObjectStoreInt
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
 		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
-	createMinioBucket(minioClient, bucketName, minioServiceRegion)
+	createMinioBucket(ctx, minioClient, bucketName, minioServiceRegion)
 
 	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelinePath, disableMultipart)
 }
 
-func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
+func createMinioBucket(ctx context.Context, minioClient *minio.Client, bucketName, region string) {
 	// Check to see if it exists, and we have permission to access it.
-	exists, err := minioClient.BucketExists(bucketName)
+	exists, err := minioClient.BucketExists(ctx, bucketName)
 	if err != nil {
 		glog.Fatalf("Failed to check if object store bucket exists. Error: %v", err)
 	}
@@ -671,7 +671,7 @@ func createMinioBucket(minioClient *minio.Client, bucketName, region string) {
 		return
 	}
 	// Create bucket if it does not exist
-	err = minioClient.MakeBucket(bucketName, region)
+	err = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{Region: region})
 	if err != nil {
 		glog.Fatalf("Failed to create object store bucket. Error: %v", err)
 	}

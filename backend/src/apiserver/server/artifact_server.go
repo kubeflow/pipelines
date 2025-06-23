@@ -222,7 +222,7 @@ func (s *ArtifactServer) generateResponseArtifact(
 	if err != nil {
 		return nil, err
 	}
-	size, err := s.resourceManager.GetObjectSize(bucketConfig, secret, *artifact.Uri)
+	size, err := s.resourceManager.GetObjectSize(ctx, bucketConfig, secret, *artifact.Uri)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func (s *ArtifactServer) generateResponseArtifact(
 	case apiv2beta1.GetArtifactRequest_DOWNLOAD:
 		queryParams := make(url.Values)
 		queryParams.Set("response-content-disposition", "attachment")
-		shareUrl, err := s.resourceManager.GetSignedUrl(bucketConfig, secret, expiry, *artifact.Uri, queryParams)
+		shareUrl, err := s.resourceManager.GetSignedUrl(ctx, bucketConfig, secret, expiry, *artifact.Uri, queryParams)
 		if err != nil {
 			return nil, err
 		}
@@ -252,7 +252,7 @@ func (s *ArtifactServer) generateResponseArtifact(
 	case apiv2beta1.GetArtifactRequest_RENDER:
 		queryParams := make(url.Values)
 		queryParams.Set("response-content-disposition", "inline")
-		renderUrl, err := s.resourceManager.GetSignedUrl(bucketConfig, secret, expiry, *artifact.Uri, queryParams)
+		renderUrl, err := s.resourceManager.GetSignedUrl(ctx, bucketConfig, secret, expiry, *artifact.Uri, queryParams)
 		if err != nil {
 			return nil, err
 		}

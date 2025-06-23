@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"context"
 	"net/url"
 	"time"
 
@@ -30,27 +31,28 @@ func (m *fakeMinioObjectStore) GetPipelineKey(pipelineID string) string {
 	return m.minioObjectStore.GetPipelineKey(pipelineID)
 }
 
-func (m *fakeMinioObjectStore) AddFile(file []byte, filePath string) error {
-	return m.minioObjectStore.AddFile(file, filePath)
+func (m *fakeMinioObjectStore) AddFile(ctx context.Context, file []byte, filePath string) error {
+	return m.minioObjectStore.AddFile(ctx, file, filePath)
 }
 
-func (m *fakeMinioObjectStore) DeleteFile(filePath string) error {
-	return m.minioObjectStore.DeleteFile(filePath)
+func (m *fakeMinioObjectStore) DeleteFile(ctx context.Context, filePath string) error {
+	return m.minioObjectStore.DeleteFile(ctx, filePath)
 }
 
-func (m *fakeMinioObjectStore) GetFile(filePath string) ([]byte, error) {
-	return m.minioObjectStore.GetFile(filePath)
+func (m *fakeMinioObjectStore) GetFile(ctx context.Context, filePath string) ([]byte, error) {
+	return m.minioObjectStore.GetFile(ctx, filePath)
 }
 
-func (m *fakeMinioObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
-	return m.minioObjectStore.AddAsYamlFile(o, filePath)
+func (m *fakeMinioObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	return m.minioObjectStore.AddAsYamlFile(ctx, o, filePath)
 }
 
-func (m *fakeMinioObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
-	return m.minioObjectStore.GetFromYamlFile(o, filePath)
+func (m *fakeMinioObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	return m.minioObjectStore.GetFromYamlFile(ctx, o, filePath)
 }
 
 func (m *fakeMinioObjectStore) GetSignedUrl(
+	ctx context.Context,
 	bucketConfig *objectstore.Config, secret *v1.Secret, expiry time.Duration,
 	uri string, queryParams url.Values) (string, error) {
 
@@ -60,7 +62,7 @@ func (m *fakeMinioObjectStore) GetSignedUrl(
 	return "dummy-signed-url", nil
 }
 
-func (m *fakeMinioObjectStore) GetObjectSize(*objectstore.Config, *v1.Secret, string) (int64, error) {
+func (m *fakeMinioObjectStore) GetObjectSize(context.Context, *objectstore.Config, *v1.Secret, string) (int64, error) {
 	return 123, nil
 }
 

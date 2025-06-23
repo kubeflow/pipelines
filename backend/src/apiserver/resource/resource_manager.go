@@ -1006,7 +1006,7 @@ func (r *ResourceManager) readRunLogFromArchive(workflowManifest string, nodeId 
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeId)
 	}
 
-	logContent, err := r.objectStore.GetFile(logPath)
+	logContent, err := r.objectStore.GetFile(context.TODO(), logPath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeId)
 	}
@@ -1544,13 +1544,13 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		return bytes, pipelineVersion.PipelineSpecURI, nil
 	} else {
 		// Try reading object store from pipeline_spec_uri
-		template, errUri := r.objectStore.GetFile(pipelineVersion.PipelineSpecURI)
+		template, errUri := r.objectStore.GetFile(context.TODO(), pipelineVersion.PipelineSpecURI)
 		if errUri != nil {
 			// Try reading object store from pipeline_version_id
-			template, errUUID := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
+			template, errUUID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineId := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				template, errPipelineId := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
 				if errPipelineId != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
@@ -1639,7 +1639,7 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 		return nil, util.NewResourceNotFoundError(
 			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
-	return r.objectStore.GetFile(artifactPath)
+	return r.objectStore.GetFile(context.TODO(), artifactPath)
 }
 
 // Fetches the default experiment id.
@@ -2159,8 +2159,8 @@ func (r *ResourceManager) GetSecret(ctx context.Context, namespace, name string)
 }
 
 // GetSignedUrl retrieves a signed url for the associated artifact.
-func (r *ResourceManager) GetSignedUrl(bucketConfig *objectstore.Config, secret *corev1.Secret, expirySeconds time.Duration, artifactURI string, queryParams url.Values) (string, error) {
-	signedUrl, err := r.objectStore.GetSignedUrl(bucketConfig, secret, expirySeconds, artifactURI, queryParams)
+func (r *ResourceManager) GetSignedUrl(ctx context.Context, bucketConfig *objectstore.Config, secret *corev1.Secret, expirySeconds time.Duration, artifactURI string, queryParams url.Values) (string, error) {
+	signedUrl, err := r.objectStore.GetSignedUrl(ctx, bucketConfig, secret, expirySeconds, artifactURI, queryParams)
 	if err != nil {
 		return "", err
 	}
@@ -2168,8 +2168,8 @@ func (r *ResourceManager) GetSignedUrl(bucketConfig *objectstore.Config, secret 
 }
 
 // GetObjectSize retrieves the size of the Artifact's object in bytes.
-func (r *ResourceManager) GetObjectSize(bucketConfig *objectstore.Config, secret *corev1.Secret, artifactURI string) (int64, error) {
-	size, err := r.objectStore.GetObjectSize(bucketConfig, secret, artifactURI)
+func (r *ResourceManager) GetObjectSize(ctx context.Context, bucketConfig *objectstore.Config, secret *corev1.Secret, artifactURI string) (int64, error) {
+	size, err := r.objectStore.GetObjectSize(ctx, bucketConfig, secret, artifactURI)
 	if err != nil {
 		return 0, err
 	}
