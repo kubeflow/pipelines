@@ -136,6 +136,11 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 				IntervalSecond: 60,
 			},
 		},
+		RuntimeConfig: &recurring_run_model.V2beta1RuntimeConfig{
+			Parameters: map[string]interface{}{
+				"message": "Hello world",
+			},
+		},
 	}}
 	helloWorldRecurringRun, err := s.recurringRunClient.Create(createRecurringRunRequest)
 	require.NoError(t, err)
@@ -251,6 +256,11 @@ func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta
 			PipelineID:        pipelineVersion.PipelineID,
 			PipelineVersionID: pipelineVersion.PipelineVersionID,
 		},
+		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
+			Parameters: map[string]interface{}{
+				"message": "Hello world",
+			},
+		},
 	}}
 	pipelineRunDetail, err := s.runClient.Create(createRunRequest)
 	require.NoError(s.T(), err)
@@ -268,12 +278,12 @@ func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta
 }
 
 func (s *CacheTestSuite) preparePipeline() *pipeline_upload_model.V2beta1PipelineVersion {
-	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
+	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world-with-returning-component.yaml", uploadParams.NewUploadPipelineParams())
 	require.NoError(s.T(), err)
 
 	time.Sleep(1 * time.Second)
 	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
-		"../resources/hello-world.yaml", &uploadParams.UploadPipelineVersionParams{
+		"../resources/hello-world-with-returning-component.yaml", &uploadParams.UploadPipelineVersionParams{
 			Name:       util.StringPointer("hello-world-version"),
 			Pipelineid: util.StringPointer(pipeline.PipelineID),
 		})

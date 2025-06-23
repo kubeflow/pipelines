@@ -62,7 +62,6 @@ spec:
       - --no_proxy
       - ''
       - --cache_disabled
-      - 'true'
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -157,7 +156,6 @@ spec:
       - --copy
       - /kfp-launcher/launch
       - --cache_disabled
-      - "true"
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher
@@ -258,7 +256,6 @@ spec:
       - --no_proxy
       - ''
       - --cache_disabled
-      - 'true'
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
