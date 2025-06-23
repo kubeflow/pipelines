@@ -67,31 +67,31 @@ func (m *FakeBadObjectStore) GetPipelineKey(pipelineID string) string {
 	return pipelineID
 }
 
-func (m *FakeBadObjectStore) AddFile(template []byte, filePath string) error {
+func (m *FakeBadObjectStore) AddFile(ctx context.Context, template []byte, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (m *FakeBadObjectStore) DeleteFile(filePath string) error {
+func (m *FakeBadObjectStore) DeleteFile(ctx context.Context, filePath string) error {
 	return errors.New("Not implemented")
 }
 
-func (m *FakeBadObjectStore) GetFile(filePath string) ([]byte, error) {
+func (m *FakeBadObjectStore) GetFile(ctx context.Context, filePath string) ([]byte, error) {
 	return []byte(""), nil
 }
 
-func (m *FakeBadObjectStore) AddAsYamlFile(o interface{}, filePath string) error {
+func (m *FakeBadObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (m *FakeBadObjectStore) GetFromYamlFile(o interface{}, filePath string) error {
+func (m *FakeBadObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (m *FakeBadObjectStore) GetSignedUrl(bucketConfig *objectstore.Config, secret *corev1.Secret, expirySeconds time.Duration, artifactURI string, queryParams url.Values) (string, error) {
+func (m *FakeBadObjectStore) GetSignedUrl(ctx context.Context, bucketConfig *objectstore.Config, secret *corev1.Secret, expirySeconds time.Duration, artifactURI string, queryParams url.Values) (string, error) {
 	return "", util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (m *FakeBadObjectStore) GetObjectSize(bucketConfig *objectstore.Config, secret *corev1.Secret, artifactURI string) (int64, error) {
+func (m *FakeBadObjectStore) GetObjectSize(ctx context.Context, bucketConfig *objectstore.Config, secret *corev1.Secret, artifactURI string) (int64, error) {
 	return 0, util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
@@ -1037,7 +1037,7 @@ func TestGetPipelineTemplate_FromPipelineURI(t *testing.T) {
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 
 	p, _ := manager.CreatePipeline(createPipelineV1("new_pipeline"))
-	manager.objectStore.AddFile([]byte(testWorkflow.ToStringForStore()), p.UUID)
+	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), p.UUID)
 	pv := &model.PipelineVersion{
 		PipelineId:      p.UUID,
 		Name:            "new_version",
@@ -1070,7 +1070,7 @@ func TestGetPipelineTemplate_FromPipelineVersionId(t *testing.T) {
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	assert.True(t, ok)
 
-	manager.objectStore.AddFile([]byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey("1000"))
+	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey("1000"))
 	pv2, _ := manager.CreatePipelineVersion(pv)
 	assert.NotEqual(t, p.UUID, pv2.UUID)
 
@@ -1093,7 +1093,7 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 		PipelineSpecURI: p.UUID,
 	}
 
-	manager.objectStore.AddFile([]byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey(p.UUID))
+	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey(p.UUID))
 
 	pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
@@ -1111,7 +1111,7 @@ func TestGetPipelineTemplate_PipelineMetadataNotFound(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	template := []byte("workflow: foo")
-	store.objectStore.AddFile(template, store.objectStore.GetPipelineKey(fmt.Sprint(1)))
+	store.objectStore.AddFile(context.TODO(), template, store.objectStore.GetPipelineKey(fmt.Sprint(1)))
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 	_, err := manager.GetPipelineLatestTemplate("1")
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
@@ -3327,7 +3327,7 @@ func TestReadArtifact_Succeed(t *testing.T) {
 
 	expectedContent := "test"
 	filePath := "test/file.txt"
-	store.ObjectStore().AddFile([]byte(expectedContent), filePath)
+	store.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
 
 	// Create a scheduled run
 	// job, _ := manager.CreateJob(model.Job{
