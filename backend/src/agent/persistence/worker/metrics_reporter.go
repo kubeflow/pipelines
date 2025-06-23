@@ -112,5 +112,5 @@ func aggregateErrors(errors []error) error {
 		}
 		errorMsgs = append(errorMsgs, err.Error())
 	}
-	return util.NewCustomErrorf(code, strings.Join(errorMsgs, "\n"))
+	return util.NewCustomErrorf(code, "%s", strings.Join(errorMsgs, "\n"))
 }
