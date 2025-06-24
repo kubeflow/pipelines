@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Objects for configuring local execution."""
+
 import abc
 import dataclasses
+from dataclasses import field
 import os
-from typing import Union
+from typing import Dict, Union
 
 from kfp import local
 
@@ -42,13 +44,20 @@ class SubprocessRunner:
     Args:
         use_venv: Whether to run the subprocess in a virtual environment. If True, dependencies will be installed in the virtual environment. If False, dependencies will be installed in the current environment. Using a virtual environment is recommended.
     """
+
     use_venv: bool = True
 
 
 @dataclasses.dataclass
 class DockerRunner:
     """Runner that indicates that local tasks should be run as a Docker
-    container."""
+    container.
+
+    Args:
+        volumes: Additional volumes you wnat to mount to task containers.
+    """
+
+    volumes: Dict[str, Dict[str, str]] = field(default_factory=dict)
 
     def __post_init__(self):
         try:

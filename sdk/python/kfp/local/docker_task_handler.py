@@ -43,13 +43,20 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
             raise ValueError(
                 "'pipeline_root' should be an absolute path to correctly construct the volume mount specification."
             )
-        return {self.pipeline_root: {'bind': self.pipeline_root, 'mode': 'rw'}}
+        default_volume = {
+            self.pipeline_root: {
+                'bind': self.pipeline_root,
+                'mode': 'rw'
+            }
+        }
+        return default_volume | self.runner.volumes
 
     def run(self) -> status.Status:
         """Runs the Docker container and returns the status."""
         # nest docker import in case not available in user env so that
         # this module is runnable, even if not using DockerRunner
         import docker
+
         client = docker.from_env()
         try:
             volumes = self.get_volumes_to_mount()
