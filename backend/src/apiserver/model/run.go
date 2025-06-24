@@ -216,10 +216,11 @@ type Run struct {
 
 	StorageState   StorageState `gorm:"column:StorageState; not null;"`
 	ServiceAccount string       `gorm:"column:ServiceAccount; not null;"`
-	Metrics        []*RunMetric
+	Metrics        []*RunMetric `gorm:"foreignKey:RunUUID;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"` // This 'has-many' relation replaces the legacy AddForeignKey constraint previously defined in client_manager.go
 
 	// ResourceReferences are deprecated. Use Namespace, ExperimentId,
 	// RecurringRunId, PipelineSpec.PipelineId, PipelineSpec.PipelineVersionId
+	// gorm:"-" tag is added to avoid declaring a foreign key. Refer to Job model for reasons.
 	ResourceReferences []*ResourceReference `gorm:"-"`
 
 	PipelineSpec
@@ -325,7 +326,6 @@ type RunMetric struct {
 	NumberValue float64 `gorm:"column:NumberValue;"`
 	Format      string  `gorm:"column:Format;"`
 	Payload     string  `gorm:"column:Payload; not null; type: text;"`
-	RunFK       *Run    `gorm:"foreignKey:RunUUID;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"` // // This replaces the legacy AddForeignKey constraint previously defined in client_manager.go
 }
 
 type RuntimeStatus struct {

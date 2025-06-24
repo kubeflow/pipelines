@@ -23,9 +23,9 @@ type Task struct {
 	Namespace string `gorm:"column:Namespace; not null;"`
 	// PipelineName was deprecated. Use RunId instead.
 	PipelineName string `gorm:"column:PipelineName; not null;"`
-	RunId        string `gorm:"column:RunUUID; type:varchar(191); not null;"`
-	// This replaces the legacy AddForeignKey constraint previously defined in client_manager.go
-	Run                Run              `gorm:"foreignKey:RunUUID;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
+	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
+	RunId              string           `gorm:"column:RunUUID; type:varchar(191); not null;"`                                  // Note: field name (RunId) ≠ column name (RunUUID). The former should be the foreign key instead of the letter.
+	Run                Run              `gorm:"foreignKey:RunId;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"` // This 'belongs to' relation replaces the legacy AddForeignKey constraint previously defined in client_manager.go
 	PodName            string           `gorm:"column:PodName; not null;"`
 	MLMDExecutionID    string           `gorm:"column:MLMDExecutionID; not null;"`
 	CreatedTimestamp   int64            `gorm:"column:CreatedTimestamp; not null;"`

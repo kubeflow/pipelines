@@ -42,10 +42,10 @@ type PipelineVersion struct {
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
-	PipelineId string `gorm:"column:PipelineId; not null; index; uniqueIndex:idx_pipelineid_name;"`
-	// This replaces the legacy AddForeignKey constraint previously defined in client_manager.go
-	Pipeline Pipeline              `gorm:"foreignKey:PipelineId;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"`
-	Status   PipelineVersionStatus `gorm:"column:Status; not null;"`
+	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
+	PipelineId string                `gorm:"column:PipelineId; not null; index; uniqueIndex:idx_pipelineid_name;"`
+	Pipeline   Pipeline              `gorm:"foreignKey:PipelineId;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"` // This 'belongs to' relation replaces the legacy AddForeignKey constraint previously defined in client_manager.go
+	Status     PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.
 	CodeSourceUrl   string `gorm:"column:CodeSourceUrl;"`
 	Description     string `gorm:"column:Description; type:text;"`                // Set size to large number so it will be stored as longtext
