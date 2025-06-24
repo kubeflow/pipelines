@@ -34,7 +34,7 @@ To boost the release efficiency of the Kubeflow Pipelines project and increase c
 This proposal outlines changes to our testing approach, emphasizing improved test efficacy, reduced testing time, enhanced confidence, and more targeted functional testing. It also explores leveraging existing data for real-world end-to-end testing scenarios and developing a scalable testing framework for broader use and integration.
 ## Goals
 1. Comprehensive test coverage for Kubeflow Pipelines APIs.
-2. Main list of pipeline files - A repository of diverse valid and invalid pipeline files (organized in a single dedicated directory) sourced from existing tests, customer contributions, user scenarios, and AI-generated examples (using Gemini, ChatGPT, or Cursor).
+2. Main list of pipeline files - A repository of diverse valid and invalid pipeline files (organized in a single dedicated directory) sourced from existing tests, customer contributions, user scenarios.
 3. A standardized test framework for all contributors: Ginkgo + Gomega for all tests except SDK Unit/Component tests, which will use Pytest and front end Javascript tests.
 4. Refactoring of existing v2 tests, to be conducted in phases with specific goals for each phase.
 5. Cleanup and reorganization of test code to eliminate redundancy.
@@ -46,6 +46,7 @@ This proposal outlines changes to our testing approach, emphasizing improved tes
 1. We will not initially cover components that users can not directly interact with . For e.g. “Pod Executor”, we will still add indirect coverage for this pipeline service/component but until we have a direct way to interact with this, direct functional coverage will be out of scope.
 2. Stable third-party dependencies, such as Argo Workflows, will not be included in this initiative.
 3. Front End Tests will not be refactored
+4. AI-generated pipeline specs (using Gemini, ChatGPT, or Cursor) may not be included as part of this
 
 # Proposal
 This section describes the proposed changes to our current testing processes and supporting test architecture. These changes aim to improve the quality, reliability, and speed of our testing, leading to better product outcomes.
