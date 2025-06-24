@@ -3,6 +3,7 @@
 # pip-compile --no-emit-index-url requirements.in
 
 click==8.1.8
+click-option-group==0.5.7
 docstring-parser>=0.7.3,<1
 # Pin google-api-core version for the bug fixing in 1.31.5
 # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
