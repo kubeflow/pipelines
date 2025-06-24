@@ -39,7 +39,7 @@ This proposal outlines changes to our testing approach, emphasizing improved tes
 4. Refactoring of existing v2 tests, to be conducted in phases with specific goals for each phase.
 5. Cleanup and reorganization of test code to eliminate redundancy.
 6. Documentation improvements:
-   1. A new Test Process strategy document (post-stakeholder approval) will be added to the CONTRIBUTING guide.
+   1. A new Test Process strategy document will be added to the CONTRIBUTING guide.
    2. Test code documentation with examples of creating new test cases.
    3. All Tests should be environment agnostic, i.e. these tests should be able to run in any type of cluster Kind, Minikube, Cloud and on any namespace
 ## Non-Goals
