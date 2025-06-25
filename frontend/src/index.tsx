@@ -16,7 +16,6 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
-import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -33,6 +32,7 @@ import {
   NamespaceContextProvider,
 } from './lib/KubeflowClient';
 import { BuildInfoProvider } from './lib/BuildInfo';
+import { MuiThemeProvider } from '@material-ui/core/styles';
 // import { ReactQueryDevtools } from 'react-query/devtools';
 
 // TODO: license headers
