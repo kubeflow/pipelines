@@ -25,6 +25,8 @@ S3_BUCKET_NAME = 'mlpipeline'
 session = botocore.session.get_session()
 # To interact with seaweedfs user management. Region does not matter.
 iam = session.create_client('iam', region_name='foobar')
+# S3 client for lifecycle policy management
+s3 = session.create_client('s3', region_name='foobar')
 
 
 def main():
@@ -92,6 +94,28 @@ def server_factory(visualization_server_image,
     Returns an HTTPServer populated with Handler with customized settings
     """
     class Controller(BaseHTTPRequestHandler):
+        def upsert_lifecycle_policy(self, bucket_name):
+            """Configure TTL lifecycle policy for SeaweedFS using S3 API"""
+            lfc = {
+                "Rules": [
+                    {
+                        "Status": "Enabled",
+                        "Filter": {"Prefix": "private-artifacts/"},
+                        "Expiration": {"Days": 183},
+                        "ID": "private-artifacts",
+                    },
+                ]
+            }
+            print('upsert_lifecycle_policy:', lfc)
+            try:
+                api_response = s3.put_bucket_lifecycle_configuration(
+                    Bucket=bucket_name,
+                    LifecycleConfiguration=lfc
+                )
+                print('Lifecycle policy configured successfully:', api_response)
+            except Exception as e:
+                print(f'Warning: Failed to configure lifecycle policy: {e}')
+
         def sync(self, parent, attachments):
             # parent is a namespace
             namespace = parent.get("metadata", {}).get("name")
@@ -208,6 +232,9 @@ def server_factory(visualization_server_image,
                             }]
                         })
                 )
+                
+                self.upsert_lifecycle_policy(S3_BUCKET_NAME)
+                
                 desired_resources.insert(
                     0,
                     {
