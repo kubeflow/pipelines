@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2025 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,9 +44,11 @@ import (
 // you need to provide access to the Docker runtime on the host,
 // typically by mounting the Docker socket (e.g., /var/run/docker.sock)
 // into the test container, so that Testcontainers can manage containers.
+//
+// Image can be configured using the command-line flag: go test -v -mysql-image <YOUR_MYSQL_IMAGE>
 
-func NewMySqlDBOrFatal(container *mysqlcontainer.MySQLContainer, ctx context.Context) *DB {
-	gormDb, err := OpenMysqlDb(ctx, container)
+func NewMySqlDBOrFatal(ctx context.Context, container *mysqlcontainer.MySQLContainer) *DB {
+	gormDb, err := OpenMySQLDb(ctx, container)
 	if err != nil {
 		glog.Fatalf(err.Error())
 	}
@@ -54,22 +56,25 @@ func NewMySqlDBOrFatal(container *mysqlcontainer.MySQLContainer, ctx context.Con
 	return db
 }
 
-func LaunchMysqlContainer(ctx context.Context) (*mysqlcontainer.MySQLContainer, error) {
-	container, err := mysqlcontainer.Run(ctx, "mysql:8.0")
+func LaunchMySQLContainer(ctx context.Context, params *MySQLTestParams) (*mysqlcontainer.MySQLContainer, error) {
+	if params == nil {
+		return nil, fmt.Errorf("params cannot be nil")
+	}
+	container, err := mysqlcontainer.Run(ctx, params.Image)
 	if err != nil {
-		return nil, fmt.Errorf("error during creating mysql container for testing: %v", err)
+		return nil, fmt.Errorf("error during creating MySQL container for testing: %v", err)
 	}
 	return container, nil
 }
 
-func OpenMysqlDb(ctx context.Context, container *mysqlcontainer.MySQLContainer) (*gorm.DB, error) {
+func OpenMySQLDb(ctx context.Context, container *mysqlcontainer.MySQLContainer) (*gorm.DB, error) {
 	connString, err := container.ConnectionString(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error during creating mysql connection string for testing: %v", err)
+		return nil, fmt.Errorf("error during creating MySQL connection string for testing: %v", err)
 	}
 	db, err := gorm.Open("mysql", connString)
 	if err != nil {
-		return nil, util.Wrap(err, "Could not create the GORM mysql database for testing")
+		return nil, util.Wrap(err, "Could not create the GORM MySQL database for testing")
 	}
 	return db, nil
 }
