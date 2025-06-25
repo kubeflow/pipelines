@@ -43,7 +43,7 @@ This proposal outlines changes to our testing approach, emphasizing improved tes
    2. Test code documentation with examples of creating new test cases.
    3. All Tests should be environment agnostic, i.e. these tests should be able to run in any type of cluster Kind, Minikube, Cloud and on any namespace
 ## Non-Goals
-1. We will not initially cover components that users can not directly interact with . For e.g. “Pod Executor”, we will still add indirect coverage for this pipeline service/component but until we have a direct way to interact with this, direct functional coverage will be out of scope.
+1. We will not initially cover components that users can not directly interact with . For e.g. “Launcher/Executor”, "Driver", we will still add indirect coverage for this pipeline service/component but until we have a direct way to interact with this, direct functional coverage will be out of scope.
 2. Stable third-party dependencies, such as Argo Workflows, will not be included in this initiative.
 3. Front End Tests will not be refactored
 4. AI-generated pipeline specs (using Gemini, ChatGPT, or Cursor) may not be included as part of this
@@ -101,11 +101,11 @@ Using Pytest’s parameterized feature, we can define components as parameters t
 
 ##### API Tests
 
-**Option 1:**
+~~**Option 1:**
 
 ![SDK API Option 1.png](SDK%20API%20Option%201.png)
 
-Add a proxy to capture all Http calls to the API server, and validate if the request is valid or not. This way, we won’t need a KFP service running in a cluster, and we can verify SDK tests in a standalone environment
+Add a proxy to capture all Http calls to the API server, and validate if the request is valid or not. This way, we won’t need a KFP service running in a cluster, and we can verify SDK tests in a standalone environment~~
 
 
 **Option 2:**
