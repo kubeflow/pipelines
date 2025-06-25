@@ -136,7 +136,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
             {graphToShow && (
               <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
                 {!!pipeline && summaryShown && (
-                  <Paper className={css.summaryCard}>
+                  <Paper elevation={2} className={css.summaryCard}>
                     <div
                       style={{
                         alignItems: 'baseline',

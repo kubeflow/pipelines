@@ -152,8 +152,8 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
           count={data.length}
           rowsPerPage={rowsPerPage}
           page={page}
-          onChangePage={this._handleChangePage}
-          onChangeRowsPerPage={this._handleChangeRowsPerPage}
+          onPageChange={this._handleChangePage}
+          onRowsPerPageChange={this._handleChangeRowsPerPage}
         />
       </div>
     );

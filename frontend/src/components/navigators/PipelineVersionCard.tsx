@@ -48,7 +48,7 @@ export function PipelineVersionCard({
   return (
     <>
       {!!pipeline && summaryShown && (
-        <Paper className='absolute bottom-3 left-20 p-5 w-136 z-20'>
+        <Paper elevation={2} className='absolute bottom-3 left-20 p-5 w-136 z-20'>
           <div className='items-baseline flex justify-between'>
             <div className={commonCss.header}>Static Pipeline Summary</div>
             <Button onClick={() => setSummaryShown(false)} color='secondary'>

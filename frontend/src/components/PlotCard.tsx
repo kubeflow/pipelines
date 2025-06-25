@@ -115,7 +115,7 @@ class PlotCard extends React.Component<PlotCardProps, PlotCardState> {
 
     return (
       <div>
-        <Paper {...otherProps} className={classes(css.plotCard, 'plotCard')}>
+        <Paper elevation={2} {...otherProps} className={classes(css.plotCard, 'plotCard')}>
           <div className={css.plotHeader}>
             <div className={css.plotTitle} title={title}>
               {title}
