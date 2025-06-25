@@ -156,7 +156,7 @@ Develop a simple application to run pipeline files from a directory (local or re
 ![End2End-Full Regression.png](End2End-Full%20Regression.png)
 
 **Pros**:
-An ad hoc way for us to load the system
+* An ad hoc way for us to load the system
 * Full end to end testing
 * Lot of indirect testing of components without really worrying about the internals
 * Easy to expand - all it will take is to generate a new pipeline file
