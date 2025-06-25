@@ -1,0 +1,12 @@
+auth:
+  postgresPassword: kubeflow # PostgreSQL superuser password
+  database: kubeflow # Default database name
+  username: kubeflow # Default database user
+
+persistence:
+  enabled: true
+  size: 10Gi # PVC size
+  storageClass: standard # StorageClass for persistent volume
+
+service:
+  port: 5432 # PostgreSQL service port
