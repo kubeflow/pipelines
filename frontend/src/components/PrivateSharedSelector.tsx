@@ -16,9 +16,9 @@
 
 import * as React from 'react';
 import { classes } from 'typestyle';
-import Radio from '@material-ui/core/Radio';
-import Tooltip from '@material-ui/core/Tooltip';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Radio from '@mui/material/Radio';
+import Tooltip from '@mui/material/Tooltip';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import { commonCss, padding } from '../Css';
 import { PipelineTabsHeaders } from '../pages/PrivateAndSharedPipelines';
 

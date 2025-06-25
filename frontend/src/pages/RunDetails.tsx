@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import CircularProgress from '@material-ui/core/CircularProgress';
-import InfoIcon from '@material-ui/icons/InfoOutlined';
+import CircularProgress from '@mui/material/CircularProgress';
+import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { flatten } from 'lodash';
 import * as React from 'react';
-import { Link, Redirect } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import InputOutputTab from 'src/components/tabs/InputOutputTab';
 import { MetricsTab } from 'src/components/tabs/MetricsTab';
@@ -42,7 +42,7 @@ import Separator from 'src/atoms/Separator';
 import Banner, { Mode } from 'src/components/Banner';
 import CompareTable from 'src/components/CompareTable';
 import DetailsTable from 'src/components/DetailsTable';
-import Graph from 'src/components/Graph';
+import Graph, { AdditionalNodeData } from 'src/components/Graph';
 import LogViewer from 'src/components/LogViewer';
 import MinioArtifactPreview from 'src/components/MinioArtifactPreview';
 import PlotCard from 'src/components/PlotCard';
@@ -67,6 +67,7 @@ import { compareGraphEdges, KeyValue, transitiveReduction } from 'src/lib/Static
 import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
 import {
   decodeCompressedNodes,
+  ensureError,
   errorToMessage,
   formatDateString,
   getNodeNameFromNodeId,
@@ -106,7 +107,11 @@ export interface RunDetailsInternalProps {
   gkeMetadata: GkeMetadata;
 }
 
-export type RunDetailsProps = PageProps & Exclude<RunDetailsInternalProps, 'gkeMetadata'>;
+export type RunDetailsProps = PageProps<{
+  [RouteParams.runId]: string;
+  [RouteParams.executionId]: string;
+}> &
+  Exclude<RunDetailsInternalProps, 'gkeMetadata'>;
 
 interface AnnotatedConfig {
   config: ViewerConfig;
@@ -127,8 +132,8 @@ interface RunDetailsState {
   logsBannerAdditionalInfo: string;
   logsBannerMessage: string;
   logsBannerMode: Mode;
-  graph?: dagre.graphlib.Graph;
-  reducedGraph?: dagre.graphlib.Graph;
+  graph?: dagre.graphlib.Graph<AdditionalNodeData>;
+  reducedGraph?: dagre.graphlib.Graph<AdditionalNodeData>;
   runFinished: boolean;
   runMetadata?: ApiRun;
   selectedTab: number;
@@ -173,7 +178,14 @@ export const css = stylesheet({
   },
 });
 
-class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
+class RunDetails extends Page<
+  RunDetailsInternalProps,
+  RunDetailsState,
+  {
+    [RouteParams.runId]: string;
+    [RouteParams.executionId]: string;
+  }
+> {
   public state: RunDetailsState = {
     allArtifactConfigs: [],
     allowCustomVisualizations: false,
@@ -749,7 +761,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       const allowCustomVisualizations = await Apis.areCustomVisualizationsAllowed();
       this.setState({ allowCustomVisualizations });
     } catch (err) {
-      this.showPageError('Error: Unable to enable custom visualizations.', err);
+      this.showPageError('Error: Unable to enable custom visualizations.', ensureError(err));
     }
 
     try {
@@ -911,7 +923,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         }
       }
     } catch (err) {
-      await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
+      await this.showPageError(`Error: failed to retrieve run: ${runId}.`, ensureError(err));
       logger.error('Error loading run:', runId, err);
     }
 
@@ -1112,7 +1124,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         // Attempts to validate JSON, if attempt fails an error is displayed.
         JSON.parse(visualizationArguments);
       } catch (err) {
-        this.showPageError('Unable to generate visualization, invalid JSON provided.', err);
+        this.showPageError(
+          'Unable to generate visualization, invalid JSON provided.',
+          ensureError(err),
+        );
         return;
       }
     }
@@ -1134,7 +1149,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     } catch (err) {
       this.showPageError(
         'Unable to generate visualization, an unexpected error was encountered.',
-        err,
+        ensureError(err),
       );
     } finally {
       this.setState({ isGeneratingVisualization: false });
@@ -1346,7 +1361,7 @@ const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
     // Run details page shows info about a run, when namespace changes, the run
     // doesn't exist in the new namespace, so we should redirect to experiment
     // list page.
-    return <Redirect to={RoutePage.EXPERIMENTS} />;
+    return <Navigate to={RoutePage.EXPERIMENTS} replace />;
   }
   return <RunDetails {...props} gkeMetadata={gkeMetadata} />;
 };

@@ -23,7 +23,7 @@ import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { commonCss, padding, zIndex } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
-import { URLParser } from 'src/lib/URLParser';
+import { useURLParser } from 'src/lib/URLParser';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
 import {
@@ -61,9 +61,9 @@ import {
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { Redirect } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
-import CircularProgress from '@material-ui/core/CircularProgress';
+import CircularProgress from '@mui/material/CircularProgress';
 import { lineColors } from 'src/components/viewers/ROCCurve';
 import Hr from 'src/atoms/Hr';
 
@@ -283,7 +283,8 @@ function CompareV2(props: CompareV2Props) {
     [MetricsType.MARKDOWN]: createSelectedArtifactArray(2),
   });
 
-  const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
+  const urlParser = useURLParser();
+  const queryParamRunIds = urlParser.get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details.
@@ -721,7 +722,7 @@ function EnhancedCompareV2(props: PageProps) {
   if (namespaceChanged) {
     // Run Comparison page compares multiple runs, when namespace changes, the runs don't
     // exist in the new namespace, so we should redirect to experiment list page.
-    return <Redirect to={RoutePage.EXPERIMENTS} />;
+    return <Navigate to={RoutePage.EXPERIMENTS} replace />;
   }
 
   return <CompareV2 namespace={namespace} {...props} />;

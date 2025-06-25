@@ -5,11 +5,7 @@
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
-    "lib": [
-      "es6",
-      "dom",
-      "es2020"
-    ],
+    "lib": ["es6", "dom", "es2020"],
     "sourceMap": true,
     "allowJs": true,
     "resolveJsonModule": true,
@@ -21,15 +17,14 @@
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "strictNullChecks": true,
-    "suppressImplicitAnyIndexErrors": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
     "noEmit": true,
     "strictPropertyInitialization": false,
     "strict": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "types": []
   },
   "exclude": [
     "__mocks__",
@@ -47,11 +42,9 @@
     "src/apis",
     "src/generated",
     "src/setupTests.ts",
-    "webpack",
-    "**/?*test.*",
+    "webpack"
+    // "**/*.test.ts",
+    // "**/*.test.tsx"
   ],
-  "include": [
-    "src",
-    "stories"
-  ]
+  "include": ["src", "stories"]
 }

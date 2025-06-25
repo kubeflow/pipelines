@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
+import Button from '@mui/material/Button';
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery } from 'react-query';
 import { commonCss, fontsize, padding } from 'src/Css';
@@ -24,7 +24,7 @@ import BusyButton from 'src/atoms/BusyButton';
 import Input from 'src/atoms/Input';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
-import { URLParser } from 'src/lib/URLParser';
+import { useURLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
 import { getLatestVersion } from 'src/pages/NewRunV2';
 import { PageProps } from 'src/pages/Page';
@@ -48,7 +48,7 @@ interface ExperimentProps {
 type NewExperimentFCProps = ExperimentProps & PageProps;
 
 export function NewExperimentFC(props: NewExperimentFCProps) {
-  const urlParser = new URLParser(props);
+  const urlParser = useURLParser();
   const { namespace, updateDialog, updateSnackbar, updateToolbar } = props;
   const [description, setDescription] = useState<string>('');
   const [experimentName, setExperimentName] = useState<string>('');
@@ -77,17 +77,17 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   useEffect(() => {
     if (experimentResponse) {
       const searchString = pipelineId
-        ? new URLParser(props).build({
+        ? urlParser.build({
             [QUERY_PARAMS.experimentId]: experimentResponse.experiment_id || '',
             [QUERY_PARAMS.pipelineId]: pipelineId,
             [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
             [QUERY_PARAMS.firstRunInExperiment]: '1',
           })
-        : new URLParser(props).build({
+        : urlParser.build({
             [QUERY_PARAMS.experimentId]: experimentResponse.experiment_id || '',
             [QUERY_PARAMS.firstRunInExperiment]: '1',
           });
-      props.history.push(RoutePage.NEW_RUN + searchString);
+      props.navigate(RoutePage.NEW_RUN + searchString);
 
       updateSnackbar({
         autoHideDuration: 10000,
@@ -99,7 +99,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
     // Do not rerun this effect if updateSnackbar callback has changes to avoid re-rendering.
     // Do not rerun this effect if pipelineId has changes to avoid re-rendering.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [experimentResponse, latestVersion]);
+  }, [experimentResponse, latestVersion, urlParser]);
 
   useEffect(() => {
     if (errMsgFromApi) {
@@ -138,7 +138,7 @@ export function NewExperimentFC(props: NewExperimentFCProps) {
   };
 
   const onCancel = () =>
-    props.onCancel ? props.onCancel() : props.history.push(RoutePage.EXPERIMENTS);
+    props.onCancel ? props.onCancel() : props.navigate(RoutePage.EXPERIMENTS);
 
   return (
     <div className={classes(commonCss.page, padding(20, 'lr'))}>

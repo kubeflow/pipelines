@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import TextField, { OutlinedTextFieldProps } from '@material-ui/core/TextField';
+import TextField, { OutlinedTextFieldProps } from '@mui/material/TextField';
 import { commonCss } from '../Css';
 
 interface InputProps extends OutlinedTextFieldProps {

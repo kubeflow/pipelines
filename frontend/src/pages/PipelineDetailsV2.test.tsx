@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -234,7 +234,7 @@ describe('PipelineDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    userEvent.click(screen.getByText('preprocess'));
+    fireEvent.click(screen.getByText('preprocess'));
     await screen.findByText('Input Artifacts');
     await screen.findByText('Input Parameters');
     await screen.findByText('Output Artifacts');

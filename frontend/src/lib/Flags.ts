@@ -26,14 +26,15 @@ const DEPLOYMENT_DEFAULT = undefined;
 export const KFP_FLAGS = {
   DEPLOYMENT:
     // tslint:disable-next-line:no-string-literal
-    window && window['KFP_FLAGS']
+    window && (window as any)['KFP_FLAGS']
       ? // tslint:disable-next-line:no-string-literal
-        window['KFP_FLAGS']['DEPLOYMENT'] === Deployments.KUBEFLOW
+        (window as any)['KFP_FLAGS']['DEPLOYMENT'] === Deployments.KUBEFLOW
         ? Deployments.KUBEFLOW
         : // tslint:disable-next-line:no-string-literal
-        window['KFP_FLAGS']['DEPLOYMENT'] === Deployments.MARKETPLACE
+        (window as any)['KFP_FLAGS']['DEPLOYMENT'] === Deployments.MARKETPLACE
         ? Deployments.MARKETPLACE
         : DEPLOYMENT_DEFAULT
       : DEPLOYMENT_DEFAULT,
-  HIDE_SIDENAV: window && window['KFP_FLAGS'] ? window['KFP_FLAGS']['HIDE_SIDENAV'] : false,
+  HIDE_SIDENAV:
+    window && (window as any)['KFP_FLAGS'] ? (window as any)['KFP_FLAGS']['HIDE_SIDENAV'] : false,
 };

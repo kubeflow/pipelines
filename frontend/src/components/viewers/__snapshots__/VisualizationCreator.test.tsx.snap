@@ -2,74 +2,144 @@
 
 exports[`VisualizationCreator disables all select and input fields when busy 1`] = `
 <div
-  style={
-    Object {
-      "width": 600,
-    }
-  }
+  style="width: 600px;"
 >
-  <WithStyles(FormControl)
-    style={
-      Object {
-        "width": "100%",
-      }
-    }
+  <div
+    class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
+    style="width: 100%;"
   >
-    <WithStyles(WithFormControlContext(InputLabel))
-      htmlFor="visualization-type-selector"
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for="visualization-type-selector"
     >
       Type
-    </WithStyles(WithFormControlContext(InputLabel))>
-    <WithStyles(WithFormControlContext(Select))
-      disabled={true}
-      inputProps={
-        Object {
-          "id": "visualization-type-selector",
-          "name": "Visualization Type",
-        }
-      }
-      onChange={[Function]}
-      style={
-        Object {
-          "minHeight": 60,
-          "width": "100%",
-        }
-      }
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-disabled MuiInputBase-formControl css-1yk1gt9-MuiInputBase-root-MuiOutlinedInput-root-MuiSelect-root"
+      style="min-height: 60px; width: 100%;"
     >
-      <WithStyles(MenuItem)
-        key="ROCCURVE"
-        value="ROC_CURVE"
+      <div
+        aria-controls=":ra:"
+        aria-disabled="true"
+        aria-expanded="false"
+        aria-haspopup="listbox"
+        aria-labelledby="mui-component-select-Visualization Type"
+        class="MuiSelect-select MuiSelect-outlined Mui-disabled MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+        id="mui-component-select-Visualization Type"
+        role="combobox"
       >
-        ROC_CURVE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFDV"
-        value="TFDV"
+        <span
+          class="notranslate"
+        >
+          ​
+        </span>
+      </div>
+      <input
+        aria-hidden="true"
+        aria-invalid="false"
+        class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+        disabled=""
+        id="visualization-type-selector"
+        name="Visualization Type"
+        tabindex="-1"
+        value=""
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined Mui-disabled css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+        data-testid="ArrowDropDownIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TABLE"
-        value="TABLE"
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
       >
-        TABLE
-      </WithStyles(MenuItem)>
-    </WithStyles(WithFormControlContext(Select))>
-  </WithStyles(FormControl)>
-  <Input
-    disabled={true}
-    label="Source"
-    onChange={[Function]}
-    placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <BusyButton
-    busy={true}
-    disabled={true}
-    onClick={[Function]}
-    title="Generate Visualization"
-  />
+        <legend
+          class="css-1whs34k-MuiNotchedOutlined-root"
+        >
+          <span
+            class="notranslate"
+          >
+            ​
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <div
+    class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+    spellcheck="false"
+    style="height: 40px; max-width: 600px; width: 100%;"
+  >
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for=":rb:"
+      id=":rb:-label"
+    >
+      Source
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary Mui-disabled MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+    >
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+        disabled=""
+        id=":rb:"
+        placeholder="File path or path pattern of data within GCS."
+        type="text"
+        value=""
+      />
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+      >
+        <legend
+          class="css-njhac4-MuiNotchedOutlined-root"
+        >
+          <span>
+            Source
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <button
+    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root rootBusy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+    disabled=""
+    tabindex="-1"
+    type="button"
+  >
+    <span>
+      Generate Visualization
+    </span>
+    <span
+      class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary spinner spinnerBusy css-18lrjg1-MuiCircularProgress-root"
+      role="progressbar"
+      style="width: 15px; height: 15px;"
+    >
+      <svg
+        class="MuiCircularProgress-svg css-1idz92c-MuiCircularProgress-svg"
+        viewBox="22 22 44 44"
+      >
+        <circle
+          class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate css-176wh8e-MuiCircularProgress-circle"
+          cx="44"
+          cy="44"
+          fill="none"
+          r="20.2"
+          stroke-width="3.6"
+        />
+      </svg>
+    </span>
+  </button>
 </div>
 `;
 
@@ -146,7 +216,7 @@ exports[`VisualizationCreator does not render an Editor component if a visualiza
 </div>
 `;
 
-exports[`VisualizationCreator does not render component when no config is provided 1`] = `""`;
+exports[`VisualizationCreator does not render component when no config is provided 1`] = `null`;
 
 exports[`VisualizationCreator renders an Editor component if a visualization type is specified 1`] = `
 <div
@@ -272,372 +342,611 @@ exports[`VisualizationCreator renders an Editor component if a visualization typ
 
 exports[`VisualizationCreator renders component when all parameters in config are provided 1`] = `
 <div
-  style={
-    Object {
-      "width": 600,
-    }
-  }
+  style="width: 600px;"
 >
-  <WithStyles(FormControl)
-    style={
-      Object {
-        "width": "100%",
-      }
-    }
+  <div
+    class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
+    style="width: 100%;"
   >
-    <WithStyles(WithFormControlContext(InputLabel))
-      htmlFor="visualization-type-selector"
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for="visualization-type-selector"
     >
       Type
-    </WithStyles(WithFormControlContext(InputLabel))>
-    <WithStyles(WithFormControlContext(Select))
-      disabled={false}
-      inputProps={
-        Object {
-          "id": "visualization-type-selector",
-          "name": "Visualization Type",
-        }
-      }
-      onChange={[Function]}
-      style={
-        Object {
-          "minHeight": 60,
-          "width": "100%",
-        }
-      }
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1yk1gt9-MuiInputBase-root-MuiOutlinedInput-root-MuiSelect-root"
+      style="min-height: 60px; width: 100%;"
     >
-      <WithStyles(MenuItem)
-        key="ROCCURVE"
-        value="ROC_CURVE"
+      <div
+        aria-controls=":r6:"
+        aria-expanded="false"
+        aria-haspopup="listbox"
+        aria-labelledby="mui-component-select-Visualization Type"
+        class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+        id="mui-component-select-Visualization Type"
+        role="combobox"
+        tabindex="0"
       >
-        ROC_CURVE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFDV"
-        value="TFDV"
+        <span
+          class="notranslate"
+        >
+          ​
+        </span>
+      </div>
+      <input
+        aria-hidden="true"
+        aria-invalid="false"
+        class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+        id="visualization-type-selector"
+        name="Visualization Type"
+        tabindex="-1"
+        value=""
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+        data-testid="ArrowDropDownIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TABLE"
-        value="TABLE"
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
       >
-        TABLE
-      </WithStyles(MenuItem)>
-    </WithStyles(WithFormControlContext(Select))>
-  </WithStyles(FormControl)>
-  <Input
-    disabled={false}
-    label="Source"
-    onChange={[Function]}
-    placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <BusyButton
-    busy={false}
-    disabled={true}
-    onClick={[Function]}
-    title="Generate Visualization"
-  />
+        <legend
+          class="css-1whs34k-MuiNotchedOutlined-root"
+        >
+          <span
+            class="notranslate"
+          >
+            ​
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <div
+    class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+    spellcheck="false"
+    style="height: 40px; max-width: 600px; width: 100%;"
+  >
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for=":r7:"
+      id=":r7:-label"
+    >
+      Source
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+    >
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+        id=":r7:"
+        placeholder="File path or path pattern of data within GCS."
+        type="text"
+        value=""
+      />
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+      >
+        <legend
+          class="css-njhac4-MuiNotchedOutlined-root"
+        >
+          <span>
+            Source
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <button
+    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+    disabled=""
+    tabindex="-1"
+    type="button"
+  >
+    <span>
+      Generate Visualization
+    </span>
+  </button>
 </div>
 `;
 
 exports[`VisualizationCreator renders component when empty config is provided 1`] = `
 <div
-  style={
-    Object {
-      "width": 600,
-    }
-  }
+  style="width: 600px;"
 >
-  <WithStyles(FormControl)
-    style={
-      Object {
-        "width": "100%",
-      }
-    }
+  <div
+    class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
+    style="width: 100%;"
   >
-    <WithStyles(WithFormControlContext(InputLabel))
-      htmlFor="visualization-type-selector"
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for="visualization-type-selector"
     >
       Type
-    </WithStyles(WithFormControlContext(InputLabel))>
-    <WithStyles(WithFormControlContext(Select))
-      disabled={false}
-      inputProps={
-        Object {
-          "id": "visualization-type-selector",
-          "name": "Visualization Type",
-        }
-      }
-      onChange={[Function]}
-      style={
-        Object {
-          "minHeight": 60,
-          "width": "100%",
-        }
-      }
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1yk1gt9-MuiInputBase-root-MuiOutlinedInput-root-MuiSelect-root"
+      style="min-height: 60px; width: 100%;"
     >
-      <WithStyles(MenuItem)
-        key="ROCCURVE"
-        value="ROC_CURVE"
+      <div
+        aria-controls=":r0:"
+        aria-expanded="false"
+        aria-haspopup="listbox"
+        aria-labelledby="mui-component-select-Visualization Type"
+        class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+        id="mui-component-select-Visualization Type"
+        role="combobox"
+        tabindex="0"
       >
-        ROC_CURVE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFDV"
-        value="TFDV"
+        <span
+          class="notranslate"
+        >
+          ​
+        </span>
+      </div>
+      <input
+        aria-hidden="true"
+        aria-invalid="false"
+        class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+        id="visualization-type-selector"
+        name="Visualization Type"
+        tabindex="-1"
+        value=""
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+        data-testid="ArrowDropDownIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TABLE"
-        value="TABLE"
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
       >
-        TABLE
-      </WithStyles(MenuItem)>
-    </WithStyles(WithFormControlContext(Select))>
-  </WithStyles(FormControl)>
-  <Input
-    disabled={false}
-    label="Source"
-    onChange={[Function]}
-    placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <BusyButton
-    busy={false}
-    disabled={true}
-    onClick={[Function]}
-    title="Generate Visualization"
-  />
+        <legend
+          class="css-1whs34k-MuiNotchedOutlined-root"
+        >
+          <span
+            class="notranslate"
+          >
+            ​
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <div
+    class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+    spellcheck="false"
+    style="height: 40px; max-width: 600px; width: 100%;"
+  >
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for=":r1:"
+      id=":r1:-label"
+    >
+      Source
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+    >
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+        id=":r1:"
+        placeholder="File path or path pattern of data within GCS."
+        type="text"
+        value=""
+      />
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+      >
+        <legend
+          class="css-njhac4-MuiNotchedOutlined-root"
+        >
+          <span>
+            Source
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <button
+    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+    disabled=""
+    tabindex="-1"
+    type="button"
+  >
+    <span>
+      Generate Visualization
+    </span>
+  </button>
 </div>
 `;
 
 exports[`VisualizationCreator renders component when isBusy is not provided 1`] = `
 <div
-  style={
-    Object {
-      "width": 600,
-    }
-  }
+  style="width: 600px;"
 >
-  <WithStyles(FormControl)
-    style={
-      Object {
-        "width": "100%",
-      }
-    }
+  <div
+    class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
+    style="width: 100%;"
   >
-    <WithStyles(WithFormControlContext(InputLabel))
-      htmlFor="visualization-type-selector"
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for="visualization-type-selector"
     >
       Type
-    </WithStyles(WithFormControlContext(InputLabel))>
-    <WithStyles(WithFormControlContext(Select))
-      disabled={false}
-      inputProps={
-        Object {
-          "id": "visualization-type-selector",
-          "name": "Visualization Type",
-        }
-      }
-      onChange={[Function]}
-      style={
-        Object {
-          "minHeight": 60,
-          "width": "100%",
-        }
-      }
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1yk1gt9-MuiInputBase-root-MuiOutlinedInput-root-MuiSelect-root"
+      style="min-height: 60px; width: 100%;"
     >
-      <WithStyles(MenuItem)
-        key="ROCCURVE"
-        value="ROC_CURVE"
+      <div
+        aria-controls=":r2:"
+        aria-expanded="false"
+        aria-haspopup="listbox"
+        aria-labelledby="mui-component-select-Visualization Type"
+        class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+        id="mui-component-select-Visualization Type"
+        role="combobox"
+        tabindex="0"
       >
-        ROC_CURVE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFDV"
-        value="TFDV"
+        <span
+          class="notranslate"
+        >
+          ​
+        </span>
+      </div>
+      <input
+        aria-hidden="true"
+        aria-invalid="false"
+        class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+        id="visualization-type-selector"
+        name="Visualization Type"
+        tabindex="-1"
+        value=""
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+        data-testid="ArrowDropDownIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TABLE"
-        value="TABLE"
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
       >
-        TABLE
-      </WithStyles(MenuItem)>
-    </WithStyles(WithFormControlContext(Select))>
-  </WithStyles(FormControl)>
-  <Input
-    disabled={false}
-    label="Source"
-    onChange={[Function]}
-    placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <BusyButton
-    busy={false}
-    disabled={true}
-    onClick={[Function]}
-    title="Generate Visualization"
-  />
+        <legend
+          class="css-1whs34k-MuiNotchedOutlined-root"
+        >
+          <span
+            class="notranslate"
+          >
+            ​
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <div
+    class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+    spellcheck="false"
+    style="height: 40px; max-width: 600px; width: 100%;"
+  >
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for=":r3:"
+      id=":r3:-label"
+    >
+      Source
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+    >
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+        id=":r3:"
+        placeholder="File path or path pattern of data within GCS."
+        type="text"
+        value=""
+      />
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+      >
+        <legend
+          class="css-njhac4-MuiNotchedOutlined-root"
+        >
+          <span>
+            Source
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <button
+    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+    disabled=""
+    tabindex="-1"
+    type="button"
+  >
+    <span>
+      Generate Visualization
+    </span>
+  </button>
 </div>
 `;
 
 exports[`VisualizationCreator renders component when onGenerate is not provided 1`] = `
 <div
-  style={
-    Object {
-      "width": 600,
-    }
-  }
+  style="width: 600px;"
 >
-  <WithStyles(FormControl)
-    style={
-      Object {
-        "width": "100%",
-      }
-    }
+  <div
+    class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
+    style="width: 100%;"
   >
-    <WithStyles(WithFormControlContext(InputLabel))
-      htmlFor="visualization-type-selector"
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for="visualization-type-selector"
     >
       Type
-    </WithStyles(WithFormControlContext(InputLabel))>
-    <WithStyles(WithFormControlContext(Select))
-      disabled={false}
-      inputProps={
-        Object {
-          "id": "visualization-type-selector",
-          "name": "Visualization Type",
-        }
-      }
-      onChange={[Function]}
-      style={
-        Object {
-          "minHeight": 60,
-          "width": "100%",
-        }
-      }
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1yk1gt9-MuiInputBase-root-MuiOutlinedInput-root-MuiSelect-root"
+      style="min-height: 60px; width: 100%;"
     >
-      <WithStyles(MenuItem)
-        key="ROCCURVE"
-        value="ROC_CURVE"
+      <div
+        aria-controls=":r4:"
+        aria-expanded="false"
+        aria-haspopup="listbox"
+        aria-labelledby="mui-component-select-Visualization Type"
+        class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+        id="mui-component-select-Visualization Type"
+        role="combobox"
+        tabindex="0"
       >
-        ROC_CURVE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFDV"
-        value="TFDV"
+        <span
+          class="notranslate"
+        >
+          ​
+        </span>
+      </div>
+      <input
+        aria-hidden="true"
+        aria-invalid="false"
+        class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+        id="visualization-type-selector"
+        name="Visualization Type"
+        tabindex="-1"
+        value=""
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+        data-testid="ArrowDropDownIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TABLE"
-        value="TABLE"
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
       >
-        TABLE
-      </WithStyles(MenuItem)>
-    </WithStyles(WithFormControlContext(Select))>
-  </WithStyles(FormControl)>
-  <Input
-    disabled={false}
-    label="Source"
-    onChange={[Function]}
-    placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <BusyButton
-    busy={false}
-    disabled={true}
-    onClick={[Function]}
-    title="Generate Visualization"
-  />
+        <legend
+          class="css-1whs34k-MuiNotchedOutlined-root"
+        >
+          <span
+            class="notranslate"
+          >
+            ​
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <div
+    class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+    spellcheck="false"
+    style="height: 40px; max-width: 600px; width: 100%;"
+  >
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for=":r5:"
+      id=":r5:-label"
+    >
+      Source
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+    >
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+        id=":r5:"
+        placeholder="File path or path pattern of data within GCS."
+        type="text"
+        value=""
+      />
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+      >
+        <legend
+          class="css-njhac4-MuiNotchedOutlined-root"
+        >
+          <span>
+            Source
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <button
+    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+    disabled=""
+    tabindex="-1"
+    type="button"
+  >
+    <span>
+      Generate Visualization
+    </span>
+  </button>
 </div>
 `;
 
 exports[`VisualizationCreator renders the custom type when it is allowed 1`] = `
 <div
-  style={
-    Object {
-      "width": 600,
-    }
-  }
+  style="width: 600px;"
 >
-  <WithStyles(FormControl)
-    style={
-      Object {
-        "width": "100%",
-      }
-    }
+  <div
+    class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
+    style="width: 100%;"
   >
-    <WithStyles(WithFormControlContext(InputLabel))
-      htmlFor="visualization-type-selector"
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for="visualization-type-selector"
     >
       Type
-    </WithStyles(WithFormControlContext(InputLabel))>
-    <WithStyles(WithFormControlContext(Select))
-      disabled={false}
-      inputProps={
-        Object {
-          "id": "visualization-type-selector",
-          "name": "Visualization Type",
-        }
-      }
-      onChange={[Function]}
-      style={
-        Object {
-          "minHeight": 60,
-          "width": "100%",
-        }
-      }
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1yk1gt9-MuiInputBase-root-MuiOutlinedInput-root-MuiSelect-root"
+      style="min-height: 60px; width: 100%;"
     >
-      <WithStyles(MenuItem)
-        key="ROCCURVE"
-        value="ROC_CURVE"
+      <div
+        aria-controls=":r8:"
+        aria-expanded="false"
+        aria-haspopup="listbox"
+        aria-labelledby="mui-component-select-Visualization Type"
+        class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+        id="mui-component-select-Visualization Type"
+        role="combobox"
+        tabindex="0"
       >
-        ROC_CURVE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TFDV"
-        value="TFDV"
+        <span
+          class="notranslate"
+        >
+          ​
+        </span>
+      </div>
+      <input
+        aria-hidden="true"
+        aria-invalid="false"
+        class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+        id="visualization-type-selector"
+        name="Visualization Type"
+        tabindex="-1"
+        value=""
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+        data-testid="ArrowDropDownIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
       >
-        TFDV
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="TABLE"
-        value="TABLE"
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
       >
-        TABLE
-      </WithStyles(MenuItem)>
-      <WithStyles(MenuItem)
-        key="CUSTOM"
-        value="CUSTOM"
+        <legend
+          class="css-1whs34k-MuiNotchedOutlined-root"
+        >
+          <span
+            class="notranslate"
+          >
+            ​
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <div
+    class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+    spellcheck="false"
+    style="height: 40px; max-width: 600px; width: 100%;"
+  >
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="false"
+      for=":r9:"
+      id=":r9:-label"
+    >
+      Source
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+    >
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+        id=":r9:"
+        placeholder="File path or path pattern of data within GCS."
+        type="text"
+        value=""
+      />
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
       >
-        CUSTOM
-      </WithStyles(MenuItem)>
-    </WithStyles(WithFormControlContext(Select))>
-  </WithStyles(FormControl)>
-  <Input
-    disabled={false}
-    label="Source"
-    onChange={[Function]}
-    placeholder="File path or path pattern of data within GCS."
-    value=""
-    variant="outlined"
-  />
-  <BusyButton
-    busy={false}
-    disabled={true}
-    onClick={[Function]}
-    title="Generate Visualization"
-  />
+        <legend
+          class="css-njhac4-MuiNotchedOutlined-root"
+        >
+          <span>
+            Source
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+  <button
+    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+    disabled=""
+    tabindex="-1"
+    type="button"
+  >
+    <span>
+      Generate Visualization
+    </span>
+  </button>
 </div>
 `;
 

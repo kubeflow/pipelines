@@ -333,14 +333,19 @@ exports[`LogViewer renders a row with warning word as substring 1`] = `
 `;
 
 exports[`LogViewer renders an empty container when no logs passed 1`] = `
-<AutoSizer
-  disableHeight={false}
-  disableWidth={false}
-  onResize={[Function]}
-  style={Object {}}
+<div
+  style="overflow: visible; height: 0px; width: 0px;"
 >
-  <Component />
-</AutoSizer>
+  <div
+    aria-label="grid"
+    aria-readonly="true"
+    class="ReactVirtualized__Grid ReactVirtualized__List root"
+    id="logViewer"
+    role="grid"
+    style="box-sizing: border-box; direction: ltr; height: 0px; position: relative; width: 0px; will-change: transform; overflow-x: hidden; overflow-y: hidden;"
+    tabindex="0"
+  />
+</div>
 `;
 
 exports[`LogViewer renders one log line 1`] = `

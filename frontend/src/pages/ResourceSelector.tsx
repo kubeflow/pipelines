@@ -18,7 +18,6 @@ import * as React from 'react';
 import CustomTable, { Column, Row } from '../components/CustomTable';
 import Toolbar, { ToolbarActionMap } from '../components/Toolbar';
 import { ListRequest } from '../lib/Apis';
-import { RouteComponentProps } from 'react-router-dom';
 import { logger, errorToMessage, formatDateString } from '../lib/Utils';
 import { DialogProps } from '../components/Router';
 
@@ -37,7 +36,7 @@ export interface BaseResource {
   namespace?: string;
 }
 
-export interface ResourceSelectorProps extends RouteComponentProps {
+export interface ResourceSelectorProps {
   listApi: (...args: any[]) => Promise<BaseResponse>;
   columns: Column[];
   emptyMessage: string;

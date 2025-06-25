@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Snackbar, { SnackbarProps } from '@mui/material/Snackbar';
 import * as React from 'react';
-import { Redirect, Route, Switch } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
@@ -223,41 +223,27 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
   return (
     // There will be only one instance of SideNav, throughout UI usage.
     <SideNavLayout>
-      <Switch>
-        <Route
-          exact={true}
-          path={'/'}
-          render={({ ...props }) => <Redirect to={DEFAULT_ROUTE} {...props} />}
-        />
+      <Routes>
+        <Route path={'/'} element={<Navigate to={DEFAULT_ROUTE} replace />} />
 
         {/* Normal routes */}
         {routes.map((route, i) => {
-          const { path } = { ...route };
-          return (
-            // Setting a key here, so that two different routes are considered two instances from
-            // react. Therefore, they don't share toolbar state. This avoids many bugs like dangling
-            // network response handlers.
-            <Route
-              key={i}
-              exact={!route.notExact}
-              path={path}
-              render={props => <RoutedPage key={props.location.key} route={route} />}
-            />
-          );
+          const { path, notExact } = route;
+          const routePath = notExact ? `${path}/*` : path;
+          return <Route key={i} path={routePath} element={<RoutedPageWrapper route={route} />} />;
         })}
 
         {/* 404 */}
-        {
-          <Route>
-            <RoutedPage />
-          </Route>
-        }
-      </Switch>
+        <Route path='*' element={<RoutedPageWrapper />} />
+      </Routes>
     </SideNavLayout>
   );
 };
 
-class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponentState> {
+class RoutedPage extends React.Component<
+  { route?: RouteConfig; routerProps?: any },
+  RouteComponentState
+> {
   private childProps = {
     toolbarProps: {
       breadcrumbs: [{ displayName: '', href: '' }],
@@ -268,6 +254,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     updateDialog: this._updateDialog.bind(this),
     updateSnackbar: this._updateSnackbar.bind(this),
     updateToolbar: this._updateToolbar.bind(this),
+    ...this.props.routerProps,
   };
 
   constructor(props: any) {
@@ -287,7 +274,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 
     return (
       <div className={classes(commonCss.page)}>
-        <Route render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />} />
+        <Toolbar {...this.state.toolbarProps} />
         {this.state.bannerProps.message && (
           <Banner
             message={this.state.bannerProps.message}
@@ -297,26 +284,15 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
             showTroubleshootingGuideLink={true}
           />
         )}
-        <Switch>
-          {route &&
-            (() => {
-              const { path, Component, ...otherProps } = { ...route };
-              return (
-                <Route
-                  exact={!route.notExact}
-                  path={path}
-                  render={({ ...props }) => (
-                    <Component {...props} {...this.childProps} {...otherProps} />
-                  )}
-                />
-              );
-            })()}
 
-          {/* 404 */}
-          {!!route && (
-            <Route render={({ ...props }) => <Page404 {...props} {...this.childProps} />} />
-          )}
-        </Switch>
+        {route ? (
+          (() => {
+            const { Component, ...otherProps } = route;
+            return <Component {...this.childProps} {...otherProps} />;
+          })()
+        ) : (
+          <Page404 {...this.childProps} />
+        )}
 
         <Snackbar
           autoHideDuration={this.state.snackbarProps.autoHideDuration}
@@ -395,15 +371,52 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
   }
 }
 
+// Wrapper to provide router props to RoutedPage class component
+const RoutedPageWrapper: React.FC<{ route?: RouteConfig }> = ({ route }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
+
+  const routerProps = {
+    navigate,
+    location,
+    match: {
+      params,
+      isExact: true,
+      path: location.pathname,
+      url: location.pathname,
+    },
+  };
+
+  return <RoutedPage route={route} routerProps={routerProps} />;
+};
+
 // TODO: loading/error experience until backend is reachable
 
 export default Router;
 
-const SideNavLayout: React.FC<{}> = ({ children }) => (
-  <div className={classes(commonCss.page)}>
-    <div className={classes(commonCss.flexGrow)}>
-      <Route render={({ ...props }) => <SideNav page={props.location.pathname} {...props} />} />
-      {children}
+const SideNavLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Create router props compatible with React Router v5 interface
+  const routerProps = {
+    history: {
+      push: navigate,
+      goBack: () => navigate(-1),
+      length: window.history.length,
+    },
+    location,
+    match: { params: {}, isExact: true, path: '', url: '' },
+    navigator: navigate,
+  };
+
+  return (
+    <div className={classes(commonCss.page)}>
+      <div className={classes(commonCss.flexGrow)}>
+        <SideNav page={location.pathname} {...routerProps} />
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+};

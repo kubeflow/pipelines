@@ -26,8 +26,10 @@ class Editor extends AceEditor {
     const showPlaceholder = !editor.session.getValue().length;
     let node = editor.renderer.placeholderNode;
     if (!showPlaceholder && node) {
-      editor.renderer.scroller.removeChild(editor.renderer.placeholderNode);
-      editor.renderer.placeholderNode = null;
+      if (editor.renderer.placeholderNode) {
+        editor.renderer.scroller.removeChild(editor.renderer.placeholderNode);
+      }
+      editor.renderer.placeholderNode = undefined;
     } else if (showPlaceholder && !node) {
       node = editor.renderer.placeholderNode = document.createElement('div');
       node.innerHTML = placeholder || '';
@@ -37,7 +39,7 @@ class Editor extends AceEditor {
       node.style.zIndex = '3';
       editor.renderer.scroller.appendChild(node);
     } else if (showPlaceholder && node) {
-      node.innerHTML = placeholder;
+      node.innerHTML = placeholder || '';
     }
   }
 }

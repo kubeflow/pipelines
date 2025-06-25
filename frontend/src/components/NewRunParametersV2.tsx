@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@material-ui/core';
+import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@mui/material';
 import * as React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { PipelineSpecRuntimeConfig } from 'src/apis/run';
 import { ExternalLink } from 'src/atoms/ExternalLink';
-import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
+import {
+  ParameterType_ParameterTypeEnum,
+  ComponentInputsSpec_ParameterSpec,
+} from 'src/generated/pipeline_spec/pipeline_spec';
 import { RuntimeParameters, SpecParameters } from 'src/pages/NewRunV2';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, spacing, padding } from '../Css';
@@ -169,19 +172,40 @@ function convertNonUserInputParamToString(
   return paramStr;
 }
 
+// Helper function to ensure parameter specs have all required properties
+function normalizeParameterSpec(spec: any) {
+  return {
+    type: spec.type || 0,
+    parameterType: spec.parameterType,
+    defaultValue: spec.defaultValue,
+    isOptional: spec.isOptional ?? spec.defaultValue === undefined,
+    description: spec.description || '',
+    ...spec,
+  };
+}
+
 function NewRunParametersV2(props: NewRunParametersProps) {
   const {
-    specParameters,
+    specParameters: rawSpecParameters,
     clonedRuntimeConfig,
     handlePipelineRootChange,
     handleParameterChange,
     setIsValidInput,
   } = props;
+
+  // Normalize spec parameters to ensure all required properties exist
+  const specParameters = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(rawSpecParameters).map(([key, spec]) => [key, normalizeParameterSpec(spec)]),
+      ),
+    [rawSpecParameters],
+  );
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
-  const [errorMessages, setErrorMessages] = useState<string[]>([]);
+  const [errorMessages, setErrorMessages] = useState<Record<string, string | null>>({});
 
-  const [updatedParameters, setUpdatedParameters] = useState({});
+  const [updatedParameters, setUpdatedParameters] = useState<Record<string, any>>({});
   useEffect(() => {
     if (clonedRuntimeConfig && clonedRuntimeConfig.parameters) {
       const clonedRuntimeParametersStr: RuntimeParameters = {};
@@ -195,7 +219,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       });
       setUpdatedParameters(clonedRuntimeParametersStr);
       // Directly using cloned paramters guarantees input is valid and no error message
-      setErrorMessages([]);
+      setErrorMessages({});
       if (setIsValidInput) {
         setIsValidInput(true);
       }
@@ -208,7 +232,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
     const runtimeParametersWithDefault: RuntimeParameters = {};
     let allParamtersWithDefault = true;
-    let errMsg: string[] = [];
+    let errMsg: Record<string, string | null> = {};
     Object.keys(specParameters).forEach(key => {
       if (specParameters[key].defaultValue !== undefined) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
@@ -289,59 +313,61 @@ function NewRunParametersV2(props: NewRunParametersProps) {
 
       {!!Object.keys(specParameters).length && (
         <div>
-          {Object.entries(specParameters).map(([k, v]) => {
-            const param = {
-              key: `${k} - ${protoMap.get(ParameterType_ParameterTypeEnum[v.parameterType])}`,
-              value: updatedParameters[k],
-              type: v.parameterType,
-              errorMsg: errorMessages[k],
-            };
+          {Object.entries(specParameters).map(
+            ([k, v]: [string, ComponentInputsSpec_ParameterSpec]) => {
+              const param = {
+                key: `${k} - ${protoMap.get(ParameterType_ParameterTypeEnum[v.parameterType])}`,
+                value: updatedParameters[k],
+                type: v.parameterType,
+                errorMsg: errorMessages[k],
+              };
 
-            return (
-              <div key={k}>
-                <ParamEditor
-                  id={k}
-                  onChange={value => {
-                    let allInputsValid: boolean = true;
-                    let parametersInRealType: RuntimeParameters = {};
-                    const nextUpdatedParameters: RuntimeParameters = {};
+              return (
+                <div key={k}>
+                  <ParamEditor
+                    id={k}
+                    onChange={value => {
+                      let allInputsValid: boolean = true;
+                      let parametersInRealType: RuntimeParameters = {};
+                      const nextUpdatedParameters: RuntimeParameters = {};
 
-                    Object.assign(nextUpdatedParameters, updatedParameters);
-                    nextUpdatedParameters[k] = value;
-                    setUpdatedParameters(nextUpdatedParameters);
-                    Object.entries(nextUpdatedParameters).forEach(([k1, paramStr]) => {
-                      parametersInRealType[k1] = convertInput(
-                        paramStr,
-                        specParameters[k1].parameterType,
+                      Object.assign(nextUpdatedParameters, updatedParameters);
+                      nextUpdatedParameters[k] = value;
+                      setUpdatedParameters(nextUpdatedParameters);
+                      Object.entries(nextUpdatedParameters).forEach(([k1, paramStr]) => {
+                        parametersInRealType[k1] = convertInput(
+                          paramStr,
+                          specParameters[k1].parameterType,
+                        );
+                      });
+                      if (handleParameterChange) {
+                        handleParameterChange(parametersInRealType);
+                      }
+
+                      errorMessages[k] = generateInputValidationErrMsg(
+                        parametersInRealType[k],
+                        specParameters[k].parameterType,
+                        specParameters[k].isOptional,
                       );
-                    });
-                    if (handleParameterChange) {
-                      handleParameterChange(parametersInRealType);
-                    }
+                      setErrorMessages(errorMessages);
 
-                    errorMessages[k] = generateInputValidationErrMsg(
-                      parametersInRealType[k],
-                      specParameters[k].parameterType,
-                      specParameters[k].isOptional,
-                    );
-                    setErrorMessages(errorMessages);
+                      Object.values(errorMessages).forEach(errorMessage => {
+                        allInputsValid = allInputsValid && errorMessage === null;
+                      });
 
-                    Object.values(errorMessages).forEach(errorMessage => {
-                      allInputsValid = allInputsValid && errorMessage === null;
-                    });
-
-                    if (setIsValidInput) {
-                      setIsValidInput(allInputsValid);
-                    }
-                  }}
-                  param={param}
-                />
-                <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-                  {param.errorMsg}
+                      if (setIsValidInput) {
+                        setIsValidInput(allInputsValid);
+                      }
+                    }}
+                    param={param}
+                  />
+                  <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+                    {param.errorMsg}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            },
+          )}
         </div>
       )}
     </div>
@@ -354,7 +380,7 @@ interface Param {
   key: string;
   value: any;
   type: ParameterType_ParameterTypeEnum;
-  errorMsg: string;
+  errorMsg: string | null;
 }
 
 interface ParamEditorProps {

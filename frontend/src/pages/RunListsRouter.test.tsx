@@ -14,6 +14,15 @@
  * limitations under the License.
  */
 
+// Mock React Router hooks BEFORE imports
+const mockNavigate = jest.fn();
+const mockLocation = { pathname: '', search: '', hash: '', state: null, key: 'default' };
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+  useLocation: () => mockLocation,
+}));
+
 import { render, screen } from '@testing-library/react';
 import produce from 'immer';
 import RunListsRouter, { RunListsRouterProps } from './RunListsRouter';
@@ -61,9 +70,6 @@ describe('RunListsRouter', () => {
         }
       }),
       hideExperimentColumn: true,
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
-      match: { params: { [RouteParams.experimentId]: MOCK_EXPERIMENT.id } } as any,
       onSelectionChange: onSelectionChangeMock,
       selectedIds: [],
       storageState: runStorageState,
@@ -73,12 +79,15 @@ describe('RunListsRouter', () => {
       disableSorting: true,
       disableSelection: false,
       hideMetricMetadata: false,
-      onError: consoleErrorSpy,
+      onError: consoleErrorSpy as any,
     };
     return runListsRouterProps;
   }
 
   beforeEach(() => {
+    jest.clearAllMocks();
+    mockNavigate.mockClear();
+
     getRunSpy.mockImplementation(id =>
       Promise.resolve(
         produce({} as Partial<V2beta1Run>, draft => {
@@ -120,9 +129,11 @@ describe('RunListsRouter', () => {
         ],
       });
     });
-    getPipelineSpy.mockImplementation(() => ({ name: 'some pipeline' }));
-    getExperimentSpy.mockImplementation(() => ({ name: 'some experiment' }));
-    formatDateStringSpy.mockImplementation((date?: Date) => {
+    getPipelineSpy.mockImplementation((id: string) => Promise.resolve({ name: 'some pipeline' }));
+    getExperimentSpy.mockImplementation((id: string) =>
+      Promise.resolve({ name: 'some experiment' }),
+    );
+    formatDateStringSpy.mockImplementation((date?: string | Date | undefined) => {
       return date ? '1/2/2019, 12:34:56 PM' : '-';
     });
   });

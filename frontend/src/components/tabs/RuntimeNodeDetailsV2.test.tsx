@@ -96,12 +96,14 @@ describe('RuntimeNodeDetailsV2', () => {
       expect(getPodLogsSpy).toHaveBeenCalled();
     });
 
-    screen.getByText('Failed to retrieve pod logs.');
+    await waitFor(() => {
+      screen.getByText('Failed to retrieve pod logs.');
+    });
   });
 
   it('displays logs details on side panel of execution node', async () => {
     const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
-    getPodLogsSpy.mockImplementation(() => 'test-logs-details');
+    getPodLogsSpy.mockImplementation(() => Promise.resolve('test-logs-details'));
     render(
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
@@ -138,7 +140,7 @@ describe('RuntimeNodeDetailsV2', () => {
       new Value().setStringValue('135'),
     );
     const getPodLogsSpy = jest.spyOn(Apis, 'getPodLogs');
-    getPodLogsSpy.mockImplementation(() => 'test-logs-details');
+    getPodLogsSpy.mockImplementation(() => Promise.resolve('test-logs-details'));
 
     render(
       <CommonTestWrapper>

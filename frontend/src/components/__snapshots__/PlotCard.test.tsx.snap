@@ -194,7 +194,7 @@ exports[`PlotCard close button closes full screen dialog 1`] = `
 </div>
 `;
 
-exports[`PlotCard handles no configs 1`] = `""`;
+exports[`PlotCard handles no configs 1`] = `<DocumentFragment />`;
 
 exports[`PlotCard pops out a full screen view of the viewer 1`] = `
 <div>

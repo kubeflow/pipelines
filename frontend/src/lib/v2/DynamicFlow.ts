@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Elements, FlowElement, Node } from 'react-flow-renderer';
+import { Node, Edge } from 'reactflow';
 import {
   ArtifactFlowElementData,
   ExecutionFlowElementData,
@@ -35,6 +35,10 @@ import {
 import { getArtifactNameFromEvent, LinkedArtifact, ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
+
+// Type aliases for backward compatibility with React Flow v10 API  
+type FlowElement<T = any> = Node<T> | Edge<T>;
+type Elements = FlowElement[];
 
 export const TASK_NAME_KEY = 'task_name';
 export const PARENT_DAG_ID_KEY = 'parent_dag_id';
@@ -72,7 +76,7 @@ export function convertSubDagToRuntimeFlowElements(
       if (!componentName) {
         throw new Error(
           'Unable to find the component reference for task name: ' +
-            pipelineTaskSpec.taskInfo?.name || 'Task name unknown',
+          pipelineTaskSpec.taskInfo?.name || 'Task name unknown',
         );
       }
       componentSpec = componentsMap[componentName];

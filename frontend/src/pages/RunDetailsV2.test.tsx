@@ -14,7 +14,16 @@
  * limitations under the License.
  */
 
-import { act, queryByText, render, screen, waitFor } from '@testing-library/react';
+// Mock React Router hooks BEFORE imports
+const mockNavigate = jest.fn();
+const mockLocation = { pathname: '', search: '', hash: '', state: null, key: 'default' };
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+  useLocation: () => mockLocation,
+}));
+
+import { act, queryByText, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import * as React from 'react';
@@ -54,13 +63,18 @@ describe('RunDetailsV2', () => {
   let updateToolbarSpy: any;
   let historyPushSpy: any;
 
-  function generateProps(): RunDetailsInternalProps & PageProps {
-    const pageProps: PageProps = {
-      history: { push: historyPushSpy } as any,
-      location: '' as any,
+  function generateProps(): RunDetailsInternalProps &
+    PageProps<{ [RouteParams.runId]: string; [RouteParams.executionId]: string }> {
+    const pageProps: PageProps<{
+      [RouteParams.runId]: string;
+      [RouteParams.executionId]: string;
+    }> = {
+      navigate: mockNavigate,
+      location: mockLocation,
       match: {
         params: {
           [RouteParams.runId]: RUN_ID,
+          [RouteParams.executionId]: '',
         },
         isExact: true,
         path: '',
@@ -92,13 +106,15 @@ describe('RunDetailsV2', () => {
     state: V2beta1RuntimeState.SUCCEEDED,
   };
   const TEST_EXPERIMENT: V2beta1Experiment = {
-    created_at: '2021-01-24T18:03:08Z',
+    created_at: new Date('2021-01-24T18:03:08Z'),
     description: 'All runs will be grouped here.',
     experiment_id: 'some-experiment-id',
     display_name: 'Default',
     storage_state: V2beta1ExperimentStorageState.AVAILABLE,
   };
   beforeEach(() => {
+    jest.clearAllMocks();
+    mockNavigate.mockClear();
     mockResizeObserver();
 
     updateBannerSpy = jest.fn();
@@ -148,16 +164,18 @@ describe('RunDetailsV2', () => {
   it('Shows no banner when connected from MLMD', async () => {
     jest
       .spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName')
-      .mockImplementation((request: GetContextByTypeAndNameRequest) => {
-        const response = new GetContextByTypeAndNameResponse();
-        if (
-          request.getTypeName() === KFP_V2_RUN_CONTEXT_TYPE &&
-          request.getContextName() === RUN_ID
-        ) {
-          response.setContext(new Context());
-        }
-        return response;
-      });
+      .mockImplementation(
+        (request: GetContextByTypeAndNameRequest): Promise<GetContextByTypeAndNameResponse> => {
+          const response = new GetContextByTypeAndNameResponse();
+          if (
+            request.getTypeName() === KFP_V2_RUN_CONTEXT_TYPE &&
+            request.getContextName() === RUN_ID
+          ) {
+            response.setContext(new Context());
+          }
+          return Promise.resolve(response);
+        },
+      );
     jest
       .spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext')
       .mockResolvedValue(new GetExecutionsByContextResponse());
@@ -189,9 +207,11 @@ describe('RunDetailsV2', () => {
 
     jest
       .spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName')
-      .mockImplementation((request: GetContextByTypeAndNameRequest) => {
-        return new GetContextByTypeAndNameResponse();
-      });
+      .mockImplementation(
+        (request: GetContextByTypeAndNameRequest): Promise<GetContextByTypeAndNameResponse> => {
+          return Promise.resolve(new GetContextByTypeAndNameResponse());
+        },
+      );
     jest
       .spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext')
       .mockResolvedValue(new GetExecutionsByContextResponse());
@@ -293,7 +313,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      fireEvent.click(screen.getByText('Detail'));
 
       screen.getByText('Run details');
       screen.getByText('Run ID');
@@ -317,7 +337,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      fireEvent.click(screen.getByText('Detail'));
 
       screen.getByText('test-run-id'); // 'Run ID'
       screen.getByText('test run'); // 'Workflow name'
@@ -349,7 +369,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      fireEvent.click(screen.getByText('Detail'));
 
       expect(screen.getAllByText('-').length).toEqual(2); // create time and duration are empty.
     });
@@ -375,7 +395,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      fireEvent.click(screen.getByText('Detail'));
 
       expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
     });
@@ -391,7 +411,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Detail'));
+      fireEvent.click(screen.getByText('Detail'));
 
       screen.getByText('param1'); // 'Parameter name'
       screen.getByText('value1'); // 'Parameter value'
@@ -408,7 +428,7 @@ describe('RunDetailsV2', () => {
         </CommonTestWrapper>,
       );
 
-      userEvent.click(screen.getByText('Pipeline Spec'));
+      fireEvent.click(screen.getByText('Pipeline Spec'));
       screen.findByTestId('spec-ir');
     });
 
@@ -433,12 +453,12 @@ describe('RunDetailsV2', () => {
       expect(screen.queryByText('Task Details')).toBeNull();
 
       // Select execution to open side panel.
-      userEvent.click(screen.getByText('preprocess'));
+      fireEvent.click(screen.getByText('preprocess'));
       screen.getByText('Input/Output');
       screen.getByText('Task Details');
 
       // Close side panel.
-      userEvent.click(screen.getByLabelText('close'));
+      fireEvent.click(screen.getByLabelText('close'));
       expect(screen.queryByText('Input/Output')).toBeNull();
       expect(screen.queryByText('Task Details')).toBeNull();
     });
@@ -464,12 +484,12 @@ describe('RunDetailsV2', () => {
       expect(screen.queryByText('Visualization')).toBeNull();
 
       // Select artifact to open side panel.
-      userEvent.click(screen.getByText('model'));
+      fireEvent.click(screen.getByText('model'));
       screen.getByText('Artifact Info');
       screen.getByText('Visualization');
 
       // Close side panel.
-      userEvent.click(screen.getByLabelText('close'));
+      fireEvent.click(screen.getByLabelText('close'));
       expect(screen.queryByText('Artifact Info')).toBeNull();
       expect(screen.queryByText('Visualization')).toBeNull();
     });

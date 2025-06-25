@@ -22,167 +22,160 @@ import { V2beta1RecurringRun, V2beta1RecurringRunStatus } from 'src/apisv2beta1/
 import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
 import { DialogProps, RoutePage, RouteParams } from 'src/components/Router';
 import { Link } from 'react-router-dom';
-import { RouteComponentProps } from 'react-router';
-import { SnackbarProps } from '@material-ui/core/Snackbar';
+import { SnackbarProps } from '@mui/material/Snackbar';
 import { commonCss } from 'src/Css';
 import { logger, formatDateString, errorToMessage } from 'src/lib/Utils';
 
-export interface RecurringRunListProps extends RouteComponentProps {
+export type RecurringRunListProps = {
   experimentId: string;
   updateDialog: (dialogProps: DialogProps) => void;
   updateSnackbar: (snackbarProps: SnackbarProps) => void;
-}
+};
 
-interface RecurringRunListState {
-  busyIds: Set<string>;
-  runs: V2beta1RecurringRun[];
-  selectedIds: string[];
-  toolbarActionMap: ToolbarActionMap;
-}
+const RecurringRunsManager: React.FC<RecurringRunListProps> = props => {
+  const [busyIds, setBusyIds] = React.useState<Set<string>>(new Set());
+  const [runs, setRuns] = React.useState<V2beta1RecurringRun[]>([]);
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [toolbarActionMap, setToolbarActionMap] = React.useState<ToolbarActionMap>({});
+  const tableRef = React.useRef<CustomTable>(null);
 
-class RecurringRunsManager extends React.Component<RecurringRunListProps, RecurringRunListState> {
-  private _tableRef = React.createRef<CustomTable>();
-
-  constructor(props: any) {
-    super(props);
-
-    this.state = {
-      busyIds: new Set(),
-      runs: [],
-      selectedIds: [],
-      toolbarActionMap: {},
-    };
-  }
-
-  public render(): JSX.Element {
-    const { runs, selectedIds, toolbarActionMap: toolbarActions } = this.state;
-
-    const columns: Column[] = [
-      {
-        customRenderer: this._nameCustomRenderer,
-        flex: 2,
-        label: 'Run name',
-        sortKey: JobSortKeys.NAME,
-      },
-      { label: 'Created at', flex: 2, sortKey: JobSortKeys.CREATED_AT },
-      { customRenderer: this._enabledCustomRenderer, label: '', flex: 1 },
-    ];
-
-    const rows: Row[] = runs.map(r => {
-      return {
-        error: r.error?.toString(),
-        id: r.recurring_run_id!,
-        otherFields: [r.display_name, formatDateString(r.created_at), r.status],
-      };
-    });
-
-    return (
-      <React.Fragment>
-        <Toolbar actions={toolbarActions} breadcrumbs={[]} pageTitle='Recurring runs' />
-        <CustomTable
-          columns={columns}
-          rows={rows}
-          ref={this._tableRef}
-          selectedIds={selectedIds}
-          updateSelection={ids => this.setState({ selectedIds: ids })}
-          initialSortColumn={JobSortKeys.CREATED_AT}
-          reload={this._loadRuns.bind(this)}
-          filterLabel='Filter recurring runs'
-          disableSelection={true}
-          emptyMessage={'No recurring runs found in this experiment.'}
-        />
-      </React.Fragment>
-    );
-  }
-
-  public async refresh(): Promise<void> {
-    if (this._tableRef.current) {
-      await this._tableRef.current.reload();
+  const refresh = React.useCallback(async (): Promise<void> => {
+    if (tableRef.current) {
+      await tableRef.current.reload();
     }
-  }
+  }, []);
 
-  public _nameCustomRenderer: React.FC<CustomRendererProps<string>> = (
-    props: CustomRendererProps<string>,
-  ) => {
+  const nameCustomRenderer: React.FC<CustomRendererProps<string>> = rendererProps => {
     return (
       <Link
         className={commonCss.link}
-        to={RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.recurringRunId, props.id)}
+        to={RoutePage.RECURRING_RUN_DETAILS.replace(
+          ':' + RouteParams.recurringRunId,
+          rendererProps.id,
+        )}
       >
-        {props.value}
+        {rendererProps.value}
       </Link>
     );
   };
 
-  public _enabledCustomRenderer: React.FC<CustomRendererProps<V2beta1RecurringRunStatus>> = (
-    props: CustomRendererProps<V2beta1RecurringRunStatus>,
-  ) => {
-    const isBusy = this.state.busyIds.has(props.id);
+  const enabledCustomRenderer: React.FC<CustomRendererProps<
+    V2beta1RecurringRunStatus
+  >> = rendererProps => {
+    const isBusy = busyIds.has(rendererProps.id);
     return (
       <BusyButton
-        outlined={props.value === V2beta1RecurringRunStatus.ENABLED}
-        title={props.value === V2beta1RecurringRunStatus.ENABLED ? 'Enabled' : 'Disabled'}
+        outlined={rendererProps.value === V2beta1RecurringRunStatus.ENABLED}
+        title={rendererProps.value === V2beta1RecurringRunStatus.ENABLED ? 'Enabled' : 'Disabled'}
         busy={isBusy}
         onClick={() => {
-          let busyIds = this.state.busyIds;
-          busyIds.add(props.id);
-          this.setState({ busyIds }, async () => {
-            props.value === V2beta1RecurringRunStatus.ENABLED
-              ? await this._setEnabledState(props.id, false)
-              : await this._setEnabledState(props.id, true);
-            busyIds = this.state.busyIds;
-            busyIds.delete(props.id);
-            this.setState({ busyIds });
-            await this.refresh();
-          });
+          const newBusyIds = new Set(busyIds);
+          newBusyIds.add(rendererProps.id);
+          setBusyIds(newBusyIds);
+
+          const setEnabledState = async () => {
+            rendererProps.value === V2beta1RecurringRunStatus.ENABLED
+              ? await setEnabledStateHelper(rendererProps.id, false)
+              : await setEnabledStateHelper(rendererProps.id, true);
+
+            const updatedBusyIds = new Set(busyIds);
+            updatedBusyIds.delete(rendererProps.id);
+            setBusyIds(updatedBusyIds);
+            await refresh();
+          };
+
+          setEnabledState();
         }}
       />
     );
   };
 
-  protected async _loadRuns(request: ListRequest): Promise<string> {
-    let runs: V2beta1RecurringRun[] = [];
-    let nextPageToken = '';
-    try {
-      const response = await Apis.recurringRunServiceApi.listRecurringRuns(
-        request.pageToken,
-        request.pageSize,
-        request.sortBy,
-        undefined,
-        request.filter,
-        this.props.experimentId,
-      );
-      runs = response.recurringRuns || [];
-      nextPageToken = response.next_page_token || '';
-    } catch (err) {
-      const errorMessage = await errorToMessage(err);
-      this.props.updateDialog({
-        buttons: [{ text: 'Dismiss' }],
-        content: 'List recurring run configs request failed with:\n' + errorMessage,
-        title: 'Error retrieving recurring run configs',
-      });
-      logger.error('Could not get list of recurring runs', errorMessage);
-    }
+  const setEnabledStateHelper = React.useCallback(
+    async (id: string, enabled: boolean): Promise<void> => {
+      try {
+        await (enabled
+          ? Apis.recurringRunServiceApi.enableRecurringRun(id)
+          : Apis.recurringRunServiceApi.disableRecurringRun(id));
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        props.updateDialog({
+          buttons: [{ text: 'Dismiss' }],
+          content: 'Error changing enabled state of recurring run:\n' + errorMessage,
+          title: 'Error',
+        });
+        logger.error('Error changing enabled state of recurring run', errorMessage);
+      }
+    },
+    [props],
+  );
 
-    this.setState({ runs });
-    return nextPageToken;
-  }
+  const loadRuns = React.useCallback(
+    async (request: ListRequest): Promise<string> => {
+      let runs: V2beta1RecurringRun[] = [];
+      let nextPageToken = '';
+      try {
+        const response = await Apis.recurringRunServiceApi.listRecurringRuns(
+          request.pageToken,
+          request.pageSize,
+          request.sortBy,
+          undefined,
+          request.filter,
+          props.experimentId,
+        );
+        runs = response.recurringRuns || [];
+        nextPageToken = response.next_page_token || '';
+      } catch (err) {
+        const errorMessage = await errorToMessage(err);
+        props.updateDialog({
+          buttons: [{ text: 'Dismiss' }],
+          content: 'List recurring run configs request failed with:\n' + errorMessage,
+          title: 'Error retrieving recurring run configs',
+        });
+        logger.error('Could not get list of recurring runs', errorMessage);
+      }
 
-  protected async _setEnabledState(id: string, enabled: boolean): Promise<void> {
-    try {
-      await (enabled
-        ? Apis.recurringRunServiceApi.enableRecurringRun(id)
-        : Apis.recurringRunServiceApi.disableRecurringRun(id));
-    } catch (err) {
-      const errorMessage = await errorToMessage(err);
-      this.props.updateDialog({
-        buttons: [{ text: 'Dismiss' }],
-        content: 'Error changing enabled state of recurring run:\n' + errorMessage,
-        title: 'Error',
-      });
-      logger.error('Error changing enabled state of recurring run', errorMessage);
-    }
-  }
-}
+      setRuns(runs);
+      return nextPageToken;
+    },
+    [props],
+  );
+
+  const columns: Column[] = [
+    {
+      customRenderer: nameCustomRenderer,
+      flex: 2,
+      label: 'Run name',
+      sortKey: JobSortKeys.NAME,
+    },
+    { label: 'Created at', flex: 2, sortKey: JobSortKeys.CREATED_AT },
+    { customRenderer: enabledCustomRenderer, label: '', flex: 1 },
+  ];
+
+  const rows: Row[] = runs.map(r => {
+    return {
+      error: r.error?.toString(),
+      id: r.recurring_run_id!,
+      otherFields: [r.display_name, formatDateString(r.created_at), r.status],
+    };
+  });
+
+  return (
+    <React.Fragment>
+      <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle='Recurring runs' />
+      <CustomTable
+        columns={columns}
+        rows={rows}
+        ref={tableRef}
+        selectedIds={selectedIds}
+        updateSelection={ids => setSelectedIds(ids)}
+        initialSortColumn={JobSortKeys.CREATED_AT}
+        reload={loadRuns}
+        filterLabel='Filter recurring runs'
+        disableSelection={true}
+        emptyMessage={'No recurring runs found in this experiment.'}
+      />
+    </React.Fragment>
+  );
+};
 
 export default RecurringRunsManager;

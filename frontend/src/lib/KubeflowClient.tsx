@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useLayoutEffect, useContext, useRef } from 'react';
+import React, { useLayoutEffect, useContext, useRef, ReactNode } from 'react';
 import { logger } from './Utils';
 
 declare global {
@@ -52,7 +52,7 @@ export function init(): void {
 }
 
 export const NamespaceContext = React.createContext<string | undefined>(undefined);
-export class NamespaceContextProvider extends React.Component {
+export class NamespaceContextProvider extends React.Component<{ children?: ReactNode }> {
   state = {
     namespace,
   };

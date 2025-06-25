@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import HelpIcon from '@material-ui/icons/Help';
+import HelpIcon from '@mui/icons-material/Help';
 import React, { useEffect, useState } from 'react';
 import { useQuery } from 'react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
@@ -46,8 +46,7 @@ import PagedTable from './PagedTable';
 import ROCCurve, { ROCCurveConfig } from './ROCCurve';
 import { PlotType, ViewerConfig } from './Viewer';
 import { componentMap } from './ViewerContainer';
-import Tooltip from '@material-ui/core/Tooltip';
-import { Link } from 'react-router-dom';
+import Tooltip from '@mui/material/Tooltip';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import {
@@ -62,6 +61,7 @@ import { logger } from 'src/lib/Utils';
 import { stylesheet } from 'typestyle';
 import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
 import { isEqual } from 'lodash';
+import { ForwardedLink } from 'src/atoms/ForwardedLink';
 
 const css = stylesheet({
   inline: {
@@ -388,13 +388,13 @@ const runNameCustomRenderer: React.FC<CustomRendererProps<NameId>> = (
   const runId = props.value ? props.value.id : '';
   return (
     <Tooltip title={runName} enterDelay={300} placement='top-start'>
-      <Link
+      <ForwardedLink
         className={commonCss.link}
         onClick={e => e.stopPropagation()}
         to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, runId)}
       >
         {runName}
-      </Link>
+      </ForwardedLink>
     </Tooltip>
   );
 };

@@ -21,7 +21,7 @@ import { QUERY_PARAMS } from 'src/components/Router';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
-import { URLParser } from '../lib/URLParser';
+import { useURLParser } from '../lib/URLParser';
 import EnhancedCompareV1 from './CompareV1';
 import EnhancedCompareV2 from './CompareV2';
 import { PageProps } from './Page';
@@ -42,7 +42,8 @@ export const METRICS_SECTION_NAME = 'Metrics';
 export default function Compare(props: PageProps) {
   const { updateBanner } = props;
   const [compareVersion, setCompareVersion] = useState<CompareVersion>(CompareVersion.Unknown);
-  const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
+  const urlParser = useURLParser();
+  const queryParamRunIds = urlParser.get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details, set page version on success.

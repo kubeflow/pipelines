@@ -1,37 +1,73 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Input accepts height and width as prop overrides 1`] = `
-<TextField
-  className="textField"
-  required={false}
-  select={false}
-  spellCheck={false}
-  style={
-    Object {
-      "height": 123,
-      "maxWidth": 600,
-      "width": 456,
-    }
-  }
-  value="some input value"
-  variant="outlined"
-/>
+<DocumentFragment>
+  <div
+    class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+    spellcheck="false"
+    style="height: 123px; max-width: 600px; width: 456px;"
+  >
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+    >
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+        id=":r1:"
+        type="text"
+        value="some input value"
+      />
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+      >
+        <legend
+          class="css-1whs34k-MuiNotchedOutlined-root"
+        >
+          <span
+            class="notranslate"
+          >
+            ​
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+</DocumentFragment>
 `;
 
 exports[`Input renders with the right styles by default 1`] = `
-<TextField
-  className="textField"
-  required={false}
-  select={false}
-  spellCheck={false}
-  style={
-    Object {
-      "height": 40,
-      "maxWidth": 600,
-      "width": "100%",
-    }
-  }
-  value="some input value"
-  variant="outlined"
-/>
+<DocumentFragment>
+  <div
+    class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+    spellcheck="false"
+    style="height: 40px; max-width: 600px; width: 100%;"
+  >
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+    >
+      <input
+        aria-invalid="false"
+        class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+        id=":r0:"
+        type="text"
+        value="some input value"
+      />
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+      >
+        <legend
+          class="css-1whs34k-MuiNotchedOutlined-root"
+        >
+          <span
+            class="notranslate"
+          >
+            ​
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
+</DocumentFragment>
 `;

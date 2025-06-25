@@ -15,26 +15,26 @@
  */
 
 import * as React from 'react';
-import ArrowRight from '@material-ui/icons/ArrowRight';
-import Checkbox, { CheckboxProps } from '@material-ui/core/Checkbox';
-import ChevronLeft from '@material-ui/icons/ChevronLeft';
-import ChevronRight from '@material-ui/icons/ChevronRight';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import FilterIcon from '@material-ui/icons/FilterList';
-import IconButton from '@material-ui/core/IconButton';
+import ArrowRight from '@mui/icons-material/ArrowRight';
+import Checkbox from '@mui/material/Checkbox';
+import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import ChevronRight from '@mui/icons-material/ChevronRight';
+import CircularProgress from '@mui/material/CircularProgress';
+import FilterIcon from '@mui/icons-material/FilterList';
+import IconButton from '@mui/material/IconButton';
 import Input from '../atoms/Input';
-import MenuItem from '@material-ui/core/MenuItem';
-import Radio from '@material-ui/core/Radio';
+import MenuItem from '@mui/material/MenuItem';
+import Radio from '@mui/material/Radio';
 import Separator from '../atoms/Separator';
-import TableSortLabel from '@material-ui/core/TableSortLabel';
-import TextField, { TextFieldProps } from '@material-ui/core/TextField';
-import Tooltip from '@material-ui/core/Tooltip';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 import { ListRequest } from '../lib/Apis';
 import { classes, stylesheet } from 'typestyle';
 import { fonts, fontsize, dimension, commonCss, color, padding, zIndex } from '../Css';
 import { logger } from '../lib/Utils';
 import { debounce } from 'lodash';
-import { InputAdornment } from '@material-ui/core';
+import { InputAdornment } from '@mui/material';
 import { CustomTableRow } from './CustomTableRow';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
@@ -245,14 +245,12 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     };
   }
 
-  public handleSelectAllClick(event: React.ChangeEvent): void {
+  public handleSelectAllClick(event: React.ChangeEvent<HTMLInputElement>): void {
     if (this.props.disableSelection === true) {
       // This should be impossible to reach
       return;
     }
-    const selectedIds = (event.target as CheckboxProps).checked
-      ? this.props.rows.map(v => v.id)
-      : [];
+    const selectedIds = event.target.checked ? this.props.rows.map(v => v.id) : [];
     if (this.props.updateSelection) {
       this.props.updateSelection(selectedIds);
     }
@@ -302,7 +300,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     const widths = this.props.columns.map(c => ((c.flex || 1) / totalFlex) * 100);
 
     return (
-      <div className={commonCss.pageOverflowHidden}>
+      <div className={commonCss.pageOverflowHidden} data-testid='custom-table'>
         {/* Filter/Search bar */}
         {!this.props.noFilterBox && (
           <div>
@@ -330,7 +328,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             />
           </div>
         )}
-
         {/* Header */}
         <div className={classes(css.header, this.props.disableSelection && padding(20, 'l'))}>
           {// Called as function to avoid breaking shallow rendering tests.
@@ -377,7 +374,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             );
           })}
         </div>
-
         {/* Body */}
         <div className={commonCss.scrollContainer} style={{ minHeight: 60 }}>
           {/* Busy experience */}
@@ -409,6 +405,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   row.expandState === ExpandState.EXPANDED && css.expandedContainer,
                 )}
                 key={i}
+                data-testid={`row-${i}`}
               >
                 <div
                   role='checkbox'
@@ -423,8 +420,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   )}
                   onClick={e => this.handleClick(e, row.id)}
                 >
-                  {// Called as function to avoid breaking shallow rendering tests.
-                  BodyRowSelectionSection({
+                  {BodyRowSelectionSection({
                     disableSelection: this.props.disableSelection,
                     expandState: row.expandState,
                     isSelected: selected,
@@ -432,6 +428,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                     showExpandButton: !!this.props.getExpandComponent,
                     useRadioButtons: this.props.useRadioButtons,
                     disableAdditionalSelection: this.props.disableAdditionalSelection,
+                    testIdPrefix: i + 1,
                   })}
                   <CustomTableRow row={row} columns={this.props.columns} />
                 </div>
@@ -442,7 +439,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             );
           })}
         </div>
-
         {/* Footer */}
         {!this.props.disablePaging && (
           <div className={css.footer}>
@@ -455,6 +451,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               InputProps={{ disableUnderline: true }}
               onChange={this._requestRowsPerPage.bind(this)}
               value={pageSize}
+              data-testid='rows-per-page'
             >
               {[10, 20, 50, 100].map((size, i) => (
                 <MenuItem key={i} value={size}>
@@ -463,17 +460,33 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               ))}
             </TextField>
 
-            <IconButton onClick={() => this._pageChanged(-1)} disabled={!this.state.currentPage}>
+            <IconButton
+              onClick={() => this._pageChanged(-1)}
+              disabled={!this.state.currentPage}
+              size='large'
+              data-testid='previous-page-button'
+            >
               <ChevronLeft />
             </IconButton>
             <IconButton
               onClick={() => this._pageChanged(1)}
               disabled={this.state.currentPage >= this.state.maxPageIndex}
+              size='large'
+              data-testid='next-page-button'
             >
               <ChevronRight />
             </IconButton>
+            <span data-testid='current-page' style={{ position: 'absolute', left: '-9999px' }}>
+              {this.state.currentPage}
+            </span>
+            <span data-testid='token-list' style={{ position: 'absolute', left: '-9999px' }}>
+              {this.state.tokenList.join(',')}
+            </span>
           </div>
         )}
+        <span data-testid='filter-string-encoded' style={{ position: 'absolute', left: '-9999px' }}>
+          {this.state.filterStringEncoded}
+        </span>
       </div>
     );
   }
@@ -606,8 +619,8 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.setStateSafe({ currentPage: newCurrentPage, maxPageIndex });
   }
 
-  private async _requestRowsPerPage(event: React.ChangeEvent): Promise<void> {
-    const pageSize = (event.target as TextFieldProps).value as number;
+  private async _requestRowsPerPage(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
+    const pageSize = parseInt(event.target.value);
 
     this._resetToFirstPage(await this.reload({ pageSize, pageToken: '' }));
   }
@@ -674,6 +687,7 @@ const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
           checked={isSelected}
           onChange={onSelectAll}
           disabled={indeterminate && disableAdditionalSelection}
+          data-testid='checkbox-0'
         />
       )}
       {/* If using radio buttons */}
@@ -690,6 +704,7 @@ interface BodyRowSelectionSectionProps extends SelectionSectionCommonProps {
   expandState?: ExpandState;
   onExpand: React.MouseEventHandler;
   disableAdditionalSelection?: boolean;
+  testIdPrefix?: number;
 }
 const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
   disableSelection,
@@ -699,6 +714,7 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
   showExpandButton,
   useRadioButtons,
   disableAdditionalSelection,
+  testIdPrefix,
 }) => (
   <>
     {/* Expansion toggle button */}
@@ -710,6 +726,7 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
             color='primary'
             checked={isSelected}
             disabled={!isSelected && disableAdditionalSelection}
+            data-testid={`checkbox-${testIdPrefix}`}
           />
         )}
         {/* If using radio buttons */}
@@ -724,6 +741,10 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
             )}
             onClick={onExpand}
             aria-label='Expand'
+            size='large'
+            data-testid={`expand-button-${
+              typeof testIdPrefix === 'number' ? testIdPrefix - 1 : ''
+            }`}
           >
             <ArrowRight />
           </IconButton>

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+import { render } from '@testing-library/react';
 import * as React from 'react';
 import Page404 from './404';
 import { PageProps } from './Page';
-import { shallow } from 'enzyme';
 
 describe('404', () => {
   function generateProps(): PageProps {
@@ -34,6 +34,7 @@ describe('404', () => {
   }
 
   it('renders a 404 page', () => {
-    expect(shallow(<Page404 {...generateProps()} />)).toMatchSnapshot();
+    const { asFragment } = render(<Page404 {...generateProps()} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 });

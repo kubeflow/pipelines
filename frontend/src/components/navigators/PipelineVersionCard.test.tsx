@@ -129,8 +129,7 @@ describe('PipelineVersionCard', () => {
 
     userEvent.click(screen.getByText('Show Summary'));
 
-    fireEvent.click(getByRole('button', { name: OLD_VERSION_NAME }));
-    fireEvent.click(getByRole('listbox'));
+    fireEvent.mouseDown(getByRole('combobox'));
     getByRole('option', { name: NEW_VERSION_NAME });
   });
 });

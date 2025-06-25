@@ -15,19 +15,24 @@
  */
 
 import React, { MouseEvent as ReactMouseEvent } from 'react';
-import ReactFlow, {
+import {
+  ReactFlow,
   Background,
   Controls,
-  Elements,
   MiniMap,
-  OnLoadParams,
   ReactFlowProvider,
-} from 'react-flow-renderer';
+  ReactFlowInstance,
+  Node,
+  Edge,
+} from 'reactflow';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
 import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
-import { Edge, Node } from 'react-flow-renderer/dist/types';
+
+// Type aliases for backward compatibility
+type FlowElement<T = any> = Node<T> | Edge<T>;
+type Elements<T = any> = FlowElement<T>[];
 
 export interface DagCanvasProps {
   elements: Elements<FlowElementDataBase>;
@@ -44,7 +49,7 @@ export default function DagCanvas({
   setFlowElements,
   onElementClick,
 }: DagCanvasProps) {
-  const onLoad = (reactFlowInstance: OnLoadParams) => {
+  const onLoad = (reactFlowInstance: ReactFlowInstance) => {
     reactFlowInstance.fitView();
   };
 
@@ -67,12 +72,14 @@ export default function DagCanvas({
         <ReactFlowProvider>
           <ReactFlow
             style={{ background: color.lightGrey }}
-            elements={elements}
+            nodes={elements.filter(el => !('source' in el)) as Node[]}
+            edges={elements.filter(el => 'source' in el) as Edge[]}
             snapToGrid={true}
-            onLoad={onLoad}
+            onInit={onLoad}
             nodeTypes={NODE_TYPES}
             edgeTypes={{}}
-            onElementClick={onElementClick}
+            onNodeClick={(event, node) => onElementClick && onElementClick(event, node)}
+            onEdgeClick={(event, edge) => onElementClick && onElementClick(event, edge)}
             onNodeDragStop={(event, node) => {
               setFlowElements(
                 elements.map(value => {

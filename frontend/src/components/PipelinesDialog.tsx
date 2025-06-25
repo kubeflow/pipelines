@@ -15,12 +15,12 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
 import { classes } from 'typestyle';
 import { padding, commonCss } from '../Css';
-import DialogContent from '@material-ui/core/DialogContent';
+import DialogContent from '@mui/material/DialogContent';
 import ResourceSelector from '../pages/ResourceSelector';
 import { Apis, PipelineSortKeys } from '../lib/Apis';
 import { Column } from './CustomTable';

@@ -34,8 +34,8 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 testBestPractices();
 
 describe('ExecutionListSwitcher', () => {
-  let getExecutionsSpy: jest.Mock<{}>;
-  let getExecutionTypesSpy: jest.Mock<{}>;
+  let getExecutionsSpy: jest.SpyInstance;
+  let getExecutionTypesSpy: jest.SpyInstance;
   const getExecutionsRequest = new GetExecutionsRequest();
 
   beforeEach(() => {
@@ -61,11 +61,15 @@ describe('ExecutionListSwitcher', () => {
 
   function generateProps(): PageProps {
     const pageProps: PageProps = {
-      history: {} as any,
+      navigate: jest.fn(),
       location: {
         pathname: RoutePage.EXECUTIONS,
-      } as any,
-      match: {} as any,
+        search: '',
+        hash: '',
+        state: null,
+        key: 'default',
+      },
+      match: { params: {}, isExact: true, path: '', url: '' },
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: () => null,
       updateDialog: () => null,

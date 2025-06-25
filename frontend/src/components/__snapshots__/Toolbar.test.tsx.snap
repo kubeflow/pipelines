@@ -636,79 +636,6 @@ exports[`Toolbar renders without actions, one breadcrumb, and a page name 1`] = 
 </div>
 `;
 
-exports[`Toolbar renders without breadcrumbs and a component page title 1`] = `
-<div
-  className="root topLevelToolbar"
->
-  <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
-  >
-    <div
-      className="breadcrumbs flex"
-    />
-    <div
-      className="flex"
-    >
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
-      >
-        <div
-          id="myComponent"
-        >
-          test page title
-        </div>
-      </span>
-    </div>
-  </div>
-  <div
-    className="actions"
-  >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test tooltip"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          icon={[Function]}
-          id="test id"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="1"
-      title="test disabled title2"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          disabled={true}
-          icon={[Function]}
-          id="test id2"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title2"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-  </div>
-</div>
-`;
-
 exports[`Toolbar renders without breadcrumbs and a string page title 1`] = `
 <div
   className="root topLevelToolbar"
@@ -771,56 +698,6 @@ exports[`Toolbar renders without breadcrumbs and a string page title 1`] = `
           onClick={[MockFunction]}
           outlined={false}
           title="test title2"
-        />
-      </div>
-    </WithStyles(Tooltip)>
-  </div>
-</div>
-`;
-
-exports[`Toolbar renders without breadcrumbs and one action 1`] = `
-<div
-  className="root topLevelToolbar"
->
-  <div
-    style={
-      Object {
-        "minWidth": 100,
-      }
-    }
-  >
-    <div
-      className="breadcrumbs flex"
-    />
-    <div
-      className="flex"
-    >
-      <span
-        className="pageName ellipsis"
-        data-testid="page-title"
-      >
-        test page title
-      </span>
-    </div>
-  </div>
-  <div
-    className="actions"
-  >
-    <WithStyles(Tooltip)
-      enterDelay={300}
-      key="0"
-      title="test tooltip"
-    >
-      <div>
-        <BusyButton
-          busy={false}
-          className=""
-          color="secondary"
-          icon={[Function]}
-          id="test id"
-          onClick={[MockFunction]}
-          outlined={false}
-          title="test title"
         />
       </div>
     </WithStyles(Tooltip)>

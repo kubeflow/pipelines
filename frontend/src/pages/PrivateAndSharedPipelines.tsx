@@ -52,7 +52,7 @@ const PrivateAndSharedPipelines: React.FC<PrivateAndSharedProps> = props => {
   const buildInfo = React.useContext(BuildInfoContext);
 
   const tabSwitched = (newTab: PrivateAndSharedTab): void => {
-    props.history.push(
+    props.navigate(
       newTab === PrivateAndSharedTab.PRIVATE ? RoutePage.PIPELINES : RoutePage.PIPELINES_SHARED,
     );
   };

@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import PipelinesDialogV2, { PipelinesDialogV2Props } from './PipelinesDialogV2';
 import { PageProps } from 'src/pages/Page';
 import { Apis, PipelineSortKeys } from 'src/lib/Apis';
@@ -46,7 +46,7 @@ function generateProps(): PipelinesDialogV2Props {
 
 function generatePageProps(): PageProps {
   return {
-    history: {} as any,
+    navigate: jest.fn(),
     location: '' as any,
     match: {} as any,
     toolbarProps: {} as any,
@@ -90,7 +90,7 @@ describe('PipelinesDialog', () => {
   });
 
   it('it renders correctly in multi user mode', async () => {
-    const tree = render(
+    TestUtils.renderWithRouter(
       <BuildInfoContext.Provider value={{ apiServerMultiUser: true }}>
         <PipelinesDialogV2 {...generateProps()} />
       </BuildInfoContext.Provider>,
@@ -99,12 +99,14 @@ describe('PipelinesDialog', () => {
 
     expect(listPipelineSpy).toHaveBeenCalledWith('ns', '', 10, 'created_at desc', '');
     // Verify the display names are shown instead of the names
-    screen.getByText('old mock pipeline name');
-    screen.getByText('new mock pipeline name');
+    await waitFor(() => {
+      screen.getByText('old mock pipeline name');
+      screen.getByText('new mock pipeline name');
+    });
   });
 
   it('it renders correctly in single user mode', async () => {
-    const tree = render(
+    TestUtils.renderWithRouter(
       <BuildInfoContext.Provider value={{ apiServerMultiUser: false }}>
         <PipelinesDialogV2 {...generateProps()} />
       </BuildInfoContext.Provider>,
@@ -113,7 +115,9 @@ describe('PipelinesDialog', () => {
 
     expect(listPipelineSpy).toHaveBeenCalledWith(undefined, '', 10, 'created_at desc', '');
     // Verify the display names are shown instead of the names
-    screen.getByText('old mock pipeline name');
-    screen.getByText('new mock pipeline name');
+    await waitFor(() => {
+      screen.getByText('old mock pipeline name');
+      screen.getByText('new mock pipeline name');
+    });
   });
 });

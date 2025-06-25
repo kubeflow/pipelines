@@ -4,7 +4,7 @@ import { useQuery } from 'react-query';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-import { URLParser } from 'src/lib/URLParser';
+import { useURLParser } from 'src/lib/URLParser';
 import { NewRun } from './NewRun';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
@@ -17,7 +17,7 @@ import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
 
-  const urlParser = new URLParser(props);
+  const urlParser = useURLParser();
   // Currently using two query parameters to get Run ID.
   // because v1 has two different behavior with Run ID (clone a run / start a run)
   // Will keep clone run only in v2 if run ID is existing

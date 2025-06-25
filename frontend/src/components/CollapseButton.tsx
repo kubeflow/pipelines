@@ -15,8 +15,8 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import ExpandedIcon from '@material-ui/icons/ArrowDropUp';
+import Button from '@mui/material/Button';
+import ExpandedIcon from '@mui/icons-material/ArrowDropUp';
 import { stylesheet, classes } from 'typestyle';
 import { color, fontsize } from '../Css';
 
@@ -55,6 +55,7 @@ class CollapseButton extends React.Component<CollapseButtonProps> {
           }}
           title='Expand/Collapse this section'
           className={css.collapseBtn}
+          data-testid={`collapse-button-${sectionName}`}
         >
           <ExpandedIcon
             className={classes(css.icon, collapseSections[sectionName] ? css.collapsed : '')}

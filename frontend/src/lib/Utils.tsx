@@ -231,9 +231,27 @@ export function s(items: any[] | number): string {
   return length === 1 ? '' : 's';
 }
 
-interface ServiceError {
+export interface ServiceError {
   message: string;
   code?: number;
+}
+
+export function hasMessage(e: any): e is { message: string } {
+  return (
+    typeof e === 'object' && e !== null && 'message' in e && typeof (e as any).message === 'string'
+  );
+}
+
+export function ensureError(value: unknown): Error {
+  if (value instanceof Error) return value;
+  return new Error(JSON.stringify(value));
+}
+
+export function ensureServiceError(value: unknown): ServiceError {
+  if (hasMessage(value)) {
+    return value;
+  }
+  return { message: 'Unknown error' };
 }
 
 export function serviceErrorToString(error: ServiceError): string {
@@ -481,13 +499,16 @@ export async function decodeCompressedNodes(compressedNodes: string): Promise<ob
 
 export function isSafari(): boolean {
   // Since react-ace Editor doesn't support in Safari when height or width is a percentage.
-  // Fix the Yaml file cannot display issue via defining “width/height” does not not take percentage if it's Safari browser.
+  // Fix the Yaml file cannot display issue via defining "width/height" does not not take percentage if it's Safari browser.
   // The code of detecting wether isSafari is from: https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769#9851769
   const isSafari =
     /constructor/i.test(window.HTMLElement.toString()) ||
     (function(p) {
       return p.toString() === '[object SafariRemoteNotification]';
-    })(!window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification));
+    })(
+      !(window as any)['safari'] ||
+        (typeof 'safari' !== 'undefined' && (window as any)['safari'].pushNotification),
+    );
   return isSafari;
 }
 
