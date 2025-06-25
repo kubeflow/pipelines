@@ -131,6 +131,23 @@ class TestDockerRunner(unittest.TestCase):
             ):
                 local.DockerRunner()
 
+    def test_good_container_args(self):
+        local.DockerRunner(network_mode='none')
+
+    def test_unknown_container_args(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Unsupported `docker run` arguments, see Package `docker` for details: .*'
+        ):
+            local.DockerRunner(image='spaghetti', favorite_vegetable='zucchini')
+
+    def test_excess_container_args(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'The following docker run arguments should not be specififed: .*'
+        ):
+            local.DockerRunner(image='spaghetti')
+
 
 if __name__ == '__main__':
     unittest.main()
