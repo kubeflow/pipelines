@@ -17,6 +17,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"fmt"
 	"os"
 	"sort"
@@ -47,27 +48,27 @@ func (r RunMetricSorter) Len() int           { return len(r) }
 func (r RunMetricSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
 func (r RunMetricSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
-var storeEnv *RuneStoreMysqlTestEnv
+var storeEnv *RuneStoreMySQLTestEnv
 
 func TestMain(m *testing.M) {
+	flag.Parse()
 	ctx := context.Background()
-	storeEnv = NewRuneStoreMysqlSetupOrFatal(ctx)
+
+	storeEnv = newRuneStoreMysqlSetupOrFatal(ctx)
 	code := m.Run()
-	storeEnv.StopOrFatal(ctx)
+	storeEnv.stopOrFatal(ctx)
 	os.Exit(code)
 }
 
+// initializeStorageAndCloseConnection creates a RunStore using a temporary
+// database connection and then closes the connection. It is used in tests
+// that intentionally expect failures when operating on a closed database.
 func initializeStorageAndCloseConnection() (*RunStore, error) {
-	/*
-		This function is used in fail-expected tests,
-		where we intentionally expect an error to be throw
-		due to operations on a closed database connection
-	*/
-	db := storeEnv.OpenExtraDbOrFatal()
+	db := storeEnv.openExtraDbOrFatal()
 	runStore := initializeRunStore(db)
 	err := db.Close()
 	if err != nil {
-		return nil, fmt.Errorf("failed to close mysql connection: %v", err)
+		return nil, fmt.Errorf("failed to close MySQL connection: %v", err)
 	}
 	return runStore, nil
 }
@@ -76,7 +77,7 @@ func initializeRunStore(db *DB) *RunStore {
 	if db == nil {
 		glog.Fatal("failed to initialize RunStore: db is nil")
 	}
-	storeEnv.CleanStorageOrFatal()
+	storeEnv.cleanStorageOrFatal()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
 	_, err := expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	if err != nil {
