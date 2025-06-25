@@ -121,8 +121,8 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
             disabled={isBusy}
           >
             {this.getAvailableTypes(allowCustomVisualizations).map((key: string) => (
-              <MenuItem key={key} value={ApiVisualizationType[key]}>
-                {ApiVisualizationType[key]}
+              <MenuItem key={key} value={ApiVisualizationType[key as keyof typeof ApiVisualizationType]}>
+                {ApiVisualizationType[key as keyof typeof ApiVisualizationType]}
               </MenuItem>
             ))}
           </Select>

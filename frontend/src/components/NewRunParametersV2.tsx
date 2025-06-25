@@ -179,9 +179,9 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   } = props;
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
-  const [errorMessages, setErrorMessages] = useState<string[]>([]);
+  const [errorMessages, setErrorMessages] = useState<Record<string, string | null>>({});
 
-  const [updatedParameters, setUpdatedParameters] = useState({});
+  const [updatedParameters, setUpdatedParameters] = useState<Record<string, any>>({});
   useEffect(() => {
     if (clonedRuntimeConfig && clonedRuntimeConfig.parameters) {
       const clonedRuntimeParametersStr: RuntimeParameters = {};
@@ -195,7 +195,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       });
       setUpdatedParameters(clonedRuntimeParametersStr);
       // Directly using cloned paramters guarantees input is valid and no error message
-      setErrorMessages([]);
+      setErrorMessages({});
       if (setIsValidInput) {
         setIsValidInput(true);
       }
@@ -208,7 +208,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
     const runtimeParametersWithDefault: RuntimeParameters = {};
     let allParamtersWithDefault = true;
-    let errMsg: string[] = [];
+    let errMsg: Record<string, string | null> = {};
     Object.keys(specParameters).forEach(key => {
       if (specParameters[key].defaultValue !== undefined) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
@@ -354,7 +354,7 @@ interface Param {
   key: string;
   value: any;
   type: ParameterType_ParameterTypeEnum;
-  errorMsg: string;
+  errorMsg: string | null;
 }
 
 interface ParamEditorProps {

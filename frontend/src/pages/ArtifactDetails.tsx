@@ -75,7 +75,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   private get id(): number {
-    return Number(this.props.match.params[RouteParams.ID]);
+    return Number((this.props.match.params as any)[RouteParams.ID]);
   }
 
   private static buildResourceDetailsPageRoute(
@@ -85,7 +85,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     // HACK: this distinguishes artifact from execution, only artifacts have
     // the getUri() method.
     // TODO: switch to use typedResource
-    if (typeof resource['getUri'] === 'function') {
+    if (typeof (resource as any)['getUri'] === 'function') {
       return RoutePageFactory.artifactDetails(resource.getId());
     } else {
       return RoutePageFactory.executionDetails(resource.getId());
@@ -213,7 +213,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
 // This guarantees that each artifact renders a different <ArtifactDetails /> instance.
 const EnhancedArtifactDetails = (props: PageProps) => {
-  return <ArtifactDetails {...props} key={props.match.params[RouteParams.ID]} />;
+  return <ArtifactDetails {...props} key={(props.match.params as any)[RouteParams.ID]} />;
 };
 
 export default EnhancedArtifactDetails;

@@ -57,7 +57,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
   public state: ExecutionDetailsState = {};
 
   private get id(): number {
-    return parseInt(this.props.match.params[RouteParams.ID], 10);
+    return parseInt((this.props.match.params as any)[RouteParams.ID], 10);
   }
 
   public render(): JSX.Element {
@@ -308,7 +308,7 @@ class SectionIO extends Component<
     try {
       const linkedArtifacts = await getLinkedArtifactsByEvents(this.props.events);
 
-      const artifactDataMap = {};
+      const artifactDataMap: Record<number, ArtifactInfo> = {};
       linkedArtifacts.forEach(linkedArtifact => {
         const id = linkedArtifact.event.getArtifactId();
         if (!id) {
@@ -317,7 +317,7 @@ class SectionIO extends Component<
         }
         artifactDataMap[id] = {
           id,
-          name: getArtifactName(linkedArtifact),
+          name: getArtifactName(linkedArtifact) || '',
           typeId: linkedArtifact.artifact.getTypeId(),
           uri: linkedArtifact.artifact.getUri() || '',
         };
