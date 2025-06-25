@@ -1,0 +1,131 @@
+erDiagram
+    PIPELINES {
+        varchar UUID PK
+        varchar Name UK
+        varchar DisplayName
+        bigint CreatedAtInSec
+        varchar DefaultVersionId
+        longtext Description
+        varchar Namespace
+        longtext Parameters
+        varchar Status
+    }
+    PIPELINE_VERSIONS {
+        varchar UUID PK
+        varchar Name UK
+        varchar PipelineId FK
+        bigint CreatedAtInSec
+        longtext Description
+        longtext Parameters
+        varchar Status
+        varchar CodeSourceUrl
+        longtext PipelineSpec
+        longtext PipelineSpecURI
+    }
+    RUN_DETAILS {
+        varchar UUID PK
+        varchar ExperimentUUID
+        varchar PipelineId
+        varchar PipelineVersionId
+        varchar JobUUID
+        varchar DisplayName
+        varchar Name
+        varchar StorageState
+        varchar Namespace
+        varchar ServiceAccount
+        varchar Description
+        bigint CreatedAtInSec
+        bigint ScheduledAtInSec
+        bigint FinishedAtInSec
+        varchar Conditions
+        varchar PipelineName
+        longtext PipelineSpecManifest
+        longtext WorkflowSpecManifest
+        longtext Parameters
+        longtext RuntimeParameters
+        longtext PipelineRoot
+        longtext PipelineRuntimeManifest
+        longtext WorkflowRuntimeManifest
+        varchar State
+        longtext StateHistory
+        bigint PipelineContextId
+        bigint PipelineRunContextId
+    }
+    TASKS {
+        varchar UUID PK
+        varchar RunUUID FK
+        varchar ParentTaskUUID
+        varchar Namespace
+        varchar PipelineName
+        varchar MLMDExecutionID
+        bigint CreatedTimestamp
+        bigint FinishedTimestamp
+        varchar Fingerprint
+        varchar PodName
+        bigint StartedTimestamp
+        varchar Name
+        varchar State
+        longtext StateHistory
+        longtext MLMDInputs
+        longtext MLMDOutputs
+        longtext ChildrenPods
+        longtext Payload
+    }
+    JOBS {
+        varchar UUID PK
+        varchar PipelineId
+        varchar PipelineVersionId
+        varchar ExperimentUUID
+        varchar DisplayName
+        varchar Name
+        varchar Namespace
+        varchar PipelineName
+        longtext PipelineSpecManifest
+        longtext WorkflowSpecManifest
+        longtext Parameters
+        longtext RuntimeParameters
+        longtext PipelineRoot
+        varchar Conditions
+        varchar ServiceAccount
+        varchar Description
+        bigint MaxConcurrency
+        tinyint NoCatchup
+        bigint CreatedAtInSec
+        bigint UpdatedAtInSec
+        tinyint Enabled
+        bigint CronScheduleStartTimeInSec
+        bigint CronScheduleEndTimeInSec
+        varchar Schedule
+        bigint PeriodicScheduleStartTimeInSec
+        bigint PeriodicScheduleEndTimeInSec
+        bigint IntervalSecond
+    }
+    EXPERIMENTS {
+        varchar UUID PK
+        varchar Name UK
+        varchar Description
+        bigint CreatedAtInSec
+        bigint LastRunCreatedAtInSec
+        varchar Namespace
+        varchar StorageState
+    }
+    RESOURCE_REFERENCES {
+        varchar(255) ResourceUUID PK
+        varchar(255) ResourceType PK
+        varchar(255) ReferenceType PK
+        varchar(255) ReferenceUUID
+        varchar(255) ReferenceName
+        varchar(255) Relationship
+        longtext     Payload
+    }
+    %% Relationships
+    EXPERIMENTS ||..o{ JOBS : "UUID = ExperimentUUID"
+    EXPERIMENTS ||..o{ RUN_DETAILS : "UUID = ExperimentUUID"
+    PIPELINES ||--|{ PIPELINE_VERSIONS : "UUID = PipelineId"
+    PIPELINES ||..o{ JOBS : "UUID = PipelineId"
+    PIPELINE_VERSIONS ||..o{ JOBS : "UUID = PipelineVersionId"
+    PIPELINES ||..o{ RUN_DETAILS : "UUID = PipelineId"
+    PIPELINE_VERSIONS ||..o{ RUN_DETAILS : "UUID = PipelineVersionId"
+    JOBS ||..o{ RUN_DETAILS : "UUID = JobUUID"
+    RUN_DETAILS ||--|{ TASKS : "UUID = RunUUID"
+    TASKS ||..o| TASKS : "UUID = ParentTaskUUID"
