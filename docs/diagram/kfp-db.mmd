@@ -2,6 +2,7 @@ erDiagram
     PIPELINES {
         varchar UUID PK
         varchar Name UK
+        varchar DisplayName
         bigint CreatedAtInSec
         varchar DefaultVersionId
         longtext Description
@@ -49,14 +50,6 @@ erDiagram
         longtext StateHistory
         bigint PipelineContextId
         bigint PipelineRunContextId
-    }
-    RUN_METRICS {
-        varchar RunUUID PK,FK
-        varchar NodeID PK
-        varchar Name PK
-        double NumberValue
-        varchar Format
-        longtext Payload
     }
     TASKS {
         varchar UUID PK
@@ -112,6 +105,7 @@ erDiagram
         varchar Name UK
         varchar Description
         bigint CreatedAtInSec
+        bigint LastRunCreatedAtInSec
         varchar Namespace
         varchar StorageState
     }
@@ -133,6 +127,5 @@ erDiagram
     PIPELINES ||..o{ RUN_DETAILS : "UUID = PipelineId"
     PIPELINE_VERSIONS ||..o{ RUN_DETAILS : "UUID = PipelineVersionId"
     JOBS ||..o{ RUN_DETAILS : "UUID = JobUUID"
-    RUN_DETAILS ||--o{ RUN_METRICS : "UUID = RunUUID"
     RUN_DETAILS ||--|{ TASKS : "UUID = RunUUID"
     TASKS ||..o| TASKS : "UUID = ParentTaskUUID"
