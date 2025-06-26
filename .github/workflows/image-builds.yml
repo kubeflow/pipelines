@@ -89,42 +89,55 @@ jobs:
           - image: kfp-api-server
             dockerfile: backend/Dockerfile
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-frontend
             dockerfile: frontend/Dockerfile
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-persistence-agent
             dockerfile: backend/Dockerfile.persistenceagent
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-scheduled-workflow-controller
             dockerfile: backend/Dockerfile.scheduledworkflow
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-viewer-crd-controller
             dockerfile: backend/Dockerfile.viewercontroller
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-visualization-server
             dockerfile: backend/Dockerfile.visualization
             context: .
+            platforms: linux/amd64
           - image: kfp-launcher
             dockerfile: backend/Dockerfile.launcher
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-driver
             dockerfile: backend/Dockerfile.driver
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-cache-deployer
             dockerfile: backend/src/cache/deployer/Dockerfile
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-cache-server
             dockerfile: backend/Dockerfile.cacheserver
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-metadata-writer
             dockerfile: backend/metadata_writer/Dockerfile
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-metadata-envoy
             dockerfile: third_party/metadata_envoy/Dockerfile
             context: .
+            platforms: linux/amd64, linux/arm64
           - image: kfp-inverse-proxy-agent
             dockerfile: proxy/Dockerfile
             context: ./proxy
+            platforms: linux/amd64, linux/arm64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -185,8 +198,11 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64, linux/arm64
-
+      
+      
+      
+          platforms: ${{ matrix.platforms }}
+          
       # This step generates an artifact attestation for the image,
       # which is an unforgeable statement about where and how it was built.
       # It increases supply chain security for people who consume the
