@@ -70,6 +70,7 @@ root:
                 producerTask: write-to-gcs
         taskInfo:
           name: Consumer
+          taskName: read-from-gcs
       write-to-gcs:
         cachingOptions:
           enableCache: true
@@ -81,6 +82,7 @@ root:
               componentInputParameter: text
         taskInfo:
           name: Producer
+          taskName: write-to-gcs
   inputDefinitions:
     parameters:
       text:
@@ -88,4 +90,4 @@ root:
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

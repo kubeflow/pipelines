@@ -46,6 +46,7 @@ root:
               componentInputParameter: input0
         taskInfo:
           name: component-with-optional-inputs
+          taskName: component-with-optional-inputs
   inputDefinitions:
     parameters:
       input0:
@@ -55,4 +56,4 @@ root:
       input2:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0
