@@ -32,6 +32,7 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+	SemaphoreConfigMapNameFlag              string = "ArgoWorkflowsConfig.SemaphoreConfigMapName"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -126,4 +127,8 @@ func GetKubeflowUserIDPrefix() string {
 
 func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
+}
+
+func GetSemaphoreConfigMapName() string {
+	return GetStringConfigWithDefault(SemaphoreConfigMapNameFlag, "kfp-argo-workflows-semaphore")
 }

@@ -4089,6 +4089,77 @@ class TestPipelineWorkspaceConfig(unittest.TestCase):
         # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
         compile_and_reload(loaded_pipeline)
 
+    def test_pipeline_with_semaphore_config(self):
+        config = PipelineConfig(semaphore_key='my-semaphore-key')
+
+        @dsl.pipeline(pipeline_config=config)
+        def my_pipeline():
+            task = comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {'pipelineConfig': {
+                'semaphore_key': 'my-semaphore-key'
+            }}, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_mutex_config(self):
+        config = PipelineConfig(mutex_name='my-mutex-name')
+
+        @dsl.pipeline(pipeline_config=config)
+        def my_pipeline():
+            task = comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {'pipelineConfig': {
+                'mutex_name': 'my-mutex-name'
+            }}, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
+    def test_pipeline_with_all_config_options(self):
+        config = PipelineConfig(
+            workspace=WorkspaceConfig(
+                size='10Gi',
+                kubernetes=KubernetesWorkspaceConfig(
+                    pvcSpecPatch={'accessModes': ['ReadWriteOnce']})),
+            semaphore_key='my-semaphore-key',
+            mutex_name='my-mutex-name')
+
+        @dsl.pipeline(pipeline_config=config)
+        def my_pipeline():
+            task = comp()
+
+        expected = pipeline_spec_pb2.PlatformSpec()
+        json_format.ParseDict(
+            {
+                'pipelineConfig': {
+                    'workspace': {
+                        'size': '10Gi',
+                        'kubernetes': {
+                            'pvcSpecPatch': {
+                                'accessModes': ['ReadWriteOnce']
+                            }
+                        }
+                    },
+                    'semaphore_key': 'my-semaphore-key',
+                    'mutex_name': 'my-mutex-name'
+                }
+            }, expected.platforms['kubernetes'])
+
+        self.assertEqual(my_pipeline.platform_spec, expected)
+
+        loaded_pipeline = compile_and_reload(my_pipeline)
+        self.assertEqual(loaded_pipeline.platform_spec, expected)
+
 
 class ExtractInputOutputDescription(unittest.TestCase):
 
