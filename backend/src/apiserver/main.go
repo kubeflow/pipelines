@@ -48,6 +48,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	corev1 "k8s.io/api/core/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -157,11 +158,18 @@ func main() {
 
 	}
 
+	var pvcSpec corev1.PersistentVolumeClaimSpec
+	err = viper.Sub("workspace").UnmarshalKey("volumeclaimtemplatespec", &pvcSpec)
+	if err != nil {
+		glog.Fatalf("Failed to unmarshal workspace.volumeclaimtemplatespec: %v", err)
+	}
+
 	resourceManager := resource.NewResourceManager(
 		clientManager,
 		&resource.ResourceManagerOptions{
 			CollectMetrics: *collectMetricsFlag,
 			CacheDisabled:  !common.GetBoolConfigWithDefault("CacheEnabled", true),
+			DefaultPVCSpec: &pvcSpec,
 		},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
