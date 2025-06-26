@@ -37,6 +37,7 @@ components:
                 componentInputParameter: nums
           taskInfo:
             name: add
+            taskName: add
         for-loop-2:
           componentRef:
             name: comp-for-loop-2-2
@@ -86,6 +87,7 @@ components:
                 componentInputParameter: num
           taskInfo:
             name: double
+            taskName: double
     inputDefinitions:
       parameters:
         num:
@@ -150,6 +152,7 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-1
           taskInfo:
             name: echo-and-return
+            taskName: echo-and-return
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-1:
@@ -178,6 +181,7 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-3
           taskInfo:
             name: double-pipeline
+            taskName: double-pipeline
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-3:
@@ -206,7 +210,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -235,7 +239,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -263,7 +267,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -292,7 +296,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -335,6 +339,7 @@ root:
                 producerTask: for-loop-2
         taskInfo:
           name: add-pipeline
+          taskName: add-pipeline
       for-loop-2:
         componentRef:
           name: comp-for-loop-2
@@ -359,9 +364,10 @@ root:
                 producerTask: add-pipeline
         taskInfo:
           name: join-and-print
+          taskName: join-and-print
   outputDefinitions:
     parameters:
       Output:
         parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0
