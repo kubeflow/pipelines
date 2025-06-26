@@ -1605,7 +1605,8 @@ type PipelineTaskInfo struct {
 
 	// The display name of the task.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// The name of the task used for the driver/executor
+	// The name of the task used throughout the pipeline acts as a unique
+	// identifier.
 	TaskName string `protobuf:"bytes,2,opt,name=task_name,json=taskName,proto3" json:"task_name,omitempty"`
 }
 

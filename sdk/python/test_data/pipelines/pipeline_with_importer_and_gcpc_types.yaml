@@ -59,6 +59,7 @@ root:
                 producerTask: importer
         taskInfo:
           name: consumer-op
+          taskName: consumer-op
       importer:
         cachingOptions:
           enableCache: true
@@ -71,5 +72,6 @@ root:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
         taskInfo:
           name: importer
+          taskName: importer
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0
