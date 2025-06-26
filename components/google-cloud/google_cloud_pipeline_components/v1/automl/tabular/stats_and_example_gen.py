@@ -136,7 +136,7 @@ def tabular_stats_and_example_gen(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250129_0625',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250620_0525',
                   '", "args": ["stats_generator",',
                   '"--train_spec={\\"prediction_type\\": \\"',
                   prediction_type,
@@ -215,7 +215,7 @@ def tabular_stats_and_example_gen(
                   ),
                   dataflow_max_num_workers,
                   '", "--dataflow_worker_container_image=',
-                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250129_0625',
+                  'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525',
                   '", "--dataflow_machine_type=',
                   dataflow_machine_type,
                   '", "--dataflow_disk_size_gb=',

@@ -65,7 +65,7 @@ def automated_feature_engineering(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-16"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250129_0625',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250620_0525',
                   '", "args": ["feature_engineering", "--project=', project,
                   '", "--location=', location, '", "--data_source_bigquery_table_path=',
                   data_source_bigquery_table_path,
