@@ -1,6 +1,6 @@
 import { NestedCSSProperties } from 'typestyle/lib/types';
 import { style, stylesheet, cssRaw } from 'typestyle';
-import { createMuiTheme } from '@material-ui/core/styles';
+import { createTheme, adaptV4Theme } from '@mui/material/styles';
 
 cssRaw(`
   .LineageExplorer {
@@ -152,7 +152,7 @@ const palette = {
   },
 };
 
-export const theme = createMuiTheme({
+export const theme = createTheme(adaptV4Theme({
   overrides: {
     MuiButton: {
       text: {
@@ -238,7 +238,7 @@ export const theme = createMuiTheme({
     fontFamily: fonts.main,
     fontSize: (fontsize.base + ' !important') as any,
   },
-});
+}));
 
 export const commonCss = stylesheet({
   absoluteCenter: {

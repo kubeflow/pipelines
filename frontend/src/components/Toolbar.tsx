@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import IconButton from '@material-ui/core/IconButton';
-import Tooltip from '@material-ui/core/Tooltip';
-import ArrowBackIcon from '@material-ui/icons/ArrowBack';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { History } from 'history';
 import * as React from 'react';
 import { CSSProperties } from 'react';
@@ -158,7 +158,7 @@ class Toolbar extends React.Component<ToolbarProps> {
                     className={css.backLink}
                     disabled={this.props.history!.length < 2}
                     onClick={this.props.history!.goBack}
-                  >
+                    size="large">
                     <ArrowBackIcon
                       className={classes(
                         css.backIcon,

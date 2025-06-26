@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import Checkbox from '@material-ui/core/Checkbox';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import MenuItem from '@material-ui/core/MenuItem';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import MenuItem from '@mui/material/MenuItem';
 import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { TriggerSchedule } from '../lib/TriggerUtils';
@@ -37,7 +37,7 @@ import {
   ParsedTrigger,
 } from '../lib/TriggerUtils';
 import { logger } from 'src/lib/Utils';
-import { Fab } from '@material-ui/core';
+import { Fab } from '@mui/material';
 
 type TriggerInitialProps = {
   maxConcurrentRuns?: string;

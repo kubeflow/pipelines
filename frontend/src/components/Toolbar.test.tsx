@@ -18,8 +18,8 @@ import * as React from 'react';
 import { shallow } from 'enzyme';
 import { createBrowserHistory, createMemoryHistory } from 'history';
 import Toolbar, { ToolbarActionMap } from './Toolbar';
-import HelpIcon from '@material-ui/icons/Help';
-import InfoIcon from '@material-ui/icons/Info';
+import HelpIcon from '@mui/icons-material/Help';
+import InfoIcon from '@mui/icons-material/Info';
 
 const action1 = jest.fn();
 const action2 = jest.fn();

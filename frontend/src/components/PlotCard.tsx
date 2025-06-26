@@ -15,13 +15,13 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import CloseIcon from '@material-ui/icons/Close';
-import Dialog from '@material-ui/core/Dialog';
-import Paper from '@material-ui/core/Paper';
-import PopOutIcon from '@material-ui/icons/Launch';
+import Button from '@mui/material/Button';
+import CloseIcon from '@mui/icons-material/Close';
+import Dialog from '@mui/material/Dialog';
+import Paper from '@mui/material/Paper';
+import PopOutIcon from '@mui/icons-material/Launch';
 import Separator from '../atoms/Separator';
-import Tooltip from '@material-ui/core/Tooltip';
+import Tooltip from '@mui/material/Tooltip';
 import ViewerContainer, { componentMap } from '../components/viewers/ViewerContainer';
 import { ViewerConfig } from '../components/viewers/Viewer';
 import { color, fontsize } from '../Css';

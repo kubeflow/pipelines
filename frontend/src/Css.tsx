@@ -1,6 +1,6 @@
 import { style, stylesheet } from 'typestyle';
 import { NestedCSSProperties } from 'typestyle/lib/types';
-import { createMuiTheme } from '@material-ui/core/styles';
+import { createTheme, adaptV4Theme } from '@mui/material/styles';
 
 // Gradually migrate the css styling workflow as below:
 // 1. Navigate to tailwind.config.js file.
@@ -93,7 +93,7 @@ const palette = {
   },
 };
 
-export const theme = createMuiTheme({
+export const theme = createTheme(adaptV4Theme({
   overrides: {
     MuiButton: {
       text: {
@@ -179,7 +179,7 @@ export const theme = createMuiTheme({
     fontFamily: fonts.main,
     fontSize: (fontsize.base + ' !important') as any,
   },
-});
+}));
 
 export const commonCss = stylesheet({
   absoluteCenter: {

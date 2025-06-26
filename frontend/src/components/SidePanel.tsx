@@ -15,11 +15,11 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import CloseIcon from '@material-ui/icons/Close';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import CloseIcon from '@mui/icons-material/Close';
 import Resizable from 're-resizable';
-import Slide from '@material-ui/core/Slide';
+import Slide from '@mui/material/Slide';
 import { color, commonCss, zIndex } from '../Css';
 import { stylesheet } from 'typestyle';
 

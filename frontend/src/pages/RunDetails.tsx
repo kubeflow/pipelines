@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import CircularProgress from '@material-ui/core/CircularProgress';
-import InfoIcon from '@material-ui/icons/InfoOutlined';
+import CircularProgress from '@mui/material/CircularProgress';
+import InfoIcon from '@mui/icons-material/InfoOutlined';
 import { flatten } from 'lodash';
 import * as React from 'react';
 import { Link, Redirect } from 'react-router-dom';
@@ -547,13 +547,13 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                         this.state.selectedNodeDetails && (
                                           // Overflow hidden here, because scroll is handled inside
                                           // LogViewer.
-                                          <div className={commonCss.pageOverflowHidden}>
+                                          (<div className={commonCss.pageOverflowHidden}>
                                             <LogViewer
                                               logLines={(
                                                 this.state.selectedNodeDetails.logs || ''
                                               ).split('\n')}
                                             />
-                                          </div>
+                                          </div>)
                                         )}
                                     </div>
                                   )}
