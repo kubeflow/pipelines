@@ -1,0 +1,144 @@
+name: Test pipelines with seaweedfs
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+    - tests/install_KinD_create_KinD_cluster_install_kustomize.sh
+    - .github/workflows/pipeline_swfs_test.yaml
+    - apps/pipeline/upstream/**
+    - tests/istio*
+    - tests/oauth2-proxy_install.sh
+    - common/cert-manager/**
+    - common/oauth2-proxy/**
+    - common/istio*/**
+    - experimental/seaweedfs/**
+    - tests/swfs_namespace_isolation_test.sh
+    - tests/s3_helper_test.py
+
+jobs:
+  build:
+    timeout-minutes: 15
+    runs-on:
+      labels: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Remove unused software
+      run: |
+        df -h # Check disk space before removal
+        sudo rm -rf /usr/share/dotnet # Example: Remove .NET SDK
+        sudo rm -rf /usr/local/lib/android # Example: Remove Android SDK
+        sudo rm -rf /opt/ghc # Example: Remove Haskell
+        df -h # Check disk space after removal
+
+    - name: Proactively prune OCI system on GHA runner
+      run: docker system prune -a --volumes --force
+
+    - name: Install KinD, Create KinD cluster and Install kustomize
+      run: ./tests/install_KinD_create_KinD_cluster_install_kustomize.sh
+
+    - name: Install kubectl
+      run: ./tests/kubectl_install.sh
+
+    - name: Install Istio
+      run: ./tests/istio-cni_install.sh
+
+    - name: Install oauth2-proxy
+      run: ./tests/oauth2-proxy_install.sh
+
+    - name: Install cert-manager
+      run: ./tests/cert_manager_install.sh
+
+    - name: Create kubeflow namespace
+      run: kustomize build common/kubeflow-namespace/base | kubectl apply -f -
+
+    - name: Install KF Pipelines
+      run: ./tests/pipelines_swfs_install.sh
+
+    - name: Install KF Multi Tenancy
+      run: ./tests/multi_tenancy_install.sh
+
+    - name: Install kubeflow-istio-resources
+      run: kustomize build common/istio-cni-1-24/kubeflow-istio-resources/base | kubectl apply -f -
+
+    - name: Create KF Profile
+      run: ./tests/kubeflow_profile_install.sh
+
+    - name: Verify Pipeline Integration
+      run: |
+        KF_PROFILE=kubeflow-user-example-com
+        if ! kubectl get secret mlpipeline-minio-artifact -n $KF_PROFILE > /dev/null 2>&1; then
+          echo "Error: Secret mlpipeline-minio-artifact not found in namespace $KF_PROFILE"
+          exit 1
+        fi
+        kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys[] as $k | "\($k): \(. | .[$k] | @base64d)"' | tr '\n' ' '
+
+
+    - name: Port forward
+      run: ./tests/port_forward_gateway.sh
+
+    - name: List and deploy test pipeline with V1 API
+      run: |
+        pip3 install "kfp>=1.8.22,<2.0.0"
+        KF_PROFILE=kubeflow-user-example-com
+        TOKEN="$(kubectl -n $KF_PROFILE create token default-editor)"
+        python3 tests/pipeline_v1_test.py "${TOKEN}" "${KF_PROFILE}"
+
+    - name: Prune images inside Kind cluster
+      run: docker exec kind-control-plane bash -c "crictl images prune"
+
+    - name: List and deploy test pipeline with V2 API
+      run: |
+        pip3 install kfp==2.13.0
+        KF_PROFILE=kubeflow-user-example-com
+        TOKEN="$(kubectl -n $KF_PROFILE create token default-editor)"
+        python3 tests/pipeline_v2_test.py run_pipeline "${TOKEN}" "${KF_PROFILE}"
+
+    - name: Fail to list pipelines with unauthorized ServiceAccount Token (V2 API)
+      run: |
+        pip3 install kfp==2.13.0
+        KF_PROFILE=kubeflow-user-example-com
+        TOKEN="$(kubectl -n default create token default)"
+        python3 tests/pipeline_v2_test.py test_unauthorized_access "${TOKEN}" "${KF_PROFILE}"
+        echo "Test succeeded. Token from unauthorized ServiceAccount cannot list pipelines in $KF_PROFILE namespace."
+
+    - name: Test SeaweedFS Namespace Isolation
+      run: ./tests/swfs_namespace_isolation_test.sh
+
+    - name: Apply Pod Security Standards baseline levels for static namespaces
+      run: ./tests/PSS_baseline_enable.sh
+
+    - name: Unapply applied baseline labels
+      run: |
+        NAMESPACES=("istio-system" "auth" "cert-manager" "oauth2-proxy" "kubeflow")
+        for NAMESPACE in "${NAMESPACES[@]}"; do
+          if kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
+            kubectl label namespace $NAMESPACE pod-security.kubernetes.io/enforce-
+          fi
+        done
+
+    - name: Applying Pod Security Standards restricted levels for static namespaces
+      run: ./tests/PSS_restricted_enable.sh
+
+    - name: Collect Logs on Failure
+      if: failure()
+      run: |
+        mkdir -p logs
+        kubectl get all --all-namespaces > logs/resources.txt
+        kubectl get events --all-namespaces --sort-by=.metadata.creationTimestamp > logs/events.txt
+        for namespace in kubeflow istio-system cert-manager auth kubeflow-user-example-com test-profile-1 test-profile-2; do
+            if kubectl get namespace $namespace >/dev/null 2>&1; then
+                kubectl describe pods -n $namespace > logs/$namespace-pods.txt
+                for pod in $(kubectl get pods -n $namespace -o jsonpath='{.items[*].metadata.name}'); do
+                    kubectl logs -n $namespace $pod --tail=100 > logs/$namespace-$pod.txt 2>&1 || true
+                done
+            fi
+        done
+
+    - name: Upload Diagnostic Logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: kubeflow-test-logs
+        path: logs/
