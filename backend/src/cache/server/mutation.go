@@ -167,7 +167,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 		// Image selected from Google Container Register(gcr) for it small size, gcr since there
 		// is not image pull rate limit. For more info see issue: https://github.com/kubeflow/pipelines/issues/4099
-		image := "registry.k8s.io/busybox"
+		image := "ghcr.io/containerd/busybox"
 		if v, ok := os.LookupEnv("CACHE_IMAGE"); ok {
 			image = v
 		}
