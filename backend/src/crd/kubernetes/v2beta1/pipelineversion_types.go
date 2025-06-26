@@ -21,12 +21,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"gopkg.in/yaml.v3"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/yaml"
 )
 
 // PipelineVersionSpec defines the desired state of PipelineVersion.
@@ -38,24 +39,13 @@ type PipelineVersionSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Schemaless
 	// +kubebuilder:pruning:PreserveUnknownFields
-	PipelineSpec PipelineIRSpec `json:"pipelineSpec"`
+	PipelineSpec IRSpec `json:"pipelineSpec"`
+
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:pruning:PreserveUnknownFields
+	PlatformSpec *IRSpec `json:"platformSpec,omitempty"`
 
 	PipelineSpecURI string `json:"pipelineSpecURI,omitempty"`
-}
-
-func ToPipelineSpec(p *PipelineIRSpec) (*pipelinespec.PipelineSpec, error) {
-	pDefBytes, err := json.Marshal(p.Value)
-	if err != nil {
-		return nil, err
-	}
-
-	rv := &pipelinespec.PipelineSpec{}
-	err = json.Unmarshal(pDefBytes, rv)
-	if err != nil {
-		return nil, err
-	}
-
-	return rv, nil
 }
 
 // SimplifiedCondition is a metav1.Condition without lastTransitionTime since the database model doesn't have such
@@ -104,11 +94,44 @@ type PipelineVersionList struct {
 }
 
 func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.PipelineVersion) (*PipelineVersion, error) {
-	pipelineSpec := PipelineIRSpec{}
-
-	err := yaml.Unmarshal([]byte(pipelineVersion.PipelineSpec), &pipelineSpec.Value)
+	v2Spec, err := template.NewV2SpecTemplate([]byte(pipelineVersion.PipelineSpec), false)
 	if err != nil {
-		return nil, fmt.Errorf("the pipeline spec is invalid YAML: %w", err)
+		return nil, fmt.Errorf("failed to parse the pipeline spec: %w", err)
+	}
+
+	pipelineSpec := IRSpec{}
+	var platformSpec *IRSpec
+
+	if v2Spec.PipelineSpec() != nil {
+		pipelineSpecBytes, err := protojson.Marshal(v2Spec.PipelineSpec())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal the pipeline spec: %w", err)
+		}
+
+		var pipelineSpecValue interface{}
+
+		err = json.Unmarshal(pipelineSpecBytes, &pipelineSpecValue)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode the pipeline spec: %w", err)
+		}
+
+		pipelineSpec = IRSpec{Value: pipelineSpecValue}
+	}
+
+	if v2Spec.PlatformSpec() != nil {
+		pipelineSpecBytes, err := protojson.Marshal(v2Spec.PlatformSpec())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal the platform spec: %w", err)
+		}
+
+		var platformSpecValue interface{}
+
+		err = json.Unmarshal(pipelineSpecBytes, &platformSpecValue)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode the platform spec: %w", err)
+		}
+
+		platformSpec = &IRSpec{Value: platformSpecValue}
 	}
 
 	return &PipelineVersion{
@@ -132,6 +155,7 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 			DisplayName:     pipelineVersion.DisplayName,
 			Description:     pipelineVersion.Description,
 			PipelineSpec:    pipelineSpec,
+			PlatformSpec:    platformSpec,
 			PipelineName:    pipeline.Name,
 			CodeSourceURL:   pipelineVersion.CodeSourceUrl,
 			PipelineSpecURI: pipelineVersion.PipelineSpecURI,
@@ -140,9 +164,19 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 }
 
 func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
-	pipelineSpec, err := json.Marshal(p.Spec.PipelineSpec.Value)
+	piplineSpecAndPlatformSpec, err := yaml.Marshal(p.Spec.PipelineSpec.Value)
 	if err != nil {
-		return nil, fmt.Errorf("the pipeline spec is invalid JSON: %w", err)
+		return nil, fmt.Errorf("failed to marshal pipeline spec to YAML: %w", err)
+	}
+
+	if p.Spec.PlatformSpec != nil && p.Spec.PlatformSpec.Value != nil {
+		platformSpecBytes, err := yaml.Marshal(p.Spec.PlatformSpec.Value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal platform spec to YAML: %w", err)
+		}
+
+		piplineSpecAndPlatformSpec = append(piplineSpecAndPlatformSpec, []byte("\n---\n")...)
+		piplineSpecAndPlatformSpec = append(piplineSpecAndPlatformSpec, platformSpecBytes...)
 	}
 
 	pipelineVersionStatus := model.PipelineVersionCreating
@@ -180,7 +214,7 @@ func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
 		Status:          pipelineVersionStatus,
 		CodeSourceUrl:   p.Spec.CodeSourceURL,
 		Description:     p.Spec.Description,
-		PipelineSpec:    string(pipelineSpec),
+		PipelineSpec:    string(piplineSpecAndPlatformSpec),
 		PipelineSpecURI: p.Spec.PipelineSpecURI,
 	}, nil
 }
@@ -195,18 +229,18 @@ func (p *PipelineVersion) IsOwnedByPipeline(pipelineId string) bool {
 	return false
 }
 
-// PipelineIRSpec is just a generalization of an interface{} type
+// IRSpec is just a generalization of an interface{} type
 // +kubebuilder:object:generate=false
 // +kubebuilder:validation:Type=""
-type PipelineIRSpec struct {
+type IRSpec struct {
 	Value interface{} `json:"-"`
 }
 
-func (in *PipelineIRSpec) GetValue() interface{} {
+func (in *IRSpec) GetValue() interface{} {
 	return runtime.DeepCopyJSONValue(in.Value)
 }
 
-func (in *PipelineIRSpec) UnmarshalJSON(val []byte) error {
+func (in *IRSpec) UnmarshalJSON(val []byte) error {
 	if bytes.Equal(val, []byte("null")) {
 		return nil
 	}
@@ -216,22 +250,22 @@ func (in *PipelineIRSpec) UnmarshalJSON(val []byte) error {
 // MarshalJSON should be implemented against a value
 // per http://stackoverflow.com/questions/21390979/custom-marshaljson-never-gets-called-in-go
 // credit to K8s api machinery's RawExtension for finding this.
-func (in *PipelineIRSpec) MarshalJSON() ([]byte, error) {
+func (in *IRSpec) MarshalJSON() ([]byte, error) {
 	if in.Value == nil {
 		return []byte("null"), nil
 	}
 	return json.Marshal(in.Value)
 }
 
-func (in *PipelineIRSpec) DeepCopy() *PipelineIRSpec {
+func (in *IRSpec) DeepCopy() *IRSpec {
 	if in == nil {
 		return nil
 	}
 
-	return &PipelineIRSpec{Value: runtime.DeepCopyJSONValue(in.Value)}
+	return &IRSpec{Value: runtime.DeepCopyJSONValue(in.Value)}
 }
 
-func (in *PipelineIRSpec) DeepCopyInto(out *PipelineIRSpec) {
+func (in *IRSpec) DeepCopyInto(out *IRSpec) {
 	*out = *in
 
 	if in.Value != nil {
@@ -253,8 +287,6 @@ func (p *PipelineVersion) GetField(name string) interface{} {
 		return p.Spec.DisplayName
 	case "pipeline_versions.Description":
 		return p.Spec.Description
-	case "pipeline_versions.pipelineSpec":
-		return p.Spec.PipelineSpec
 	default:
 		return nil
 	}
