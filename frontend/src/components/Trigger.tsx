@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
 import Checkbox from '@material-ui/core/Checkbox';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -38,6 +37,7 @@ import {
   ParsedTrigger,
 } from '../lib/TriggerUtils';
 import { logger } from 'src/lib/Utils';
+import { Fab } from '@material-ui/core';
 
 type TriggerInitialProps = {
   maxConcurrentRuns?: string;
@@ -329,8 +329,12 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               variant='outlined'
             >
               {Object.keys(PeriodicInterval).map((interval, i) => (
-                <MenuItem key={i} value={PeriodicInterval[interval as keyof typeof PeriodicInterval]}>
-                  {PeriodicInterval[interval as keyof typeof PeriodicInterval] + (type === TriggerType.INTERVALED ? 's' : '')}
+                <MenuItem
+                  key={i}
+                  value={PeriodicInterval[interval as keyof typeof PeriodicInterval]}
+                >
+                  {PeriodicInterval[interval as keyof typeof PeriodicInterval] +
+                    (type === TriggerType.INTERVALED ? 's' : '')}
                 </MenuItem>
               ))}
             </Input>
@@ -354,15 +358,15 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 />
                 <Separator />
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                  <Button
-                    variant='fab'
-                    mini={true}
+                  <Fab
+                    variant='extended'
+                    size='small'
                     key={i}
                     onClick={() => this._toggleDay(i)}
                     color={selectedDays[i] ? 'primary' : 'secondary'}
                   >
                     {day}
-                  </Button>
+                  </Fab>
                 ))}
               </div>
             )}
