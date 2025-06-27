@@ -21,7 +21,7 @@ import FormControl from '@mui/material/FormControl';
 import Input from '../../atoms/Input';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Editor from '../Editor';
 import Viewer, { ViewerConfig } from './Viewer';
 import { ApiVisualizationType } from '../../apis/visualization';
@@ -115,13 +115,16 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
               minHeight: 60,
               width: '100%',
             }}
-            onChange={(e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+            onChange={(e: SelectChangeEvent<ApiVisualizationType>) => {
               this.setState({ selectedType: e.target.value as ApiVisualizationType });
             }}
             disabled={isBusy}
           >
             {this.getAvailableTypes(allowCustomVisualizations).map((key: string) => (
-              <MenuItem key={key} value={ApiVisualizationType[key as keyof typeof ApiVisualizationType]}>
+              <MenuItem
+                key={key}
+                value={ApiVisualizationType[key as keyof typeof ApiVisualizationType]}
+              >
                 {ApiVisualizationType[key as keyof typeof ApiVisualizationType]}
               </MenuItem>
             ))}

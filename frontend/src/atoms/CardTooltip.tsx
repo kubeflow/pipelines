@@ -43,7 +43,6 @@ export const CardTooltip: React.FC<CardTooltipProps> = props => {
           <CardContent>{props.helpText}</CardContent>
         </Card>
       }
-      interactive={true}
       leaveDelay={400}
       placement='top'
     >

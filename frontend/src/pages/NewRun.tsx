@@ -54,7 +54,7 @@ import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } f
 import Buttons from '../lib/Buttons';
 import RunUtils from '../lib/RunUtils';
 import { URLParser } from '../lib/URLParser';
-import { errorToMessage, logger, mergeApiParametersByNames } from '../lib/Utils';
+import { ensureError, errorToMessage, logger, mergeApiParametersByNames } from '../lib/Utils';
 import { Workflow } from '../third_party/mlmd/argo_template';
 import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
@@ -659,7 +659,10 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           experimentId = RunUtils.getFirstExperimentReferenceId(originalRun.run);
         }
       } catch (err) {
-        await this.showPageError(`Error: failed to retrieve original run: ${originalRunId}.`, err);
+        await this.showPageError(
+          `Error: failed to retrieve original run: ${originalRunId}.`,
+          ensureError(err),
+        );
         logger.error(`Failed to retrieve original run: ${originalRunId}`, err);
       }
     } else if (originalRecurringRunId) {
@@ -678,7 +681,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       } catch (err) {
         await this.showPageError(
           `Error: failed to retrieve original recurring run: ${originalRunId}.`,
-          err,
+          ensureError(err),
         );
         logger.error(`Failed to retrieve original recurring run: ${originalRunId}`, err);
       }
@@ -721,7 +724,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
               urlParser.clear(QUERY_PARAMS.pipelineVersionId);
               await this.showPageError(
                 `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
-                err,
+                ensureError(err),
               );
               logger.error(
                 `Failed to retrieve pipeline version: ${possiblePipelineVersionId}`,
@@ -737,7 +740,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
             `Error: failed to retrieve pipeline: ${possiblePipelineId}.`,
-            err,
+            ensureError(err),
           );
           logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
         }
@@ -758,7 +761,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       } catch (err) {
         await this.showPageError(
           `Error: failed to retrieve associated experiment: ${experimentId}.`,
-          err,
+          ensureError(err),
         );
         logger.error(`Failed to retrieve associated experiment: ${experimentId}`, err);
       }
@@ -985,7 +988,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     } catch (err) {
       await this.showPageError(
         `Error: failed to retrieve the specified run: ${embeddedRunId}.`,
-        err,
+        ensureError(err),
       );
       logger.error(`Failed to retrieve the specified run: ${embeddedRunId}`, err);
       return;
@@ -1010,7 +1013,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     } catch (err) {
       await this.showPageError(
         `Error: failed to parse the embedded pipeline's spec: ${embeddedPipelineSpec}.`,
-        err,
+        ensureError(err),
       );
       logger.error(`Failed to parse the embedded pipeline's spec from run: ${embeddedRunId}`, err);
       return;
@@ -1059,7 +1062,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         await this.showPageError(
           'Error: failed to find a pipeline version corresponding to that of the original run:' +
             ` ${originalRun.id}.`,
-          err,
+          ensureError(err),
         );
         return;
       }
@@ -1071,7 +1074,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         await this.showPageError(
           'Error: failed to find a pipeline corresponding to that of the original run:' +
             ` ${originalRun.id}.`,
-          err,
+          ensureError(err),
         );
         return;
       }
@@ -1080,7 +1083,10 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         workflowFromRun = JSON.parse(embeddedPipelineSpec);
         name = workflowFromRun!.metadata.name || '';
       } catch (err) {
-        await this.showPageError("Error: failed to read the clone run's pipeline definition.", err);
+        await this.showPageError(
+          "Error: failed to read the clone run's pipeline definition.",
+          ensureError(err),
+        );
         return;
       }
       useWorkflowFromRun = true;
@@ -1285,7 +1291,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
       this.setStateSafe({ errorMessage: '' });
     } catch (err) {
-      this.setStateSafe({ errorMessage: err.message });
+      this.setStateSafe({ errorMessage: ensureError(err).message });
     }
   }
 

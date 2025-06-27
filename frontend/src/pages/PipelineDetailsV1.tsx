@@ -29,7 +29,7 @@ import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { classes, stylesheet } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Description } from '../components/Description';
-import Graph from '../components/Graph';
+import Graph, { AdditionalNodeData } from '../components/Graph';
 import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
@@ -85,8 +85,8 @@ export const css = stylesheet({
 });
 
 export interface PipelineDetailsV1Props {
-  graph: dagre.graphlib.Graph | null;
-  reducedGraph: dagre.graphlib.Graph | null;
+  graph: dagre.graphlib.Graph<AdditionalNodeData> | null;
+  reducedGraph: dagre.graphlib.Graph<AdditionalNodeData> | null;
   pipeline: ApiPipeline | null;
   templateString?: string;
   updateBanner: (bannerProps: BannerProps) => void;

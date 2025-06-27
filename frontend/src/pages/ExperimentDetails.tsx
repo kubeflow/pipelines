@@ -32,7 +32,7 @@ import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from 'src/Css';
-import { logger } from 'src/lib/Utils';
+import { ensureError, logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
@@ -337,7 +337,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       } catch (err) {
         await this.showPageError(
           `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`,
-          err,
+          ensureError(err),
         );
         logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
       }
@@ -351,7 +351,10 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       });
       this._selectionChanged([]);
     } catch (err) {
-      await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
+      await this.showPageError(
+        `Error: failed to retrieve experiment: ${experimentId}.`,
+        ensureError(err),
+      );
       logger.error(`Error loading experiment: ${experimentId}`, err);
     }
   }

@@ -27,7 +27,7 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { URLParser } from 'src/lib/URLParser';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from 'src/Css';
-import { logger, errorToMessage } from 'src/lib/Utils';
+import { logger, errorToMessage, ensureError } from 'src/lib/Utils';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { getLatestVersion } from 'src/pages/NewRunV2';
 import { NewExperimentFC } from 'src/pages/functional_components/NewExperimentFC';
@@ -196,7 +196,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
       }
       this.setState({ validationError: '' });
     } catch (err) {
-      this.setState({ validationError: err.message });
+      this.setState({ validationError: ensureError(err).message });
     }
   }
 }

@@ -40,9 +40,12 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
 import {
   CollapsedAndExpandedRows,
+  ensureError,
+  ensureServiceError,
   getExpandedRow,
   getStringEnumKey,
   groupRows,
+  hasMessage,
   rowFilterFn,
   serviceErrorToString,
 } from 'src/lib/Utils';
@@ -195,8 +198,9 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
     } catch (err) {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
-      if (err.code !== 5) {
-        this.showPageError(serviceErrorToString(err));
+      const serviceError = ensureServiceError(err);
+      if (serviceError.code !== 5) {
+        this.showPageError(serviceErrorToString(serviceError));
       }
     }
     return [];
@@ -248,10 +252,10 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
 
       return flattenedRows;
     } catch (err) {
-      if (err.message) {
-        this.showPageError(err.message, err);
+      if (hasMessage(err)) {
+        this.showPageError(err.message, ensureError(err));
       } else {
-        this.showPageError('Unknown error', err);
+        this.showPageError('Unknown error', ensureError(err));
       }
     }
     return [];

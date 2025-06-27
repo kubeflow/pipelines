@@ -16,7 +16,7 @@
 
 import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import { getResourceStateText, ResourceType } from 'src/components/ResourceInfo';
-import { logger } from 'src/lib/Utils';
+import { hasMessage, logger } from 'src/lib/Utils';
 import { isV2Pipeline } from 'src/lib/v2/WorkflowUtils';
 import {
   Api,
@@ -125,9 +125,9 @@ export async function getExecutionsFromContext(context: Context): Promise<Execut
     }
     return list;
   } catch (err) {
-    err.message =
+    (err as Error).message =
       `Cannot find executions by context ${context.getId()} with name ${context.getName()}: ` +
-      err.message;
+      (err as Error).message;
     throw err;
   }
 }
@@ -221,7 +221,9 @@ export async function getEventByExecution(execution: Execution): Promise<Event[]
   try {
     response = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
   } catch (err) {
-    err.message = 'Failed to getEventsByExecutionIDs: ' + err.message;
+    if (hasMessage(err)) {
+      err.message = 'Failed to getEventsByExecutionIDs: ' + err.message;
+    }
     throw err;
   }
   return response.getEventsList();
@@ -259,7 +261,9 @@ async function getContextsByExecution(execution: Execution): Promise<Context[]> 
   try {
     response = await Api.getInstance().metadataStoreService.getContextsByExecution(request);
   } catch (err) {
-    err.message = 'Failed to getContextsByExecution: ' + err.message;
+    if (hasMessage(err)) {
+      err.message = 'Failed to getContextsByExecution: ' + err.message;
+    }
     throw err;
   }
   return response.getContextsList();
@@ -274,7 +278,9 @@ async function getContextType(contextTypeName: string): Promise<ContextType | un
   try {
     response = await Api.getInstance().metadataStoreService.getContextType(request);
   } catch (err) {
-    err.message = 'Failed to getContextType: ' + err.message;
+    if (hasMessage(err)) {
+      err.message = 'Failed to getContextType: ' + err.message;
+    }
     throw err;
   }
   return response.getContextType();
@@ -304,7 +310,9 @@ export async function getLinkedArtifactsByEvents(events: Event[]): Promise<Linke
   try {
     artifactsRes = await Api.getInstance().metadataStoreService.getArtifactsByID(artifactsRequest);
   } catch (artifactsErr) {
-    artifactsErr.message = 'Failed to getArtifactsByID: ' + artifactsErr.message;
+    if (hasMessage(artifactsErr)) {
+      artifactsErr.message = 'Failed to getArtifactsByID: ' + artifactsErr.message;
+    }
     throw artifactsErr;
   }
 
@@ -356,7 +364,9 @@ export async function getArtifactTypes(): Promise<ArtifactType[]> {
   try {
     res = await Api.getInstance().metadataStoreService.getArtifactTypes(request);
   } catch (err) {
-    err.message = 'Failed to getArtifactTypes: ' + err.message;
+    if (hasMessage(err)) {
+      err.message = 'Failed to getArtifactTypes: ' + err.message;
+    }
     throw err;
   }
   return res.getArtifactTypesList();
@@ -433,9 +443,11 @@ export async function getArtifactsFromContext(context: Context): Promise<Artifac
     // Note that the actual artifact name is in Event which generates this artifact.
     return list;
   } catch (err) {
-    err.message =
-      `Cannot find executions by context ${context.getId()} with name ${context.getName()}: ` +
-      err.message;
+    if (hasMessage(err)) {
+      err.message =
+        `Cannot find executions by context ${context.getId()} with name ${context.getName()}: ` +
+        err.message;
+    }
     throw err;
   }
 }
@@ -456,7 +468,9 @@ export async function getEventsByExecutions(executions: Execution[] | undefined)
   try {
     response = await Api.getInstance().metadataStoreService.getEventsByExecutionIDs(request);
   } catch (err) {
-    err.message = 'Failed to getEventsByExecutionIDs: ' + err.message;
+    if (hasMessage(err)) {
+      err.message = 'Failed to getEventsByExecutionIDs: ' + err.message;
+    }
     throw err;
   }
   return response.getEventsList();

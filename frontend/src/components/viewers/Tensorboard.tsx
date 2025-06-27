@@ -25,13 +25,14 @@ import Input from '@mui/material/Input';
 import MenuItem from '@mui/material/MenuItem';
 import ListSubheader from '@mui/material/ListSubheader';
 import FormControl from '@mui/material/FormControl';
-import Select from '@mui/material/Select';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import { classes, stylesheet } from 'typestyle';
+import { hasMessage } from 'src/lib/Utils';
 
 export const css = stylesheet({
   button: {
@@ -118,7 +119,7 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
     clearInterval(this.timerID);
   }
 
-  public handleImageSelect = (e: React.ChangeEvent<{ name?: string; value: unknown }>): void => {
+  public handleImageSelect = (e: SelectChangeEvent<string>): void => {
     if (typeof e.target.value !== 'string') {
       throw new Error('Invalid event value type, expected string');
     }
@@ -162,7 +163,8 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
                 disabled={this.state.busy}
                 id={'delete'}
                 title={`stop tensorboard and delete its instance`}
-                onClick={this._handleDeleteOpen}>
+                onClick={this._handleDeleteOpen}
+              >
                 Stop Tensorboard
               </Button>
               <Dialog
@@ -296,7 +298,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           this.setState({ busy: false });
         }
       } catch (err) {
-        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+        this.setState({
+          busy: false,
+          errorMessage: hasMessage(err) ? err.message : 'Unknown error',
+        });
       }
     });
   }
@@ -314,7 +319,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           this._checkTensorboardApp();
         });
       } catch (err) {
-        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+        this.setState({
+          busy: false,
+          errorMessage: hasMessage(err) ? err.message : 'Unknown error',
+        });
       }
     });
   };
@@ -332,7 +340,10 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           tensorboardReady: false,
         });
       } catch (err) {
-        this.setState({ busy: false, errorMessage: err?.message || 'Unknown error' });
+        this.setState({
+          busy: false,
+          errorMessage: hasMessage(err) ? err.message : 'Unknown error',
+        });
       }
     });
   };

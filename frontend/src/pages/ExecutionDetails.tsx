@@ -43,7 +43,7 @@ import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { color, commonCss, padding } from '../Css';
-import { logger, serviceErrorToString } from '../lib/Utils';
+import { ensureError, ensureServiceError, logger, serviceErrorToString } from '../lib/Utils';
 import { Page, PageErrorHandler } from './Page';
 
 interface ExecutionDetailsState {
@@ -246,7 +246,12 @@ export class ExecutionDetailsContent extends Component<
         executionType,
       });
     } catch (err) {
-      this.props.onError(serviceErrorToString(err), err, 'error', this.refresh);
+      this.props.onError(
+        serviceErrorToString(ensureServiceError(err)),
+        ensureError(err),
+        'error',
+        this.refresh,
+      );
     }
   };
 }

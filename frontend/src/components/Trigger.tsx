@@ -36,7 +36,7 @@ import {
   parseTrigger,
   ParsedTrigger,
 } from '../lib/TriggerUtils';
-import { logger } from 'src/lib/Utils';
+import { hasMessage, logger } from 'src/lib/Utils';
 import { Fab } from '@mui/material';
 
 type TriggerInitialProps = {
@@ -448,7 +448,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         startDateTime = pickersToDate(hasStartDate, startDate, startTime);
       }
     } catch (e) {
-      if (e.message === 'Invalid picker format') {
+      if (hasMessage(e) && e.message === 'Invalid picker format') {
         startTimeMessage = "Invalid start date or time, start time won't be set";
       } else {
         throw e;
@@ -460,7 +460,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
         endDateTime = pickersToDate(hasEndDate, endDate, endTime);
       }
     } catch (e) {
-      if (e.message === 'Invalid picker format') {
+      if (hasMessage(e) && e.message === 'Invalid picker format') {
         endTimeMessage = "Invalid end date or time, end time won't be set";
       } else {
         throw e;

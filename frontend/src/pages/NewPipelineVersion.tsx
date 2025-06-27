@@ -32,7 +32,7 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { color, commonCss, padding, zIndex } from 'src/Css';
 import { Apis, PipelineSortKeys, BuildInfo } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
-import { errorToMessage, logger } from 'src/lib/Utils';
+import { ensureError, errorToMessage, logger } from 'src/lib/Utils';
 import { Page, PageProps } from './Page';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import PrivateSharedSelector from 'src/components/PrivateSharedSelector';
@@ -745,7 +745,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       }
       this.setState({ validationError: '' });
     } catch (err) {
-      this.setState({ validationError: err.message });
+      this.setState({ validationError: ensureError(err).message });
     }
   }
 

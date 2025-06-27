@@ -22,7 +22,8 @@ import { SnackbarProps } from '@mui/material/Snackbar';
 import { DialogProps } from '../components/Router';
 import { errorToMessage } from '../lib/Utils';
 
-export interface PageProps extends RouteComponentProps {
+export interface PageProps<T extends { [K in keyof T]?: string | undefined } = {}>
+  extends RouteComponentProps<T> {
   toolbarProps: ToolbarProps;
   updateBanner: (bannerProps: BannerProps) => void;
   updateDialog: (dialogProps: DialogProps) => void;
@@ -37,7 +38,11 @@ export type PageErrorHandler = (
   refresh?: () => Promise<void>,
 ) => Promise<void>;
 
-export abstract class Page<P, S> extends React.Component<P & PageProps, S> {
+export abstract class Page<
+  P,
+  S,
+  T extends { [K in keyof T]?: string | undefined } = {}
+> extends React.Component<P & PageProps<T>, S> {
   protected _isMounted = true;
 
   constructor(props: any) {

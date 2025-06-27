@@ -4,6 +4,7 @@ import { color, commonCss, fonts, padding } from 'src/mlmd/Css';
 import { color as commonColor } from 'src/Css';
 import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
 import { grey } from '@mui/material/colors';
+import { NestedCSSProperties } from 'typestyle/lib/types';
 
 export interface SubDagLayerProps {
   layers: string[];
@@ -16,7 +17,7 @@ interface History {
   layer: string;
   path: string;
 }
-const baseLinkButton: React.CSSProperties = {
+const baseLinkButton: NestedCSSProperties = {
   backgroundColor: 'transparent',
   border: 'none',
   cursor: 'pointer',
@@ -24,7 +25,7 @@ const baseLinkButton: React.CSSProperties = {
   margin: 0,
   padding: 0,
 };
-const baseBreadcrumb = {
+const baseBreadcrumb: NestedCSSProperties = {
   ...baseLinkButton,
   fontFamily: fonts.secondary,
   fontWeight: 500,

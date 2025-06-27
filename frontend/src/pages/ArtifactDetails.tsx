@@ -36,7 +36,7 @@ import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
-import { logger, serviceErrorToString, titleCase } from '../lib/Utils';
+import { ensureServiceError, logger, serviceErrorToString, titleCase } from '../lib/Utils';
 import { Page, PageProps } from './Page';
 import { ArtifactHelpers } from 'src/mlmd/MlmdUtils';
 
@@ -195,7 +195,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       });
       this.setState({ artifact, artifactType });
     } catch (err) {
-      this.showPageError(serviceErrorToString(err));
+      this.showPageError(serviceErrorToString(ensureServiceError(err)));
     }
   };
 

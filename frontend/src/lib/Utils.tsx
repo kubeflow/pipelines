@@ -231,9 +231,27 @@ export function s(items: any[] | number): string {
   return length === 1 ? '' : 's';
 }
 
-interface ServiceError {
+export interface ServiceError {
   message: string;
   code?: number;
+}
+
+export function hasMessage(e: any): e is { message: string } {
+  return (
+    typeof e === 'object' && e !== null && 'message' in e && typeof (e as any).message === 'string'
+  );
+}
+
+export function ensureError(value: unknown): Error {
+  if (value instanceof Error) return value;
+  return new Error(JSON.stringify(value));
+}
+
+export function ensureServiceError(value: unknown): ServiceError {
+  if (hasMessage(value)) {
+    return value;
+  }
+  return { message: 'Unknown error' };
 }
 
 export function serviceErrorToString(error: ServiceError): string {
@@ -487,7 +505,10 @@ export function isSafari(): boolean {
     /constructor/i.test(window.HTMLElement.toString()) ||
     (function(p) {
       return p.toString() === '[object SafariRemoteNotification]';
-    })(!(window as any)['safari'] || (typeof 'safari' !== 'undefined' && (window as any)['safari'].pushNotification));
+    })(
+      !(window as any)['safari'] ||
+        (typeof 'safari' !== 'undefined' && (window as any)['safari'].pushNotification),
+    );
   return isSafari;
 }
 
