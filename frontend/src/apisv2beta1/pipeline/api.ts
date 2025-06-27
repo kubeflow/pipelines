@@ -471,7 +471,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
       const localVarQueryParameter = {} as any;
 
       if (cascade !== undefined) {
-          localVarQueryParameter['cascade'] = cascade;
+        localVarQueryParameter['cascade'] = cascade;
       }
 
       // authentication Bearer required
@@ -491,7 +491,11 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
       delete localVarUrlObj.search;
-      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, requestOptions.headers);
+      localVarRequestOptions.headers = Object.assign(
+        {},
+        localVarHeaderParameter,
+        requestOptions.headers,
+      );
 
       return {
         url: url.format(localVarUrlObj),
@@ -1168,10 +1172,11 @@ export const PipelineServiceApiFactory = function(
      * @throws {RequiredError}
      */
     deletePipeline(pipeline_id: string, cascade?: boolean, options?: any) {
-      return PipelineServiceApiFp(configuration).deletePipeline(pipeline_id, cascade, options)(
-        fetch,
-        basePath,
-      );
+      return PipelineServiceApiFp(configuration).deletePipeline(
+        pipeline_id,
+        cascade,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -1336,10 +1341,11 @@ export class PipelineServiceApi extends BaseAPI {
    * @memberof PipelineServiceApi
    */
   public deletePipeline(pipeline_id: string, cascade?: boolean, options?: any) {
-    return PipelineServiceApiFp(this.configuration).deletePipeline(pipeline_id, cascade, options)(
-      this.fetch,
-      this.basePath,
-    );
+    return PipelineServiceApiFp(this.configuration).deletePipeline(
+      pipeline_id,
+      cascade,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**
