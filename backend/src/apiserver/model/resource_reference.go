@@ -148,7 +148,6 @@ type Relationship string
 
 // Resource reference table models the relationship between resources in a loosely coupled way.
 // This model has a composite primary key consisting of ResourceUUID, ResourceType, and ReferenceType.
-// Updated for GORM v2 compatibility.
 type ResourceReference struct {
 	// ID of the resource object
 	ResourceUUID string `gorm:"column:ResourceUUID; not null; primaryKey;"`
