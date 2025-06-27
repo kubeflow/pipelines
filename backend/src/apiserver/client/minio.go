@@ -16,63 +16,54 @@ package client
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	minio "github.com/minio/minio-go/v6"
+	credentials "github.com/minio/minio-go/v6/pkg/credentials"
 	"github.com/pkg/errors"
 )
 
-// createCredentialsProvider creates AWS credentials for S3 client
-func createCredentialsProvider(accessKey, secretKey string) *credentials.Credentials {
-	// If static credentials are provided, use them
+// createCredentialProvidersChain creates a chained providers credential for a minio client.
+func createCredentialProvidersChain(endpoint, accessKey, secretKey string) *credentials.Credentials {
+	// first try with static api key
 	if accessKey != "" && secretKey != "" {
-		return credentials.NewStaticCredentials(accessKey, secretKey, "")
+		return credentials.NewStaticV4(accessKey, secretKey, "")
 	}
-	// Otherwise use environment variables
-	return credentials.NewEnvCredentials()
+	// otherwise use a chained provider: minioEnv -> awsEnv -> IAM
+	providers := []credentials.Provider{
+		&credentials.EnvMinio{},
+		&credentials.EnvAWS{},
+		&credentials.IAM{
+			Client: &http.Client{
+				Transport: http.DefaultTransport,
+			},
+		},
+	}
+	return credentials.New(&credentials.Chain{Providers: providers})
 }
 
-func CreateS3Client(serviceHost string, servicePort string,
+func CreateMinioClient(minioServiceHost string, minioServicePort string,
 	accessKey string, secretKey string, secure bool, region string,
-) (*s3.S3, error) {
-	endpoint := joinHostPort(serviceHost, servicePort)
-
-	// Build endpoint URL
-	scheme := "http"
-	if secure {
-		scheme = "https"
-	}
-	endpointURL := fmt.Sprintf("%s://%s", scheme, endpoint)
-
-	creds := createCredentialsProvider(accessKey, secretKey)
-
-	// Create AWS session with custom endpoint for SeaweedFS
-	sess, err := session.NewSession(&aws.Config{
-		Endpoint:         aws.String(endpointURL),
-		Region:           aws.String(region),
-		Credentials:      creds,
-		S3ForcePathStyle: aws.Bool(true), // Required for SeaweedFS compatibility
-		DisableSSL:       aws.Bool(!secure),
-	})
+) (*minio.Client, error) {
+	endpoint := joinHostPort(minioServiceHost, minioServicePort)
+	cred := createCredentialProvidersChain(endpoint, accessKey, secretKey)
+	minioClient, err := minio.NewWithCredentials(endpoint, cred, secure, region)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Error while creating S3 session: %+v", err)
+		return nil, errors.Wrapf(err, "Error while creating object store client: %+v", err)
 	}
-
-	return s3.New(sess), nil
+	return minioClient, nil
 }
 
-func CreateS3ClientOrFatal(serviceHost string, servicePort string,
+func CreateMinioClientOrFatal(minioServiceHost string, minioServicePort string,
 	accessKey string, secretKey string, secure bool, region string, initConnectionTimeout time.Duration,
-) *s3.S3 {
-	var s3Client *s3.S3
+) *minio.Client {
+	var minioClient *minio.Client
 	var err error
 	operation := func() error {
-		s3Client, err = CreateS3Client(serviceHost, servicePort,
+		minioClient, err = CreateMinioClient(minioServiceHost, minioServicePort,
 			accessKey, secretKey, secure, region)
 		if err != nil {
 			return err
@@ -83,23 +74,9 @@ func CreateS3ClientOrFatal(serviceHost string, servicePort string,
 	b.MaxElapsedTime = initConnectionTimeout
 	err = backoff.Retry(operation, b)
 	if err != nil {
-		glog.Fatalf("Failed to create S3 client. Error: %v", err)
+		glog.Fatalf("Failed to create object store client. Error: %v", err)
 	}
-	return s3Client
-}
-
-// Legacy function name for backward compatibility - now creates S3 client
-func CreateMinioClient(minioServiceHost string, minioServicePort string,
-	accessKey string, secretKey string, secure bool, region string,
-) (*s3.S3, error) {
-	return CreateS3Client(minioServiceHost, minioServicePort, accessKey, secretKey, secure, region)
-}
-
-// Legacy function name for backward compatibility - now creates S3 client
-func CreateMinioClientOrFatal(minioServiceHost string, minioServicePort string,
-	accessKey string, secretKey string, secure bool, region string, initConnectionTimeout time.Duration,
-) *s3.S3 {
-	return CreateS3ClientOrFatal(minioServiceHost, minioServicePort, accessKey, secretKey, secure, region, initConnectionTimeout)
+	return minioClient
 }
 
 // joinHostPort combines host and port into a network address of the form "host:port".

@@ -20,6 +20,7 @@ import (
 	"regexp"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	minio "github.com/minio/minio-go/v6"
 	"sigs.k8s.io/yaml"
 )
 
@@ -37,7 +38,7 @@ type ObjectStoreInterface interface {
 	GetPipelineKey(pipelineId string) string
 }
 
-// Managing pipeline using S3-compatible object store (SeaweedFS).
+// Managing pipeline using Minio.
 type MinioObjectStore struct {
 	minioClient      MinioClientInterface
 	bucketName       string
@@ -61,7 +62,7 @@ func (m *MinioObjectStore) AddFile(file []byte, filePath string) error {
 
 	_, err := m.minioClient.PutObject(
 		m.bucketName, filePath, bytes.NewReader(file),
-		parts, "application/octet-stream")
+		parts, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to store file %v", filePath)
 	}
@@ -77,11 +78,10 @@ func (m *MinioObjectStore) DeleteFile(filePath string) error {
 }
 
 func (m *MinioObjectStore) GetFile(filePath string) ([]byte, error) {
-	reader, err := m.minioClient.GetObject(m.bucketName, filePath)
+	reader, err := m.minioClient.GetObject(m.bucketName, filePath, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get file %v", filePath)
 	}
-	defer reader.Close()
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(reader)
