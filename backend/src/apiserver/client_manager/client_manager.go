@@ -321,44 +321,53 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
+// isAllowedTable returns true only for tables we know we need to alter.
+func isAllowedTable(name string) bool {
+	allowed := map[string]bool{
+		"pipeline":          true,
+		"pipeline_versions": true,
+	}
+	return allowed[name]
+}
+
 // addDisplayNameColumn adds a DisplayName column to the given table with a default value of Name.
 // It returns an error if this fails.
-// Refactored to GORM v2: removed gorm.Scope and GetErrors(), which are deprecated in v2.
-// Now uses direct Exec() calls and accumulates errors manually.
 func addDisplayNameColumn(db *gorm.DB, quotedTableName string, driverName string) error {
-	glog.Info("Adding DisplayName column to " + quotedTableName)
-
-	var err error
-
-	switch driverName {
-	case "mysql":
-		err = db.Exec("ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255) NULL;").Error
-		if err != nil {
-			return err
-		}
-		err = db.Exec("UPDATE " + quotedTableName + " SET DisplayName = Name").Error
-		if err != nil {
-			return err
-		}
-		err = db.Exec("ALTER TABLE " + quotedTableName + " MODIFY COLUMN DisplayName VARCHAR(255) NOT NULL").Error
-		if err != nil {
-			return err
-		}
-	case "pgx":
-		err = db.Exec("ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255);").Error
-		if err != nil {
-			return err
-		}
-		err = db.Exec("UPDATE " + quotedTableName + " SET DisplayName = Name").Error
-		if err != nil {
-			return err
-		}
-		err = db.Exec("ALTER TABLE " + quotedTableName + " ALTER COLUMN DisplayName SET NOT NULL").Error
-		if err != nil {
-			return err
-		}
+	if !isAllowedTable(quotedTableName) {
+		return fmt.Errorf("table %q is not allowed for DisplayName migration", quotedTableName)
 	}
 
+	glog.Info("Adding DisplayName column to " + quotedTableName)
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+		var stmts []string
+		switch driverName {
+		case "mysql":
+			stmts = []string{
+				"ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255);",
+				"UPDATE " + quotedTableName + " SET DisplayName = Name;",
+				"ALTER TABLE " + quotedTableName + " MODIFY COLUMN DisplayName VARCHAR(255) NOT NULL;",
+			}
+		case "pgx":
+			stmts = []string{
+				"ALTER TABLE " + quotedTableName + " ADD COLUMN DisplayName VARCHAR(255);",
+				"UPDATE " + quotedTableName + " SET DisplayName = Name;",
+				"ALTER TABLE " + quotedTableName + " ALTER COLUMN DisplayName SET NOT NULL;",
+			}
+		default:
+			return fmt.Errorf("unsupported driver: %s", driverName)
+		}
+
+		for _, stmt := range stmts {
+			if err := tx.Exec(stmt).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -375,7 +384,7 @@ func addDisplayNameColumn(db *gorm.DB, quotedTableName string, driverName string
 // - db: the active GORM database connection
 // - model: the target model (passed by reference)
 // - indexName: the logical name of the composite unique index as defined in the model's GORM tag
-func ensureUniqueCompositeIndex(db *gorm.DB, model interface{}, indexName string) {
+func EnsureUniqueCompositeIndex(db *gorm.DB, model interface{}, indexName string) {
 	if !db.Migrator().HasConstraint(model, indexName) {
 		if err := db.Migrator().CreateConstraint(model, indexName); err != nil {
 			glog.Fatalf("Failed to create constraint %s. Error: %v", indexName, err)
@@ -407,6 +416,8 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Unsupported driver %v", driverName)
 	}
 
+	// db is safe for concurrent use by multiple goroutines
+	// and maintains its own pool of idle connections.
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
 
@@ -422,11 +433,14 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		}
 	}
 
-	// Refactored for GORM v2: HasTable() moved to Migrator(), CurrentTable() removed.
-	// Table name inferred manually by NamingStrategy from model.
-	namer := db.NamingStrategy
+	// Use GORM Statement to retrieve the fully quoted table name,
+	// respecting the model's TableName() override and DB dialect quoting rules.
 	if db.Migrator().HasTable(&model.Pipeline{}) {
-		quotedTableName := namer.TableName("pipeline")
+		stmt := &gorm.Statement{DB: db}
+		if err := stmt.Parse(&model.Pipeline{}); err != nil {
+			glog.Fatalf("Failed to parse Pipeline model for table quoting: %v", err)
+		}
+		quotedTableName := stmt.Quote(stmt.Table)
 		hasColumn := db.Migrator().HasColumn(&model.Pipeline{}, "DisplayName")
 		if !hasColumn {
 			if err := addDisplayNameColumn(db, quotedTableName, driverName); err != nil {
@@ -436,7 +450,11 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	}
 
 	if db.Migrator().HasTable(&model.PipelineVersion{}) {
-		quotedTableName := namer.TableName("pipeline_versions")
+		stmt := &gorm.Statement{DB: db}
+		if err := stmt.Parse(&model.PipelineVersion{}); err != nil {
+			glog.Fatalf("Failed to parse PipelineVersion model for table quoting: %v", err)
+		}
+		quotedTableName := stmt.Quote(stmt.Table)
 		hasColumn := db.Migrator().HasColumn(&model.PipelineVersion{}, "DisplayName")
 		if !hasColumn {
 			if err := addDisplayNameColumn(db, quotedTableName, driverName); err != nil {
@@ -483,13 +501,21 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// Foreign key constraints are now defined and managed by GORM via struct tags 'constraint' and 'index'.
 	// This ensures a single source of truth for schema definitions and avoids duplicate or out-of-sync DDL.
 
-	// The ensureUniqueCompositeIndex() method is called to replace the GORM v1 legacy AddUniqueIndex method.
-	ensureUniqueCompositeIndex(db, &model.Pipeline{}, "namespace_name")
-	ensureUniqueCompositeIndex(db, &model.Experiment{}, "idx_name_namespace")
-	ensureUniqueCompositeIndex(db, &model.PipelineVersion{}, "idx_pipelineid_name")
-
-	// Removed invalid ModifyColumn on Job.WorkflowSpecManifest.
-	// This field does not exist on Job; original reference likely confused with PipelineSpec.
+	// In both GORM v1 and v2, AutoMigrate is a non-destructive operation and
+	// will *not* overwrite pre-existing index structures. For example, if a
+	// single-column index (e.g., on "Name") already exists, the creation of a
+	// composite unique index may silently fail.
+	//
+	// Historically, GORM v1 addressed this by explicitly calling AddUniqueIndex()
+	// to enforce the intended constraint. Since AddUniqueIndex() is deprecated in
+	// GORM v2, we now use EnsureUniqueCompositeIndex(), which leverages the v2
+	// Migrator API to ensure proper constraint creation and prevent future data
+	// integrity issues.
+	//
+	// See: https://gorm.io/docs/migration.html#Auto-Migration
+	EnsureUniqueCompositeIndex(db, &model.Pipeline{}, "namespace_name")
+	EnsureUniqueCompositeIndex(db, &model.Experiment{}, "idx_name_namespace")
+	EnsureUniqueCompositeIndex(db, &model.PipelineVersion{}, "idx_pipelineid_name")
 
 	// Data backfill for pipeline_versions if this is the first time for
 	// pipeline_versions to enter mlpipeline DB.
@@ -520,7 +546,10 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		}
 		defer rows.Close()
 	}
-	newdb, _ := db.DB()
+	newdb, err := db.DB()
+	if err != nil {
+		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
+	}
 	return storage.NewDB(newdb, storage.NewMySQLDialect())
 }
 

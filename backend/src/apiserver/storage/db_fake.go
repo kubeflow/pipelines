@@ -23,7 +23,7 @@ import (
 )
 
 func NewFakeDB() (*DB, error) {
-	// Initialize GORM v2
+	// Initialize GORM
 	dbInstance, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		return nil, util.Wrap(err, "Could not create the GORM database")

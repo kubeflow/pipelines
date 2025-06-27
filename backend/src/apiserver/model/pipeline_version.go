@@ -87,6 +87,10 @@ func (p *PipelineVersion) GetModelName() string {
 	return "pipeline_versions"
 }
 
+// TableName overrides GORM's table name inference.
+func (PipelineVersion) TableName() string {
+	return "pipeline_versions"
+}
 func (p *PipelineVersion) GetField(name string) (string, bool) {
 	if field, ok := p.APIToModelFieldMap()[name]; ok {
 		return field, true

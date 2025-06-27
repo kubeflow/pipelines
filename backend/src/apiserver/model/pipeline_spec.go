@@ -29,7 +29,7 @@ type PipelineSpec struct {
 	// Pipeline YAML definition. This is the pipeline interface for creating a pipeline.
 	// Stored as longtext to support large manifests (up to 4GB in MySQL).
 	// https://dev.mysql.com/doc/refman/8.0/en/blob.html
-	// TODO(gkcalat): consider enforcing a soft limit if needed for performance.
+	// TODO(kaikaila): consider enforcing a soft limit if needed for performance.
 	PipelineSpecManifest string `gorm:"column:PipelineSpecManifest; type:longtext;"`
 
 	// Argo workflow YAML definition. This is the Argo Spec converted from Pipeline YAML.
