@@ -422,7 +422,6 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		}
 	}
 
-	// Refactored for GORM v2: HasTable() moved to Migrator(), CurrentTable() removed.
 	// Table name inferred manually by NamingStrategy from model.
 	namer := db.NamingStrategy
 	if db.Migrator().HasTable(&model.Pipeline{}) {
