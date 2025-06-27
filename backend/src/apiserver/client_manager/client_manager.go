@@ -323,8 +323,6 @@ func (c *ClientManager) Close() {
 
 // addDisplayNameColumn adds a DisplayName column to the given table with a default value of Name.
 // It returns an error if this fails.
-// Refactored to GORM v2: removed gorm.Scope and GetErrors(), which are deprecated in v2.
-// Now uses direct Exec() calls and accumulates errors manually.
 func addDisplayNameColumn(db *gorm.DB, quotedTableName string, driverName string) error {
 	glog.Info("Adding DisplayName column to " + quotedTableName)
 

@@ -87,7 +87,7 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 	util.TerminateIfError(err)
 
 	// Create table
-	response := db.AutoMigrate(&model.ExecutionCache{})
+	err = db.AutoMigrate(&model.ExecutionCache{})
 	if response != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
