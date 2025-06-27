@@ -88,17 +88,17 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 
 	// Create table
 	err = db.AutoMigrate(&model.ExecutionCache{})
-	if response != nil {
+	if err != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
-	response = db.Migrator().AlterColumn(&model.ExecutionCache{}, "ExecutionOutput")
-	if response != nil {
-		glog.Fatalf("Failed to update the execution output type. Error: %s", response)
+	err = db.Migrator().AlterColumn(&model.ExecutionCache{}, "ExecutionOutput")
+	if err != nil {
+		glog.Fatalf("Failed to update the execution output type. Error: %s", err)
 	}
-	response = db.Migrator().AlterColumn(&model.ExecutionCache{}, "ExecutionTemplate")
-	if response != nil {
-		glog.Fatalf("Failed to update the execution template type. Error: %s", response)
+	err = db.Migrator().AlterColumn(&model.ExecutionCache{}, "ExecutionTemplate")
+	if err != nil {
+		glog.Fatalf("Failed to update the execution template type. Error: %s", err)
 	}
 
 	var tableNames []string
