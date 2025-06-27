@@ -207,8 +207,8 @@ export default class Buttons {
     useCurrentResource: boolean,
   ): Buttons {
     this._map[ButtonKeys.DELETE_RUN] = {
-      action: () => {
-        this._dialogDeletePipelinesAndPipelineVersions(
+      action: async () => {
+        await this._dialogDeletePipelinesAndPipelineVersions(
           getSelectedIds(),
           getSelectedVersionIds(),
           callback,
@@ -764,11 +764,11 @@ export default class Buttons {
     this._props.history.push(RoutePage.NEW_PIPELINE_VERSION + searchString);
   }
 
-  private _dialogDeletePipelinesAndPipelineVersions(
+  private async _dialogDeletePipelinesAndPipelineVersions(
     selectedIds: string[],
     selectedVersionIds: { [pipelineId: string]: string[] },
     callback: (pipelineId: string | undefined, selectedIds: string[]) => void,
-  ): void {
+  ): Promise<void> {
     const numVersionIds = this._deepCountDictionary(selectedVersionIds);
     const pipelineMessage = this._nouns(selectedIds.length, `pipeline`, `pipelines`);
     const pipelineVersionMessage = this._nouns(
@@ -777,11 +777,127 @@ export default class Buttons {
       `pipeline versions`,
     );
     const andMessage = pipelineMessage !== `` && pipelineVersionMessage !== `` ? ` and ` : ``;
+    
+    // If we're only deleting pipeline versions (no pipelines), show simple dialog
+    if (selectedIds.length === 0) {
+      this._props.updateDialog({
+        buttons: [
+          {
+            onClick: async () =>
+              await this._deletePipelinesAndPipelineVersions(
+                false,
+                false,
+                selectedIds,
+                selectedVersionIds,
+                callback,
+              ),
+            text: 'Cancel',
+          },
+          {
+            onClick: async () =>
+              await this._deletePipelinesAndPipelineVersions(
+                true,
+                false,
+                selectedIds,
+                selectedVersionIds,
+                callback,
+              ),
+            text: 'Delete',
+          },
+        ],
+        content: `Do you want to delete the selected ${pipelineVersionMessage}? This action cannot be undone.`,
+        onClose: async () =>
+          await this._deletePipelinesAndPipelineVersions(
+            false,
+            false,
+            selectedIds,
+            selectedVersionIds,
+            callback,
+          ),
+        title: `Delete ${pipelineVersionMessage}?`,
+      });
+      return;
+    }
+
+    // Check if any selected pipelines have versions
+    let pipelinesWithVersions: string[] = [];
+    try {
+      await Promise.all(
+        selectedIds.map(async pipelineId => {
+          try {
+            const response = await Apis.pipelineServiceApiV2.listPipelineVersions(
+              pipelineId,
+              undefined,
+              1,
+            );
+            if (response.pipeline_versions && response.pipeline_versions.length > 0) {
+              pipelinesWithVersions.push(pipelineId);
+            }
+          } catch (err) {
+            // If we can't check versions, assume pipeline might have versions to be safe
+            pipelinesWithVersions.push(pipelineId);
+          }
+        })
+      );
+    } catch (err) {
+      // If checking fails, show error and abort
+      this._props.updateDialog({
+        buttons: [{ text: 'Dismiss' }],
+        content: 'Failed to check pipeline versions. Please try again.',
+        title: 'Error',
+      });
+      return;
+    }
+
+    // If no pipelines have versions, show simple delete dialog
+    if (pipelinesWithVersions.length === 0) {
+      this._props.updateDialog({
+        buttons: [
+          {
+            onClick: async () =>
+              await this._deletePipelinesAndPipelineVersions(
+                false,
+                false,
+                selectedIds,
+                selectedVersionIds,
+                callback,
+              ),
+            text: 'Cancel',
+          },
+          {
+            onClick: async () =>
+              await this._deletePipelinesAndPipelineVersions(
+                true,
+                false, // cascade = false is safe since no versions exist
+                selectedIds,
+                selectedVersionIds,
+                callback,
+              ),
+            text: 'Delete',
+          },
+        ],
+        content: `Do you want to delete the selected ${pipelineMessage}${pipelineVersionMessage ? ` and ${pipelineVersionMessage}` : ''}? This action cannot be undone.`,
+        onClose: async () =>
+          await this._deletePipelinesAndPipelineVersions(
+            false,
+            false,
+            selectedIds,
+            selectedVersionIds,
+            callback,
+          ),
+        title: `Delete ` + pipelineMessage + andMessage + pipelineVersionMessage + `?`,
+      });
+      return;
+    }
+
+    // Some pipelines have versions - show cascade warning dialog
+    const pipelinesWithVersionsMessage = this._nouns(pipelinesWithVersions.length, 'pipeline', 'pipelines');
     this._props.updateDialog({
       buttons: [
         {
           onClick: async () =>
             await this._deletePipelinesAndPipelineVersions(
+              false,
               false,
               selectedIds,
               selectedVersionIds,
@@ -793,15 +909,18 @@ export default class Buttons {
           onClick: async () =>
             await this._deletePipelinesAndPipelineVersions(
               true,
+              true, // cascade = true to delete pipelines with their versions
               selectedIds,
               selectedVersionIds,
               callback,
             ),
-          text: 'Delete',
+          text: 'Delete All',
         },
       ],
+      content: `${pipelinesWithVersionsMessage} ${pipelinesWithVersions.length === 1 ? 'has' : 'have'} existing versions. Deleting ${pipelinesWithVersions.length === 1 ? 'this pipeline' : 'these pipelines'} will also delete all ${pipelinesWithVersions.length === 1 ? 'its' : 'their'} versions. ${pipelineVersionMessage ? `Additionally, ${pipelineVersionMessage} will be deleted. ` : ''}This action cannot be undone.`,
       onClose: async () =>
         await this._deletePipelinesAndPipelineVersions(
+          false,
           false,
           selectedIds,
           selectedVersionIds,
@@ -813,6 +932,7 @@ export default class Buttons {
 
   private async _deletePipelinesAndPipelineVersions(
     confirmed: boolean,
+    cascade: boolean,
     selectedIds: string[],
     selectedVersionIds: { [pipelineId: string]: string[] },
     callback: (pipelineId: string | undefined, selectedIds: string[]) => void,
@@ -831,7 +951,7 @@ export default class Buttons {
     await Promise.all(
       selectedIds.map(async id => {
         try {
-          await Apis.pipelineServiceApiV2.deletePipeline(id);
+          await Apis.pipelineServiceApiV2.deletePipeline(id, cascade);
         } catch (err) {
           unsuccessfulIds.push(id);
           succeededfulIds.delete(id);
@@ -842,11 +962,19 @@ export default class Buttons {
     );
 
     // Remove successfully deleted pipelines from selectedVersionIds if exists.
-    const toBeDeletedVersionIds = Object.fromEntries(
-      Object.entries(selectedVersionIds).filter(
-        ([pipelineId, _]) => !succeededfulIds.has(pipelineId),
-      ),
-    );
+    // If cascade is true, pipeline versions are already deleted with the pipeline,
+    // so we only need to delete versions from pipelines that weren't deleted.
+    const toBeDeletedVersionIds = cascade 
+      ? Object.fromEntries(
+          Object.entries(selectedVersionIds).filter(
+            ([pipelineId, _]) => !succeededfulIds.has(pipelineId) && !selectedIds.includes(pipelineId),
+          ),
+        )
+      : Object.fromEntries(
+          Object.entries(selectedVersionIds).filter(
+            ([pipelineId, _]) => !succeededfulIds.has(pipelineId),
+          ),
+        );
 
     // Delete pipeline versions.
     const unsuccessfulVersionIds: { [pipelineId: string]: string[] } = {};

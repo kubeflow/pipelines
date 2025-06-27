@@ -447,10 +447,13 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      *
      * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
      * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
+     * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deletePipeline(pipeline_id: string, options: any = {}): FetchArgs {
+    deletePipeline(pipeline_id: string, cascade?: boolean, options?: any): FetchArgs {
+      // Set default options if not provided
+      const requestOptions = options || {};
       // verify required parameter 'pipeline_id' is not null or undefined
       if (pipeline_id === null || pipeline_id === undefined) {
         throw new RequiredError(
@@ -463,9 +466,13 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         encodeURIComponent(String(pipeline_id)),
       );
       const localVarUrlObj = url.parse(localVarPath, true);
-      const localVarRequestOptions = Object.assign({ method: 'DELETE' }, options);
+      const localVarRequestOptions = Object.assign({ method: 'DELETE' }, requestOptions);
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
+
+      if (cascade !== undefined) {
+          localVarQueryParameter['cascade'] = cascade;
+      }
 
       // authentication Bearer required
       if (configuration && configuration.apiKey) {
@@ -480,11 +487,11 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         {},
         localVarUrlObj.query,
         localVarQueryParameter,
-        options.query,
+        requestOptions.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
       delete localVarUrlObj.search;
-      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, requestOptions.headers);
 
       return {
         url: url.format(localVarUrlObj),
@@ -918,15 +925,18 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      *
      * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
      * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
+     * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     deletePipeline(
       pipeline_id: string,
+      cascade?: boolean,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
       const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).deletePipeline(
         pipeline_id,
+        cascade,
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
@@ -1153,11 +1163,12 @@ export const PipelineServiceApiFactory = function(
      *
      * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
      * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
+     * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deletePipeline(pipeline_id: string, options?: any) {
-      return PipelineServiceApiFp(configuration).deletePipeline(pipeline_id, options)(
+    deletePipeline(pipeline_id: string, cascade?: boolean, options?: any) {
+      return PipelineServiceApiFp(configuration).deletePipeline(pipeline_id, cascade, options)(
         fetch,
         basePath,
       );
@@ -1319,12 +1330,13 @@ export class PipelineServiceApi extends BaseAPI {
    *
    * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
    * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
+   * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public deletePipeline(pipeline_id: string, options?: any) {
-    return PipelineServiceApiFp(this.configuration).deletePipeline(pipeline_id, options)(
+  public deletePipeline(pipeline_id: string, cascade?: boolean, options?: any) {
+    return PipelineServiceApiFp(this.configuration).deletePipeline(pipeline_id, cascade, options)(
       this.fetch,
       this.basePath,
     );
