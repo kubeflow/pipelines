@@ -145,15 +145,12 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 	require.Eventually(s.T(), func() bool {
 		allRuns, err = s.runClient.ListAll(runParams.NewRunServiceListRunsParams(), 10)
 		if err != nil {
-			t.Logf("Error listing runs: %v", err)
 			return false
 		}
 
-		t.Logf("Found %d runs", len(allRuns))
 		if len(allRuns) >= 2 {
 			successCount := 0
-			for i, run := range allRuns {
-				t.Logf("Run %d: ID=%s, State=%s", i, run.RunID, run.State)
+			for _, run := range allRuns {
 				if run.State == run_model.V2beta1RuntimeStateSUCCEEDED {
 					successCount++
 				}
@@ -164,20 +161,9 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		}
 
 		return false
-	}, 5*time.Minute, 5*time.Second)
+	}, 4*time.Minute, 5*time.Second)
 
-	require.GreaterOrEqual(t, len(allRuns), 2, "Expected at least 2 runs from recurring run, but got %d", len(allRuns))
-
-	var successfulRuns []*run_model.V2beta1Run
-	for _, run := range allRuns {
-		if run.State == run_model.V2beta1RuntimeStateSUCCEEDED {
-			successfulRuns = append(successfulRuns, run)
-		}
-	}
-	require.GreaterOrEqual(t, len(successfulRuns), 2, "Expected at least 2 successful runs, but got %d", len(successfulRuns))
-
-	testRunID := successfulRuns[1].RunID
-	contextsFilterQuery := fmt.Sprintf("name = '%s'", testRunID)
+	contextsFilterQuery := fmt.Sprintf("name = '%s'", allRuns[1].RunID)
 
 	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
 		Options: &pb.ListOperationOptions{
