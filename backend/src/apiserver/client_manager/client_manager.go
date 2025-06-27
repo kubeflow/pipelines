@@ -487,8 +487,6 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	ensureUniqueCompositeIndex(db, &model.Experiment{}, "idx_name_namespace")
 	ensureUniqueCompositeIndex(db, &model.PipelineVersion{}, "idx_pipelineid_name")
 
-	// Removed invalid ModifyColumn on Job.WorkflowSpecManifest.
-	// This field does not exist on Job; original reference likely confused with PipelineSpec.
 
 	// Data backfill for pipeline_versions if this is the first time for
 	// pipeline_versions to enter mlpipeline DB.
