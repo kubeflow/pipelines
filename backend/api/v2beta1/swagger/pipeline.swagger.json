@@ -212,7 +212,7 @@
         ]
       },
       "delete": {
-        "summary": "Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.",
+        "summary": "Deletes a pipeline by ID. If cascade is false (default), it returns an error if the\npipeline has any versions. If cascade is true, it will also delete all pipeline versions.",
         "operationId": "PipelineService_DeletePipeline",
         "responses": {
           "200": {
@@ -235,6 +235,13 @@
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "cascade",
+            "description": "Optional. If true, the pipeline and all its versions will be deleted.\nIf false (default), only the pipeline will be deleted if it has no versions.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
           }
         ],
         "tags": [

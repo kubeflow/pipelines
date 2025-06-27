@@ -89,7 +89,8 @@ service PipelineService {
     };
   }
 
-  // Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
+  // Deletes a pipeline by ID. If cascade is false (default), it returns an error if the
+  // pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
   rpc DeletePipeline(DeletePipelineRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v2beta1/pipelines/{pipeline_id}"
@@ -269,6 +270,10 @@ message GetPipelineByNameRequest {
 message DeletePipelineRequest {
   // Required input. ID of the pipeline to be deleted.
   string pipeline_id = 1;
+
+  // Optional. If true, the pipeline and all its versions will be deleted.
+  // If false (default), only the pipeline will be deleted if it has no versions.
+  bool cascade = 2;
 }
 
 message CreatePipelineAndVersionRequest {
