@@ -133,7 +133,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		Mode:           recurring_run_model.RecurringRunModeENABLE,
 		Trigger: &recurring_run_model.V2beta1Trigger{
 			PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
-				IntervalSecond: 30,
+				IntervalSecond: 20,
 			},
 		},
 	}}
@@ -149,19 +149,16 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		}
 
 		if len(allRuns) >= 2 {
-			successCount := 0
 			for _, run := range allRuns {
-				if run.State == run_model.V2beta1RuntimeStateSUCCEEDED {
-					successCount++
+				if run.State != run_model.V2beta1RuntimeStateSUCCEEDED {
+					return false
 				}
 			}
-			if successCount >= 2 {
-				return true
-			}
+			return true
 		}
 
 		return false
-	}, 4*time.Minute, 5*time.Second)
+	}, 7*time.Minute, 5*time.Second)
 
 	contextsFilterQuery := fmt.Sprintf("name = '%s'", allRuns[1].RunID)
 
