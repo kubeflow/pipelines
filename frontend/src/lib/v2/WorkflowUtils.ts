@@ -33,11 +33,13 @@ function getPipelineDefFromYaml(template: string) {
   // If pipeline_spec exists in the return value of safeload,
   // which means the original yaml contains platform_spec,
   // then the PipelineSpec(IR) is stored in 'pipeline_spec' field.
-  return jsyaml.safeLoad(template)[PIPELINE_SPEC_TEMPLATE_KEY] ?? jsyaml.safeLoad(template);
+  const yamlResult = jsyaml.safeLoad(template) as any;
+  return yamlResult[PIPELINE_SPEC_TEMPLATE_KEY] ?? jsyaml.safeLoad(template);
 }
 
 function getPlatformDefFromYaml(template: string) {
-  return jsyaml.safeLoad(template)[PLATFORM_SPEC_TEMPLATE_KEY];
+  const yamlResult = jsyaml.safeLoad(template) as any;
+  return yamlResult[PLATFORM_SPEC_TEMPLATE_KEY];
 }
 
 export function isV2Pipeline(workflow: Workflow): boolean {
