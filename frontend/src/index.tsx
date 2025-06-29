@@ -34,12 +34,10 @@ import {
 import { BuildInfoProvider } from './lib/BuildInfo';
 import { ThemeProvider, Theme, StyledEngineProvider } from '@mui/material/styles';
 
-
 declare module '@mui/styles/defaultTheme' {
   // eslint-disable-next-line @typescript-eslint/no-empty-interface
   interface DefaultTheme extends Theme {}
 }
-
 
 // import { ReactQueryDevtools } from 'react-query/devtools';
 

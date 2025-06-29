@@ -37,7 +37,7 @@ export const ExternalLink: React.FC<DetailedHTMLProps<
   HTMLAnchorElement
 >> = props => (
   // eslint-disable-next-line jsx-a11y/anchor-has-content
-  (<a {...props} className={classes(css.link, props.className)} target='_blank' rel='noopener' />)
+  <a {...props} className={classes(css.link, props.className)} target='_blank' rel='noopener' />
 );
 
 export const AutoLink: React.FC<DetailedHTMLProps<
@@ -46,7 +46,7 @@ export const AutoLink: React.FC<DetailedHTMLProps<
 >> = props =>
   props.href && props.href.startsWith('#') ? (
     // eslint-disable-next-line jsx-a11y/anchor-has-content
-    (<a {...props} className={classes(css.link, props.className)} />)
+    <a {...props} className={classes(css.link, props.className)} />
   ) : (
     <ExternalLink {...props} />
   );

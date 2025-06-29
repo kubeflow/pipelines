@@ -25,7 +25,7 @@ interface HelpButtonProps {
 export const HelpButton: React.FC<HelpButtonProps> = ({ helpText }) => {
   return (
     <CardTooltip helpText={helpText}>
-      <IconButton size="large">
+      <IconButton size='large'>
         <HelpIcon />
       </IconButton>
     </CardTooltip>

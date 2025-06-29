@@ -461,13 +461,15 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
             <IconButton
               onClick={() => this._pageChanged(-1)}
               disabled={!this.state.currentPage}
-              size="large">
+              size='large'
+            >
               <ChevronLeft />
             </IconButton>
             <IconButton
               onClick={() => this._pageChanged(1)}
               disabled={this.state.currentPage >= this.state.maxPageIndex}
-              size="large">
+              size='large'
+            >
               <ChevronRight />
             </IconButton>
           </div>
@@ -677,7 +679,7 @@ const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
       {/* If using radio buttons */}
       {disableSelection !== true && useRadioButtons && (
         // Placeholder for radio button horizontal space.
-        (<Separator orientation='horizontal' units={42} />)
+        <Separator orientation='horizontal' units={42} />
       )}
       {showExpandButton && <Separator orientation='horizontal' units={40} />}
     </div>
@@ -722,7 +724,8 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
             )}
             onClick={onExpand}
             aria-label='Expand'
-            size="large">
+            size='large'
+          >
             <ArrowRight />
           </IconButton>
         )}

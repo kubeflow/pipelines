@@ -73,7 +73,8 @@ async function getContext({ type, name }: { type: string; name: string }): Promi
     }
     return context;
   } catch (err) {
-    (err as Error).message = `Cannot find context with ${JSON.stringify(request.toObject())}: ` + (err as Error).message;
+    (err as Error).message =
+      `Cannot find context with ${JSON.stringify(request.toObject())}: ` + (err as Error).message;
     throw err;
   }
 }

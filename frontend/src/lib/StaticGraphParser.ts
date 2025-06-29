@@ -297,7 +297,9 @@ export function transitiveReduction(
     return undefined;
   }
 
-  const result = graphlib.json.read(graphlib.json.write(graph)) as dagre.graphlib.Graph<AdditionalNodeData>;
+  const result = graphlib.json.read(graphlib.json.write(graph)) as dagre.graphlib.Graph<
+    AdditionalNodeData
+  >;
   let visited: string[] = [];
   const dfs_with_removal = (current: string, parent: string) => {
     result.successors(current)?.forEach((node: any) => {
