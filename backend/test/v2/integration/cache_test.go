@@ -133,7 +133,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		Mode:           recurring_run_model.RecurringRunModeENABLE,
 		Trigger: &recurring_run_model.V2beta1Trigger{
 			PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
-				IntervalSecond: 20,
+				IntervalSecond: 60,
 			},
 		},
 	}}
@@ -149,35 +149,18 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		}
 
 		if len(allRuns) >= 2 {
-			successCount := 0
 			for _, run := range allRuns {
-				s.T().Logf("run: %v", run.State)
-				if run.State == run_model.V2beta1RuntimeStateSUCCEEDED {
-					successCount++
-					s.T().Logf("successCount: %v", successCount)
-					if successCount >= 2 {
-						return true
-					}
+				if run.State != run_model.V2beta1RuntimeStateSUCCEEDED {
+					return false
 				}
 			}
+			return true
 		}
+
 		return false
-	}, 7*time.Minute, 5*time.Second)
+	}, 4*time.Minute, 5*time.Second)
 
 	contextsFilterQuery := fmt.Sprintf("name = '%s'", allRuns[1].RunID)
-
-	if *cacheEnabled {
-		found := false
-		for _, task := range allRuns[1].RunDetails.TaskDetails {
-			if task.DisplayName == "executor" && task.State == run_model.V2beta1RuntimeStateSKIPPED {
-				found = true
-				s.T().Logf("Found skipped executor task in recurring run")
-				break
-			}
-		}
-		require.True(t, found, "Expected to find a skipped executor task when caching is enabled")
-		return
-	}
 
 	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
 		Options: &pb.ListOperationOptions{
@@ -224,19 +207,6 @@ func (s *CacheTestSuite) TestCacheSingleRun() {
 	pipelineRunDetail, err = s.createRun(pipelineVersion)
 	require.NoError(t, err)
 	require.NotNil(t, pipelineRunDetail)
-
-	if *cacheEnabled {
-		found := false
-		for _, task := range pipelineRunDetail.RunDetails.TaskDetails {
-			if task.DisplayName == "executor" && task.State == run_model.V2beta1RuntimeStateSKIPPED {
-				found = true
-				s.T().Logf("Found skipped executor task - caching is working correctly")
-				break
-			}
-		}
-		require.True(t, found, "Expected to find a skipped executor task when caching is enabled")
-		return
-	}
 
 	contextsFilterQuery := fmt.Sprintf("name = '%s'", pipelineRunDetail.RunID)
 

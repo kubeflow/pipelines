@@ -157,7 +157,7 @@ jobs:
         id: tests
         if: ${{ steps.forward-mysql-port.outcome == 'success' }}
         working-directory: ./backend/test/integration
-        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -test.skip "^TestCache$"
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
@@ -177,9 +177,7 @@ jobs:
 
   api-integration-tests-v2:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
     strategy:
-      fail-fast: false
       matrix:
         pipeline_store: [ "database", "kubernetes" ]
         k8s_version: [ "v1.29.2", "v1.31.0" ]
@@ -217,7 +215,7 @@ jobs:
         id: tests
         if: ${{ steps.forward-api-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
-        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -test.skip "^TestCache$"
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
@@ -238,9 +236,7 @@ jobs:
 
   api-integration-tests-v2-with-proxy:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
     strategy:
-      fail-fast: false
       matrix:
         k8s_version: [ "v1.31.0" ]
     name: API integration tests v2 with proxy - K8s ${{ matrix.k8s_version }}
@@ -277,7 +273,7 @@ jobs:
         id: tests
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
-        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -test.skip "^TestCache$" -useProxy=true
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -useProxy=true
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
@@ -298,9 +294,7 @@ jobs:
 
   api-integration-tests-v2-with-cache-disabled:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
     strategy:
-      fail-fast: false
       matrix:
         k8s_version: [ "v1.31.0" ]
     name: API integration tests v2 with cache disabled - K8s ${{ matrix.k8s_version }}
@@ -337,7 +331,7 @@ jobs:
         id: tests
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
-        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -test.skip "^TestCache$" -cacheEnabled=false
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -cacheEnabled=false
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
@@ -357,9 +351,7 @@ jobs:
 
   frontend-integration-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
     strategy:
-      fail-fast: false
       matrix:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
     name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }}
@@ -416,9 +408,7 @@ jobs:
       
   basic-sample-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
     strategy:
-      fail-fast: false
       matrix:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
     name: Basic Sample Tests - K8s ${{ matrix.k8s_version }}
