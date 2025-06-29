@@ -549,10 +549,10 @@ class PipelineDetails extends Page<
         v2SelectedVersion,
         v1Versions,
         v2Versions,
-        graph: undefined,
+        graph: null,
         graphV2,
         graphIsLoading: false,
-        reducedGraph: undefined,
+        reducedGraph: null,
         templateString,
       });
     } else {
@@ -564,7 +564,7 @@ class PipelineDetails extends Page<
         v1Versions,
         v2Versions,
         graph,
-        graphV2: undefined,
+        graphV2: null,
         graphIsLoading: false,
         reducedGraph,
         templateString,
@@ -596,8 +596,8 @@ class PipelineDetails extends Page<
       );
       if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
         this.setStateSafe({
-          graph: undefined,
-          reducedGraph: undefined,
+          graph: null,
+          reducedGraph: null,
           graphV2,
           graphIsLoading: false,
           v2SelectedVersion,
@@ -607,7 +607,7 @@ class PipelineDetails extends Page<
         this.setStateSafe({
           graph,
           reducedGraph,
-          graphV2: undefined,
+          graphV2: null,
           graphIsLoading: false,
           v1SelectedVersion,
           templateString: selectedVersionPipelineTemplate,

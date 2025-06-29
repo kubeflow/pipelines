@@ -29,6 +29,7 @@ import { commonCss, color } from 'src/Css';
 import { formatDateString, logger, errorToMessage, getRunDurationV2 } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
 import Tooltip from '@mui/material/Tooltip';
+import { ForwardedLink } from 'src/atoms/ForwardedLink';
 
 interface PipelineVersionInfo {
   displayName?: string;
@@ -215,13 +216,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   ) => {
     return (
       <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
-        <Link
+        <ForwardedLink
           className={commonCss.link}
           onClick={e => e.stopPropagation()}
           to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
         >
           {props.value}
-        </Link>
+        </ForwardedLink>
       </Tooltip>
     );
   };
@@ -259,9 +260,9 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       // Display name could be too long, so we show the full content in tooltip on hover.
       return (
         <Tooltip title={props.value.displayName || ''} enterDelay={300} placement='top-start'>
-          <Link className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
+          <ForwardedLink className={commonCss.link} onClick={e => e.stopPropagation()} to={url}>
             {props.value.displayName}
-          </Link>
+          </ForwardedLink>
         </Tooltip>
       );
     }

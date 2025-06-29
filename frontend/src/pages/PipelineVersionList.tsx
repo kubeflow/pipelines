@@ -27,6 +27,7 @@ import { Apis, ListRequest, PipelineVersionSortKeys } from 'src/lib/Apis';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss } from 'src/Css';
+import { ForwardedLink } from 'src/atoms/ForwardedLink';
 
 export interface PipelineVersionListProps extends RouteComponentProps {
   pipelineId?: string;
@@ -78,7 +79,7 @@ class PipelineVersionList extends React.PureComponent<
         placement='bottom-start'
       >
         {this.props.pipelineId ? (
-          <Link
+          <ForwardedLink
             className={commonCss.link}
             onClick={e => e.stopPropagation()}
             to={RoutePage.PIPELINE_DETAILS.replace(
@@ -87,7 +88,7 @@ class PipelineVersionList extends React.PureComponent<
             ).replace(':' + RouteParams.pipelineVersionId, props.id)}
           >
             {props.value?.display_name || props.value?.name}
-          </Link>
+          </ForwardedLink>
         ) : (
           <Link
             className={commonCss.link}

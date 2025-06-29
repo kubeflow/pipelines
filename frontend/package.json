@@ -4,7 +4,7 @@
   "license": "Apache-2.0",
   "private": true,
   "dependencies": {
-    "@craco/craco": "^7.0.0",
+    "@craco/craco": "^7.1.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^5.17.1",
@@ -139,7 +139,7 @@
     "postcss": "^8.4.5",
     "prettier": "1.19.1",
     "react-router-test-context": "^0.1.0",
-    "react-scripts": "^5.0.0",
+    "react-scripts": "^5.0.1",
     "react-test-renderer": "^17.0.2",
     "snapshot-diff": "^0.6.1",
     "swagger-ts-client": "^0.9.6",

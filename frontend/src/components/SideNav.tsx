@@ -26,7 +26,6 @@ import ExecutionsIcon from '@mui/icons-material/PlayArrow';
 import DirectionsRun from '@mui/icons-material/DirectionsRun';
 import * as React from 'react';
 import { RouterProps } from 'react-router';
-import { Link } from 'react-router-dom';
 import { classes, stylesheet } from 'typestyle';
 import { ExternalLinks, RoutePage, RoutePrefix } from '../components/Router';
 import { commonCss, fontsize } from '../Css';
@@ -39,6 +38,7 @@ import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
 import { Alarm } from '@mui/icons-material';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
+import { ForwardedLink } from 'src/atoms/ForwardedLink';
 
 export const tailwindcss = {
   sideNavItem: 'flex flex-row flex-shrink-0',
@@ -271,7 +271,11 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                 disableHoverListener={!collapsed}
                 disableTouchListener={!collapsed}
               >
-                <Link id='gettingStartedBtn' to={RoutePage.START} className={commonCss.unstyled}>
+                <ForwardedLink
+                  id='gettingStartedBtn'
+                  to={RoutePage.START}
+                  className={commonCss.unstyled}
+                >
                   <Button
                     className={classes(
                       css.button,
@@ -286,7 +290,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                       </span>
                     </div>
                   </Button>
-                </Link>
+                </ForwardedLink>
               </Tooltip>
             </>
           )}
@@ -304,7 +308,11 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='pipelinesBtn' to={RoutePage.PIPELINES} className={commonCss.unstyled}>
+            <ForwardedLink
+              id='pipelinesBtn'
+              to={RoutePage.PIPELINES}
+              className={commonCss.unstyled}
+            >
               <Button
                 className={classes(
                   css.button,
@@ -325,7 +333,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                   </span>
                 </div>
               </Button>
-            </Link>
+            </ForwardedLink>
           </Tooltip>
           <div
             className={classes(
@@ -341,7 +349,11 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='experimentsBtn' to={RoutePage.EXPERIMENTS} className={commonCss.unstyled}>
+            <ForwardedLink
+              id='experimentsBtn'
+              to={RoutePage.EXPERIMENTS}
+              className={commonCss.unstyled}
+            >
               <Button
                 className={classes(
                   css.button,
@@ -364,7 +376,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                   </span>
                 </div>
               </Button>
-            </Link>
+            </ForwardedLink>
           </Tooltip>
           <div
             className={classes(
@@ -380,7 +392,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='runsBtn' to={RoutePage.RUNS} className={commonCss.unstyled}>
+            <ForwardedLink id='runsBtn' to={RoutePage.RUNS} className={commonCss.unstyled}>
               <Button
                 className={classes(
                   css.button,
@@ -393,7 +405,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                   <span className={classes(collapsed && css.collapsedLabel, css.label)}>Runs</span>
                 </div>
               </Button>
-            </Link>
+            </ForwardedLink>
           </Tooltip>
           <div
             className={classes(
@@ -409,7 +421,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link
+            <ForwardedLink
               id='recurringRunsBtn'
               to={RoutePage.RECURRING_RUNS}
               className={commonCss.unstyled}
@@ -428,7 +440,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                   </span>
                 </div>
               </Button>
-            </Link>
+            </ForwardedLink>
           </Tooltip>
           <div
             className={classes(
@@ -444,7 +456,11 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='artifactsBtn' to={RoutePage.ARTIFACTS} className={commonCss.unstyled}>
+            <ForwardedLink
+              id='artifactsBtn'
+              to={RoutePage.ARTIFACTS}
+              className={commonCss.unstyled}
+            >
               <Button
                 className={classes(
                   css.button,
@@ -459,7 +475,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                   </span>
                 </div>
               </Button>
-            </Link>
+            </ForwardedLink>
           </Tooltip>
           <div
             className={classes(
@@ -475,7 +491,11 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             disableHoverListener={!collapsed}
             disableTouchListener={!collapsed}
           >
-            <Link id='executionsBtn' to={RoutePage.EXECUTIONS} className={commonCss.unstyled}>
+            <ForwardedLink
+              id='executionsBtn'
+              to={RoutePage.EXECUTIONS}
+              className={commonCss.unstyled}
+            >
               <Button
                 className={classes(
                   css.button,
@@ -490,7 +510,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                   </span>
                 </div>
               </Button>
-            </Link>
+            </ForwardedLink>
           </Tooltip>
           {this.state.jupyterHubAvailable && (
             <Tooltip
@@ -539,7 +559,8 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           <IconButton
             className={classes(css.chevron, collapsed && css.collapsedChevron)}
             onClick={this._toggleNavClicked.bind(this)}
-            size="large">
+            size='large'
+          >
             <ChevronLeftIcon />
           </IconButton>
         </div>

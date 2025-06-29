@@ -32,7 +32,6 @@ import {
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { V2beta1Run, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { Apis, ExperimentSortKeys, ListRequest, RunSortKeys } from 'src/lib/Apis';
-import { Link } from 'react-router-dom';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
@@ -42,6 +41,7 @@ import { ensureError, logger } from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
 import Tooltip from '@mui/material/Tooltip';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { ForwardedLink } from 'src/atoms/ForwardedLink';
 
 interface DisplayExperiment extends V2beta1Experiment {
   last5Runs?: V2beta1Run[];
@@ -151,13 +151,13 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
   ) => {
     return (
       <Tooltip title={props.value} enterDelay={300} placement='top-start'>
-        <Link
+        <ForwardedLink
           className={commonCss.link}
           onClick={e => e.stopPropagation()}
           to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
         >
           {props.value}
-        </Link>
+        </ForwardedLink>
       </Tooltip>
     );
   };
