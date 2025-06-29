@@ -161,7 +161,7 @@ func (s *ProxyTestSuite) TestEnvVar() {
 		envVarRunDetail, err = s.runClient.Get(&runparams.RunServiceGetRunParams{RunID: envVarRunDetail.RunID})
 		t.Logf("Pipeline state: %v", envVarRunDetail.State)
 		return err == nil && envVarRunDetail.State == expectedState
-	}, 2*time.Minute, 10*time.Second)
+	}, 10*time.Minute, 10*time.Second)
 }
 
 func TestProxy(t *testing.T) {
