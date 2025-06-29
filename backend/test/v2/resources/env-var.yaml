@@ -46,7 +46,7 @@ deploymentSpec:
           \ *\n\ndef comp(env_var: str) -> str:\n    import os\n\n    value = os.getenv(env_var,\
           \ \"\")\n\n    if value == \"\":\n        raise Exception(\"Env var is not\
           \ set\")\n\n    return value\n\n"
-        image: public.ecr.aws/docker/library/python:3.12
+        image: python:3.12-alpine
 pipelineInfo:
   name: test-env-exists
 root:
