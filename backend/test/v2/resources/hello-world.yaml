@@ -1,28 +1,92 @@
 # PIPELINE DEFINITION
-# Name: echo
+# Name: hello-world-pipeline
+# Inputs:
+#    input_message: str
+# Outputs:
+#    Output: str
 components:
   comp-echo:
     executorLabel: exec-echo
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output:
+          parameterType: STRING
+  comp-echo-2:
+    executorLabel: exec-echo-2
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output:
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-echo:
       container:
         args:
-        - hello world
+        - echo {{$.inputs.parameters['message']}} > {{$.outputs.parameters['output'].output_file}}
         command:
-        - echo
+        - sh
+        - -c
+        image: public.ecr.aws/docker/library/python:3.12
+    exec-echo-2:
+      container:
+        args:
+        - echo {{$.inputs.parameters['message']}} > {{$.outputs.parameters['output'].output_file}}
+        command:
+        - sh
+        - -c
         image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
-  name: echo
+  name: hello-world-pipeline
 root:
   dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: output
+            producerSubtask: echo-2
     tasks:
       echo:
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-echo
+        inputs:
+          parameters:
+            message:
+              componentInputParameter: input_message
         taskInfo:
           name: echo
+      echo-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo-2
+        dependentTasks:
+        - echo
+        inputs:
+          parameters:
+            message:
+              taskOutputParameter:
+                outputParameterKey: output
+                producerTask: echo
+        taskInfo:
+          name: echo-2
+  inputDefinitions:
+    parameters:
+      input_message:
+        parameterType: STRING
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

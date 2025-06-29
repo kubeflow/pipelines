@@ -15,18 +15,19 @@
 from kfp import dsl, compiler
 
 @dsl.container_component
-def echo(message: str):
+def echo(message: str, output: dsl.OutputPath(str)):
     return dsl.ContainerSpec(
         image='library/bash',
         command=['sh', '-c'],
-        args=[f'echo {message}'],
+        args=[f'echo {message} > {output}'],
     )
 
 
 @dsl.pipeline
-def sequential(param1: str, param2: str):
-    echo(message=param1)
-    echo(message=param2)
+def sequential(param1: str, param2: str) -> str:
+    first = echo(message=param1)
+    second = echo(message=first.outputs['output'])
+    return second.outputs['output']
 
 
 if __name__ == '__main__':

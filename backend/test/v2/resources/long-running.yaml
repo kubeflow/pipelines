@@ -1,16 +1,41 @@
 # PIPELINE DEFINITION
 # Name: wait-awhile
+# Inputs:
+#    duration: int [Default: 300.0]
+# Outputs:
+#    Output: str
 components:
   comp-wait-op:
     executorLabel: exec-wait-op
+    inputDefinitions:
+      parameters:
+        duration:
+          parameterType: NUMBER_INTEGER
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output:
+          parameterType: STRING
   comp-wait-op-2:
     executorLabel: exec-wait-op-2
+    inputDefinitions:
+      parameters:
+        duration:
+          parameterType: NUMBER_INTEGER
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output:
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-wait-op:
       container:
         args:
-        - echo step-1 sleeping for 5m; sleep 300; echo done1
+        - echo {{$.inputs.parameters['message']}} sleeping for {{$.inputs.parameters['duration']}}s;
+          sleep {{$.inputs.parameters['duration']}}; echo done > {{$.outputs.parameters['output'].output_file}}
         command:
         - sh
         - -c
@@ -18,7 +43,8 @@ deploymentSpec:
     exec-wait-op-2:
       container:
         args:
-        - echo step-1 sleeping for 5m; sleep 300; echo done1
+        - echo {{$.inputs.parameters['message']}} sleeping for {{$.inputs.parameters['duration']}}s;
+          sleep {{$.inputs.parameters['duration']}}; echo done > {{$.outputs.parameters['output'].output_file}}
         command:
         - sh
         - -c
@@ -27,12 +53,25 @@ pipelineInfo:
   name: wait-awhile
 root:
   dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: output
+            producerSubtask: wait-op-2
     tasks:
       wait-op:
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-wait-op
+        inputs:
+          parameters:
+            duration:
+              componentInputParameter: duration
+            message:
+              runtimeValue:
+                constant: step-1
         taskInfo:
           name: wait-op
       wait-op-2:
@@ -42,7 +81,25 @@ root:
           name: comp-wait-op-2
         dependentTasks:
         - wait-op
+        inputs:
+          parameters:
+            duration:
+              componentInputParameter: duration
+            message:
+              taskOutputParameter:
+                outputParameterKey: output
+                producerTask: wait-op
         taskInfo:
           name: wait-op-2
+  inputDefinitions:
+    parameters:
+      duration:
+        defaultValue: 300.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.13
+sdkVersion: kfp-2.13.0

@@ -16,14 +16,21 @@ from kfp import dsl, compiler
 
 
 @dsl.container_component
-def echo():
+def echo(message: str, output: dsl.OutputPath(str)):
     return dsl.ContainerSpec(
         image='public.ecr.aws/docker/library/python:3.12',
-        command=['echo'],
-        args=['hello world'],
+        command=['sh', '-c'],
+        args=[f'echo {message} > {output}'],
     )
+
+
+@dsl.pipeline(name='hello-world-pipeline')
+def hello_world_pipeline(input_message: str) -> str:
+    first = echo(message=input_message)
+    second = echo(message=first.outputs['output'])
+    return second.outputs['output']
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        echo, package_path=__file__.replace('.py', '.yaml'))
+        hello_world_pipeline, package_path=__file__.replace('.py', '.yaml'))

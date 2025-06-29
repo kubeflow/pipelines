@@ -1,8 +1,10 @@
 # PIPELINE DEFINITION
-# Name: echo
+# Name: arguments-pipeline
 # Inputs:
 #    param1: str [Default: 'hello']
-#    param2: str
+#    param2: str [Default: 'world']
+# Outputs:
+#    Output: str
 components:
   comp-echo:
     executorLabel: exec-echo
@@ -12,19 +14,52 @@ components:
           parameterType: STRING
         param2:
           parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output:
+          parameterType: STRING
+  comp-echo-2:
+    executorLabel: exec-echo-2
+    inputDefinitions:
+      parameters:
+        param1:
+          parameterType: STRING
+        param2:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output:
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-echo:
       container:
         args:
-        - '{{$.inputs.parameters[''param1'']}}-{{$.inputs.parameters[''param2'']}}'
+        - echo {{$.inputs.parameters['param1']}}-{{$.inputs.parameters['param2']}}
+          > {{$.outputs.parameters['output'].output_file}}
         command:
-        - echo
+        - sh
+        - -c
+        image: public.ecr.aws/docker/library/python:3.12
+    exec-echo-2:
+      container:
+        args:
+        - echo {{$.inputs.parameters['param1']}}-{{$.inputs.parameters['param2']}}
+          > {{$.outputs.parameters['output'].output_file}}
+        command:
+        - sh
+        - -c
         image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
-  name: echo
+  name: arguments-pipeline
 root:
   dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: output
+            producerSubtask: echo-2
     tasks:
       echo:
         cachingOptions:
@@ -39,12 +74,34 @@ root:
               componentInputParameter: param2
         taskInfo:
           name: echo
+      echo-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo-2
+        dependentTasks:
+        - echo
+        inputs:
+          parameters:
+            param1:
+              taskOutputParameter:
+                outputParameterKey: output
+                producerTask: echo
+            param2:
+              componentInputParameter: param2
+        taskInfo:
+          name: echo-2
   inputDefinitions:
     parameters:
       param1:
         defaultValue: hello
         parameterType: STRING
       param2:
+        defaultValue: world
+        parameterType: STRING
+  outputDefinitions:
+    parameters:
+      Output:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0
