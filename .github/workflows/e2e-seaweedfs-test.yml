@@ -32,6 +32,34 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
         continue-on-error: true
+      - name: Free up disk space for CI
+        run: |
+          echo "=== Initial disk usage ==="
+          df -h
+          
+          # cleanup for CI runners
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          
+          # Clean Docker
+          docker system prune -af --volumes
+          docker image prune -af
+          
+          # Clean containerd
+          sudo systemctl stop containerd || true
+          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+          sudo systemctl start containerd || true
+          
+          echo "=== After cleanup ==="
+          df -h
 
       - name: Install istio
         id: install-istio
@@ -49,7 +77,7 @@ jobs:
         if: ${{ steps.install-istio.outcome == 'success' }}
         run: |
           echo "Installing Profile Controller resources..."
-          kubectl apply -k https://github.com/kubeflow/manifests/apps/profiles/upstream/overlays/kubeflow?ref=master
+          kubectl apply -k https://github.com/kubeflow/manifests//apps/profiles/upstream/overlays/kubeflow?ref=v1.10-branch
           # Wait for profile controller to be ready
           kubectl -n kubeflow wait --for=condition=Ready pods -l control-plane=controller-manager --timeout 180s || true
           echo "Profile Controller resources installed successfully"
@@ -59,7 +87,7 @@ jobs:
         id: deploy-platform-agnostic-multi-user
         if: ${{ steps.install-profile-resources.outcome == 'success' }}
         run: |
-          kubectl apply -k manifests/kustomize/env/platform-agnostic-multi-user
+          kubectl replace --force -k manifests/kustomize/env/platform-agnostic-multi-user
           kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=600s --field-selector=status.phase!=Succeeded
         continue-on-error: true
 
