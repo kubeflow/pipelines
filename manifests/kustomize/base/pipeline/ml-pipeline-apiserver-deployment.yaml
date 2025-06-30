@@ -46,7 +46,7 @@ spec:
                   key: bucketName
             # SeaweedFS configuration for S3-compatible API
             - name: OBJECTSTORECONFIG_HOST
-              value: "minio-service.kubeflow"
+              value: "minio-service"
             - name: OBJECTSTORECONFIG_PORT
               value: "9000"
             - name: OBJECTSTORECONFIG_REGION
