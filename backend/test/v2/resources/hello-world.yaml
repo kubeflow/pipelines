@@ -11,7 +11,7 @@ deploymentSpec:
         - hello world
         command:
         - echo
-        image: busybox:1.36
+        image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
   name: echo
 root:
