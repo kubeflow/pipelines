@@ -33,14 +33,35 @@ jobs:
       with:
         python-version: 3.9
 
-    - name: Free up space in /dev/root
+    - name: Free up disk space for CI
       run: |
-        echo "Disk usage before clean up:"
+        echo "=== Initial disk usage ==="
         df -h
+        
+        # Comprehensive cleanup for CI runners
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-        echo "Disk usage after clean up:"
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/share/boost
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        sudo rm -rf /usr/local/.ghcup
+        sudo rm -rf /usr/share/swift
+        sudo apt-get autoremove -y
+        sudo apt-get autoclean
+        
+        # Clean Docker
+        docker system prune -af --volumes
+        docker image prune -af
+        
+        # Clean containerd
+        sudo systemctl stop containerd || true
+        sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+        sudo systemctl start containerd || true
+        
+        echo "=== After cleanup ==="
         df -h
+      continue-on-error: true
 
     - name: apt-get update
       run: sudo apt-get update

@@ -41,6 +41,36 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
         continue-on-error: true
 
+      - name: Free up disk space for sample tests
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          echo "=== Initial disk usage ==="
+          df -h
+          
+          # cleanup for CI runners
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          
+          # Clean Docker
+          docker system prune -af --volumes
+          docker image prune -af
+          
+          # Clean containerd
+          sudo systemctl stop containerd || true
+          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+          sudo systemctl start containerd || true
+          
+          echo "=== After cleanup ==="
+          df -h
+        continue-on-error: true
+
       - name: Forward API port
         id: forward-api-port
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
@@ -91,6 +121,36 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
         continue-on-error: true
 
+      - name: Free up disk space for sample tests
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          echo "=== Initial disk usage ==="
+          df -h
+          
+          # cleanup for CI runners
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          
+          # Clean Docker
+          docker system prune -af --volumes
+          docker image prune -af
+          
+          # Clean containerd
+          sudo systemctl stop containerd || true
+          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+          sudo systemctl start containerd || true
+          
+          echo "=== After cleanup ==="
+          df -h
+        continue-on-error: true
+
       - name: Forward API port
         id: forward-api-port
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
@@ -139,6 +199,36 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+        continue-on-error: true
+
+      - name: Free up disk space for sample tests
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          echo "=== Initial disk usage ==="
+          df -h
+          
+          # cleanup for CI runners
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          
+          # Clean Docker
+          docker system prune -af --volumes
+          docker image prune -af
+          
+          # Clean containerd
+          sudo systemctl stop containerd || true
+          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+          sudo systemctl start containerd || true
+          
+          echo "=== After cleanup ==="
+          df -h
         continue-on-error: true
 
       - name: Forward API port
@@ -199,6 +289,36 @@ jobs:
           pipeline_store: ${{ matrix.pipeline_store }}
         continue-on-error: true
 
+      - name: Free up disk space for sample tests
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          echo "=== Initial disk usage ==="
+          df -h
+          
+          # cleanup for CI runners
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          
+          # Clean Docker
+          docker system prune -af --volumes
+          docker image prune -af
+          
+          # Clean containerd
+          sudo systemctl stop containerd || true
+          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+          sudo systemctl start containerd || true
+          
+          echo "=== After cleanup ==="
+          df -h
+        continue-on-error: true
+
       - name: Forward API port
         id: forward-api-port
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
@@ -235,6 +355,7 @@ jobs:
           kubectl exec -i -n kubeflow deployment/seaweedfs -- /bin/sh -c "weed shell" <<EOF
           fs.ls /
           EOF
+        continue-on-error: true
 
 
       - name: Collect test results
@@ -267,6 +388,37 @@ jobs:
           proxy: 'true'
         continue-on-error: true
 
+      - name: Free up disk space for sample tests
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          echo "=== Initial disk usage ==="
+          df -h
+          
+          # cleanup for CI runners
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/lib/android
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          
+          # Clean Docker
+          docker system prune -af --volumes
+          docker image prune -af
+          
+          # Clean containerd
+          sudo systemctl stop containerd || true
+          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+          sudo systemctl start containerd || true
+          
+          echo "=== After cleanup ==="
+          df -h
+        continue-on-error: true
+
       - name: Forward API port
         id: forward-api-port
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
@@ -294,6 +446,17 @@ jobs:
           ./.github/resources/scripts/collect-logs.sh --ns squid --output /tmp/tmp_squid_pod_log.txt
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
+      
+      - name: Debug SeaweedFS
+        run: |
+          echo "=== SeaweedFS Status ==="
+          kubectl logs -n kubeflow deployment/seaweedfs --tail=50
+          
+          echo "=== Test SeaweedFS Upload ==="
+          kubectl exec -i -n kubeflow deployment/seaweedfs -- /bin/sh -c "weed shell" <<EOF
+          fs.ls /
+          EOF
+        continue-on-error: true
 
       - name: Collect test results
         if: always()
@@ -323,6 +486,36 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
           cache_enabled: 'false'
+        continue-on-error: true
+
+      - name: Free up disk space for sample tests
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          echo "=== Initial disk usage ==="
+          df -h
+          
+          # cleanup for CI runners
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          
+          # Clean Docker
+          docker system prune -af --volumes
+          docker image prune -af
+          
+          # Clean containerd
+          sudo systemctl stop containerd || true
+          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+          sudo systemctl start containerd || true
+          
+          echo "=== After cleanup ==="
+          df -h
         continue-on-error: true
 
       - name: Forward API port
@@ -381,6 +574,36 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
         continue-on-error: true
 
+      - name: Free up disk space for sample tests
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          echo "=== Initial disk usage ==="
+          df -h
+          
+          # cleanup for CI runners
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          
+          # Clean Docker
+          docker system prune -af --volumes
+          docker image prune -af
+          
+          # Clean containerd
+          sudo systemctl stop containerd || true
+          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+          sudo systemctl start containerd || true
+          
+          echo "=== After cleanup ==="
+          df -h
+        continue-on-error: true
+
       - name: Forward API port
         id: forward-api-port
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
@@ -436,6 +659,36 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+        continue-on-error: true
+
+      - name: Free up disk space for sample tests
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          echo "=== Initial disk usage ==="
+          df -h
+          
+          # cleanup for CI runners
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          
+          # Clean Docker
+          docker system prune -af --volumes
+          docker image prune -af
+          
+          # Clean containerd
+          sudo systemctl stop containerd || true
+          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+          sudo systemctl start containerd || true
+          
+          echo "=== After cleanup ==="
+          df -h
         continue-on-error: true
 
       - name: Forward API port
