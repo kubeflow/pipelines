@@ -262,7 +262,7 @@ func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta
 		s.T().Logf("Pipeline %v state: %v", pipelineRunDetail.RunID, pipelineRunDetail.State)
 
 		return err == nil && pipelineRunDetail.State == expectedState
-	}, 10*time.Minute, 10*time.Second)
+	}, 2*time.Minute, 10*time.Second)
 
 	return pipelineRunDetail, err
 }
