@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - '.github/workflows/e2e-seaweedfs-test.yml'
-      - 'manifests/kustomize/third-party/seaweedfs/**'
-      - 'test/seaweedfs/**'
-      - 'manifests/kustomize/env/**'
-      - '!**/*.md'
+    - '.github/workflows/e2e-seaweedfs-test.yml'
+    - 'manifests/kustomize/third-party/seaweedfs/**'
+    - 'test/seaweedfs/**'
+    - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller'
+    - '!**/*.md'
 
 jobs:
   seaweedfs-integration-tests:
@@ -18,143 +18,143 @@ jobs:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
     name: SeaweedFS Integration Tests - K8s ${{ matrix.k8s_version }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
 
-      - name: Create KFP cluster with SeaweedFS
-        id: create-kfp-cluster
-        uses: ./.github/actions/kfp-cluster
-        with:
-          k8s_version: ${{ matrix.k8s_version }}
-        continue-on-error: true
-      - name: Free up disk space for CI
-        run: |
-          echo "=== Initial disk usage ==="
-          df -h
-          
-          # cleanup for CI runners
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          sudo rm -rf /usr/local/.ghcup
-          sudo rm -rf /usr/share/swift
-          sudo apt-get autoremove -y
-          sudo apt-get autoclean
-          
-          # Clean Docker
-          docker system prune -af --volumes
-          docker image prune -af
-          
-          # Clean containerd
-          sudo systemctl stop containerd || true
-          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
-          sudo systemctl start containerd || true
-          
-          echo "=== After cleanup ==="
-          df -h
+    - name: Create KFP cluster with SeaweedFS
+      id: create-kfp-cluster
+      uses: ./.github/actions/kfp-cluster
+      with:
+        k8s_version: ${{ matrix.k8s_version }}
+      continue-on-error: true
+    - name: Free up disk space for CI
+      run: |
+        echo "=== Initial disk usage ==="
+        df -h
+        
+        # cleanup for CI runners
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/share/boost
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        sudo rm -rf /usr/local/.ghcup
+        sudo rm -rf /usr/share/swift
+        sudo apt-get autoremove -y
+        sudo apt-get autoclean
+        
+        # Clean Docker
+        docker system prune -af --volumes
+        docker image prune -af
+        
+        # Clean containerd
+        sudo systemctl stop containerd || true
+        sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+        sudo systemctl start containerd || true
+        
+        echo "=== After cleanup ==="
+        df -h
 
-      - name: Install istio
-        id: install-istio
-        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-        run: |
-          kubectl apply -k https://github.com/kubeflow/manifests//common/istio-cni-1-24/istio-crds/base?ref=v1.10-branch
-          kubectl apply -k https://github.com/kubeflow/manifests//common/istio-cni-1-24/istio-namespace/base?ref=v1.10-branch
-          kubectl apply -k https://github.com/kubeflow/manifests//common/istio-cni-1-24/istio-install/base?ref=v1.10-branch
-          echo "Waiting for all Istio Pods to become ready..."
-          kubectl wait --for=condition=Ready pods --all -n istio-system --timeout 300s
-        continue-on-error: true
+    - name: Install istio
+      id: install-istio
+      if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+      run: |
+        kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-crds/base?ref=master
+        kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-namespace/base?ref=master
+        kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-install/base?ref=master
+        echo "Waiting for all Istio Pods to become ready..."
+        kubectl wait --for=condition=Ready pods --all -n istio-system --timeout 300s
+      continue-on-error: true
 
-      - name: Install Profile Controller Resources
-        id: install-profile-resources
-        if: ${{ steps.install-istio.outcome == 'success' }}
-        run: |
-          echo "Installing Profile Controller resources..."
-          kubectl apply -k https://github.com/kubeflow/manifests//apps/profiles/upstream/overlays/kubeflow?ref=v1.10-branch
-          # Wait for profile controller to be ready
-          kubectl -n kubeflow wait --for=condition=Ready pods -l control-plane=controller-manager --timeout 180s || true
-          echo "Profile Controller resources installed successfully"
-        continue-on-error: true
-      
-      - name: Deploy Platform Agnostic Multi-User
-        id: deploy-platform-agnostic-multi-user
-        if: ${{ steps.install-profile-resources.outcome == 'success' }}
-        run: |
-          kubectl replace --force -k manifests/kustomize/env/platform-agnostic-multi-user
-          kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=600s --field-selector=status.phase!=Succeeded
-        continue-on-error: true
+    - name: Install Profile Controller Resources
+      id: install-profile-resources
+      if: ${{ steps.install-istio.outcome == 'success' }}
+      run: |
+        echo "Installing Profile Controller resources..."
+        kubectl apply -k https://github.com/kubeflow/manifests//apps/profiles/upstream/overlays/kubeflow?ref=master
+        # Wait for profile controller to be ready
+        kubectl -n kubeflow wait --for=condition=Ready pods -l control-plane=controller-manager --timeout 180s || true
+        echo "Profile Controller resources installed successfully"
+      continue-on-error: true
+    
+    - name: Deploy Platform Agnostic Multi-User
+      id: deploy-platform-agnostic-multi-user
+      if: ${{ steps.install-profile-resources.outcome == 'success' }}
+      run: |
+        kubectl replace --force -k manifests/kustomize/env/platform-agnostic-multi-user
+        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s --field-selector=status.phase!=Succeeded
+      continue-on-error: true
 
-      - name: Create KF Profile
-        id: create-kf-profile
-        if: ${{ steps.deploy-platform-agnostic-multi-user.outcome == 'success' }}
-        run: |
-          echo "Creating KF Profile..."
-          kubectl apply -f test/seaweedfs/test-profiles.yaml
-          echo "KF Profile created successfully"
-        continue-on-error: true
+    - name: Create KF Profile
+      id: create-kf-profile
+      if: ${{ steps.deploy-platform-agnostic-multi-user.outcome == 'success' }}
+      run: |
+        echo "Creating KF Profile..."
+        kubectl apply -f test/seaweedfs/test-profiles.yaml
+        echo "KF Profile created successfully"
+      continue-on-error: true
 
-      - name: Verify Pipeline Integration
-        id: verify-pipeline-integration
-        if: ${{ steps.create-kf-profile.outcome == 'success' }}
-        run: |
-          KF_PROFILE=kubeflow-user-example-com
-          if ! kubectl get secret mlpipeline-minio-artifact -n $KF_PROFILE > /dev/null 2>&1; then
-            echo "Error: Secret mlpipeline-minio-artifact not found in namespace $KF_PROFILE"
-            exit 1
-          fi
-          kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys[] as $k | "\($k): \(. | .[$k] | @base64d)"' | tr '\n' ' '
-
-      - name: Forward API port
-        id: forward-api-port
-        if: ${{ steps.verify-pipeline-integration.outcome == 'success' }}
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-        continue-on-error: true
-
-      - name: Test Pipeline V1 API with SeaweedFS
-        id: test-v1-api
-        if: ${{ steps.forward-api-port.outcome == 'success' }}
-        run: |
-          pip3 install "kfp>=1.8.22,<2.0.0"
-          KF_PROFILE=kubeflow-user-example-com
-          TOKEN="$(kubectl -n $KF_PROFILE create token default-editor)"
-          python3 test/seaweedfs/test_pipeline_v1_seaweedfs.py "$TOKEN" "$KF_PROFILE"
-        continue-on-error: true
-
-      - name: Test Pipeline V2 API with SeaweedFS
-        id: test-v2-api
-        if: ${{ steps.test-v1-api.outcome == 'success' }}
-        run: |
-          pip3 install kfp==2.13.0
-          KF_PROFILE=kubeflow-user-example-com
-          TOKEN="$(kubectl -n $KF_PROFILE create token default-editor)"
-          python3 test/seaweedfs/test_pipeline_v2_seaweedfs.py
-        continue-on-error: true
-
-      - name: Test SeaweedFS Namespace Isolation
-        id: test-namespace-isolation
-        if: ${{ steps.test-v2-api.outcome == 'success' }}
-        run: ./test/seaweedfs/namespace_isolation_test.sh
-        continue-on-error: true
-
-      - name: Collect failed logs
-        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.install-istio.outcome != 'success' || steps.install-profile-resources.outcome != 'success' || steps.deploy-profile-controller.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
-        run: |
-          echo "Collecting logs for troubleshooting..."
-          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-          kubectl get events --all-namespaces --sort-by=.metadata.creationTimestamp > /tmp/events.txt
-          kubectl describe pods -n kubeflow > /tmp/pod_descriptions.txt
+    - name: Verify Pipeline Integration
+      id: verify-pipeline-integration
+      if: ${{ steps.create-kf-profile.outcome == 'success' }}
+      run: |
+        KF_PROFILE=kubeflow-user-example-com
+        if ! kubectl get secret mlpipeline-minio-artifact -n $KF_PROFILE > /dev/null 2>&1; then
+          echo "Error: Secret mlpipeline-minio-artifact not found in namespace $KF_PROFILE"
           exit 1
+        fi
+        kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys[] as $k | "\($k): \(. | .[$k] | @base64d)"' | tr '\n' ' '
 
-      - name: Collect test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: kfp-seaweedfs-tests-artifacts-k8s-${{ matrix.k8s_version }}
-          path: /tmp/tmp*/* 
+    - name: Forward API port
+      id: forward-api-port
+      if: ${{ steps.verify-pipeline-integration.outcome == 'success' }}
+      run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+      continue-on-error: true
+
+    - name: Test Pipeline V1 API with SeaweedFS
+      id: test-v1-api
+      if: ${{ steps.forward-api-port.outcome == 'success' }}
+      run: |
+        pip3 install "kfp>=1.8.22,<2.0.0"
+        KF_PROFILE=kubeflow-user-example-com
+        TOKEN="$(kubectl -n $KF_PROFILE create token default-editor)"
+        python3 test/seaweedfs/test_pipeline_v1_seaweedfs.py "$TOKEN" "$KF_PROFILE"
+      continue-on-error: true
+
+    - name: Test Pipeline V2 API with SeaweedFS
+      id: test-v2-api
+      if: ${{ steps.test-v1-api.outcome == 'success' }}
+      run: |
+        pip3 install kfp==2.13.0
+        KF_PROFILE=kubeflow-user-example-com
+        TOKEN="$(kubectl -n $KF_PROFILE create token default-editor)"
+        python3 test/seaweedfs/test_pipeline_v2_seaweedfs.py
+      continue-on-error: true
+
+    - name: Test SeaweedFS Namespace Isolation
+      id: test-namespace-isolation
+      if: ${{ steps.test-v2-api.outcome == 'success' }}
+      run: ./test/seaweedfs/namespace_isolation_test.sh
+      continue-on-error: true
+
+    - name: Collect failed logs
+      if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.install-istio.outcome != 'success' || steps.install-profile-resources.outcome != 'success' || steps.deploy-profile-controller.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
+      run: |
+        echo "Collecting logs for troubleshooting..."
+        ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+        kubectl get events --all-namespaces --sort-by=.metadata.creationTimestamp > /tmp/events.txt
+        kubectl describe pods -n kubeflow > /tmp/pod_descriptions.txt
+        exit 1
+
+    - name: Collect test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: kfp-seaweedfs-tests-artifacts-k8s-${{ matrix.k8s_version }}
+        path: /tmp/tmp*/*
