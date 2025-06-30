@@ -72,7 +72,7 @@ It creates a pod that launches the driver container using the kfp-driver image.
 
 ## Alternative
 
-Instead of launching a new driver using a container template, configure the system to send requests to an already running server.
+Instead of launching a new driver's pod using a container template, configure the system to send requests to an already running server.
 Something like this:
 ```yaml
   templates:
@@ -112,13 +112,15 @@ The HTTP template [is not able](https://github.com/argoproj/argo-workflows/issue
 There’s a trade-off between running a standalone driver service pod globally or single per workflow. This is a balance between better performance and avoiding a single point of failure.
 Currently, Argo [supports](https://github.com/argoproj/argo-workflows/issues/7891) only one driver pod per workflow option. Both options are based on the Agent pod, which is currently started per workflow — this is a limitation of the current implementation.
 
-### Implementation 
+### Implementation Based on the Executor Plugin
 
 Instead of creating a driver pod for each task, we can reuse a single agent pod via a plugin template:
 [Agent pod](https://github.com/argoproj/argo-workflows/issues/5544) is a unit designed for extension. 
 It can be extended by any server that implements the protocol.
 This server(plugin in Executor plugin terminology) runs as a sidecar alongside the agent pod.
-![img.png](kfp-plugin-flow.png)
+
+Below is a scheme where, instead of creating a pod for the driver's task, we reuse the Argo Workflow Agent via a plugin
+![img.png](executor-plugin-flow.png)
 
 
 To move from the container template to the Executor Plugin template:
@@ -183,6 +185,12 @@ plugin:
 This proposal introduces an optimization for Kubeflow Pipelines (KFP) that replaces per-task driver pods with a lightweight standalone service based on Argo Workflows’ Executor Plugin mechanism. It significantly reduces pipeline task startup time by eliminating the overhead of scheduling a separate driver pod for each task — particularly beneficial for large pipelines with multiple steps and caching enabled.
 Instead of launching a new driver pod per task, the driver logic is offloaded to a shared sidecar container (agent pod) within the workflow. This reduces latency in cache lookups and metadata initialization.
 However, this approach does not fully eliminate pod scheduling issues: the standalone driver is not a global service, but is instantiated per workflow. Thus, a pod still needs to be scheduled for each workflow run.
-A key limitation of this implementation is that it currently supports only the Argo Workflows backend.
 
-Follow-up: file a task to support a global agent pod shared across workflows to fully remove driver pod scheduling overhead. The community is [open](https://github.com/argoproj/argo-workflows/issues/7891) to it.
+## Disadvantages:
+A key limitation of this implementation is that it currently supports only the Argo Workflows backend. The Executor plugin also adds some extra complexity to maintenance and deployment.
+
+## Open Questions:
+- Do we need a fallback mechanism to the per-task driver pods in case the Executor Plugin is not available in some installations? Should KFP continue supporting both execution flows (plugin-based and pod-based drivers) for compatibility?
+
+## Follow-ups
+- Implement a global agent pod. The community is [open](https://github.com/argoproj/argo-workflows/issues/7891) to it.
