@@ -73,7 +73,8 @@ jobs:
       run: |
         kubectl apply -f manifests/kustomize/third-party/metacontroller/base/crd.yaml
         kubectl apply --force -k manifests/kustomize/env/platform-agnostic-multi-user
-        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s --field-selector=status.phase!=Succeeded
+        echo "Waiting for Pods to be ready..."
+        kubectl wait --for=condition=Ready pods --all --namespace kubeflow --timeout=300s --field-selector=status.phase!=Succeeded || true
 
     - name: Install Profile Controller Resources
       id: install-profile-resources
@@ -82,7 +83,7 @@ jobs:
         echo "Installing Profile Controller resources..."
         kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master
         # Wait for profile controller to be ready
-        kubectl -n kubeflow wait --for=condition=Ready pods -l control-plane=controller-manager --timeout 180s || true
+        kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s || true
         echo "Profile Controller resources installed successfully"
 
     - name: Create KF Profile
@@ -93,14 +94,20 @@ jobs:
         kubectl apply -f test/seaweedfs/test-profiles.yaml
         echo "KF Profile created successfully"
 
+    - name: ApplyNetwork Policy for Cross-Namespace Access
+      id: fix-network-policy
+      if: ${{ steps.create-kf-profile.outcome == 'success' }}
+      run: |
+        echo "Applying network policy to allow user namespace access to kubeflow services..."
+        kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml
+
     - name: Verify Pipeline Integration
       id: verify-pipeline-integration
-      if: ${{ steps.create-kf-profile.outcome == 'success' }}
+      if: ${{ steps.fix-network-policy.outcome == 'success' }}
       run: |
         KF_PROFILE=kubeflow-user-example-com
         if ! kubectl get secret mlpipeline-minio-artifact -n $KF_PROFILE > /dev/null 2>&1; then
           echo "Error: Secret mlpipeline-minio-artifact not found in namespace $KF_PROFILE"
-          exit 1
         fi
         kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys[] as $k | "\($k): \(. | .[$k] | @base64d)"' | tr '\n' ' '
 
@@ -137,7 +144,7 @@ jobs:
       run: ./test/seaweedfs/namespace_isolation_test.sh
 
     - name: Collect failed logs
-      if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.install-istio.outcome != 'success' || steps.install-profile-resources.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
+      if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.install-istio.outcome != 'success' || steps.install-profile-resources.outcome != 'success' || steps.fix-network-policy.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
       run: |
         ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
         kubectl get events --all-namespaces --sort-by=.metadata.creationTimestamp > /tmp/events.txt

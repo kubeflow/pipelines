@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euxo pipefail
+set -euo pipefail
 
 echo "SeaweedFS Security Test - Unauthorized Access Check"
 echo "Testing if one namespace can access files from another namespace"
