@@ -2,4 +2,4 @@ sdk/python
 pytest==8.3.2
 pytest-xdist==2.5.0
 ml-metadata==1.17.0
-minio==7.2.15
+boto3==1.35.93

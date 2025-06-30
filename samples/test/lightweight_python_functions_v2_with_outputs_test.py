@@ -20,7 +20,8 @@ from kfp.samples.test.utils import KfpMlmdClient
 from kfp.samples.test.utils import run_pipeline_func
 from kfp.samples.test.utils import TestCase
 import kfp_server_api
-from minio import Minio
+import boto3
+from botocore.exceptions import ClientError
 
 from .lightweight_python_functions_v2_with_outputs import pipeline
 
@@ -41,16 +42,32 @@ def verify(run: kfp_server_api.ApiRun, mlmd_connection_config, **kwargs):
 
     host = os.environ['MINIO_SERVICE_SERVICE_HOST']
     port = os.environ['MINIO_SERVICE_SERVICE_PORT']
-    minio = Minio(
-        f'{host}:{port}',
-        access_key='minio',
-        secret_key='minio123',
-        secure=False)
-    bucket, key = output.uri[len('minio://'):].split('/', 1)
+    
+    # Create boto3 S3 client for SeaweedFS
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id='minio',
+        aws_secret_access_key='minio123',
+        endpoint_url=f'http://{host}:{port}',
+        region_name='us-east-1'  # Required but not used by SeaweedFS
+    )
+    
+    # Handle both minio:// and s3:// URI schemes
+    if output.uri.startswith('minio://'):
+        bucket, key = output.uri[len('minio://'):].split('/', 1)
+    elif output.uri.startswith('s3://'):
+        bucket, key = output.uri[len('s3://'):].split('/', 1) 
+    else:
+        raise ValueError(f"Unsupported URI scheme in {output.uri}")
+        
     print(f'bucket={bucket} key={key}')
-    response = minio.get_object(bucket, key)
-    data = response.read().decode('UTF-8')
-    t.assertEqual(data, 'firstsecond\nfirstsecond\nfirstsecond')
+    
+    try:
+        response = s3_client.get_object(Bucket=bucket, Key=key)
+        data = response['Body'].read().decode('UTF-8')
+        t.assertEqual(data, 'firstsecond\nfirstsecond\nfirstsecond')
+    except ClientError as e:
+        raise AssertionError(f"Failed to get object from SeaweedFS: {e}")
 
 
 run_pipeline_func([

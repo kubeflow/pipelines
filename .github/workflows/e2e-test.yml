@@ -226,6 +226,16 @@ jobs:
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
+      - name: Debug SeaweedFS
+        run: |
+          echo "=== SeaweedFS Status ==="
+          kubectl logs -n kubeflow deployment/seaweedfs --tail=50
+          
+          echo "=== Test SeaweedFS Upload ==="
+          kubectl exec -i -n kubeflow deployment/seaweedfs -- /bin/sh -c "weed shell" <<EOF
+          fs.ls /
+          EOF
+
 
       - name: Collect test results
         if: always()

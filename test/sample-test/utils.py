@@ -16,26 +16,47 @@ import os
 import re
 import subprocess
 
-from minio import Minio
+import boto3
+from botocore.exceptions import ClientError
 from junit_xml import TestSuite, TestCase
 
 # Parse the workflow json to obtain the artifacts for a particular step.
 #   Note: the step_name could be the key words.
 def get_artifact_in_minio(workflow_json, step_name, output_path, artifact_name='mlpipeline-ui-metadata'):
   s3_data = {}
-  minio_access_key = 'minio'
-  minio_secret_key = 'minio123'
+  s3_access_key = 'minio'
+  s3_secret_key = 'minio123'
   try:
     for node in workflow_json['status']['nodes'].values():
       if step_name in node['name']:
         for artifact in node['outputs']['artifacts']:
           if artifact['name'] == artifact_name:
             s3_data = artifact['s3']
-    minio_client = Minio(s3_data['endpoint'], access_key=minio_access_key, secret_key=minio_secret_key, secure=False)
-    data = minio_client.get_object(s3_data['bucket'], s3_data['key'])
+    
+    # Create boto3 S3 client for SeaweedFS
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=s3_access_key,
+        aws_secret_access_key=s3_secret_key,
+        endpoint_url=f"http://{s3_data['endpoint']}",
+        region_name='us-east-1'  # Required but not used by SeaweedFS
+    )
+    
+    # Download the object from SeaweedFS
+    response = s3_client.get_object(Bucket=s3_data['bucket'], Key=s3_data['key'])
+    
     with open(output_path, 'wb') as file:
-      for d in data.stream(32*1024):
-        file.write(d)
+      # Read and write the data in chunks
+      while True:
+        chunk = response['Body'].read(32*1024)
+        if not chunk:
+          break
+        file.write(chunk)
+        
+  except ClientError as e:
+    error_code = e.response['Error']['Code']
+    print(f'SeaweedFS S3 error in get_artifact_in_minio: {error_code} - {e}')
+    print(workflow_json)
   except Exception as e:
     print('error in get_artifact_in_minio: %s', e)
     print(workflow_json)
