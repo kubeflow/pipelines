@@ -267,104 +267,103 @@ jobs:
         path: /tmp/tmp*/*
 
   api-integration-tests-v2:
-  runs-on: ubuntu-latest
-  strategy:
-    matrix:
-      pipeline_store: [ "database", "kubernetes" ]
-      k8s_version: [ "v1.29.2", "v1.31.0" ]
-  name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pipeline_store: [ "database", "kubernetes" ]
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
+    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+  
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+  
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          pipeline_store: ${{ matrix.pipeline_store }}
+        continue-on-error: true
+  
+      - name: Free up disk space
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          echo "=== Initial disk usage ==="
+          df -h
+          
+          # cleanup for CI runners
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/share/swift
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean
+          
+          # Clean Docker
+          docker system prune -af --volumes
+          docker image prune -af
+          
+          # Clean containerd
+          sudo systemctl stop containerd || true
+          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
+          sudo systemctl start containerd || true
+  
+          echo "=== After cleanup ==="
+          df -h
+        continue-on-error: true
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
 
-    - name: Create KFP cluster
-      id: create-kfp-cluster
-      uses: ./.github/actions/kfp-cluster
-      with:
-        k8s_version: ${{ matrix.k8s_version }}
-        pipeline_store: ${{ matrix.pipeline_store }}
-      continue-on-error: true
+      - name: Forward MLMD port
+        id: forward-mlmd-port
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
+        continue-on-error: true
 
-    - name: Free up disk space
-      if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-      run: |
-        echo "=== Initial disk usage ==="
-        df -h
-        
-        # cleanup for CI runners
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /opt/ghc
-        sudo rm -rf /usr/local/share/boost
-        sudo rm -rf /usr/local/lib/android
-        sudo rm -rf /opt/hostedtoolcache/CodeQL
-        sudo rm -rf /usr/local/.ghcup
-        sudo rm -rf /usr/share/swift
-        sudo apt-get autoremove -y
-        sudo apt-get autoclean
-        
-        # Clean Docker
-        docker system prune -af --volumes
-        docker image prune -af
-        
-        # Clean containerd
-        sudo systemctl stop containerd || true
-        sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
-        sudo systemctl start containerd || true
-        
-        echo "=== After cleanup ==="
-        df -h
-      continue-on-error: true
+      - name: API integration tests v2
+        id: tests
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        working-directory: ./backend/test/v2/integration
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          PIPELINE_STORE: ${{ matrix.pipeline_store }}
+        continue-on-error: true
 
-    - name: Forward API port
-      id: forward-api-port
-      if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-      run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-      continue-on-error: true
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+      - name: Debug SeaweedFS
+        run: |
+          echo "=== SeaweedFS Status ==="
+          kubectl logs -n kubeflow deployment/seaweedfs --tail=50
+          
+          echo "=== Test SeaweedFS Upload ==="
+          kubectl exec -i -n kubeflow deployment/seaweedfs -- /bin/sh -c "weed shell" <<EOF
+          fs.ls /
+          EOF
+        continue-on-error: true
 
-    - name: Forward MLMD port
-      id: forward-mlmd-port
-      if: ${{ steps.forward-api-port.outcome == 'success' }}
-      run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
-      continue-on-error: true
-
-    - name: API integration tests v2
-      id: tests
-      if: ${{ steps.forward-api-port.outcome == 'success' }}
-      working-directory: ./backend/test/v2/integration
-      run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
-      env:
-        PULL_NUMBER: ${{ github.event.pull_request.number }}
-        PIPELINE_STORE: ${{ matrix.pipeline_store }}
-      continue-on-error: true
-
-    - name: Collect failed logs
-      if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
-      run: |
-        ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-        exit 1
-    - name: Debug SeaweedFS
-      run: |
-        echo "=== SeaweedFS Status ==="
-        kubectl logs -n kubeflow deployment/seaweedfs --tail=50
-        
-        echo "=== Test SeaweedFS Upload ==="
-        kubectl exec -i -n kubeflow deployment/seaweedfs -- /bin/sh -c "weed shell" <<EOF
-        fs.ls /
-        EOF
-      continue-on-error: true
-
-
-    - name: Collect test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}
-        path: /tmp/tmp*/*
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}
+          path: /tmp/tmp*/*
 
   api-integration-tests-v2-with-proxy:
     runs-on: ubuntu-latest
