@@ -76,7 +76,7 @@ jobs:
       id: deploy-platform-agnostic-multi-user
       if: ${{ steps.install-istio.outcome == 'success' }}
       run: |
-        kubectl replace --force -k manifests/kustomize/env/platform-agnostic-multi-user
+        kubectl apply --force -k manifests/kustomize/env/platform-agnostic-multi-user
         kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s --field-selector=status.phase!=Succeeded
       continue-on-error: true   
 
