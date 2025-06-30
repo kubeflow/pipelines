@@ -50,7 +50,7 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
         continue-on-error: true
-      - name: Free up disk space for sample tests
+      - name: Free up disk space
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         run: |
           echo "=== Initial disk usage ==="
