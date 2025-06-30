@@ -7,6 +7,7 @@ data:
   # * https://github.com/argoproj/argo-workflows/blob/v3.5.14/config/config.go
   # * https://github.com/argoproj/argo-workflows/blob/v3.5.14/docs/workflow-controller-configmap.md
   # * https://github.com/argoproj/argo-workflows/blob/v3.5.14/docs/workflow-controller-configmap.yaml
+
   # In artifactRepository.s3.endpoint, $(kfp-namespace) is needed, because in multi-user mode, pipelines may run in other namespaces.
   artifactRepository: |
     archiveLogs: true
@@ -24,7 +25,7 @@ data:
       # The following format looks like:
       # artifacts/my-workflow-abc123/2018/08/23/my-workflow-abc123-1234567890
       # Adding date into the path greatly reduces the chance of {{pod.name}} collision.
-      keyFormat: private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}
+      keyFormat: "private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
       insecure: true
       accessKeySecret:
         name: mlpipeline-minio-artifact
