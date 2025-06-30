@@ -77,7 +77,7 @@ jobs:
       if: ${{ steps.install-istio.outcome == 'success' }}
       run: |
         echo "Installing Profile Controller resources..."
-        kubectl apply -k https://github.com/kubeflow/manifests//apps/profiles/upstream/overlays/kubeflow?ref=master
+        kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master
         # Wait for profile controller to be ready
         kubectl -n kubeflow wait --for=condition=Ready pods -l control-plane=controller-manager --timeout 180s || true
         echo "Profile Controller resources installed successfully"
