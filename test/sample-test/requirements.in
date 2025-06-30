@@ -1,6 +1,6 @@
 kfp==2.8.0
 junit-xml
-boto3
+minio
 black
 papermill
 fire

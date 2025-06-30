@@ -24,11 +24,11 @@ import kubernetes.config
 import pytest
 import yaml
 from typing import Any, Dict, List, Tuple
-import boto3
-from botocore.exceptions import ClientError
+from minio import S3Error
 from ml_metadata import metadata_store
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.metadata_store.metadata_store import ListOptions
+from minio import Minio
 from kfp import client
 from kfp import dsl
 
@@ -47,25 +47,18 @@ METADATA_PORT = 8080
 kfp_client = client.Client(host=KFP_ENDPOINT)
 kubernetes.config.load_kube_config()
 
-# SeaweedFS S3-compatible client configuration
-s3_client = boto3.client(
-    's3',
-    aws_access_key_id="minio",
-    aws_secret_access_key="minio123",
-    endpoint_url="http://127.0.0.1:9000",  # SeaweedFS S3 API via port-forward
-    region_name='us-east-1'  # Required but not used by SeaweedFS
+minio_client = Minio(
+    endpoint="127.0.0.1:9000",
+    access_key="minio",
+    secret_key="minio123",
+    secure=False,
 )
 
 BUCKET_NAME = "mlpipeline"
 
-print("Checking SeaweedFS connectivity...")
-try:
-    response = s3_client.list_buckets()
-    print(f"Connected to SeaweedFS. Found {len(response.get('Buckets', []))} buckets")
-    for bucket in response.get('Buckets', []):
-        print(f"Found bucket: {bucket['Name']}")
-except Exception as e:
-    print(f"Warning: Could not connect to SeaweedFS: {e}")
+print("Checking Minio connectivity...")
+for b in minio_client.list_buckets():
+    print(f"Found bucket: {b.name}")
 
 @dataclasses.dataclass
 class TestCase:
@@ -152,32 +145,14 @@ def cleanup_run_resources(run_id: str):
 
     artifacts = get_run_artifacts(run_id)
     print(f"Found {len(artifacts)} artifacts for run {run_id}")
-    
-    # Clean up any Artifacts from SeaweedFS object store
+    # Clean up any Artifacts from object store
     for artifact in artifacts:
         try:
-            # Handle both minio:// and s3:// URI schemes
-            uri = artifact.uri
-            if uri.startswith(f"minio://{BUCKET_NAME}/"):
-                object_key = uri.removeprefix(f"minio://{BUCKET_NAME}/")
-            elif uri.startswith(f"s3://{BUCKET_NAME}/"):
-                object_key = uri.removeprefix(f"s3://{BUCKET_NAME}/")
-            else:
-                print(f"Skipping artifact with unknown URI scheme: {uri}")
-                continue
-                
+            object_key = artifact.uri.removeprefix(f"minio://{BUCKET_NAME}")
             print(f"Deleting artifact {object_key} for run {run_id}")
-            s3_client.delete_object(Bucket=BUCKET_NAME, Key=object_key)
-            
-        except ClientError as err:
-            # Handle S3/SeaweedFS specific errors
-            error_code = err.response['Error']['Code'] 
-            if error_code == 'NoSuchKey':
-                print(f"Artifact {object_key} already deleted or doesn't exist")
-            else:
-                print(f"SeaweedFS error: {err} for run {run_id}")
-        except Exception as err:
-            print(f"Unexpected error deleting artifact: {err} for run {run_id}")
+            minio_client.remove_object(BUCKET_NAME, object_key)
+        except S3Error as err:
+            print(f"MinIO error: {err} for run {run_id}")
 
     # Clean up Argo Workflow
     try:
