@@ -71,24 +71,24 @@ jobs:
         echo "Waiting for all Istio Pods to become ready..."
         kubectl wait --for=condition=Ready pods --all -n istio-system --timeout 300s
       continue-on-error: true
+    
+    - name: Deploy Platform Agnostic Multi-User
+      id: deploy-platform-agnostic-multi-user
+      if: ${{ steps.install-istio.outcome == 'success' }}
+      run: |
+        kubectl replace --force -k manifests/kustomize/env/platform-agnostic-multi-user
+        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s --field-selector=status.phase!=Succeeded
+      continue-on-error: true   
 
     - name: Install Profile Controller Resources
       id: install-profile-resources
-      if: ${{ steps.install-istio.outcome == 'success' }}
+      if: ${{ steps.deploy-platform-agnostic-multi-user.outcome == 'success' }}
       run: |
         echo "Installing Profile Controller resources..."
         kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master
         # Wait for profile controller to be ready
         kubectl -n kubeflow wait --for=condition=Ready pods -l control-plane=controller-manager --timeout 180s || true
         echo "Profile Controller resources installed successfully"
-      continue-on-error: true
-    
-    - name: Deploy Platform Agnostic Multi-User
-      id: deploy-platform-agnostic-multi-user
-      if: ${{ steps.install-profile-resources.outcome == 'success' }}
-      run: |
-        kubectl replace --force -k manifests/kustomize/env/platform-agnostic-multi-user
-        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s --field-selector=status.phase!=Succeeded
       continue-on-error: true
 
     - name: Create KF Profile
