@@ -30,7 +30,6 @@ jobs:
         run: |
           echo "=== Initial disk usage ==="
           df -h
-          
           # cleanup for CI runners
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
@@ -41,19 +40,15 @@ jobs:
           sudo rm -rf /usr/share/swift
           sudo apt-get autoremove -y
           sudo apt-get autoclean
-          
           # Clean Docker
           docker system prune -af --volumes
           docker image prune -af
-          
           # Clean containerd
           sudo systemctl stop containerd || true
           sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
           sudo systemctl start containerd || true
-          
           echo "=== After cleanup ==="
           df -h
-        continue-on-error: true
   
       # This must occur after "Free up space" step
       # otherwise python version will be overridden
