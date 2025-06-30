@@ -61,8 +61,8 @@ spec:
           name: data
         resources:
           requests:
-            cpu: 64m
-            memory: 256Mi
+            cpu: 32m
+            memory: 128Mi
       volumes:
       - name: data
         persistentVolumeClaim:
