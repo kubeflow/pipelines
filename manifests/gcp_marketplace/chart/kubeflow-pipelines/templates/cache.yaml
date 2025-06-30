@@ -190,7 +190,7 @@ data:
   mysql_driver: "mysql"
   mysql_host: "mysql"
   mysql_port: "3306"
-  cache_image: "registry.k8s.io/busybox"
+  cache_image: "ghcr.io/containerd/busybox"
   cache_node_restrictions: "false"
 ---
 apiVersion: apps/v1

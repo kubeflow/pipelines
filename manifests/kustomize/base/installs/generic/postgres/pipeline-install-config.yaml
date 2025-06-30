@@ -63,8 +63,8 @@ data:
   ## cacheImage is the image that the mutating webhook will use to patch
   ## cached steps with. Will be used to echo a message announcing that 
   ## the cached step result will be used. If not set it will default to 
-  ## 'registry.k8s.io/busybox'
-  cacheImage: "registry.k8s.io/busybox"
+  ## 'ghcr.io/containerd/busybox'
+  cacheImage: "ghcr.io/containerd/busybox"
   ## cacheNodeRestrictions the dummy container runing if output is cached
   ## will run with the same affinity and node selector as the default pipeline
   ## step. This is defaulted to 'false' to allow the pod to be scheduled on 
