@@ -31,12 +31,11 @@ jobs:
       uses: ./.github/actions/kfp-cluster
       with:
         k8s_version: ${{ matrix.k8s_version }}
-      continue-on-error: true
+      
     - name: Free up disk space for CI
       run: |
         echo "=== Initial disk usage ==="
         df -h
-        
         # cleanup for CI runners
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
@@ -48,16 +47,13 @@ jobs:
         sudo rm -rf /usr/share/swift
         sudo apt-get autoremove -y
         sudo apt-get autoclean
-        
         # Clean Docker
         docker system prune -af --volumes
         docker image prune -af
-        
         # Clean containerd
         sudo systemctl stop containerd || true
         sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
         sudo systemctl start containerd || true
-        
         echo "=== After cleanup ==="
         df -h
 
@@ -70,7 +66,6 @@ jobs:
         kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-install/base?ref=master
         echo "Waiting for all Istio Pods to become ready..."
         kubectl wait --for=condition=Ready pods --all -n istio-system --timeout 300s
-      continue-on-error: true
     
     - name: Deploy Platform Agnostic Multi-User
       id: deploy-platform-agnostic-multi-user
@@ -78,7 +73,6 @@ jobs:
       run: |
         kubectl apply --force -k manifests/kustomize/env/platform-agnostic-multi-user
         kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s --field-selector=status.phase!=Succeeded
-      continue-on-error: true   
 
     - name: Install Profile Controller Resources
       id: install-profile-resources
@@ -89,7 +83,6 @@ jobs:
         # Wait for profile controller to be ready
         kubectl -n kubeflow wait --for=condition=Ready pods -l control-plane=controller-manager --timeout 180s || true
         echo "Profile Controller resources installed successfully"
-      continue-on-error: true
 
     - name: Create KF Profile
       id: create-kf-profile
@@ -98,7 +91,6 @@ jobs:
         echo "Creating KF Profile..."
         kubectl apply -f test/seaweedfs/test-profiles.yaml
         echo "KF Profile created successfully"
-      continue-on-error: true
 
     - name: Verify Pipeline Integration
       id: verify-pipeline-integration
@@ -115,7 +107,6 @@ jobs:
       id: forward-api-port
       if: ${{ steps.verify-pipeline-integration.outcome == 'success' }}
       run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-      continue-on-error: true
 
     - name: Test Pipeline V1 API with SeaweedFS
       id: test-v1-api
@@ -125,7 +116,6 @@ jobs:
         KF_PROFILE=kubeflow-user-example-com
         TOKEN="$(kubectl -n $KF_PROFILE create token default-editor)"
         python3 test/seaweedfs/test_pipeline_v1_seaweedfs.py "$TOKEN" "$KF_PROFILE"
-      continue-on-error: true
 
     - name: Test Pipeline V2 API with SeaweedFS
       id: test-v2-api
@@ -135,18 +125,15 @@ jobs:
         KF_PROFILE=kubeflow-user-example-com
         TOKEN="$(kubectl -n $KF_PROFILE create token default-editor)"
         python3 test/seaweedfs/test_pipeline_v2_seaweedfs.py
-      continue-on-error: true
 
     - name: Test SeaweedFS Namespace Isolation
       id: test-namespace-isolation
       if: ${{ steps.test-v2-api.outcome == 'success' }}
       run: ./test/seaweedfs/namespace_isolation_test.sh
-      continue-on-error: true
 
     - name: Collect failed logs
       if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.install-istio.outcome != 'success' || steps.install-profile-resources.outcome != 'success' || steps.deploy-profile-controller.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
       run: |
-        echo "Collecting logs for troubleshooting..."
         ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
         kubectl get events --all-namespaces --sort-by=.metadata.creationTimestamp > /tmp/events.txt
         kubectl describe pods -n kubeflow > /tmp/pod_descriptions.txt
