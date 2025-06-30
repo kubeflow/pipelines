@@ -18,7 +18,7 @@ def hello_world_pipeline():
     hello_op()
 
 def run_v1_pipeline(token, namespace):
-    client = kfp.Client(host="http://localhost:8080/pipeline", existing_token=token)
+    client = kfp.Client(host="http://localhost:8080", existing_token=token)
     
     experiment = client.create_experiment("v1-pipeline-test", namespace=namespace)
     
@@ -46,4 +46,5 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         sys.exit(1)
         
-    run_v1_pipeline(sys.argv[1], sys.argv[2]) 
+    run_v1_pipeline(sys.argv[1], sys.argv[2])
+

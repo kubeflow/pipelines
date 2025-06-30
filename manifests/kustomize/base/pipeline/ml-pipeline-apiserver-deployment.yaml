@@ -44,16 +44,6 @@ spec:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: bucketName
-<<<<<<< HEAD
-            # SeaweedFS configuration for S3-compatible API
-            - name: OBJECTSTORECONFIG_HOST
-              value: "minio-service"
-            - name: OBJECTSTORECONFIG_PORT
-              value: "9000"
-            - name: OBJECTSTORECONFIG_REGION
-              value: "us-east-1"
-=======
->>>>>>> e51bc1740 (fix)
             # relic variables
             - name: DBCONFIG_USER
               valueFrom:
