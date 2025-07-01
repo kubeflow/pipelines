@@ -86,9 +86,16 @@ jobs:
         kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s || true
         echo "Profile Controller resources installed successfully"
 
+    - name: ClusterRole for User Permissions
+      id: fix-clusterrole
+      if: ${{ steps.install-profile-resources.outcome == 'success' }}
+      run: |
+        echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
+        kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml
+
     - name: Create KF Profile
       id: create-kf-profile
-      if: ${{ steps.deploy-platform-agnostic-multi-user.outcome == 'success' }}
+      if: ${{ steps.fix-clusterrole.outcome == 'success' }}
       run: |
         echo "Creating KF Profile..."
         kubectl apply -f test/seaweedfs/test-profiles.yaml
@@ -117,7 +124,6 @@ jobs:
       run: |
         echo "Starting port-forward to ml-pipeline service..."
         kubectl port-forward svc/ml-pipeline -n kubeflow 8080:8888 &
-      continue-on-error: true
 
     - name: Test Pipeline V1 API with SeaweedFS
       id: test-v1-api
@@ -136,7 +142,6 @@ jobs:
         KF_PROFILE=kubeflow-user-example-com
         TOKEN="$(kubectl -n $KF_PROFILE create token default-editor --audience=pipelines.kubeflow.org)"
         python3 test/seaweedfs/test_pipeline_v2_seaweedfs.py run_pipeline "$TOKEN" "$KF_PROFILE"
-      continue-on-error: true
 
     - name: Test SeaweedFS Namespace Isolation
       id: test-namespace-isolation
@@ -144,7 +149,7 @@ jobs:
       run: ./test/seaweedfs/namespace_isolation_test.sh
 
     - name: Collect failed logs
-      if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.install-istio.outcome != 'success' || steps.install-profile-resources.outcome != 'success' || steps.fix-network-policy.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
+      if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.install-istio.outcome != 'success' || steps.install-profile-resources.outcome != 'success' || steps.fix-clusterrole.outcome != 'success' || steps.fix-network-policy.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
       run: |
         ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
         kubectl get events --all-namespaces --sort-by=.metadata.creationTimestamp > /tmp/events.txt
