@@ -222,7 +222,7 @@ The target tag should be `$VERSION`.
 
 1. Release `kfp` python packages to PyPI. (Note: Please skip this step for backend release, this step will be handled by SDK release.)
     
-    Update the SDK version in `__init__.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11715/files).
+    Update the SDK version in `version.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11715/files).
     
     ```bash
     pip3 install twine --user
