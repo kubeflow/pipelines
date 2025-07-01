@@ -21,7 +21,9 @@ import types
 from typing import Callable, Dict, Optional
 
 import click
+from click_option_group import optgroup
 from kfp import compiler
+from kfp.compiler.compiler_utils import KubernetesManifestOptions
 from kfp.dsl import base_component
 from kfp.dsl import graph_component
 from kfp.dsl.pipeline_context import Pipeline
@@ -140,6 +142,47 @@ def parse_parameters(parameters: Optional[str]) -> Dict:
     default=False,
     envvar='KFP_DISABLE_EXECUTION_CACHING_BY_DEFAULT',
     help='Whether to disable execution caching by default.')
+@click.option(
+    '--kubernetes-manifest-format',
+    is_flag=True,
+    default=False,
+    envvar='KFP_KUBERNETES_MANIFEST_FORMAT',
+    help='Whether to output the compiled pipeline version as a Kubernetes manifest.'
+)
+@optgroup.group(
+    'Kubernetes Manifest Options',
+    help='Options only used if --kubernetes-manifest-format is set.')
+@optgroup.option(
+    '--pipeline-name',
+    type=str,
+    default=None,
+    help='Name for the Pipeline resource.')
+@optgroup.option(
+    '--pipeline-display-name',
+    type=str,
+    default=None,
+    help='Display name for the Pipeline resource.')
+@optgroup.option(
+    '--pipeline-version-name',
+    type=str,
+    default=None,
+    help='Name for the PipelineVersion resource.')
+@optgroup.option(
+    '--pipeline-version-display-name',
+    type=str,
+    default=None,
+    help='Display name for the PipelineVersion resource.')
+@optgroup.option(
+    '--namespace',
+    type=str,
+    default=None,
+    help='Kubernetes namespace for the resources.')
+@optgroup.option(
+    '--include-pipeline-manifest',
+    is_flag=True,
+    default=False,
+    help='Whether to include the Pipeline manifest in the output. Defaults to False.'
+)
 def compile_(
     py: str,
     output: str,
@@ -147,19 +190,53 @@ def compile_(
     pipeline_parameters: Optional[str] = None,
     disable_type_check: bool = False,
     disable_execution_caching_by_default: bool = False,
+    kubernetes_manifest_format: bool = False,
+    pipeline_name: Optional[str] = None,
+    pipeline_display_name: Optional[str] = None,
+    pipeline_version_name: Optional[str] = None,
+    pipeline_version_display_name: Optional[str] = None,
+    namespace: Optional[str] = None,
+    include_pipeline_manifest: bool = False,
 ) -> None:
-    """Compiles a pipeline or component written in a .py file."""
+    """Compiles a pipeline or component written in a .py file.
+
+    Kubernetes manifest options are only used if --kubernetes-manifest-
+    format is set.
+    """
+
+    if not kubernetes_manifest_format and any([
+            pipeline_name, pipeline_display_name, pipeline_version_name,
+            pipeline_version_display_name, namespace, include_pipeline_manifest
+    ]):
+        click.echo(
+            'Warning: Kubernetes manifest options were provided but --kubernetes-manifest-format is not set. These options will be ignored.',
+            err=True)
 
     Pipeline._execution_caching_default = not disable_execution_caching_by_default
     pipeline_func = collect_pipeline_or_component_func(
         python_file=py, function_name=function_name)
     parsed_parameters = parse_parameters(parameters=pipeline_parameters)
     package_path = os.path.join(os.getcwd(), output)
+
+    kubernetes_manifest_options = None
+    if kubernetes_manifest_format:
+        kubernetes_manifest_options = KubernetesManifestOptions(
+            pipeline_name=pipeline_name,
+            pipeline_display_name=pipeline_display_name,
+            pipeline_version_name=pipeline_version_name,
+            pipeline_version_display_name=pipeline_version_display_name,
+            namespace=namespace,
+            include_pipeline_manifest=include_pipeline_manifest,
+        )
+
     compiler.Compiler().compile(
         pipeline_func=pipeline_func,
         pipeline_parameters=parsed_parameters,
         package_path=package_path,
-        type_check=not disable_type_check)
+        type_check=not disable_type_check,
+        kubernetes_manifest_format=kubernetes_manifest_format,
+        kubernetes_manifest_options=kubernetes_manifest_options,
+    )
 
     click.echo(package_path)
 

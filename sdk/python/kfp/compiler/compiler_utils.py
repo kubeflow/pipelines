@@ -15,7 +15,8 @@
 
 import collections
 import copy
-from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
+from typing import (DefaultDict, Dict, List, Mapping, Optional, Set, Tuple,
+                    Union)
 
 from kfp import dsl
 from kfp.dsl import constants
@@ -863,3 +864,32 @@ def _memory_to_float(memory: str) -> float:
         memory = float(memory) / constants._G
 
     return memory
+
+
+class KubernetesManifestOptions:
+    """Options for Kubernetes manifest output during pipeline compilation.
+
+    Args:
+        pipeline_name: Name for the Pipeline resource (defaults to pipeline_spec.pipeline_info.name).
+        pipeline_display_name: Display name for the Pipeline resource (defaults to pipeline_name).
+        pipeline_version_name: Name for the PipelineVersion resource (defaults to pipeline_name).
+        pipeline_version_display_name: Display name for the PipelineVersion resource (defaults to pipeline_display_name).
+        namespace: Kubernetes namespace for the resources (optional).
+        include_pipeline_manifest: Whether to include the Pipeline manifest (default: False).
+    """
+
+    def __init__(
+        self,
+        pipeline_name: Optional[str] = None,
+        pipeline_display_name: Optional[str] = None,
+        pipeline_version_name: Optional[str] = None,
+        pipeline_version_display_name: Optional[str] = None,
+        namespace: Optional[str] = None,
+        include_pipeline_manifest: bool = False,
+    ):
+        self.pipeline_name = pipeline_name
+        self.pipeline_display_name = pipeline_display_name
+        self.pipeline_version_name = pipeline_version_name
+        self.pipeline_version_display_name = pipeline_version_display_name
+        self.namespace = namespace
+        self.include_pipeline_manifest = include_pipeline_manifest
