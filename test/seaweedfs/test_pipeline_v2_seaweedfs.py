@@ -3,7 +3,6 @@
 import kfp
 import sys
 import time
-import subprocess
 from kfp import dsl
 from kfp_server_api.exceptions import ApiException
 

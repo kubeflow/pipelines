@@ -133,7 +133,8 @@ jobs:
         KF_PROFILE=kubeflow-user-example-com
         TOKEN="$(kubectl -n $KF_PROFILE create token default-editor --audience=pipelines.kubeflow.org)"
         python3 test/seaweedfs/test_pipeline_v1_seaweedfs.py "$TOKEN" "$KF_PROFILE"
-
+      continue-on-error: true
+        
     - name: Test Pipeline V2 API with SeaweedFS
       id: test-v2-api
       if: ${{ steps.test-v1-api.outcome == 'success' }}
@@ -142,18 +143,19 @@ jobs:
         KF_PROFILE=kubeflow-user-example-com
         TOKEN="$(kubectl -n $KF_PROFILE create token default-editor --audience=pipelines.kubeflow.org)"
         python3 test/seaweedfs/test_pipeline_v2_seaweedfs.py run_pipeline "$TOKEN" "$KF_PROFILE"
+      continue-on-error: true
 
     - name: Test SeaweedFS Namespace Isolation
       id: test-namespace-isolation
       if: ${{ steps.test-v2-api.outcome == 'success' }}
       run: ./test/seaweedfs/namespace_isolation_test.sh
+      continue-on-error: true
 
     - name: Collect failed logs
       if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.install-istio.outcome != 'success' || steps.install-profile-resources.outcome != 'success' || steps.fix-clusterrole.outcome != 'success' || steps.fix-network-policy.outcome != 'success' || steps.verify-pipeline-integration.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.test-v1-api.outcome != 'success' || steps.test-v2-api.outcome != 'success' || steps.test-namespace-isolation.outcome != 'success' }}
       run: |
-        ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-        kubectl get events --all-namespaces --sort-by=.metadata.creationTimestamp > /tmp/events.txt
-        kubectl describe pods -n kubeflow > /tmp/pod_descriptions.txt
+        ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_kubeflow_pod_log.txt
+        ./.github/resources/scripts/collect-logs.sh --ns kubeflow-user-example-com --output /tmp/tmp_user_pod_log.txt
         exit 1
 
     - name: Collect test results
