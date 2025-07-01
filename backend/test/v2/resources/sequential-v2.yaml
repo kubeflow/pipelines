@@ -2,6 +2,8 @@
 # Name: sequential
 # Inputs:
 #    url: str
+# Outputs:
+#    Output: str
 components:
   comp-download:
     executorLabel: exec-download
@@ -19,6 +21,10 @@ components:
       parameters:
         downloaded:
           parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output:
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-download:
@@ -32,7 +38,7 @@ deploymentSpec:
     exec-echo:
       container:
         args:
-        - echo {{$.inputs.parameters['downloaded']}}
+        - echo {{$.inputs.parameters['downloaded']}} > {{$.outputs.parameters['output'].output_file}}
         command:
         - sh
         - -c
@@ -41,6 +47,12 @@ pipelineInfo:
   name: sequential
 root:
   dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: output
+            producerSubtask: echo
     tasks:
       download:
         cachingOptions:
@@ -72,5 +84,9 @@ root:
     parameters:
       url:
         parameterType: STRING
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.13
+sdkVersion: kfp-2.13.0
