@@ -72,7 +72,7 @@ def automl_forecasting_ensemble(
   # fmt: on
   job_id = dsl.PIPELINE_JOB_ID_PLACEHOLDER
   task_id = dsl.PIPELINE_TASK_ID_PLACEHOLDER
-  image_uri = 'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20250129_0625'
+  image_uri = 'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20250620_0525'
   display_name = f'automl-forecasting-ensemble-{job_id}-{task_id}'
 
   error_file_path = f'{root_dir}/{job_id}/{task_id}/error.pb'
