@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import FormControl from '@material-ui/core/FormControl';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import Paper from '@material-ui/core/Paper';
-import Select from '@material-ui/core/Select';
-import InfoIcon from '@material-ui/icons/InfoOutlined';
+import Button from '@mui/material/Button';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Paper from '@mui/material/Paper';
+import Select from '@mui/material/Select';
+import InfoIcon from '@mui/icons-material/InfoOutlined';
 import * as React from 'react';
 import { useState } from 'react';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
@@ -29,7 +29,7 @@ import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { classes, stylesheet } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Description } from '../components/Description';
-import Graph from '../components/Graph';
+import Graph, { AdditionalNodeData } from '../components/Graph';
 import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
@@ -85,8 +85,8 @@ export const css = stylesheet({
 });
 
 export interface PipelineDetailsV1Props {
-  graph: dagre.graphlib.Graph | null;
-  reducedGraph: dagre.graphlib.Graph | null;
+  graph: dagre.graphlib.Graph<AdditionalNodeData> | null;
+  reducedGraph: dagre.graphlib.Graph<AdditionalNodeData> | null;
   pipeline: ApiPipeline | null;
   templateString?: string;
   updateBanner: (bannerProps: BannerProps) => void;
@@ -136,7 +136,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
             {graphToShow && (
               <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
                 {!!pipeline && summaryShown && (
-                  <Paper className={css.summaryCard}>
+                  <Paper elevation={2} className={css.summaryCard}>
                     <div
                       style={{
                         alignItems: 'baseline',

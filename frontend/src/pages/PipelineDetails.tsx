@@ -18,7 +18,6 @@ import 'brace';
 import 'brace/ext/language_tools';
 import 'brace/mode/yaml';
 import 'brace/theme/github';
-import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
 import * as React from 'react';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
@@ -46,7 +45,7 @@ import RunUtils from 'src/lib/RunUtils';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { compareGraphEdges, transitiveReduction } from 'src/lib/StaticGraphParser';
 import { URLParser } from 'src/lib/URLParser';
-import { logger } from 'src/lib/Utils';
+import { ensureError, logger } from 'src/lib/Utils';
 import { Page } from './Page';
 import PipelineDetailsV1 from './PipelineDetailsV1';
 import PipelineDetailsV2 from './PipelineDetailsV2';
@@ -55,10 +54,11 @@ import { ApiJob } from 'src/apis/job';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { AdditionalNodeData } from 'src/components/Graph';
 
 interface PipelineDetailsState {
-  graph: dagre.graphlib.Graph | null;
-  reducedGraph: dagre.graphlib.Graph | null;
+  graph: dagre.graphlib.Graph<AdditionalNodeData> | null;
+  reducedGraph: dagre.graphlib.Graph<AdditionalNodeData> | null;
   graphV2: PipelineFlowElement[] | null;
   graphIsLoading: boolean;
   v1Pipeline: ApiPipeline | null;
@@ -82,7 +82,11 @@ type Origin = {
   v2RecurringRun?: V2beta1RecurringRun;
 };
 
-class PipelineDetails extends Page<{}, PipelineDetailsState> {
+class PipelineDetails extends Page<
+  {},
+  PipelineDetailsState,
+  { [RouteParams.pipelineId]: string; [RouteParams.pipelineVersionId]: string }
+> {
   constructor(props: any) {
     super(props);
 
@@ -130,20 +134,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       // Add buttons for creating experiment and deleting pipeline version
       buttons
         .newRunFromPipelineVersion(
-          () => {
-            return this.state.v2Pipeline
-              ? this.state.v2Pipeline.pipeline_id
-              : pipelineIdFromParams
-              ? pipelineIdFromParams
-              : '';
-          },
-          () => {
-            return this.state.v2SelectedVersion
-              ? this.state.v2SelectedVersion.pipeline_version_id
-              : pipelineVersionIdFromParams
-              ? pipelineVersionIdFromParams
-              : '';
-          },
+          () => this.state.v2Pipeline?.pipeline_id || pipelineIdFromParams || '',
+          () =>
+            this.state.v2SelectedVersion?.pipeline_version_id || pipelineVersionIdFromParams || '',
         )
         .newPipelineVersion('Upload version', () =>
           pipelineIdFromParams ? pipelineIdFromParams : '',
@@ -288,7 +281,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         selectedVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(pipelineId, versionId);
       } catch (err) {
         this.setStateSafe({ graphIsLoading: false });
-        await this.showPageError('Cannot retrieve pipeline version.', err);
+        await this.showPageError('Cannot retrieve pipeline version.', ensureError(err));
         logger.error('Cannot retrieve pipeline version.', err);
         return undefined;
       }
@@ -313,7 +306,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         }
       } catch (err) {
         this.setStateSafe({ graphIsLoading: false });
-        await this.showPageError('Cannot retrieve pipeline version list.', err);
+        await this.showPageError('Cannot retrieve pipeline version list.', ensureError(err));
         logger.error('Cannot retrieve pipeline version list.', err);
         return undefined;
       }
@@ -385,7 +378,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
                 `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
                   origin.isRecurring ? origin.v1RecurringRun!.id : origin.v1Run!.run!.id
                 }.`,
-                err,
+                ensureError(err),
               );
               logger.error(
                 `Failed to convert pipeline spec YAML from ${msgRunOrRecurringRun} with ID: ${
@@ -400,7 +393,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
               `Failed to parse pipeline spec from ${msgRunOrRecurringRun} with ID: ${
                 origin.isRecurring ? origin.v1RecurringRun!.id : origin.v1Run!.run!.id
               }.`,
-              err,
+              ensureError(err),
             );
             logger.error(
               `Failed to parse pipeline spec JSON from ${msgRunOrRecurringRun} with ID: ${
@@ -455,7 +448,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         pageTitle = 'Pipeline details';
       } catch (err) {
         this.setStateSafe({ graphIsLoading: false });
-        await this.showPageError(`Cannot retrieve ${msgRunOrRecurringRun} details.`, err);
+        await this.showPageError(
+          `Cannot retrieve ${msgRunOrRecurringRun} details.`,
+          ensureError(err),
+        );
         logger.error(`Cannot retrieve ${msgRunOrRecurringRun} details.`, err);
         return;
       }
@@ -469,7 +465,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         v2Pipeline = await Apis.pipelineServiceApiV2.getPipeline(pipelineId);
       } catch (err) {
         this.setStateSafe({ graphIsLoading: false });
-        await this.showPageError('Cannot retrieve pipeline details.', err);
+        await this.showPageError('Cannot retrieve pipeline details.', ensureError(err));
         logger.error('Cannot retrieve pipeline details.', err);
         return;
       }
@@ -481,7 +477,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         }
       } catch (err) {
         this.setStateSafe({ graphIsLoading: false });
-        await this.showPageError('Cannot retrieve pipeline version.', err);
+        await this.showPageError('Cannot retrieve pipeline version.', ensureError(err));
         logger.error('Cannot retrieve pipeline version.', err);
         return;
       }
@@ -527,7 +523,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             ).pipeline_versions || [];
         } catch (err) {
           this.setStateSafe({ graphIsLoading: false });
-          await this.showPageError('Cannot retrieve pipeline versions.', err);
+          await this.showPageError('Cannot retrieve pipeline versions.', ensureError(err));
           logger.error('Cannot retrieve pipeline versions.', err);
           return;
         }
@@ -553,10 +549,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         v2SelectedVersion,
         v1Versions,
         v2Versions,
-        graph: undefined,
+        graph: null,
         graphV2,
         graphIsLoading: false,
-        reducedGraph: undefined,
+        reducedGraph: null,
         templateString,
       });
     } else {
@@ -568,7 +564,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         v1Versions,
         v2Versions,
         graph,
-        graphV2: undefined,
+        graphV2: null,
         graphIsLoading: false,
         reducedGraph,
         templateString,
@@ -600,8 +596,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       );
       if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
         this.setStateSafe({
-          graph: undefined,
-          reducedGraph: undefined,
+          graph: null,
+          reducedGraph: null,
           graphV2,
           graphIsLoading: false,
           v2SelectedVersion,
@@ -611,7 +607,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         this.setStateSafe({
           graph,
           reducedGraph,
-          graphV2: undefined,
+          graphV2: null,
           graphIsLoading: false,
           v1SelectedVersion,
           templateString: selectedVersionPipelineTemplate,
@@ -644,16 +640,20 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   private async _createGraph(
     templateString: string,
   ): Promise<
-    [dagre.graphlib.Graph | null, dagre.graphlib.Graph | null | undefined, PipelineFlowElement[]]
+    [
+      dagre.graphlib.Graph<AdditionalNodeData> | null,
+      dagre.graphlib.Graph<AdditionalNodeData> | null | undefined,
+      PipelineFlowElement[],
+    ]
   > {
-    let graph: graphlib.Graph | null = null;
-    let reducedGraph: graphlib.Graph | null | undefined = null;
+    let graph: dagre.graphlib.Graph<AdditionalNodeData> | null = null;
+    let reducedGraph: dagre.graphlib.Graph<AdditionalNodeData> | null | undefined = null;
     let graphV2: PipelineFlowElement[] = [];
     if (templateString) {
       try {
-        const template = JsYaml.safeLoad(templateString);
+        const template = JsYaml.safeLoad(templateString) as Workflow;
         if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
-          graph = StaticGraphParser.createGraph(template!);
+          graph = StaticGraphParser.createGraph(template);
 
           reducedGraph = graph ? transitiveReduction(graph) : undefined;
           if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
@@ -670,7 +670,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         }
       } catch (err) {
         this.setStateSafe({ graphIsLoading: false });
-        await this.showPageError('Error: failed to generate Pipeline graph.', err);
+        await this.showPageError('Error: failed to generate Pipeline graph.', ensureError(err));
       }
     }
     return [graph, reducedGraph, graphV2];

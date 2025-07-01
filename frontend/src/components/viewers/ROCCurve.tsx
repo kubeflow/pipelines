@@ -14,21 +14,17 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
+import React, { useState } from 'react';
 import {
-  Crosshair,
-  DiscreteColorLegend,
-  Highlight,
-  HorizontalGridLines,
-  LineSeries,
-  VerticalGridLines,
-  XAxis,
-  XYPlot,
-  YAxis,
-  // @ts-ignore
-} from 'react-vis';
-import 'react-vis/dist/style.css';
-import Viewer, { ViewerConfig } from './Viewer';
+  VictoryChart,
+  VictoryLine,
+  VictoryAxis,
+  VictoryLegend,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+  VictoryGroup,
+} from 'victory';
+import { ViewerConfig } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
 
@@ -86,161 +82,149 @@ interface ROCCurveProps {
   disableAnimation?: boolean;
 }
 
-interface ROCCurveState {
-  hoveredValues: DisplayPoint[];
-  lastDrawLocation: { left: number; right: number } | null;
-  highlightIndex: number;
-}
+const ROCCurve: React.FC<ROCCurveProps> = ({
+  configs,
+  maxDimension,
+  colors,
+  forceLegend,
+  disableAnimation,
+}) => {
+  const width = maxDimension || 800;
+  const height = width * 0.65;
+  const isSmall = width < 600;
+  const datasets = configs.map(d => d.data);
+  // const numLines = datasets.length;
+  // const labels = configs.map((_, i) => `threshold (Series #${i + 1})`);
+  const baseLineData = Array.from(Array(100).keys()).map(x => ({ x: x / 100, y: x / 100 }));
 
-class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
-  constructor(props: any) {
-    super(props);
+  const [highlightIndex, setHighlightIndex] = useState<number>(-1);
+  const [zoomDomain, setZoomDomain] = useState<any>(undefined);
 
-    this.state = {
-      hoveredValues: new Array(this.props.configs.length).fill(''),
-      lastDrawLocation: null,
-      highlightIndex: -1, // -1 indicates no curve is highlighted
-    };
-  }
+  // Tooltip state
+  const [, setActivePoints] = useState<any[]>([]);
 
-  public getDisplayName(): string {
-    return 'ROC Curve';
-  }
-
-  public isAggregatable(): boolean {
-    return true;
-  }
-
-  public render(): JSX.Element {
-    const width = this.props.maxDimension || 800;
-    const height = width * 0.65;
-    const isSmall = width < 600;
-    const datasets = this.props.configs.map(d => d.data);
-    const numLines = datasets.length;
-    const labels = this.props.configs.map((_, i) => `threshold (Series #${i + 1})`);
-    const baseLineData = Array.from(Array(100).keys()).map(x => ({ x: x / 100, y: x / 100 }));
-
-    const { hoveredValues, lastDrawLocation, highlightIndex } = this.state;
-
-    return (
-      <div>
-        <XYPlot
-          width={width}
-          height={height}
-          animation={!this.props.disableAnimation && !isSmall}
-          classes={{ root: css.root }}
-          onMouseLeave={() => this.setState({ hoveredValues: new Array(numLines).fill('') })}
-          xDomain={lastDrawLocation && [lastDrawLocation.left, lastDrawLocation.right]}
-        >
-          <VerticalGridLines />
-          <HorizontalGridLines />
-
-          {/* Draw the axes from the first config in case there are several */}
-          <XAxis title={'fpr'} className={css.axis} />
-          <YAxis title={'tpr'} className={css.axis} />
-
-          {/* Reference line */}
-          <LineSeries
-            color={color.disabledBg}
-            strokeWidth={1}
-            data={baseLineData}
-            strokeStyle='dashed'
+  return (
+    <div>
+      <VictoryChart
+        width={width}
+        height={height}
+        containerComponent={
+          <VictoryVoronoiContainer
+            labels={({ datum }: { datum: any; seriesIndex: number }) => {
+              if (datum && datum.label) {
+                return `${datum.label}`;
+              }
+              return `(${datum.x.toFixed(2)}, ${datum.y.toFixed(2)})`;
+            }}
+            labelComponent={<VictoryTooltip flyoutStyle={{ fill: '#1d2744', color: '#fff' }} />}
+            onActivated={(points: any[]) => setActivePoints(points)}
+            voronoiDimension='x'
           />
-
-          {/* Lines */}
-          {datasets.map(
-            (data, i) =>
-              highlightIndex !== i && (
-                <LineSeries
-                  key={i}
-                  color={
-                    this.props.colors
-                      ? this.props.colors[i]
-                      : lineColors[i] || lineColors[lineColors.length - 1]
-                  }
-                  strokeWidth={2}
-                  data={data}
-                  onNearestX={(d: any) => this._lineHovered(i, d)}
-                  curve='curveBasis'
-                />
-              ),
-          )}
-
-          {/* Highlighted line, if present */}
-          {highlightIndex >= 0 && (
-            <LineSeries
-              key={highlightIndex}
-              color={
-                this.props.colors
-                  ? this.props.colors[highlightIndex]
-                  : lineColors[highlightIndex] || lineColors[lineColors.length - 1]
-              }
-              strokeWidth={5}
-              data={datasets[highlightIndex]}
-              onNearestX={(d: any) => this._lineHovered(highlightIndex, d)}
-              curve='curveBasis'
-            />
-          )}
-
-          {!isSmall && (
-            <Highlight
-              onBrushEnd={(area: any) => this.setState({ lastDrawLocation: area })}
-              enableY={false}
-              onDrag={(area: any) =>
-                this.setState({
-                  lastDrawLocation: {
-                    left: (lastDrawLocation ? lastDrawLocation.left : 0) - (area.right - area.left),
-                    right:
-                      (lastDrawLocation ? lastDrawLocation.right : 0) - (area.right - area.left),
+        }
+        domain={zoomDomain}
+        animate={disableAnimation || isSmall ? undefined : { duration: 500 }}
+        style={{ parent: { margin: 'auto' } }}
+      >
+        {/* Axes */}
+        <VictoryAxis
+          label='fpr'
+          style={{
+            axisLabel: css.axis as React.CSSProperties,
+            tickLabels: { fontSize: fontsize.medium },
+          }}
+        />
+        <VictoryAxis
+          dependentAxis
+          label='tpr'
+          style={{
+            axisLabel: css.axis as React.CSSProperties,
+            tickLabels: { fontSize: fontsize.medium },
+          }}
+        />
+        {/* Reference line */}
+        <VictoryLine
+          data={baseLineData}
+          style={{ data: { stroke: color.disabledBg, strokeDasharray: '5,5', strokeWidth: 1 } }}
+        />
+        {/* ROC Curves */}
+        <VictoryGroup>
+          {datasets.map((data, i) => (
+            <VictoryLine
+              key={i}
+              data={data}
+              style={{
+                data: {
+                  stroke: colors?.[i] || lineColors[i] || lineColors[lineColors.length - 1],
+                  strokeWidth: highlightIndex === i ? 5 : 2,
+                  opacity: highlightIndex === -1 || highlightIndex === i ? 1 : 0.3,
+                },
+              }}
+              interpolation='basis'
+              events={[
+                {
+                  target: 'data',
+                  eventHandlers: {
+                    onMouseOver: () => {
+                      setHighlightIndex(i);
+                      return null;
+                    },
+                    onMouseOut: () => {
+                      setHighlightIndex(-1);
+                      return null;
+                    },
                   },
-                })
-              }
+                },
+              ]}
             />
-          )}
-
-          {/* Hover effect to show labels */}
-          {!isSmall && (
-            <Crosshair values={hoveredValues}>
-              <div className={css.crosshair}>
-                {hoveredValues.map((value, i) => (
-                  <div key={i} className={css.crosshairLabel}>{`${labels[i]}: ${value.label}`}</div>
-                ))}
-              </div>
-            </Crosshair>
-          )}
-        </XYPlot>
-
-        <div className={commonCss.flex}>
-          {/* Legend */}
-          {(this.props.forceLegend || datasets.length > 1) && (
-            <div style={{ flexGrow: 1 }}>
-              <DiscreteColorLegend
-                items={datasets.map((_, i) => ({
-                  color: this.props.colors ? this.props.colors[i] : lineColors[i],
-                  title: 'Series #' + (i + 1),
-                }))}
-                orientation='horizontal'
-                onItemMouseEnter={(_: any, i: number) => {
-                  this.setState({ highlightIndex: i });
-                }}
-                onItemMouseLeave={() => {
-                  this.setState({ highlightIndex: -1 });
-                }}
-              />
-            </div>
-          )}
-
-          {lastDrawLocation && <span>Click to reset zoom</span>}
-        </div>
+          ))}
+        </VictoryGroup>
+      </VictoryChart>
+      <div className={commonCss.flex}>
+        {/* Legend */}
+        {(forceLegend || datasets.length > 1) && (
+          <div style={{ flexGrow: 1 }}>
+            <VictoryLegend
+              orientation='horizontal'
+              gutter={20}
+              data={datasets.map((_, i) => ({
+                name: 'Series #' + (i + 1),
+                symbol: {
+                  fill: colors?.[i] || lineColors[i] || lineColors[lineColors.length - 1],
+                  type: 'square',
+                },
+              }))}
+              style={{
+                labels: { fontSize: fontsize.medium },
+              }}
+              events={[
+                {
+                  target: 'data',
+                  eventHandlers: {
+                    onMouseOver: (_: React.SyntheticEvent, props: { index: number }) => {
+                      setHighlightIndex(props.index);
+                      return null;
+                    },
+                    onMouseOut: () => {
+                      setHighlightIndex(-1);
+                      return null;
+                    },
+                  },
+                },
+              ]}
+            />
+          </div>
+        )}
+        {zoomDomain && (
+          <span
+            style={{ marginLeft: 16, cursor: 'pointer' }}
+            onClick={() => setZoomDomain(undefined)}
+          >
+            Click to reset zoom
+          </span>
+        )}
       </div>
-    );
-  }
-
-  private _lineHovered(lineIdx: number, data: any): void {
-    const hoveredValues = this.state.hoveredValues;
-    hoveredValues[lineIdx] = data;
-    this.setState({ hoveredValues });
-  }
-}
+    </div>
+  );
+};
 
 export default ROCCurve;
