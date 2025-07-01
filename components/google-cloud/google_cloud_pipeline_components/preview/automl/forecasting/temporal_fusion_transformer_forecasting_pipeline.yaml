@@ -6177,13 +6177,13 @@ deploymentSpec:
           Returns the prediction image corresponding to the given model type.\"\"\"\
           \n  # Keys come from AutoMlTimeSeriesForecastingTrainSpec.\n  # The URIs\
           \ must be hardcoded without any breaks in the code so string\n  # replacement\
-          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20250620_0525',\n\
-          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20250620_0525',\n\
-          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20250620_0525',\n\
-          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20250620_0525',\n\
-          \  }\n  if model_type not in images:\n    raise ValueError(\n        f'Invalid\
-          \ forecasting model type: {model_type}. Valid options are: '\n        f'{images.keys()}.'\n\
-          \    )\n  return images[model_type]\n\n"
+          \ will work correctly.\n  images = {\n      'l2l': (\n          'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20250620_0525'\n\
+          \      ),\n      'seq2seq': (\n          'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20250620_0525'\n\
+          \      ),\n      'tft': (\n          'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20250620_0525'\n\
+          \      ),\n      'tide': (\n          'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20250620_0525'\n\
+          \      ),\n  }\n  if model_type not in images:\n    raise ValueError(\n\
+          \        f'Invalid forecasting model type: {model_type}. Valid options are:\
+          \ '\n        f'{images.keys()}.'\n    )\n  return images[model_type]\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-prediction-image-uri-2:
       container:
@@ -6207,13 +6207,13 @@ deploymentSpec:
           Returns the prediction image corresponding to the given model type.\"\"\"\
           \n  # Keys come from AutoMlTimeSeriesForecastingTrainSpec.\n  # The URIs\
           \ must be hardcoded without any breaks in the code so string\n  # replacement\
-          \ will work correctly.\n  images = {\n      'l2l': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20250620_0525',\n\
-          \      'seq2seq': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-seq2seq:20250620_0525',\n\
-          \      'tft': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tft:20250620_0525',\n\
-          \      'tide': 'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-tide:20250620_0525',\n\
-          \  }\n  if model_type not in images:\n    raise ValueError(\n        f'Invalid\
-          \ forecasting model type: {model_type}. Valid options are: '\n        f'{images.keys()}.'\n\
-          \    )\n  return images[model_type]\n\n"
+          \ will work correctly.\n  images = {\n      'l2l': (\n          'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20250620_0525'\n\
+          \      ),\n      'seq2seq': (\n          'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20250620_0525'\n\
+          \      ),\n      'tft': (\n          'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20250620_0525'\n\
+          \      ),\n      'tide': (\n          'us-docker.pkg.dev/vertex-ai/automl-tabular/forecasting-prediction-server-l2l:20250620_0525'\n\
+          \      ),\n  }\n  if model_type not in images:\n    raise ValueError(\n\
+          \        f'Invalid forecasting model type: {model_type}. Valid options are:\
+          \ '\n        f'{images.keys()}.'\n    )\n  return images[model_type]\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-predictions-column:
       container:

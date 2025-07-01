@@ -1,5 +1,6 @@
 ## Upcoming release
 
+* Consolidate Structured Data images
 * Bump image for Structured Data pipelines.
 
 ## Release 2.20.1
