@@ -36,6 +36,9 @@ RUN GO111MODULE=on CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime go build -tags s
 
 # 2. Compile preloaded pipeline samples
 FROM registry.access.redhat.com/ubi9/python-39:9.5 AS compiler
+
+ARG TARGETOS TARGETARCH
+
 USER root
 RUN dnf install -y python3-setuptools jq
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
@@ -44,10 +47,10 @@ RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 # Downloading Argo CLI so that the samples are validated
 ENV ARGO_VERSION=v3.5.14
-RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
-    gunzip argo-linux-amd64.gz && \
-    chmod +x argo-linux-amd64 && \
-    mv ./argo-linux-amd64 /usr/local/bin/argo
+RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-${TARGETOS:-linux}-${TARGETARCH:-amd64}.gz && \
+    gunzip argo-${TARGETOS:-linux}-${TARGETARCH:-amd64}.gz && \
+    chmod +x argo-${TARGETOS:-linux}-${TARGETARCH:-amd64} && \
+    mv ./argo-${TARGETOS:-linux}-${TARGETARCH:-amd64} /usr/local/bin/argo
 
 WORKDIR /
 COPY ./samples /samples
