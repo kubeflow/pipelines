@@ -1,4 +1,4 @@
-kfp==2.8.0
+kfp==2.14.0
 junit-xml
 minio
 black

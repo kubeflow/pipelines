@@ -22,9 +22,9 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
 import "google/rpc/status.proto";
-import "protoc-gen-swagger/options/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
-option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   schemes: [1, 2], // http + https
   responses: {
     key: "default";
@@ -201,7 +201,7 @@ message PipelineVersion {
 
   // Output. The pipeline spec for the pipeline version.
   google.protobuf.Struct pipeline_spec = 7;
-    
+
   // In case any error happens retrieving a pipeline version field, only
   // pipeline ID, pipeline version ID, and the error message are returned. 
   // Client has the flexibility of choosing how to handle the error. 

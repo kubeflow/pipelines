@@ -13,63 +13,78 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewPipelineServiceGetPipelineVersionV1Params creates a new PipelineServiceGetPipelineVersionV1Params object
-// with the default values initialized.
+// NewPipelineServiceGetPipelineVersionV1Params creates a new PipelineServiceGetPipelineVersionV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewPipelineServiceGetPipelineVersionV1Params() *PipelineServiceGetPipelineVersionV1Params {
-	var ()
 	return &PipelineServiceGetPipelineVersionV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewPipelineServiceGetPipelineVersionV1ParamsWithTimeout creates a new PipelineServiceGetPipelineVersionV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewPipelineServiceGetPipelineVersionV1ParamsWithTimeout(timeout time.Duration) *PipelineServiceGetPipelineVersionV1Params {
-	var ()
 	return &PipelineServiceGetPipelineVersionV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewPipelineServiceGetPipelineVersionV1ParamsWithContext creates a new PipelineServiceGetPipelineVersionV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewPipelineServiceGetPipelineVersionV1ParamsWithContext(ctx context.Context) *PipelineServiceGetPipelineVersionV1Params {
-	var ()
 	return &PipelineServiceGetPipelineVersionV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewPipelineServiceGetPipelineVersionV1ParamsWithHTTPClient creates a new PipelineServiceGetPipelineVersionV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewPipelineServiceGetPipelineVersionV1ParamsWithHTTPClient(client *http.Client) *PipelineServiceGetPipelineVersionV1Params {
-	var ()
 	return &PipelineServiceGetPipelineVersionV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*PipelineServiceGetPipelineVersionV1Params contains all the parameters to send to the API endpoint
-for the pipeline service get pipeline version v1 operation typically these are written to a http.Request
+/*
+PipelineServiceGetPipelineVersionV1Params contains all the parameters to send to the API endpoint
+
+	for the pipeline service get pipeline version v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type PipelineServiceGetPipelineVersionV1Params struct {
 
-	/*VersionID
-	  The ID of the pipeline version to be retrieved.
+	/* VersionID.
 
+	   The ID of the pipeline version to be retrieved.
 	*/
 	VersionID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the pipeline service get pipeline version v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceGetPipelineVersionV1Params) WithDefaults() *PipelineServiceGetPipelineVersionV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the pipeline service get pipeline version v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceGetPipelineVersionV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the pipeline service get pipeline version v1 params

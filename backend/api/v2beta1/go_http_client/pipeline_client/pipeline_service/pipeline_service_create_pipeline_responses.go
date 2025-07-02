@@ -6,14 +6,14 @@ package pipeline_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	pipeline_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
 )
 
 // PipelineServiceCreatePipelineReader is a Reader for the PipelineServiceCreatePipeline structure.
@@ -24,14 +24,12 @@ type PipelineServiceCreatePipelineReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PipelineServiceCreatePipelineReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewPipelineServiceCreatePipelineOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewPipelineServiceCreatePipelineDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -49,7 +47,8 @@ func NewPipelineServiceCreatePipelineOK() *PipelineServiceCreatePipelineOK {
 	return &PipelineServiceCreatePipelineOK{}
 }
 
-/*PipelineServiceCreatePipelineOK handles this case with default header values.
+/*
+PipelineServiceCreatePipelineOK describes a response with status code 200, with default header values.
 
 A successful response.
 */
@@ -57,8 +56,48 @@ type PipelineServiceCreatePipelineOK struct {
 	Payload *pipeline_model.V2beta1Pipeline
 }
 
+// IsSuccess returns true when this pipeline service create pipeline o k response has a 2xx status code
+func (o *PipelineServiceCreatePipelineOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this pipeline service create pipeline o k response has a 3xx status code
+func (o *PipelineServiceCreatePipelineOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this pipeline service create pipeline o k response has a 4xx status code
+func (o *PipelineServiceCreatePipelineOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this pipeline service create pipeline o k response has a 5xx status code
+func (o *PipelineServiceCreatePipelineOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this pipeline service create pipeline o k response a status code equal to that given
+func (o *PipelineServiceCreatePipelineOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the pipeline service create pipeline o k response
+func (o *PipelineServiceCreatePipelineOK) Code() int {
+	return 200
+}
+
 func (o *PipelineServiceCreatePipelineOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/pipelines][%d] pipelineServiceCreatePipelineOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/pipelines][%d] pipelineServiceCreatePipelineOK %s", 200, payload)
+}
+
+func (o *PipelineServiceCreatePipelineOK) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/pipelines][%d] pipelineServiceCreatePipelineOK %s", 200, payload)
+}
+
+func (o *PipelineServiceCreatePipelineOK) GetPayload() *pipeline_model.V2beta1Pipeline {
+	return o.Payload
 }
 
 func (o *PipelineServiceCreatePipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -80,14 +119,40 @@ func NewPipelineServiceCreatePipelineDefault(code int) *PipelineServiceCreatePip
 	}
 }
 
-/*PipelineServiceCreatePipelineDefault handles this case with default header values.
+/*
+PipelineServiceCreatePipelineDefault describes a response with status code -1, with default header values.
 
 An unexpected error response.
 */
 type PipelineServiceCreatePipelineDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.RuntimeError
+	Payload *pipeline_model.GooglerpcStatus
+}
+
+// IsSuccess returns true when this pipeline service create pipeline default response has a 2xx status code
+func (o *PipelineServiceCreatePipelineDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this pipeline service create pipeline default response has a 3xx status code
+func (o *PipelineServiceCreatePipelineDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this pipeline service create pipeline default response has a 4xx status code
+func (o *PipelineServiceCreatePipelineDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this pipeline service create pipeline default response has a 5xx status code
+func (o *PipelineServiceCreatePipelineDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this pipeline service create pipeline default response a status code equal to that given
+func (o *PipelineServiceCreatePipelineDefault) IsCode(code int) bool {
+	return o._statusCode == code
 }
 
 // Code gets the status code for the pipeline service create pipeline default response
@@ -96,12 +161,22 @@ func (o *PipelineServiceCreatePipelineDefault) Code() int {
 }
 
 func (o *PipelineServiceCreatePipelineDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/pipelines][%d] PipelineService_CreatePipeline default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/pipelines][%d] PipelineService_CreatePipeline default %s", o._statusCode, payload)
+}
+
+func (o *PipelineServiceCreatePipelineDefault) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/pipelines][%d] PipelineService_CreatePipeline default %s", o._statusCode, payload)
+}
+
+func (o *PipelineServiceCreatePipelineDefault) GetPayload() *pipeline_model.GooglerpcStatus {
+	return o.Payload
 }
 
 func (o *PipelineServiceCreatePipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.RuntimeError)
+	o.Payload = new(pipeline_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

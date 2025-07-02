@@ -122,7 +122,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 
 	pipelineVersion := s.preparePipeline()
 
-	createRecurringRunRequest := &recurringRunParams.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurringRunParams.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName: "hello world",
 		Description: "this is hello world",
 		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
@@ -130,7 +130,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 			PipelineVersionID: pipelineVersion.PipelineVersionID,
 		},
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeENABLE,
+		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 		Trigger: &recurring_run_model.V2beta1Trigger{
 			PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
 				IntervalSecond: 60,
@@ -155,7 +155,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 
 		if len(allRuns) >= 2 {
 			for _, run := range allRuns {
-				if run.State != run_model.V2beta1RuntimeStateSUCCEEDED {
+				if *run.State != *run_model.V2beta1RuntimeStateSUCCEEDED.Pointer() {
 					return false
 				}
 			}
@@ -249,7 +249,7 @@ func (s *CacheTestSuite) TestCacheSingleRun() {
 }
 
 func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion) (*run_model.V2beta1Run, error) {
-	createRunRequest := &runParams.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName: "hello-world",
 		Description: "this is hello-world",
 		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
@@ -271,7 +271,7 @@ func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta
 
 		s.T().Logf("Pipeline %v state: %v", pipelineRunDetail.RunID, pipelineRunDetail.State)
 
-		return err == nil && pipelineRunDetail.State == expectedState
+		return err == nil && *pipelineRunDetail.State == expectedState
 	}, 2*time.Minute, 10*time.Second)
 
 	return pipelineRunDetail, err

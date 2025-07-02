@@ -13,70 +13,86 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewPipelineServiceGetPipelineByNameParams creates a new PipelineServiceGetPipelineByNameParams object
-// with the default values initialized.
+// NewPipelineServiceGetPipelineByNameParams creates a new PipelineServiceGetPipelineByNameParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewPipelineServiceGetPipelineByNameParams() *PipelineServiceGetPipelineByNameParams {
-	var ()
 	return &PipelineServiceGetPipelineByNameParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewPipelineServiceGetPipelineByNameParamsWithTimeout creates a new PipelineServiceGetPipelineByNameParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewPipelineServiceGetPipelineByNameParamsWithTimeout(timeout time.Duration) *PipelineServiceGetPipelineByNameParams {
-	var ()
 	return &PipelineServiceGetPipelineByNameParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewPipelineServiceGetPipelineByNameParamsWithContext creates a new PipelineServiceGetPipelineByNameParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewPipelineServiceGetPipelineByNameParamsWithContext(ctx context.Context) *PipelineServiceGetPipelineByNameParams {
-	var ()
 	return &PipelineServiceGetPipelineByNameParams{
-
 		Context: ctx,
 	}
 }
 
 // NewPipelineServiceGetPipelineByNameParamsWithHTTPClient creates a new PipelineServiceGetPipelineByNameParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewPipelineServiceGetPipelineByNameParamsWithHTTPClient(client *http.Client) *PipelineServiceGetPipelineByNameParams {
-	var ()
 	return &PipelineServiceGetPipelineByNameParams{
 		HTTPClient: client,
 	}
 }
 
-/*PipelineServiceGetPipelineByNameParams contains all the parameters to send to the API endpoint
-for the pipeline service get pipeline by name operation typically these are written to a http.Request
+/*
+PipelineServiceGetPipelineByNameParams contains all the parameters to send to the API endpoint
+
+	for the pipeline service get pipeline by name operation.
+
+	Typically these are written to a http.Request.
 */
 type PipelineServiceGetPipelineByNameParams struct {
 
-	/*Name
-	  Required input. Name of the pipeline to be retrieved.
+	/* Name.
 
+	   Required input. Name of the pipeline to be retrieved.
 	*/
 	Name string
-	/*Namespace
-	  Optional input. Namespace of the pipeline.
+
+	/* Namespace.
+
+	     Optional input. Namespace of the pipeline.
 	It could be empty if default namespaces needs to be used or if multi-user
 	support is turned off.
-
 	*/
 	Namespace *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the pipeline service get pipeline by name params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceGetPipelineByNameParams) WithDefaults() *PipelineServiceGetPipelineByNameParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the pipeline service get pipeline by name params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceGetPipelineByNameParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the pipeline service get pipeline by name params
@@ -151,16 +167,17 @@ func (o *PipelineServiceGetPipelineByNameParams) WriteToRequest(r runtime.Client
 
 		// query param namespace
 		var qrNamespace string
+
 		if o.Namespace != nil {
 			qrNamespace = *o.Namespace
 		}
 		qNamespace := qrNamespace
 		if qNamespace != "" {
+
 			if err := r.SetQueryParam("namespace", qNamespace); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {

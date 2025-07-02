@@ -13,65 +13,80 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	pipeline_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
 )
 
-// NewPipelineServiceCreatePipelineParams creates a new PipelineServiceCreatePipelineParams object
-// with the default values initialized.
+// NewPipelineServiceCreatePipelineParams creates a new PipelineServiceCreatePipelineParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewPipelineServiceCreatePipelineParams() *PipelineServiceCreatePipelineParams {
-	var ()
 	return &PipelineServiceCreatePipelineParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewPipelineServiceCreatePipelineParamsWithTimeout creates a new PipelineServiceCreatePipelineParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewPipelineServiceCreatePipelineParamsWithTimeout(timeout time.Duration) *PipelineServiceCreatePipelineParams {
-	var ()
 	return &PipelineServiceCreatePipelineParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewPipelineServiceCreatePipelineParamsWithContext creates a new PipelineServiceCreatePipelineParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewPipelineServiceCreatePipelineParamsWithContext(ctx context.Context) *PipelineServiceCreatePipelineParams {
-	var ()
 	return &PipelineServiceCreatePipelineParams{
-
 		Context: ctx,
 	}
 }
 
 // NewPipelineServiceCreatePipelineParamsWithHTTPClient creates a new PipelineServiceCreatePipelineParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewPipelineServiceCreatePipelineParamsWithHTTPClient(client *http.Client) *PipelineServiceCreatePipelineParams {
-	var ()
 	return &PipelineServiceCreatePipelineParams{
 		HTTPClient: client,
 	}
 }
 
-/*PipelineServiceCreatePipelineParams contains all the parameters to send to the API endpoint
-for the pipeline service create pipeline operation typically these are written to a http.Request
+/*
+PipelineServiceCreatePipelineParams contains all the parameters to send to the API endpoint
+
+	for the pipeline service create pipeline operation.
+
+	Typically these are written to a http.Request.
 */
 type PipelineServiceCreatePipelineParams struct {
 
-	/*Body
-	  Required input. Pipeline that needs to be created.
+	/* Pipeline.
 
+	   Required input. Pipeline that needs to be created.
 	*/
-	Body *pipeline_model.V2beta1Pipeline
+	Pipeline *pipeline_model.V2beta1Pipeline
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the pipeline service create pipeline params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceCreatePipelineParams) WithDefaults() *PipelineServiceCreatePipelineParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the pipeline service create pipeline params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceCreatePipelineParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the pipeline service create pipeline params
@@ -107,15 +122,15 @@ func (o *PipelineServiceCreatePipelineParams) SetHTTPClient(client *http.Client)
 	o.HTTPClient = client
 }
 
-// WithBody adds the body to the pipeline service create pipeline params
-func (o *PipelineServiceCreatePipelineParams) WithBody(body *pipeline_model.V2beta1Pipeline) *PipelineServiceCreatePipelineParams {
-	o.SetBody(body)
+// WithPipeline adds the pipeline to the pipeline service create pipeline params
+func (o *PipelineServiceCreatePipelineParams) WithPipeline(pipeline *pipeline_model.V2beta1Pipeline) *PipelineServiceCreatePipelineParams {
+	o.SetPipeline(pipeline)
 	return o
 }
 
-// SetBody adds the body to the pipeline service create pipeline params
-func (o *PipelineServiceCreatePipelineParams) SetBody(body *pipeline_model.V2beta1Pipeline) {
-	o.Body = body
+// SetPipeline adds the pipeline to the pipeline service create pipeline params
+func (o *PipelineServiceCreatePipelineParams) SetPipeline(pipeline *pipeline_model.V2beta1Pipeline) {
+	o.Pipeline = pipeline
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -125,9 +140,8 @@ func (o *PipelineServiceCreatePipelineParams) WriteToRequest(r runtime.ClientReq
 		return err
 	}
 	var res []error
-
-	if o.Body != nil {
-		if err := r.SetBodyParam(o.Body); err != nil {
+	if o.Pipeline != nil {
+		if err := r.SetBodyParam(o.Pipeline); err != nil {
 			return err
 		}
 	}

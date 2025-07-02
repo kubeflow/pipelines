@@ -13,71 +13,87 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewPipelineServiceGetPipelineByNameV1Params creates a new PipelineServiceGetPipelineByNameV1Params object
-// with the default values initialized.
+// NewPipelineServiceGetPipelineByNameV1Params creates a new PipelineServiceGetPipelineByNameV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewPipelineServiceGetPipelineByNameV1Params() *PipelineServiceGetPipelineByNameV1Params {
-	var ()
 	return &PipelineServiceGetPipelineByNameV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewPipelineServiceGetPipelineByNameV1ParamsWithTimeout creates a new PipelineServiceGetPipelineByNameV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewPipelineServiceGetPipelineByNameV1ParamsWithTimeout(timeout time.Duration) *PipelineServiceGetPipelineByNameV1Params {
-	var ()
 	return &PipelineServiceGetPipelineByNameV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewPipelineServiceGetPipelineByNameV1ParamsWithContext creates a new PipelineServiceGetPipelineByNameV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewPipelineServiceGetPipelineByNameV1ParamsWithContext(ctx context.Context) *PipelineServiceGetPipelineByNameV1Params {
-	var ()
 	return &PipelineServiceGetPipelineByNameV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewPipelineServiceGetPipelineByNameV1ParamsWithHTTPClient creates a new PipelineServiceGetPipelineByNameV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewPipelineServiceGetPipelineByNameV1ParamsWithHTTPClient(client *http.Client) *PipelineServiceGetPipelineByNameV1Params {
-	var ()
 	return &PipelineServiceGetPipelineByNameV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*PipelineServiceGetPipelineByNameV1Params contains all the parameters to send to the API endpoint
-for the pipeline service get pipeline by name v1 operation typically these are written to a http.Request
+/*
+PipelineServiceGetPipelineByNameV1Params contains all the parameters to send to the API endpoint
+
+	for the pipeline service get pipeline by name v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type PipelineServiceGetPipelineByNameV1Params struct {
 
-	/*Name
-	  The Name of the pipeline to be retrieved.
+	/* Name.
 
+	   The Name of the pipeline to be retrieved.
 	*/
 	Name string
-	/*Namespace
-	  The Namespace the pipeline belongs to.
+
+	/* Namespace.
+
+	     The Namespace the pipeline belongs to.
 	In the case of shared pipelines and KFPipeline standalone installation,
 	the pipeline name is the only needed field for unique resource lookup (namespace is not required).
 	In those case, please provide hyphen (dash character, "-").
-
 	*/
 	Namespace string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the pipeline service get pipeline by name v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceGetPipelineByNameV1Params) WithDefaults() *PipelineServiceGetPipelineByNameV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the pipeline service get pipeline by name v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceGetPipelineByNameV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the pipeline service get pipeline by name v1 params

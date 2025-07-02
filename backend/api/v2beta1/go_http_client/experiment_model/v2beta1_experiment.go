@@ -6,14 +6,16 @@ package experiment_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1Experiment v2beta1 experiment
+//
 // swagger:model v2beta1Experiment
 type V2beta1Experiment struct {
 
@@ -38,7 +40,7 @@ type V2beta1Experiment struct {
 	Namespace string `json:"namespace,omitempty"`
 
 	// Output. Specifies whether this experiment is in archived or available state.
-	StorageState V2beta1ExperimentStorageState `json:"storage_state,omitempty"`
+	StorageState *V2beta1ExperimentStorageState `json:"storage_state,omitempty"`
 }
 
 // Validate validates this v2beta1 experiment
@@ -64,7 +66,6 @@ func (m *V2beta1Experiment) Validate(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Experiment) validateCreatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
 	}
@@ -77,7 +78,6 @@ func (m *V2beta1Experiment) validateCreatedAt(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Experiment) validateLastRunCreatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.LastRunCreatedAt) { // not required
 		return nil
 	}
@@ -90,16 +90,54 @@ func (m *V2beta1Experiment) validateLastRunCreatedAt(formats strfmt.Registry) er
 }
 
 func (m *V2beta1Experiment) validateStorageState(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StorageState) { // not required
 		return nil
 	}
 
-	if err := m.StorageState.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("storage_state")
+	if m.StorageState != nil {
+		if err := m.StorageState.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("storage_state")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("storage_state")
+			}
+			return err
 		}
-		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 experiment based on the context it is used
+func (m *V2beta1Experiment) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateStorageState(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1Experiment) contextValidateStorageState(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.StorageState != nil {
+
+		if swag.IsZero(m.StorageState) { // not required
+			return nil
+		}
+
+		if err := m.StorageState.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("storage_state")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("storage_state")
+			}
+			return err
+		}
 	}
 
 	return nil

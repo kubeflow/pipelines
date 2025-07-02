@@ -13,65 +13,80 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	experiment_model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
 )
 
-// NewExperimentServiceCreateExperimentV1Params creates a new ExperimentServiceCreateExperimentV1Params object
-// with the default values initialized.
+// NewExperimentServiceCreateExperimentV1Params creates a new ExperimentServiceCreateExperimentV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewExperimentServiceCreateExperimentV1Params() *ExperimentServiceCreateExperimentV1Params {
-	var ()
 	return &ExperimentServiceCreateExperimentV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewExperimentServiceCreateExperimentV1ParamsWithTimeout creates a new ExperimentServiceCreateExperimentV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewExperimentServiceCreateExperimentV1ParamsWithTimeout(timeout time.Duration) *ExperimentServiceCreateExperimentV1Params {
-	var ()
 	return &ExperimentServiceCreateExperimentV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewExperimentServiceCreateExperimentV1ParamsWithContext creates a new ExperimentServiceCreateExperimentV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewExperimentServiceCreateExperimentV1ParamsWithContext(ctx context.Context) *ExperimentServiceCreateExperimentV1Params {
-	var ()
 	return &ExperimentServiceCreateExperimentV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewExperimentServiceCreateExperimentV1ParamsWithHTTPClient creates a new ExperimentServiceCreateExperimentV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewExperimentServiceCreateExperimentV1ParamsWithHTTPClient(client *http.Client) *ExperimentServiceCreateExperimentV1Params {
-	var ()
 	return &ExperimentServiceCreateExperimentV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*ExperimentServiceCreateExperimentV1Params contains all the parameters to send to the API endpoint
-for the experiment service create experiment v1 operation typically these are written to a http.Request
+/*
+ExperimentServiceCreateExperimentV1Params contains all the parameters to send to the API endpoint
+
+	for the experiment service create experiment v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type ExperimentServiceCreateExperimentV1Params struct {
 
-	/*Body
-	  The experiment to be created.
+	/* Experiment.
 
+	   The experiment to be created.
 	*/
-	Body *experiment_model.APIExperiment
+	Experiment *experiment_model.APIExperiment
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the experiment service create experiment v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ExperimentServiceCreateExperimentV1Params) WithDefaults() *ExperimentServiceCreateExperimentV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the experiment service create experiment v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ExperimentServiceCreateExperimentV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the experiment service create experiment v1 params
@@ -107,15 +122,15 @@ func (o *ExperimentServiceCreateExperimentV1Params) SetHTTPClient(client *http.C
 	o.HTTPClient = client
 }
 
-// WithBody adds the body to the experiment service create experiment v1 params
-func (o *ExperimentServiceCreateExperimentV1Params) WithBody(body *experiment_model.APIExperiment) *ExperimentServiceCreateExperimentV1Params {
-	o.SetBody(body)
+// WithExperiment adds the experiment to the experiment service create experiment v1 params
+func (o *ExperimentServiceCreateExperimentV1Params) WithExperiment(experiment *experiment_model.APIExperiment) *ExperimentServiceCreateExperimentV1Params {
+	o.SetExperiment(experiment)
 	return o
 }
 
-// SetBody adds the body to the experiment service create experiment v1 params
-func (o *ExperimentServiceCreateExperimentV1Params) SetBody(body *experiment_model.APIExperiment) {
-	o.Body = body
+// SetExperiment adds the experiment to the experiment service create experiment v1 params
+func (o *ExperimentServiceCreateExperimentV1Params) SetExperiment(experiment *experiment_model.APIExperiment) {
+	o.Experiment = experiment
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -125,9 +140,8 @@ func (o *ExperimentServiceCreateExperimentV1Params) WriteToRequest(r runtime.Cli
 		return err
 	}
 	var res []error
-
-	if o.Body != nil {
-		if err := r.SetBodyParam(o.Body); err != nil {
+	if o.Experiment != nil {
+		if err := r.SetBodyParam(o.Experiment); err != nil {
 			return err
 		}
 	}

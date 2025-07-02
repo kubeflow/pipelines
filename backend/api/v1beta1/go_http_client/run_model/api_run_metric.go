@@ -6,18 +6,20 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIRunMetric api run metric
+//
 // swagger:model apiRunMetric
 type APIRunMetric struct {
 
 	// The display format of metric.
-	Format RunMetricFormat `json:"format,omitempty"`
+	Format *RunMetricFormat `json:"format,omitempty"`
 
 	// Required. The user defined name of the metric. It must between 1 and 63
 	// characters long and must conform to the following regular expression:
@@ -31,6 +33,8 @@ type APIRunMetric struct {
 	NodeID string `json:"node_id,omitempty"`
 
 	// The number value of the metric.
+	// The camelCase support for json support of this field is
+	// deprecated, switch to using snake case.
 	NumberValue float64 `json:"number_value,omitempty"`
 }
 
@@ -49,16 +53,54 @@ func (m *APIRunMetric) Validate(formats strfmt.Registry) error {
 }
 
 func (m *APIRunMetric) validateFormat(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Format) { // not required
 		return nil
 	}
 
-	if err := m.Format.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("format")
+	if m.Format != nil {
+		if err := m.Format.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("format")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("format")
+			}
+			return err
 		}
-		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this api run metric based on the context it is used
+func (m *APIRunMetric) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateFormat(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *APIRunMetric) contextValidateFormat(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Format != nil {
+
+		if swag.IsZero(m.Format) { // not required
+			return nil
+		}
+
+		if err := m.Format.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("format")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("format")
+			}
+			return err
+		}
 	}
 
 	return nil

@@ -51,64 +51,29 @@ jobs:
         continue-on-error: true
 
       - name: Forward API port
-        id: forward-api-port
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        id: forward-api-port
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
         continue-on-error: true
 
-      - name: Install protobuf-compiler
-        id: install-protobuf-compiler
-        run: sudo apt update && sudo apt install -y protobuf-compiler
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
 
-      - name: Install setuptools
-        id: install-setuptools
-        if: ${{ steps.install-protobuf-compiler.outcome == 'success' }}
-        run: |
-          pip3 install setuptools
-          pip3 freeze
-
-      - name: Install Wheel
-        id: install-wheel
-        if: ${{ steps.install-setuptools.outcome == 'success' }}
-        run: pip3 install wheel==0.42.0
-
-      - name: Install protobuf
-        id: install-protobuf
-        if: ${{ steps.install-wheel.outcome == 'success' }}
-        run: pip3 install protobuf==4.25.3
-
-      - name: Generate API proto files
-        id: generate-api-proto-files
-        if: ${{ steps.install-protobuf.outcome == 'success' }}
-        working-directory: ./api
-        run: make clean python
-
-      - name: Generate kfp-kubernetes proto files from source
-        id: generate-kfp-kubernetes-proto-files
-        if: ${{ steps.generate-api-proto-files.outcome == 'success' }}
-        working-directory: ./kubernetes_platform
-        run: make clean python
-
-      - name: Install kfp-kubernetes from source
-        id: install-kfp-kubernetes
-        if: ${{ steps.generate-kfp-kubernetes-proto-files.outcome == 'success' }}
-        run: |
-          pip install -e ./kubernetes_platform/python[dev]
+      - name: Install kfp & kfp-kubernetes from source
+        if: ${{ steps.install-protobuf-deps.outcome == 'success' }}
+        id: install-kfp-k8s-deps
+        uses: ./.github/actions/kfp-k8s
 
       - name: Install requirements
         id: install-requirements
         if: ${{ steps.install-kfp-kubernetes.outcome == 'success' }}
         run: pip install -r ./test/kfp-kubernetes-execution-tests/requirements.txt
 
-      - name: Install kfp-pipeline-spec from source
-        id: install-kfp-pipeline-spec
-        if: ${{ steps.generate-api-proto-files.outcome == 'success' }}
-        run: |
-          python3 -m pip install -I api/v2alpha1/python
-
       - name: Run tests
         id: test
-        if: ${{ steps.install-requirements.outcome == 'success' }}
+        if: ${{ steps.install-kfp-k8s-deps.outcome == 'success' }}
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           REPO_NAME: ${{ github.repository }}
