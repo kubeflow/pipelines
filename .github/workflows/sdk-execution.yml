@@ -26,28 +26,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Free up disk space
-        run: |
-          echo "=== Initial disk usage ==="
-          df -h
-          # cleanup for CI runners
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          sudo rm -rf /usr/local/.ghcup
-          sudo rm -rf /usr/share/swift
-          sudo apt-get autoremove -y
-          sudo apt-get autoclean
-          # Clean Docker
-          docker system prune -af --volumes
-          docker image prune -af
-          # Clean containerd
-          sudo systemctl stop containerd || true
-          sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/* || true
-          sudo systemctl start containerd || true
-          echo "=== After cleanup ==="
-          df -h
+        run: ./.github/resources/scripts/free-disk-space.sh
   
       # This must occur after "Free up space" step
       # otherwise python version will be overridden
