@@ -125,10 +125,9 @@ Below is a scheme where, instead of creating a pod for the driver's task, we reu
 
 To move from the container template to the Executor Plugin template:
 - patch the [Argo compiler](https://github.com/kubeflow/pipelines/tree/master/backend/src/v2/compiler/argocompiler) to generate a plugin template instead of a container template. Sample: hello-world [adapted](kfp-plugin-flow.png) (see name: system-container-driver)
-- Implement the [driver](https://github.com/kubeflow/pipelines/tree/master/backend/src/v2/driver) as a plugin - that is, as a  HTTP Server which implements the expected [contract](https://argo-workflows.readthedocs.io/en/latest/executor_plugins/#example-a-simple-python-plugin).
-  This server will run as a sidecar container alongside the agent pod.
-- Enable plugin extensions in the workflow-controller. See the [Configuration](https://argo-workflows.readthedocs.io/en/latest/executor_plugins/#configuration) guide.
-  Then, [install]([Configuration](https://argo-workflows.readthedocs.io/en/latest/executor_plugins/#configuration)) the plugin built in the previous step into the workflow-controller.
+- Namely, replace the templates used in the [container-driver](https://github.com/kubeflow/pipelines/blob/master/backend/src/v2/compiler/argocompiler/container.go#L148) and [dag-driver](https://github.com/kubeflow/pipelines/blob/master/backend/src/v2/compiler/argocompiler/dag.go#L156) section of the compiler
+- Extract the [driver](https://github.com/kubeflow/pipelines/tree/master/backend/src/v2/driver) component into a standalone server.
+- Implement the [plugin](plugin.md)
 
 The sample of the Argo Workflow system-container-driver template based on plugin.
 ```yaml
@@ -174,11 +173,6 @@ The sample of the Argo Workflow system-container-driver template based on plugin
             valueFrom:
               default: "true"
               jsonPath: $.condition
-```
-The `driver-plugin` section refers to the name under which the standalone driver was installed, as described in the  [plugin](https://argo-workflows.readthedocs.io/en/latest/executor_plugins/#example-a-simple-python-plugin)
-```yaml
-plugin:
-    driver-plugin:
 ```
 
 ## Conclusion
