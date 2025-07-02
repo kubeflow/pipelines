@@ -1398,9 +1398,16 @@ type NodeAffinityTerm struct {
 	MatchExpressions []*SelectorRequirement `protobuf:"bytes,1,rep,name=match_expressions,json=matchExpressions,proto3" json:"match_expressions,omitempty"`
 	MatchFields      []*SelectorRequirement `protobuf:"bytes,2,rep,name=match_fields,json=matchFields,proto3" json:"match_fields,omitempty"`
 	//Setting the weight makes it use PreferredDuringSchedulingIgnoredDuringExecution rules instead of RequiredDuringSchedulingIgnoredDuringExecution rules
-	Weight        *int32 `protobuf:"varint,3,opt,name=weight,proto3,oneof" json:"weight,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Weight *int32 `protobuf:"varint,3,opt,name=weight,proto3,oneof" json:"weight,omitempty"`
+	// Provide a JSON struct of node affinity. Takes precedence over PreferredDuringSchedulingIgnoredDuringExecution rules/RequiredDuringSchedulingIgnoredDuringExecution rules.
+	// The JSON must follow Kubernetes
+	// NodeAffinity structure:
+	// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#nodeaffinity-v1-core
+	// Example:
+	// { "requiredDuringSchedulingIgnoredDuringExecution": { "nodeSelectorTerms": [ ... ] } }
+	NodeAffinityJson *pipelinespec.TaskInputsSpec_InputParameterSpec `protobuf:"bytes,4,opt,name=node_affinity_json,json=nodeAffinityJson,proto3" json:"node_affinity_json,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *NodeAffinityTerm) Reset() {
@@ -1452,6 +1459,13 @@ func (x *NodeAffinityTerm) GetWeight() int32 {
 		return *x.Weight
 	}
 	return 0
+}
+
+func (x *NodeAffinityTerm) GetNodeAffinityJson() *pipelinespec.TaskInputsSpec_InputParameterSpec {
+	if x != nil {
+		return x.NodeAffinityJson
+	}
+	return nil
 }
 
 type PodAffinityTerm struct {
@@ -1863,11 +1877,12 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"\x13SelectorRequirement\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x1a\n" +
 	"\boperator\x18\x02 \x01(\tR\boperator\x12\x16\n" +
-	"\x06values\x18\x03 \x03(\tR\x06values\"\xd4\x01\n" +
+	"\x06values\x18\x03 \x03(\tR\x06values\"\xb3\x02\n" +
 	"\x10NodeAffinityTerm\x12P\n" +
 	"\x11match_expressions\x18\x01 \x03(\v2#.kfp_kubernetes.SelectorRequirementR\x10matchExpressions\x12F\n" +
 	"\fmatch_fields\x18\x02 \x03(\v2#.kfp_kubernetes.SelectorRequirementR\vmatchFields\x12\x1b\n" +
-	"\x06weight\x18\x03 \x01(\x05H\x00R\x06weight\x88\x01\x01B\t\n" +
+	"\x06weight\x18\x03 \x01(\x05H\x00R\x06weight\x88\x01\x01\x12]\n" +
+	"\x12node_affinity_json\x18\x04 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x10nodeAffinityJsonB\t\n" +
 	"\a_weight\"\xb8\x05\n" +
 	"\x0fPodAffinityTerm\x12W\n" +
 	"\x15match_pod_expressions\x18\x01 \x03(\v2#.kfp_kubernetes.SelectorRequirementR\x13matchPodExpressions\x12]\n" +
@@ -1978,15 +1993,16 @@ var file_kubernetes_executor_config_proto_depIdxs = []int32{
 	26, // 31: kfp_kubernetes.Toleration.toleration_json:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
 	15, // 32: kfp_kubernetes.NodeAffinityTerm.match_expressions:type_name -> kfp_kubernetes.SelectorRequirement
 	15, // 33: kfp_kubernetes.NodeAffinityTerm.match_fields:type_name -> kfp_kubernetes.SelectorRequirement
-	15, // 34: kfp_kubernetes.PodAffinityTerm.match_pod_expressions:type_name -> kfp_kubernetes.SelectorRequirement
-	24, // 35: kfp_kubernetes.PodAffinityTerm.match_pod_labels:type_name -> kfp_kubernetes.PodAffinityTerm.MatchPodLabelsEntry
-	15, // 36: kfp_kubernetes.PodAffinityTerm.match_namespace_expressions:type_name -> kfp_kubernetes.SelectorRequirement
-	25, // 37: kfp_kubernetes.PodAffinityTerm.match_namespace_labels:type_name -> kfp_kubernetes.PodAffinityTerm.MatchNamespaceLabelsEntry
-	38, // [38:38] is the sub-list for method output_type
-	38, // [38:38] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	26, // 34: kfp_kubernetes.NodeAffinityTerm.node_affinity_json:type_name -> ml_pipelines.TaskInputsSpec.InputParameterSpec
+	15, // 35: kfp_kubernetes.PodAffinityTerm.match_pod_expressions:type_name -> kfp_kubernetes.SelectorRequirement
+	24, // 36: kfp_kubernetes.PodAffinityTerm.match_pod_labels:type_name -> kfp_kubernetes.PodAffinityTerm.MatchPodLabelsEntry
+	15, // 37: kfp_kubernetes.PodAffinityTerm.match_namespace_expressions:type_name -> kfp_kubernetes.SelectorRequirement
+	25, // 38: kfp_kubernetes.PodAffinityTerm.match_namespace_labels:type_name -> kfp_kubernetes.PodAffinityTerm.MatchNamespaceLabelsEntry
+	39, // [39:39] is the sub-list for method output_type
+	39, // [39:39] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_kubernetes_executor_config_proto_init() }
