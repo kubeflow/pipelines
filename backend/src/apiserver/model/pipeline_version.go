@@ -31,11 +31,13 @@ const (
 type PipelineVersion struct {
 	UUID           string `gorm:"column:UUID; not null; primaryKey;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
-	// Explicitly specify type:varchar(255) to ensure MySQL can create index on this column.
+	// Explicitly specify varchar(127) and varchar(64) for PipelineId & Name
+	// so that the combined index (PipelineId + Name) do not exceed 767 bytes in utf8mb4,
+	// which ensures MySQL can create composite index on this column.
 	// In GORM v1, omitting type still allowed index creation due to default behavior.
 	// However, GORM v2 requires explicit type declaration for indexed string fields,
 	// otherwise it may default to longtext, which is not indexable in MySQL.
-	Name        string `gorm:"column:Name; not null; type:varchar(255); uniqueIndex:idx_pipelineid_name;"`
+	Name        string `gorm:"column:Name; not null; type:varchar(127); uniqueIndex:idx_pipelineid_name;"`
 	DisplayName string `gorm:"column:DisplayName; not null"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	Parameters string `gorm:"column:Parameters; not null; type:text;"` // deprecated
@@ -43,7 +45,7 @@ type PipelineVersion struct {
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-	PipelineId string                `gorm:"column:PipelineId; not null; index; uniqueIndex:idx_pipelineid_name;"`
+	PipelineId string                `gorm:"column:PipelineId; not null; index; uniqueIndex:idx_pipelineid_name;type:varchar(64)"`
 	Pipeline   Pipeline              `gorm:"foreignKey:PipelineId;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE"` // This 'belongs to' relation replaces the legacy AddForeignKey constraint previously defined in client_manager.go
 	Status     PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.

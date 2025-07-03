@@ -16,7 +16,7 @@ package model
 
 type Experiment struct {
 	UUID                  string       `gorm:"column:UUID; not null; primaryKey;"`
-	Name                  string       `gorm:"column:Name; not null; uniqueIndex:idx_name_namespace; type:varchar(255);"`
+	Name                  string       `gorm:"column:Name; not null; uniqueIndex:idx_name_namespace; type:varchar(128);"`
 	Description           string       `gorm:"column:Description; not null;"`
 	CreatedAtInSec        int64        `gorm:"column:CreatedAtInSec; not null;"`
 	LastRunCreatedAtInSec int64        `gorm:"column:LastRunCreatedAtInSec; not null;"`
