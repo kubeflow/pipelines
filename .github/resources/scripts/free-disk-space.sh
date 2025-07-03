@@ -16,12 +16,11 @@ df -h
 
 echo "=== Freeing up disk space ==="
 
+# Remove large directories not needed for KFP tests
 sudo rm -rf /usr/share/dotnet
-sudo rm -rf "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
 sudo rm -rf /opt/ghc
 sudo rm -rf /usr/local/share/boost
 sudo rm -rf /usr/local/lib/android
-sudo rm -rf /opt/hostedtoolcache/CodeQL
 sudo rm -rf /usr/local/.ghcup
 sudo rm -rf /usr/share/swift
 
