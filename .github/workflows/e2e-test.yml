@@ -185,6 +185,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -198,6 +201,9 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
           pipeline_store: ${{ matrix.pipeline_store }}
         continue-on-error: true
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Forward API port
         id: forward-api-port
@@ -243,6 +249,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -301,6 +310,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -405,7 +417,7 @@ jobs:
         with:
           name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
-      
+
   basic-sample-tests:
     runs-on: ubuntu-latest
     strategy:
@@ -415,6 +427,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -441,7 +456,7 @@ jobs:
       - name: Basic sample tests - sequential
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         id: sequential-test
-        run:  python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
+        run: python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
 
       - name: Basic sample tests - exit_handler
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}

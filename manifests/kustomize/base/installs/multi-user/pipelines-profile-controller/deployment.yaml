@@ -9,19 +9,21 @@ spec:
       labels:
         sidecar.istio.io/inject: "false"
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: profile-controller
         securityContext:
           allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
           runAsNonRoot: true
           runAsUser: 1000
           runAsGroup: 0
           capabilities:
             drop:
             - ALL
-        image: public.ecr.aws/docker/library/python:3.12
+        # We just need an image with the python botocore library installed
+        image: docker.io/alpine/k8s:1.32.3
         command: ["python", "/hooks/sync.py"]
         envFrom:
         - configMapRef:
@@ -32,22 +34,26 @@ spec:
             configMapKeyRef:
               name: pipeline-install-config
               key: appVersion
+        - name: AWS_ENDPOINT_URL
+          value: http://seaweedfs:8111
+        - name: AWS_REGION
+          value: us-east-1
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              key: accesskey
+              name: mlpipeline-minio-artifact
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secretkey
+              name: mlpipeline-minio-artifact
         - name: KFP_DEFAULT_PIPELINE_ROOT
           valueFrom:
             configMapKeyRef:
-              optional: true
-              name: pipeline-install-config
               key: defaultPipelineRoot
-        - name: MINIO_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: mlpipeline-minio-artifact
-              key: accesskey
-        - name: MINIO_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: mlpipeline-minio-artifact
-              key: secretkey
+              name: pipeline-install-config
+              optional: true
         volumeMounts:
         - name: hooks
           mountPath: /hooks

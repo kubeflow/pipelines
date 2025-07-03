@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euxo pipefail
+set -euo pipefail
 
 echo "SeaweedFS Security Test - Unauthorized Access Check"
 echo "Testing if one namespace can access files from another namespace"
@@ -118,7 +118,7 @@ upload_file() {
 
     setup_port_forward
 
-    python3 tests/s3_helper_test.py upload \
+    python3 test/seaweedfs/s3_helper.py upload \
         --access-key "$access_key" \
         --secret-key "$secret_key" \
         --endpoint-url "http://localhost:8333" \
@@ -142,7 +142,7 @@ test_unauthorized_access() {
 
     # Try to access the other namespace's file
     # Note: Python script returns 0 when access is denied (good), 1 when access succeeds (bad)
-    if python3 tests/s3_helper_test.py download \
+    if python3 test/seaweedfs/s3_helper.py download \
         --access-key "$access_key" \
         --secret-key "$secret_key" \
         --endpoint-url "http://localhost:8333" \

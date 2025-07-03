@@ -8,7 +8,7 @@ data:
     s3:
       endpoint: "minio-service.$(kfp-namespace):9000"
       bucket: "$(kfp-artifact-bucket-name)"
-      keyFormat: "artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
+      keyFormat: "private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
       insecure: true
       accessKeySecret:
         name: mlpipeline-minio-artifact

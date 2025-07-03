@@ -28,19 +28,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Free up disk space
+      run: ./.github/resources/scripts/free-disk-space.sh
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.9
-
-    - name: Free up space in /dev/root
-      run: |
-        echo "Disk usage before clean up:"
-        df -h
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-        echo "Disk usage after clean up:"
-        df -h
 
     - name: apt-get update
       run: sudo apt-get update

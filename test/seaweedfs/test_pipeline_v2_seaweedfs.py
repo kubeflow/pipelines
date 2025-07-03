@@ -22,7 +22,7 @@ def hello_world_pipeline():
 
 
 def run_pipeline(token, namespace):
-    client = kfp.Client(host="http://localhost:8080/pipeline", existing_token=token)
+    client = kfp.Client(host="http://localhost:8080", existing_token=token)
     
     try:
         pipelines = client.list_pipelines()
@@ -70,7 +70,7 @@ def run_pipeline(token, namespace):
 
 
 def test_unauthorized_access(token, namespace):
-    client = kfp.Client(host="http://localhost:8080/pipeline", existing_token=token)
+    client = kfp.Client(host="http://localhost:8080", existing_token=token)
 
     try:
         pipeline = client.list_runs(namespace=namespace)

@@ -25,8 +25,7 @@ data:
       # The following format looks like:
       # artifacts/my-workflow-abc123/2018/08/23/my-workflow-abc123-1234567890
       # Adding date into the path greatly reduces the chance of {{pod.name}} collision.
-      keyFormat: "artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
-      # insecure will disable TLS. Primarily used for minio installs not configured with TLS
+      keyFormat: "private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}"
       insecure: true
       accessKeySecret:
         name: mlpipeline-minio-artifact
