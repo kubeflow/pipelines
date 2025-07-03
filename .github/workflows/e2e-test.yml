@@ -186,6 +186,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -199,6 +202,9 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
           pipeline_store: ${{ matrix.pipeline_store }}
         continue-on-error: true
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Forward API port
         id: forward-api-port
@@ -244,6 +250,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -302,6 +311,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -416,6 +428,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4

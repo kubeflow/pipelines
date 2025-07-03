@@ -28,32 +28,42 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Free up disk space
+      run: ./.github/resources/scripts/free-disk-space.sh
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
-    - name: Free up space in /dev/root
+    - name: apt-get update
+      run: sudo apt-get update
+
+    - name: Install protobuf-compiler
+      run: sudo apt-get install protobuf-compiler -y
+
+    - name: Install setuptools
       run: |
-        echo "Disk usage before clean up:"
-        df -h
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /opt/ghc
-        sudo rm -rf /usr/local/share/boost
-        sudo rm -rf /usr/local/lib/android
-        sudo rm -rf /usr/local/.ghcup
-        sudo rm -rf /usr/share/swift
-        sudo rm -rf /opt/hostedtoolcache/CodeQL || true
-        sudo rm -rf /opt/hostedtoolcache/Java_* || true
-        sudo rm -rf /opt/hostedtoolcache/Ruby || true
-        sudo rm -rf /opt/hostedtoolcache/PyPy || true
-        sudo rm -rf /opt/hostedtoolcache/boost || true
-        docker system prune -af --volumes
-        docker image prune -af
-        echo "Disk usage after clean up:"
-        df -h
+        pip3 install setuptools
+        pip3 freeze
+
+    - name: Install Wheel
+      run: pip3 install wheel==0.42.0
+
+    - name: Install protobuf
+      run: pip3 install protobuf==4.25.3
+
+    - name: Generate API proto files
+      working-directory: ./api
+      run: make python
+
+    - name: Install kfp-pipeline-spec from source
+      run: |
+        python3 -m pip install api/v2alpha1/python
+
+    - name: Generate, Build, and Install Kubernetes API proto files & packages
+      working-directory: ./kubernetes_platform
+      run: make python && pip install python/dist/*.whl
 
     - name: Create KFP cluster
       id: create-kfp-cluster

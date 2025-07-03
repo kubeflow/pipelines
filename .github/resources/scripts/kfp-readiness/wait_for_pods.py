@@ -49,8 +49,17 @@ def get_pod_statuses():
 
 
 def all_pods_ready(statuses):
-    return all(pod_status == 'Running' and ready == total
-               for pod_status, ready, total, _ in statuses.values())
+    def is_pod_ready(pod_name, pod_status, ready, total, waiting_messages):
+        # Jobs/CronJobs are ready when they succeed
+        if pod_status == 'Succeeded':
+            return True
+        # Regular pods are ready when running and all containers are ready
+        if pod_status == 'Running' and ready == total:
+            return True
+        return False
+    
+    return all(is_pod_ready(pod_name, pod_status, ready, total, waiting_messages)
+               for pod_name, (pod_status, ready, total, waiting_messages) in statuses.items())
 
 
 def print_get_pods():
@@ -107,7 +116,9 @@ def check_pods(calm_time=10, timeout=600, retries_after_ready=5):
 
     logging.info("Final pod statuses:")
     for pod_name, (pod_status, ready, total, _) in previous_statuses.items():
-        if pod_status == 'Running' and ready == total:
+        if pod_status == 'Succeeded':
+            logging.info(f"Pod {pod_name} completed successfully (Job/CronJob)")
+        elif pod_status == 'Running' and ready == total:
             logging.info(f"Pod {pod_name} is fully ready ({ready}/{total})")
         else:
             logging.info(f"Pod {pod_name} is not ready (Status: {pod_status}, Ready: {ready}/{total})")
