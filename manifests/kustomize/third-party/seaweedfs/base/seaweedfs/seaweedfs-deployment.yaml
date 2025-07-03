@@ -60,10 +60,9 @@ spec:
         - mountPath: /data
           name: data
         resources:
-          # Benchmark this, just taken from minio
           requests:
-            cpu: 20m
-            memory: 100Mi
+            cpu: 32m
+            memory: 128Mi
       volumes:
       - name: data
         persistentVolumeClaim:

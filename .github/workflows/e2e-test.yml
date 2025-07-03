@@ -202,6 +202,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+      
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -218,6 +221,9 @@ jobs:
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
         continue-on-error: true
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Forward API port
         id: forward-api-port
@@ -264,6 +270,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -326,6 +335,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -448,6 +460,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
