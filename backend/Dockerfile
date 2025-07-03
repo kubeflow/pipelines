@@ -13,12 +13,8 @@
 # limitations under the License.
 
 # 1. Build api server application
-FROM golang:1.23-bookworm as builder
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    apt-get update && \
-    (apt-get install -y cmake clang musl-dev openssl || \
-        (apt-get clean && apt-get update --fix-missing && apt-get install -y cmake clang musl-dev openssl) || \
-        (sleep 10 && apt-get update && apt-get install -y cmake clang musl-dev openssl))
+FROM golang:1.23-bookworm AS builder
+RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
@@ -32,14 +28,14 @@ COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 
 # 2. Compile preloaded pipeline samples
-FROM python:3.9 as compiler
+FROM python:3.9 AS compiler
 RUN apt-get update -y && apt-get install --no-install-recommends -y -q default-jdk python3-setuptools python3-dev jq
 RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION v3.5.14
+ENV ARGO_VERSION=v3.5.14
 RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
     gunzip argo-linux-amd64.gz && \
     chmod +x argo-linux-amd64 && \
@@ -64,7 +60,7 @@ ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=${COMMIT_SHA}
 ARG TAG_NAME=unknown
 ENV TAG_NAME=${TAG_NAME}
-ENV LOG_LEVEL info
+ENV LOG_LEVEL=info
 
 WORKDIR /bin
 

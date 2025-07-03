@@ -93,17 +93,16 @@ jobs:
         working-directory: ./api
         run: make clean python
 
+      - name: Install requirements
+        id: install-requirements
+        run: pip install -r ./test/sdk-execution-tests/requirements.txt
+
       - name: Install kfp-pipeline-spec from source
         id: install-kfp-pipeline-spec
         if: ${{ steps.generate-api-proto-files.outcome == 'success' }}
         run: |
-          python3 -m pip install api/v2alpha1/python
-
-      - name: Install requirements
-        id: install-requirements
-        if: ${{ steps.install-kfp-pipeline-spec.outcome == 'success' }}
-        run: pip install -r ./test/sdk-execution-tests/requirements.txt
-
+          python3 -m pip install -I api/v2alpha1/python
+          
       - name: Run tests
         id: tests
         env:

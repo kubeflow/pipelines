@@ -97,14 +97,14 @@ def automl_forecasting_stage_2_tuner(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20250129_0625',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20250620_0525',
                   '", "args": ["forecasting_mp_l2l_stage_2_tuner',
                   '", "--region=',
                   location,
                   '", "--transform_output_path=',
                   transform_output.uri,
                   '", "--training_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20250129_0625',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/forecasting-training:20250620_0525',
                   f'", "--component_id={dsl.PIPELINE_TASK_ID_PLACEHOLDER}',
                   '", "--training_base_dir=',
                   root_dir,

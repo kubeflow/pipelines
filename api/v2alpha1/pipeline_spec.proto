@@ -665,6 +665,9 @@ message ArtifactTypeSchema {
 message PipelineTaskInfo {
   // The display name of the task.
   string name = 1;
+  // The name of the task used throughout the pipeline acts as a unique
+  // identifier.
+  string task_name = 2;
 }
 
 // Definition for a value or reference to a runtime parameter. A

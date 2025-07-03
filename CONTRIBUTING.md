@@ -181,11 +181,11 @@ usually have different reviewers.
 If you are not sure, or the PR doesn't fit into above scopes. You can either
 omit the scope because it's optional, or propose an additional scope here.
 
-## Adding Architectural Decision Records 
+## Adding Kubernetes Enhancement Proposals (KEPs)
 
-When a change requires a significant change to the underlying system, it should be preceded with an Architectural Decision Record (ADR).
+When a change requires a significant change to the underlying system, it should be preceded with an Kubernetes Enhancement Proposal (KEP).
 
-KFP ADRs are found in the `adrs` folder at the root of this repo. Read more about the process [here](adrs/README.md).
+KEPs are found in the `proposals` folder at the root of this repo. Read more about the process [here](proposals/README.md).
 
 ## Community Guidelines
 

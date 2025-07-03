@@ -65,6 +65,7 @@ root:
               componentInputParameter: optional_input
         taskInfo:
           name: container-with-if-placeholder
+          taskName: container-with-if-placeholder
   inputDefinitions:
     parameters:
       optional_input:
@@ -81,4 +82,4 @@ root:
       output_path:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

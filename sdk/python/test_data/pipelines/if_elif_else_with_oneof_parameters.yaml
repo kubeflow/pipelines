@@ -24,6 +24,7 @@ components:
                   constant: Got heads!
           taskInfo:
             name: print-and-return
+            taskName: print-and-return
     inputDefinitions:
       parameters:
         pipelinechannel--flip-three-sided-die-Output:
@@ -53,6 +54,7 @@ components:
                   constant: Got tails!
           taskInfo:
             name: print-and-return-2
+            taskName: print-and-return-2
     inputDefinitions:
       parameters:
         pipelinechannel--flip-three-sided-die-Output:
@@ -82,6 +84,7 @@ components:
                   constant: Draw!
           taskInfo:
             name: special-print-and-return
+            taskName: special-print-and-return
     inputDefinitions:
       parameters:
         pipelinechannel--flip-three-sided-die-Output:
@@ -215,6 +218,7 @@ components:
             name: comp-flip-three-sided-die
           taskInfo:
             name: flip-three-sided-die
+            taskName: flip-three-sided-die
     outputDefinitions:
       parameters:
         Output:
@@ -243,7 +247,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -274,7 +278,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -303,7 +307,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -332,7 +336,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -361,7 +365,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -405,6 +409,7 @@ root:
                 producerTask: roll-die-pipeline
         taskInfo:
           name: print-and-return
+          taskName: print-and-return
       roll-die-pipeline:
         cachingOptions:
           enableCache: true
@@ -412,9 +417,10 @@ root:
           name: comp-roll-die-pipeline
         taskInfo:
           name: roll-die-pipeline
+          taskName: roll-die-pipeline
   outputDefinitions:
     parameters:
       Output:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

@@ -58,6 +58,7 @@ root:
               componentInputParameter: text
         taskInfo:
           name: component1
+          taskName: component1
       component2:
         cachingOptions:
           enableCache: true
@@ -73,9 +74,10 @@ root:
                 producerTask: component1
         taskInfo:
           name: component2
+          taskName: component2
   inputDefinitions:
     parameters:
       text:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

@@ -453,6 +453,25 @@ jobs:
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         run: pip3 install -r ./test/sample-test/requirements.txt
 
+      - name: Install protobuf-compiler
+        id: install-protobuf-compiler
+        run: sudo apt-get install protobuf-compiler -y
+
+      - name: Install Wheel
+        id: install-wheel
+        run: pip3 install wheel==0.42.0 setuptools
+
+      - name: Generate API proto files
+        working-directory: ./api
+        run: make python
+      
+      - name: Install local kfp from source
+        run: python3 -m pip install -I sdk/python
+
+      - name: Install kfp-pipeline-spec from source
+        run: |
+          python3 -m pip install -I api/v2alpha1/python
+
       - name: Basic sample tests - sequential
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         id: sequential-test

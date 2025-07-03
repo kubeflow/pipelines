@@ -58,7 +58,7 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
                 image=self.image,
                 command=self.full_command,
                 volumes=volumes,
-            )
+                **self.runner.container_run_args)
         finally:
             client.close()
         return status.Status.SUCCESS if return_code == 0 else status.Status.FAILURE
@@ -70,21 +70,18 @@ def add_latest_tag_if_not_present(image: str) -> str:
     return image
 
 
-def run_docker_container(
-    client: 'docker.DockerClient',
-    image: str,
-    command: List[str],
-    volumes: Dict[str, Any],
-) -> int:
+def run_docker_container(client: 'docker.DockerClient', image: str,
+                         command: List[str], volumes: Dict[str, Any],
+                         **container_run_args) -> int:
     image = add_latest_tag_if_not_present(image=image)
     image_exists = any(
-        image in existing_image.tags for existing_image in client.images.list())
+        image in (existing_image.tags + existing_image.attrs['RepoDigests'])
+        for existing_image in client.images.list())
     if image_exists:
         print(f'Found image {image!r}\n')
     else:
         print(f'Pulling image {image!r}')
-        repository, tag = image.split(':')
-        client.images.pull(repository=repository, tag=tag)
+        client.images.pull(image)
         print('Image pull complete\n')
     container = client.containers.run(
         image=image,
@@ -93,7 +90,7 @@ def run_docker_container(
         stdout=True,
         stderr=True,
         volumes=volumes,
-    )
+        **container_run_args)
     for line in container.logs(stream=True):
         # the inner logs should already have trailing \n
         # we do not need to add another

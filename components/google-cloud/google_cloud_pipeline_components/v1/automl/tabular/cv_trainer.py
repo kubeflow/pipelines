@@ -99,11 +99,11 @@ def automl_tabular_cv_trainer(
                       ' 1, "machine_spec": {"machine_type": "n1-standard-8"},'
                       ' "container_spec": {"image_uri":"'
                   ),
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250129_0625',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250620_0525',
                   '", "args": ["l2l_cv_tuner", "--transform_output_path=',
                   transform_output.uri,
                   '", "--training_docker_uri=',
-                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250129_0625',
+                  'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250620_0525',
                   (
                       f'", "--component_id={dsl.PIPELINE_TASK_ID_PLACEHOLDER}",'
                       ' "--training_base_dir='

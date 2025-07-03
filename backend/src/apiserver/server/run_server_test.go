@@ -1435,7 +1435,7 @@ func TestReadArtifactsV1_Succeed(t *testing.T) {
 	expectedContent := "test"
 	filePath := "test/file.txt"
 	resourceManager, manager, run := initWithOneTimeRun(t)
-	resourceManager.ObjectStore().AddFile([]byte(expectedContent), filePath)
+	resourceManager.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "argoproj.io/v1alpha1",
@@ -1582,7 +1582,7 @@ func TestReadArtifacts_Succeed(t *testing.T) {
 	expectedContent := "test"
 	filePath := "test/file.txt"
 	resourceManager, manager, run := initWithOneTimeRun(t)
-	resourceManager.ObjectStore().AddFile([]byte(expectedContent), filePath)
+	resourceManager.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "argoproj.io/v1alpha1",

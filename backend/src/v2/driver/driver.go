@@ -71,7 +71,10 @@ type Options struct {
 func (o Options) info() string {
 	msg := fmt.Sprintf("pipelineName=%v, runID=%v", o.PipelineName, o.RunID)
 	if o.Task.GetTaskInfo().GetName() != "" {
-		msg = msg + fmt.Sprintf(", task=%q", o.Task.GetTaskInfo().GetName())
+		msg = msg + fmt.Sprintf(", taskDisplayName=%q", o.Task.GetTaskInfo().GetName())
+	}
+	if o.Task.GetTaskInfo().GetTaskName() != "" {
+		msg = msg + fmt.Sprintf(", taskName=%q", o.Task.GetTaskInfo().GetTaskName())
 	}
 	if o.Task.GetComponentRef().GetName() != "" {
 		msg = msg + fmt.Sprintf(", component=%q", o.Task.GetComponentRef().GetName())
@@ -195,7 +198,7 @@ func initPodSpecPatch(
 		"--publish_logs", publishLogs,
 	}
 	if cacheDisabled == "true" {
-		launcherCmd = append(launcherCmd, "--cache_disabled", cacheDisabled)
+		launcherCmd = append(launcherCmd, "--cache_disabled")
 	}
 	if pipelineLogLevel != "1" {
 		// Add log level to user code launcher if not default (set to 1)

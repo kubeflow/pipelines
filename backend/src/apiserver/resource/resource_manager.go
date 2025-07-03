@@ -63,19 +63,19 @@ var (
 	// Count the removed workflows due to garbage collection.
 	workflowGCCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "resource_manager_workflow_gc",
-		Help: "The number of gabarage-collected workflows",
+		Help: "The number of garbage-collected workflows",
 	})
 
-	// Count the successfull workflow runs
+	// Count the successful workflow runs
 	workflowSuccessCounter = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "resource_manager_workflow_runs_success",
-		Help: "The current number of successfully workflows runs",
+		Help: "The current number of successful workflow runs",
 	}, extraLabels)
 
 	// Count the failed workflow runs
 	workflowFailedCounter = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "resource_manager_workflow_runs_failed",
-		Help: "The current number of failed workflows runs",
+		Help: "The current number of failed workflow runs",
 	}, extraLabels)
 )
 
@@ -341,6 +341,11 @@ func (r *ResourceManager) CreatePipeline(p *model.Pipeline) (*model.Pipeline, er
 	if p.Name == "" {
 		return nil, util.NewInvalidInputError("pipeline's name cannot be empty")
 	}
+
+	if p.DisplayName == "" {
+		p.DisplayName = p.Name
+	}
+
 	// Create a record in KFP DB (only pipelines table)
 	newPipeline, err := r.pipelineStore.CreatePipeline(p)
 	if err != nil {
@@ -882,7 +887,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	}
 
 	if err := execSpec.CanRetry(); err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s as it does not allow reties", runId)
+		return util.NewInternalServerError(err, "Failed to retry run %s as it does not allow retries", runId)
 	}
 
 	newExecSpec, podsToDelete, err := execSpec.GenerateRetryExecution()
@@ -992,7 +997,7 @@ func (r *ResourceManager) readRunLogFromArchive(workflowManifest string, nodeId 
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeId)
 	}
 
-	logContent, err := r.objectStore.GetFile(logPath)
+	logContent, err := r.objectStore.GetFile(context.TODO(), logPath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeId)
 	}
@@ -1509,13 +1514,13 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		return bytes, pipelineVersion.PipelineSpecURI, nil
 	} else {
 		// Try reading object store from pipeline_spec_uri
-		template, errUri := r.objectStore.GetFile(pipelineVersion.PipelineSpecURI)
+		template, errUri := r.objectStore.GetFile(context.TODO(), pipelineVersion.PipelineSpecURI)
 		if errUri != nil {
 			// Try reading object store from pipeline_version_id
-			template, errUUID := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
+			template, errUUID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineId := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				template, errPipelineId := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
 				if errPipelineId != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
@@ -1604,7 +1609,7 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 		return nil, util.NewResourceNotFoundError(
 			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
 	}
-	return r.objectStore.GetFile(artifactPath)
+	return r.objectStore.GetFile(context.TODO(), artifactPath)
 }
 
 // Fetches the default experiment id.
@@ -1667,6 +1672,11 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		}
 		pv.Name = pipelineSpecName
 	}
+
+	if pv.DisplayName == "" {
+		pv.DisplayName = pv.Name
+	}
+
 	// Parse parameters
 	paramsJSON, err := tmpl.ParametersJSON()
 	if err != nil {

@@ -761,6 +761,7 @@ root:
                   < "2019-02-01"
         taskInfo:
           name: chicago-taxi-trips-dataset
+          taskName: chicago-taxi-trips-dataset
       convert-csv-to-apache-parquet:
         cachingOptions:
           enableCache: true
@@ -776,6 +777,7 @@ root:
                 producerTask: chicago-taxi-trips-dataset
         taskInfo:
           name: convert-csv-to-apache-parquet
+          taskName: convert-csv-to-apache-parquet
       xgboost-predict:
         cachingOptions:
           enableCache: true
@@ -800,6 +802,7 @@ root:
                 constant: 0.0
         taskInfo:
           name: xgboost-predict
+          taskName: xgboost-predict
       xgboost-predict-2:
         cachingOptions:
           enableCache: true
@@ -824,6 +827,7 @@ root:
                 constant: tips
         taskInfo:
           name: xgboost-predict-2
+          taskName: xgboost-predict-2
       xgboost-predict-3:
         cachingOptions:
           enableCache: true
@@ -848,6 +852,7 @@ root:
                 constant: tips
         taskInfo:
           name: xgboost-predict-3
+          taskName: xgboost-predict-3
       xgboost-predict-4:
         cachingOptions:
           enableCache: true
@@ -872,6 +877,7 @@ root:
                 constant: 0.0
         taskInfo:
           name: xgboost-predict-4
+          taskName: xgboost-predict-4
       xgboost-train:
         cachingOptions:
           enableCache: true
@@ -897,6 +903,7 @@ root:
                 constant: reg:squarederror
         taskInfo:
           name: xgboost-train
+          taskName: xgboost-train
       xgboost-train-2:
         cachingOptions:
           enableCache: true
@@ -922,5 +929,6 @@ root:
                 constant: reg:squarederror
         taskInfo:
           name: xgboost-train-2
+          taskName: xgboost-train-2
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.7.0
+sdkVersion: kfp-2.13.0

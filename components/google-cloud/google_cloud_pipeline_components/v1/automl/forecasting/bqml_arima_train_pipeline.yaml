@@ -3399,7 +3399,7 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-bigquery-create-dataset-2:
       container:
         args:
@@ -3434,7 +3434,7 @@ deploymentSpec:
           \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
           \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
           \   ref.project, ref.dataset_id)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-bigquery-create-model-job:
       container:
         args:
@@ -3494,7 +3494,7 @@ deploymentSpec:
           \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
           \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-bigquery-list-rows:
       container:
         args:
@@ -3532,7 +3532,7 @@ deploymentSpec:
           \ metadata['datasetId'], metadata['tableId']]))\n  result = []\n  for row\
           \ in rows:\n    result.append({col: str(value) for col, value in dict(row).items()})\n\
           \  return result\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-bigquery-list-rows-2:
       container:
         args:
@@ -3570,7 +3570,7 @@ deploymentSpec:
           \ metadata['datasetId'], metadata['tableId']]))\n  result = []\n  for row\
           \ in rows:\n    result.append({col: str(value) for col, value in dict(row).items()})\n\
           \  return result\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-bigquery-query-job:
       container:
         args:
@@ -3739,7 +3739,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-build-job-configuration-query-2:
       container:
         args:
@@ -3773,7 +3773,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-build-job-configuration-query-3:
       container:
         args:
@@ -3807,7 +3807,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-build-job-configuration-query-4:
       container:
         args:
@@ -3841,7 +3841,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-build-job-configuration-query-5:
       container:
         args:
@@ -3875,7 +3875,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-build-job-configuration-query-6:
       container:
         args:
@@ -3909,7 +3909,7 @@ deploymentSpec:
           \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
           \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
           \  return config\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-build-serialized-query-parameters:
       container:
         args:
@@ -3980,7 +3980,7 @@ deploymentSpec:
           \      'name': 'start_time',\n      'parameterType': {\n          'type':\
           \ 'TIMESTAMP'\n      },\n      'parameterValue': {\n          'value': start_time\n\
           \      },\n  })\n  return query_parameters\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-build-serialized-query-parameters-2:
       container:
         args:
@@ -4051,7 +4051,7 @@ deploymentSpec:
           \      'name': 'start_time',\n      'parameterType': {\n          'type':\
           \ 'TIMESTAMP'\n      },\n      'parameterValue': {\n          'value': start_time\n\
           \      },\n  })\n  return query_parameters\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-build-serialized-query-parameters-3:
       container:
         args:
@@ -4122,7 +4122,7 @@ deploymentSpec:
           \      'name': 'start_time',\n      'parameterType': {\n          'type':\
           \ 'TIMESTAMP'\n      },\n      'parameterValue': {\n          'value': start_time\n\
           \      },\n  })\n  return query_parameters\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-cond:
       container:
         args:
@@ -4144,7 +4144,7 @@ deploymentSpec:
           \ *\n\ndef cond(predicate: bool, true_str: str, false_str: str) -> str:\n\
           \  \"\"\"Returns true_str if predicate is true, else false_str.\"\"\"\n\
           \  return true_str if predicate else false_str\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-create-metrics-artifact:
       container:
         args:
@@ -4170,7 +4170,7 @@ deploymentSpec:
           \      'MAPE': 'meanAbsolutePercentageError',\n  }\n  metrics = {metric_name_map[k]:\
           \ v for k, v in dict(metrics_rows[0]).items()}\n  evaluation_metrics.metadata\
           \ = metrics\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-feature-transform-engine:
       container:
         args:
@@ -4255,8 +4255,8 @@ deploymentSpec:
           "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
         - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
         - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250129_0625
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250129_0625
+        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525
+        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
         - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
         - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
         - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
@@ -4273,7 +4273,7 @@ deploymentSpec:
         - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
           ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
         - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
     exec-get-fte-suffix:
       container:
         args:
@@ -4301,7 +4301,7 @@ deploymentSpec:
           \ table.table_id.startswith(fte_table):\n      return table.table_id[len(fte_table)\
           \ + 1:]\n  raise ValueError(\n      f'No FTE output tables found in {bigquery_staging_full_dataset_id}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-table-location:
       container:
         args:
@@ -4337,7 +4337,7 @@ deploymentSpec:
           \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
           \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
           \  return client.get_table(table).location\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-value:
       container:
         args:
@@ -4358,7 +4358,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef get_value(d: Dict[str, str], key: str) -> str:\n  return d[key]\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-window-query-priority:
       container:
         args:
@@ -4382,7 +4382,7 @@ deploymentSpec:
           \ depending on the window number.\"\"\"\n  if int(window['window_number'])\
           \ <= max_interactive:\n    return 'INTERACTIVE'\n  else:\n    return 'BATCH'\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-maybe-replace-with-default:
       container:
         args:
@@ -4404,7 +4404,7 @@ deploymentSpec:
           \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
           \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
           \n  return default if not value else value\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-query-with-retry:
       container:
         args:
@@ -4458,7 +4458,7 @@ deploymentSpec:
           \          'Query failed with %s. Retrying after %d seconds.', e, wait_time)\n\
           \      time.sleep(wait_time)\n      retry_count += 1\n  return destination_uri\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-query-with-retry-2:
       container:
         args:
@@ -4512,7 +4512,7 @@ deploymentSpec:
           \          'Query failed with %s. Retrying after %d seconds.', e, wait_time)\n\
           \      time.sleep(wait_time)\n      retry_count += 1\n  return destination_uri\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-query-with-retry-3:
       container:
         args:
@@ -4566,7 +4566,7 @@ deploymentSpec:
           \          'Query failed with %s. Retrying after %d seconds.', e, wait_time)\n\
           \      time.sleep(wait_time)\n      retry_count += 1\n  return destination_uri\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-table-to-uri:
       container:
         args:
@@ -4596,7 +4596,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-table-to-uri-2:
       container:
         args:
@@ -4626,7 +4626,7 @@ deploymentSpec:
           \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
           \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
           \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-validate-inputs:
       container:
         args:
@@ -4722,7 +4722,7 @@ deploymentSpec:
           \   raise ValueError(\n          'Granularity unit should be one of the\
           \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
           \n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-wrapped-in-list:
       container:
         args:
@@ -4743,7 +4743,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef wrapped_in_list(value: str) -> List[str]:\n  \"\"\"Wraps a string\
           \ in a list.\"\"\"\n  return [value]\n\n"
-        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250129_0625
+        image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
 pipelineInfo:
   description: Trains a BQML ARIMA_PLUS model.
   name: automl-tabular-bqml-arima-train
