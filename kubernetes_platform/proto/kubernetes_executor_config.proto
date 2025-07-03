@@ -242,6 +242,13 @@ message NodeAffinityTerm {
     repeated SelectorRequirement match_fields = 2;
     //Setting the weight makes it use PreferredDuringSchedulingIgnoredDuringExecution rules instead of RequiredDuringSchedulingIgnoredDuringExecution rules
     optional int32 weight = 3;
+    // Provide a JSON struct of node affinity. Takes precedence over PreferredDuringSchedulingIgnoredDuringExecution rules/RequiredDuringSchedulingIgnoredDuringExecution rules.
+    // The JSON must follow Kubernetes
+    // NodeAffinity structure:
+    // https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#nodeaffinity-v1-core
+    // Example:
+    // { "requiredDuringSchedulingIgnoredDuringExecution": { "nodeSelectorTerms": [ ... ] } }
+    ml_pipelines.TaskInputsSpec.InputParameterSpec node_affinity_json = 4;
 } 
 
 message PodAffinityTerm {
