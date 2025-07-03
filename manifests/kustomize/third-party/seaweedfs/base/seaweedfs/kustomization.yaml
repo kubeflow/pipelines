@@ -9,3 +9,5 @@ resources:
 - seaweedfs-create-admin-user-job.yaml
 - seaweedfs-service.yaml
 - seaweedfs-service-account.yaml
+- minio-service.yaml
+- mlpipeline-minio-artifact-secret.yaml
