@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: seaweedfs
-        image: 'chrislusf/seaweedfs:3.85'
+        image: 'chrislusf/seaweedfs:3.92'
         args:
         - 'server'
         - '-dir=/data'
