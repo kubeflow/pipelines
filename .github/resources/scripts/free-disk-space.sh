@@ -24,6 +24,14 @@ sudo rm -rf /usr/local/lib/android
 sudo rm -rf /usr/local/.ghcup
 sudo rm -rf /usr/share/swift
 
+# Selectively remove large tools from hostedtoolcache while preserving Go, Node, Python
+# Remove these specific large tools that aren't needed for KFP tests
+sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+sudo rm -rf /opt/hostedtoolcache/Java_* || true
+sudo rm -rf /opt/hostedtoolcache/Ruby || true
+sudo rm -rf /opt/hostedtoolcache/PyPy || true
+sudo rm -rf /opt/hostedtoolcache/boost || true
+
 # Clean package manager
 sudo apt-get autoremove -y
 sudo apt-get autoclean
