@@ -67,6 +67,8 @@ spec:
             value: "true"
           - name: DISABLE_GKE_METADATA
             value: "true"
+          - name: ARTIFACTS_SERVICE_PROXY_ENABLED
+            value: 'false'
         readinessProbe:
           httpGet:
             path: /apis/v1beta1/healthz

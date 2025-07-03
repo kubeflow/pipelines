@@ -5,7 +5,7 @@ resources:
 - ../../base/installs/generic
 - ../../base/metadata/base
 - ../../third-party/argo/installs/namespace
-- ../../third-party/minio/base
+- ../../third-party/seaweedfs/base
 - ../../third-party/mysql/base
 
 # Identifier for application manager to apply ownerReference.
