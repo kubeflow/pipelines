@@ -29,7 +29,9 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-var ErrResolvedParameterNull = errors.New("the resolvead input parameter is null")
+var (
+	ErrResolvedParameterNull = errors.New("the resolved input parameter is null")
+)
 
 // resolveUpstreamOutputsConfig is just a config struct used to store the input
 // parameters of the resolveUpstreamParameters and resolveUpstreamArtifacts
@@ -269,7 +271,25 @@ func resolveInputs(
 		}
 		return inputs, nil
 	}
+	isDagDriver := opts.Container == nil && opts.Task != nil
+	// A DAG driver (not Root DAG driver) indicates this is likely the start of a nested pipeline.
+	// Handle omitted optional pipeline input parameters similar to how they are handled on the root pipeline.
+	if isDagDriver {
+		for name, paramSpec := range opts.Component.GetInputDefinitions().GetParameters() {
+			_, ok := task.Inputs.GetParameters()[name]
+			if !ok && paramSpec.IsOptional {
+				if paramSpec.GetDefaultValue() != nil {
+					// If no value was input, pass along the default value to the component.
+					inputs.ParameterValues[name], _ = structpb.NewValue(paramSpec.GetDefaultValue())
+				} else {
+					//  If no default value is set, pass along the null value to the component.
+					//	This is analogous to a pipeline run being submitted without optional pipeline input parameters.
+					inputs.ParameterValues[name] = structpb.NewNullValue()
+				}
 
+			}
+		}
+	}
 	// Handle parameters.
 	for name, paramSpec := range task.GetInputs().GetParameters() {
 		v, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, paramSpec, inputParams)
