@@ -31,4 +31,5 @@ jobs:
         run: |
           export PULL_NUMBER="${{ github.event.inputs.pull_number || github.event.pull_request.number }}"
           export REPO_NAME="${{ github.repository }}"
+          export TARGET_BRANCH="${{ github.ref_name }}"
           ./test/presubmit-test-kfp-runtime-code.sh

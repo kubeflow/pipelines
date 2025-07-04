@@ -17,12 +17,13 @@
 set -ex
 
 REPO_NAME="${REPO_NAME:-example-test-organization/pipelines}"
+TARGET_BRANCH="${TARGET_BRANCH:-master}"
 
 if [[ -n "${PULL_NUMBER}" ]]; then
   export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@refs/pull/${PULL_NUMBER}/merge#egg=kfp&subdirectory=sdk/python"
 
 else
-  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}#egg=kfp&subdirectory=sdk/python"
+  export KFP_PACKAGE_PATH="git+https://github.com/${REPO_NAME}@${TARGET_BRANCH}#egg=kfp&subdirectory=sdk/python"
 fi
 
 python3 -m pip install --upgrade pip
