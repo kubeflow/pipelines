@@ -585,6 +585,12 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 
 	var db *sql.DB
 	var err error
+
+	// lyk add this for debugging
+	glog.Infof("Attempting to connect to Postgres at %s, dsn: %s",
+		common.GetStringConfig(postgresHost),
+		sqlConfig)
+
 	operation := func() error {
 		db, err = sql.Open(driverName, sqlConfig)
 		if err != nil {
@@ -637,6 +643,8 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	default:
 		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
 	}
+	// lyk add this for debugging
+	glog.Infof("Final Postgres DSN: %s", sqlConfig)
 	return sqlConfig
 }
 
