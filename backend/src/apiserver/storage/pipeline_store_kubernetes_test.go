@@ -279,9 +279,10 @@ func TestCreateK8sPipelineVersion(t *testing.T) {
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipelineVersion := &model.PipelineVersion{
-		Name:        "Test Pipeline Version",
-		PipelineId:  DefaultFakePipelineIdTwo,
-		Description: "Test Pipeline Version Description",
+		Name:         "Test Pipeline Version",
+		PipelineId:   DefaultFakePipelineIdTwo,
+		Description:  "Test Pipeline Version Description",
+		PipelineSpec: getBasicPipelineSpecYAML(),
 	}
 
 	_, err := store.CreatePipelineVersion(pipelineVersion)
@@ -355,13 +356,15 @@ func TestListK8sPipelineVersions_Pagination(t *testing.T) {
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipelineVersion1 := &model.PipelineVersion{
-		Name:       "Test Pipeline Version 1",
-		PipelineId: DefaultFakePipelineIdTwo,
+		Name:         "Test Pipeline Version 1",
+		PipelineId:   DefaultFakePipelineIdTwo,
+		PipelineSpec: getBasicPipelineSpecYAML(),
 	}
 
 	pipelineVersion2 := &model.PipelineVersion{
-		Name:       "Test Pipeline Version 2",
-		PipelineId: DefaultFakePipelineIdTwo,
+		Name:         "Test Pipeline Version 2",
+		PipelineId:   DefaultFakePipelineIdTwo,
+		PipelineSpec: getBasicPipelineSpecYAML(),
 	}
 
 	_, err := store.CreatePipelineVersion(pipelineVersion1)
@@ -393,13 +396,15 @@ func TestListK8sPipelineVersions_Pagination_Descend(t *testing.T) {
 	store := NewPipelineStoreKubernetes(getClient())
 
 	pipelineVersion1 := &model.PipelineVersion{
-		Name:       "Test Pipeline Version 1",
-		PipelineId: DefaultFakePipelineIdTwo,
+		Name:         "Test Pipeline Version 1",
+		PipelineId:   DefaultFakePipelineIdTwo,
+		PipelineSpec: getBasicPipelineSpecYAML(),
 	}
 
 	pipelineVersion2 := &model.PipelineVersion{
-		Name:       "Test Pipeline Version 2",
-		PipelineId: DefaultFakePipelineIdTwo,
+		Name:         "Test Pipeline Version 2",
+		PipelineId:   DefaultFakePipelineIdTwo,
+		PipelineSpec: getBasicPipelineSpecYAML(),
 	}
 
 	_, err := store.CreatePipelineVersion(pipelineVersion1)
@@ -480,11 +485,43 @@ func TestCreatePipelineAndPipelineVersion(t *testing.T) {
 		Name: "Test Pipeline",
 	}
 	k8sPipelineVersion := &model.PipelineVersion{
-		Name: "Test Pipeline Version",
+		Name:         "Test Pipeline Version",
+		PipelineSpec: getBasicPipelineSpecYAML(),
 	}
 
 	_, _, err := store.CreatePipelineAndPipelineVersion(k8sPipeline, k8sPipelineVersion)
 	require.Nil(t, err, "Failed to create Pipeline: %v", err)
+}
+
+// getBasicPipelineSpec returns a basic PipelineSpec for testing purposes
+func getBasicPipelineSpec() v2beta1.IRSpec {
+	return v2beta1.IRSpec{
+		Value: map[string]interface{}{
+			"pipelineInfo": map[string]interface{}{
+				"name":        "test-pipeline",
+				"displayName": "Test Pipeline",
+			},
+			"root": map[string]interface{}{
+				"dag": map[string]interface{}{
+					"tasks": map[string]interface{}{},
+				},
+			},
+			"schemaVersion": "2.1.0",
+			"sdkVersion":    "kfp-2.13.0",
+		},
+	}
+}
+
+// getBasicPipelineSpecYAML returns a basic PipelineSpec as YAML string for model.PipelineVersion objects
+func getBasicPipelineSpecYAML() string {
+	return `pipelineInfo:
+  name: test-pipeline
+  displayName: Test Pipeline
+root:
+  dag:
+    tasks: {}
+schemaVersion: "2.1.0"
+sdkVersion: kfp-2.13.0`
 }
 
 func getClient() (client.Client, client.Client) {
@@ -510,6 +547,9 @@ func getClient() (client.Client, client.Client) {
 			Name:      "Test Pipeline Version",
 			Namespace: "Test",
 		},
+		Spec: v2beta1.PipelineVersionSpec{
+			PipelineSpec: getBasicPipelineSpec(),
+		},
 	}
 
 	pipelineVersion1 := &v2beta1.PipelineVersion{
@@ -520,12 +560,18 @@ func getClient() (client.Client, client.Client) {
 				"pipelines.kubeflow.org/pipeline-id": DefaultFakePipelineId,
 			},
 		},
+		Spec: v2beta1.PipelineVersionSpec{
+			PipelineSpec: getBasicPipelineSpec(),
+		},
 	}
 
 	pipelineVersion2 := &v2beta1.PipelineVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "Test Pipeline Version 2",
 			Namespace: "Test",
+		},
+		Spec: v2beta1.PipelineVersionSpec{
+			PipelineSpec: getBasicPipelineSpec(),
 		},
 	}
 
@@ -544,7 +590,8 @@ func getClient() (client.Client, client.Client) {
 			},
 		},
 		Spec: v2beta1.PipelineVersionSpec{
-			Description: "Test Pipeline Version 1 Description",
+			Description:  "Test Pipeline Version 1 Description",
+			PipelineSpec: getBasicPipelineSpec(),
 		},
 	}
 

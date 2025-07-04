@@ -145,7 +145,15 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
         version_name = version.get("name", f"v{i}")
         version_display_name = version.get("display_name", version_name)
         pipeline_version_name = get_version_name(pipeline_name, version_name, i, add_prefix)
+        platform_spec = None
         pipeline_spec = version.get("pipeline_spec", {})
+
+        # When a pipeline has a platform spec, pipeline_spec is a dictionary with "pipeline_spec" and "platform_spec"
+        # keys.
+        if 'pipeline_spec' in pipeline_spec:
+            platform_spec = pipeline_spec.get("platform_spec", {})
+            pipeline_spec = pipeline_spec.get("pipeline_spec", {})
+
         pipeline_version_id = version.get("pipeline_version_id")
         
         pipeline_version_obj = {
@@ -164,6 +172,10 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
                 "displayName": version_display_name,
             }
         }
+
+        if platform_spec:
+            pipeline_version_obj["spec"]["platformSpec"] = platform_spec
+
         k8s_objects.append(pipeline_version_obj)
    
     return pipeline_name, k8s_objects
