@@ -24,7 +24,17 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
+
+// verifyCompositeIndex asserts that the given gorm.DB has created both the unique constraint and index named idx on model mdl.
+func verifyCompositeIndex(t *testing.T, gdb *gorm.DB, mdl interface{}, idx string) {
+	assert.True(t, gdb.Migrator().HasConstraint(mdl, idx), "constraint %s should exist", idx)
+	assert.True(t, gdb.Migrator().HasIndex(mdl, idx), "index %s should exist", idx)
+}
 
 type DBTestSuite struct {
 	suite.Suite
@@ -52,6 +62,17 @@ func (s *DBTestSuite) TestInitDBClient_MySQL() {
 	duration, _ := time.ParseDuration("1m")
 	db := cm.InitDBClient(duration)
 	assert.NotNil(t, db)
+
+	// Extract underlying *sql.DB and wrap in gorm.DB
+	sqlDB := db.DB
+	dialector := mysql.New(mysql.Config{Conn: sqlDB})
+	gdb, err := gorm.Open(dialector, &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to open gorm.DB for MySQL: %v", err)
+	}
+	// Verify composite unique constraint and index on the Pipeline model
+	cm.EnsureUniqueCompositeIndex(gdb, &model.Pipeline{}, "namespace_name")
+	verifyCompositeIndex(t, gdb, &model.Pipeline{}, "namespace_name")
 }
 
 // Test PostgreSQL initializes correctly
@@ -70,6 +91,17 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 	duration, _ := time.ParseDuration("1m")
 	db := cm.InitDBClient(duration)
 	assert.NotNil(t, db)
+
+	// Extract underlying *sql.DB and wrap in gorm.DB
+	sqlDB := db.DB
+	dialector := postgres.New(postgres.Config{Conn: sqlDB})
+	gdb, err := gorm.Open(dialector, &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to open gorm.DB for PostgreSQL: %v", err)
+	}
+	// Verify composite unique constraint and index on the Pipeline model
+	cm.EnsureUniqueCompositeIndex(gdb, &model.Pipeline{}, "namespace_name")
+	verifyCompositeIndex(s.T(), gdb, &model.Pipeline{}, "namespace_name")
 }
 
 func TestDB(t *testing.T) {
