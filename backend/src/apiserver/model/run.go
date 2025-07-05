@@ -16,6 +16,9 @@ package model
 
 import (
 	"strings"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 type (
@@ -311,12 +314,20 @@ type RunDetails struct {
 	StateHistoryString string           `gorm:"column:StateHistory; default:null; type: text;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	// Serialized runtime details of a run in v2beta1
-	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; type: longtext;"`
+	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null;"`
 	// Serialized Argo CRD in v1beta1
-	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null; type: longtext;"`
+	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null;"`
 	PipelineContextId       int64  `gorm:"column:PipelineContextId; default:0;"`
 	PipelineRunContextId    int64  `gorm:"column:PipelineRunContextId; default:0;"`
 	TaskDetails             []*Task
+}
+
+func (RunDetails) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	switch field.Name {
+	case "PipelineRuntimeManifest", "WorkflowRuntimeManifest":
+		return LongTextByDialect(db)
+	}
+	return ""
 }
 
 type RunMetric struct {

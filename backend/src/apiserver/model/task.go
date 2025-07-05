@@ -16,6 +16,9 @@ package model
 
 import (
 	"encoding/json"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 )
 
 type Task struct {
@@ -44,6 +47,13 @@ type Task struct {
 	Payload            string           `gorm:"column:Payload; default:null; type:text;"`
 }
 
+func (Task) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	switch field.Name {
+	case "StateHistoryString", "MLMDInputs", "MLMDOutputs", "ChildrenPodsString", "Payload":
+		return LongTextByDialect(db)
+	}
+	return ""
+}
 func (t Task) ToString() string {
 	task, err := json.Marshal(t)
 	if err != nil {
