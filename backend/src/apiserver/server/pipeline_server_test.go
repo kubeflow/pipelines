@@ -95,7 +95,7 @@ func TestCreatePipelineV1_LargeFile(t *testing.T) {
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
 	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
-			Url:         &api.Url{PipelineUrl: "https://raw.githubusercontent.com/kubeflow/pipelines/master/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml"},
+			Url:         &api.Url{PipelineUrl: "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/master/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml"},
 			Name:        "xgboost-url",
 			Description: "pipeline description",
 		},
