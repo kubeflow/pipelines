@@ -47,6 +47,8 @@ Please refer [this](https://github.com/kubeflow/pipelines/blob/master/proposals/
 | (K8s mode) Create an experiment and a pipeline run  (via UI)                                 | Get Experiment and Run details and validate           |                                                                                                                            |
 
 ### Custom K8s storage (with custom role binding)
+Should we care about this? from migration script POV?
+
 ### Custom K8s storage (with FIPS)
 | **Test Case**                                                                     | **Test Steps**                                        | **Expected Result** |
 |-----------------------------------------------------------------------------------|-------------------------------------------------------|---------------------|
