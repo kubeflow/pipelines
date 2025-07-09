@@ -36,15 +36,22 @@ const (
 type Pipeline struct {
 	UUID           string `gorm:"column:UUID; not null; primaryKey;"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null;"`
-	Name           string `gorm:"column:Name; not null; uniqueIndex:namespace_name; type:varchar(128);"` // Index improves performance of the List and Get queries
-	DisplayName    string `gorm:"column:DisplayName; not null"`
-	Description    string `gorm:"column:Description;"` // the previous comment says the 'size:65535' is set to Description and Parameters so they will be stored as longtext;
+	// Name is limited to VARCHAR(128) to ensure the composite index (Namespace, Name)
+	// stays within MySQL’s 767-byte prefix limit for indexable columns.
+	// MySQL uses utf8mb4 encoding by default, where each character can take up to 4 bytes.
+	// In the worst case: 63 (namespace) * 4 + 128 (name) * 4 = 764 bytes ≤ 767 bytes.
+	// https://dev.mysql.com/doc/refman/8.4/en/column-indexes.html
+	Name        string `gorm:"column:Name; not null; uniqueIndex:namespace_name; type:varchar(128);"` // Index improves performance of the List and Get queries
+	DisplayName string `gorm:"column:DisplayName; not null"`
+	Description string `gorm:"column:Description;"` // this column will be stored as longtext;
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	Parameters string         `gorm:"column:Parameters;"`
+	Parameters string         `gorm:"column:Parameters;"` // this column will be stored as longtext;
 	Status     PipelineStatus `gorm:"column:Status; not null;"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	DefaultVersionId string `gorm:"column:DefaultVersionId;"` // deprecated
-	Namespace        string `gorm:"column:Namespace; uniqueIndex:namespace_name; type:varchar(63);"`
+	// Namespace is restricted to VARCHAR(63) due to Kubernetes' naming constraints:
+	// https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
+	Namespace string `gorm:"column:Namespace; uniqueIndex:namespace_name; type:varchar(63);"`
 }
 
 func (Pipeline) GormDBDataType(db *gorm.DB, field *schema.Field) string {
