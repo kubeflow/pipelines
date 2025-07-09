@@ -782,7 +782,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 				},
 				PipelineVersion: &apiv2.PipelineVersion{
 					PackageUrl: &apiv2.Url{
-						PipelineUrl: "https://raw.githubusercontent.com/kubeflow/pipelines/master/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml",
+						PipelineUrl: "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/master/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml",
 					},
 				},
 			},

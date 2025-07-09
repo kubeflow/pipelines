@@ -141,7 +141,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 			Name:        "sequential-v2",
 			DisplayName: "sequential",
 			PackageURL: &pipeline_model.V2beta1URL{
-				PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
+				PipelineURL: "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
 			},
 			PipelineID: pipelineId,
 		},
@@ -161,7 +161,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipelineVersion.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+	pipelineURL := "https://github.com/opendatahub-io/data-science-pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
 		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
