@@ -26,9 +26,20 @@ Please refer [this](https://github.com/kubeflow/pipelines/blob/master/proposals/
 | (KFP DB mode) Create pipeline and 2 pipeline versions with same spec and and re-create the pipeline & version using CRs                                                        | Match the pipeline and pipeline versions (DB vs K8s)  |                     |
 | (KFP DB mode) Create pipeline and 2 pipeline versions with different specs and and re-create the pipeline & version using CRs                                                  | Match the pipelines and pipeline versions (DB vs K8s) |                     |
 | (KFP DB mode) Create pipeline and a pipeline version and and re-create the pipeline & version using CRs but with different **pipelineName** than the one in DB in pipelineSpec |                                                       | ???                 |
+| (K8s mode) Create pipeline run for a newly migrated pipeline associated with the default experiment                                                                            | Get Run details and validate                          |                     |
+| (K8s mode) Create an experiment and a pipeline run associating it with a migrated pipeline                                                                                     | Get Experiment and Run details and validate           |                     |
+| (K8s mode) Rerun a pipeline run associated with an existing experiment and a migrated pipeline version                                                                         | Get Experiment and Run details and validate           |                     |
 
 
 ### New Pipelines
+| **Test Case**                                                                     | **Test Steps**                                        | **Expected Result** |
+|-----------------------------------------------------------------------------------|-------------------------------------------------------|---------------------|
+| (K8s mode) Create pipeline and a pipeline version using CRs                       | Match the pipeline and pipeline version (DB vs K8s)   |                     |
+| (K8s mode) Create pipeline and 2 pipeline versions with same spec using CRs       | Match the pipeline and pipeline versions (DB vs K8s)  |                     |
+| (K8s mode) Create pipeline and 2 pipeline versions with different specs using CRs | Match the pipelines and pipeline versions (DB vs K8s) |                     |
+| (K8s mode) Create pipeline run                                                    | Get Run details and validate                          |                     |
+| (K8s mode) Create an experiment and a pipeline run                                | Get Experiment and Run details and validate           |                     |
+| (K8s mode) One you have saved few pipelines in the K8s storage, run the           | Get Experiment and Run details and validate           |                     |
 
 ### Custom K8s storage (with custom role binding)
 ### Custom K8s storage (with FIPS)
