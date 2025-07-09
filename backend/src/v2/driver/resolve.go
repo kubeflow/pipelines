@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -29,7 +30,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-var ErrResolvedParameterNull = errors.New("the resolvead input parameter is null")
+var ErrResolvedParameterNull = errors.New("the resolved input parameter is null")
 
 // resolveUpstreamOutputsConfig is just a config struct used to store the input
 // parameters of the resolveUpstreamParameters and resolveUpstreamArtifacts
@@ -142,7 +143,10 @@ func resolveInputs(
 		}
 		return nil
 	}
-	isDagDriver := opts.Container == nil && opts.Task != nil
+	// Track parameters set to nil by the driver (for the case in which optional pipeline input parameters are not
+	// included, and default value is nil).
+	var parametersSetNilByDriver []string
+	isDagDriver := opts.DriverType == "DAG"
 	handleParamTypeValidationAndConversion := func() error {
 		// TODO(Bobgy): verify whether there are inputs not in the inputs spec.
 		for name, spec := range inputsSpec.GetParameters() {
@@ -194,11 +198,10 @@ func resolveInputs(
 				}
 				switch v := value.GetKind().(type) {
 				case *structpb.Value_NullValue:
-					// If dag driver, allow input null parameter.
-					if isDagDriver {
-						return nil
-					} else {
-						return fmt.Errorf("got null for input parameter %q", name)
+					// If isDagDriver is true and parameter was set to nil by driver, allow input parameter to have a
+					// nil value.
+					if isDagDriver && slices.Contains(parametersSetNilByDriver, name) {
+						continue
 					}
 				case *structpb.Value_StringValue:
 					// TODO(Bobgy): consider whether we support parsing string as JSON for any other types.
@@ -283,12 +286,12 @@ func resolveInputs(
 			if !ok && paramSpec.IsOptional {
 				if paramSpec.GetDefaultValue() != nil {
 					// If no value was input, pass along the default value to the component.
-					//inputs.ParameterValues[name], _ = structpb.NewValue(paramSpec.GetDefaultValue())
 					inputs.ParameterValues[name] = paramSpec.GetDefaultValue()
 				} else {
 					//  If no default value is set, pass along the null value to the component.
 					//	This is analogous to a pipeline run being submitted without optional pipeline input parameters.
 					inputs.ParameterValues[name] = structpb.NewNullValue()
+					parametersSetNilByDriver = append(parametersSetNilByDriver, name)
 				}
 
 			}

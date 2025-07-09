@@ -195,6 +195,7 @@ func drive() (err error) {
 		PipelineLogLevel: *logLevel,
 		PublishLogs:      *publishLogs,
 		CacheDisabled:    *cacheDisabledFlag,
+		DriverType:       *driverType,
 	}
 	var execution *driver.Execution
 	var driverErr error
