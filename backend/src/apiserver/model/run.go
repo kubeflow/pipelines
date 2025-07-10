@@ -311,7 +311,7 @@ type RunDetails struct {
 	// Conditions were deprecated. Use State instead.
 	Conditions         string           `gorm:"column:Conditions; type:varchar(191); not null;  index:experimentuuid_conditions_finishedatinsec,priority:2;index:namespace_conditions_finishedatinsec,priority:2"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString string           `gorm:"column:StateHistory; default:null; type: text;"`
+	StateHistoryString string           `gorm:"column:StateHistory; default:null;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	// Serialized runtime details of a run in v2beta1
 	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null;"`
@@ -324,7 +324,7 @@ type RunDetails struct {
 
 func (RunDetails) GormDBDataType(db *gorm.DB, field *schema.Field) string {
 	switch field.Name {
-	case "PipelineRuntimeManifest", "WorkflowRuntimeManifest":
+	case "StateHistoryString", "PipelineRuntimeManifest", "WorkflowRuntimeManifest":
 		return LongTextByDialect(db)
 	}
 	return ""
@@ -336,7 +336,14 @@ type RunMetric struct {
 	Name        string  `gorm:"column:Name; not null; primaryKey;"`
 	NumberValue float64 `gorm:"column:NumberValue;"`
 	Format      string  `gorm:"column:Format;"`
-	Payload     string  `gorm:"column:Payload; not null; type: text;"`
+	Payload     string  `gorm:"column:Payload; not null;"`
+}
+
+func (RunMetric) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	if field.Name == "Payload" {
+		return LongTextByDialect(db)
+	}
+	return ""
 }
 
 type RuntimeStatus struct {

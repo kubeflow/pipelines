@@ -38,13 +38,13 @@ type Task struct {
 	Name               string           `gorm:"column:Name; default:null"`
 	ParentTaskId       string           `gorm:"column:ParentTaskUUID; default:null"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString string           `gorm:"column:StateHistory; default:null; type:text;"`
-	MLMDInputs         string           `gorm:"column:MLMDInputs; default:null; type:text;"`
-	MLMDOutputs        string           `gorm:"column:MLMDOutputs; default:null; type:text;"`
-	ChildrenPodsString string           `gorm:"column:ChildrenPods; default:null; type:text;"`
+	StateHistoryString string           `gorm:"column:StateHistory; default:null;"`
+	MLMDInputs         string           `gorm:"column:MLMDInputs; default:null;"`
+	MLMDOutputs        string           `gorm:"column:MLMDOutputs; default:null;"`
+	ChildrenPodsString string           `gorm:"column:ChildrenPods; default:null;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	ChildrenPods       []string         `gorm:"-;"`
-	Payload            string           `gorm:"column:Payload; default:null; type:text;"`
+	Payload            string           `gorm:"column:Payload; default:null;"`
 }
 
 func (Task) GormDBDataType(db *gorm.DB, field *schema.Field) string {

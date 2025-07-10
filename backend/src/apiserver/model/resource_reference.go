@@ -14,6 +14,11 @@
 
 package model
 
+import (
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
+)
+
 const (
 	NamespaceResourceType       ResourceType = "Namespace"
 	ExperimentResourceType      ResourceType = "Experiment"
@@ -168,7 +173,14 @@ type ResourceReference struct {
 	Relationship Relationship `gorm:"column:Relationship; not null;"`
 
 	// JSON-encoded metadata blob about the reference
-	Payload string `gorm:"column:Payload; not null; type:text"`
+	Payload string `gorm:"column:Payload; not null;"`
+}
+
+func (ResourceReference) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	if field.Name == "Payload" {
+		return LongTextByDialect(db)
+	}
+	return ""
 }
 
 type ReferenceKey struct {
