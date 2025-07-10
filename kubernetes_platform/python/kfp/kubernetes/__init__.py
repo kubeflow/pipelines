@@ -18,6 +18,8 @@ __all__ = [
     'add_ephemeral_volume',
     'add_node_selector',
     'add_node_selector_json',
+    'add_node_affinity',
+    'add_node_affinity_json',
     'add_pod_annotation',
     'add_pod_label',
     'add_toleration',
@@ -44,6 +46,8 @@ from kfp.kubernetes.image import set_image_pull_policy
 from kfp.kubernetes.image import set_image_pull_secrets
 from kfp.kubernetes.node_selector import add_node_selector
 from kfp.kubernetes.node_selector import add_node_selector_json
+from kfp.kubernetes.node_affinity import add_node_affinity
+from kfp.kubernetes.node_affinity import add_node_affinity_json
 from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.pod_metadata import add_pod_label
 from kfp.kubernetes.secret import use_secret_as_env

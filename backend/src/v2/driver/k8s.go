@@ -482,6 +482,86 @@ func extendPodSpecPatch(
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, emptyDirVolumeMount)
 	}
 
+	// Get node affinity information
+	if nodeAffinityTerms := kubernetesExecutorConfig.GetNodeAffinity(); len(nodeAffinityTerms) > 0 {
+		var requiredTerms []k8score.NodeSelectorTerm
+		var preferredTerms []k8score.PreferredSchedulingTerm
+
+		for i, nodeAffinityTerm := range nodeAffinityTerms {
+			if nodeAffinityTerm.GetNodeAffinityJson() == nil &&
+				len(nodeAffinityTerm.GetMatchExpressions()) == 0 &&
+				len(nodeAffinityTerm.GetMatchFields()) == 0 {
+				glog.Warningf("NodeAffinityTerm %d is empty, skipping", i)
+				continue
+			}
+			if nodeAffinityTerm.GetNodeAffinityJson() != nil {
+				var k8sNodeAffinity json.RawMessage
+				err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
+					nodeAffinityTerm.GetNodeAffinityJson(), inputParams, &k8sNodeAffinity)
+				if err != nil {
+					return fmt.Errorf("failed to resolve node affinity json: %w", err)
+				}
+
+				var nodeAffinity k8score.NodeAffinity
+				if err := json.Unmarshal(k8sNodeAffinity, &nodeAffinity); err != nil {
+					return fmt.Errorf("failed to unmarshal node affinity json: %w", err)
+				}
+
+				if nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+					requiredTerms = append(requiredTerms, nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms...)
+				}
+				preferredTerms = append(preferredTerms, nodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution...)
+			} else {
+				nodeSelectorTerm := k8score.NodeSelectorTerm{}
+
+				for _, expr := range nodeAffinityTerm.GetMatchExpressions() {
+					nodeSelectorRequirement := k8score.NodeSelectorRequirement{
+						Key:      expr.GetKey(),
+						Operator: k8score.NodeSelectorOperator(expr.GetOperator()),
+						Values:   expr.GetValues(),
+					}
+					nodeSelectorTerm.MatchExpressions = append(nodeSelectorTerm.MatchExpressions, nodeSelectorRequirement)
+				}
+
+				for _, field := range nodeAffinityTerm.GetMatchFields() {
+					nodeSelectorRequirement := k8score.NodeSelectorRequirement{
+						Key:      field.GetKey(),
+						Operator: k8score.NodeSelectorOperator(field.GetOperator()),
+						Values:   field.GetValues(),
+					}
+					nodeSelectorTerm.MatchFields = append(nodeSelectorTerm.MatchFields, nodeSelectorRequirement)
+				}
+
+				if nodeAffinityTerm.Weight != nil {
+					preferredTerms = append(preferredTerms, k8score.PreferredSchedulingTerm{
+						Weight:     *nodeAffinityTerm.Weight,
+						Preference: nodeSelectorTerm,
+					})
+					glog.V(4).Infof("Added preferred node affinity: %+v", nodeSelectorTerm)
+				} else {
+					requiredTerms = append(requiredTerms, nodeSelectorTerm)
+					glog.V(4).Infof("Added required node affinity: %+v", nodeSelectorTerm)
+				}
+
+			}
+		}
+
+		if len(requiredTerms) > 0 || len(preferredTerms) > 0 {
+			if podSpec.Affinity == nil {
+				podSpec.Affinity = &k8score.Affinity{}
+			}
+			podSpec.Affinity.NodeAffinity = &k8score.NodeAffinity{}
+			if len(requiredTerms) > 0 {
+				podSpec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &k8score.NodeSelector{
+					NodeSelectorTerms: requiredTerms,
+				}
+			}
+			if len(preferredTerms) > 0 {
+				podSpec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = preferredTerms
+			}
+		}
+	}
+
 	return nil
 }
 
