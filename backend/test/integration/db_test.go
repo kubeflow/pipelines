@@ -71,6 +71,7 @@ func (s *DBTestSuite) TestInitDBClient_MySQL() {
 		t.Fatalf("failed to open gorm.DB for MySQL: %v", err)
 	}
 	// Verify composite unique constraint and index on the Pipeline model
+	cm.EnsureUniqueCompositeIndex(gdb, &model.Pipeline{}, "namespace_name")
 	verifyCompositeIndex(t, gdb, &model.Pipeline{}, "namespace_name")
 }
 
@@ -99,6 +100,7 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 		t.Fatalf("failed to open gorm.DB for PostgreSQL: %v", err)
 	}
 	// Verify composite unique constraint and index on the Pipeline model
+	cm.EnsureUniqueCompositeIndex(gdb, &model.Pipeline{}, "namespace_name")
 	verifyCompositeIndex(s.T(), gdb, &model.Pipeline{}, "namespace_name")
 }
 
