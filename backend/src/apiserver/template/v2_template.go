@@ -79,6 +79,14 @@ func NewGenericScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.O
 	}, nil
 }
 
+func (t *V2Spec) PipelineSpec() *pipelinespec.PipelineSpec {
+	return t.spec
+}
+
+func (t *V2Spec) PlatformSpec() *pipelinespec.PlatformSpec {
+	return t.platformSpec
+}
+
 // Converts modelJob to ScheduledWorkflow.
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}

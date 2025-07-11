@@ -51,6 +51,8 @@ spec:
                 x-kubernetes-preserve-unknown-fields: true
               pipelineSpecURI:
                 type: string
+              platformSpec:
+                x-kubernetes-preserve-unknown-fields: true
             required:
             - pipelineSpec
             type: object
