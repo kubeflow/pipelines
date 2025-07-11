@@ -1,0 +1,30 @@
+{
+  "platforms": {
+    "kubernetes": {
+      "deploymentSpec": {
+        "executors": {
+          "exec-print-op": {
+            "podMetadata": {
+              "annotations": {
+                "task": "a"
+              },
+              "labels": {
+                "task": "a"
+              }
+            }
+          },
+          "exec-print-op-2": {
+            "podMetadata": {
+              "annotations": {
+                "task": "b"
+              },
+              "labels": {
+                "task": "b"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -7,7 +7,7 @@ spec:
   arguments:
     parameters:
     - name: kubernetes-comp-hello-world
-      value: '{"podMetadata":{"annotations":{"experiment_id":"234567","run_id":"123456"},"labels":{"kubeflow.com/common":"test","kubeflow.com/kfp":"pipeline-node"}}}'
+      value: '{"podMetadata":{"annotations":{"run_id":"123456"},"labels":{"kubeflow.com/kfp":"pipeline-node"}}}'
     - name: components-203fce8adabe0cfa7da54b9d3ff79c772136c926974659b51c378727c7ccdfb7
       value: '{"executorLabel":"exec-hello-world","inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
     - name: implementations-203fce8adabe0cfa7da54b9d3ff79c772136c926974659b51c378727c7ccdfb7
@@ -110,16 +110,28 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: pod-metadata-annotation-key
+            value: '{{inputs.parameters.pod-metadata-annotation-key}}'
+          - name: pod-metadata-annotation-val
+            value: '{{inputs.parameters.pod-metadata-annotation-val}}'
+          - name: pod-metadata-label-key
+            value: '{{inputs.parameters.pod-metadata-label-key}}'
+          - name: pod-metadata-label-val
+            value: '{{inputs.parameters.pod-metadata-label-val}}'
         name: executor
-        template: system-container-impl
+        template: metadata-system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
     inputs:
       parameters:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - name: pod-metadata-annotation-key
+      - name: pod-metadata-annotation-val
+      - name: pod-metadata-label-key
+      - name: pod-metadata-label-val
     metadata: {}
-    name: system-container-executor
+    name: metadata-system-container-executor
     outputs: {}
   - container:
       command:
@@ -175,14 +187,16 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
+      - name: pod-metadata-annotation-key
+      - name: pod-metadata-annotation-val
+      - name: pod-metadata-label-key
+      - name: pod-metadata-label-val
     metadata:
       annotations:
-        experiment_id: "234567"
-        run_id: "123456"
+        '{{inputs.parameters.pod-metadata-annotation-key}}': '{{inputs.parameters.pod-metadata-annotation-val}}'
       labels:
-        kubeflow.com/common: test
-        kubeflow.com/kfp: pipeline-node
-    name: system-container-impl
+        '{{inputs.parameters.pod-metadata-label-key}}': '{{inputs.parameters.pod-metadata-label-val}}'
+    name: metadata-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     volumes:
@@ -225,9 +239,17 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.hello-world-driver.outputs.parameters.cached-decision}}'
+          - name: pod-metadata-annotation-key
+            value: 'run_id'
+          - name: pod-metadata-annotation-val
+            value: '123456'
+          - name: pod-metadata-label-key
+            value: 'kubeflow.com/kfp'
+          - name: pod-metadata-label-val
+            value: 'pipeline-node'
         depends: hello-world-driver.Succeeded
         name: hello-world
-        template: system-container-executor
+        template: metadata-system-container-executor
     inputs:
       parameters:
       - name: parent-dag-id

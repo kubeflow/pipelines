@@ -1,0 +1,171 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-print-op": {
+        "executorLabel": "exec-print-op",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "parameterType": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-op-2": {
+        "executorLabel": "exec-print-op-2",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "parameterType": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-op-3": {
+        "executorLabel": "exec-print-op-3",
+        "inputDefinitions": {
+          "parameters": {
+            "input": {
+              "parameterType": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-print-op": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "print_op"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_op(input: str):\n    print(input)\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        },
+        "exec-print-op-2": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "print_op"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_op(input: str):\n    print(input)\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        },
+        "exec-print-op-3": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "print_op"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef print_op(input: str):\n    print(input)\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "create-pod-metadata-two-component"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "print-op": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-print-op"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "runtimeValue": {
+                    "constant": "task-a"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "print-op"
+            }
+          },
+          "print-op-2": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-print-op-2"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "runtimeValue": {
+                    "constant": "task-b"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "print-op-2"
+            }
+          },
+          "print-op-3": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-print-op-3"
+            },
+            "inputs": {
+              "parameters": {
+                "input": {
+                  "runtimeValue": {
+                    "constant": "task-c"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "print-op-3"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-2.13.0"
+  }
+}
