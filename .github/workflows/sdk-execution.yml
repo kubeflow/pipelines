@@ -69,15 +69,9 @@ jobs:
         run: kubectl -n kubeflow port-forward service/minio-service 9000:9000 &
         continue-on-error: true
 
-      - name: apt-get update
-        id: apt-get-update
-        if: ${{ steps.forward-minio-port.outcome == 'success' }}
-        run: sudo apt-get update
-
       - name: Install protobuf-compiler
         id: install-protobuf-compiler
-        if: ${{ steps.apt-get-update.outcome == 'success' }}
-        run: sudo apt-get install protobuf-compiler -y
+        run: sudo apt update && sudo apt install -y protobuf-compiler
 
       - name: Install setuptools
         id: install-setuptools
