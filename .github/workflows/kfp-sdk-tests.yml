@@ -28,7 +28,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install protobuf-compiler
-      run: sudo apt-get install protobuf-compiler -y
+      run: sudo apt update && sudo apt install -y protobuf-compiler
 
     - name: Install Wheel & setuptools
       run: pip3 install wheel==0.42.0 setuptools
