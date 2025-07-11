@@ -27,6 +27,9 @@ import (
 	"strings"
 	"sync"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -208,7 +211,17 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	if err != nil {
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
-	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
+
+	grpc_prometheus.EnableHandlingTimeHistogram(
+		grpc_prometheus.WithHistogramBuckets([]float64{
+			0.01, 0.03, 0.1, 0.3, 1, 3, 10, 15, 30, 60, 120, 300, //10 ms -> 5 min
+		}),
+	)
+	m := grpc_middleware.WithUnaryServerChain(
+		apiServerInterceptor,
+		grpc_prometheus.UnaryServerInterceptor,
+	)
+	s := grpc.NewServer(m, grpc.MaxRecvMsgSize(math.MaxInt32))
 
 	sharedExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
 	sharedPipelineServer := server.NewPipelineServer(
