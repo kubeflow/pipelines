@@ -24,7 +24,7 @@ NAME = 'kfp'
 # accordingly.
 REQUIRES = [
     'absl-py>=0.9,<2',
-    'PyYAML>=5.3,<7',
+    'PyYAML>=6,<7',
     # Pin google-api-core version for the bug fixing in 1.31.5
     # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
     'google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0',
