@@ -1,0 +1,16 @@
+name: Build images from sources and push to master.
+run-name: Build images for master
+on:
+  push:
+    branches:
+      - master
+jobs:
+  image-builds:
+    uses: ./.github/workflows/image-builds.yml
+    with:
+      src_branch: master
+      target_tag: master
+      fail_fast: true
+      overwrite_imgs: true
+      set_latest: false
+      add_sha_tag: 'false'

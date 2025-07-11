@@ -1,0 +1,198 @@
+name: Build images from sources.
+run-name: Build images
+on:
+  workflow_call:
+    inputs:
+      src_branch:
+        type: string
+        default: 'release-X.Y'
+        description: 'Source branch to build KFP from'
+        required: true
+      target_tag:
+        type: string
+        default: 'X.Y.Z'
+        description: 'Target Image Tag'
+        required: true
+      fail_fast:
+        type: string
+        default: 'true'
+        description: 'Stop running entire Workflow if a single build fails'
+        required: true
+      overwrite_imgs:
+        type: string
+        default: 'true'
+        description: 'Overwrite images in GHCR if they already exist for this tag.'
+        required: true
+      set_latest:
+        type: string
+        default: 'true'
+        description: 'Set latest tag on build images.'
+        required: true
+      add_sha_tag:
+        type: string
+        default: 'true'
+        description: 'Add a sha image tag.'
+        required: false
+  workflow_dispatch:
+    inputs:
+      src_branch:
+        type: string
+        default: 'release-X.Y'
+        description: 'Source branch to build KFP from'
+        required: true
+      target_tag:
+        type: string
+        default: 'X.Y.Z'
+        description: 'Target Image Tag'
+        required: true
+      fail_fast:
+        type: string
+        default: 'true'
+        description: 'Stop running entire Workflow if a single build fails'
+        required: true
+      overwrite_imgs:
+        type: string
+        default: 'true'
+        description: 'Overwrite images in GHCR if they already exist for this tag.'
+        required: true
+      set_latest:
+        type: string
+        default: 'true'
+        description: 'Set latest tag on build images.'
+        required: true
+      add_sha_tag:
+        type: string
+        default: 'true'
+        description: 'Add a sha image tag.'
+        required: false
+env:
+  SOURCE_BRANCH: ${{ inputs.src_branch }}
+  TARGET_IMAGE_TAG: ${{ inputs.target_tag }}
+  OVERWRITE_IMAGES: ${{ inputs.overwrite_imgs }}
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_ORG: ${{ github.repository_owner }}
+  SET_LATEST: ${{ inputs.set_latest }}
+  ADD_SHA_TAG: ${{ inputs.add_sha_tag }}
+jobs:
+  build-images-with-tag:
+    continue-on-error: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    strategy:
+      fail-fast: ${{ inputs.fail_fast == 'true' }}
+      matrix:
+        include:
+          - image: kfp-api-server
+            dockerfile: backend/Dockerfile
+            context: .
+          - image: kfp-frontend
+            dockerfile: frontend/Dockerfile
+            context: .
+          - image: kfp-persistence-agent
+            dockerfile: backend/Dockerfile.persistenceagent
+            context: .
+          - image: kfp-scheduled-workflow-controller
+            dockerfile: backend/Dockerfile.scheduledworkflow
+            context: .
+          - image: kfp-viewer-crd-controller
+            dockerfile: backend/Dockerfile.viewercontroller
+            context: .
+          - image: kfp-visualization-server
+            dockerfile: backend/Dockerfile.visualization
+            context: .
+          - image: kfp-launcher
+            dockerfile: backend/Dockerfile.launcher
+            context: .
+          - image: kfp-driver
+            dockerfile: backend/Dockerfile.driver
+            context: .
+          - image: kfp-cache-deployer
+            dockerfile: backend/src/cache/deployer/Dockerfile
+            context: .
+          - image: kfp-cache-server
+            dockerfile: backend/Dockerfile.cacheserver
+            context: .
+          - image: kfp-metadata-writer
+            dockerfile: backend/metadata_writer/Dockerfile
+            context: .
+          - image: kfp-metadata-envoy
+            dockerfile: third_party/metadata_envoy/Dockerfile
+            context: .
+          - image: kfp-inverse-proxy-agent
+            dockerfile: proxy/Dockerfile
+            context: ./proxy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{env.SOURCE_BRANCH}}
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if image tag already exists
+        id: check_tag
+        env:
+          IMAGE: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ matrix.image }}:${{env.TARGET_IMAGE_TAG}}
+          OVERWRITE: ${{ env.OVERWRITE_IMAGES }}
+        run: |
+          if docker manifest inspect ${IMAGE} > /dev/null 2>&1; then
+            echo "Image tag already exists!"
+            if [ "$OVERWRITE" == "false" ]; then
+              echo "Overwrite is set to false, exiting."
+              exit 1
+            else
+              echo "Overwrite is set to true, proceeding with push."
+            fi
+          else
+            echo "No tag conflict, safe to push."
+          fi
+
+      # This step uses docker/metadata-action to extract tags and labels
+      # that will be applied to the specified image. The id "meta" allows
+      # the output of this step to be referenced in a subsequent step.
+      # The images value provides the base name for the tags and labels.
+      - name: Extract metadata (tags, labels) for Build
+        id: meta
+        uses: docker/metadata-action@v5
+        if: steps.check_tag.outcome == 'success'
+        with:
+          images: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ matrix.image }}
+          tags: |
+            type=raw,value=${{env.TARGET_IMAGE_TAG}}
+            type=raw,value=latest,enable=${{ env.SET_LATEST == 'true'}}
+            type=sha,enable=${{ env.ADD_SHA_TAG == 'true' }}
+
+      # Build the image. If the build succeeds, it pushes the image to GitHub
+      # Packages. It uses the context parameter to define the build's context
+      # as the set of files located in the specified path.
+      - name: Build and push Image
+        id: push
+        uses: docker/build-push-action@v6
+        if: steps.check_tag.outcome == 'success'
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # This step generates an artifact attestation for the image,
+      # which is an unforgeable statement about where and how it was built.
+      # It increases supply chain security for people who consume the
+      # image.
+      # Ref: https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v1
+        if: steps.check_tag.outcome == 'success'
+        with:
+          subject-name: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ matrix.image }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+
