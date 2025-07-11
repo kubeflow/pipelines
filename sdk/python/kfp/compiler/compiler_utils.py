@@ -15,7 +15,7 @@
 
 import collections
 import copy
-from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
+from typing import Any, DefaultDict, Dict, List, Mapping, Set, Tuple, Union
 
 from kfp import dsl
 from kfp.dsl import constants
@@ -777,15 +777,16 @@ def get_dependencies(
     return dependencies
 
 
-def recursive_replace_placeholders(data: Union[Dict, List], old_value: str,
-                                   new_value: str) -> Union[Dict, List]:
-    """Recursively replaces values in a nested dict/list object.
+def recursive_replace_placeholders(data: Any, old_value: str,
+                                   new_value: str) -> Union[Dict, List, str]:
+    """Replaces the given data. If the data is a dict/list object, it
+    recursively replaces values in it.
 
     This method is used to replace PipelineChannel objects with input parameter
     placeholders in a nested object like worker_pool_specs for custom jobs.
 
     Args:
-        data: A nested object that can contain dictionaries and/or lists.
+        data: An object, which could be a nested object including dictionaries and lists.
         old_value: The value that will be replaced.
         new_value: The value to replace the old value with.
 
@@ -805,7 +806,10 @@ def recursive_replace_placeholders(data: Union[Dict, List], old_value: str,
     else:
         if isinstance(data, pipeline_channel.PipelineChannel):
             data = str(data)
-        return new_value if data == old_value else data
+        if isinstance(data, str):
+            return data.replace(old_value, new_value)
+        else:
+            return data
 
 
 # Note that cpu_to_float assumes the string has already been validated by the _validate_cpu_request_limit method.
