@@ -1,3 +1,6 @@
+SHELL := /bin/bash
+
+include ./Makefile.setup.mk
 
 # Check diff for generated files
 .PHONY: check-diff
@@ -11,3 +14,9 @@ check-diff:
 		git diff; \
 		exit 1; \
 	fi'
+
+.PHONY: test-frontend
+test-frontend:
+	npm cache clean --force && \
+	cd ./frontend && npm ci && \
+	npm run test:ci
