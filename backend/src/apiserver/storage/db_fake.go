@@ -15,6 +15,9 @@
 package storage
 
 import (
+	"database/sql"
+	"fmt"
+
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -22,11 +25,23 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func NewFakeDB() (*DB, error) {
+func NewInMemoryTestDB() (*DB, error) {
 	// Initialize GORM
 	db, err := gorm.Open("sqlite3", ":memory:")
 	if err != nil {
 		return nil, util.Wrap(err, "Could not create the GORM database")
+	}
+	// Create tables
+	dbWithMigration, err := migrate(db)
+	if err != nil {
+		return nil, util.Wrap(err, "Could not migrate the database")
+	}
+	return NewDB(dbWithMigration, NewSQLiteDialect()), nil
+}
+
+func migrate(db *gorm.DB) (*sql.DB, error) {
+	if db == nil {
+		return nil, fmt.Errorf("db cannot be nil")
 	}
 	// Create tables
 	db.AutoMigrate(
@@ -41,13 +56,13 @@ func NewFakeDB() (*DB, error) {
 		&model.DBStatus{},
 		&model.DefaultExperiment{},
 	)
-	return NewDB(db.DB(), NewSQLiteDialect()), nil
+	return db.DB(), nil
 }
 
 func NewFakeDBOrFatal() *DB {
-	db, err := NewFakeDB()
+	db, err := NewInMemoryTestDB()
 	if err != nil {
-		glog.Fatalf("The fake DB doesn't create successfully. Fail fast")
+		glog.Fatalf("The fake DB doesn't create successfully. Fail fast: %v", err)
 	}
 	return db
 }
