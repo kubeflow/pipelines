@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { CircularProgress } from '@material-ui/core';
+import { CircularProgress } from '@mui/material';
 import React, { Component } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
@@ -43,7 +43,7 @@ import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { color, commonCss, padding } from '../Css';
-import { logger, serviceErrorToString } from '../lib/Utils';
+import { ensureError, ensureServiceError, logger, serviceErrorToString } from '../lib/Utils';
 import { Page, PageErrorHandler } from './Page';
 
 interface ExecutionDetailsState {
@@ -57,7 +57,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
   public state: ExecutionDetailsState = {};
 
   private get id(): number {
-    return parseInt(this.props.match.params[RouteParams.ID], 10);
+    return parseInt((this.props.match.params as any)[RouteParams.ID], 10);
   }
 
   public render(): JSX.Element {
@@ -246,7 +246,12 @@ export class ExecutionDetailsContent extends Component<
         executionType,
       });
     } catch (err) {
-      this.props.onError(serviceErrorToString(err), err, 'error', this.refresh);
+      this.props.onError(
+        serviceErrorToString(ensureServiceError(err)),
+        ensureError(err),
+        'error',
+        this.refresh,
+      );
     }
   };
 }
@@ -308,7 +313,7 @@ class SectionIO extends Component<
     try {
       const linkedArtifacts = await getLinkedArtifactsByEvents(this.props.events);
 
-      const artifactDataMap = {};
+      const artifactDataMap: Record<number, ArtifactInfo> = {};
       linkedArtifacts.forEach(linkedArtifact => {
         const id = linkedArtifact.event.getArtifactId();
         if (!id) {
@@ -317,7 +322,7 @@ class SectionIO extends Component<
         }
         artifactDataMap[id] = {
           id,
-          name: getArtifactName(linkedArtifact),
+          name: getArtifactName(linkedArtifact) || '',
           typeId: linkedArtifact.artifact.getTypeId(),
           uri: linkedArtifact.artifact.getUri() || '',
         };

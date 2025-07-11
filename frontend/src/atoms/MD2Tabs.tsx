@@ -15,8 +15,8 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
-import Tooltip from '@material-ui/core/Tooltip';
+import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import Separator from './Separator';
 import { color, fontsize } from '../Css';
 import { classes, stylesheet } from 'typestyle';

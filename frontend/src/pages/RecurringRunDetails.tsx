@@ -34,7 +34,11 @@ interface RecurringRunConfigState {
   run: ApiJob | null;
 }
 
-class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
+class RecurringRunDetails extends Page<
+  {},
+  RecurringRunConfigState,
+  { [RouteParams.recurringRunId]: string }
+> {
   constructor(props: any) {
     super(props);
 

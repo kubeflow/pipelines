@@ -17,11 +17,11 @@
 import * as React from 'react';
 import 'brace';
 import BusyButton from '../../atoms/BusyButton';
-import FormControl from '@material-ui/core/FormControl';
+import FormControl from '@mui/material/FormControl';
 import Input from '../../atoms/Input';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Editor from '../Editor';
 import Viewer, { ViewerConfig } from './Viewer';
 import { ApiVisualizationType } from '../../apis/visualization';
@@ -29,7 +29,7 @@ import 'brace/ext/language_tools';
 import 'brace/mode/json';
 import 'brace/mode/python';
 import 'brace/theme/github';
-import Button from '@material-ui/core/Button';
+import Button from '@mui/material/Button';
 
 export interface VisualizationCreatorConfig extends ViewerConfig {
   allowCustomVisualizations?: boolean;
@@ -115,14 +115,17 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
               minHeight: 60,
               width: '100%',
             }}
-            onChange={(e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+            onChange={(e: SelectChangeEvent<ApiVisualizationType>) => {
               this.setState({ selectedType: e.target.value as ApiVisualizationType });
             }}
             disabled={isBusy}
           >
             {this.getAvailableTypes(allowCustomVisualizations).map((key: string) => (
-              <MenuItem key={key} value={ApiVisualizationType[key]}>
-                {ApiVisualizationType[key]}
+              <MenuItem
+                key={key}
+                value={ApiVisualizationType[key as keyof typeof ApiVisualizationType]}
+              >
+                {ApiVisualizationType[key as keyof typeof ApiVisualizationType]}
               </MenuItem>
             ))}
           </Select>

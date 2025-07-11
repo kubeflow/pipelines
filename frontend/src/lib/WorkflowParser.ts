@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import MoreIcon from '@material-ui/icons/MoreHoriz';
+import MoreIcon from '@mui/icons-material/MoreHoriz';
 import * as dagre from 'dagre';
 import { NodeStatus, Parameter, S3Artifact, Workflow } from '../third_party/mlmd/argo_template';
 import IconWithTooltip from '../atoms/IconWithTooltip';
@@ -28,6 +28,7 @@ import { isS3Endpoint } from './AwsHelper';
 import { Execution } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { isV2Pipeline } from './v2/WorkflowUtils';
 import { ExecutionHelpers } from 'src/mlmd/MlmdUtils';
+import { AdditionalNodeData } from 'src/components/Graph';
 
 export enum StorageService {
   GCS = 'gcs',
@@ -48,9 +49,9 @@ export default class WorkflowParser {
   public static createRuntimeGraph(
     workflow: Workflow,
     executions: Execution[] | undefined,
-  ): dagre.graphlib.Graph {
+  ): dagre.graphlib.Graph<AdditionalNodeData> {
     const nodeStateMap = buildNodeToExecutionStateMap(executions);
-    const g = new dagre.graphlib.Graph();
+    const g = new dagre.graphlib.Graph<AdditionalNodeData>();
     g.setGraph({});
     g.setDefaultEdgeLabel(() => ({}));
 

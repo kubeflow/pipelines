@@ -35,7 +35,7 @@ import Buttons from '../lib/Buttons';
 import CompareUtils from '../lib/CompareUtils';
 import { OutputArtifactLoader } from '../lib/OutputArtifactLoader';
 import { URLParser } from '../lib/URLParser';
-import { logger } from '../lib/Utils';
+import { ensureError, logger } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { Page, PageProps } from './Page';
 import RunList from './RunList';
@@ -55,7 +55,7 @@ export interface TaggedViewerConfig {
 }
 
 export interface CompareState {
-  collapseSections: { [key: string]: boolean };
+  collapseSections: Record<string, boolean>;
   fullscreenViewerConfig: PlotCardProps | null;
   paramsCompareProps: CompareTableProps;
   metricsCompareProps: CompareTableProps;
@@ -236,7 +236,7 @@ class CompareV1 extends Page<{}, CompareState> {
           workflowObjects.push(JSON.parse(run.pipeline_runtime!.workflow_manifest || '{}'));
         } catch (err) {
           failingRuns.push(id);
-          lastError = err;
+          lastError = ensureError(err);
         }
       }),
     );
@@ -309,13 +309,13 @@ class CompareV1 extends Page<{}, CompareState> {
   }
 
   private _collapseAllSections(): void {
-    const collapseSections = {
+    const collapseSections: Record<string, boolean> = {
       [OVERVIEW_SECTION_NAME]: true,
       [PARAMS_SECTION_NAME]: true,
       [METRICS_SECTION_NAME]: true,
     };
     Array.from(this.state.viewersMap.keys()).forEach(t => {
-      const sectionName = componentMap[t].prototype.getDisplayName();
+      const sectionName: string = componentMap[t].prototype.getDisplayName();
       collapseSections[sectionName] = true;
     });
     this.setState({ collapseSections });
