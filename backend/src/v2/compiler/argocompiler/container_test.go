@@ -61,7 +61,7 @@ func TestAddContainerExecutorTemplate(t *testing.T) {
 				},
 			}
 
-			c.addContainerExecutorTemplate(&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}})
+			c.addContainerExecutorTemplate(&pipelinespec.PipelineTaskSpec{ComponentRef: &pipelinespec.ComponentRef{Name: "comp-test-ref"}}, &kubernetesplatform.KubernetesExecutorConfig{})
 			assert.NotEmpty(t, "system-container-impl", "Template name should not be empty")
 
 			executorTemplate, exists := c.templates["system-container-impl"]
@@ -120,10 +120,10 @@ func Test_extendPodMetadata(t *testing.T) {
 			},
 			&wfapi.Metadata{
 				Annotations: map[string]string{
-					"run_id": "123456",
+					"{{inputs.parameters.pod-metadata-annotation-key}}": "{{inputs.parameters.pod-metadata-annotation-val}}",
 				},
 				Labels: map[string]string{
-					"kubeflow.com/kfp": "pipeline-node",
+					"{{inputs.parameters.pod-metadata-label-key}}": "{{inputs.parameters.pod-metadata-label-val}}",
 				},
 			},
 		},
@@ -149,9 +149,11 @@ func Test_extendPodMetadata(t *testing.T) {
 			},
 			&wfapi.Metadata{
 				Annotations: map[string]string{
+					"{{inputs.parameters.pod-metadata-annotation-key}}": "{{inputs.parameters.pod-metadata-annotation-val}}",
 					"run_id": "654321",
 				},
 				Labels: map[string]string{
+					"{{inputs.parameters.pod-metadata-label-key}}": "{{inputs.parameters.pod-metadata-label-val}}",
 					"kubeflow.com/kfp": "default-node",
 				},
 			},
