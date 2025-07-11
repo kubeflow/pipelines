@@ -15,7 +15,6 @@ package webhook
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -91,18 +90,13 @@ func (p *PipelineVersionsWebhook) ValidateCreate(
 		return nil, newBadRequestError(fmt.Sprintf("Expected a PipelineVersion object but got %T", pipelineVersion))
 	}
 
-	_, err := p.getPipeline(ctx, pipelineVersion.Namespace, pipelineVersion.Spec.PipelineName)
+	modelPipelineVersion, err := pipelineVersion.ToModel()
 	if err != nil {
-		return nil, err
-	}
-
-	pipelineSpec, err := json.Marshal(pipelineVersion.Spec.PipelineSpec.Value)
-	if err != nil {
-		return nil, newBadRequestError(fmt.Sprintf("The pipeline spec is invalid JSON: %v", err))
+		return nil, newBadRequestError(fmt.Sprintf("The pipeline spec is invalid: %v", err))
 	}
 
 	// cache enabled or not doesn't matter in this context
-	tmpl, err := template.NewV2SpecTemplate(pipelineSpec, false)
+	tmpl, err := template.NewV2SpecTemplate([]byte(modelPipelineVersion.PipelineSpec), false)
 	if err != nil {
 		return nil, newBadRequestError(fmt.Sprintf("The pipeline spec is invalid: %v", err))
 	}
