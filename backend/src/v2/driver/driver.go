@@ -65,6 +65,8 @@ type Options struct {
 	PublishLogs string
 
 	CacheDisabled bool
+
+	DriverType string
 }
 
 // Identifying information used for error messages
