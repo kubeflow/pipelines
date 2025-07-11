@@ -18,6 +18,7 @@ source_root=$(pwd)
 python3 -m pip install --upgrade pip
 python3 -m pip install coverage==4.5.4 coveralls==1.9.2
 python3 -m pip install mock # TODO: Remove when added to requirements
+python3 -m pip install "cython<3.0.0" && pip install --no-build-isolation pyyaml==6.0 # Fixes this bug: https://github.com/yaml/pyyaml/issues/724
 python3 -m pip install -r "$source_root/sdk/python/requirements-test.txt"
 python3 -m pip install --upgrade protobuf
 

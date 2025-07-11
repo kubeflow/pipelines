@@ -24,7 +24,7 @@ NAME = 'kfp'
 # accordingly.
 REQUIRES = [
     'absl-py>=0.9,<2',
-    'PyYAML>=5.3,<7',
+    'PyYAML>=6,<7',
     # Pin google-api-core version for the bug fixing in 1.31.5
     # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
     'google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0',
@@ -50,9 +50,9 @@ REQUIRES = [
     'Deprecated>=1.2.7,<2',
     'strip-hints>=0.1.8,<1',
     'docstring-parser>=0.7.3,<1',
-    'kfp-pipeline-spec>=0.1.16,<0.2.0',
+    'kfp-pipeline-spec~=0.7.0',
     'fire>=0.3.1,<1',
-    'protobuf>=3.13.0,<4',
+    'protobuf~=4.25.8',
     'uritemplate>=3.0.1,<4',
     # pin to avoid break in requests-toolbelt due to https://github.com/psf/requests/commit/2ad18e0e10e7d7ecd5384c378f25ec8821a10a29
     'urllib3<2',
