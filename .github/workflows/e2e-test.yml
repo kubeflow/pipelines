@@ -440,7 +440,7 @@ jobs:
 
       - name: Install protobuf-compiler
         id: install-protobuf-compiler
-        run: sudo apt-get install protobuf-compiler -y
+        run: sudo apt update && sudo apt install -y protobuf-compiler
 
       - name: Install Wheel
         id: install-wheel
