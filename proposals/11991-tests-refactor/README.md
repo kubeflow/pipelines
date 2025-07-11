@@ -46,7 +46,8 @@ This proposal outlines changes to our testing approach, emphasizing improved tes
 1. We will not initially cover components that users can not directly interact with . For e.g. “Launcher/Executor”, "Driver", we will still add indirect coverage for this pipeline service/component but until we have a direct way to interact with this, direct functional coverage will be out of scope.
 2. Stable third-party dependencies, such as Argo Workflows, will not be included in this initiative.
 3. Front End Tests will not be refactored
-4. AI-generated pipeline specs (using Gemini, ChatGPT, or Cursor) may not be included as part of this
+4. [Semi Exploratory E2E tests](#semi-exploratory-tests) will not be considered in this effort
+5. AI-generated pipeline specs (using Gemini, ChatGPT, or Cursor) will not be included as part of this
 
 # Proposal
 This section describes the proposed changes to our current testing processes and supporting test architecture. These changes aim to improve the quality, reliability, and speed of our testing, leading to better product outcomes.
