@@ -419,6 +419,8 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
 
+	db = db.Debug() // 打开打印 SQL
+
 	// If pipeline_versions table is introduced into DB for the first time,
 	// it needs initialization or data backfill.
 	var tableNames []string
@@ -475,23 +477,31 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		&model.ResourceReference{},
 	)
 
+	// Ensure Task large-text fields use LONGTEXT/TEXT as per GormDBDataType
+	for _, col := range []string{"Payload", "MLMDInputs", "MLMDOutputs", "ChildrenPodsString", "StateHistoryString"} {
+		if err := db.Migrator().AlterColumn(&model.Task{}, col); err != nil {
+			glog.Fatalf("Failed to alter column %s in tasks table: %v", col, err)
+		}
+		glog.Infof(">> Task columns altered successfully")
+	}
+
 	if ignoreAlreadyExistError(driverName, response) != nil {
 		glog.Fatalf("Failed to initialize the databases. Error: %s", response.Error)
 	}
 
-	response = db.Migrator().DropIndex(&model.Experiment{}, "Name")
-	if response != nil {
-		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", response)
+	err = db.Migrator().DropIndex(&model.Experiment{}, "Name")
+	if err != nil {
+		glog.Fatalf("Failed to drop unique key on experiment name. Error: %s", err)
 	}
 
-	response = db.Migrator().DropIndex(&model.Pipeline{}, "Name")
-	if response != nil {
-		glog.Fatalf("Failed to drop unique key on pipeline name. Error: %s", response)
+	err = db.Migrator().DropIndex(&model.Pipeline{}, "Name")
+	if err != nil {
+		glog.Fatalf("Failed to drop unique key on pipeline name. Error: %s", err)
 	}
 
-	response = db.Migrator().AlterColumn(&model.ResourceReference{}, "Payload")
-	if response != nil {
-		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", response)
+	err = db.Migrator().AlterColumn(&model.ResourceReference{}, "Payload")
+	if err != nil {
+		glog.Fatalf("Failed to update the resource reference payload type. Error: %s", err)
 	}
 
 	// Manual AddForeignKey() and AddIndex() calls have been removed.

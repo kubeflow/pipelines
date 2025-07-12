@@ -14,17 +14,22 @@
 
 package model
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
+)
 
-// LongTextByDialect returns the correct database column type for large text
-// fields according to the current GORM dialector.
-// For MySQL it returns "longtext", and for PostgreSQL it returns "text".
-func LongTextByDialect(db *gorm.DB) string {
-	switch db.Name() {
+// LargeText is a custom data type defined per GORM's recommendation for dialect-aware
+// large-text columns. It implements GormDBDataTypeInterface to return the appropriate
+// SQL type for each dialect (e.g., LONGTEXT for MySQL, TEXT for others).
+// For details, see https://gorm.io/docs/data_types.html#GormDataTypeInterface
+type LargeText string
+
+func (LargeText) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	switch db.Dialector.Name() {
 	case "mysql":
-		return "longtext"
-	case "postgres", "pgx":
-		return "text"
+		return "LONGTEXT"
+	default:
+		return "TEXT"
 	}
-	return ""
 }

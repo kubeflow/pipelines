@@ -16,9 +16,6 @@ package model
 
 import (
 	"fmt"
-
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 // PipelineStatus a label for the status of the Pipeline.
@@ -41,25 +38,17 @@ type Pipeline struct {
 	// MySQL uses utf8mb4 encoding by default, where each character can take up to 4 bytes.
 	// In the worst case: 63 (namespace) * 4 + 128 (name) * 4 = 764 bytes ≤ 767 bytes.
 	// https://dev.mysql.com/doc/refman/8.4/en/column-indexes.html
-	Name        string `gorm:"column:Name; not null; uniqueIndex:namespace_name; type:varchar(128);"` // Index improves performance of the List and Get queries
-	DisplayName string `gorm:"column:DisplayName; not null"`
-	Description string `gorm:"column:Description;"` // this column will be stored as longtext;
+	Name        string    `gorm:"column:Name; not null; uniqueIndex:namespace_name; type:varchar(128);"` // Index improves performance of the List and Get queries
+	DisplayName string    `gorm:"column:DisplayName; not null"`
+	Description LargeText `gorm:"column:Description;"` // this column will be stored as longtext;
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	Parameters string         `gorm:"column:Parameters;"` // this column will be stored as longtext;
+	Parameters LargeText      `gorm:"column:Parameters;"` // this column will be stored as longtext;
 	Status     PipelineStatus `gorm:"column:Status; not null;"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	DefaultVersionId string `gorm:"column:DefaultVersionId;"` // deprecated
 	// Namespace is restricted to VARCHAR(63) due to Kubernetes' naming constraints:
 	// https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
 	Namespace string `gorm:"column:Namespace; uniqueIndex:namespace_name; type:varchar(63);"`
-}
-
-func (Pipeline) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	switch field.Name {
-	case "Description", "Parameters":
-		return LongTextByDialect(db)
-	}
-	return ""
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {

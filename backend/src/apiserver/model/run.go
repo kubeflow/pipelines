@@ -16,9 +16,6 @@ package model
 
 import (
 	"strings"
-
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 type (
@@ -311,39 +308,23 @@ type RunDetails struct {
 	// Conditions were deprecated. Use State instead.
 	Conditions         string           `gorm:"column:Conditions; type:varchar(191); not null;  index:experimentuuid_conditions_finishedatinsec,priority:2;index:namespace_conditions_finishedatinsec,priority:2"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString string           `gorm:"column:StateHistory; default:null;"`
+	StateHistoryString LargeText        `gorm:"column:StateHistory; default:null;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	// Serialized runtime details of a run in v2beta1
-	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null;"`
+	PipelineRuntimeManifest LargeText `gorm:"column:PipelineRuntimeManifest; not null;"`
 	// Serialized Argo CRD in v1beta1
-	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null;"`
-	PipelineContextId       int64  `gorm:"column:PipelineContextId; default:0;"`
-	PipelineRunContextId    int64  `gorm:"column:PipelineRunContextId; default:0;"`
+	WorkflowRuntimeManifest LargeText `gorm:"column:WorkflowRuntimeManifest; not null;"`
+	PipelineContextId       int64     `gorm:"column:PipelineContextId; default:0;"`
+	PipelineRunContextId    int64     `gorm:"column:PipelineRunContextId; default:0;"`
 	TaskDetails             []*Task
 }
-
-func (RunDetails) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	switch field.Name {
-	case "StateHistoryString", "PipelineRuntimeManifest", "WorkflowRuntimeManifest":
-		return LongTextByDialect(db)
-	}
-	return ""
-}
-
 type RunMetric struct {
-	RunUUID     string  `gorm:"column:RunUUID; not null; primaryKey;"`
-	NodeID      string  `gorm:"column:NodeID; not null; primaryKey;"`
-	Name        string  `gorm:"column:Name; not null; primaryKey;"`
-	NumberValue float64 `gorm:"column:NumberValue;"`
-	Format      string  `gorm:"column:Format;"`
-	Payload     string  `gorm:"column:Payload; not null;"`
-}
-
-func (RunMetric) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	if field.Name == "Payload" {
-		return LongTextByDialect(db)
-	}
-	return ""
+	RunUUID     string    `gorm:"column:RunUUID; not null; primaryKey;"`
+	NodeID      string    `gorm:"column:NodeID; not null; primaryKey;"`
+	Name        string    `gorm:"column:Name; not null; primaryKey;"`
+	NumberValue float64   `gorm:"column:NumberValue;"`
+	Format      string    `gorm:"column:Format;"`
+	Payload     LargeText `gorm:"column:Payload; not null;"`
 }
 
 type RuntimeStatus struct {

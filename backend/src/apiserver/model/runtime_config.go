@@ -14,25 +14,12 @@
 
 package model
 
-import (
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
-)
-
 type RuntimeConfig struct {
 	// Store parameters key-value pairs as serialized string.
-	Parameters string `gorm:"column:RuntimeParameters;"`
+	Parameters LargeText `gorm:"column:RuntimeParameters;"`
 
 	// A path in a object store bucket which will be treated as the root
 	// output directory of the pipeline. It is used by the system to
 	// generate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
-	PipelineRoot string `gorm:"column:PipelineRoot;"`
-}
-
-func (RuntimeConfig) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	switch field.Name {
-	case "Parameters", "PipelineRoot":
-		return LongTextByDialect(db)
-	}
-	return ""
+	PipelineRoot LargeText `gorm:"column:PipelineRoot;"`
 }
