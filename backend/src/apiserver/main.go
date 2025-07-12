@@ -27,6 +27,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 
 	"github.com/fsnotify/fsnotify"
@@ -218,6 +220,8 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 			}),
 		),
 	)
+
+	prometheus.MustRegister(metrics)
 
 	s := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(

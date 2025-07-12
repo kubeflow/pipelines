@@ -1,6 +1,6 @@
 ## Metrics
 
-Standard gRPC metrics are available via https://github.com/grpc-ecosystem/go-grpc-prometheus
+Standard gRPC metrics are available via https://github.com/grpc-ecosystem/go-grpc-middleware/tree/main/providers/prometheus
 
 ### Sample
 
