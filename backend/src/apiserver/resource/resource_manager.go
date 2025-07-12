@@ -328,6 +328,7 @@ func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error 
 			if err != nil {
 				return util.Wrapf(err, "Failed to delete pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
 			}
+			glog.Infof("Successfully deleted pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
 		}
 	} else {
 		// Check if it has no pipeline versions in Ready state
