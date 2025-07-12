@@ -16,9 +16,6 @@ package model
 
 import (
 	"fmt"
-
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 // PipelineVersionStatus a label for the status of the Pipeline.
@@ -43,7 +40,7 @@ type PipelineVersion struct {
 	Name        string `gorm:"column:Name; not null; type:varchar(127); uniqueIndex:idx_pipelineid_name;"`
 	DisplayName string `gorm:"column:DisplayName; not null"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	Parameters string `gorm:"column:Parameters; not null;"` // deprecated
+	Parameters string `gorm:"column:Parameters; not null; type:longtext;"` // deprecated
 	// PipelineVersion belongs to Pipeline. If a pipeline with a specific UUID
 	// is deleted from Pipeline table, all this pipeline's versions will be
 	// deleted from PipelineVersion table.
@@ -53,17 +50,9 @@ type PipelineVersion struct {
 	Status     PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.
 	CodeSourceUrl   string `gorm:"column:CodeSourceUrl;"`
-	Description     string `gorm:"column:Description;"`               // the previous comment says the 'size:65535' is set so it will be stored as longtext;
-	PipelineSpec    string `gorm:"column:PipelineSpec; not null;"`    // Same as common.MaxFileLength (32MB in server). Argo imposes 700kB limit
-	PipelineSpecURI string `gorm:"column:PipelineSpecURI; not null;"` // Can store references to ObjectStore files
-}
-
-func (PipelineVersion) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	switch field.Name {
-	case "Parameters", "Description", "PipelineSpec", "PipelineSpecURI":
-		return LongTextByDialect(db)
-	}
-	return ""
+	Description     string `gorm:"column:Description; type:longtext;"`               // the previous comment says the 'size:65535' is set so it will be stored as longtext;
+	PipelineSpec    string `gorm:"column:PipelineSpec; not null; type:longtext;"`    // Same as common.MaxFileLength (32MB in server). Argo imposes 700kB limit
+	PipelineSpecURI string `gorm:"column:PipelineSpecURI; not null; type:longtext;"` // Can store references to ObjectStore files
 }
 
 func (p PipelineVersion) GetValueOfPrimaryKey() string {

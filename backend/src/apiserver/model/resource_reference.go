@@ -168,7 +168,7 @@ type ResourceReference struct {
 	Relationship Relationship `gorm:"column:Relationship; not null;"`
 
 	// JSON-encoded metadata blob about the reference
-	Payload string `gorm:"column:Payload; not null; type:text"`
+	Payload string `gorm:"column:Payload; not null; type: longtext"`
 }
 
 type ReferenceKey struct {

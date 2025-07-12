@@ -16,9 +16,6 @@ package model
 
 import (
 	"encoding/json"
-
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 type Task struct {
@@ -38,22 +35,15 @@ type Task struct {
 	Name               string           `gorm:"column:Name; default:null"`
 	ParentTaskId       string           `gorm:"column:ParentTaskUUID; default:null"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString string           `gorm:"column:StateHistory; default:null; type:text;"`
-	MLMDInputs         string           `gorm:"column:MLMDInputs; default:null; type:text;"`
-	MLMDOutputs        string           `gorm:"column:MLMDOutputs; default:null; type:text;"`
-	ChildrenPodsString string           `gorm:"column:ChildrenPods; default:null; type:text;"`
+	StateHistoryString string           `gorm:"column:StateHistory; default:null; type:longtext;"`
+	MLMDInputs         string           `gorm:"column:MLMDInputs; default:null; type:longtext;"`
+	MLMDOutputs        string           `gorm:"column:MLMDOutputs; default:null; type:longtext;"`
+	ChildrenPodsString string           `gorm:"column:ChildrenPods; default:null; type:longtext;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	ChildrenPods       []string         `gorm:"-;"`
-	Payload            string           `gorm:"column:Payload; default:null; type:text;"`
+	Payload            string           `gorm:"column:Payload; default:null; type:longtext;"`
 }
 
-func (Task) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	switch field.Name {
-	case "StateHistoryString", "MLMDInputs", "MLMDOutputs", "ChildrenPodsString", "Payload":
-		return LongTextByDialect(db)
-	}
-	return ""
-}
 func (t Task) ToString() string {
 	task, err := json.Marshal(t)
 	if err != nil {
