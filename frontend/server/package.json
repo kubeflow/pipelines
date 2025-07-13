@@ -7,7 +7,7 @@
     "@kubernetes/client-node": "^0.12.1",
     "axios": ">=1.8.2",
     "crypto-js": "^3.1.8",
-    "express": "^4.21.0",
+    "express": "^5.1.0",
     "gunzip-maybe": "^1.4.1",
     "http-proxy-middleware": "^0.18.0",
     "lodash": ">=4.17.21",
