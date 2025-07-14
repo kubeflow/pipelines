@@ -30,6 +30,7 @@ spec:
         - '-dir=/data'
         - '-s3'
         - '-iam'
+        - '-filer'
         ports:
         - containerPort: 8333
         - containerPort: 8111
