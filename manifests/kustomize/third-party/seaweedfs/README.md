@@ -53,20 +53,6 @@ The Gateway to Remote Object Storage feature allows SeaweedFS to automatically s
 - **Automatic Cleanup**: Local deleted buckets are automatically deleted in remote storage
 - **Multi-Cloud Support**: Connect to multiple cloud storage providers simultaneously
 
-### Architecture Overview
-
-```
-Applications
-    ↓
-SeaweedFS S3 Gateway (Port 8333)
-    ↓
-SeaweedFS Filer (Port 8888)
-    ↓
-Remote Storage Gateway
-    ↓
-Cloud Storage (AWS S3, Azure Blob, GCS)
-```
-
 ### Configure Remote Storage
 
 Remote storage must be configured before using the gateway. Use the `weed shell` to configure remote storage connections:
