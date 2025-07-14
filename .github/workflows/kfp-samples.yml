@@ -35,11 +35,8 @@ jobs:
       with:
         python-version: 3.9
 
-    - name: apt-get update
-      run: sudo apt-get update
-
     - name: Install protobuf-compiler
-      run: sudo apt-get install protobuf-compiler -y
+      run: sudo apt update && sudo apt install -y protobuf-compiler
 
     - name: Install setuptools
       run: |
