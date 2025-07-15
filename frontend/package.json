@@ -107,13 +107,11 @@
     "@storybook/react": "^6.3.6",
     "@testing-library/dom": "^8.6.0",
     "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^11.2.6",
+    "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^13.2.1",
     "@types/d3": "^5.0.0",
     "@types/d3-dsv": "^1.0.33",
     "@types/dagre": "^0.7.40",
-    "@types/enzyme": "^3.10.3",
-    "@types/enzyme-adapter-react-16": "^1.0.5",
     "@types/express": "^4.16.0",
     "@types/google-protobuf": "^3.7.2",
     "@types/http-proxy-middleware": "^0.17.5",
@@ -128,12 +126,9 @@
     "@types/react-router-dom": "^4.3.1",
     "@types/react-test-renderer": "^17.0.0",
     "@types/react-virtualized": "^9.18.7",
-    "@wojtekmaj/enzyme-adapter-react-17": "^0.8.0",
     "autoprefixer": "^10.4.1",
     "browserslist": "4.16.5",
     "coveralls": "^3.0.2",
-    "enzyme": "^3.10.0",
-    "enzyme-to-json": "^3.3.4",
     "fs": "0.0.1-security",
     "jest-environment-jsdom-sixteen": "^2.0.0",
     "postcss": "^8.4.5",
@@ -175,8 +170,7 @@
     "globalSetup": "./global-setup.js",
     "snapshotSerializers": [
       "./src/__serializers__/mock-function",
-      "snapshot-diff/serializer.js",
-      "enzyme-to-json/serializer"
+      "snapshot-diff/serializer.js"
     ]
   },
   "proxy": "http://localhost:3001",

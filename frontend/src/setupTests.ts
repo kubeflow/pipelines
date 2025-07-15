@@ -16,10 +16,3 @@
 
 // NOTE: This file must be here as it's loaded by the jest configuration with
 // this path hard-coded. Without ejecting, we can't change this path.
-
-import * as Enzyme from 'enzyme';
-import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
-
-Enzyme.configure({
-  adapter: new Adapter(),
-});

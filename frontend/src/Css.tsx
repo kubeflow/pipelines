@@ -195,7 +195,7 @@ export const theme = createTheme({
   palette,
   typography: {
     fontFamily: fonts.main,
-    fontSize: (fontsize.base + ' !important') as any,
+    fontSize: fontsize.base,
   },
 });
 

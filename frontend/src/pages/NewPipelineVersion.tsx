@@ -74,7 +74,7 @@ interface NewPipelineVersionState {
   isPrivate: boolean;
 }
 
-interface NewPipelineVersionProps extends PageProps {
+export interface NewPipelineVersionProps extends PageProps {
   buildInfo?: BuildInfo;
   namespace?: string;
 }
@@ -209,7 +209,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
               id='createNewPipelineBtn'
               label='Create a new pipeline'
               checked={newPipeline === true}
-              control={<Radio color='primary' />}
+              control={<Radio color='primary' data-testid='createNewPipelineBtn' />}
               onChange={() =>
                 this.setState({
                   codeSourceUrl: '',
@@ -417,10 +417,10 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
               inputProps={{ tabIndex: -1 }}
               accept='.yaml,.yml,.zip,.tar.gz'
               disabled={importMethod === ImportMethod.URL}
+              data-testid='uploadFileInput'
             >
               {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
               <Input
-                data-testid='uploadFileInput'
                 onChange={this.handleChange('fileName')}
                 value={fileName}
                 required={true}
@@ -745,6 +745,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       }
       this.setState({ validationError: '' });
     } catch (err) {
+      console.log('err', err);
       this.setState({ validationError: ensureError(err).message });
     }
   }
