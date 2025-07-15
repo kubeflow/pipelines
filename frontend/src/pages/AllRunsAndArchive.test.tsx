@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
+import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import AllRunsAndArchive, {
   AllRunsAndArchiveProps,
   AllRunsAndArchiveTab,
 } from './AllRunsAndArchive';
-import { shallow } from 'enzyme';
 
 function generateProps(): AllRunsAndArchiveProps {
   return {
@@ -37,25 +37,36 @@ function generateProps(): AllRunsAndArchiveProps {
 
 describe('RunsAndArchive', () => {
   it('renders runs page', () => {
-    expect(shallow(<AllRunsAndArchive {...(generateProps() as any)} />)).toMatchSnapshot();
+    const { asFragment } = render(<AllRunsAndArchive {...(generateProps() as any)} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders archive page', () => {
     const props = generateProps();
     props.view = AllRunsAndArchiveTab.ARCHIVE;
-    expect(shallow(<AllRunsAndArchive {...(props as any)} />)).toMatchSnapshot();
+    const { asFragment } = render(<AllRunsAndArchive {...(props as any)} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('switches to clicked page by pushing to history', () => {
     const spy = jest.fn();
     const props = generateProps();
     props.history.push = spy;
-    const tree = shallow(<AllRunsAndArchive {...(props as any)} />);
+    const { rerender } = render(<AllRunsAndArchive {...(props as any)} />);
 
-    tree.find('MD2Tabs').simulate('switch', 1);
+    // Start in RUNS (Active) view, click Archive tab
+    const archiveTab = screen.getByRole('button', { name: /Archived/i });
+    fireEvent.click(archiveTab);
     expect(spy).toHaveBeenCalledWith('/archive/runs');
 
-    tree.find('MD2Tabs').simulate('switch', 0);
+    // Now simulate navigation by updating the view prop to ARCHIVE
+    const updatedProps = { ...props, view: AllRunsAndArchiveTab.ARCHIVE };
+    rerender(<AllRunsAndArchive {...(updatedProps as any)} />);
+    
+    // Reset the spy and click Active tab
+    spy.mockClear();
+    const runsTab = screen.getByRole('button', { name: /Active/i });
+    fireEvent.click(runsTab);
     expect(spy).toHaveBeenCalledWith('/runs');
   });
 });

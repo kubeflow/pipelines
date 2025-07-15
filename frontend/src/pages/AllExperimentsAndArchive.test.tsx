@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
+import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import AllExperimentsAndArchive, {
   AllExperimentsAndArchiveProps,
   AllExperimentsAndArchiveTab,
 } from './AllExperimentsAndArchive';
-import { shallow } from 'enzyme';
 
 function generateProps(): AllExperimentsAndArchiveProps {
   return {
@@ -37,25 +37,36 @@ function generateProps(): AllExperimentsAndArchiveProps {
 
 describe('ExperimentsAndArchive', () => {
   it('renders experiments page', () => {
-    expect(shallow(<AllExperimentsAndArchive {...(generateProps() as any)} />)).toMatchSnapshot();
+    const { asFragment } = render(<AllExperimentsAndArchive {...(generateProps() as any)} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('renders archive page', () => {
     const props = generateProps();
     props.view = AllExperimentsAndArchiveTab.ARCHIVE;
-    expect(shallow(<AllExperimentsAndArchive {...(props as any)} />)).toMatchSnapshot();
+    const { asFragment } = render(<AllExperimentsAndArchive {...(props as any)} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('switches to clicked page by pushing to history', () => {
     const spy = jest.fn();
     const props = generateProps();
     props.history.push = spy;
-    const tree = shallow(<AllExperimentsAndArchive {...(props as any)} />);
+    const { rerender } = render(<AllExperimentsAndArchive {...(props as any)} />);
 
-    tree.find('MD2Tabs').simulate('switch', 1);
+    // Start in EXPERIMENTS (Active) view, click Archive tab
+    const archiveTab = screen.getByRole('button', { name: /Archived/i });
+    fireEvent.click(archiveTab);
     expect(spy).toHaveBeenCalledWith('/archive/experiments');
 
-    tree.find('MD2Tabs').simulate('switch', 0);
+    // Now simulate navigation by updating the view prop to ARCHIVE
+    const updatedProps = { ...props, view: AllExperimentsAndArchiveTab.ARCHIVE };
+    rerender(<AllExperimentsAndArchive {...(updatedProps as any)} />);
+    
+    // Reset the spy and click Active tab
+    spy.mockClear();
+    const experimentsTab = screen.getByRole('button', { name: /Active/i });
+    fireEvent.click(experimentsTab);
     expect(spy).toHaveBeenCalledWith('/experiments');
   });
 });

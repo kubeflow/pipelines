@@ -115,6 +115,7 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
                         active={orderBy === i}
                         direction={order}
                         onClick={this._handleSort(i)}
+                        data-testid={`table-sort-label-${i}`}
                       >
                         {label}
                       </TableSortLabel>

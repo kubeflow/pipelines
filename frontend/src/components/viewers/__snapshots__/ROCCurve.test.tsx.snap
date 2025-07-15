@@ -1,2206 +1,1824 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ROCCurve does not break on empty data 1`] = `
-<div>
-  <XYPlot
-    animation={true}
-    className=""
-    classes={
-      Object {
-        "root": "root",
-      }
-    }
-    height={520}
-    onMouseLeave={[Function]}
-    width={800}
-    xDomain={null}
-  >
-    <VerticalGridLines
-      attr="x"
-      direction="vertical"
-    />
-    <HorizontalGridLines
-      attr="y"
-      direction="horizontal"
-    />
-    <XAxis
-      attr="x"
-      attrAxis="y"
-      className="axis"
-      orientation="bottom"
-      title="fpr"
-    />
-    <YAxis
-      attr="y"
-      attrAxis="x"
-      className="axis"
-      orientation="left"
-      title="tpr"
-    />
-    <LineSeries
-      className=""
-      color="#ddd"
-      curve={null}
-      data={
-        Array [
-          Object {
-            "x": 0,
-            "y": 0,
-          },
-          Object {
-            "x": 0.01,
-            "y": 0.01,
-          },
-          Object {
-            "x": 0.02,
-            "y": 0.02,
-          },
-          Object {
-            "x": 0.03,
-            "y": 0.03,
-          },
-          Object {
-            "x": 0.04,
-            "y": 0.04,
-          },
-          Object {
-            "x": 0.05,
-            "y": 0.05,
-          },
-          Object {
-            "x": 0.06,
-            "y": 0.06,
-          },
-          Object {
-            "x": 0.07,
-            "y": 0.07,
-          },
-          Object {
-            "x": 0.08,
-            "y": 0.08,
-          },
-          Object {
-            "x": 0.09,
-            "y": 0.09,
-          },
-          Object {
-            "x": 0.1,
-            "y": 0.1,
-          },
-          Object {
-            "x": 0.11,
-            "y": 0.11,
-          },
-          Object {
-            "x": 0.12,
-            "y": 0.12,
-          },
-          Object {
-            "x": 0.13,
-            "y": 0.13,
-          },
-          Object {
-            "x": 0.14,
-            "y": 0.14,
-          },
-          Object {
-            "x": 0.15,
-            "y": 0.15,
-          },
-          Object {
-            "x": 0.16,
-            "y": 0.16,
-          },
-          Object {
-            "x": 0.17,
-            "y": 0.17,
-          },
-          Object {
-            "x": 0.18,
-            "y": 0.18,
-          },
-          Object {
-            "x": 0.19,
-            "y": 0.19,
-          },
-          Object {
-            "x": 0.2,
-            "y": 0.2,
-          },
-          Object {
-            "x": 0.21,
-            "y": 0.21,
-          },
-          Object {
-            "x": 0.22,
-            "y": 0.22,
-          },
-          Object {
-            "x": 0.23,
-            "y": 0.23,
-          },
-          Object {
-            "x": 0.24,
-            "y": 0.24,
-          },
-          Object {
-            "x": 0.25,
-            "y": 0.25,
-          },
-          Object {
-            "x": 0.26,
-            "y": 0.26,
-          },
-          Object {
-            "x": 0.27,
-            "y": 0.27,
-          },
-          Object {
-            "x": 0.28,
-            "y": 0.28,
-          },
-          Object {
-            "x": 0.29,
-            "y": 0.29,
-          },
-          Object {
-            "x": 0.3,
-            "y": 0.3,
-          },
-          Object {
-            "x": 0.31,
-            "y": 0.31,
-          },
-          Object {
-            "x": 0.32,
-            "y": 0.32,
-          },
-          Object {
-            "x": 0.33,
-            "y": 0.33,
-          },
-          Object {
-            "x": 0.34,
-            "y": 0.34,
-          },
-          Object {
-            "x": 0.35,
-            "y": 0.35,
-          },
-          Object {
-            "x": 0.36,
-            "y": 0.36,
-          },
-          Object {
-            "x": 0.37,
-            "y": 0.37,
-          },
-          Object {
-            "x": 0.38,
-            "y": 0.38,
-          },
-          Object {
-            "x": 0.39,
-            "y": 0.39,
-          },
-          Object {
-            "x": 0.4,
-            "y": 0.4,
-          },
-          Object {
-            "x": 0.41,
-            "y": 0.41,
-          },
-          Object {
-            "x": 0.42,
-            "y": 0.42,
-          },
-          Object {
-            "x": 0.43,
-            "y": 0.43,
-          },
-          Object {
-            "x": 0.44,
-            "y": 0.44,
-          },
-          Object {
-            "x": 0.45,
-            "y": 0.45,
-          },
-          Object {
-            "x": 0.46,
-            "y": 0.46,
-          },
-          Object {
-            "x": 0.47,
-            "y": 0.47,
-          },
-          Object {
-            "x": 0.48,
-            "y": 0.48,
-          },
-          Object {
-            "x": 0.49,
-            "y": 0.49,
-          },
-          Object {
-            "x": 0.5,
-            "y": 0.5,
-          },
-          Object {
-            "x": 0.51,
-            "y": 0.51,
-          },
-          Object {
-            "x": 0.52,
-            "y": 0.52,
-          },
-          Object {
-            "x": 0.53,
-            "y": 0.53,
-          },
-          Object {
-            "x": 0.54,
-            "y": 0.54,
-          },
-          Object {
-            "x": 0.55,
-            "y": 0.55,
-          },
-          Object {
-            "x": 0.56,
-            "y": 0.56,
-          },
-          Object {
-            "x": 0.57,
-            "y": 0.57,
-          },
-          Object {
-            "x": 0.58,
-            "y": 0.58,
-          },
-          Object {
-            "x": 0.59,
-            "y": 0.59,
-          },
-          Object {
-            "x": 0.6,
-            "y": 0.6,
-          },
-          Object {
-            "x": 0.61,
-            "y": 0.61,
-          },
-          Object {
-            "x": 0.62,
-            "y": 0.62,
-          },
-          Object {
-            "x": 0.63,
-            "y": 0.63,
-          },
-          Object {
-            "x": 0.64,
-            "y": 0.64,
-          },
-          Object {
-            "x": 0.65,
-            "y": 0.65,
-          },
-          Object {
-            "x": 0.66,
-            "y": 0.66,
-          },
-          Object {
-            "x": 0.67,
-            "y": 0.67,
-          },
-          Object {
-            "x": 0.68,
-            "y": 0.68,
-          },
-          Object {
-            "x": 0.69,
-            "y": 0.69,
-          },
-          Object {
-            "x": 0.7,
-            "y": 0.7,
-          },
-          Object {
-            "x": 0.71,
-            "y": 0.71,
-          },
-          Object {
-            "x": 0.72,
-            "y": 0.72,
-          },
-          Object {
-            "x": 0.73,
-            "y": 0.73,
-          },
-          Object {
-            "x": 0.74,
-            "y": 0.74,
-          },
-          Object {
-            "x": 0.75,
-            "y": 0.75,
-          },
-          Object {
-            "x": 0.76,
-            "y": 0.76,
-          },
-          Object {
-            "x": 0.77,
-            "y": 0.77,
-          },
-          Object {
-            "x": 0.78,
-            "y": 0.78,
-          },
-          Object {
-            "x": 0.79,
-            "y": 0.79,
-          },
-          Object {
-            "x": 0.8,
-            "y": 0.8,
-          },
-          Object {
-            "x": 0.81,
-            "y": 0.81,
-          },
-          Object {
-            "x": 0.82,
-            "y": 0.82,
-          },
-          Object {
-            "x": 0.83,
-            "y": 0.83,
-          },
-          Object {
-            "x": 0.84,
-            "y": 0.84,
-          },
-          Object {
-            "x": 0.85,
-            "y": 0.85,
-          },
-          Object {
-            "x": 0.86,
-            "y": 0.86,
-          },
-          Object {
-            "x": 0.87,
-            "y": 0.87,
-          },
-          Object {
-            "x": 0.88,
-            "y": 0.88,
-          },
-          Object {
-            "x": 0.89,
-            "y": 0.89,
-          },
-          Object {
-            "x": 0.9,
-            "y": 0.9,
-          },
-          Object {
-            "x": 0.91,
-            "y": 0.91,
-          },
-          Object {
-            "x": 0.92,
-            "y": 0.92,
-          },
-          Object {
-            "x": 0.93,
-            "y": 0.93,
-          },
-          Object {
-            "x": 0.94,
-            "y": 0.94,
-          },
-          Object {
-            "x": 0.95,
-            "y": 0.95,
-          },
-          Object {
-            "x": 0.96,
-            "y": 0.96,
-          },
-          Object {
-            "x": 0.97,
-            "y": 0.97,
-          },
-          Object {
-            "x": 0.98,
-            "y": 0.98,
-          },
-          Object {
-            "x": 0.99,
-            "y": 0.99,
-          },
-        ]
-      }
-      getNull={[Function]}
-      opacity={1}
-      stack={false}
-      strokeStyle="dashed"
-      strokeWidth={1}
-      style={Object {}}
-    />
-    <LineSeries
-      className=""
-      color="#4285f4"
-      curve="curveBasis"
-      data={Array []}
-      getNull={[Function]}
-      key="0"
-      onNearestX={[Function]}
-      opacity={1}
-      stack={false}
-      strokeStyle="solid"
-      strokeWidth={2}
-      style={Object {}}
-    />
-    <HighlightOverlay
-      className=""
-      color="rgb(77, 182, 172)"
-      enableX={true}
-      enableY={false}
-      onBrushEnd={[Function]}
-      onDrag={[Function]}
-      opacity={0.3}
-    />
-    <Crosshair
-      itemsFormat={[Function]}
-      style={
-        Object {
-          "box": Object {},
-          "line": Object {},
-          "title": Object {},
-        }
-      }
-      titleFormat={[Function]}
-      values={
-        Array [
-          "",
-        ]
-      }
+<DocumentFragment>
+  <div>
+    <div
+      class="VictoryContainer"
+      style="margin: auto; height: 100%; width: 100%; user-select: none; pointer-events: none; position: relative;"
     >
-      <div
-        className="crosshair"
+      <svg
+        height="520"
+        role="img"
+        style="width: 100%; height: 100%; pointer-events: all;"
+        viewBox="0 0 800 520"
+        width="800"
       >
-        <div
-          className="crosshairLabel"
-          key="0"
+        <g
+          role="presentation"
         >
-          threshold (Series #1): undefined
-        </div>
+          <line
+            role="presentation"
+            shape-rendering="auto"
+            style="stroke: #252525; fill: transparent; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round;"
+            vector-effect="non-scaling-stroke"
+            x1="50"
+            x2="750"
+            y1="470"
+            y2="470"
+          />
+          <text
+            direction="inherit"
+            dx="0"
+            id="chart-axis-0-axisLabel-0"
+            x="400"
+            y="506.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="text-anchor: middle; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 25px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="400"
+            >
+              fpr
+            </tspan>
+          </text>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-0"
+              x="191.41414141414143"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="191.41414141414143"
+              >
+                0.2
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-1"
+              x="332.82828282828285"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="332.82828282828285"
+              >
+                0.4
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-2"
+              x="474.24242424242425"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="474.24242424242425"
+              >
+                0.6
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-3"
+              x="615.6565656565657"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="615.6565656565657"
+              >
+                0.8
+              </tspan>
+            </text>
+          </g>
+        </g>
+        <g
+          role="presentation"
+        >
+          <line
+            role="presentation"
+            shape-rendering="auto"
+            style="stroke: #252525; fill: transparent; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round;"
+            vector-effect="non-scaling-stroke"
+            x1="50"
+            x2="50"
+            y1="50"
+            y2="470"
+          />
+          <text
+            direction="inherit"
+            dx="0"
+            id="chart-axis-1-axisLabel-0"
+            transform="rotate(-90,25,260)"
+            x="25"
+            y="257.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="text-anchor: middle; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 25px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="25"
+            >
+              tpr
+            </tspan>
+          </text>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-0"
+              x="39"
+              y="390.8315151515152"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.2
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-1"
+              x="39"
+              y="305.9830303030303"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.4
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-2"
+              x="39"
+              y="221.13454545454547"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.6
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-3"
+              x="39"
+              y="136.28606060606057"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.8
+              </tspan>
+            </text>
+          </g>
+        </g>
+        <g
+          clip-path="url(#victory-clip-4)"
+          style="margin: auto; height: 100%; width: 100%; user-select: none;"
+        >
+          <defs>
+            <clippath
+              id="victory-clip-4"
+            >
+              <rect
+                height="420"
+                vector-effect="non-scaling-stroke"
+                width="0"
+                x="50"
+                y="50"
+              />
+            </clippath>
+          </defs>
+          <path
+            d="M50,470L57.07070707070707,465.7575757575758L64.14141414141415,461.5151515151515L71.21212121212122,457.27272727272725L78.28282828282829,453.030303030303L85.35353535353536,448.7878787878788L92.42424242424242,444.54545454545456L99.49494949494951,440.3030303030303L106.56565656565657,436.06060606060606L113.63636363636364,431.8181818181818L120.70707070707071,427.57575757575756L127.77777777777779,423.3333333333333L134.84848484848484,419.09090909090907L141.91919191919195,414.8484848484849L148.98989898989902,410.60606060606057L156.06060606060606,406.3636363636364L163.13131313131314,402.1212121212121L170.2020202020202,397.8787878787879L177.27272727272728,393.63636363636357L184.34343434343435,389.3939393939394L191.41414141414143,385.1515151515152L198.4848484848485,380.90909090909093L205.55555555555557,376.66666666666663L212.62626262626264,372.4242424242424L219.6969696969697,368.1818181818182L226.7676767676768,363.93939393939394L233.83838383838386,359.6969696969697L240.90909090909093,355.45454545454544L247.979797979798,351.2121212121212L255.05050505050505,346.969696969697L262.1212121212121,342.72727272727275L269.1919191919192,338.48484848484844L276.26262626262627,334.2424242424242L283.33333333333337,330L290.4040404040405,325.75757575757575L297.47474747474746,321.5151515151515L304.54545454545456,317.27272727272725L311.6161616161616,313.03030303030306L318.6868686868687,308.78787878787875L325.7575757575758,304.5454545454545L332.82828282828285,300.3030303030303L339.8989898989899,296.06060606060606L346.969696969697,291.81818181818176L354.04040404040404,287.57575757575756L361.11111111111114,283.33333333333337L368.1818181818182,279.09090909090907L375.2525252525253,274.8484848484848L382.32323232323233,270.6060606060606L389.3939393939394,266.3636363636364L396.4646464646465,262.12121212121207L403.5353535353536,257.8787878787879L410.6060606060606,253.63636363636363L417.6767676767677,249.39393939393938L424.7474747474747,245.15151515151516L431.81818181818187,240.90909090909088L438.8888888888889,236.66666666666666L445.959595959596,232.42424242424238L453.03030303030295,228.18181818181822L460.1010101010101,223.93939393939394L467.17171717171715,219.69696969696972L474.24242424242425,215.45454545454547L481.3131313131313,211.21212121212122L488.38383838383845,206.96969696969697L495.45454545454544,202.72727272727272L502.52525252525254,198.48484848484847L509.5959595959596,194.24242424242422L516.6666666666667,189.99999999999997L523.7373737373738,185.75757575757575L530.808080808081,181.51515151515147L537.8787878787878,177.2727272727273L544.9494949494949,173.03030303030303L552.020202020202,168.7878787878788L559.0909090909091,164.54545454545453L566.1616161616162,160.3030303030303L573.2323232323232,156.06060606060603L580.3030303030303,151.8181818181818L587.3737373737374,147.57575757575756L594.4444444444445,143.33333333333334L601.5151515151516,139.09090909090907L608.5858585858585,134.84848484848484L615.6565656565657,130.60606060606057L622.7272727272727,126.36363636363635L629.7979797979798,122.12121212121211L636.8686868686868,117.87878787878789L643.939393939394,113.63636363636363L651.0101010101009,109.3939393939394L658.0808080808081,105.15151515151513L665.1515151515151,100.9090909090909L672.2222222222223,96.66666666666664L679.2929292929293,92.42424242424241L686.3636363636364,88.18181818181816L693.4343434343434,83.93939393939392L700.5050505050506,79.69696969696966L707.5757575757576,75.45454545454542L714.6464646464647,71.2121212121212L721.7171717171717,66.96969696969698L728.7878787878788,62.72727272727271L735.8585858585859,58.48484848484849L742.929292929293,54.24242424242422L750,50"
+            role="presentation"
+            shape-rendering="auto"
+            style="fill: transparent; stroke: #ddd; pointer-events: stroke; stroke-dasharray: 5,5; stroke-width: 1;"
+          />
+        </g>
+        <g>
+          <g
+            clip-path="url(#victory-clip-5)"
+            style="margin: auto; height: 100%; width: 100%; user-select: none;"
+          >
+            <defs>
+              <clippath
+                id="victory-clip-5"
+              >
+                <rect
+                  height="420"
+                  vector-effect="non-scaling-stroke"
+                  width="0"
+                  x="50"
+                  y="50"
+                />
+              </clippath>
+            </defs>
+            <path
+              role="presentation"
+              shape-rendering="auto"
+              style="fill: none; stroke: #4285f4; pointer-events: stroke; stroke-width: 2; opacity: 1;"
+            />
+          </g>
+        </g>
+      </svg>
+      <div
+        style="width: 100%; height: 100%; z-index: 99; position: absolute; top: 0px; left: 0px;"
+      >
+        <svg
+          height="520"
+          style="width: 100%; height: 100%; overflow: visible;"
+          viewBox="0 0 800 520"
+          width="800"
+        />
       </div>
-    </Crosshair>
-  </XYPlot>
-  <div
-    className="flex"
-  />
-</div>
+    </div>
+    <div
+      class="flex"
+    />
+  </div>
+</DocumentFragment>
 `;
 
 exports[`ROCCurve does not break on no config 1`] = `
-<div>
-  <XYPlot
-    animation={true}
-    className=""
-    classes={
-      Object {
-        "root": "root",
-      }
-    }
-    height={520}
-    onMouseLeave={[Function]}
-    width={800}
-    xDomain={null}
-  >
-    <VerticalGridLines
-      attr="x"
-      direction="vertical"
-    />
-    <HorizontalGridLines
-      attr="y"
-      direction="horizontal"
-    />
-    <XAxis
-      attr="x"
-      attrAxis="y"
-      className="axis"
-      orientation="bottom"
-      title="fpr"
-    />
-    <YAxis
-      attr="y"
-      attrAxis="x"
-      className="axis"
-      orientation="left"
-      title="tpr"
-    />
-    <LineSeries
-      className=""
-      color="#ddd"
-      curve={null}
-      data={
-        Array [
-          Object {
-            "x": 0,
-            "y": 0,
-          },
-          Object {
-            "x": 0.01,
-            "y": 0.01,
-          },
-          Object {
-            "x": 0.02,
-            "y": 0.02,
-          },
-          Object {
-            "x": 0.03,
-            "y": 0.03,
-          },
-          Object {
-            "x": 0.04,
-            "y": 0.04,
-          },
-          Object {
-            "x": 0.05,
-            "y": 0.05,
-          },
-          Object {
-            "x": 0.06,
-            "y": 0.06,
-          },
-          Object {
-            "x": 0.07,
-            "y": 0.07,
-          },
-          Object {
-            "x": 0.08,
-            "y": 0.08,
-          },
-          Object {
-            "x": 0.09,
-            "y": 0.09,
-          },
-          Object {
-            "x": 0.1,
-            "y": 0.1,
-          },
-          Object {
-            "x": 0.11,
-            "y": 0.11,
-          },
-          Object {
-            "x": 0.12,
-            "y": 0.12,
-          },
-          Object {
-            "x": 0.13,
-            "y": 0.13,
-          },
-          Object {
-            "x": 0.14,
-            "y": 0.14,
-          },
-          Object {
-            "x": 0.15,
-            "y": 0.15,
-          },
-          Object {
-            "x": 0.16,
-            "y": 0.16,
-          },
-          Object {
-            "x": 0.17,
-            "y": 0.17,
-          },
-          Object {
-            "x": 0.18,
-            "y": 0.18,
-          },
-          Object {
-            "x": 0.19,
-            "y": 0.19,
-          },
-          Object {
-            "x": 0.2,
-            "y": 0.2,
-          },
-          Object {
-            "x": 0.21,
-            "y": 0.21,
-          },
-          Object {
-            "x": 0.22,
-            "y": 0.22,
-          },
-          Object {
-            "x": 0.23,
-            "y": 0.23,
-          },
-          Object {
-            "x": 0.24,
-            "y": 0.24,
-          },
-          Object {
-            "x": 0.25,
-            "y": 0.25,
-          },
-          Object {
-            "x": 0.26,
-            "y": 0.26,
-          },
-          Object {
-            "x": 0.27,
-            "y": 0.27,
-          },
-          Object {
-            "x": 0.28,
-            "y": 0.28,
-          },
-          Object {
-            "x": 0.29,
-            "y": 0.29,
-          },
-          Object {
-            "x": 0.3,
-            "y": 0.3,
-          },
-          Object {
-            "x": 0.31,
-            "y": 0.31,
-          },
-          Object {
-            "x": 0.32,
-            "y": 0.32,
-          },
-          Object {
-            "x": 0.33,
-            "y": 0.33,
-          },
-          Object {
-            "x": 0.34,
-            "y": 0.34,
-          },
-          Object {
-            "x": 0.35,
-            "y": 0.35,
-          },
-          Object {
-            "x": 0.36,
-            "y": 0.36,
-          },
-          Object {
-            "x": 0.37,
-            "y": 0.37,
-          },
-          Object {
-            "x": 0.38,
-            "y": 0.38,
-          },
-          Object {
-            "x": 0.39,
-            "y": 0.39,
-          },
-          Object {
-            "x": 0.4,
-            "y": 0.4,
-          },
-          Object {
-            "x": 0.41,
-            "y": 0.41,
-          },
-          Object {
-            "x": 0.42,
-            "y": 0.42,
-          },
-          Object {
-            "x": 0.43,
-            "y": 0.43,
-          },
-          Object {
-            "x": 0.44,
-            "y": 0.44,
-          },
-          Object {
-            "x": 0.45,
-            "y": 0.45,
-          },
-          Object {
-            "x": 0.46,
-            "y": 0.46,
-          },
-          Object {
-            "x": 0.47,
-            "y": 0.47,
-          },
-          Object {
-            "x": 0.48,
-            "y": 0.48,
-          },
-          Object {
-            "x": 0.49,
-            "y": 0.49,
-          },
-          Object {
-            "x": 0.5,
-            "y": 0.5,
-          },
-          Object {
-            "x": 0.51,
-            "y": 0.51,
-          },
-          Object {
-            "x": 0.52,
-            "y": 0.52,
-          },
-          Object {
-            "x": 0.53,
-            "y": 0.53,
-          },
-          Object {
-            "x": 0.54,
-            "y": 0.54,
-          },
-          Object {
-            "x": 0.55,
-            "y": 0.55,
-          },
-          Object {
-            "x": 0.56,
-            "y": 0.56,
-          },
-          Object {
-            "x": 0.57,
-            "y": 0.57,
-          },
-          Object {
-            "x": 0.58,
-            "y": 0.58,
-          },
-          Object {
-            "x": 0.59,
-            "y": 0.59,
-          },
-          Object {
-            "x": 0.6,
-            "y": 0.6,
-          },
-          Object {
-            "x": 0.61,
-            "y": 0.61,
-          },
-          Object {
-            "x": 0.62,
-            "y": 0.62,
-          },
-          Object {
-            "x": 0.63,
-            "y": 0.63,
-          },
-          Object {
-            "x": 0.64,
-            "y": 0.64,
-          },
-          Object {
-            "x": 0.65,
-            "y": 0.65,
-          },
-          Object {
-            "x": 0.66,
-            "y": 0.66,
-          },
-          Object {
-            "x": 0.67,
-            "y": 0.67,
-          },
-          Object {
-            "x": 0.68,
-            "y": 0.68,
-          },
-          Object {
-            "x": 0.69,
-            "y": 0.69,
-          },
-          Object {
-            "x": 0.7,
-            "y": 0.7,
-          },
-          Object {
-            "x": 0.71,
-            "y": 0.71,
-          },
-          Object {
-            "x": 0.72,
-            "y": 0.72,
-          },
-          Object {
-            "x": 0.73,
-            "y": 0.73,
-          },
-          Object {
-            "x": 0.74,
-            "y": 0.74,
-          },
-          Object {
-            "x": 0.75,
-            "y": 0.75,
-          },
-          Object {
-            "x": 0.76,
-            "y": 0.76,
-          },
-          Object {
-            "x": 0.77,
-            "y": 0.77,
-          },
-          Object {
-            "x": 0.78,
-            "y": 0.78,
-          },
-          Object {
-            "x": 0.79,
-            "y": 0.79,
-          },
-          Object {
-            "x": 0.8,
-            "y": 0.8,
-          },
-          Object {
-            "x": 0.81,
-            "y": 0.81,
-          },
-          Object {
-            "x": 0.82,
-            "y": 0.82,
-          },
-          Object {
-            "x": 0.83,
-            "y": 0.83,
-          },
-          Object {
-            "x": 0.84,
-            "y": 0.84,
-          },
-          Object {
-            "x": 0.85,
-            "y": 0.85,
-          },
-          Object {
-            "x": 0.86,
-            "y": 0.86,
-          },
-          Object {
-            "x": 0.87,
-            "y": 0.87,
-          },
-          Object {
-            "x": 0.88,
-            "y": 0.88,
-          },
-          Object {
-            "x": 0.89,
-            "y": 0.89,
-          },
-          Object {
-            "x": 0.9,
-            "y": 0.9,
-          },
-          Object {
-            "x": 0.91,
-            "y": 0.91,
-          },
-          Object {
-            "x": 0.92,
-            "y": 0.92,
-          },
-          Object {
-            "x": 0.93,
-            "y": 0.93,
-          },
-          Object {
-            "x": 0.94,
-            "y": 0.94,
-          },
-          Object {
-            "x": 0.95,
-            "y": 0.95,
-          },
-          Object {
-            "x": 0.96,
-            "y": 0.96,
-          },
-          Object {
-            "x": 0.97,
-            "y": 0.97,
-          },
-          Object {
-            "x": 0.98,
-            "y": 0.98,
-          },
-          Object {
-            "x": 0.99,
-            "y": 0.99,
-          },
-        ]
-      }
-      getNull={[Function]}
-      opacity={1}
-      stack={false}
-      strokeStyle="dashed"
-      strokeWidth={1}
-      style={Object {}}
-    />
-    <HighlightOverlay
-      className=""
-      color="rgb(77, 182, 172)"
-      enableX={true}
-      enableY={false}
-      onBrushEnd={[Function]}
-      onDrag={[Function]}
-      opacity={0.3}
-    />
-    <Crosshair
-      itemsFormat={[Function]}
-      style={
-        Object {
-          "box": Object {},
-          "line": Object {},
-          "title": Object {},
-        }
-      }
-      titleFormat={[Function]}
-      values={Array []}
+<DocumentFragment>
+  <div>
+    <div
+      class="VictoryContainer"
+      style="margin: auto; height: 100%; width: 100%; user-select: none; pointer-events: none; position: relative;"
     >
+      <svg
+        height="520"
+        role="img"
+        style="width: 100%; height: 100%; pointer-events: all;"
+        viewBox="0 0 800 520"
+        width="800"
+      >
+        <g
+          role="presentation"
+        >
+          <line
+            role="presentation"
+            shape-rendering="auto"
+            style="stroke: #252525; fill: transparent; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round;"
+            vector-effect="non-scaling-stroke"
+            x1="50"
+            x2="750"
+            y1="470"
+            y2="470"
+          />
+          <text
+            direction="inherit"
+            dx="0"
+            id="chart-axis-0-axisLabel-0"
+            x="400"
+            y="506.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="text-anchor: middle; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 25px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="400"
+            >
+              fpr
+            </tspan>
+          </text>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-0"
+              x="191.41414141414143"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="191.41414141414143"
+              >
+                0.2
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-1"
+              x="332.82828282828285"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="332.82828282828285"
+              >
+                0.4
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-2"
+              x="474.24242424242425"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="474.24242424242425"
+              >
+                0.6
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-3"
+              x="615.6565656565657"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="615.6565656565657"
+              >
+                0.8
+              </tspan>
+            </text>
+          </g>
+        </g>
+        <g
+          role="presentation"
+        >
+          <line
+            role="presentation"
+            shape-rendering="auto"
+            style="stroke: #252525; fill: transparent; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round;"
+            vector-effect="non-scaling-stroke"
+            x1="50"
+            x2="50"
+            y1="50"
+            y2="470"
+          />
+          <text
+            direction="inherit"
+            dx="0"
+            id="chart-axis-1-axisLabel-0"
+            transform="rotate(-90,25,260)"
+            x="25"
+            y="257.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="text-anchor: middle; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 25px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="25"
+            >
+              tpr
+            </tspan>
+          </text>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-0"
+              x="39"
+              y="390.8315151515152"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.2
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-1"
+              x="39"
+              y="305.9830303030303"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.4
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-2"
+              x="39"
+              y="221.13454545454547"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.6
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-3"
+              x="39"
+              y="136.28606060606057"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.8
+              </tspan>
+            </text>
+          </g>
+        </g>
+        <g
+          clip-path="url(#victory-clip-2)"
+          style="margin: auto; height: 100%; width: 100%; user-select: none;"
+        >
+          <defs>
+            <clippath
+              id="victory-clip-2"
+            >
+              <rect
+                height="420"
+                vector-effect="non-scaling-stroke"
+                width="0"
+                x="50"
+                y="50"
+              />
+            </clippath>
+          </defs>
+          <path
+            d="M50,470L57.07070707070707,465.7575757575758L64.14141414141415,461.5151515151515L71.21212121212122,457.27272727272725L78.28282828282829,453.030303030303L85.35353535353536,448.7878787878788L92.42424242424242,444.54545454545456L99.49494949494951,440.3030303030303L106.56565656565657,436.06060606060606L113.63636363636364,431.8181818181818L120.70707070707071,427.57575757575756L127.77777777777779,423.3333333333333L134.84848484848484,419.09090909090907L141.91919191919195,414.8484848484849L148.98989898989902,410.60606060606057L156.06060606060606,406.3636363636364L163.13131313131314,402.1212121212121L170.2020202020202,397.8787878787879L177.27272727272728,393.63636363636357L184.34343434343435,389.3939393939394L191.41414141414143,385.1515151515152L198.4848484848485,380.90909090909093L205.55555555555557,376.66666666666663L212.62626262626264,372.4242424242424L219.6969696969697,368.1818181818182L226.7676767676768,363.93939393939394L233.83838383838386,359.6969696969697L240.90909090909093,355.45454545454544L247.979797979798,351.2121212121212L255.05050505050505,346.969696969697L262.1212121212121,342.72727272727275L269.1919191919192,338.48484848484844L276.26262626262627,334.2424242424242L283.33333333333337,330L290.4040404040405,325.75757575757575L297.47474747474746,321.5151515151515L304.54545454545456,317.27272727272725L311.6161616161616,313.03030303030306L318.6868686868687,308.78787878787875L325.7575757575758,304.5454545454545L332.82828282828285,300.3030303030303L339.8989898989899,296.06060606060606L346.969696969697,291.81818181818176L354.04040404040404,287.57575757575756L361.11111111111114,283.33333333333337L368.1818181818182,279.09090909090907L375.2525252525253,274.8484848484848L382.32323232323233,270.6060606060606L389.3939393939394,266.3636363636364L396.4646464646465,262.12121212121207L403.5353535353536,257.8787878787879L410.6060606060606,253.63636363636363L417.6767676767677,249.39393939393938L424.7474747474747,245.15151515151516L431.81818181818187,240.90909090909088L438.8888888888889,236.66666666666666L445.959595959596,232.42424242424238L453.03030303030295,228.18181818181822L460.1010101010101,223.93939393939394L467.17171717171715,219.69696969696972L474.24242424242425,215.45454545454547L481.3131313131313,211.21212121212122L488.38383838383845,206.96969696969697L495.45454545454544,202.72727272727272L502.52525252525254,198.48484848484847L509.5959595959596,194.24242424242422L516.6666666666667,189.99999999999997L523.7373737373738,185.75757575757575L530.808080808081,181.51515151515147L537.8787878787878,177.2727272727273L544.9494949494949,173.03030303030303L552.020202020202,168.7878787878788L559.0909090909091,164.54545454545453L566.1616161616162,160.3030303030303L573.2323232323232,156.06060606060603L580.3030303030303,151.8181818181818L587.3737373737374,147.57575757575756L594.4444444444445,143.33333333333334L601.5151515151516,139.09090909090907L608.5858585858585,134.84848484848484L615.6565656565657,130.60606060606057L622.7272727272727,126.36363636363635L629.7979797979798,122.12121212121211L636.8686868686868,117.87878787878789L643.939393939394,113.63636363636363L651.0101010101009,109.3939393939394L658.0808080808081,105.15151515151513L665.1515151515151,100.9090909090909L672.2222222222223,96.66666666666664L679.2929292929293,92.42424242424241L686.3636363636364,88.18181818181816L693.4343434343434,83.93939393939392L700.5050505050506,79.69696969696966L707.5757575757576,75.45454545454542L714.6464646464647,71.2121212121212L721.7171717171717,66.96969696969698L728.7878787878788,62.72727272727271L735.8585858585859,58.48484848484849L742.929292929293,54.24242424242422L750,50"
+            role="presentation"
+            shape-rendering="auto"
+            style="fill: transparent; stroke: #ddd; pointer-events: stroke; stroke-dasharray: 5,5; stroke-width: 1;"
+          />
+        </g>
+        <g />
+      </svg>
       <div
-        className="crosshair"
-      />
-    </Crosshair>
-  </XYPlot>
-  <div
-    className="flex"
-  />
-</div>
+        style="width: 100%; height: 100%; z-index: 99; position: absolute; top: 0px; left: 0px;"
+      >
+        <svg
+          height="520"
+          style="width: 100%; height: 100%; overflow: visible;"
+          viewBox="0 0 800 520"
+          width="800"
+        />
+      </div>
+    </div>
+    <div
+      class="flex"
+    />
+  </div>
+</DocumentFragment>
 `;
 
 exports[`ROCCurve renders a simple ROC curve given one config 1`] = `
-<div>
-  <XYPlot
-    animation={true}
-    className=""
-    classes={
-      Object {
-        "root": "root",
-      }
-    }
-    height={520}
-    onMouseLeave={[Function]}
-    width={800}
-    xDomain={null}
-  >
-    <VerticalGridLines
-      attr="x"
-      direction="vertical"
-    />
-    <HorizontalGridLines
-      attr="y"
-      direction="horizontal"
-    />
-    <XAxis
-      attr="x"
-      attrAxis="y"
-      className="axis"
-      orientation="bottom"
-      title="fpr"
-    />
-    <YAxis
-      attr="y"
-      attrAxis="x"
-      className="axis"
-      orientation="left"
-      title="tpr"
-    />
-    <LineSeries
-      className=""
-      color="#ddd"
-      curve={null}
-      data={
-        Array [
-          Object {
-            "x": 0,
-            "y": 0,
-          },
-          Object {
-            "x": 0.01,
-            "y": 0.01,
-          },
-          Object {
-            "x": 0.02,
-            "y": 0.02,
-          },
-          Object {
-            "x": 0.03,
-            "y": 0.03,
-          },
-          Object {
-            "x": 0.04,
-            "y": 0.04,
-          },
-          Object {
-            "x": 0.05,
-            "y": 0.05,
-          },
-          Object {
-            "x": 0.06,
-            "y": 0.06,
-          },
-          Object {
-            "x": 0.07,
-            "y": 0.07,
-          },
-          Object {
-            "x": 0.08,
-            "y": 0.08,
-          },
-          Object {
-            "x": 0.09,
-            "y": 0.09,
-          },
-          Object {
-            "x": 0.1,
-            "y": 0.1,
-          },
-          Object {
-            "x": 0.11,
-            "y": 0.11,
-          },
-          Object {
-            "x": 0.12,
-            "y": 0.12,
-          },
-          Object {
-            "x": 0.13,
-            "y": 0.13,
-          },
-          Object {
-            "x": 0.14,
-            "y": 0.14,
-          },
-          Object {
-            "x": 0.15,
-            "y": 0.15,
-          },
-          Object {
-            "x": 0.16,
-            "y": 0.16,
-          },
-          Object {
-            "x": 0.17,
-            "y": 0.17,
-          },
-          Object {
-            "x": 0.18,
-            "y": 0.18,
-          },
-          Object {
-            "x": 0.19,
-            "y": 0.19,
-          },
-          Object {
-            "x": 0.2,
-            "y": 0.2,
-          },
-          Object {
-            "x": 0.21,
-            "y": 0.21,
-          },
-          Object {
-            "x": 0.22,
-            "y": 0.22,
-          },
-          Object {
-            "x": 0.23,
-            "y": 0.23,
-          },
-          Object {
-            "x": 0.24,
-            "y": 0.24,
-          },
-          Object {
-            "x": 0.25,
-            "y": 0.25,
-          },
-          Object {
-            "x": 0.26,
-            "y": 0.26,
-          },
-          Object {
-            "x": 0.27,
-            "y": 0.27,
-          },
-          Object {
-            "x": 0.28,
-            "y": 0.28,
-          },
-          Object {
-            "x": 0.29,
-            "y": 0.29,
-          },
-          Object {
-            "x": 0.3,
-            "y": 0.3,
-          },
-          Object {
-            "x": 0.31,
-            "y": 0.31,
-          },
-          Object {
-            "x": 0.32,
-            "y": 0.32,
-          },
-          Object {
-            "x": 0.33,
-            "y": 0.33,
-          },
-          Object {
-            "x": 0.34,
-            "y": 0.34,
-          },
-          Object {
-            "x": 0.35,
-            "y": 0.35,
-          },
-          Object {
-            "x": 0.36,
-            "y": 0.36,
-          },
-          Object {
-            "x": 0.37,
-            "y": 0.37,
-          },
-          Object {
-            "x": 0.38,
-            "y": 0.38,
-          },
-          Object {
-            "x": 0.39,
-            "y": 0.39,
-          },
-          Object {
-            "x": 0.4,
-            "y": 0.4,
-          },
-          Object {
-            "x": 0.41,
-            "y": 0.41,
-          },
-          Object {
-            "x": 0.42,
-            "y": 0.42,
-          },
-          Object {
-            "x": 0.43,
-            "y": 0.43,
-          },
-          Object {
-            "x": 0.44,
-            "y": 0.44,
-          },
-          Object {
-            "x": 0.45,
-            "y": 0.45,
-          },
-          Object {
-            "x": 0.46,
-            "y": 0.46,
-          },
-          Object {
-            "x": 0.47,
-            "y": 0.47,
-          },
-          Object {
-            "x": 0.48,
-            "y": 0.48,
-          },
-          Object {
-            "x": 0.49,
-            "y": 0.49,
-          },
-          Object {
-            "x": 0.5,
-            "y": 0.5,
-          },
-          Object {
-            "x": 0.51,
-            "y": 0.51,
-          },
-          Object {
-            "x": 0.52,
-            "y": 0.52,
-          },
-          Object {
-            "x": 0.53,
-            "y": 0.53,
-          },
-          Object {
-            "x": 0.54,
-            "y": 0.54,
-          },
-          Object {
-            "x": 0.55,
-            "y": 0.55,
-          },
-          Object {
-            "x": 0.56,
-            "y": 0.56,
-          },
-          Object {
-            "x": 0.57,
-            "y": 0.57,
-          },
-          Object {
-            "x": 0.58,
-            "y": 0.58,
-          },
-          Object {
-            "x": 0.59,
-            "y": 0.59,
-          },
-          Object {
-            "x": 0.6,
-            "y": 0.6,
-          },
-          Object {
-            "x": 0.61,
-            "y": 0.61,
-          },
-          Object {
-            "x": 0.62,
-            "y": 0.62,
-          },
-          Object {
-            "x": 0.63,
-            "y": 0.63,
-          },
-          Object {
-            "x": 0.64,
-            "y": 0.64,
-          },
-          Object {
-            "x": 0.65,
-            "y": 0.65,
-          },
-          Object {
-            "x": 0.66,
-            "y": 0.66,
-          },
-          Object {
-            "x": 0.67,
-            "y": 0.67,
-          },
-          Object {
-            "x": 0.68,
-            "y": 0.68,
-          },
-          Object {
-            "x": 0.69,
-            "y": 0.69,
-          },
-          Object {
-            "x": 0.7,
-            "y": 0.7,
-          },
-          Object {
-            "x": 0.71,
-            "y": 0.71,
-          },
-          Object {
-            "x": 0.72,
-            "y": 0.72,
-          },
-          Object {
-            "x": 0.73,
-            "y": 0.73,
-          },
-          Object {
-            "x": 0.74,
-            "y": 0.74,
-          },
-          Object {
-            "x": 0.75,
-            "y": 0.75,
-          },
-          Object {
-            "x": 0.76,
-            "y": 0.76,
-          },
-          Object {
-            "x": 0.77,
-            "y": 0.77,
-          },
-          Object {
-            "x": 0.78,
-            "y": 0.78,
-          },
-          Object {
-            "x": 0.79,
-            "y": 0.79,
-          },
-          Object {
-            "x": 0.8,
-            "y": 0.8,
-          },
-          Object {
-            "x": 0.81,
-            "y": 0.81,
-          },
-          Object {
-            "x": 0.82,
-            "y": 0.82,
-          },
-          Object {
-            "x": 0.83,
-            "y": 0.83,
-          },
-          Object {
-            "x": 0.84,
-            "y": 0.84,
-          },
-          Object {
-            "x": 0.85,
-            "y": 0.85,
-          },
-          Object {
-            "x": 0.86,
-            "y": 0.86,
-          },
-          Object {
-            "x": 0.87,
-            "y": 0.87,
-          },
-          Object {
-            "x": 0.88,
-            "y": 0.88,
-          },
-          Object {
-            "x": 0.89,
-            "y": 0.89,
-          },
-          Object {
-            "x": 0.9,
-            "y": 0.9,
-          },
-          Object {
-            "x": 0.91,
-            "y": 0.91,
-          },
-          Object {
-            "x": 0.92,
-            "y": 0.92,
-          },
-          Object {
-            "x": 0.93,
-            "y": 0.93,
-          },
-          Object {
-            "x": 0.94,
-            "y": 0.94,
-          },
-          Object {
-            "x": 0.95,
-            "y": 0.95,
-          },
-          Object {
-            "x": 0.96,
-            "y": 0.96,
-          },
-          Object {
-            "x": 0.97,
-            "y": 0.97,
-          },
-          Object {
-            "x": 0.98,
-            "y": 0.98,
-          },
-          Object {
-            "x": 0.99,
-            "y": 0.99,
-          },
-        ]
-      }
-      getNull={[Function]}
-      opacity={1}
-      stack={false}
-      strokeStyle="dashed"
-      strokeWidth={1}
-      style={Object {}}
-    />
-    <LineSeries
-      className=""
-      color="#4285f4"
-      curve="curveBasis"
-      data={
-        Array [
-          Object {
-            "label": "1",
-            "x": 0,
-            "y": 0,
-          },
-          Object {
-            "label": "2",
-            "x": 0.2,
-            "y": 0.3,
-          },
-          Object {
-            "label": "3",
-            "x": 0.5,
-            "y": 0.7,
-          },
-          Object {
-            "label": "4",
-            "x": 0.9,
-            "y": 0.9,
-          },
-          Object {
-            "label": "5",
-            "x": 1,
-            "y": 1,
-          },
-        ]
-      }
-      getNull={[Function]}
-      key="0"
-      onNearestX={[Function]}
-      opacity={1}
-      stack={false}
-      strokeStyle="solid"
-      strokeWidth={2}
-      style={Object {}}
-    />
-    <HighlightOverlay
-      className=""
-      color="rgb(77, 182, 172)"
-      enableX={true}
-      enableY={false}
-      onBrushEnd={[Function]}
-      onDrag={[Function]}
-      opacity={0.3}
-    />
-    <Crosshair
-      itemsFormat={[Function]}
-      style={
-        Object {
-          "box": Object {},
-          "line": Object {},
-          "title": Object {},
-        }
-      }
-      titleFormat={[Function]}
-      values={
-        Array [
-          "",
-        ]
-      }
+<DocumentFragment>
+  <div>
+    <div
+      class="VictoryContainer"
+      style="margin: auto; height: 100%; width: 100%; user-select: none; pointer-events: none; position: relative;"
     >
-      <div
-        className="crosshair"
+      <svg
+        height="520"
+        role="img"
+        style="width: 100%; height: 100%; pointer-events: all;"
+        viewBox="0 0 800 520"
+        width="800"
       >
-        <div
-          className="crosshairLabel"
-          key="0"
+        <g
+          role="presentation"
         >
-          threshold (Series #1): undefined
-        </div>
+          <line
+            role="presentation"
+            shape-rendering="auto"
+            style="stroke: #252525; fill: transparent; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round;"
+            vector-effect="non-scaling-stroke"
+            x1="50"
+            x2="750"
+            y1="470"
+            y2="470"
+          />
+          <text
+            direction="inherit"
+            dx="0"
+            id="chart-axis-0-axisLabel-0"
+            x="400"
+            y="506.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="text-anchor: middle; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 25px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="400"
+            >
+              fpr
+            </tspan>
+          </text>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-0"
+              x="190"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="190"
+              >
+                0.2
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-1"
+              x="330"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="330"
+              >
+                0.4
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-2"
+              x="470"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="470"
+              >
+                0.6
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-3"
+              x="610"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="610"
+              >
+                0.8
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-4"
+              x="750"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="750"
+              >
+                1.0
+              </tspan>
+            </text>
+          </g>
+        </g>
+        <g
+          role="presentation"
+        >
+          <line
+            role="presentation"
+            shape-rendering="auto"
+            style="stroke: #252525; fill: transparent; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round;"
+            vector-effect="non-scaling-stroke"
+            x1="50"
+            x2="50"
+            y1="50"
+            y2="470"
+          />
+          <text
+            direction="inherit"
+            dx="0"
+            id="chart-axis-1-axisLabel-0"
+            transform="rotate(-90,25,260)"
+            x="25"
+            y="257.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="text-anchor: middle; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 25px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="25"
+            >
+              tpr
+            </tspan>
+          </text>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-0"
+              x="39"
+              y="391.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.2
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-1"
+              x="39"
+              y="307.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.4
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-2"
+              x="39"
+              y="223.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.6
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-3"
+              x="39"
+              y="139.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.8
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-4"
+              x="39"
+              y="55.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                1.0
+              </tspan>
+            </text>
+          </g>
+        </g>
+        <g
+          clip-path="url(#victory-clip-12)"
+          style="margin: auto; height: 100%; width: 100%; user-select: none;"
+        >
+          <defs>
+            <clippath
+              id="victory-clip-12"
+            >
+              <rect
+                height="420"
+                vector-effect="non-scaling-stroke"
+                width="0"
+                x="50"
+                y="50"
+              />
+            </clippath>
+          </defs>
+          <path
+            d="M50,470L57,465.8L64,461.59999999999997L71,457.4L78,453.2L85,449L92,444.79999999999995L99,440.59999999999997L106,436.40000000000003L113,432.2L120,428L127,423.8L134,419.6L141,415.4L148,411.2L155,407L162,402.8L169,398.59999999999997L176,394.40000000000003L183,390.20000000000005L190,386L197,381.8L204,377.6L211,373.40000000000003L218,369.2L225,365L232,360.8L239,356.59999999999997L246.00000000000003,352.4L252.99999999999997,348.2L260,344L267,339.79999999999995L274,335.59999999999997L281,331.4L288,327.2L295,323L302,318.8L309,314.6L316,310.4L323,306.2L330,302L337,297.8L344,293.6L351,289.40000000000003L358,285.20000000000005L365,281L372,276.8L379,272.6L386,268.4L393,264.20000000000005L400,260L407,255.79999999999998L414,251.6L421,247.39999999999998L428,243.2L435.00000000000006,238.99999999999997L442.00000000000006,234.79999999999998L448.99999999999994,230.60000000000002L455.99999999999994,226.4L463,222.20000000000002L470,218L477,213.8L484,209.6L491,205.4L498,201.2L505,197L512,192.79999999999998L519,188.6L526,184.39999999999998L533,180.20000000000002L540,176.00000000000003L547,171.8L554,167.60000000000002L561,163.4L568,159.2L575,155L582,150.8L589,146.6L596,142.39999999999998L603,138.2L610,134L617,129.79999999999995L624,125.60000000000002L631,121.40000000000002L638,117.20000000000002L645,113.00000000000001L652,108.80000000000001L659,104.6L666,100.4L673,96.19999999999999L680,92L687,87.79999999999998L694,83.59999999999998L701,79.39999999999998L708,75.20000000000002L715,71.00000000000003L722,66.80000000000001L729,62.60000000000001L736,58.400000000000006L743,54.2"
+            role="presentation"
+            shape-rendering="auto"
+            style="fill: transparent; stroke: #ddd; pointer-events: stroke; stroke-dasharray: 5,5; stroke-width: 1;"
+          />
+        </g>
+        <g>
+          <g
+            clip-path="url(#victory-clip-13)"
+            style="margin: auto; height: 100%; width: 100%; user-select: none;"
+          >
+            <defs>
+              <clippath
+                id="victory-clip-13"
+              >
+                <rect
+                  height="420"
+                  vector-effect="non-scaling-stroke"
+                  width="0"
+                  x="50"
+                  y="50"
+                />
+              </clippath>
+            </defs>
+            <path
+              d="M50,470L73.33333333333333,449C96.66666666666667,428,143.33333333333334,386,201.66666666666666,337C260,288,330,232,411.6666666666667,190C493.3333333333333,148.00000000000003,586.6666666666666,120,645,99C703.3333333333334,78,726.6666666666666,64,738.3333333333334,57L750,50"
+              role="presentation"
+              shape-rendering="auto"
+              style="fill: none; stroke: #4285f4; pointer-events: stroke; stroke-width: 2; opacity: 1; width: 70px;"
+            />
+          </g>
+        </g>
+      </svg>
+      <div
+        style="width: 100%; height: 100%; z-index: 99; position: absolute; top: 0px; left: 0px;"
+      >
+        <svg
+          height="520"
+          style="width: 100%; height: 100%; overflow: visible;"
+          viewBox="0 0 800 520"
+          width="800"
+        >
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-0-labels-0"
+            x="50"
+            y="457.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="50"
+            >
+              1
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-0-labels-1"
+            x="190"
+            y="331.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="190"
+            >
+              2
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-0-labels-2"
+            x="400"
+            y="163.97000000000003"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="400"
+            >
+              3
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-0-labels-3"
+            x="680"
+            y="79.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="680"
+            >
+              4
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-0-labels-4"
+            x="750"
+            y="37.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="750"
+            >
+              5
+            </tspan>
+          </text>
+        </svg>
       </div>
-    </Crosshair>
-  </XYPlot>
-  <div
-    className="flex"
-  />
-</div>
+    </div>
+    <div
+      class="flex"
+    />
+  </div>
+</DocumentFragment>
 `;
 
 exports[`ROCCurve renders an ROC curve using three configs 1`] = `
-<div>
-  <XYPlot
-    animation={true}
-    className=""
-    classes={
-      Object {
-        "root": "root",
-      }
-    }
-    height={520}
-    onMouseLeave={[Function]}
-    width={800}
-    xDomain={null}
-  >
-    <VerticalGridLines
-      attr="x"
-      direction="vertical"
-    />
-    <HorizontalGridLines
-      attr="y"
-      direction="horizontal"
-    />
-    <XAxis
-      attr="x"
-      attrAxis="y"
-      className="axis"
-      orientation="bottom"
-      title="fpr"
-    />
-    <YAxis
-      attr="y"
-      attrAxis="x"
-      className="axis"
-      orientation="left"
-      title="tpr"
-    />
-    <LineSeries
-      className=""
-      color="#ddd"
-      curve={null}
-      data={
-        Array [
-          Object {
-            "x": 0,
-            "y": 0,
-          },
-          Object {
-            "x": 0.01,
-            "y": 0.01,
-          },
-          Object {
-            "x": 0.02,
-            "y": 0.02,
-          },
-          Object {
-            "x": 0.03,
-            "y": 0.03,
-          },
-          Object {
-            "x": 0.04,
-            "y": 0.04,
-          },
-          Object {
-            "x": 0.05,
-            "y": 0.05,
-          },
-          Object {
-            "x": 0.06,
-            "y": 0.06,
-          },
-          Object {
-            "x": 0.07,
-            "y": 0.07,
-          },
-          Object {
-            "x": 0.08,
-            "y": 0.08,
-          },
-          Object {
-            "x": 0.09,
-            "y": 0.09,
-          },
-          Object {
-            "x": 0.1,
-            "y": 0.1,
-          },
-          Object {
-            "x": 0.11,
-            "y": 0.11,
-          },
-          Object {
-            "x": 0.12,
-            "y": 0.12,
-          },
-          Object {
-            "x": 0.13,
-            "y": 0.13,
-          },
-          Object {
-            "x": 0.14,
-            "y": 0.14,
-          },
-          Object {
-            "x": 0.15,
-            "y": 0.15,
-          },
-          Object {
-            "x": 0.16,
-            "y": 0.16,
-          },
-          Object {
-            "x": 0.17,
-            "y": 0.17,
-          },
-          Object {
-            "x": 0.18,
-            "y": 0.18,
-          },
-          Object {
-            "x": 0.19,
-            "y": 0.19,
-          },
-          Object {
-            "x": 0.2,
-            "y": 0.2,
-          },
-          Object {
-            "x": 0.21,
-            "y": 0.21,
-          },
-          Object {
-            "x": 0.22,
-            "y": 0.22,
-          },
-          Object {
-            "x": 0.23,
-            "y": 0.23,
-          },
-          Object {
-            "x": 0.24,
-            "y": 0.24,
-          },
-          Object {
-            "x": 0.25,
-            "y": 0.25,
-          },
-          Object {
-            "x": 0.26,
-            "y": 0.26,
-          },
-          Object {
-            "x": 0.27,
-            "y": 0.27,
-          },
-          Object {
-            "x": 0.28,
-            "y": 0.28,
-          },
-          Object {
-            "x": 0.29,
-            "y": 0.29,
-          },
-          Object {
-            "x": 0.3,
-            "y": 0.3,
-          },
-          Object {
-            "x": 0.31,
-            "y": 0.31,
-          },
-          Object {
-            "x": 0.32,
-            "y": 0.32,
-          },
-          Object {
-            "x": 0.33,
-            "y": 0.33,
-          },
-          Object {
-            "x": 0.34,
-            "y": 0.34,
-          },
-          Object {
-            "x": 0.35,
-            "y": 0.35,
-          },
-          Object {
-            "x": 0.36,
-            "y": 0.36,
-          },
-          Object {
-            "x": 0.37,
-            "y": 0.37,
-          },
-          Object {
-            "x": 0.38,
-            "y": 0.38,
-          },
-          Object {
-            "x": 0.39,
-            "y": 0.39,
-          },
-          Object {
-            "x": 0.4,
-            "y": 0.4,
-          },
-          Object {
-            "x": 0.41,
-            "y": 0.41,
-          },
-          Object {
-            "x": 0.42,
-            "y": 0.42,
-          },
-          Object {
-            "x": 0.43,
-            "y": 0.43,
-          },
-          Object {
-            "x": 0.44,
-            "y": 0.44,
-          },
-          Object {
-            "x": 0.45,
-            "y": 0.45,
-          },
-          Object {
-            "x": 0.46,
-            "y": 0.46,
-          },
-          Object {
-            "x": 0.47,
-            "y": 0.47,
-          },
-          Object {
-            "x": 0.48,
-            "y": 0.48,
-          },
-          Object {
-            "x": 0.49,
-            "y": 0.49,
-          },
-          Object {
-            "x": 0.5,
-            "y": 0.5,
-          },
-          Object {
-            "x": 0.51,
-            "y": 0.51,
-          },
-          Object {
-            "x": 0.52,
-            "y": 0.52,
-          },
-          Object {
-            "x": 0.53,
-            "y": 0.53,
-          },
-          Object {
-            "x": 0.54,
-            "y": 0.54,
-          },
-          Object {
-            "x": 0.55,
-            "y": 0.55,
-          },
-          Object {
-            "x": 0.56,
-            "y": 0.56,
-          },
-          Object {
-            "x": 0.57,
-            "y": 0.57,
-          },
-          Object {
-            "x": 0.58,
-            "y": 0.58,
-          },
-          Object {
-            "x": 0.59,
-            "y": 0.59,
-          },
-          Object {
-            "x": 0.6,
-            "y": 0.6,
-          },
-          Object {
-            "x": 0.61,
-            "y": 0.61,
-          },
-          Object {
-            "x": 0.62,
-            "y": 0.62,
-          },
-          Object {
-            "x": 0.63,
-            "y": 0.63,
-          },
-          Object {
-            "x": 0.64,
-            "y": 0.64,
-          },
-          Object {
-            "x": 0.65,
-            "y": 0.65,
-          },
-          Object {
-            "x": 0.66,
-            "y": 0.66,
-          },
-          Object {
-            "x": 0.67,
-            "y": 0.67,
-          },
-          Object {
-            "x": 0.68,
-            "y": 0.68,
-          },
-          Object {
-            "x": 0.69,
-            "y": 0.69,
-          },
-          Object {
-            "x": 0.7,
-            "y": 0.7,
-          },
-          Object {
-            "x": 0.71,
-            "y": 0.71,
-          },
-          Object {
-            "x": 0.72,
-            "y": 0.72,
-          },
-          Object {
-            "x": 0.73,
-            "y": 0.73,
-          },
-          Object {
-            "x": 0.74,
-            "y": 0.74,
-          },
-          Object {
-            "x": 0.75,
-            "y": 0.75,
-          },
-          Object {
-            "x": 0.76,
-            "y": 0.76,
-          },
-          Object {
-            "x": 0.77,
-            "y": 0.77,
-          },
-          Object {
-            "x": 0.78,
-            "y": 0.78,
-          },
-          Object {
-            "x": 0.79,
-            "y": 0.79,
-          },
-          Object {
-            "x": 0.8,
-            "y": 0.8,
-          },
-          Object {
-            "x": 0.81,
-            "y": 0.81,
-          },
-          Object {
-            "x": 0.82,
-            "y": 0.82,
-          },
-          Object {
-            "x": 0.83,
-            "y": 0.83,
-          },
-          Object {
-            "x": 0.84,
-            "y": 0.84,
-          },
-          Object {
-            "x": 0.85,
-            "y": 0.85,
-          },
-          Object {
-            "x": 0.86,
-            "y": 0.86,
-          },
-          Object {
-            "x": 0.87,
-            "y": 0.87,
-          },
-          Object {
-            "x": 0.88,
-            "y": 0.88,
-          },
-          Object {
-            "x": 0.89,
-            "y": 0.89,
-          },
-          Object {
-            "x": 0.9,
-            "y": 0.9,
-          },
-          Object {
-            "x": 0.91,
-            "y": 0.91,
-          },
-          Object {
-            "x": 0.92,
-            "y": 0.92,
-          },
-          Object {
-            "x": 0.93,
-            "y": 0.93,
-          },
-          Object {
-            "x": 0.94,
-            "y": 0.94,
-          },
-          Object {
-            "x": 0.95,
-            "y": 0.95,
-          },
-          Object {
-            "x": 0.96,
-            "y": 0.96,
-          },
-          Object {
-            "x": 0.97,
-            "y": 0.97,
-          },
-          Object {
-            "x": 0.98,
-            "y": 0.98,
-          },
-          Object {
-            "x": 0.99,
-            "y": 0.99,
-          },
-        ]
-      }
-      getNull={[Function]}
-      opacity={1}
-      stack={false}
-      strokeStyle="dashed"
-      strokeWidth={1}
-      style={Object {}}
-    />
-    <LineSeries
-      className=""
-      color="#4285f4"
-      curve="curveBasis"
-      data={
-        Array [
-          Object {
-            "label": "1",
-            "x": 0,
-            "y": 0,
-          },
-          Object {
-            "label": "2",
-            "x": 0.2,
-            "y": 0.3,
-          },
-          Object {
-            "label": "3",
-            "x": 0.5,
-            "y": 0.7,
-          },
-          Object {
-            "label": "4",
-            "x": 0.9,
-            "y": 0.9,
-          },
-          Object {
-            "label": "5",
-            "x": 1,
-            "y": 1,
-          },
-        ]
-      }
-      getNull={[Function]}
-      key="0"
-      onNearestX={[Function]}
-      opacity={1}
-      stack={false}
-      strokeStyle="solid"
-      strokeWidth={2}
-      style={Object {}}
-    />
-    <LineSeries
-      className=""
-      color="#2b9c1e"
-      curve="curveBasis"
-      data={
-        Array [
-          Object {
-            "label": "1",
-            "x": 0,
-            "y": 0,
-          },
-          Object {
-            "label": "2",
-            "x": 0.2,
-            "y": 0.3,
-          },
-          Object {
-            "label": "3",
-            "x": 0.5,
-            "y": 0.7,
-          },
-          Object {
-            "label": "4",
-            "x": 0.9,
-            "y": 0.9,
-          },
-          Object {
-            "label": "5",
-            "x": 1,
-            "y": 1,
-          },
-        ]
-      }
-      getNull={[Function]}
-      key="1"
-      onNearestX={[Function]}
-      opacity={1}
-      stack={false}
-      strokeStyle="solid"
-      strokeWidth={2}
-      style={Object {}}
-    />
-    <LineSeries
-      className=""
-      color="#e00000"
-      curve="curveBasis"
-      data={
-        Array [
-          Object {
-            "label": "1",
-            "x": 0,
-            "y": 0,
-          },
-          Object {
-            "label": "2",
-            "x": 0.2,
-            "y": 0.3,
-          },
-          Object {
-            "label": "3",
-            "x": 0.5,
-            "y": 0.7,
-          },
-          Object {
-            "label": "4",
-            "x": 0.9,
-            "y": 0.9,
-          },
-          Object {
-            "label": "5",
-            "x": 1,
-            "y": 1,
-          },
-        ]
-      }
-      getNull={[Function]}
-      key="2"
-      onNearestX={[Function]}
-      opacity={1}
-      stack={false}
-      strokeStyle="solid"
-      strokeWidth={2}
-      style={Object {}}
-    />
-    <HighlightOverlay
-      className=""
-      color="rgb(77, 182, 172)"
-      enableX={true}
-      enableY={false}
-      onBrushEnd={[Function]}
-      onDrag={[Function]}
-      opacity={0.3}
-    />
-    <Crosshair
-      itemsFormat={[Function]}
-      style={
-        Object {
-          "box": Object {},
-          "line": Object {},
-          "title": Object {},
-        }
-      }
-      titleFormat={[Function]}
-      values={
-        Array [
-          "",
-          "",
-          "",
-        ]
-      }
+<DocumentFragment>
+  <div>
+    <div
+      class="VictoryContainer"
+      style="margin: auto; height: 100%; width: 100%; user-select: none; pointer-events: none; position: relative;"
+    >
+      <svg
+        height="520"
+        role="img"
+        style="width: 100%; height: 100%; pointer-events: all;"
+        viewBox="0 0 800 520"
+        width="800"
+      >
+        <g
+          role="presentation"
+        >
+          <line
+            role="presentation"
+            shape-rendering="auto"
+            style="stroke: #252525; fill: transparent; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round;"
+            vector-effect="non-scaling-stroke"
+            x1="50"
+            x2="750"
+            y1="470"
+            y2="470"
+          />
+          <text
+            direction="inherit"
+            dx="0"
+            id="chart-axis-0-axisLabel-0"
+            x="400"
+            y="506.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="text-anchor: middle; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 25px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="400"
+            >
+              fpr
+            </tspan>
+          </text>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-0"
+              x="190"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="190"
+              >
+                0.2
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-1"
+              x="330"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="330"
+              >
+                0.4
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-2"
+              x="470"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="470"
+              >
+                0.6
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-3"
+              x="610"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="610"
+              >
+                0.8
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-4"
+              x="750"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="750"
+              >
+                1.0
+              </tspan>
+            </text>
+          </g>
+        </g>
+        <g
+          role="presentation"
+        >
+          <line
+            role="presentation"
+            shape-rendering="auto"
+            style="stroke: #252525; fill: transparent; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round;"
+            vector-effect="non-scaling-stroke"
+            x1="50"
+            x2="50"
+            y1="50"
+            y2="470"
+          />
+          <text
+            direction="inherit"
+            dx="0"
+            id="chart-axis-1-axisLabel-0"
+            transform="rotate(-90,25,260)"
+            x="25"
+            y="257.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="text-anchor: middle; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 25px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="25"
+            >
+              tpr
+            </tspan>
+          </text>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-0"
+              x="39"
+              y="391.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.2
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-1"
+              x="39"
+              y="307.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.4
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-2"
+              x="39"
+              y="223.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.6
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-3"
+              x="39"
+              y="139.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.8
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-4"
+              x="39"
+              y="55.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                1.0
+              </tspan>
+            </text>
+          </g>
+        </g>
+        <g
+          clip-path="url(#victory-clip-46)"
+          style="margin: auto; height: 100%; width: 100%; user-select: none;"
+        >
+          <defs>
+            <clippath
+              id="victory-clip-46"
+            >
+              <rect
+                height="420"
+                vector-effect="non-scaling-stroke"
+                width="0"
+                x="50"
+                y="50"
+              />
+            </clippath>
+          </defs>
+          <path
+            d="M50,470L57,465.8L64,461.59999999999997L71,457.4L78,453.2L85,449L92,444.79999999999995L99,440.59999999999997L106,436.40000000000003L113,432.2L120,428L127,423.8L134,419.6L141,415.4L148,411.2L155,407L162,402.8L169,398.59999999999997L176,394.40000000000003L183,390.20000000000005L190,386L197,381.8L204,377.6L211,373.40000000000003L218,369.2L225,365L232,360.8L239,356.59999999999997L246.00000000000003,352.4L252.99999999999997,348.2L260,344L267,339.79999999999995L274,335.59999999999997L281,331.4L288,327.2L295,323L302,318.8L309,314.6L316,310.4L323,306.2L330,302L337,297.8L344,293.6L351,289.40000000000003L358,285.20000000000005L365,281L372,276.8L379,272.6L386,268.4L393,264.20000000000005L400,260L407,255.79999999999998L414,251.6L421,247.39999999999998L428,243.2L435.00000000000006,238.99999999999997L442.00000000000006,234.79999999999998L448.99999999999994,230.60000000000002L455.99999999999994,226.4L463,222.20000000000002L470,218L477,213.8L484,209.6L491,205.4L498,201.2L505,197L512,192.79999999999998L519,188.6L526,184.39999999999998L533,180.20000000000002L540,176.00000000000003L547,171.8L554,167.60000000000002L561,163.4L568,159.2L575,155L582,150.8L589,146.6L596,142.39999999999998L603,138.2L610,134L617,129.79999999999995L624,125.60000000000002L631,121.40000000000002L638,117.20000000000002L645,113.00000000000001L652,108.80000000000001L659,104.6L666,100.4L673,96.19999999999999L680,92L687,87.79999999999998L694,83.59999999999998L701,79.39999999999998L708,75.20000000000002L715,71.00000000000003L722,66.80000000000001L729,62.60000000000001L736,58.400000000000006L743,54.2"
+            role="presentation"
+            shape-rendering="auto"
+            style="fill: transparent; stroke: #ddd; pointer-events: stroke; stroke-dasharray: 5,5; stroke-width: 1;"
+          />
+        </g>
+        <g>
+          <g
+            clip-path="url(#victory-clip-47)"
+            style="margin: auto; height: 100%; width: 100%; user-select: none;"
+          >
+            <defs>
+              <clippath
+                id="victory-clip-47"
+              >
+                <rect
+                  height="420"
+                  vector-effect="non-scaling-stroke"
+                  width="0"
+                  x="50"
+                  y="50"
+                />
+              </clippath>
+            </defs>
+            <path
+              d="M50,470L73.33333333333333,449C96.66666666666667,428,143.33333333333334,386,201.66666666666666,337C260,288,330,232,411.6666666666667,190C493.3333333333333,148.00000000000003,586.6666666666666,120,645,99C703.3333333333334,78,726.6666666666666,64,738.3333333333334,57L750,50"
+              role="presentation"
+              shape-rendering="auto"
+              style="fill: none; stroke: #4285f4; pointer-events: stroke; stroke-width: 2; opacity: 1; width: 23px;"
+            />
+          </g>
+          <g
+            clip-path="url(#victory-clip-48)"
+            style="margin: auto; height: 100%; width: 100%; user-select: none;"
+          >
+            <defs>
+              <clippath
+                id="victory-clip-48"
+              >
+                <rect
+                  height="420"
+                  vector-effect="non-scaling-stroke"
+                  width="0"
+                  x="50"
+                  y="50"
+                />
+              </clippath>
+            </defs>
+            <path
+              d="M50,470L73.33333333333333,449C96.66666666666667,428,143.33333333333334,386,201.66666666666666,337C260,288,330,232,411.6666666666667,190C493.3333333333333,148.00000000000003,586.6666666666666,120,645,99C703.3333333333334,78,726.6666666666666,64,738.3333333333334,57L750,50"
+              role="presentation"
+              shape-rendering="auto"
+              style="fill: none; stroke: #2b9c1e; pointer-events: stroke; stroke-width: 2; opacity: 1; width: 23px;"
+            />
+          </g>
+          <g
+            clip-path="url(#victory-clip-49)"
+            style="margin: auto; height: 100%; width: 100%; user-select: none;"
+          >
+            <defs>
+              <clippath
+                id="victory-clip-49"
+              >
+                <rect
+                  height="420"
+                  vector-effect="non-scaling-stroke"
+                  width="0"
+                  x="50"
+                  y="50"
+                />
+              </clippath>
+            </defs>
+            <path
+              d="M50,470L73.33333333333333,449C96.66666666666667,428,143.33333333333334,386,201.66666666666666,337C260,288,330,232,411.6666666666667,190C493.3333333333333,148.00000000000003,586.6666666666666,120,645,99C703.3333333333334,78,726.6666666666666,64,738.3333333333334,57L750,50"
+              role="presentation"
+              shape-rendering="auto"
+              style="fill: none; stroke: #e00000; pointer-events: stroke; stroke-width: 2; opacity: 1; width: 23px;"
+            />
+          </g>
+        </g>
+      </svg>
+      <div
+        style="width: 100%; height: 100%; z-index: 99; position: absolute; top: 0px; left: 0px;"
+      >
+        <svg
+          height="520"
+          style="width: 100%; height: 100%; overflow: visible;"
+          viewBox="0 0 800 520"
+          width="800"
+        >
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-0-labels-0"
+            x="50"
+            y="457.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="50"
+            >
+              1
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-0-labels-1"
+            x="190"
+            y="331.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="190"
+            >
+              2
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-0-labels-2"
+            x="400"
+            y="163.97000000000003"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="400"
+            >
+              3
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-0-labels-3"
+            x="680"
+            y="79.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="680"
+            >
+              4
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-0-labels-4"
+            x="750"
+            y="37.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="750"
+            >
+              5
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-1-labels-0"
+            x="50"
+            y="457.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="50"
+            >
+              1
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-1-labels-1"
+            x="190"
+            y="331.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="190"
+            >
+              2
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-1-labels-2"
+            x="400"
+            y="163.97000000000003"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="400"
+            >
+              3
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-1-labels-3"
+            x="680"
+            y="79.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="680"
+            >
+              4
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-1-labels-4"
+            x="750"
+            y="37.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="750"
+            >
+              5
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-2-labels-0"
+            x="50"
+            y="457.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="50"
+            >
+              1
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-2-labels-1"
+            x="190"
+            y="331.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="190"
+            >
+              2
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-2-labels-2"
+            x="400"
+            y="163.97000000000003"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="400"
+            >
+              3
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-2-labels-3"
+            x="680"
+            y="79.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="680"
+            >
+              4
+            </tspan>
+          </text>
+          <text
+            direction="inherit"
+            dx="0"
+            id="line-chart-group-3-2-labels-4"
+            x="750"
+            y="37.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="750"
+            >
+              5
+            </tspan>
+          </text>
+        </svg>
+      </div>
+    </div>
+    <div
+      class="flex"
     >
       <div
-        className="crosshair"
+        style="flex-grow: 1;"
       >
         <div
-          className="crosshairLabel"
-          key="0"
+          class="VictoryContainer"
+          style="height: 100%; width: 100%; pointer-events: none; position: relative;"
         >
-          threshold (Series #1): undefined
-        </div>
-        <div
-          className="crosshairLabel"
-          key="1"
-        >
-          threshold (Series #2): undefined
-        </div>
-        <div
-          className="crosshairLabel"
-          key="2"
-        >
-          threshold (Series #3): undefined
+          <svg
+            height="300"
+            role="img"
+            style="width: 100%; height: 100%; pointer-events: all;"
+            viewBox="0 0 450 300"
+            width="450"
+          >
+            <rect
+              height="16"
+              role="presentation"
+              shape-rendering="auto"
+              style="fill: none;"
+              vector-effect="non-scaling-stroke"
+              width="127.19999999999999"
+              x="0"
+              y="0"
+            />
+            <path
+              d="M 10.431999999999999, 21.568
+      h11.136000000000003
+      v-11.136000000000003
+      h-11.136000000000003
+      z"
+              role="presentation"
+              shape-rendering="auto"
+              style="fill: #4285f4;"
+            />
+            <path
+              d="M 52.832, 21.568
+      h11.135999999999996
+      v-11.135999999999996
+      h-11.135999999999996
+      z"
+              role="presentation"
+              shape-rendering="auto"
+              style="fill: #2b9c1e;"
+            />
+            <path
+              d="M 95.232, 21.568
+      h11.135999999999996
+      v-11.135999999999996
+      h-11.135999999999996
+      z"
+              role="presentation"
+              shape-rendering="auto"
+              style="fill: #e00000;"
+            />
+            <text
+              direction="inherit"
+              dx="0"
+              id="legend-labels-0"
+              x="35.2"
+              y="21.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="start"
+                x="35.2"
+              >
+                Series #1
+              </tspan>
+            </text>
+            <text
+              direction="inherit"
+              dx="0"
+              id="legend-labels-1"
+              x="77.60000000000001"
+              y="21.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="start"
+                x="77.60000000000001"
+              >
+                Series #2
+              </tspan>
+            </text>
+            <text
+              direction="inherit"
+              dx="0"
+              id="legend-labels-2"
+              x="120"
+              y="21.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="start"
+                x="120"
+              >
+                Series #3
+              </tspan>
+            </text>
+          </svg>
+          <div
+            style="width: 100%; height: 100%; z-index: 99; position: absolute; top: 0px; left: 0px;"
+          >
+            <svg
+              height="300"
+              style="width: 100%; height: 100%; overflow: visible;"
+              viewBox="0 0 450 300"
+              width="450"
+            />
+          </div>
         </div>
       </div>
-    </Crosshair>
-  </XYPlot>
-  <div
-    className="flex"
-  >
-    <div
-      style={
-        Object {
-          "flexGrow": 1,
-        }
-      }
-    >
-      <DiscreteColorLegendItem
-        className=""
-        colors={
-          Array [
-            "#12939A",
-            "#79C7E3",
-            "#1A3177",
-            "#FF9833",
-            "#EF5D28",
-          ]
-        }
-        items={
-          Array [
-            Object {
-              "color": "#4285f4",
-              "title": "Series #1",
-            },
-            Object {
-              "color": "#2b9c1e",
-              "title": "Series #2",
-            },
-            Object {
-              "color": "#e00000",
-              "title": "Series #3",
-            },
-          ]
-        }
-        onItemMouseEnter={[Function]}
-        onItemMouseLeave={[Function]}
-        orientation="horizontal"
-      />
     </div>
   </div>
-</div>
+</DocumentFragment>
 `;

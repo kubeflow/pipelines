@@ -55,6 +55,7 @@ class CollapseButton extends React.Component<CollapseButtonProps> {
           }}
           title='Expand/Collapse this section'
           className={css.collapseBtn}
+          data-testid={`collapse-button-${sectionName}`}
         >
           <ExpandedIcon
             className={classes(css.icon, collapseSections[sectionName] ? css.collapsed : '')}
