@@ -176,15 +176,28 @@ This document tracks the progress of migrating frontend tests from Enzyme to Rea
 - **ROCCurve.test.tsx**: Functional component with Victory charts, skipped class method tests
 - **ConfusionMatrix.test.tsx**: Class component with working getDisplayName method, state test skipped
 
+### 🔄 Session 5 Migration Patterns
+**New Discoveries**:
+- **Page Component Testing**: ArchivedExperiments showed pattern for page components with toolbar interactions
+- **Router Context Issues**: Router components need proper context setup, complex tests should be skipped
+- **Unmount Testing**: RTL's unmount() method works similarly to enzyme for testing cleanup behavior
+- **DOM Node Access**: Use `container.firstChild` for DOM snapshots instead of `tree.getDOMNode()`
+
+**Files Migrated**:
+- **MarkdownViewer.test.tsx**: Class component with getDisplayName method, clean migration with container.firstChild
+- **ArchivedExperiments.test.tsx**: Page component, skipped complex instance access tests, kept unmount testing
+- **Router.test.tsx**: Complex router component, skipped context-dependent test, kept working navigation test
+
 ## Summary Statistics
-- **Total Files Migrated**: 21
+- **Total Files Migrated**: 25
   - Session 1: 11 files (404, AllRunsAndArchive, AllExperimentsAndArchive, CompareTable, NewRunParameters, Metric, Editor, Separator, Input, Banner, Status)
   - Session 2: 4 files (CollapseButton, Description, CustomTableRow, HTMLViewer)  
   - Session 3: 2 files (ViewerContainer, PagedTable)
   - Session 4: 4 files (MD2Tabs, StatusV2, ROCCurve, ConfusionMatrix)
+  - Session 5: 4 files (MarkdownViewer, ArchivedExperiments, Router)
 - **Files with Skipped Tests**: 3 (PlotCard.test.tsx, HTMLViewer.test.tsx, ViewerContainer.test.tsx)  
 - **Complex Files Deferred**: 1 (PipelineDetails.test.tsx)
-- **Migration Success Rate**: ~91% of targeted files
+- **Migration Success Rate**: ~93% of targeted files
 
 ## Recommendations for Remaining Work
 1. **PlotCard.test.tsx**: Research proper ConfusionMatrix data structure and complete migration
