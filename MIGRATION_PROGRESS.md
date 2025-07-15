@@ -67,6 +67,31 @@ This document tracks the progress of migrating frontend tests from Enzyme to Rea
     - Converted inline snapshots to regular snapshots
     - 27 test cases successfully migrated
 
+12. **frontend/src/components/CollapseButton.test.tsx**
+    - Interactive button component with callback testing
+    - **Added test-id**: `data-testid="collapse-button-${sectionName}"`
+    - Used `screen.getByTestId()` instead of text-based queries
+    - Demonstrates proper test-id pattern for dynamic identifiers
+
+13. **frontend/src/components/Description.test.tsx**
+    - Markdown rendering component testing
+    - Normal and inline mode testing
+    - Pure display component - no test-ids needed
+    - Used `container.firstChild` for DOM node snapshots
+
+14. **frontend/src/components/CustomTableRow.test.tsx**
+    - Table row component with custom renderers
+    - Error state testing with warning icons
+    - Pure display component - no test-ids needed
+    - Async testing with TestUtils.flushPromises()
+
+15. **frontend/src/components/viewers/HTMLViewer.test.tsx**
+    - HTML iframe viewer component
+    - **Added test-id**: `data-testid="html-viewer-iframe"`
+    - Migrated behavior-focused tests, skipped implementation detail tests
+    - Used `screen.getByTestId()` to test iframe attributes
+    - Demonstrates proper skipping of instance access tests
+
 ## Partially Migrated / Skipped
 
 ### ⚠️ Needs Complex Work or Skipped
@@ -75,6 +100,12 @@ This document tracks the progress of migrating frontend tests from Enzyme to Rea
    - **Issue**: ConfusionMatrix component requires complex data structure (axes, data, labels)
    - **Action**: Skipped 4 tests that need proper ConfusionMatrix configuration
    - **TODO**: Need to provide complete ViewerConfig data for component to render
+
+2. **frontend/src/components/viewers/HTMLViewer.test.tsx**
+   - **Status**: Partially migrated (behavior tests work, implementation tests skipped)
+   - **Issue**: Some tests accessed component instance to test internal iframe refs
+   - **Action**: Skipped 2 tests that accessed `tree.instance()._iframeRef.current`
+   - **Solution**: Replaced with iframe attribute testing using test-ids
 
 ### 🔄 Complex Files Requiring Significant Rework
 1. **frontend/src/pages/PipelineDetails.test.tsx**
@@ -93,24 +124,31 @@ This document tracks the progress of migrating frontend tests from Enzyme to Rea
 - **Form Interactions**: Use screen queries with fireEvent for form inputs
 - **Tab Navigation**: Use rerender to simulate navigation state changes
 - **Async Behavior**: Use waitFor for animations and async state changes
+- **Test-ID Usage**: Add `data-testid` attributes to components for reliable element selection
+- **Dynamic Test-IDs**: Use dynamic test-ids like `data-testid="component-${prop}"` for parameterized components
+- **DOM Node Access**: Use `container.firstChild` when you need DOM node snapshots
 
 ### ❌ Problematic Patterns
 - **Component Instance Access**: `tree.instance()` methods cannot be tested in RTL
 - **Internal State Testing**: RTL focuses on behavior, not internal state
 - **Complex Component Dependencies**: Components requiring detailed config/data setup
 - **Deep Enzyme Tree Traversal**: `.find()` chains need to be replaced with semantic queries
+- **Implementation Detail Testing**: Tests that access private methods or refs should be skipped
 
 ### 🔧 Useful Migration Techniques
 - **Import @testing-library/jest-dom**: Provides better assertions like `toBeInTheDocument()`
 - **Use waitFor**: Essential for testing animations and async behavior
 - **Test Behavior, Not Implementation**: Focus on what users see/do, not internal mechanics
 - **Screen Queries**: Prefer `screen.getByRole()`, `screen.getByText()` over complex selectors
+- **Test-ID Strategy**: Add test-ids to components when text-based queries are unreliable
+- **Skip Implementation Tests**: Use `it.skip()` with clear TODO comments for tests that can't be migrated
+- **Attribute Testing**: Use `toHaveAttribute()` to test HTML attributes instead of accessing DOM directly
 
 ## Summary Statistics
-- **Total Files Migrated**: 11
-- **Files with Skipped Tests**: 1 (PlotCard.test.tsx)
+- **Total Files Migrated**: 15
+- **Files with Skipped Tests**: 2 (PlotCard.test.tsx, HTMLViewer.test.tsx)  
 - **Complex Files Deferred**: 1 (PipelineDetails.test.tsx)
-- **Migration Success Rate**: ~85% of targeted files
+- **Migration Success Rate**: ~88% of targeted files
 
 ## Recommendations for Remaining Work
 1. **PlotCard.test.tsx**: Research proper ConfusionMatrix data structure and complete migration
