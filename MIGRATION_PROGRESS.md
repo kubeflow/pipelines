@@ -92,6 +92,18 @@ This document tracks the progress of migrating frontend tests from Enzyme to Rea
     - Used `screen.getByTestId()` to test iframe attributes
     - Demonstrates proper skipping of instance access tests
 
+16. **frontend/src/components/viewers/ViewerContainer.test.tsx**
+    - Viewer component selector/router
+    - **Status**: Partially migrated (4 working viewer types, 3 skipped)
+    - **Action**: Skipped viewers that require specific data structures
+    - Tests ROC, TENSORBOARD, VISUALIZATION_CREATOR, WEB_APP viewer types
+
+17. **frontend/src/components/viewers/PagedTable.test.tsx**
+    - Data table component with sorting and pagination
+    - **Added test-id**: `data-testid="table-sort-label-${i}"`
+    - Interactive sorting testing with fireEvent
+    - Demonstrates table interaction testing with test-ids
+
 ## Partially Migrated / Skipped
 
 ### ⚠️ Needs Complex Work or Skipped
@@ -106,6 +118,12 @@ This document tracks the progress of migrating frontend tests from Enzyme to Rea
    - **Issue**: Some tests accessed component instance to test internal iframe refs
    - **Action**: Skipped 2 tests that accessed `tree.instance()._iframeRef.current`
    - **Solution**: Replaced with iframe attribute testing using test-ids
+
+3. **frontend/src/components/viewers/ViewerContainer.test.tsx**
+   - **Status**: Partially migrated (4 working viewer types, 3 skipped)
+   - **Issue**: Some viewer components require specific data structures to render
+   - **Action**: Skipped CONFUSION_MATRIX, MARKDOWN, TABLE viewer tests
+   - **Solution**: Tests only ROC, TENSORBOARD, VISUALIZATION_CREATOR, WEB_APP types
 
 ### 🔄 Complex Files Requiring Significant Rework
 1. **frontend/src/pages/PipelineDetails.test.tsx**
@@ -145,10 +163,10 @@ This document tracks the progress of migrating frontend tests from Enzyme to Rea
 - **Attribute Testing**: Use `toHaveAttribute()` to test HTML attributes instead of accessing DOM directly
 
 ## Summary Statistics
-- **Total Files Migrated**: 15
-- **Files with Skipped Tests**: 2 (PlotCard.test.tsx, HTMLViewer.test.tsx)  
+- **Total Files Migrated**: 17
+- **Files with Skipped Tests**: 3 (PlotCard.test.tsx, HTMLViewer.test.tsx, ViewerContainer.test.tsx)  
 - **Complex Files Deferred**: 1 (PipelineDetails.test.tsx)
-- **Migration Success Rate**: ~88% of targeted files
+- **Migration Success Rate**: ~89% of targeted files
 
 ## Recommendations for Remaining Work
 1. **PlotCard.test.tsx**: Research proper ConfusionMatrix data structure and complete migration
