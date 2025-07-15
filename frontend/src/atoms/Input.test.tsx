@@ -14,25 +14,24 @@
  * limitations under the License.
  */
 
+import { render } from '@testing-library/react';
 import * as React from 'react';
 
 import Input from './Input';
-import { shallow } from 'enzyme';
-import toJson from 'enzyme-to-json';
 
 describe('Input', () => {
   const handleChange = jest.fn();
   const value = 'some input value';
 
   it('renders with the right styles by default', () => {
-    const tree = shallow(
+    const { asFragment } = render(
       <Input onChange={handleChange('fieldname')} value={value} variant='outlined' />,
     );
-    expect(toJson(tree)).toMatchSnapshot();
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('accepts height and width as prop overrides', () => {
-    const tree = shallow(
+    const { asFragment } = render(
       <Input
         height={123}
         width={456}
@@ -41,6 +40,6 @@ describe('Input', () => {
         variant='outlined'
       />,
     );
-    expect(toJson(tree)).toMatchSnapshot();
+    expect(asFragment()).toMatchSnapshot();
   });
 });
