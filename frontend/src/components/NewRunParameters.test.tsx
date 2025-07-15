@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
+import { fireEvent, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import * as React from 'react';
-import { mount, shallow } from 'enzyme';
 import NewRunParameters, { NewRunParametersProps } from './NewRunParameters';
 
 describe('NewRunParameters', () => {
@@ -25,7 +26,8 @@ describe('NewRunParameters', () => {
       initialParams: [{ name: 'testParam', value: 'testVal' }],
       titleMessage: 'Specify parameters required by the pipeline',
     } as NewRunParametersProps;
-    expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
+    const { asFragment } = render(<NewRunParameters {...props} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('does not display any text fields if there are no parameters', () => {
@@ -34,7 +36,8 @@ describe('NewRunParameters', () => {
       initialParams: [],
       titleMessage: 'This pipeline has no parameters',
     } as NewRunParametersProps;
-    expect(shallow(<NewRunParameters {...props} />)).toMatchSnapshot();
+    const { asFragment } = render(<NewRunParameters {...props} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('clicking the open editor button for json parameters displays an editor', () => {
@@ -44,15 +47,17 @@ describe('NewRunParameters', () => {
       initialParams: [{ name: 'testParam', value: '{"test":"value"}' }],
       titleMessage: 'Specify json parameters required by the pipeline',
     } as NewRunParametersProps;
-    const tree = mount(<NewRunParameters {...props} />);
-    tree
-      .findWhere(el => el.text() === 'Open Json Editor')
-      .hostNodes()
-      .find('Button')
-      .simulate('click');
+    render(<NewRunParameters {...props} />);
+    
+    // Initially the button should show "Open Json Editor"
+    const openEditorButton = screen.getByRole('button', { name: /Open Json Editor/i });
+    fireEvent.click(openEditorButton);
+    
     expect(handleParamChange).toHaveBeenCalledTimes(1);
     expect(handleParamChange).toHaveBeenLastCalledWith(0, '{\n  "test": "value"\n}');
-    expect(tree.find('Editor')).toMatchSnapshot();
+    
+    // After clicking, the button should change to "Close Json Editor"
+    expect(screen.getByRole('button', { name: /Close Json Editor/i })).toBeInTheDocument();
   });
 
   it('fires handleParamChange callback on change', () => {
@@ -66,10 +71,11 @@ describe('NewRunParameters', () => {
       titleMessage: 'Specify parameters required by the pipeline',
     } as NewRunParametersProps;
 
-    const tree = mount(<NewRunParameters {...props} />);
-    tree
-      .find('input#newRunPipelineParam1')
-      .simulate('change', { target: { value: 'test param value' } });
+    render(<NewRunParameters {...props} />);
+    
+    const input = screen.getByDisplayValue('testVal2');
+    fireEvent.change(input, { target: { value: 'test param value' } });
+    
     expect(handleParamChange).toHaveBeenCalledTimes(1);
     expect(handleParamChange).toHaveBeenLastCalledWith(1, 'test param value');
   });
