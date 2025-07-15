@@ -161,12 +161,30 @@ This document tracks the progress of migrating frontend tests from Enzyme to Rea
 - **Test-ID Strategy**: Add test-ids to components when text-based queries are unreliable
 - **Skip Implementation Tests**: Use `it.skip()` with clear TODO comments for tests that can't be migrated
 - **Attribute Testing**: Use `toHaveAttribute()` to test HTML attributes instead of accessing DOM directly
+- **Functional vs Class Components**: Check if component is functional (no prototype methods) vs class before testing methods
+
+### 🔄 Session 4 Migration Patterns
+**New Discoveries**:
+- **Functional Component Testing**: ROCCurve migrated from class to functional component - class methods no longer applicable  
+- **Snapshot Comparison**: RTL renders full DOM vs Enzyme's shallow representations - expect different snapshots
+- **Warning Management**: Victory charts generate CSS warnings but still function correctly
+- **Method Existence Checks**: Test `Component.prototype.method` existence before calling for class components
+
+**Files Migrated**:
+- **MD2Tabs.test.tsx**: Atom component with button interactions, skipped component instance tests
+- **StatusV2.test.tsx**: Icon status components, extensive snapshot updates from shallow → full DOM
+- **ROCCurve.test.tsx**: Functional component with Victory charts, skipped class method tests
+- **ConfusionMatrix.test.tsx**: Class component with working getDisplayName method, state test skipped
 
 ## Summary Statistics
-- **Total Files Migrated**: 17
+- **Total Files Migrated**: 21
+  - Session 1: 11 files (404, AllRunsAndArchive, AllExperimentsAndArchive, CompareTable, NewRunParameters, Metric, Editor, Separator, Input, Banner, Status)
+  - Session 2: 4 files (CollapseButton, Description, CustomTableRow, HTMLViewer)  
+  - Session 3: 2 files (ViewerContainer, PagedTable)
+  - Session 4: 4 files (MD2Tabs, StatusV2, ROCCurve, ConfusionMatrix)
 - **Files with Skipped Tests**: 3 (PlotCard.test.tsx, HTMLViewer.test.tsx, ViewerContainer.test.tsx)  
 - **Complex Files Deferred**: 1 (PipelineDetails.test.tsx)
-- **Migration Success Rate**: ~89% of targeted files
+- **Migration Success Rate**: ~91% of targeted files
 
 ## Recommendations for Remaining Work
 1. **PlotCard.test.tsx**: Research proper ConfusionMatrix data structure and complete migration
