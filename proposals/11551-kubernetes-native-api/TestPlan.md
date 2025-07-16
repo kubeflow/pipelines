@@ -59,7 +59,7 @@ Create pipeline and pipeline versions and run pipelines with default and custom 
 ### Custom K8s storage (with custom role binding)
 Should we care about this? from migration script POV?
 
-### Custom K8s storage (with FIPS)
+### Cluster Config (with FIPS)
 | **Test Case**                                                                     | **Test Steps**                                        | **Expected Result**                                                                                |
 |-----------------------------------------------------------------------------------|-------------------------------------------------------|----------------------------------------------------------------------------------------------------|
 | (K8s mode) Create pipeline and a pipeline version using CRs                       | Match the pipeline and pipeline version (DB vs K8s)   | Pipeline and Pipeline version creation should be successful                                        |
@@ -68,7 +68,7 @@ Should we care about this? from migration script POV?
 | (K8s mode) Create pipeline run                                                    | Get Run details and validate                          | Pipeline run should succeed                                                                        |
 | (K8s mode) Create an experiment and a pipeline run                                | Get Experiment and Run details and validate           | Pipeline run should be correctly associated to the created experiment and run should be successful |
 
-### Custom K8s storage (with Kubeflow)
+### Cluster Config (in Kubeflow Mode)
 | **Test Case**                                                                     | **Test Steps**                                        | **Expected Result**                                                                                |
 |-----------------------------------------------------------------------------------|-------------------------------------------------------|----------------------------------------------------------------------------------------------------|
 | (K8s mode) Create pipeline and a pipeline version using CRs                       | Match the pipeline and pipeline version (DB vs K8s)   | Pipeline and Pipeline version creation should be successful                                        |
@@ -77,7 +77,7 @@ Should we care about this? from migration script POV?
 | (K8s mode) Create pipeline run                                                    | Get Run details and validate                          | Pipeline run should succeed                                                                        |
 | (K8s mode) Create an experiment and a pipeline run                                | Get Experiment and Run details and validate           | Pipeline run should be correctly associated to the created experiment and run should be successful |
 
-### Custom K8s storage (in ODH)
+### Cluster Config (in ODH)
 | **Test Case**                                                                     | **Test Steps**                                        | **Expected Result**                                                                                |
 |-----------------------------------------------------------------------------------|-------------------------------------------------------|----------------------------------------------------------------------------------------------------|
 | (K8s mode) Create pipeline and a pipeline version using CRs                       | Match the pipeline and pipeline version (DB vs K8s)   | Pipeline and Pipeline version creation should be successful                                        |
