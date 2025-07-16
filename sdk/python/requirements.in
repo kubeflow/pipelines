@@ -12,7 +12,7 @@ docstring-parser>=0.7.3,<1
 uritemplate>=3.0.1,<4
 
 # kfp.dsl
-PyYAML>=5.3,<7
+PyYAML~=6.0.1
 jsonschema>=3.0.1,<5
 kubernetes>=8.0.0,<26
 
