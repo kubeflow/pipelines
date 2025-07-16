@@ -51,7 +51,7 @@ REQUIRES = [
     'strip-hints>=0.1.8,<1',
     'docstring-parser>=0.7.3,<1',
     'kfp-pipeline-spec>=0.1.16,<0.2.0',
-    'fire>=0.3.1,<1',
+    'fire>=0.7.0,<1',
     'protobuf>=3.13.0,<4',
     'uritemplate>=3.0.1,<4',
     # pin to avoid break in requests-toolbelt due to https://github.com/psf/requests/commit/2ad18e0e10e7d7ecd5384c378f25ec8821a10a29
