@@ -475,7 +475,7 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *apiv2beta1.
 
 // Removes a pipeline.
 // Applies common logic on v1beta1 and v2beta1 API.
-func (s *PipelineServer) deletePipeline(ctx context.Context, pipelineId string) error {
+func (s *PipelineServer) deletePipeline(ctx context.Context, pipelineId string, cascade bool) error {
 	// Fail fast
 	if pipelineId == "" {
 		return util.NewInvalidInputError("Failed to delete a pipeline due missing pipeline id")
@@ -490,7 +490,7 @@ func (s *PipelineServer) deletePipeline(ctx context.Context, pipelineId string) 
 		return util.Wrapf(err, "Failed to delete a pipeline due authorization error for pipeline id %v", pipelineId)
 	}
 
-	return s.resourceManager.DeletePipeline(pipelineId)
+	return s.resourceManager.DeletePipeline(pipelineId, cascade)
 }
 
 // Deletes a pipeline.
@@ -500,7 +500,7 @@ func (s *PipelineServer) DeletePipelineV1(ctx context.Context, request *apiv1bet
 		deletePipelineRequests.Inc()
 	}
 
-	if err := s.deletePipeline(ctx, request.GetId()); err != nil {
+	if err := s.deletePipeline(ctx, request.GetId(), false); err != nil {
 		return nil, util.Wrapf(err, "Failed to delete pipeline (v1beta1) %s. Check error stack", request.GetId())
 	}
 
@@ -518,7 +518,7 @@ func (s *PipelineServer) DeletePipeline(ctx context.Context, request *apiv2beta1
 		deletePipelineRequests.Inc()
 	}
 
-	if err := s.deletePipeline(ctx, request.GetPipelineId()); err != nil {
+	if err := s.deletePipeline(ctx, request.GetPipelineId(), request.GetCascade()); err != nil {
 		return nil, util.Wrapf(err, "Failed to delete pipeline %s. Check error stack", request.GetPipelineId())
 	}
 
