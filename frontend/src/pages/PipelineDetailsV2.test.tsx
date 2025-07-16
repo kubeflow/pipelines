@@ -72,13 +72,13 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function(layers: string[]): void {
+          setSubDagLayers={function (layers: string[]): void {
             return;
           }}
           pipeline={null}
           selectedVersion={undefined}
           versions={[]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>
@@ -92,13 +92,13 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function(layers: string[]): void {
+          setSubDagLayers={function (layers: string[]): void {
             return;
           }}
           pipeline={null}
           selectedVersion={undefined}
           versions={[]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>
@@ -112,13 +112,13 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function(layers: string[]): void {
+          setSubDagLayers={function (layers: string[]): void {
             return;
           }}
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
           versions={[testV2PipelineVersion, newTestV2PipelineVersion, testV1PipelineVersion]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>
@@ -133,13 +133,13 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function(layers: string[]): void {
+          setSubDagLayers={function (layers: string[]): void {
             return;
           }}
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
           versions={[testV2PipelineVersion, newTestV2PipelineVersion, testV1PipelineVersion]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>
@@ -159,13 +159,13 @@ describe('PipelineDetailsV2', () => {
       <CommonTestWrapper>
         <PipelineDetailsV2
           pipelineFlowElements={[]}
-          setSubDagLayers={function(layers: string[]): void {
+          setSubDagLayers={function (layers: string[]): void {
             return;
           }}
           pipeline={testV2Pipeline}
           selectedVersion={testV2PipelineVersion}
           versions={[testV2PipelineVersion, newTestV2PipelineVersion, testV1PipelineVersion]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>
@@ -194,11 +194,11 @@ describe('PipelineDetailsV2', () => {
               type: 'EXECUTION',
             },
           ]}
-          setSubDagLayers={layers => {}}
+          setSubDagLayers={(layers) => {}}
           pipeline={null}
           selectedVersion={undefined}
           versions={[]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>
@@ -223,11 +223,11 @@ describe('PipelineDetailsV2', () => {
               type: 'EXECUTION',
             },
           ]}
-          setSubDagLayers={layers => {}}
+          setSubDagLayers={(layers) => {}}
           pipeline={null}
           selectedVersion={undefined}
           versions={[]}
-          handleVersionSelected={function(versionId: string): Promise<void> {
+          handleVersionSelected={function (versionId: string): Promise<void> {
             return Promise.resolve();
           }}
         ></PipelineDetailsV2>

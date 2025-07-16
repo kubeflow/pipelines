@@ -24,18 +24,18 @@ deploymentSpec:
     exec-download:
       container:
         args:
-        - gsutil cp {{$.inputs.parameters['url']}} {{$.outputs.parameters['downloaded'].output_file}}
+          - gsutil cp {{$.inputs.parameters['url']}} {{$.outputs.parameters['downloaded'].output_file}}
         command:
-        - sh
-        - -c
+          - sh
+          - -c
         image: google/cloud-sdk
     exec-echo:
       container:
         args:
-        - echo {{$.inputs.parameters['downloaded']}}
+          - echo {{$.inputs.parameters['downloaded']}}
         command:
-        - sh
-        - -c
+          - sh
+          - -c
         image: library/bash
 pipelineInfo:
   name: sequential
@@ -59,7 +59,7 @@ root:
         componentRef:
           name: comp-echo
         dependentTasks:
-        - download
+          - download
         inputs:
           parameters:
             downloaded:

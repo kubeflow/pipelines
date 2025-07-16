@@ -6,7 +6,7 @@ metadata: # kpt-merge: /artifactgc
   annotations:
     workflows.argoproj.io/description: |
       This is the minimum recommended permissions needed if you want to use artifact GC.
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|Role|default|artifactgc'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|Role|default|artifactgc"
 rules:
   - apiGroups:
       - argoproj.io

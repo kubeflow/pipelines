@@ -19,35 +19,35 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-      - image: ghcr.io/kubeflow/kfp-visualization-server:dummy
-        imagePullPolicy: IfNotPresent
-        name: ml-pipeline-visualizationserver
-        ports:
-        - name: http
-          containerPort: 8888
-        readinessProbe:
-          httpGet:
+        - image: ghcr.io/kubeflow/kfp-visualization-server:dummy
+          imagePullPolicy: IfNotPresent
+          name: ml-pipeline-visualizationserver
+          ports:
+            - name: http
+              containerPort: 8888
+          readinessProbe:
+            httpGet:
               path: /
               port: 8888
-          initialDelaySeconds: 3
-          periodSeconds: 5
-          timeoutSeconds: 2
-        livenessProbe:
-          httpGet:
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
               path: /
               port: 8888
-          initialDelaySeconds: 3
-          periodSeconds: 5
-          timeoutSeconds: 2
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 0
-          capabilities:
-            drop:
-            - ALL
-        resources:
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+          resources:
             requests:
               cpu: 30m
               memory: 500Mi

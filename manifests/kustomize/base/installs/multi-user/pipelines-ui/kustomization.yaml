@@ -2,9 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: kubeflow
 resources:
-- cluster-role.yaml
-- cluster-role-binding.yaml
+  - cluster-role.yaml
+  - cluster-role-binding.yaml
 labels:
-- includeSelectors: true
-  pairs:
-    app: ml-pipeline-ui
+  - includeSelectors: true
+    pairs:
+      app: ml-pipeline-ui

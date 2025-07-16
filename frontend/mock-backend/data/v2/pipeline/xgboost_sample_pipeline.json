@@ -548,9 +548,7 @@
           "componentRef": {
             "name": "comp-convert-csv-to-apache-parquet"
           },
-          "dependentTasks": [
-            "chicago-taxi-trips-dataset"
-          ],
+          "dependentTasks": ["chicago-taxi-trips-dataset"],
           "inputs": {
             "artifacts": {
               "data": {
@@ -572,10 +570,7 @@
           "componentRef": {
             "name": "comp-xgboost-predict"
           },
-          "dependentTasks": [
-            "chicago-taxi-trips-dataset",
-            "xgboost-train"
-          ],
+          "dependentTasks": ["chicago-taxi-trips-dataset", "xgboost-train"],
           "inputs": {
             "artifacts": {
               "data": {
@@ -610,10 +605,7 @@
           "componentRef": {
             "name": "comp-xgboost-predict-2"
           },
-          "dependentTasks": [
-            "convert-csv-to-apache-parquet",
-            "xgboost-train-2"
-          ],
+          "dependentTasks": ["convert-csv-to-apache-parquet", "xgboost-train-2"],
           "inputs": {
             "artifacts": {
               "data": {
@@ -648,10 +640,7 @@
           "componentRef": {
             "name": "comp-xgboost-predict-3"
           },
-          "dependentTasks": [
-            "convert-csv-to-apache-parquet",
-            "xgboost-train"
-          ],
+          "dependentTasks": ["convert-csv-to-apache-parquet", "xgboost-train"],
           "inputs": {
             "artifacts": {
               "data": {
@@ -686,10 +675,7 @@
           "componentRef": {
             "name": "comp-xgboost-predict-4"
           },
-          "dependentTasks": [
-            "chicago-taxi-trips-dataset",
-            "xgboost-train-2"
-          ],
+          "dependentTasks": ["chicago-taxi-trips-dataset", "xgboost-train-2"],
           "inputs": {
             "artifacts": {
               "data": {
@@ -724,9 +710,7 @@
           "componentRef": {
             "name": "comp-xgboost-train"
           },
-          "dependentTasks": [
-            "chicago-taxi-trips-dataset"
-          ],
+          "dependentTasks": ["chicago-taxi-trips-dataset"],
           "inputs": {
             "artifacts": {
               "training_data": {
@@ -785,9 +769,7 @@
           "componentRef": {
             "name": "comp-xgboost-train-2"
           },
-          "dependentTasks": [
-            "convert-csv-to-apache-parquet"
-          ],
+          "dependentTasks": ["convert-csv-to-apache-parquet"],
           "inputs": {
             "artifacts": {
               "training_data": {

@@ -4,12 +4,8 @@
     "title": "backend/api/v1beta1/pipeline_spec.proto",
     "version": "version not set"
   },
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {},
   "definitions": {
     "gatewayruntimeError": {

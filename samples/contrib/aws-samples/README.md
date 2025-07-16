@@ -1,12 +1,10 @@
-# Sample AWS SageMaker Kubeflow Pipelines 
+# Sample AWS SageMaker Kubeflow Pipelines
 
 This folder contains many example pipelines which use [AWS SageMaker Components for KFP](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker). The following sections explain the setup needed to run these pipelines. Once you are done with the setup, [simple_train_pipeline](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/simple_train_pipeline) is a good place to start if you have never used these components before.
 
+## Prerequisites
 
-
-## Prerequisites 
-
- You need a cluster with Kubeflow Pipelines installed and permissions configured. Kubeflow Pipelines offers two installation options. Select the option that applies to your use case:
+You need a cluster with Kubeflow Pipelines installed and permissions configured. Kubeflow Pipelines offers two installation options. Select the option that applies to your use case:
 
 <details><summary>Full Kubeflow on AWS Deployment</summary>
 <p>
@@ -20,20 +18,20 @@ This folder contains many example pipelines which use [AWS SageMaker Components 
 <details><summary>Standalone Kubeflow Pipelines Deployment</summary>
 <p>
 
-1. Install Kubeflow Pipelines standalone by following the documentation on [SageMaker developer guide](https://docs.aws.amazon.com/sagemaker/latest/dg/setup.html#kubeflow-pipelines-standalone). 
+1. Install Kubeflow Pipelines standalone by following the documentation on [SageMaker developer guide](https://docs.aws.amazon.com/sagemaker/latest/dg/setup.html#kubeflow-pipelines-standalone).
 
 2. Configure permissions to access SageMaker services by following the guide on [SageMaker developer guide](https://docs.aws.amazon.com/sagemaker/latest/dg/setup.html#configure-permissions-for-pipeline)
 </p>
 </details>
 
-
 ## Inputs to the pipeline
 
 ### SageMaker execution role
+
 **Note:** Ignore this section if you plan to run [titanic-survival-prediction](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples/titanic-survival-prediction) example
 
 This role is used by SageMaker jobs created by the KFP to access the S3 buckets and other AWS resources.
-Run these commands to create the sagemaker-execution-role.   
+Run these commands to create the sagemaker-execution-role.  
 Note down the Role ARN. You need to give this Role ARN as input in pipeline.
 
 ```

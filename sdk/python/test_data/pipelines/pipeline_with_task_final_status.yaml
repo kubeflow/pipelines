@@ -61,93 +61,93 @@ deploymentSpec:
     exec-exit-op:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - exit_op
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - exit_op
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef exit_op(user_input: str, status: PipelineTaskFinalStatus):\n\
-          \    \"\"\"Checks pipeline run status.\"\"\"\n    print('Pipeline status:\
-          \ ', status.state)\n    print('Job resource name: ', status.pipeline_job_resource_name)\n\
-          \    print('Pipeline task name: ', status.pipeline_task_name)\n    print('Error\
-          \ code: ', status.error_code)\n    print('Error message: ', status.error_message)\n\
-          \n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef exit_op(user_input: str, status: PipelineTaskFinalStatus):\n\
+            \    \"\"\"Checks pipeline run status.\"\"\"\n    print('Pipeline status:\
+            \ ', status.state)\n    print('Job resource name: ', status.pipeline_job_resource_name)\n\
+            \    print('Pipeline task name: ', status.pipeline_task_name)\n    print('Error\
+            \ code: ', status.error_code)\n    print('Error message: ', status.error_message)\n\
+            \n"
         image: python:3.9
     exec-fail-op:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - fail_op
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - fail_op
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n\
-          \    print(message)\n    sys.exit(1)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n\
+            \    print(message)\n    sys.exit(1)\n\n"
         image: python:3.9
     exec-print-op:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_op
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - print_op
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
-          \    print(message)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
+            \    print(message)\n\n"
         image: python:3.9
 pipelineInfo:
   name: pipeline-with-task-final-status
@@ -169,7 +169,7 @@ root:
         componentRef:
           name: comp-exit-op
         dependentTasks:
-        - exit-handler-1
+          - exit-handler-1
         inputs:
           parameters:
             status:

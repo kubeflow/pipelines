@@ -28,15 +28,15 @@ deploymentSpec:
     exec-container-with-if-placeholder:
       container:
         args:
-        - --output_path
-        - '{{$.outputs.parameters[''output_path''].output_file}}'
+          - --output_path
+          - "{{$.outputs.parameters['output_path'].output_file}}"
         command:
-        - my_program
-        - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.inputs.parameters[''optional_input'']}}"],
-          "Else": ["bye"]}}'
-        - --dataset
-        - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.outputs.artifacts[''dataset''].uri}}"],
-          "Else": ["bye"]}}'
+          - my_program
+          - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.inputs.parameters[''optional_input'']}}"],
+            "Else": ["bye"]}}'
+          - --dataset
+          - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.outputs.artifacts[''dataset''].uri}}"],
+            "Else": ["bye"]}}'
         image: python:3.9
 pipelineInfo:
   name: container-with-if-placeholder
@@ -46,8 +46,8 @@ root:
       artifacts:
         dataset:
           artifactSelectors:
-          - outputArtifactKey: dataset
-            producerSubtask: container-with-if-placeholder
+            - outputArtifactKey: dataset
+              producerSubtask: container-with-if-placeholder
       parameters:
         output_path:
           valueFromParameter:

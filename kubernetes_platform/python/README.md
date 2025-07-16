@@ -2,24 +2,27 @@
 
 The Kubeflow Pipelines SDK kfp-kubernetes python library (part of the [Kubeflow Pipelines](https://www.kubeflow.org/docs/components/pipelines/) project) is an addon to the [Kubeflow Pipelines SDK](https://kubeflow-pipelines.readthedocs.io/) that enables authoring Kubeflow pipelines with Kubernetes-specific features and concepts, such as:
 
-* [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
-* [PersistentVolumeClaims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims)
-* [ImagePullPolicies](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy)
-* [Ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/)
-* [Node selectors](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector)
-* [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
-* [Labels and annotations](https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/object-meta/#ObjectMeta)
-* and more
+- [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/)
+- [PersistentVolumeClaims](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims)
+- [ImagePullPolicies](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy)
+- [Ephemeral volumes](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/)
+- [Node selectors](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector)
+- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
+- [Labels and annotations](https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/object-meta/#ObjectMeta)
+- and more
 
 Be sure to check out the full [API Reference](https://kfp-kubernetes.readthedocs.io/) for more details.
 
 ## Installation
+
 The `kfp-kubernetes` package can be installed as a KFP SDK extra dependency.
+
 ```sh
 pip install kfp[kubernetes]
 ```
 
 Or installed independently:
+
 ```sh
 pip install kfp-kubernetes
 ```
@@ -29,6 +32,7 @@ pip install kfp-kubernetes
 The following is an example of a simple pipeline that uses the kfp-kubernetes library to mount a pre-existing secret as an environment variable available in the task's container.
 
 ### Secret: As environment variable
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -51,6 +55,7 @@ def pipeline():
 Here is a non-exhaustive list of some other examples of how to use the kfp-kubernetes library. Be sure to check out the full [API Reference](https://kfp-kubernetes.readthedocs.io/) for more details.
 
 ### Secret: As mounted volume
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -69,6 +74,7 @@ def pipeline():
 ```
 
 ### Secret: As optional source for a mounted volume
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -88,6 +94,7 @@ def pipeline():
 ```
 
 ### ConfigMap: As environment variable
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -106,6 +113,7 @@ def pipeline():
 ```
 
 ### ConfigMap: As mounted volume
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -124,6 +132,7 @@ def pipeline():
 ```
 
 ### ConfigMap: As optional source for a mounted volume
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -142,9 +151,8 @@ def pipeline():
 				       optional=True)
 ```
 
-
-
 ### PersistentVolumeClaim: Dynamically create PVC, mount, then delete
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -191,6 +199,7 @@ def my_pipeline():
 ```
 
 ### PersistentVolumeClaim: Create PVC on-the-fly tied to your pod's lifecycle
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -214,6 +223,7 @@ def my_pipeline():
 ```
 
 ### Pod Metadata: Add pod labels and annotations to the container pod's definition
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -240,6 +250,7 @@ def my_pipeline():
 ```
 
 ### Kubernetes Field: Use Kubernetes Field Path as enviornment variable
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -261,6 +272,7 @@ def my_pipeline():
 ```
 
 ### Timeout: Set timeout in seconds defined as pod spec's activeDeadlineSeconds
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -276,6 +288,7 @@ def my_pipeline():
 ```
 
 ### ImagePullPolicy: One of "Always" "Never", "IfNotPresent".
+
 ```python
 from kfp import dsl
 from kfp import kubernetes
@@ -291,6 +304,7 @@ def pipeline():
 ```
 
 ### ImagePullSecrets: Set secrets to authenticate image pulls
+
 ```python
 from kfp import dsl
 from kfp import kubernetes

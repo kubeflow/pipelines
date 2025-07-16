@@ -8,9 +8,9 @@ deploymentSpec:
     exec-echo:
       container:
         args:
-        - hello world
+          - hello world
         command:
-        - echo
+          - echo
         image: public.ecr.aws/docker/library/python:3.12
 pipelineInfo:
   name: echo

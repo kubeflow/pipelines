@@ -3,28 +3,33 @@
 This simple IBM OSS demo will demonstrate how to train a model using [Fabric for Deep Learning](https://github.com/IBM/FfDL) and then deploy it with [Seldon](https://github.com/SeldonIO/seldon-core).
 
 ## Prerequisites
+
 1. Install [Fabric for Deep Learning](https://github.com/IBM/FfDL) and [Seldon](https://github.com/SeldonIO/seldon-core) on the same Kubernetes cluster as KubeFlow Pipeline.
 2. Create two S3 Object Storage buckets, then store the training data, model definition file, and FfDL manifest file in the training bucket.
-  * The training data for this demo is from the [UTKface's aligned & cropped faces dataset](https://susanqq.github.io/UTKFace/). We will be using the data binary `UTKFace.tar.gz`.
 
-  * The model definition file needs to be packaged as `gender-classification.zip`.
-    with the following commands
-    ```shell
-    zip -j source/gender-classification source/model-source-code/gender_classification.py
-    ```
-    Then upload the model definition file and FfDL manifest file in the source directory. They are named `gender-classification.zip` and `manifest.yml`.
+- The training data for this demo is from the [UTKface's aligned & cropped faces dataset](https://susanqq.github.io/UTKFace/). We will be using the data binary `UTKFace.tar.gz`.
+
+- The model definition file needs to be packaged as `gender-classification.zip`.
+  with the following commands
+  ```shell
+  zip -j source/gender-classification source/model-source-code/gender_classification.py
+  ```
+  Then upload the model definition file and FfDL manifest file in the source directory. They are named `gender-classification.zip` and `manifest.yml`.
 
 3. Fill in the necessary credentials at [credentials/creds.ini](credentials/creds.ini) and upload it to one of your GitHub private repositories. The details of each parameter are defined below.
 
 ## Instructions
 
 ### 1. With Command line
+
 First, install the necessary Python Packages
+
 ```shell
 pip3 install ai_pipeline_params
 ```
 
 In this repository, run the following commands to create the argo files using the Kubeflow pipeline SDK.
+
 ```shell
 dsl-compile --py ffdl_pipeline.py --output ffdl-pipeline.tar.gz
 ```
@@ -32,10 +37,11 @@ dsl-compile --py ffdl_pipeline.py --output ffdl-pipeline.tar.gz
 Then, submit `ffdl-pipeline.tar.gz` to the kubeflow pipeline UI. From there you can create different experiments and runs using the ffdl pipeline definition.
 
 ### 2. With Jupyter Notebook
+
 Run `jupyter notebook` to start running your jupyter server and load the notebook `ffdl_pipeline.ipynb` and follow the instructions.
 
-
 ## Pipeline Parameters
+
 - **config-file-url**: GitHub raw content link to the pipeline credentials file
 - **github-token**: GitHub Token that can access your private repository
 - **model-def-file-path**: Model definition path in the training bucket
@@ -45,6 +51,7 @@ Run `jupyter notebook` to start running your jupyter server and load the noteboo
 - **model-class-file**: Model file that contains the PyTorch model class
 
 ## Credentials needed to be stored in GitHub
+
 - **s3_url**: S3 Object storage endpoint for your FfDL training job.
 - **s3_access_key_id**: S3 Object storage access key id
 - **s3_secret_access_key**: S3 Object storage secret access key

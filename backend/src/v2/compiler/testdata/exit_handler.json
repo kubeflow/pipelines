@@ -174,9 +174,7 @@
             "componentRef": {
               "name": "comp-print-op"
             },
-            "dependentTasks": [
-              "exit-handler-1"
-            ],
+            "dependentTasks": ["exit-handler-1"],
             "inputs": {
               "parameters": {
                 "message": {

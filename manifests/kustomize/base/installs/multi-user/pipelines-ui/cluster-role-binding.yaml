@@ -7,5 +7,5 @@ roleRef:
   kind: ClusterRole
   name: ml-pipeline-ui
 subjects:
-- kind: ServiceAccount
-  name: ml-pipeline-ui
+  - kind: ServiceAccount
+    name: ml-pipeline-ui

@@ -5,27 +5,27 @@ metadata: # kpt-merge: /argo-aggregate-to-view
   labels:
     rbac.authorization.k8s.io/aggregate-to-view: "true"
   annotations:
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|ClusterRole|default|argo-aggregate-to-view'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|ClusterRole|default|argo-aggregate-to-view"
 rules:
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflows
-  - workflows/finalizers
-  - workfloweventbindings
-  - workfloweventbindings/finalizers
-  - workflowtemplates
-  - workflowtemplates/finalizers
-  - cronworkflows
-  - cronworkflows/finalizers
-  - clusterworkflowtemplates
-  - clusterworkflowtemplates/finalizers
-  - workflowtaskresults
-  - workflowtaskresults/finalizers
-  verbs:
-  - get
-  - list
-  - watch
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+      - workflows/finalizers
+      - workfloweventbindings
+      - workfloweventbindings/finalizers
+      - workflowtemplates
+      - workflowtemplates/finalizers
+      - cronworkflows
+      - cronworkflows/finalizers
+      - clusterworkflowtemplates
+      - clusterworkflowtemplates/finalizers
+      - workflowtaskresults
+      - workflowtaskresults/finalizers
+    verbs:
+      - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -34,32 +34,32 @@ metadata: # kpt-merge: /argo-aggregate-to-edit
   labels:
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
   annotations:
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|ClusterRole|default|argo-aggregate-to-edit'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|ClusterRole|default|argo-aggregate-to-edit"
 rules:
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflows
-  - workflows/finalizers
-  - workfloweventbindings
-  - workfloweventbindings/finalizers
-  - workflowtemplates
-  - workflowtemplates/finalizers
-  - cronworkflows
-  - cronworkflows/finalizers
-  - clusterworkflowtemplates
-  - clusterworkflowtemplates/finalizers
-  - workflowtaskresults
-  - workflowtaskresults/finalizers
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+      - workflows/finalizers
+      - workfloweventbindings
+      - workfloweventbindings/finalizers
+      - workflowtemplates
+      - workflowtemplates/finalizers
+      - cronworkflows
+      - cronworkflows/finalizers
+      - clusterworkflowtemplates
+      - clusterworkflowtemplates/finalizers
+      - workflowtaskresults
+      - workflowtaskresults/finalizers
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -68,31 +68,31 @@ metadata: # kpt-merge: /argo-aggregate-to-admin
   labels:
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
   annotations:
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|ClusterRole|default|argo-aggregate-to-admin'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|ClusterRole|default|argo-aggregate-to-admin"
 rules:
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflows
-  - workflows/finalizers
-  - workfloweventbindings
-  - workfloweventbindings/finalizers
-  - workflowtemplates
-  - workflowtemplates/finalizers
-  - cronworkflows
-  - cronworkflows/finalizers
-  - clusterworkflowtemplates
-  - clusterworkflowtemplates/finalizers
-  - workflowtasksets
-  - workflowtasksets/finalizers
-  - workflowtaskresults
-  - workflowtaskresults/finalizers
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+      - workflows/finalizers
+      - workfloweventbindings
+      - workfloweventbindings/finalizers
+      - workflowtemplates
+      - workflowtemplates/finalizers
+      - cronworkflows
+      - cronworkflows/finalizers
+      - clusterworkflowtemplates
+      - clusterworkflowtemplates/finalizers
+      - workflowtasksets
+      - workflowtasksets/finalizers
+      - workflowtaskresults
+      - workflowtaskresults/finalizers
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch

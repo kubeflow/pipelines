@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-
 const fs = require('fs');
 const request = require('request');
 
-const default_mlmd_version = "1.2.0";
+const default_mlmd_version = '1.2.0';
 const mlmd_version = process.argv.slice(2)[0] || default_mlmd_version;
 
 // Step#1 delete two original files
-const metadata_store_file_path = "../third_party/ml-metadata/ml_metadata/proto/metadata_store.proto";
-const metadata_store_service_file_path = "../third_party/ml-metadata/ml_metadata/proto/metadata_store_service.proto";
+const metadata_store_file_path =
+  '../third_party/ml-metadata/ml_metadata/proto/metadata_store.proto';
+const metadata_store_service_file_path =
+  '../third_party/ml-metadata/ml_metadata/proto/metadata_store_service.proto';
 
 try {
   if (fs.existsSync(metadata_store_file_path)) {
@@ -33,27 +34,25 @@ try {
   if (fs.existsSync(metadata_store_service_file_path)) {
     fs.unlinkSync(metadata_store_service_file_path);
   }
-  console.log("Step#1 finished: deleted two original files!");
-} catch(err) {
-  console.error(err)
+  console.log('Step#1 finished: deleted two original files!');
+} catch (err) {
+  console.error(err);
 }
 
 // Step#2 download two new proto files
-const new_metadata_store_file_path = "https://raw.githubusercontent.com/google/ml-metadata/v" + mlmd_version + "/ml_metadata/proto/metadata_store.proto";
-const new_metadata_store_service_file_path = "https://raw.githubusercontent.com/google/ml-metadata/v" + mlmd_version + "/ml_metadata/proto/metadata_store_service.proto";
-download(
-    new_metadata_store_file_path,
-    metadata_store_file_path,
-    console.log
-);
-download(
-    new_metadata_store_service_file_path,
-    metadata_store_service_file_path,
-    console.log
-);
-console.log("Step#2 finished: downloaded two new files!");
+const new_metadata_store_file_path =
+  'https://raw.githubusercontent.com/google/ml-metadata/v' +
+  mlmd_version +
+  '/ml_metadata/proto/metadata_store.proto';
+const new_metadata_store_service_file_path =
+  'https://raw.githubusercontent.com/google/ml-metadata/v' +
+  mlmd_version +
+  '/ml_metadata/proto/metadata_store_service.proto';
+download(new_metadata_store_file_path, metadata_store_file_path, console.log);
+download(new_metadata_store_service_file_path, metadata_store_service_file_path, console.log);
+console.log('Step#2 finished: downloaded two new files!');
 
-function download (url, dest, cb) {
+function download(url, dest, cb) {
   const file = fs.createWriteStream(dest);
   const sendReq = request.get(url);
 
@@ -63,7 +62,7 @@ function download (url, dest, cb) {
       return cb('Response status was ' + response.statusCode);
     }
 
-    console.log("File " + dest + " Downloaded!");
+    console.log('File ' + dest + ' Downloaded!');
 
     sendReq.pipe(file);
   });
@@ -77,7 +76,8 @@ function download (url, dest, cb) {
     return cb(err.message);
   });
 
-  file.on('error', (err) => { // Handle errors
+  file.on('error', (err) => {
+    // Handle errors
     fs.unlink(dest); // Delete the file async. (But we don't check the result)
     return cb(err.message);
   });

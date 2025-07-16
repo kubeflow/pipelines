@@ -19,7 +19,6 @@ Check the following prerequisites before running the examples
 
 **[Prerequisites](prerequisites.md)**
 
-
 ## Note: The Samples can be run in 2 ways
 
 1. From Kubeflow Jupyter Notebook mentioned in [Option 1](##-Option-1.-Running-from-Kubeflow-Jupyter-Notebook)

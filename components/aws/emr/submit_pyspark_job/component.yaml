@@ -14,27 +14,44 @@ name: emr_submit_pyspark_job
 description: >-
   Submits an Elastic Map Reduce (EMR) PySpark application.
 inputs:
-  - {name: region, description: 'The EMR region in which to handle the request.'}
-  - {name: jobflow_id, description: 'The cluster id to run the job.'}
-  - {name: job_name, description: 'The name of the spark job.'}
-  - {name: py_file, description: 'A path to a pyspark file run during the step.'}
-  - {name: input, description: 'File path of the dataset.'}
-  - {name: output, description: 'Output path of the result files.'}
+  - {
+      name: region,
+      description: "The EMR region in which to handle the request.",
+    }
+  - { name: jobflow_id, description: "The cluster id to run the job." }
+  - { name: job_name, description: "The name of the spark job." }
+  - {
+      name: py_file,
+      description: "A path to a pyspark file run during the step.",
+    }
+  - { name: input, description: "File path of the dataset." }
+  - { name: output, description: "Output path of the result files." }
 outputs:
-  - {name: job_id, description: 'The id of the created job.'}
-  - {name: output_location,    description: 'S3 URI of the training job results.'}
+  - { name: job_id, description: "The id of the created job." }
+  - {
+      name: output_location,
+      description: "S3 URI of the training job results.",
+    }
 implementation:
   container:
     image: seedjeffwan/kubeflow-pipeline-aws-emr:20190507
-    command: ['python', 'submit_pyspark_job.py']
-    args: [
-      --region, {inputValue: region},
-      --jobflow_id, {inputValue: jobflow_id},
-      --job_name, {inputValue: job_name},
-      --py_file, {inputValue: py_file},
-      --input, {inputValue: input},
-      --output, {inputValue: output},
-      --output_file, {outputPath: output_location},
-    ]
+    command: ["python", "submit_pyspark_job.py"]
+    args:
+      [
+        --region,
+        { inputValue: region },
+        --jobflow_id,
+        { inputValue: jobflow_id },
+        --job_name,
+        { inputValue: job_name },
+        --py_file,
+        { inputValue: py_file },
+        --input,
+        { inputValue: input },
+        --output,
+        { inputValue: output },
+        --output_file,
+        { outputPath: output_location },
+      ]
     fileOutputs:
       job_id: /output.txt

@@ -16,25 +16,25 @@ spec:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
     spec:
       securityContext:
-          seccompProfile:
-            type: RuntimeDefault
+        seccompProfile:
+          type: RuntimeDefault
       containers:
-      - image: ghcr.io/kubeflow/kfp-viewer-crd-controller:dummy
-        imagePullPolicy: Always
-        name: ml-pipeline-viewer-crd
-        env:
-        - name: MAX_NUM_VIEWERS
-          value: "50"
-        - name: NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 0
-          capabilities:
-            drop:
-            - ALL    
+        - image: ghcr.io/kubeflow/kfp-viewer-crd-controller:dummy
+          imagePullPolicy: Always
+          name: ml-pipeline-viewer-crd
+          env:
+            - name: MAX_NUM_VIEWERS
+              value: "50"
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
       serviceAccountName: ml-pipeline-viewer-crd-service-account

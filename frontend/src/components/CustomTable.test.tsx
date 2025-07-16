@@ -181,10 +181,7 @@ describe('CustomTable', () => {
       sortBy: 'col1sortkey desc',
     });
 
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(1)
-      .simulate('click');
+    tree.find('WithStyles(TableSortLabel)').at(1).simulate('click');
     expect(reload).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: true,
@@ -217,10 +214,7 @@ describe('CustomTable', () => {
       sortBy: 'col1sortkey desc',
     });
 
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(1)
-      .simulate('click');
+    tree.find('WithStyles(TableSortLabel)').at(1).simulate('click');
     expect(reload).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: true,
@@ -229,10 +223,7 @@ describe('CustomTable', () => {
       sortBy: 'col2sortkey',
     });
     tree.setProps({ sortBy: 'col1sortkey' });
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(1)
-      .simulate('click');
+    tree.find('WithStyles(TableSortLabel)').at(1).simulate('click');
     expect(reload).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
@@ -263,10 +254,7 @@ describe('CustomTable', () => {
       sortBy: '',
     });
 
-    tree
-      .find('WithStyles(TableSortLabel)')
-      .at(0)
-      .simulate('click');
+    tree.find('WithStyles(TableSortLabel)').at(0).simulate('click');
     expect(reload).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
@@ -469,18 +457,8 @@ describe('CustomTable', () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
     await TestUtils.flushPromises();
     expect(tree.state()).toHaveProperty('maxPageIndex', 0);
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(0)
-        .prop('disabled'),
-    ).toBeTruthy();
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(1)
-        .prop('disabled'),
-    ).toBeTruthy();
+    expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).toBeTruthy();
+    expect(tree.find('WithStyles(IconButton)').at(1).prop('disabled')).toBeTruthy();
   });
 
   it('enables next page button if next page token is given', async () => {
@@ -489,18 +467,8 @@ describe('CustomTable', () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
     await reloadResult;
     expect(tree.state()).toHaveProperty('maxPageIndex', Number.MAX_SAFE_INTEGER);
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(0)
-        .prop('disabled'),
-    ).toBeTruthy();
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(1)
-        .prop('disabled'),
-    ).not.toBeTruthy();
+    expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).toBeTruthy();
+    expect(tree.find('WithStyles(IconButton)').at(1).prop('disabled')).not.toBeTruthy();
   });
 
   it('calls reload with next page token when next page button is clicked', async () => {
@@ -509,10 +477,7 @@ describe('CustomTable', () => {
     const tree = shallow(<CustomTable {...props} rows={rows} columns={columns} reload={spy} />);
     await TestUtils.flushPromises();
 
-    tree
-      .find('WithStyles(IconButton)')
-      .at(1)
-      .simulate('click');
+    tree.find('WithStyles(IconButton)').at(1).simulate('click');
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
       orderAscending: false,
@@ -528,10 +493,7 @@ describe('CustomTable', () => {
     const tree = shallow(<CustomTable {...props} rows={[]} columns={columns} reload={spy} />);
     await TestUtils.flushPromises();
 
-    tree
-      .find('WithStyles(IconButton)')
-      .at(1)
-      .simulate('click');
+    tree.find('WithStyles(IconButton)').at(1).simulate('click');
     await TestUtils.flushPromises();
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
@@ -543,12 +505,7 @@ describe('CustomTable', () => {
     expect(tree.state()).toHaveProperty('currentPage', 1);
     tree.setProps({ rows: [rows[1]] });
     expect(tree).toMatchSnapshot();
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(0)
-        .prop('disabled'),
-    ).not.toBeTruthy();
+    expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).not.toBeTruthy();
   });
 
   it('renders new rows after clicking previous page, and enables next page button', async () => {
@@ -557,16 +514,10 @@ describe('CustomTable', () => {
     const tree = shallow(<CustomTable {...props} rows={[]} columns={columns} reload={spy} />);
     await reloadResult;
 
-    tree
-      .find('WithStyles(IconButton)')
-      .at(1)
-      .simulate('click');
+    tree.find('WithStyles(IconButton)').at(1).simulate('click');
     await reloadResult;
 
-    tree
-      .find('WithStyles(IconButton)')
-      .at(0)
-      .simulate('click');
+    tree.find('WithStyles(IconButton)').at(0).simulate('click');
     await TestUtils.flushPromises();
     expect(spy).toHaveBeenLastCalledWith({
       filter: '',
@@ -577,12 +528,7 @@ describe('CustomTable', () => {
     });
 
     tree.setProps({ rows });
-    expect(
-      tree
-        .find('WithStyles(IconButton)')
-        .at(0)
-        .prop('disabled'),
-    ).toBeTruthy();
+    expect(tree.find('WithStyles(IconButton)').at(0).prop('disabled')).toBeTruthy();
     await TestUtils.flushPromises();
     expect(tree).toMatchSnapshot();
   });

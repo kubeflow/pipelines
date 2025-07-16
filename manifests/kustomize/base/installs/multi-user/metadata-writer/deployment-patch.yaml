@@ -6,8 +6,8 @@ spec:
   template:
     spec:
       containers:
-      - name: main
-        env:
-        - name: NAMESPACE_TO_WATCH
-          value: ''
-          valueFrom: null
+        - name: main
+          env:
+            - name: NAMESPACE_TO_WATCH
+              value: ""
+              valueFrom: null

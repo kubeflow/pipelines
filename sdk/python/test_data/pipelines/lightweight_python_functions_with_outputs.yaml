@@ -70,125 +70,125 @@ deploymentSpec:
     exec-add-numbers:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - add_numbers
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - add_numbers
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef add_numbers(first: int, second: int) -> int:\n    return first\
-          \ + second\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef add_numbers(first: int, second: int) -> int:\n    return first\
+            \ + second\n\n"
         image: python:3.9
     exec-concat-message:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - concat_message
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - concat_message
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef concat_message(first: str, second: str) -> str:\n    return first\
-          \ + second\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef concat_message(first: str, second: str) -> str:\n    return first\
+            \ + second\n\n"
         image: python:3.9
     exec-output-artifact:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - output_artifact
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - output_artifact
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef output_artifact(number: int, message: str) -> Dataset:\n    result\
-          \ = [message for _ in range(number)]\n    return '\\n'.join(result)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef output_artifact(number: int, message: str) -> Dataset:\n    result\
+            \ = [message for _ in range(number)]\n    return '\\n'.join(result)\n\n"
         image: python:3.9
     exec-output-named-tuple:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - output_named_tuple
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - output_named_tuple
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef output_named_tuple(\n    artifact: Input[Dataset]\n) -> NamedTuple('Outputs',\
-          \ [\n    ('scalar', str),\n    ('metrics', Metrics),\n    ('model', Model),\n\
-          ]):\n    scalar = '123'\n\n    import json\n    metrics = json.dumps({\n\
-          \        'metrics': [{\n            'name': 'accuracy',\n            'numberValue':\
-          \ 0.9,\n            'format': 'PERCENTAGE',\n        }]\n    })\n\n    with\
-          \ open(artifact.path) as f:\n        artifact_contents = f.read()\n    model\
-          \ = 'Model contents: ' + artifact_contents\n\n    from collections import\
-          \ namedtuple\n    output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])\n\
-          \    return output(scalar, metrics, model)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef output_named_tuple(\n    artifact: Input[Dataset]\n) -> NamedTuple('Outputs',\
+            \ [\n    ('scalar', str),\n    ('metrics', Metrics),\n    ('model', Model),\n\
+            ]):\n    scalar = '123'\n\n    import json\n    metrics = json.dumps({\n\
+            \        'metrics': [{\n            'name': 'accuracy',\n            'numberValue':\
+            \ 0.9,\n            'format': 'PERCENTAGE',\n        }]\n    })\n\n    with\
+            \ open(artifact.path) as f:\n        artifact_contents = f.read()\n    model\
+            \ = 'Model contents: ' + artifact_contents\n\n    from collections import\
+            \ namedtuple\n    output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])\n\
+            \    return output(scalar, metrics, model)\n\n"
         image: python:3.9
 pipelineInfo:
   name: functions-with-outputs
@@ -229,8 +229,8 @@ root:
         componentRef:
           name: comp-output-artifact
         dependentTasks:
-        - add-numbers
-        - concat-message
+          - add-numbers
+          - concat-message
         inputs:
           parameters:
             message:
@@ -250,7 +250,7 @@ root:
         componentRef:
           name: comp-output-named-tuple
         dependentTasks:
-        - output-artifact
+          - output-artifact
         inputs:
           artifacts:
             artifact:

@@ -25,7 +25,7 @@ module.exports = {
   style: (obj) => '',
   stylesheet: (obj) => {
     const mock = {};
-    Object.keys(obj).forEach(key => mock[key] = key);
+    Object.keys(obj).forEach((key) => (mock[key] = key));
     return mock;
   },
 };

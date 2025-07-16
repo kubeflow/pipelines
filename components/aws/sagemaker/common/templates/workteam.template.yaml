@@ -1,6 +1,6 @@
-WorkteamName: ''
+WorkteamName: ""
 MemberDefinitions: []
-Description: ''
+Description: ""
 NotificationConfiguration:
-  NotificationTopicArn: ''
+  NotificationTopicArn: ""
 Tags: []

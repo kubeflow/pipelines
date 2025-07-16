@@ -23,14 +23,14 @@ deploymentSpec:
     exec-concat-message:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - concat_message
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - concat_message
         command:
-        - python3
-        - -m
-        - kfp.dsl.executor_main
+          - python3
+          - -m
+          - kfp.dsl.executor_main
         image: kfp-image
 pipelineInfo:
   name: concat-message

@@ -187,7 +187,12 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showError, setShowError] = useState<boolean>(false);
 
-  const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
+  const {
+    isLoading,
+    isError,
+    error,
+    data: viewerConfigs,
+  } = useQuery<ViewerConfig[], Error>(
     [
       'viewerConfig',
       {
@@ -219,7 +224,7 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     }
 
     if (isError) {
-      (async function() {
+      (async function () {
         const updatedMessage = await errorToMessage(error);
         setErrorMessage(updatedMessage);
         setShowError(true);
@@ -247,8 +252,9 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
         {showError && (
           <div className={css.errorBanner}>
             <Banner
-              message={`Error: failed loading ${metricsTabText} file.${errorMessage &&
-                ' Click Details for more information.'}`}
+              message={`Error: failed loading ${metricsTabText} file.${
+                errorMessage && ' Click Details for more information.'
+              }`}
               mode='error'
               additionalInfo={errorMessage}
               isLeftAlign
@@ -342,17 +348,17 @@ function getLinkedArtifactFromSelectedItem(
   selectedItem: SelectedItem,
 ): LinkedArtifact | undefined {
   const filteredRunArtifact = filteredRunArtifacts.find(
-    runArtifact => runArtifact.run.display_name === selectedItem.itemName,
+    (runArtifact) => runArtifact.run.display_name === selectedItem.itemName,
   );
 
-  const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {
+  const executionArtifact = filteredRunArtifact?.executionArtifacts.find((executionArtifact) => {
     const executionText: string =
       getExecutionDisplayName(executionArtifact.execution) ||
       executionArtifact.execution.getId().toString();
     return executionText === selectedItem.subItemName;
   });
 
-  const linkedArtifact = executionArtifact?.linkedArtifacts.find(linkedArtifact => {
+  const linkedArtifact = executionArtifact?.linkedArtifacts.find((linkedArtifact) => {
     const linkedArtifactText: string =
       getArtifactName(linkedArtifact) || linkedArtifact.artifact.getId().toString();
     return linkedArtifactText === selectedItem.subItemSecondaryName;

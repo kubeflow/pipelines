@@ -25,5 +25,5 @@ managedstorage:
   cloudsqlInstanceConnectionName: ""
   gcsBucketName: ""
   databaseNamePrefix: ""
-  dbUsername: 'root'
-  dbPassword: ''
+  dbUsername: "root"
+  dbPassword: ""

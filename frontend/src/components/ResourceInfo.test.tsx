@@ -59,7 +59,7 @@ describe('ResourceInfo', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toEqual(
       'System.ClassificationMetrics (Live)',
     );
-    expect(screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent))
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent))
       .toMatchInlineSnapshot(`
       Array [
         "Properties",

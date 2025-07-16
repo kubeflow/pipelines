@@ -3,7 +3,7 @@ kind: RoleBinding
 metadata: # kpt-merge: /agent-default
   name: agent-default
   annotations:
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|RoleBinding|default|agent-default'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|RoleBinding|default|agent-default"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

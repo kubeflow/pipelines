@@ -8,8 +8,8 @@ spec:
       containers:
         - name: ml-pipeline-api-server
           ports:
-          - containerPort: 8443
-            name: webhook
+            - containerPort: 8443
+              name: webhook
           command:
             - "/bin/apiserver"
           args:

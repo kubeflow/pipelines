@@ -26,17 +26,17 @@ deploymentSpec:
     exec-container-with-artifact-output:
       container:
         args:
-        - --epochs
-        - '{{$.inputs.parameters[''num_epochs'']}}'
-        - --model_path
-        - '{{$.outputs.artifacts[''model''].uri}}'
-        - --model_metadata
-        - '{{$.outputs.artifacts[''model''].metadata}}'
-        - --model_config_path
-        - '{{$.outputs.parameters[''model_config_path''].output_file}}'
+          - --epochs
+          - "{{$.inputs.parameters['num_epochs']}}"
+          - --model_path
+          - "{{$.outputs.artifacts['model'].uri}}"
+          - --model_metadata
+          - "{{$.outputs.artifacts['model'].metadata}}"
+          - --model_config_path
+          - "{{$.outputs.parameters['model_config_path'].output_file}}"
         command:
-        - sh
-        - run.sh
+          - sh
+          - run.sh
         image: gcr.io/my-image
 pipelineInfo:
   name: container-with-artifact-output
@@ -46,8 +46,8 @@ root:
       artifacts:
         model:
           artifactSelectors:
-          - outputArtifactKey: model
-            producerSubtask: container-with-artifact-output
+            - outputArtifactKey: model
+              producerSubtask: container-with-artifact-output
       parameters:
         model_config_path:
           valueFromParameter:

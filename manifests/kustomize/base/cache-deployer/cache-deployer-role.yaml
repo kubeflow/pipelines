@@ -5,13 +5,13 @@ metadata:
     app: kubeflow-pipelines-cache-deployer-role
   name: kubeflow-pipelines-cache-deployer-role
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - patch
-  - list
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - create
+      - delete
+      - get
+      - patch
+      - list

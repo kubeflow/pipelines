@@ -55,13 +55,13 @@ describe('RunList', () => {
   }
 
   function mockNRuns(n: number, runTemplate: Partial<V2beta1Run>): void {
-    getRunSpy.mockImplementation(id => {
+    getRunSpy.mockImplementation((id) => {
       let pipelineVersionRef = {
         pipeline_id: 'testpipeline' + id,
         pipeline_version_id: 'testversion' + id,
       };
       return Promise.resolve(
-        produce(runTemplate, draft => {
+        produce(runTemplate, (draft) => {
           draft = draft || {};
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;
@@ -72,13 +72,13 @@ describe('RunList', () => {
 
     listRunsSpy.mockImplementation(() =>
       Promise.resolve({
-        runs: range(1, n + 1).map(i => {
+        runs: range(1, n + 1).map((i) => {
           if (runTemplate) {
             let pipelineVersionRef = {
               pipeline_id: 'testpipeline' + i,
               pipeline_version_id: 'testversion' + i,
             };
-            return produce(runTemplate as Partial<V2beta1Run>, draft => {
+            return produce(runTemplate as Partial<V2beta1Run>, (draft) => {
               draft.run_id = 'testrun' + i;
               draft.display_name = 'run with id: testrun' + i;
               draft.pipeline_version_reference = pipelineVersionRef;

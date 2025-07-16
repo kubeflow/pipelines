@@ -71,9 +71,10 @@ export function getPeriodInSeconds(interval: PeriodicInterval, count: number): n
   }
   return intervalSeconds * count;
 }
-export function parsePeriodFromSeconds(
-  seconds: number,
-): { interval: PeriodicInterval; count: number } {
+export function parsePeriodFromSeconds(seconds: number): {
+  interval: PeriodicInterval;
+  count: number;
+} {
   for (const interval of PERIODIC_INTERVAL_DESCENDING) {
     const intervalSeconds = INTERVAL_SECONDS[interval];
     if (seconds % intervalSeconds === 0) {
@@ -91,7 +92,7 @@ export function buildCron(
   intervalCategory: PeriodicInterval,
   selectedDays: boolean[],
 ): string {
-  const isAllDaysChecked = selectedDays.every(d => !!d);
+  const isAllDaysChecked = selectedDays.every((d) => !!d);
   let targetDayOfMonth = '0';
   let targetHours = '0';
   let targetMinutes = '0';
@@ -231,9 +232,8 @@ export function parseTrigger(trigger: TriggerSchedule): ParsedTrigger {
         )}`,
       );
     }
-    const { interval: intervalCategory, count: intervalValue } = parsePeriodFromSeconds(
-      intervalSeconds,
-    );
+    const { interval: intervalCategory, count: intervalValue } =
+      parsePeriodFromSeconds(intervalSeconds);
     return {
       type: TriggerType.INTERVALED,
       intervalCategory,

@@ -21,4 +21,3 @@ Arguments:
   max_payload: 6
   batch_strategy: MultiRecord
   split_type: Line
-  

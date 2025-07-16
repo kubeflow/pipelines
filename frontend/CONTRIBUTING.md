@@ -45,6 +45,7 @@ Install the NPM dependencies:
 `npm ci`.
 
 `npm ci` ensures exact dependency versions are installed according to `package-lock.json`. You should run it:
+
 - When first setting up the project
 - After `package.json` or `package-lock.json` changes
 - In CI/CD pipelines
@@ -103,15 +104,17 @@ cluster.
 #### Single-user
 
 1. Deploy a standalone KFP instance by running the following:
+
 ```bash
 git clone https://github.com/kubeflow/pipelines.git ${WORKING_DIRECTORY}
 cd ${WORKING_DIRECTORY}/backend
 make kind-cluster-agnostic
 ```
+
 2. Use the following table to determine which script to run.
 
 | What to develop?                     | Script to run                            | Extra notes                                                        |
-|--------------------------------------|------------------------------------------|--------------------------------------------------------------------|
+| ------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------ |
 | Client UI                            | `npm run start:proxy`                    |                                                                    |
 | Client UI + Node server              | `npm run start:proxy-and-server`         | You need to rerun the script every time you edit node server code. |
 | Client UI + Node server (debug mode) | `npm run start:proxy-and-server-inspect` | Same as above, and you can use chrome to debug the server.         |
@@ -123,15 +126,16 @@ make kind-cluster-agnostic
 2. Run `cd frontend`.
 3. Run the following code block.
 
-    ```bash
-    export REACT_APP_NAMESPACE=kubeflow-user-example-com
-    npm run build
-    ```
+   ```bash
+   export REACT_APP_NAMESPACE=kubeflow-user-example-com
+   npm run build
+   ```
 
    If you're targeting the cluster installed in step 1, the target namespace
    defaults to `kubeflow-user-example-com`. If you're targeting a different
    cluster / namespace, make sure to update the `REACT_APP_NAMESPACE`
    environment variable.
+
 4. Install
    [mod-header](https://chromewebstore.google.com/detail/modheader-modify-http-hea/idgpnmonknjnojddfkpgkljpfnnfcklj?hl=en)
    for Chrome.
@@ -156,10 +160,10 @@ make kind-cluster-agnostic
 
 There are a few types of tests during pre-submit:
 
-* formatting, refer to [Code Style Section](#code-style)
-* linting, you can also run locally with `npm run lint`
-* client UI unit tests, you can run locally with `npm test`
-* UI node server unit tests, you can run locally with `cd server && npm test`
+- formatting, refer to [Code Style Section](#code-style)
+- linting, you can also run locally with `npm run lint`
+- client UI unit tests, you can run locally with `npm test`
+- UI node server unit tests, you can run locally with `cd server && npm test`
 
 There is a special type of unit test called [snapshot tests](https://jestjs.io/docs/en/snapshot-testing). When
 snapshot tests are failing, you can update them automatically with `npm test -u` and run all tests. Then commit
@@ -195,7 +199,7 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
 
 ### IDE Integration
 
-* For vscode, install the plugin "Prettier - Code formatter" and it will pick
+- For vscode, install the plugin "Prettier - Code formatter" and it will pick
   this project's config automatically.
   Recommend setting the following in [settings.json](https://code.visualstudio.com/docs/getstarted/settings#_settings-file-locations) for vscode to autoformat on save.
   ```
@@ -209,7 +213,7 @@ To understand more what prettier is: [What is Prettier](https://prettier.io/docs
   },
   ```
   Also, vscode builtin trailing whitespace [conflicts with jest inline snapshot](https://github.com/Microsoft/vscode/issues/52711), so recommend disabling it.
-* For others, refer to https://prettier.io/docs/en/editors.html.
+- For others, refer to https://prettier.io/docs/en/editors.html.
 
 ### Format Code Manually
 
@@ -228,16 +232,18 @@ swagger-codegen-cli@2.4.7, which you can get
 [here](https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/).
 Make sure to add the jar file to $PATH with the name swagger-codegen-cli.jar, then run `npm run apis` for
 v1 api or `npm run apis:v2beta1` for v2 api.
+
 ```
 // add jar file to $PATH
 JAR_PATH=<folder-path-to-jar-file>
 export PATH="$JAR_PATH:$PATH"
 ```
+
 After code generation, you should run `npm run format` to format the output and avoid creating a large PR.
 
 ## MLMD components
 
-* `src/mlmd` - components for visualizing data from an `ml-metadata` store. For more information see the
+- `src/mlmd` - components for visualizing data from an `ml-metadata` store. For more information see the
   [google/ml-metadata](https://github.com/google/ml-metadata) repository.
 
 This module previously lived in [kubeflow/frontend](https://github.com/kubeflow/frontend) repository. It contains tsx files for visualizing MLMD components.
@@ -246,8 +252,7 @@ MLMD protos lives in `pipelines/third_party/ml-metadata/ml_metadata/`, and the g
 
 ### Building generated metadata Protocol Buffers
 
-* `build:protos` - for compiling Protocol Buffer definitions
-
+- `build:protos` - for compiling Protocol Buffer definitions
 
 This project contains a mix of natively defined classes and classes generated by the Protocol
 Buffer Compiler from definitions in the [pipelines/third_party/ml-metadata/ml_metadata/](third_party/ml-metadata/ml_metadata/) directory. Copies of the generated classes are
@@ -256,7 +261,7 @@ the Protocol Buffer compiler, `protoc`, being in the system PATH.
 
 If a file in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/ml-metadata/ml_metadata/proto) is modified or you need to manually re-generate the protos, you'll need to:
 
-* Add `protoc` ([download](https://github.com/protocolbuffers/protobuf/releases)) to your system
+- Add `protoc` ([download](https://github.com/protocolbuffers/protobuf/releases)) to your system
   PATH
 
   ```bash
@@ -264,7 +269,7 @@ If a file in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/m
   apt install -y protobuf-compiler=3.15.8
   ```
 
-* Add `protoc-gen-grpc-web` ([download](https://github.com/grpc/grpc-web/releases)) to your system
+- Add `protoc-gen-grpc-web` ([download](https://github.com/grpc/grpc-web/releases)) to your system
   PATH
 
   ```bash
@@ -274,7 +279,7 @@ If a file in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/m
   chmod +x /usr/local/bin/protoc-gen-grpc-web
   ```
 
-* Replace `metadata_store.proto` and `metadata_store_service.proto` proto files with target mlmd version by running
+- Replace `metadata_store.proto` and `metadata_store_service.proto` proto files with target mlmd version by running
 
   ```bash
   npm run build:replace -- {mlmd_versions}
@@ -282,7 +287,7 @@ If a file in [pipelines/third_party/ml-metadata/ml_metadata/proto](third_party/m
   // npm run build:replace -- 1.0.0
   ```
 
-* Generate new protos by running
+- Generate new protos by running
 
   ```bash
   npm run build:protos
@@ -332,9 +337,11 @@ You can check out the result like `pbjs_ml_pipelines.js`, `pbjs_ml_pipelines.d.t
 -->
 
 ## Platform Spec API
+
 For KFP v2, we use platform spec to represent a platform definition.
 
 ### Kubernetes
+
 The details of Kubernetes platform is in [kubernetes_platform/proto/kubernetes_executor_config.proto](kubernetes_platform/proto/kubernetes_executor_config.proto). To take the latest of this file and compile it to Typescript classes, follow the below step:
 
 ```

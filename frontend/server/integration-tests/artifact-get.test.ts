@@ -41,7 +41,7 @@ describe('/artifacts', () => {
   beforeEach(() => {
     artifactContent = 'hello world'; // reset
     const mockedMinioClient = MinioClient as any;
-    mockedMinioClient.mockImplementation(function() {
+    mockedMinioClient.mockImplementation(function () {
       return {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
@@ -63,7 +63,7 @@ describe('/artifacts', () => {
   });
 
   describe('/get', () => {
-    it('responds with a minio artifact if source=minio', done => {
+    it('responds with a minio artifact if source=minio', (done) => {
       const mockedMinioClient: jest.Mock = minio.Client as any;
 
       const configs = loadConfigs(argv, {
@@ -79,7 +79,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'minio',
             endPoint: 'minio-service.kubeflow',
@@ -91,7 +91,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Env', done => {
+    it('responds with artifact if source is AWS S3, and creds are sourced from Env', (done) => {
       const mockedMinioClient: jest.Mock = minio.Client as any;
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
@@ -101,7 +101,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
             endPoint: 's3.amazonaws.com',
@@ -113,7 +113,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Load Configs', done => {
+    it('responds with artifact if source is AWS S3, and creds are sourced from Load Configs', (done) => {
       const mockedMinioClient: jest.Mock = minio.Client as any;
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',
@@ -123,7 +123,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
             endPoint: 's3.amazonaws.com',
@@ -137,7 +137,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs', done => {
+    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs', (done) => {
       const mockedMinioClient: jest.Mock = minio.Client as any;
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('someSecret');
@@ -168,7 +168,7 @@ describe('/artifacts', () => {
             providerInfo,
           )}`,
         )
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'someSecret',
             endPoint: 's3.amazonaws.com',
@@ -184,7 +184,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', done => {
+    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', (done) => {
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');
       const mockedMinioClient: jest.Mock = minio.Client as any;
@@ -210,7 +210,7 @@ describe('/artifacts', () => {
             providerInfo,
           )}`,
         )
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'somevalue',
             endPoint: 's3.amazonaws.com',
@@ -238,7 +238,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default namespace when no namespace is provided, as specified in ENV', done => {
+    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default namespace when no namespace is provided, as specified in ENV', (done) => {
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');
       const mockedMinioClient: jest.Mock = minio.Client as any;
@@ -264,7 +264,7 @@ describe('/artifacts', () => {
             providerInfo,
           )}`,
         )
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'somevalue',
             endPoint: 's3.amazonaws.com',
@@ -292,7 +292,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is s3-compatible, and creds are sourced from Provider Configs', done => {
+    it('responds with artifact if source is s3-compatible, and creds are sourced from Provider Configs', (done) => {
       const mockedMinioClient: jest.Mock = minio.Client as any;
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('someSecret');
@@ -318,7 +318,7 @@ describe('/artifacts', () => {
             providerInfo,
           )}`,
         )
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'someSecret',
             endPoint: 'mys3.com',
@@ -334,7 +334,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is s3-compatible, and creds are sourced from Provider Configs, with endpoint port', done => {
+    it('responds with artifact if source is s3-compatible, and creds are sourced from Provider Configs, with endpoint port', (done) => {
       const mockedMinioClient: jest.Mock = minio.Client as any;
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('someSecret');
@@ -360,7 +360,7 @@ describe('/artifacts', () => {
             providerInfo,
           )}`,
         )
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'someSecret',
             endPoint: 'mys3.ns.svc.cluster.local',
@@ -376,7 +376,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is gcs, and creds are sourced from Provider Configs', done => {
+    it('responds with artifact if source is gcs, and creds are sourced from Provider Configs', (done) => {
       const artifactContent = 'hello world';
       const mockedGcsStorage: jest.Mock = GCSStorage as any;
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
@@ -408,7 +408,7 @@ describe('/artifacts', () => {
             providerInfo,
           )}`,
         )
-        .expect(200, artifactContent + '\n', err => {
+        .expect(200, artifactContent + '\n', (err) => {
           const expectedArg = {
             credentials: {
               client_email: 'testemail',
@@ -423,7 +423,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with partial s3 artifact if peek=5 flag is set', done => {
+    it('responds with partial s3 artifact if peek=5 flag is set', (done) => {
       const mockedMinioClient: jest.Mock = minio.Client as any;
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',
@@ -434,7 +434,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
-        .expect(200, artifactContent.slice(0, 5), err => {
+        .expect(200, artifactContent.slice(0, 5), (err) => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
             endPoint: 's3.amazonaws.com',
@@ -448,7 +448,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with a s3 artifact from bucket in non-default region if source=s3', done => {
+    it('responds with a s3 artifact from bucket in non-default region if source=s3', (done) => {
       const mockedMinioClient: jest.Mock = minio.Client as any;
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',
@@ -460,7 +460,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
             endPoint: 's3.amazonaws.com',
@@ -472,7 +472,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with a http artifact if source=http', done => {
+    it('responds with a http artifact if source=http', (done) => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'http://foo.bar/ml-pipeline/hello/world.txt'
@@ -490,7 +490,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
             headers: {},
           });
@@ -498,7 +498,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with partial http artifact if peek=5 flag is set', done => {
+    it('responds with partial http artifact if peek=5 flag is set', (done) => {
       const artifactContent = 'hello world';
       const mockedFetch: jest.Mock = fetch as any;
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
@@ -517,7 +517,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
-        .expect(200, artifactContent.slice(0, 5), err => {
+        .expect(200, artifactContent.slice(0, 5), (err) => {
           expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
             headers: {},
           });
@@ -525,7 +525,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with a https artifact if source=https', done => {
+    it('responds with a https artifact if source=https', (done) => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt' &&
@@ -546,7 +546,7 @@ describe('/artifacts', () => {
       const request = requests(app.start());
       request
         .get('/artifacts/get?source=https&bucket=ml-pipeline&key=hello%2Fworld.txt')
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedFetch).toBeCalledWith('https://foo.bar/ml-pipeline/hello/world.txt', {
             headers: {
               Authorization: 'someToken',
@@ -556,7 +556,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with a https artifact using the inherited header if source=https and http authorization key is provided.', done => {
+    it('responds with a https artifact using the inherited header if source=https and http authorization key is provided.', (done) => {
       const artifactContent = 'hello world';
       mockedFetch.mockImplementationOnce((url: string, _opts: any) =>
         url === 'https://foo.bar/ml-pipeline/hello/world.txt'
@@ -576,7 +576,7 @@ describe('/artifacts', () => {
       request
         .get('/artifacts/get?source=https&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .set('Authorization', 'inheritedToken')
-        .expect(200, artifactContent, err => {
+        .expect(200, artifactContent, (err) => {
           expect(mockedFetch).toBeCalledWith('https://foo.bar/ml-pipeline/hello/world.txt', {
             headers: {
               Authorization: 'inheritedToken',
@@ -586,7 +586,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with a gcs artifact if source=gcs', done => {
+    it('responds with a gcs artifact if source=gcs', (done) => {
       const artifactContent = 'hello world';
       const mockedGcsStorage: jest.Mock = GCSStorage as any;
       const stream = new PassThrough();
@@ -607,7 +607,7 @@ describe('/artifacts', () => {
         .expect(200, artifactContent + '\n', done);
     });
 
-    it('responds with a partial gcs artifact if peek=5 is set', done => {
+    it('responds with a partial gcs artifact if peek=5 is set', (done) => {
       const artifactContent = 'hello world';
       const mockedGcsStorage: jest.Mock = GCSStorage as any;
       const stream = new PassThrough();
@@ -627,7 +627,7 @@ describe('/artifacts', () => {
         .expect(200, artifactContent.slice(0, 5), done);
     });
 
-    it('responds with a volume artifact if source=volume', done => {
+    it('responds with a volume artifact if source=volume', (done) => {
       const artifactContent = 'hello world';
       const tempPath = path.join(mkTempDir(), 'content');
       fs.writeFileSync(tempPath, artifactContent);
@@ -671,7 +671,7 @@ describe('/artifacts', () => {
         .expect(200, artifactContent, done);
     });
 
-    it('responds with a partial volume artifact if peek=5 is set', done => {
+    it('responds with a partial volume artifact if peek=5 is set', (done) => {
       const artifactContent = 'hello world';
       const tempPath = path.join(mkTempDir(), 'content');
       fs.writeFileSync(tempPath, artifactContent);
@@ -714,7 +714,7 @@ describe('/artifacts', () => {
         .expect(200, artifactContent.slice(0, 5), done);
     });
 
-    it('responds error with a not exist volume', done => {
+    it('responds error with a not exist volume', (done) => {
       jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
         Promise.resolve([
           {
@@ -756,7 +756,7 @@ describe('/artifacts', () => {
         .expect(404, 'Failed to open volume.', done);
     });
 
-    it('responds error with a not exist volume mount path if source=volume', done => {
+    it('responds error with a not exist volume mount path if source=volume', (done) => {
       jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
         Promise.resolve([
           {
@@ -799,7 +799,7 @@ describe('/artifacts', () => {
         .expect(404, 'Failed to open volume.', done);
     });
 
-    it('responds error with a not exist volume mount artifact if source=volume', done => {
+    it('responds error with a not exist volume mount artifact if source=volume', (done) => {
       jest.spyOn(serverInfo, 'getHostPod').mockImplementation(() =>
         Promise.resolve([
           {
@@ -841,7 +841,7 @@ describe('/artifacts', () => {
   });
 
   describe('/:source/:bucket/:key', () => {
-    it('downloads a minio artifact', done => {
+    it('downloads a minio artifact', (done) => {
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
 
@@ -851,7 +851,7 @@ describe('/artifacts', () => {
         .expect(200, artifactContent, done);
     });
 
-    it('downloads a tar gzipped artifact as is', done => {
+    it('downloads a tar gzipped artifact as is', (done) => {
       // base64 encoding for tar gzipped 'hello-world'
       const tarGzBase64 =
         'H4sIAFa7DV4AA+3PSwrCMBRG4Y5dxV1BuSGPridgwcItkTZSl++johNBJ0WE803OIHfwZ87j0fq2nmuzGVVNIcitXYqPpntXLojzSb33MToVdTG5rhHdbtLLaa55uk5ZBrMhj23ty9u7T+/rT+TZP3HozYosZbL97tdbAAAAAAAAAAAAAAAAAADfuwAyiYcHACgAAA==';

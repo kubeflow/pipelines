@@ -1,11 +1,9 @@
 # Introduction to Azure Databricks for Kubeflow Pipelines
 
-Azure Databricks Package provides a set of [Kubeflow Pipeline](https://www.kubeflow.org/docs/pipelines/) 
-Tasks (Ops) which let us manipulate [Databricks](https://azure.microsoft.com/services/databricks/) 
-resources using the [Azure Databricks Operator for Kubernetes](
-https://github.com/microsoft/azure-databricks-operator). This makes the user experience much nicer,
-and less error prone, than using the [ResourceOp](
-https://www.kubeflow.org/docs/pipelines/sdk/manipulate-resources/#resourceop) to manipulate
+Azure Databricks Package provides a set of [Kubeflow Pipeline](https://www.kubeflow.org/docs/pipelines/)
+Tasks (Ops) which let us manipulate [Databricks](https://azure.microsoft.com/services/databricks/)
+resources using the [Azure Databricks Operator for Kubernetes](https://github.com/microsoft/azure-databricks-operator). This makes the user experience much nicer,
+and less error prone, than using the [ResourceOp](https://www.kubeflow.org/docs/pipelines/sdk/manipulate-resources/#resourceop) to manipulate
 these Databricks resources.
 
 ## Supported Ops
@@ -24,28 +22,30 @@ these Databricks resources.
 - DeleteDbfsBlockOp, to delete Dbfs Block created with CreateDbfsBlockOp.
 
 For each of these there are two ways a Kubeflow user can create the Ops:
-1) By passing the complete Databricks spec for the Op within a Python Dictionary.
-2) By using named parameters.
+
+1. By passing the complete Databricks spec for the Op within a Python Dictionary.
+2. By using named parameters.
 
 ## Setup
 
-1) [Create an Azure Databricks workspace](
-    https://docs.microsoft.com/en-us/azure/databricks/getting-started/try-databricks?toc=https%3A%2F%2Fdocs.microsoft.com%2Fen-us%2Fazure%2Fazure-databricks%2FTOC.json&bc=https%3A%2F%2Fdocs.microsoft.com%2Fen-us%2Fazure%2Fbread%2Ftoc.json#--step-2-create-an-azure-databricks-workspace)
-2) [Deploy the Azure Databricks Operator for Kubernetes](
-    https://github.com/microsoft/azure-databricks-operator/blob/master/docs/deploy.md)
-3) [Install the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/install-sdk/)
-4) Install Databricks Package:
+1. [Create an Azure Databricks workspace](https://docs.microsoft.com/en-us/azure/databricks/getting-started/try-databricks?toc=https%3A%2F%2Fdocs.microsoft.com%2Fen-us%2Fazure%2Fazure-databricks%2FTOC.json&bc=https%3A%2F%2Fdocs.microsoft.com%2Fen-us%2Fazure%2Fbread%2Ftoc.json#--step-2-create-an-azure-databricks-workspace)
+2. [Deploy the Azure Databricks Operator for Kubernetes](https://github.com/microsoft/azure-databricks-operator/blob/master/docs/deploy.md)
+3. [Install the Kubeflow Pipelines SDK](https://www.kubeflow.org/docs/pipelines/sdk/install-sdk/)
+4. Install Databricks Package:
+
 ```
 pip install -e "git+https://github.com/kubeflow/pipelines#egg=kfp-azure-databricks&subdirectory=samples/contrib/azure-samples/kfp-azure-databricks" --upgrade
 ```
+
 To uninstall Databricks Package use:
+
 ```
 pip uninstall kfp-azure-databricks
 ```
 
 ## Example
 
-The following sample pipeline will submit a one-time job run with implicit cluster creation to Azure 
+The following sample pipeline will submit a one-time job run with implicit cluster creation to Azure
 Databricks:
 
 ```python
@@ -76,18 +76,17 @@ def calc_pipeline(run_name="test-run", parameter="10"):
         name="deleterun",
         run_name=run_name
     )
-    delete_run_task.after(submit_run_task)    
+    delete_run_task.after(submit_run_task)
 ```
 
-This sample is based on the following article: [Create a spark-submit job](
-https://docs.databricks.com/dev-tools/api/latest/examples.html#create-and-run-a-jar-job), which 
-points to the library *sparkpi.jar*. You may upload the library to [Databricks 
-File System](https://docs.microsoft.com/en-us/azure/databricks/data/databricks-file-system) using 
+This sample is based on the following article: [Create a spark-submit job](https://docs.databricks.com/dev-tools/api/latest/examples.html#create-and-run-a-jar-job), which
+points to the library _sparkpi.jar_. You may upload the library to [Databricks
+File System](https://docs.microsoft.com/en-us/azure/databricks/data/databricks-file-system) using
 [DBFS CLI](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/databricks-cli#dbfs-cli).
 
 ## Example using ResourceOp
 
-This sample pipeline shows the code that would be required to submit a one-time job run with 
+This sample pipeline shows the code that would be required to submit a one-time job run with
 implicit cluster creation to Azure Databricks, but using ResourceOp instead of this package:
 
 ```python
@@ -153,32 +152,25 @@ def calc_pipeline(run_name="test-run", parameter="10"):
 
 ## Additional examples
 
-More sample pipelines can be found in folder 
-[samples/contrib/azure-samples/databricks-pipelines](../databricks-pipelines/) and in the tests of 
+More sample pipelines can be found in folder
+[samples/contrib/azure-samples/databricks-pipelines](../databricks-pipelines/) and in the tests of
 this package: [samples/contrib/azure-samples/kfp-azure-databricks/tests](./tests/).
 
 ## Additional information
-- [Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/) 
-- [Azure Databricks documentation](https://docs.microsoft.com/azure/azure-databricks/) 
+
+- [Kubeflow Pipelines](https://www.kubeflow.org/docs/pipelines/)
+- [Azure Databricks documentation](https://docs.microsoft.com/azure/azure-databricks/)
 - [Azure Databricks Operator for Kubernetes](https://github.com/microsoft/azure-databricks-operator)
-- [Golang SDK for DataBricks REST API 2.0 and Azure DataBricks REST API 2.0](
-    https://github.com/xinsnake/databricks-sdk-golang), used by Azure Databricks Operator.
+- [Golang SDK for DataBricks REST API 2.0 and Azure DataBricks REST API 2.0](https://github.com/xinsnake/databricks-sdk-golang), used by Azure Databricks Operator.
 - [Databricks REST API 2.0](https://docs.databricks.com/dev-tools/api/latest/index.html)
-- [Azure Databricks REST API 2.0](
-    https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/)
+- [Azure Databricks REST API 2.0](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/)
 
 The following articles provide information on the supported spec fields for the supported Databricks
-Ops:  
-- Cluster Ops: [Azure Databricks Cluster API](
-    https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/clusters)
-- Job Ops: [Azure Databricks Jobs API](
-    https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/jobs)
-- Run Ops: [Azure Databricks Jobs API - Runs Submit](
-    https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/jobs#--runs-submit)
-- Secret Scope Ops: [Azure Databricks Secrets API](
-    https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/secrets)
-- Workspace Item Ops: [Azure Databricks Workspace API](
-    https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/workspace)
-- DbfsBlock Ops: [Azure Databricks DBFS API](
-    https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/dbfs)
+Ops:
 
+- Cluster Ops: [Azure Databricks Cluster API](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/clusters)
+- Job Ops: [Azure Databricks Jobs API](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/jobs)
+- Run Ops: [Azure Databricks Jobs API - Runs Submit](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/jobs#--runs-submit)
+- Secret Scope Ops: [Azure Databricks Secrets API](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/secrets)
+- Workspace Item Ops: [Azure Databricks Workspace API](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/workspace)
+- DbfsBlock Ops: [Azure Databricks DBFS API](https://docs.microsoft.com/en-us/azure/databricks/dev-tools/api/latest/dbfs)

@@ -14,15 +14,25 @@ name: emr_delete_cluster
 description: |
   Deletes an Elastic Map Reduce (EMR) cluster.
 inputs:
-  - {name: region, description: 'The EMR region in which to handle the request.'}
-  - {name: jobflow_id, description: 'The cluster id to delete.'}
-  - {name: dependent, description: 'Dependent to defer EMR cluster termination. This is only used to generate DAG.'}
+  - {
+      name: region,
+      description: "The EMR region in which to handle the request.",
+    }
+  - { name: jobflow_id, description: "The cluster id to delete." }
+  - {
+      name: dependent,
+      description: "Dependent to defer EMR cluster termination. This is only used to generate DAG.",
+    }
 implementation:
   container:
     image: seedjeffwan/kubeflow-pipeline-aws-emr:20190507
-    command: ['python', 'delete_cluster.py']
-    args: [
-      --region, {inputValue: region},
-      --jobflow_id, {inputValue: jobflow_id},
-      --job_id, {inputValue: dependent}
-    ]
+    command: ["python", "delete_cluster.py"]
+    args:
+      [
+        --region,
+        { inputValue: region },
+        --jobflow_id,
+        { inputValue: jobflow_id },
+        --job_id,
+        { inputValue: dependent },
+      ]

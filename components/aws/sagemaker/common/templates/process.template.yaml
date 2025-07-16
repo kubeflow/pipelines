@@ -1,15 +1,15 @@
-ProcessingJobName: ''
+ProcessingJobName: ""
 ProcessingInputs: []
 ProcessingOutputConfig:
   Outputs: []
-  KmsKeyId: ''
-RoleArn: ''
+  KmsKeyId: ""
+RoleArn: ""
 ProcessingResources:
   ClusterConfig:
-    InstanceType: ''
+    InstanceType: ""
     InstanceCount: 1
     VolumeSizeInGB: 1
-    VolumeKmsKeyId: ''
+    VolumeKmsKeyId: ""
 NetworkConfig:
   EnableInterContainerTrafficEncryption: False
   EnableNetworkIsolation: False
@@ -19,7 +19,7 @@ NetworkConfig:
 StoppingCondition:
   MaxRuntimeInSeconds: 86400
 AppSpecification:
-  ImageUri: ''
+  ImageUri: ""
   ContainerEntrypoint: []
   ContainerArguments: []
 Environment: {}

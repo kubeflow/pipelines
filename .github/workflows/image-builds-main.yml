@@ -13,4 +13,4 @@ jobs:
       fail_fast: true
       overwrite_imgs: true
       set_latest: false
-      add_sha_tag: 'false'
+      add_sha_tag: "false"

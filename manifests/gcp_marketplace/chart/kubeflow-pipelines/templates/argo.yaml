@@ -11,45 +11,45 @@ spec:
     listKind: WorkflowList
     plural: workflows
     shortNames:
-    - wf
+      - wf
     singular: workflow
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - description: Status of the workflow
-      jsonPath: .status.phase
-      name: Status
-      type: string
-    - description: When the workflow was started
-      format: date-time
-      jsonPath: .status.startedAt
-      name: Age
-      type: date
-    name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        properties:
-          apiVersion:
-            type: string
-          kind:
-            type: string
-          metadata:
-            type: object
-          spec:
-            type: object
-            x-kubernetes-map-type: atomic
-            x-kubernetes-preserve-unknown-fields: true
-          status:
-            type: object
-            x-kubernetes-map-type: atomic
-            x-kubernetes-preserve-unknown-fields: true
-        required:
-        - metadata
-        - spec
-        type: object
-    served: true
-    storage: true
-    subresources: {}
+    - additionalPrinterColumns:
+        - description: Status of the workflow
+          jsonPath: .status.phase
+          name: Status
+          type: string
+        - description: When the workflow was started
+          format: date-time
+          jsonPath: .status.startedAt
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              x-kubernetes-map-type: atomic
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-map-type: atomic
+              x-kubernetes-preserve-unknown-fields: true
+          required:
+            - metadata
+            - spec
+          type: object
+      served: true
+      storage: true
+      subresources: {}
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -64,31 +64,31 @@ spec:
     listKind: ClusterWorkflowTemplateList
     plural: clusterworkflowtemplates
     shortNames:
-    - clusterwftmpl
-    - cwft
+      - clusterwftmpl
+      - cwft
     singular: clusterworkflowtemplate
   scope: Cluster
   versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        properties:
-          apiVersion:
-            type: string
-          kind:
-            type: string
-          metadata:
-            type: object
-          spec:
-            type: object
-            x-kubernetes-map-type: atomic
-            x-kubernetes-preserve-unknown-fields: true
-        required:
-        - metadata
-        - spec
-        type: object
-    served: true
-    storage: true
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              x-kubernetes-map-type: atomic
+              x-kubernetes-preserve-unknown-fields: true
+          required:
+            - metadata
+            - spec
+          type: object
+      served: true
+      storage: true
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -103,35 +103,35 @@ spec:
     listKind: CronWorkflowList
     plural: cronworkflows
     shortNames:
-    - cwf
-    - cronwf
+      - cwf
+      - cronwf
     singular: cronworkflow
   scope: Namespaced
   versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        properties:
-          apiVersion:
-            type: string
-          kind:
-            type: string
-          metadata:
-            type: object
-          spec:
-            type: object
-            x-kubernetes-map-type: atomic
-            x-kubernetes-preserve-unknown-fields: true
-          status:
-            type: object
-            x-kubernetes-map-type: atomic
-            x-kubernetes-preserve-unknown-fields: true
-        required:
-        - metadata
-        - spec
-        type: object
-    served: true
-    storage: true
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              x-kubernetes-map-type: atomic
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-map-type: atomic
+              x-kubernetes-preserve-unknown-fields: true
+          required:
+            - metadata
+            - spec
+          type: object
+      served: true
+      storage: true
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -146,30 +146,30 @@ spec:
     listKind: WorkflowEventBindingList
     plural: workfloweventbindings
     shortNames:
-    - wfeb
+      - wfeb
     singular: workfloweventbinding
   scope: Namespaced
   versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        properties:
-          apiVersion:
-            type: string
-          kind:
-            type: string
-          metadata:
-            type: object
-          spec:
-            type: object
-            x-kubernetes-map-type: atomic
-            x-kubernetes-preserve-unknown-fields: true
-        required:
-        - metadata
-        - spec
-        type: object
-    served: true
-    storage: true
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              x-kubernetes-map-type: atomic
+              x-kubernetes-preserve-unknown-fields: true
+          required:
+            - metadata
+            - spec
+          type: object
+      served: true
+      storage: true
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -184,30 +184,30 @@ spec:
     listKind: WorkflowTemplateList
     plural: workflowtemplates
     shortNames:
-    - wftmpl
+      - wftmpl
     singular: workflowtemplate
   scope: Namespaced
   versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        properties:
-          apiVersion:
-            type: string
-          kind:
-            type: string
-          metadata:
-            type: object
-          spec:
-            type: object
-            x-kubernetes-map-type: atomic
-            x-kubernetes-preserve-unknown-fields: true
-        required:
-        - metadata
-        - spec
-        type: object
-    served: true
-    storage: true
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              x-kubernetes-map-type: atomic
+              x-kubernetes-preserve-unknown-fields: true
+          required:
+            - metadata
+            - spec
+          type: object
+      served: true
+      storage: true
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -229,418 +229,418 @@ spec:
     singular: workflowtaskresult
   scope: Namespaced
   versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        properties:
-          apiVersion:
-            type: string
-          kind:
-            type: string
-          message:
-            type: string
-          metadata:
-            type: object
-          outputs:
-            properties:
-              artifacts:
-                items:
-                  properties:
-                    archive:
-                      properties:
-                        none:
-                          type: object
-                        tar:
-                          properties:
-                            compressionLevel:
-                              format: int32
-                              type: integer
-                          type: object
-                        zip:
-                          type: object
-                      type: object
-                    archiveLogs:
-                      type: boolean
-                    artifactory:
-                      properties:
-                        passwordSecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                        url:
-                          type: string
-                        usernameSecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                      required:
-                      - url
-                      type: object
-                    from:
-                      type: string
-                    fromExpression:
-                      type: string
-                    gcs:
-                      properties:
-                        bucket:
-                          type: string
-                        key:
-                          type: string
-                        serviceAccountKeySecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                      required:
-                      - key
-                      type: object
-                    git:
-                      properties:
-                        depth:
-                          format: int64
-                          type: integer
-                        disableSubmodules:
-                          type: boolean
-                        fetch:
-                          items:
-                            type: string
-                          type: array
-                        insecureIgnoreHostKey:
-                          type: boolean
-                        passwordSecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                        repo:
-                          type: string
-                        revision:
-                          type: string
-                        sshPrivateKeySecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                        usernameSecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                      required:
-                      - repo
-                      type: object
-                    globalName:
-                      type: string
-                    hdfs:
-                      properties:
-                        addresses:
-                          items:
-                            type: string
-                          type: array
-                        force:
-                          type: boolean
-                        hdfsUser:
-                          type: string
-                        krbCCacheSecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                        krbConfigConfigMap:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                        krbKeytabSecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                        krbRealm:
-                          type: string
-                        krbServicePrincipalName:
-                          type: string
-                        krbUsername:
-                          type: string
-                        path:
-                          type: string
-                      required:
-                      - path
-                      type: object
-                    http:
-                      properties:
-                        headers:
-                          items:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            message:
+              type: string
+            metadata:
+              type: object
+            outputs:
+              properties:
+                artifacts:
+                  items:
+                    properties:
+                      archive:
+                        properties:
+                          none:
+                            type: object
+                          tar:
                             properties:
+                              compressionLevel:
+                                format: int32
+                                type: integer
+                            type: object
+                          zip:
+                            type: object
+                        type: object
+                      archiveLogs:
+                        type: boolean
+                      artifactory:
+                        properties:
+                          passwordSecret:
+                            properties:
+                              key:
+                                type: string
                               name:
                                 type: string
-                              value:
-                                type: string
+                              optional:
+                                type: boolean
                             required:
-                            - name
-                            - value
+                              - key
                             type: object
-                          type: array
-                        url:
-                          type: string
-                      required:
-                      - url
-                      type: object
-                    mode:
-                      format: int32
-                      type: integer
-                    name:
-                      type: string
-                    optional:
-                      type: boolean
-                    oss:
-                      properties:
-                        accessKeySecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
+                          url:
+                            type: string
+                          usernameSecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                        required:
+                          - url
+                        type: object
+                      from:
+                        type: string
+                      fromExpression:
+                        type: string
+                      gcs:
+                        properties:
+                          bucket:
+                            type: string
+                          key:
+                            type: string
+                          serviceAccountKeySecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                        required:
                           - key
-                          type: object
-                        bucket:
-                          type: string
-                        createBucketIfNotPresent:
-                          type: boolean
-                        endpoint:
-                          type: string
-                        key:
-                          type: string
-                        lifecycleRule:
-                          properties:
-                            markDeletionAfterDays:
-                              format: int32
-                              type: integer
-                            markInfrequentAccessAfterDays:
-                              format: int32
-                              type: integer
-                          type: object
-                        secretKeySecret:
-                          properties:
-                            key:
+                        type: object
+                      git:
+                        properties:
+                          depth:
+                            format: int64
+                            type: integer
+                          disableSubmodules:
+                            type: boolean
+                          fetch:
+                            items:
                               type: string
-                            name:
+                            type: array
+                          insecureIgnoreHostKey:
+                            type: boolean
+                          passwordSecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          repo:
+                            type: string
+                          revision:
+                            type: string
+                          sshPrivateKeySecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          usernameSecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                        required:
+                          - repo
+                        type: object
+                      globalName:
+                        type: string
+                      hdfs:
+                        properties:
+                          addresses:
+                            items:
                               type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                        securityToken:
-                          type: string
-                      required:
-                      - key
-                      type: object
-                    path:
-                      type: string
-                    raw:
-                      properties:
-                        data:
-                          type: string
-                      required:
-                      - data
-                      type: object
-                    recurseMode:
-                      type: boolean
-                    s3:
-                      properties:
-                        accessKeySecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                        bucket:
-                          type: string
-                        createBucketIfNotPresent:
-                          properties:
-                            objectLocking:
-                              type: boolean
-                          type: object
-                        encryptionOptions:
-                          properties:
-                            enableEncryption:
-                              type: boolean
-                            kmsEncryptionContext:
-                              type: string
-                            kmsKeyId:
-                              type: string
-                            serverSideCustomerKeySecret:
+                            type: array
+                          force:
+                            type: boolean
+                          hdfsUser:
+                            type: string
+                          krbCCacheSecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          krbConfigConfigMap:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          krbKeytabSecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          krbRealm:
+                            type: string
+                          krbServicePrincipalName:
+                            type: string
+                          krbUsername:
+                            type: string
+                          path:
+                            type: string
+                        required:
+                          - path
+                        type: object
+                      http:
+                        properties:
+                          headers:
+                            items:
                               properties:
-                                key:
-                                  type: string
                                 name:
                                   type: string
-                                optional:
-                                  type: boolean
+                                value:
+                                  type: string
                               required:
-                              - key
+                                - name
+                                - value
                               type: object
-                          type: object
-                        endpoint:
-                          type: string
-                        insecure:
-                          type: boolean
-                        key:
-                          type: string
-                        region:
-                          type: string
-                        roleARN:
-                          type: string
-                        secretKeySecret:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
-                          - key
-                          type: object
-                        useSDKCreds:
-                          type: boolean
-                      type: object
-                    subPath:
-                      type: string
-                  required:
-                  - name
-                  type: object
-                type: array
-              exitCode:
-                type: string
-              parameters:
-                items:
-                  properties:
-                    default:
-                      type: string
-                    description:
-                      type: string
-                    enum:
-                      items:
+                            type: array
+                          url:
+                            type: string
+                        required:
+                          - url
+                        type: object
+                      mode:
+                        format: int32
+                        type: integer
+                      name:
                         type: string
-                      type: array
-                    globalName:
-                      type: string
-                    name:
-                      type: string
-                    value:
-                      type: string
-                    valueFrom:
-                      properties:
-                        configMapKeyRef:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                            optional:
-                              type: boolean
-                          required:
+                      optional:
+                        type: boolean
+                      oss:
+                        properties:
+                          accessKeySecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          bucket:
+                            type: string
+                          createBucketIfNotPresent:
+                            type: boolean
+                          endpoint:
+                            type: string
+                          key:
+                            type: string
+                          lifecycleRule:
+                            properties:
+                              markDeletionAfterDays:
+                                format: int32
+                                type: integer
+                              markInfrequentAccessAfterDays:
+                                format: int32
+                                type: integer
+                            type: object
+                          secretKeySecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          securityToken:
+                            type: string
+                        required:
                           - key
-                          type: object
-                        default:
+                        type: object
+                      path:
+                        type: string
+                      raw:
+                        properties:
+                          data:
+                            type: string
+                        required:
+                          - data
+                        type: object
+                      recurseMode:
+                        type: boolean
+                      s3:
+                        properties:
+                          accessKeySecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          bucket:
+                            type: string
+                          createBucketIfNotPresent:
+                            properties:
+                              objectLocking:
+                                type: boolean
+                            type: object
+                          encryptionOptions:
+                            properties:
+                              enableEncryption:
+                                type: boolean
+                              kmsEncryptionContext:
+                                type: string
+                              kmsKeyId:
+                                type: string
+                              serverSideCustomerKeySecret:
+                                properties:
+                                  key:
+                                    type: string
+                                  name:
+                                    type: string
+                                  optional:
+                                    type: boolean
+                                required:
+                                  - key
+                                type: object
+                            type: object
+                          endpoint:
+                            type: string
+                          insecure:
+                            type: boolean
+                          key:
+                            type: string
+                          region:
+                            type: string
+                          roleARN:
+                            type: string
+                          secretKeySecret:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          useSDKCreds:
+                            type: boolean
+                        type: object
+                      subPath:
+                        type: string
+                    required:
+                      - name
+                    type: object
+                  type: array
+                exitCode:
+                  type: string
+                parameters:
+                  items:
+                    properties:
+                      default:
+                        type: string
+                      description:
+                        type: string
+                      enum:
+                        items:
                           type: string
-                        event:
-                          type: string
-                        expression:
-                          type: string
-                        jqFilter:
-                          type: string
-                        jsonPath:
-                          type: string
-                        parameter:
-                          type: string
-                        path:
-                          type: string
-                        supplied:
-                          type: object
-                      type: object
-                  required:
-                  - name
-                  type: object
-                type: array
-              result:
-                type: string
-            type: object
-          phase:
-            type: string
-          progress:
-            type: string
-        required:
-        - metadata
-        type: object
-    served: true
-    storage: true
+                        type: array
+                      globalName:
+                        type: string
+                      name:
+                        type: string
+                      value:
+                        type: string
+                      valueFrom:
+                        properties:
+                          configMapKeyRef:
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                type: string
+                              optional:
+                                type: boolean
+                            required:
+                              - key
+                            type: object
+                          default:
+                            type: string
+                          event:
+                            type: string
+                          expression:
+                            type: string
+                          jqFilter:
+                            type: string
+                          jsonPath:
+                            type: string
+                          parameter:
+                            type: string
+                          path:
+                            type: string
+                          supplied:
+                            type: object
+                        type: object
+                    required:
+                      - name
+                    type: object
+                  type: array
+                result:
+                  type: string
+              type: object
+            phase:
+              type: string
+            progress:
+              type: string
+          required:
+            - metadata
+          type: object
+      served: true
+      storage: true
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -653,36 +653,36 @@ spec:
     listKind: WorkflowTaskSetList
     plural: workflowtasksets
     shortNames:
-    - wfts
+      - wfts
     singular: workflowtaskset
   scope: Namespaced
   versions:
-  - name: v1alpha1
-    schema:
-      openAPIV3Schema:
-        properties:
-          apiVersion:
-            type: string
-          kind:
-            type: string
-          metadata:
-            type: object
-          spec:
-            type: object
-            x-kubernetes-map-type: atomic
-            x-kubernetes-preserve-unknown-fields: true
-          status:
-            type: object
-            x-kubernetes-map-type: atomic
-            x-kubernetes-preserve-unknown-fields: true
-        required:
-        - metadata
-        - spec
-        type: object
-    served: true
-    storage: true
-    subresources:
-      status: {}
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              x-kubernetes-map-type: atomic
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-map-type: atomic
+              x-kubernetes-preserve-unknown-fields: true
+          required:
+            - metadata
+            - spec
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -691,124 +691,124 @@ metadata:
   labels:
     app.kubernetes.io/name: "{{ .Release.Name }}"
 rules:
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - leases
-  verbs:
-  - create
-  - get
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  - pods/exec
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-  - watch
-  - list
-- apiGroups:
-  - ""
-  resources:
-  - persistentvolumeclaims
-  - persistentvolumeclaims/finalizers
-  verbs:
-  - create
-  - update
-  - delete
-  - get
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflows
-  - workflows/finalizers
-  - workflowtasksets
-  - workflowtasksets/finalizers
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-  - create
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflowtemplates
-  - workflowtemplates/finalizers
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - serviceaccounts
-  verbs:
-  - get
-  - list
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflowtaskresults
-  verbs:
-  - list
-  - watch
-  - deletecollection
-- apiGroups:
-  - ""
-  resources:
-  - serviceaccounts
-  verbs:
-  - get
-  - list
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-- apiGroups:
-  - argoproj.io
-  resources:
-  - cronworkflows
-  - cronworkflows/finalizers
-  verbs:
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
-- apiGroups:
-  - policy
-  resources:
-  - poddisruptionbudgets
-  verbs:
-  - create
-  - get
-  - delete
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - get
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/exec
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - persistentvolumeclaims
+      - persistentvolumeclaims/finalizers
+    verbs:
+      - create
+      - update
+      - delete
+      - get
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+      - workflows/finalizers
+      - workflowtasksets
+      - workflowtasksets/finalizers
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+      - create
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflowtemplates
+      - workflowtemplates/finalizers
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflowtaskresults
+    verbs:
+      - list
+      - watch
+      - deletecollection
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - cronworkflows
+      - cronworkflows/finalizers
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - create
+      - get
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -821,9 +821,9 @@ roleRef:
   kind: Role
   name: argo-role
 subjects:
-- kind: ServiceAccount
-  name: argo
-  namespace: "{{ .Release.Namespace }}"
+  - kind: ServiceAccount
+    name: argo
+    namespace: "{{ .Release.Namespace }}"
 ---
 apiVersion: v1
 data:
@@ -900,10 +900,10 @@ metadata:
   name: workflow-controller-metrics
 spec:
   ports:
-  - name: metrics
-    port: 9090
-    protocol: TCP
-    targetPort: 9090
+    - name: metrics
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
   selector:
     app: workflow-controller
 ---
@@ -933,45 +933,45 @@ spec:
     spec:
       serviceAccountName: argo
       containers:
-      - name: workflow-controller
-        image: "{{ .Values.images.argoworkflowcontroller }}"
-        command:
-          - workflow-controller
-        args:
-        - --configmap
-        - workflow-controller-configmap
-        - --executor-image
-        - "{{ .Values.images.argoexecutor }}"
-        - --namespaced
-        env:
-        - name: LEADER_ELECTION_IDENTITY
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: metadata.name
-        ports:
-        - name: metrics
-          containerPort: 9090
-        - containerPort: 6060
-        livenessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /healthz
-            port: 6060
-          initialDelaySeconds: 90
-          periodSeconds: 60
-          timeoutSeconds: 30
-        resources:
-          requests:
-            cpu: 100m
-            memory: 500Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          readOnlyRootFilesystem: true
-          runAsNonRoot: true
+        - name: workflow-controller
+          image: "{{ .Values.images.argoworkflowcontroller }}"
+          command:
+            - workflow-controller
+          args:
+            - --configmap
+            - workflow-controller-configmap
+            - --executor-image
+            - "{{ .Values.images.argoexecutor }}"
+            - --namespaced
+          env:
+            - name: LEADER_ELECTION_IDENTITY
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          ports:
+            - name: metrics
+              containerPort: 9090
+            - containerPort: 6060
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 6060
+            initialDelaySeconds: 90
+            periodSeconds: 60
+            timeoutSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 500Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
       nodeSelector:
         kubernetes.io/os: linux
       priorityClassName: workflow-controller

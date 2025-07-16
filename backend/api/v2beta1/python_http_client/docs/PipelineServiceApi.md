@@ -1,29 +1,30 @@
 # kfp_server_api.PipelineServiceApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to _http://localhost_
 
-Method | HTTP request | Description
-------------- | ------------- | -------------
-[**pipeline_service_create_pipeline**](PipelineServiceApi.md#pipeline_service_create_pipeline) | **POST** /apis/v2beta1/pipelines | Creates a pipeline.
-[**pipeline_service_create_pipeline_and_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_and_version) | **POST** /apis/v2beta1/pipelines/create | Creates a new pipeline and a new pipeline version in a single transaction.
-[**pipeline_service_create_pipeline_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_version) | **POST** /apis/v2beta1/pipelines/{pipeline_id}/versions | Adds a pipeline version to the specified pipeline ID.
-[**pipeline_service_delete_pipeline**](PipelineServiceApi.md#pipeline_service_delete_pipeline) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id} | Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
-[**pipeline_service_delete_pipeline_version**](PipelineServiceApi.md#pipeline_service_delete_pipeline_version) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Deletes a specific pipeline version by pipeline version ID and pipeline ID.
-[**pipeline_service_get_pipeline**](PipelineServiceApi.md#pipeline_service_get_pipeline) | **GET** /apis/v2beta1/pipelines/{pipeline_id} | Finds a specific pipeline by ID.
-[**pipeline_service_get_pipeline_by_name**](PipelineServiceApi.md#pipeline_service_get_pipeline_by_name) | **GET** /apis/v2beta1/pipelines/names/{name} | Finds a specific pipeline by name and namespace.
-[**pipeline_service_get_pipeline_version**](PipelineServiceApi.md#pipeline_service_get_pipeline_version) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Gets a pipeline version by pipeline version ID and pipeline ID.
-[**pipeline_service_list_pipeline_versions**](PipelineServiceApi.md#pipeline_service_list_pipeline_versions) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions | Lists all pipeline versions of a given pipeline ID.
-[**pipeline_service_list_pipelines**](PipelineServiceApi.md#pipeline_service_list_pipelines) | **GET** /apis/v2beta1/pipelines | Finds all pipelines within a namespace.
-
+| Method                                                                                                                 | HTTP request                                                                    | Description                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [**pipeline_service_create_pipeline**](PipelineServiceApi.md#pipeline_service_create_pipeline)                         | **POST** /apis/v2beta1/pipelines                                                | Creates a pipeline.                                                                   |
+| [**pipeline_service_create_pipeline_and_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_and_version) | **POST** /apis/v2beta1/pipelines/create                                         | Creates a new pipeline and a new pipeline version in a single transaction.            |
+| [**pipeline_service_create_pipeline_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_version)         | **POST** /apis/v2beta1/pipelines/{pipeline_id}/versions                         | Adds a pipeline version to the specified pipeline ID.                                 |
+| [**pipeline_service_delete_pipeline**](PipelineServiceApi.md#pipeline_service_delete_pipeline)                         | **DELETE** /apis/v2beta1/pipelines/{pipeline_id}                                | Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions. |
+| [**pipeline_service_delete_pipeline_version**](PipelineServiceApi.md#pipeline_service_delete_pipeline_version)         | **DELETE** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Deletes a specific pipeline version by pipeline version ID and pipeline ID.           |
+| [**pipeline_service_get_pipeline**](PipelineServiceApi.md#pipeline_service_get_pipeline)                               | **GET** /apis/v2beta1/pipelines/{pipeline_id}                                   | Finds a specific pipeline by ID.                                                      |
+| [**pipeline_service_get_pipeline_by_name**](PipelineServiceApi.md#pipeline_service_get_pipeline_by_name)               | **GET** /apis/v2beta1/pipelines/names/{name}                                    | Finds a specific pipeline by name and namespace.                                      |
+| [**pipeline_service_get_pipeline_version**](PipelineServiceApi.md#pipeline_service_get_pipeline_version)               | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}    | Gets a pipeline version by pipeline version ID and pipeline ID.                       |
+| [**pipeline_service_list_pipeline_versions**](PipelineServiceApi.md#pipeline_service_list_pipeline_versions)           | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions                          | Lists all pipeline versions of a given pipeline ID.                                   |
+| [**pipeline_service_list_pipelines**](PipelineServiceApi.md#pipeline_service_list_pipelines)                           | **GET** /apis/v2beta1/pipelines                                                 | Finds all pipelines within a namespace.                                               |
 
 # **pipeline_service_create_pipeline**
+
 > V2beta1Pipeline pipeline_service_create_pipeline(body)
 
 Creates a pipeline.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -67,9 +68,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **body** | [**V2beta1Pipeline**](V2beta1Pipeline.md)| Required input. Pipeline that needs to be created. | 
+| Name     | Type                                      | Description                                        | Notes |
+| -------- | ----------------------------------------- | -------------------------------------------------- | ----- |
+| **body** | [**V2beta1Pipeline**](V2beta1Pipeline.md) | Required input. Pipeline that needs to be created. |
 
 ### Return type
 
@@ -81,25 +82,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
- - **Accept**: application/json
+- **Content-Type**: application/json
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_create_pipeline_and_version**
+
 > V2beta1Pipeline pipeline_service_create_pipeline_and_version(body)
 
 Creates a new pipeline and a new pipeline version in a single transaction.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -131,7 +135,7 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    body = kfp_server_api.V2beta1CreatePipelineAndVersionRequest() # V2beta1CreatePipelineAndVersionRequest | 
+    body = kfp_server_api.V2beta1CreatePipelineAndVersionRequest() # V2beta1CreatePipelineAndVersionRequest |
 
     try:
         # Creates a new pipeline and a new pipeline version in a single transaction.
@@ -143,9 +147,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **body** | [**V2beta1CreatePipelineAndVersionRequest**](V2beta1CreatePipelineAndVersionRequest.md)|  | 
+| Name     | Type                                                                                    | Description | Notes |
+| -------- | --------------------------------------------------------------------------------------- | ----------- | ----- |
+| **body** | [**V2beta1CreatePipelineAndVersionRequest**](V2beta1CreatePipelineAndVersionRequest.md) |             |
 
 ### Return type
 
@@ -157,25 +161,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
- - **Accept**: application/json
+- **Content-Type**: application/json
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_create_pipeline_version**
+
 > V2beta1PipelineVersion pipeline_service_create_pipeline_version(pipeline_id, body)
 
 Adds a pipeline version to the specified pipeline ID.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -220,10 +227,10 @@ body = kfp_server_api.V2beta1PipelineVersion() # V2beta1PipelineVersion | Requir
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
- **body** | [**V2beta1PipelineVersion**](V2beta1PipelineVersion.md)| Required input. Pipeline version ID to be created. | 
+| Name            | Type                                                    | Description                                        | Notes |
+| --------------- | ------------------------------------------------------- | -------------------------------------------------- | ----- |
+| **pipeline_id** | **str**                                                 | Required input. ID of the parent pipeline.         |
+| **body**        | [**V2beta1PipelineVersion**](V2beta1PipelineVersion.md) | Required input. Pipeline version ID to be created. |
 
 ### Return type
 
@@ -235,25 +242,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
- - **Accept**: application/json
+- **Content-Type**: application/json
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_delete_pipeline**
+
 > object pipeline_service_delete_pipeline(pipeline_id)
 
 Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -297,9 +307,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. ID of the pipeline to be deleted. | 
+| Name            | Type    | Description                                       | Notes |
+| --------------- | ------- | ------------------------------------------------- | ----- |
+| **pipeline_id** | **str** | Required input. ID of the pipeline to be deleted. |
 
 ### Return type
 
@@ -311,25 +321,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_delete_pipeline_version**
+
 > object pipeline_service_delete_pipeline_version(pipeline_id, pipeline_version_id)
 
 Deletes a specific pipeline version by pipeline version ID and pipeline ID.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -374,10 +387,10 @@ pipeline_version_id = 'pipeline_version_id_example' # str | Required input. The 
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
- **pipeline_version_id** | **str**| Required input. The ID of the pipeline version to be deleted. | 
+| Name                    | Type    | Description                                                   | Notes |
+| ----------------------- | ------- | ------------------------------------------------------------- | ----- |
+| **pipeline_id**         | **str** | Required input. ID of the parent pipeline.                    |
+| **pipeline_version_id** | **str** | Required input. The ID of the pipeline version to be deleted. |
 
 ### Return type
 
@@ -389,25 +402,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_get_pipeline**
+
 > V2beta1Pipeline pipeline_service_get_pipeline(pipeline_id)
 
 Finds a specific pipeline by ID.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -451,9 +467,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. The ID of the pipeline to be retrieved. | 
+| Name            | Type    | Description                                             | Notes |
+| --------------- | ------- | ------------------------------------------------------- | ----- |
+| **pipeline_id** | **str** | Required input. The ID of the pipeline to be retrieved. |
 
 ### Return type
 
@@ -465,25 +481,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_get_pipeline_by_name**
+
 > V2beta1Pipeline pipeline_service_get_pipeline_by_name(name, namespace=namespace)
 
 Finds a specific pipeline by name and namespace.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -528,10 +547,10 @@ namespace = 'namespace_example' # str | Optional input. Namespace of the pipelin
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **name** | **str**| Required input. Name of the pipeline to be retrieved. | 
- **namespace** | **str**| Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if multi-user  support is turned off. | [optional] 
+| Name          | Type    | Description                                                                                                                                 | Notes      |
+| ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| **name**      | **str** | Required input. Name of the pipeline to be retrieved.                                                                                       |
+| **namespace** | **str** | Optional input. Namespace of the pipeline. It could be empty if default namespaces needs to be used or if multi-user support is turned off. | [optional] |
 
 ### Return type
 
@@ -543,25 +562,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_get_pipeline_version**
+
 > V2beta1PipelineVersion pipeline_service_get_pipeline_version(pipeline_id, pipeline_version_id)
 
 Gets a pipeline version by pipeline version ID and pipeline ID.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -606,10 +628,10 @@ pipeline_version_id = 'pipeline_version_id_example' # str | Required input. ID o
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
- **pipeline_version_id** | **str**| Required input. ID of the pipeline version to be retrieved. | 
+| Name                    | Type    | Description                                                 | Notes |
+| ----------------------- | ------- | ----------------------------------------------------------- | ----- |
+| **pipeline_id**         | **str** | Required input. ID of the parent pipeline.                  |
+| **pipeline_version_id** | **str** | Required input. ID of the pipeline version to be retrieved. |
 
 ### Return type
 
@@ -621,25 +643,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_list_pipeline_versions**
+
 > V2beta1ListPipelineVersionsResponse pipeline_service_list_pipeline_versions(pipeline_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
 
 Lists all pipeline versions of a given pipeline ID.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -687,13 +712,13 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
- **page_token** | **str**| A page token to request the results page. | [optional] 
- **page_size** | **int**| The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a valid value in the nextPageToken field. | [optional] 
- **sort_by** | **str**| Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional] 
+| Name            | Type    | Description                                                                                                                                                                              | Notes      |
+| --------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| **pipeline_id** | **str** | Required input. ID of the parent pipeline.                                                                                                                                               |
+| **page_token**  | **str** | A page token to request the results page.                                                                                                                                                | [optional] |
+| **page_size**   | **int** | The number of pipeline versions to be listed per page. If there are more pipeline versions than this number, the response message will contain a valid value in the nextPageToken field. | [optional] |
+| **sort_by**     | **str** | Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default.                                                  | [optional] |
+| **filter**      | **str** | A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).                                  | [optional] |
 
 ### Return type
 
@@ -705,25 +730,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_list_pipelines**
+
 > V2beta1ListPipelinesResponse pipeline_service_list_pipelines(namespace=namespace, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
 
 Finds all pipelines within a namespace.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -771,13 +799,13 @@ filter = 'filter_example' # str | A url-encoded, JSON-serialized filter protocol
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **namespace** | **str**| Optional input. Namespace for the pipelines. | [optional] 
- **page_token** | **str**| A page token to request the results page. | [optional] 
- **page_size** | **int**| The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. | [optional] 
- **sort_by** | **str**| Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional] 
+| Name           | Type    | Description                                                                                                                                                              | Notes      |
+| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| **namespace**  | **str** | Optional input. Namespace for the pipelines.                                                                                                                             | [optional] |
+| **page_token** | **str** | A page token to request the results page.                                                                                                                                | [optional] |
+| **page_size**  | **int** | The number of pipelines to be listed per page. If there are more pipelines than this number, the response message will contain a valid value in the nextPageToken field. | [optional] |
+| **sort_by**    | **str** | Sorting order in form of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot;. Ascending by default.                                  | [optional] |
+| **filter**     | **str** | A url-encoded, JSON-serialized filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).                  | [optional] |
 
 ### Return type
 
@@ -789,14 +817,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

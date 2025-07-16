@@ -37,7 +37,6 @@ data:
 
 > Note: To get base64 string, try `echo -n $AWS_ACCESS_KEY_ID | base64`
 
-
 ## Compiling the pipeline template
 
 Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
@@ -64,10 +63,10 @@ Once the pipeline done, you can go to the S3 path specified in `output` to check
 ## Components source
 
 Create Cluster:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/emr/create_cluster/src)
+[source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/emr/create_cluster/src)
 
 Submit Spark Job:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/emr/submit_spark_job/src)
+[source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/emr/submit_spark_job/src)
 
 Delete Cluster:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/emr/delete_cluster/src)
+[source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/emr/delete_cluster/src)

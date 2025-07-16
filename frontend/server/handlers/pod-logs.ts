@@ -84,7 +84,7 @@ export function getPodLogsHandler(
 
     try {
       const stream = await getPodLogsStream(podName, createdAt, podNamespace);
-      stream.on('error', err => {
+      stream.on('error', (err) => {
         if (
           err?.message &&
           err.message?.indexOf('Unable to find pod log archive information') > -1

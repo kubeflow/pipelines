@@ -3,7 +3,7 @@ kind: RoleBinding
 metadata: # kpt-merge: /dex
   name: dex
   annotations:
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|RoleBinding|default|dex'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|RoleBinding|default|dex"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

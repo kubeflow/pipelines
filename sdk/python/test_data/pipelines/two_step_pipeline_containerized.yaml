@@ -28,19 +28,19 @@ deploymentSpec:
     exec-component1:
       container:
         args:
-        - '{{$.inputs.parameters[''text'']}}'
-        - '{{$.outputs.artifacts[''output_gcs''].path}}'
+          - "{{$.inputs.parameters['text']}}"
+          - "{{$.outputs.artifacts['output_gcs'].path}}"
         command:
-        - sh
-        - -c
-        - mkdir --parents $(dirname "$1") && echo "$0" > "$1"
+          - sh
+          - -c
+          - mkdir --parents $(dirname "$1") && echo "$0" > "$1"
         image: alpine
     exec-component2:
       container:
         args:
-        - '{{$.inputs.artifacts[''input_gcs''].path}}'
+          - "{{$.inputs.artifacts['input_gcs'].path}}"
         command:
-        - cat
+          - cat
         image: alpine
 pipelineInfo:
   name: containerized-two-step-pipeline
@@ -65,7 +65,7 @@ root:
         componentRef:
           name: comp-component2
         dependentTasks:
-        - component1
+          - component1
         inputs:
           artifacts:
             input_gcs:

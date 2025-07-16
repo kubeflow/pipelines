@@ -69,9 +69,7 @@
             "componentRef": {
               "name": "comp-consumer"
             },
-            "dependentTasks": [
-              "producer"
-            ],
+            "dependentTasks": ["producer"],
             "inputs": {
               "parameters": {
                 "input_value": {

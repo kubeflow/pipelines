@@ -7,36 +7,36 @@ inputs:
       description: "The region to use for the training job",
     }
   ###########################GENERATED SECTION BELOW############################
-  
+
   - {
       name: deployment_config,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "The deployment configuration for an endpoint, which contains the desired deployment strategy and rollback configurations.",
     }
   - {
       name: endpoint_config_name,
       type: String,
-      default: '',
+      default: "",
       description: "The name of an endpoint configuration.",
     }
   - {
       name: endpoint_name,
       type: String,
-      default: '',
+      default: "",
       description: "The name of the endpoint.",
     }
   - {
       name: tags,
       type: JsonArray,
-      default: '[]',
+      default: "[]",
       description: "An array of key-value pairs.",
     }
   ###########################GENERATED SECTION ABOVE############################
 
 outputs:
   ###########################GENERATED SECTION BELOW############################
-  
+
   - {
       name: ack_resource_metadata,
       type: JsonObject,
@@ -101,6 +101,5 @@ implementation:
       - { inputValue: endpoint_name }
       - --tags
       - { inputValue: tags }
-      
-      ###########################GENERATED SECTION ABOVE############################
 
+      ###########################GENERATED SECTION ABOVE############################

@@ -17,7 +17,7 @@ description: |
   Deletes a DataProc cluster.
 metadata:
   labels:
-    add-pod-env: 'true'
+    add-pod-env: "true"
 inputs:
   - name: project_id
     description: >-
@@ -28,22 +28,28 @@ inputs:
       Required. The Cloud Dataproc region in which to handle the request.
     type: GCPRegion
   - name: name
-    description: 'Required. The cluster name to delete.'
+    description: "Required. The cluster name to delete."
     type: String
   - name: wait_interval
-    default: '30'
-    description: 'Optional. The wait seconds between polling the operation. Defaults to 30.'
+    default: "30"
+    description: "Optional. The wait seconds between polling the operation. Defaults to 30."
     type: Integer
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.7.0-rc.3
-    command: ['python', '-u', '-m', 'kfp_component.launcher']
-    args: [
-      kfp_component.google.dataproc, delete_cluster,
-      --project_id, {inputValue: project_id},
-      --region, {inputValue: region},
-      --name, {inputValue: name},
-      --wait_interval, {inputValue: wait_interval}
-    ]
+    command: ["python", "-u", "-m", "kfp_component.launcher"]
+    args:
+      [
+        kfp_component.google.dataproc,
+        delete_cluster,
+        --project_id,
+        { inputValue: project_id },
+        --region,
+        { inputValue: region },
+        --name,
+        { inputValue: name },
+        --wait_interval,
+        { inputValue: wait_interval },
+      ]
     env:
       KFP_POD_NAME: "{{pod.name}}"

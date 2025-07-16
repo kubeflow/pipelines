@@ -15,13 +15,16 @@ name: Minio Upload
 description: |
   Minio Upload
 inputs:
-  - {name: bucket_name, description: 'Minio Bucket name'}
-  - {name: folder_name, description: 'Minio folder name to upload the files'}
-  - {name: input_path, description: 'Input file/folder name'}
-  - {name: filename, description: 'Input file name'}
+  - { name: bucket_name, description: "Minio Bucket name" }
+  - { name: folder_name, description: "Minio folder name to upload the files" }
+  - { name: input_path, description: "Input file/folder name" }
+  - { name: filename, description: "Input file name" }
 
 outputs:
-  - {name: MLPipeline UI Metadata, description: 'MLPipeline UI Metadata output'}
+  - {
+      name: MLPipeline UI Metadata,
+      description: "MLPipeline UI Metadata output",
+    }
 
 implementation:
   container:
@@ -29,12 +32,12 @@ implementation:
     command: ["python3", "common/minio/upload_to_minio.py"]
     args:
       - --bucket_name
-      - {inputValue: bucket_name}
+      - { inputValue: bucket_name }
       - --folder_name
-      - {inputValue: folder_name}
+      - { inputValue: folder_name }
       - --input_path
-      - {inputPath: input_path}
+      - { inputPath: input_path }
       - --filename
-      - {inputValue: filename}
+      - { inputValue: filename }
       - --mlpipeline_ui_metadata
-      - {outputPath: MLPipeline UI Metadata}
+      - { outputPath: MLPipeline UI Metadata }

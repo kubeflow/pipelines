@@ -1,28 +1,26 @@
 # Seldon End to End Deployment Examples
 
- * [CIFAR10 Image Classifier with Explainer, Outlier detector and drift detector](#cifar10-image-classification-model)
- * [Income Classifier with Explainer and Outlier Detector](#income-classification-model)
+- [CIFAR10 Image Classifier with Explainer, Outlier detector and drift detector](#cifar10-image-classification-model)
+- [Income Classifier with Explainer and Outlier Detector](#income-classification-model)
 
 ## Running Pipelines
 
- * [See "tested on" section](../README.md#tested-on)
+- [See "tested on" section](../README.md#tested-on)
 
 ## Running in Kubeflow Jupyter Lab
 
- 1. Create a new JupyterLab server using the image `seldonio/jupyter-lab-alibi-kale:0.11`
- 
+1.  Create a new JupyterLab server using the image `seldonio/jupyter-lab-alibi-kale:0.11`
 
 ## CIFAR10 Image Classification Model
 
- * Seldon CIFAR10 Image Model with deployed explainer, outlier detector and drift detector
-    * [Kale annotated Jupyter Notebook](./seldon_e2e_cifar10.ipynb)
-    * [Pipeline](./seldon_e2e_cifar10.kale.nfs.py)
-      * Assumes `storage_class="nfs-client"`
-    * [Pipeline](./seldon_e2e_cifar10.kale.default.py)
-      * Assumes a ReadWriteMany PVC will succeed on your cluster      
+- Seldon CIFAR10 Image Model with deployed explainer, outlier detector and drift detector
+  - [Kale annotated Jupyter Notebook](./seldon_e2e_cifar10.ipynb)
+  - [Pipeline](./seldon_e2e_cifar10.kale.nfs.py)
+    - Assumes `storage_class="nfs-client"`
+  - [Pipeline](./seldon_e2e_cifar10.kale.default.py)
+    - Assumes a ReadWriteMany PVC will succeed on your cluster
 
 ![pipeline](cifar10-pipeline.png)
-
 
 ### Model Deployment and Predictions
 
@@ -48,17 +46,16 @@ Create a drift detector using [Alibi-Detect](https://github.com/SeldonIO/alibi-d
 
 ![cifar10 drift](cifar10-drift.png)
 
-
 ## Income Classification Model
 
 This example illustrates a simple tabular data use case built on [demographic features from a 1996 US census](https://archive.ics.uci.edu/ml/datasets/census+income) to create a binary classifier and attach explanations and outlier detection..
 
- * Seldon Income Classification Model with deployed explainer and outlier detector
-    * [Kale annotated Jupyter Notebook](./seldon_e2e_adult.ipynb)
-    * [Pipeline](./seldon_e2e_adult.kale.nfs.py)
-      * Assumes `storage_class="nfs-client"`
-    * [Pipeline](./seldon_e2e_adult.kale.default.py)
-      * Assumes a ReadWriteMany PVC will succeed on your cluster      
+- Seldon Income Classification Model with deployed explainer and outlier detector
+  - [Kale annotated Jupyter Notebook](./seldon_e2e_adult.ipynb)
+  - [Pipeline](./seldon_e2e_adult.kale.nfs.py)
+    - Assumes `storage_class="nfs-client"`
+  - [Pipeline](./seldon_e2e_adult.kale.default.py)
+    - Assumes a ReadWriteMany PVC will succeed on your cluster
 
 ![income pipeline](income-pipeline.png)
 

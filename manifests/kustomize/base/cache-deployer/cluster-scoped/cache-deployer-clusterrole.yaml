@@ -5,31 +5,31 @@ metadata:
     app: kubeflow-pipelines-cache-deployer-clusterrole
   name: kubeflow-pipelines-cache-deployer-clusterrole
 rules:
-- apiGroups:
-  - certificates.k8s.io
-  resources:
-  - certificatesigningrequests
-  - certificatesigningrequests/approval
-  verbs:
-  - create
-  - delete
-  - get
-  - update
-- apiGroups:
-  - admissionregistration.k8s.io
-  resources:
-  - mutatingwebhookconfigurations
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-- apiGroups:
-  - certificates.k8s.io
-  resources:
-  - signers
-  resourceNames:
-  - kubernetes.io/*
-  verbs:
-  - approve  
+  - apiGroups:
+      - certificates.k8s.io
+    resources:
+      - certificatesigningrequests
+      - certificatesigningrequests/approval
+    verbs:
+      - create
+      - delete
+      - get
+      - update
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - mutatingwebhookconfigurations
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+  - apiGroups:
+      - certificates.k8s.io
+    resources:
+      - signers
+    resourceNames:
+      - kubernetes.io/*
+    verbs:
+      - approve

@@ -7,8 +7,8 @@ components:
         artifacts:
           pipelinechannel--param-to-artifact-a:
             artifactSelectors:
-            - outputArtifactKey: a
-              producerSubtask: param-to-artifact
+              - outputArtifactKey: a
+                producerSubtask: param-to-artifact
       tasks:
         param-to-artifact:
           cachingOptions:
@@ -38,8 +38,8 @@ components:
         artifacts:
           pipelinechannel--param-to-artifact-2-a:
             artifactSelectors:
-            - outputArtifactKey: a
-              producerSubtask: param-to-artifact-2
+              - outputArtifactKey: a
+                producerSubtask: param-to-artifact-2
       tasks:
         param-to-artifact-2:
           cachingOptions:
@@ -69,10 +69,10 @@ components:
         artifacts:
           pipelinechannel--condition-branches-1-oneof-1:
             artifactSelectors:
-            - outputArtifactKey: pipelinechannel--param-to-artifact-a
-              producerSubtask: condition-2
-            - outputArtifactKey: pipelinechannel--param-to-artifact-2-a
-              producerSubtask: condition-3
+              - outputArtifactKey: pipelinechannel--param-to-artifact-a
+                producerSubtask: condition-2
+              - outputArtifactKey: pipelinechannel--param-to-artifact-2-a
+                producerSubtask: condition-3
       tasks:
         condition-2:
           componentRef:
@@ -84,7 +84,8 @@ components:
           taskInfo:
             name: condition-2
           triggerPolicy:
-            condition: inputs.parameter_values['pipelinechannel--flip-coin-Output']
+            condition:
+              inputs.parameter_values['pipelinechannel--flip-coin-Output']
               == 'heads'
         condition-3:
           componentRef:
@@ -96,8 +97,9 @@ components:
           taskInfo:
             name: condition-3
           triggerPolicy:
-            condition: '!(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
-              == ''heads'')'
+            condition:
+              "!(inputs.parameter_values['pipelinechannel--flip-coin-Output']
+              == 'heads')"
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-Output:
@@ -120,14 +122,14 @@ components:
         artifacts:
           Output:
             artifactSelectors:
-            - outputArtifactKey: pipelinechannel--condition-branches-1-oneof-1
-              producerSubtask: condition-branches-1
+              - outputArtifactKey: pipelinechannel--condition-branches-1-oneof-1
+                producerSubtask: condition-branches-1
       tasks:
         condition-branches-1:
           componentRef:
             name: comp-condition-branches-1
           dependentTasks:
-          - flip-coin
+            - flip-coin
           inputs:
             parameters:
               pipelinechannel--flip-coin-Output:
@@ -150,7 +152,7 @@ components:
           componentRef:
             name: comp-print-artifact
           dependentTasks:
-          - condition-branches-1
+            - condition-branches-1
           inputs:
             artifacts:
               a:
@@ -211,147 +213,147 @@ deploymentSpec:
     exec-flip-coin:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - flip_coin
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - flip_coin
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef flip_coin() -> str:\n    import random\n    return 'heads' if\
-          \ random.randint(0, 1) == 0 else 'tails'\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef flip_coin() -> str:\n    import random\n    return 'heads' if\
+            \ random.randint(0, 1) == 0 else 'tails'\n\n"
         image: python:3.9
     exec-param-to-artifact:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - param_to_artifact
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - param_to_artifact
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef param_to_artifact(val: str, a: Output[Artifact]):\n    with open(a.path,\
-          \ 'w') as f:\n        f.write(val)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef param_to_artifact(val: str, a: Output[Artifact]):\n    with open(a.path,\
+            \ 'w') as f:\n        f.write(val)\n\n"
         image: python:3.9
     exec-param-to-artifact-2:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - param_to_artifact
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - param_to_artifact
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef param_to_artifact(val: str, a: Output[Artifact]):\n    with open(a.path,\
-          \ 'w') as f:\n        f.write(val)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef param_to_artifact(val: str, a: Output[Artifact]):\n    with open(a.path,\
+            \ 'w') as f:\n        f.write(val)\n\n"
         image: python:3.9
     exec-print-artifact:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_artifact
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - print_artifact
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_artifact(a: Input[Artifact]):\n    with open(a.path) as\
-          \ f:\n        print(f.read())\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_artifact(a: Input[Artifact]):\n    with open(a.path) as\
+            \ f:\n        print(f.read())\n\n"
         image: python:3.9
     exec-print-artifact-2:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_artifact
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - print_artifact
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_artifact(a: Input[Artifact]):\n    with open(a.path) as\
-          \ f:\n        print(f.read())\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_artifact(a: Input[Artifact]):\n    with open(a.path) as\
+            \ f:\n        print(f.read())\n\n"
         image: python:3.9
 pipelineInfo:
   name: outer-pipeline
@@ -372,7 +374,7 @@ root:
         componentRef:
           name: comp-print-artifact-2
         dependentTasks:
-        - flip-coin-pipeline
+          - flip-coin-pipeline
         inputs:
           artifacts:
             a:

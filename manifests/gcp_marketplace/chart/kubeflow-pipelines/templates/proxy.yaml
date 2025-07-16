@@ -3,14 +3,14 @@ kind: ServiceAccount
 metadata:
   name: proxy-agent-runner
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: { { .Release.Name } }
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
     app: proxy-agent-runner
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: { { .Release.Name } }
   name: proxy-agent-runner
 rules:
   - apiGroups:
@@ -18,13 +18,13 @@ rules:
     resources:
       - configmaps
     verbs:
-      - '*'
+      - "*"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: { { .Release.Name } }
     app: proxy-agent-runner
   name: proxy-agent-runner
 roleRef:
@@ -34,29 +34,29 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: proxy-agent-runner
-    namespace: {{ .Release.Namespace }}
+    namespace: { { .Release.Namespace } }
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     app: proxy-agent
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: { { .Release.Name } }
   name: proxy-agent
 spec:
   selector:
     matchLabels:
       app: proxy-agent
-      app.kubernetes.io/name: {{ .Release.Name }}
+      app.kubernetes.io/name: { { .Release.Name } }
   template:
     metadata:
       labels:
         app: proxy-agent
-        app.kubernetes.io/name: {{ .Release.Name }}
+        app.kubernetes.io/name: { { .Release.Name } }
     spec:
       hostNetwork: true
       containers:
-        - image: {{ .Values.images.proxyagent }}
+        - image: { { .Values.images.proxyagent } }
           imagePullPolicy: IfNotPresent
           name: proxy-agent
       serviceAccountName: proxy-agent-runner
@@ -66,4 +66,4 @@ kind: ConfigMap
 metadata:
   name: inverse-proxy-config
   labels:
-    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/name: { { .Release.Name } }

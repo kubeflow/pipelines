@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-- minio-deployment.yaml
-- minio-pvc.yaml
-- minio-service.yaml
-- mlpipeline-minio-artifact-secret.yaml
+  - minio-deployment.yaml
+  - minio-pvc.yaml
+  - minio-service.yaml
+  - mlpipeline-minio-artifact-secret.yaml

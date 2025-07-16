@@ -4,16 +4,9 @@
     "title": "backend/api/v1beta1/job.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v1beta1/jobs": {
       "get": {
@@ -87,9 +80,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       },
       "post": {
         "summary": "Creates a new job.",
@@ -119,9 +110,7 @@
             }
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       }
     },
     "/apis/v1beta1/jobs/{id}": {
@@ -151,9 +140,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       },
       "delete": {
         "summary": "Deletes a job.",
@@ -181,9 +168,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       }
     },
     "/apis/v1beta1/jobs/{id}/disable": {
@@ -213,9 +198,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       }
     },
     "/apis/v1beta1/jobs/{id}/enable": {
@@ -245,20 +228,14 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       }
     }
   },
   "definitions": {
     "JobMode": {
       "type": "string",
-      "enum": [
-        "UNKNOWN_MODE",
-        "ENABLED",
-        "DISABLED"
-      ],
+      "enum": ["UNKNOWN_MODE", "ENABLED", "DISABLED"],
       "default": "UNKNOWN_MODE",
       "description": "Required input.\n\n - DISABLED: The job won't schedule any run if disabled."
     },
@@ -456,11 +433,7 @@
     },
     "apiRelationship": {
       "type": "string",
-      "enum": [
-        "UNKNOWN_RELATIONSHIP",
-        "OWNER",
-        "CREATOR"
-      ],
+      "enum": ["UNKNOWN_RELATIONSHIP", "OWNER", "CREATOR"],
       "default": "UNKNOWN_RELATIONSHIP"
     },
     "apiResourceKey": {
@@ -554,9 +527,7 @@
     },
     "protobufNullValue": {
       "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
+      "enum": ["NULL_VALUE"],
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     }

@@ -28,7 +28,7 @@ interface EdgeLineProps {
   y4: number;
 }
 
-export const EdgeLine: React.FC<EdgeLineProps> = props => {
+export const EdgeLine: React.FC<EdgeLineProps> = (props) => {
   const { height, width, y1, y4 } = props;
 
   return (

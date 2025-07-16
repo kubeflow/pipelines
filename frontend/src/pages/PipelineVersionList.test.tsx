@@ -46,7 +46,7 @@ describe('PipelineVersionList', () => {
 
   async function mountWithNPipelineVersions(n: number): Promise<ReactWrapper> {
     listPipelineVersionsSpy.mockImplementation((pipelineId: string) => ({
-      pipeline_versions: range(n).map(i => ({
+      pipeline_versions: range(n).map((i) => ({
         pipeline_version_id: 'test-pipeline-version-id' + i,
         display_name: 'test pipeline version name' + i,
       })),

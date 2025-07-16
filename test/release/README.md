@@ -43,5 +43,5 @@ The script `./bump-version-in-place.sh` does the following:
 1. Regenerate open api specs based on proto files.
 1. Regenerate `kfp-server-api` python package.
 1. Update all version refs in this repo to `./VERSION` by calling each of the
-`./**/hack/release.sh` scripts. The individual scripts are responsible for updating
-version refs to their own folder.
+   `./**/hack/release.sh` scripts. The individual scripts are responsible for updating
+   version refs to their own folder.

@@ -26,9 +26,9 @@ deploymentSpec:
     exec-consumer-op:
       container:
         args:
-        - '{{$.inputs.artifacts[''dataset''].path}}'
+          - "{{$.inputs.artifacts['dataset'].path}}"
         command:
-        - cmd
+          - cmd
         image: dummy
     exec-importer:
       importer:
@@ -50,7 +50,7 @@ root:
         componentRef:
           name: comp-consumer-op
         dependentTasks:
-        - importer
+          - importer
         inputs:
           artifacts:
             dataset:

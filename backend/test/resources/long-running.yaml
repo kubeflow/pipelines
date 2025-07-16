@@ -20,22 +20,22 @@ spec:
   entrypoint: wait-awhile
   serviceAccountName: pipeline-runner
   templates:
-  - dag:
-      tasks:
-      - name: step-1
-        template: step-1
-      - name: step-2
-        template: step-2
-        dependencies:
-        - step-1
-    name: wait-awhile
-  - container:
-      image: alpine:latest
-      command: [sh, -c]
-      args: ["echo step-1 sleeping for 5m; sleep 300; echo done1"]
-    name: step-1
-  - container:
-      image: alpine:latest
-      command: [sh, -c]
-      args: ["echo step-2 sleeping for 5m; sleep 300; echo done2"]
-    name: step-2
+    - dag:
+        tasks:
+          - name: step-1
+            template: step-1
+          - name: step-2
+            template: step-2
+            dependencies:
+              - step-1
+      name: wait-awhile
+    - container:
+        image: alpine:latest
+        command: [sh, -c]
+        args: ["echo step-1 sleeping for 5m; sleep 300; echo done1"]
+      name: step-1
+    - container:
+        image: alpine:latest
+        command: [sh, -c]
+        args: ["echo step-2 sleeping for 5m; sleep 300; echo done2"]
+      name: step-2

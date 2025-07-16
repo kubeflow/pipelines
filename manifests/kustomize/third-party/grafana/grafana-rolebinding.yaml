@@ -9,5 +9,5 @@ roleRef:
   kind: Role
   name: grafana
 subjects:
-- kind: ServiceAccount
-  name: grafana
+  - kind: ServiceAccount
+    name: grafana

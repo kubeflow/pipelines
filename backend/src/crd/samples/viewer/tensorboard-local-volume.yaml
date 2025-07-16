@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # This example shows how to use a Kubernetes local persistent volume with Tensorboard
 # viewer. The definition below assumes you have a volume called
 # 'argo-volume' in the cluster. This persistent volume will be mounted to
@@ -31,8 +30,8 @@ spec:
     spec:
       containers:
         - volumeMounts:
-          - name: argo-volume
-            mountPath: /workdir
+            - name: argo-volume
+              mountPath: /workdir
       volumes:
         - name: argo-volume
           persistentVolumeClaim:

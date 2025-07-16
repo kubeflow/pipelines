@@ -6,8 +6,8 @@ module.exports = {
   theme: {
     extend: {
       spacing: {
-        '112': '28rem',
-        '136': '34rem',
+        112: '28rem',
+        136: '34rem',
       },
       // https://tailwindcss.com/docs/customizing-colors
       colors: {
@@ -77,7 +77,7 @@ module.exports = {
           },
           red: {
             50: {
-              DEFAULT: '#ffebee'
+              DEFAULT: '#ffebee',
             },
             100: {
               DEFAULT: '#ffcdd2',
@@ -87,11 +87,11 @@ module.exports = {
             },
             600: {
               DEFAULT: '#e53935',
-            }
+            },
           },
           blue: {
             50: {
-              DEFAULT: '#e3f2fd'
+              DEFAULT: '#e3f2fd',
             },
             100: {
               DEFAULT: '#bbdefb',

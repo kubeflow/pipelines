@@ -8,4 +8,4 @@ spec:
     matchLabels:
       component: metadata-grpc-server
   rules:
-  - {}
+    - {}

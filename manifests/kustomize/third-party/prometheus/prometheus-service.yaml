@@ -8,7 +8,7 @@ spec:
   selector:
     app: prometheus
   ports:
-  - name: promui
-    protocol: TCP
-    port: 9090
-    targetPort: 9090
+    - name: promui
+      protocol: TCP
+      port: 9090
+      targetPort: 9090

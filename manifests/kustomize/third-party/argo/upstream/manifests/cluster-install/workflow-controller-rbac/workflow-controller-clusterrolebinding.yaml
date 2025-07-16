@@ -3,11 +3,11 @@ kind: ClusterRoleBinding
 metadata: # kpt-merge: /argo-binding
   name: argo-binding
   annotations:
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|ClusterRoleBinding|default|argo-binding'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|ClusterRoleBinding|default|argo-binding"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: argo-cluster-role
 subjects:
-- kind: ServiceAccount
-  name: argo
+  - kind: ServiceAccount
+    name: argo

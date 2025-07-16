@@ -66,7 +66,7 @@ components:
           parameterIterator:
             itemInput: pipelinechannel--loop-item-param-3
             items:
-              raw: '[4, 5, 6]'
+              raw: "[4, 5, 6]"
           taskInfo:
             name: for-loop-4
         simple-add:
@@ -75,7 +75,7 @@ components:
           componentRef:
             name: comp-simple-add
           dependentTasks:
-          - for-loop-4
+            - for-loop-4
           inputs:
             parameters:
               nums:
@@ -220,201 +220,201 @@ deploymentSpec:
     exec-add-two-numbers:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - add_two_numbers
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - add_two_numbers
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef add_two_numbers(x: List[int], y: List[int]) -> int:\n    return\
-          \ sum(x) + sum(y)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef add_two_numbers(x: List[int], y: List[int]) -> int:\n    return\
+            \ sum(x) + sum(y)\n\n"
         image: python:3.9
     exec-double:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - double
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - double
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
         image: python:3.9
     exec-double-2:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - double
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - double
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
         image: python:3.9
     exec-nested-add:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - nested_add
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - nested_add
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
-          \    return sum(itertools.chain(*nums))\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
+            \    return sum(itertools.chain(*nums))\n\n"
         image: python:3.9
     exec-nested-add-2:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - nested_add
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - nested_add
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
-          \    return sum(itertools.chain(*nums))\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef nested_add(nums: List[List[int]]) -> int:\n    import itertools\n\
+            \    return sum(itertools.chain(*nums))\n\n"
         image: python:3.9
     exec-simple-add:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - simple_add
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - simple_add
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef simple_add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef simple_add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
         image: python:3.9
     exec-simple-add-2:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - simple_add
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - simple_add
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef simple_add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef simple_add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
         image: python:3.9
 pipelineInfo:
   name: math-pipeline
@@ -433,7 +433,7 @@ root:
         componentRef:
           name: comp-add-two-numbers
         dependentTasks:
-        - for-loop-6
+          - for-loop-6
         inputs:
           parameters:
             x:
@@ -453,14 +453,14 @@ root:
         parameterIterator:
           itemInput: pipelinechannel--loop-item-param-1
           items:
-            raw: '[1, 2, 3]'
+            raw: "[1, 2, 3]"
         taskInfo:
           name: for-loop-2
       for-loop-6:
         componentRef:
           name: comp-for-loop-6
         dependentTasks:
-        - for-loop-2
+          - for-loop-2
         inputs:
           parameters:
             pipelinechannel--for-loop-2-pipelinechannel--double-2-Output:
@@ -474,7 +474,7 @@ root:
         parameterIterator:
           itemInput: pipelinechannel--loop-item-param-5
           items:
-            raw: '[0, 0, 0]'
+            raw: "[0, 0, 0]"
         taskInfo:
           name: for-loop-6
       nested-add:
@@ -483,7 +483,7 @@ root:
         componentRef:
           name: comp-nested-add
         dependentTasks:
-        - for-loop-2
+          - for-loop-2
         inputs:
           parameters:
             nums:

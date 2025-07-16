@@ -153,14 +153,16 @@ export const ExecutionHelpers = {
     );
   },
   getName(execution: Execution): string {
-    return `${getStringProperty(execution, KfpExecutionProperties.DISPLAY_NAME, true) ||
+    return `${
+      getStringProperty(execution, KfpExecutionProperties.DISPLAY_NAME, true) ||
       getStringProperty(execution, KfpExecutionProperties.TASK_NAME, true) ||
       getStringProperty(execution, ExecutionProperties.NAME) ||
       getStringProperty(execution, ExecutionProperties.COMPONENT_ID) ||
       getStringProperty(execution, ExecutionCustomProperties.TASK_ID, true) ||
       // TFX 1.2.0 executions do not have any of the above, adding pod name as a fallback name
       getStringProperty(execution, KfpExecutionProperties.KFP_POD_NAME, true) ||
-      '(No name)'}`;
+      '(No name)'
+    }`;
   },
   getState(execution: Execution): string | number | undefined {
     return getResourceStateText({
@@ -233,7 +235,7 @@ export async function getContextByExecution(
 ): Promise<Context | undefined> {
   const contexts = await getContextsByExecution(execution);
   const contextType = await getContextType(contextTypeName);
-  const result = contexts.filter(c => contextType && c.getTypeId() === contextType.getId());
+  const result = contexts.filter((c) => contextType && c.getTypeId() === contextType.getId());
   if (result.length === 0) {
     console.warn('No context is found for type name: ' + contextTypeName);
     return;
@@ -241,7 +243,7 @@ export async function getContextByExecution(
   if (result.length > 1) {
     console.warn('Found more than one context for type name: ' + contextTypeName);
     console.warn('Contexts: ');
-    contexts.forEach(c => console.warn(c));
+    contexts.forEach((c) => console.warn(c));
     return;
   }
 
@@ -288,16 +290,13 @@ export interface LinkedArtifact {
 }
 
 export function getStoreSessionInfoFromArtifact(artifact: LinkedArtifact): string | undefined {
-  return artifact.artifact
-    .getCustomPropertiesMap()
-    .get('store_session_info')
-    ?.getStringValue();
+  return artifact.artifact.getCustomPropertiesMap().get('store_session_info')?.getStringValue();
 }
 
 export async function getLinkedArtifactsByEvents(events: Event[]): Promise<LinkedArtifact[]> {
   const artifactIds = events
-    .filter(event => event.getArtifactId())
-    .map(event => event.getArtifactId());
+    .filter((event) => event.getArtifactId())
+    .map((event) => event.getArtifactId());
 
   const artifactsRequest = new GetArtifactsByIDRequest().setArtifactIdsList(artifactIds);
   let artifactsRes: GetArtifactsByIDResponse;
@@ -313,7 +312,7 @@ export async function getLinkedArtifactsByEvents(events: Event[]): Promise<Linke
     artifactMap.set(artifactEntry.getId(), artifactEntry);
   }
 
-  return events.map(event => {
+  return events.map((event) => {
     const artifact = artifactMap.get(event.getArtifactId());
     return { event: event, artifact: artifact };
   });
@@ -327,11 +326,11 @@ export async function getLinkedArtifactsByExecution(
 }
 
 export function filterEventWithInputArtifact(linkedArtifact: LinkedArtifact[]) {
-  return linkedArtifact.filter(obj => obj.event.getType() === Event.Type.INPUT);
+  return linkedArtifact.filter((obj) => obj.event.getType() === Event.Type.INPUT);
 }
 
 export function filterEventWithOutputArtifact(linkedArtifact: LinkedArtifact[]) {
-  return linkedArtifact.filter(obj => obj.event.getType() === Event.Type.OUTPUT);
+  return linkedArtifact.filter((obj) => obj.event.getType() === Event.Type.OUTPUT);
 }
 
 /**
@@ -340,7 +339,7 @@ export function filterEventWithOutputArtifact(linkedArtifact: LinkedArtifact[]) 
 export async function getOutputArtifactsInExecution(execution: Execution): Promise<Artifact[]> {
   const linkedArtifacts = await getLinkedArtifactsByExecution(execution);
   return filterEventWithOutputArtifact(linkedArtifacts).map(
-    linkedArtifact => linkedArtifact.artifact,
+    (linkedArtifact) => linkedArtifact.artifact,
   );
 }
 export async function getOutputLinkedArtifactsInExecution(
@@ -368,9 +367,9 @@ export function filterArtifactsByType(
   artifacts: Artifact[],
 ): Artifact[] {
   const artifactTypeIds = artifactTypes
-    .filter(artifactType => artifactType.getName() === artifactTypeName)
-    .map(artifactType => artifactType.getId());
-  return artifacts.filter(artifact => artifactTypeIds.includes(artifact.getTypeId()));
+    .filter((artifactType) => artifactType.getName() === artifactTypeName)
+    .map((artifactType) => artifactType.getId());
+  return artifacts.filter((artifact) => artifactTypeIds.includes(artifact.getTypeId()));
 }
 
 export function filterLinkedArtifactsByType(
@@ -379,16 +378,13 @@ export function filterLinkedArtifactsByType(
   artifacts: LinkedArtifact[],
 ): LinkedArtifact[] {
   const artifactTypeIds = artifactTypes
-    .filter(artifactType => artifactType.getName() === artifactTypeName)
-    .map(artifactType => artifactType.getId());
-  return artifacts.filter(x => artifactTypeIds.includes(x.artifact.getTypeId()));
+    .filter((artifactType) => artifactType.getName() === artifactTypeName)
+    .map((artifactType) => artifactType.getId());
+  return artifacts.filter((x) => artifactTypeIds.includes(x.artifact.getTypeId()));
 }
 
 export function getExecutionDisplayName(execution: Execution): string | undefined {
-  return execution
-    .getCustomPropertiesMap()
-    .get('display_name')
-    ?.getStringValue();
+  return execution.getCustomPropertiesMap().get('display_name')?.getStringValue();
 }
 
 export function getArtifactName(linkedArtifact: LinkedArtifact): string | undefined {
@@ -401,9 +397,9 @@ export function getArtifactTypeName(
 ): string[] {
   let artifactTypeNames: string[] = [];
   if (artifactTypes && linkedArtifacts) {
-    Object.values(linkedArtifacts).forEach(linkedArtifact => {
+    Object.values(linkedArtifacts).forEach((linkedArtifact) => {
       const artifactType = artifactTypes.filter(
-        aType => aType.getId() === linkedArtifact.artifact.getTypeId(),
+        (aType) => aType.getId() === linkedArtifact.artifact.getTypeId(),
       );
       artifactTypeNames.push(
         artifactType.length === 1 && artifactType[0].getName() ? artifactType[0].getName() : '-',
@@ -414,10 +410,7 @@ export function getArtifactTypeName(
 }
 
 export function getArtifactNameFromEvent(event: Event): string | undefined {
-  return event
-    .getPath()
-    ?.getStepsList()[0]
-    .getKey();
+  return event.getPath()?.getStepsList()[0].getKey();
 }
 
 export async function getArtifactsFromContext(context: Context): Promise<Artifact[]> {

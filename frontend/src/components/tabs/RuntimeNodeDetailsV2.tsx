@@ -173,7 +173,7 @@ function TaskNodeDetail({
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
-        onSwitch={tab => setSelectedTab(tab)}
+        onSwitch={(tab) => setSelectedTab(tab)}
       />
       <div className={commonCss.page}>
         {/* Input/Output tab */}
@@ -226,10 +226,7 @@ function getTaskDetailsFields(
       // Static execution info.
       details.push([
         'Task name',
-        execution
-          .getCustomPropertiesMap()
-          .get('display_name')
-          ?.getStringValue() || '-',
+        execution.getCustomPropertiesMap().get('display_name')?.getStringValue() || '-',
       ]);
 
       // Runtime execution info.
@@ -290,8 +287,11 @@ function getNodeVolumeMounts(
   let volumeMounts: Array<KeyValue<string>> = [];
   if (matchedExecutorObj) {
     const executor = KubernetesExecutorConfig.fromJSON(matchedExecutorObj[1]);
-    const pvcMounts = Object.values(executor.pvcMount).map(pvcm => PvcMount.fromJSON(pvcm));
-    volumeMounts = pvcMounts.map(pvcm => [pvcm.mountPath, pvcm.taskOutputParameter?.producerTask]);
+    const pvcMounts = Object.values(executor.pvcMount).map((pvcm) => PvcMount.fromJSON(pvcm));
+    volumeMounts = pvcMounts.map((pvcm) => [
+      pvcm.mountPath,
+      pvcm.taskOutputParameter?.producerTask,
+    ]);
   }
 
   return volumeMounts;
@@ -352,7 +352,7 @@ function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNo
       <MD2Tabs
         tabs={['Artifact Info', 'Visualization']}
         selectedTab={selectedTab}
-        onSwitch={tab => setSelectedTab(tab)}
+        onSwitch={(tab) => setSelectedTab(tab)}
       />
       <div className={padding(20)}>
         {/* Artifact Info tab */}
@@ -397,16 +397,9 @@ function ArtifactInfo({
   }
 
   // Static Artifact information.
-  const taskName =
-    execution
-      .getCustomPropertiesMap()
-      .get('display_name')
-      ?.getStringValue() || '-';
+  const taskName = execution.getCustomPropertiesMap().get('display_name')?.getStringValue() || '-';
   const artifactName =
-    linkedArtifact.artifact
-      .getCustomPropertiesMap()
-      .get('display_name')
-      ?.getStringValue() || '-';
+    linkedArtifact.artifact.getCustomPropertiesMap().get('display_name')?.getStringValue() || '-';
   let artifactTypeName = artifactTypes
     ? getArtifactTypeName(artifactTypes, [linkedArtifact])
     : ['-'];
@@ -492,7 +485,7 @@ function SubDAGNodeDetail({
         <MD2Tabs
           tabs={['Input/Output', 'Task Details']}
           selectedTab={selectedTab}
-          onSwitch={tab => setSelectedTab(tab)}
+          onSwitch={(tab) => setSelectedTab(tab)}
         />
         <div className={commonCss.page}>
           {/* Input/Output tab */}

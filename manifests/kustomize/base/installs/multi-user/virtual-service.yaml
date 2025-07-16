@@ -4,18 +4,18 @@ metadata:
   name: ml-pipeline-ui
 spec:
   gateways:
-  - kubeflow-gateway
+    - kubeflow-gateway
   hosts:
-  - '*'
+    - "*"
   http:
-  - match:
-    - uri:
-        prefix: /pipeline
-    rewrite:
-      uri: /pipeline
-    route:
-    - destination:
-        host: ml-pipeline-ui.$(kfp-namespace).svc.cluster.local
-        port:
-          number: 80
-    timeout: 300s
+    - match:
+        - uri:
+            prefix: /pipeline
+      rewrite:
+        uri: /pipeline
+      route:
+        - destination:
+            host: ml-pipeline-ui.$(kfp-namespace).svc.cluster.local
+            port:
+              number: 80
+      timeout: 300s

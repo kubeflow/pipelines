@@ -7,48 +7,48 @@ inputs:
       description: "The region to use for the training job",
     }
   ###########################GENERATED SECTION BELOW############################
-  
+
   - {
       name: async_inference_config,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "Specifies configuration for how an endpoint performs asynchronous inference.",
     }
   - {
       name: data_capture_config,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "Configuration to control how SageMaker captures inference data.",
     }
   - {
       name: endpoint_config_name,
       type: String,
-      default: '',
+      default: "",
       description: "The name of the endpoint configuration.",
     }
   - {
       name: kms_key_id,
       type: String,
-      default: '',
+      default: "",
       description: "The Amazon Resource Name (ARN) of a Amazon Web Services Key Management Service key that SageMaker uses to encrypt data on the storage volume attached to the ML compute instance that hosts the endpoint.",
     }
   - {
       name: production_variants,
       type: JsonArray,
-      default: '[]',
+      default: "[]",
       description: "An array of ProductionVariant objects, one for each model that you want to host at this endpoint.",
     }
   - {
       name: tags,
       type: JsonArray,
-      default: '[]',
+      default: "[]",
       description: "An array of key-value pairs.",
     }
   ###########################GENERATED SECTION ABOVE############################
 
 outputs:
   ###########################GENERATED SECTION BELOW############################
-  
+
   - {
       name: ack_resource_metadata,
       type: JsonObject,
@@ -87,6 +87,5 @@ implementation:
       - { inputValue: production_variants }
       - --tags
       - { inputValue: tags }
-      
-      ###########################GENERATED SECTION ABOVE############################
 
+      ###########################GENERATED SECTION ABOVE############################

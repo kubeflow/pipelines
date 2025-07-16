@@ -12,10 +12,10 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v3
-    - uses: pre-commit/action@v3.0.1
-      # This is set to only run the golangci-lint pre-commit hooks 
-      # Remove in a later PR to run all hooks
-      with:
-        extra_args: golangci-lint --all-files
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+      - uses: pre-commit/action@v3.0.1
+        # This is set to only run the golangci-lint pre-commit hooks
+        # Remove in a later PR to run all hooks
+        with:
+          extra_args: golangci-lint --all-files

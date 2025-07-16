@@ -33,4 +33,4 @@ kind: ConfigMap
 metadata: # kpt-merge: /dex
   name: dex
   annotations:
-    internal.kpt.dev/upstream-identifier: '|ConfigMap|default|dex'
+    internal.kpt.dev/upstream-identifier: "|ConfigMap|default|dex"

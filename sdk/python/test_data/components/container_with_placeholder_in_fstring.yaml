@@ -24,9 +24,9 @@ deploymentSpec:
     exec-container-with-placeholder-in-fstring:
       container:
         command:
-        - my_program
-        - prefix-{{$.inputs.parameters['text1']}}
-        - '{{$.outputs.artifacts[''output_artifact''].uri}}/0'
+          - my_program
+          - prefix-{{$.inputs.parameters['text1']}}
+          - "{{$.outputs.artifacts['output_artifact'].uri}}/0"
         image: python:3.9
 pipelineInfo:
   name: container-with-placeholder-in-fstring
@@ -36,8 +36,8 @@ root:
       artifacts:
         output_artifact:
           artifactSelectors:
-          - outputArtifactKey: output_artifact
-            producerSubtask: container-with-placeholder-in-fstring
+            - outputArtifactKey: output_artifact
+              producerSubtask: container-with-placeholder-in-fstring
     tasks:
       container-with-placeholder-in-fstring:
         cachingOptions:

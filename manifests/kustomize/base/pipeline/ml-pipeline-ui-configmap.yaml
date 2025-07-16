@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: ml-pipeline-ui-configmap
 data:
-   viewer-pod-template.json:  |-
+  viewer-pod-template.json: |-
     {
         "spec": {
             "serviceAccountName": "kubeflow-pipelines-viewer"

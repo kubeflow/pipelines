@@ -1,4 +1,4 @@
-# metadata\_writer
+# metadata_writer
 
 ## Updating python dependencies
 

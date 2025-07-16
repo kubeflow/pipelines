@@ -71,8 +71,8 @@ components:
     inputDefinitions:
       parameters:
         encryption_spec_key_name:
-          defaultValue: ''
-          description: 'Describes the Cloud
+          defaultValue: ""
+          description: "Describes the Cloud
 
             KMS encryption key that will be used to protect destination
 
@@ -84,16 +84,16 @@ components:
 
             job_configuration_query, the value in here will override the other
 
-            one.'
+            one."
           isOptional: true
           parameterType: STRING
         job_configuration_query:
           defaultValue: {}
-          description: 'A json formatted string
+          description: "A json formatted string
 
             describing the rest of the job configuration.  For more details, see
 
-            https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery'
+            https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery"
           isOptional: true
           parameterType: STRUCT
         labels:
@@ -115,39 +115,40 @@ components:
           parameterType: STRUCT
         location:
           defaultValue: us-central1
-          description: 'Location for creating the BigQuery job. If not
+          description: "Location for creating the BigQuery job. If not
 
             set, default to `US` multi-region.  For more details, see
 
-            https://cloud.google.com/bigquery/docs/locations#specifying_your_location'
+            https://cloud.google.com/bigquery/docs/locations#specifying_your_location"
           isOptional: true
           parameterType: STRING
         project:
-          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
-          description: Project to run the BigQuery query job. Defaults to the project
+          defaultValue: "{{$.pipeline_google_cloud_project_id}}"
+          description:
+            Project to run the BigQuery query job. Defaults to the project
             in which the PipelineJob is run.
           isOptional: true
           parameterType: STRING
         query:
-          defaultValue: ''
-          description: 'SQL query text to execute. Only standard SQL is
+          defaultValue: ""
+          description: "SQL query text to execute. Only standard SQL is
 
             supported.  If query are both specified in here and in
 
             job_configuration_query, the value in here will override the other
 
-            one.'
+            one."
           isOptional: true
           parameterType: STRING
         query_parameters:
           defaultValue: []
-          description: 'jobs.query parameters for
+          description: "jobs.query parameters for
 
             standard SQL queries.  If query_parameters are both specified in here
 
             and in job_configuration_query, the value in here will override the
 
-            other one.'
+            other one."
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -156,7 +157,8 @@ components:
           artifactType:
             schemaTitle: google.BQTable
             schemaVersion: 0.0.1
-          description: 'Describes the table where the query results should be stored.
+          description:
+            "Describes the table where the query results should be stored.
 
             This property must be set for large results that exceed the maximum
 
@@ -164,21 +166,22 @@ components:
 
             For queries that produce anonymous (cached) results, this field will
 
-            be populated by BigQuery.'
+            be populated by BigQuery."
       parameters:
         gcp_resources:
-          description: 'Serialized gcp_resources proto tracking the BigQuery job.
+          description:
+            "Serialized gcp_resources proto tracking the BigQuery job.
 
             For more details, see
 
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md."
           parameterType: STRING
   comp-build-job-configuration-query:
     executorLabel: exec-build-job-configuration-query
     inputDefinitions:
       parameters:
         dataset_id:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         priority:
@@ -186,15 +189,15 @@ components:
           isOptional: true
           parameterType: STRING
         project_id:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         table_id:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         write_disposition:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
     outputDefinitions:
@@ -284,8 +287,8 @@ components:
           componentRef:
             name: comp-bigquery-create-dataset
           dependentTasks:
-          - get-table-location
-          - validate-inputs
+            - get-table-location
+            - validate-inputs
           inputs:
             parameters:
               dataset:
@@ -305,10 +308,10 @@ components:
           componentRef:
             name: comp-bigquery-query-job
           dependentTasks:
-          - bigquery-create-dataset
-          - build-job-configuration-query
-          - get-fte-suffix
-          - get-table-location
+            - bigquery-create-dataset
+            - build-job-configuration-query
+            - get-fte-suffix
+            - get-table-location
           inputs:
             parameters:
               encryption_spec_key_name:
@@ -343,7 +346,8 @@ components:
                 componentInputParameter: pipelinechannel--project
               query:
                 runtimeValue:
-                  constant: "\n      WITH\n        base_data AS (\n          SELECT\
+                  constant:
+                    "\n      WITH\n        base_data AS (\n          SELECT\
                     \ * FROM `{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}.fte_time_series_output_{{$.inputs.parameters['pipelinechannel--get-fte-suffix-Output']}}`\n\
                     \        )\n      SELECT\n        CAST({{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\
                     \ AS STRING) AS {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
@@ -369,12 +373,12 @@ components:
           componentRef:
             name: comp-build-job-configuration-query
           dependentTasks:
-          - bigquery-create-dataset
+            - bigquery-create-dataset
           inputs:
             parameters:
               dataset_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}'
+                  constant: "{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}"
               pipelinechannel--bigquery-create-dataset-dataset_id:
                 taskOutputParameter:
                   outputParameterKey: dataset_id
@@ -385,7 +389,7 @@ components:
                   producerTask: bigquery-create-dataset
               project_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}'
+                  constant: "{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}"
               table_id:
                 runtimeValue:
                   constant: data
@@ -398,7 +402,7 @@ components:
           componentRef:
             name: comp-condition-2
           dependentTasks:
-          - prophet-trainer
+            - prophet-trainer
           inputs:
             artifacts:
               pipelinechannel--prophet-trainer-evaluated_examples_directory:
@@ -431,7 +435,8 @@ components:
           taskInfo:
             name: run-evaluation
           triggerPolicy:
-            condition: inputs.parameter_values['pipelinechannel--run_evaluation']
+            condition:
+              inputs.parameter_values['pipelinechannel--run_evaluation']
               == true
         feature-transform-engine:
           cachingOptions:
@@ -439,8 +444,8 @@ components:
           componentRef:
             name: comp-feature-transform-engine
           dependentTasks:
-          - bigquery-create-dataset
-          - wrapped-in-list
+            - bigquery-create-dataset
+            - wrapped-in-list
           inputs:
             parameters:
               autodetect_csv_schema:
@@ -448,7 +453,7 @@ components:
                   constant: true
               bigquery_staging_full_dataset_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}.{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}'
+                  constant: "{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}"
               data_source_bigquery_table_path:
                 componentInputParameter: pipelinechannel--data_source_bigquery_table_path
               data_source_csv_filenames:
@@ -513,13 +518,13 @@ components:
           componentRef:
             name: comp-get-fte-suffix
           dependentTasks:
-          - bigquery-create-dataset
-          - feature-transform-engine
+            - bigquery-create-dataset
+            - feature-transform-engine
           inputs:
             parameters:
               bigquery_staging_full_dataset_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}.{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}'
+                  constant: "{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}"
               fte_table:
                 runtimeValue:
                   constant: fte_time_series_output
@@ -558,7 +563,7 @@ components:
           componentRef:
             name: comp-model-upload
           dependentTasks:
-          - prophet-trainer
+            - prophet-trainer
           inputs:
             artifacts:
               unmanaged_container_model:
@@ -584,8 +589,8 @@ components:
           componentRef:
             name: comp-prophet-trainer
           dependentTasks:
-          - get-fte-suffix
-          - table-to-uri
+            - get-fte-suffix
+            - table-to-uri
           inputs:
             parameters:
               data_granularity_unit:
@@ -647,7 +652,7 @@ components:
           componentRef:
             name: comp-table-to-uri
           dependentTasks:
-          - bigquery-query-job
+            - bigquery-query-job
           inputs:
             artifacts:
               table:
@@ -776,14 +781,15 @@ components:
       parameters:
         autodetect_csv_schema:
           defaultValue: false
-          description: 'If True, infers the column types
+          description: "If True, infers the column types
 
-            when importing CSVs into BigQuery.'
+            when importing CSVs into BigQuery."
           isOptional: true
           parameterType: BOOLEAN
         bigquery_staging_full_dataset_id:
-          defaultValue: ''
-          description: Dataset in "projectId.datasetId" format for storing intermediate-FTE
+          defaultValue: ""
+          description:
+            Dataset in "projectId.datasetId" format for storing intermediate-FTE
             BigQuery tables.  If the specified dataset does not exist in BigQuery,
             FTE will create the dataset. If no bigquery_staging_full_dataset_id is
             specified, all intermediate tables will be stored in a dataset created
@@ -793,42 +799,46 @@ components:
           isOptional: true
           parameterType: STRING
         data_source_bigquery_table_path:
-          defaultValue: ''
+          defaultValue: ""
           description: BigQuery input data source to run feature transform on.
           isOptional: true
           parameterType: STRING
         data_source_csv_filenames:
-          defaultValue: ''
+          defaultValue: ""
           description: CSV input data source to run feature transform on.
           isOptional: true
           parameterType: STRING
         dataflow_disk_size_gb:
           defaultValue: 40.0
-          description: The disk size, in gigabytes, to use on each Dataflow worker
+          description:
+            The disk size, in gigabytes, to use on each Dataflow worker
             instance. If not set, default to 40.
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_machine_type:
           defaultValue: n1-standard-16
-          description: The machine type used for dataflow jobs. If not set, default
+          description:
+            The machine type used for dataflow jobs. If not set, default
             to n1-standard-16.
           isOptional: true
           parameterType: STRING
         dataflow_max_num_workers:
           defaultValue: 25.0
-          description: The number of workers to run the dataflow job. If not set,
+          description:
+            The number of workers to run the dataflow job. If not set,
             default to 25.
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
-          defaultValue: ''
+          defaultValue: ""
           description: Custom service account to run Dataflow jobs.
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
-          defaultValue: ''
-          description: 'Dataflow''s fully qualified subnetwork name, when empty the
-            default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications'
+          defaultValue: ""
+          description:
+            "Dataflow's fully qualified subnetwork name, when empty the
+            default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications"
           isOptional: true
           parameterType: STRING
         dataflow_use_public_ips:
@@ -838,7 +848,8 @@ components:
           parameterType: BOOLEAN
         dataset_level_custom_transformation_definitions:
           defaultValue: []
-          description: 'List of dataset-level custom transformation definitions.  Custom,
+          description:
+            'List of dataset-level custom transformation definitions.  Custom,
             bring-your-own dataset-level transform functions, where users can define
             and import their own transform function and use it with FTE''s built-in
             transformations. Using custom transformations is an experimental feature
@@ -854,7 +865,8 @@ components:
           parameterType: LIST
         dataset_level_transformations:
           defaultValue: []
-          description: "List of dataset-level transformations.\n[ { \"transformation\"\
+          description:
+            "List of dataset-level transformations.\n[ { \"transformation\"\
             : \"Join\", \"right_table_uri\": \"bq://test-project.dataset_test.table\"\
             , \"join_keys\": [[\"join_key_col\", \"join_key_col\"]] }, ... ]  Additional\
             \ information about FTE's currently supported built-in\n    transformations:\n\
@@ -905,13 +917,14 @@ components:
           isOptional: true
           parameterType: LIST
         encryption_spec_key_name:
-          defaultValue: ''
+          defaultValue: ""
           description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         feature_selection_algorithm:
           defaultValue: AMI
-          description: "The algorithm of feature selection. One of \"AMI\", \"CMIM\"\
+          description:
+            "The algorithm of feature selection. One of \"AMI\", \"CMIM\"\
             , \"JMIM\", \"MRMR\", default to be \"AMI\". The algorithms available\
             \ are: AMI(Adjusted Mutual Information):\nReference: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_mutual_info_score.html\
             \ Arrays are not yet supported in this algorithm.  CMIM(Conditional Mutual\
@@ -931,7 +944,8 @@ components:
           parameterType: STRING
         feature_selection_execution_engine:
           defaultValue: dataflow
-          description: Execution engine to run feature selection, value can be dataflow,
+          description:
+            Execution engine to run feature selection, value can be dataflow,
             bigquery.
           isOptional: true
           parameterType: STRING
@@ -957,55 +971,56 @@ components:
           parameterType: NUMBER_INTEGER
         forecasting_holiday_regions:
           defaultValue: []
-          description: 'The geographical region based on which the holiday effect
+          description:
+            "The geographical region based on which the holiday effect
             is applied in modeling by adding holiday categorical array feature that
             include all holidays matching the date. This option only allowed when
             data granularity is day. By default, holiday effect modeling is disabled.
             To turn it on, specify the holiday region using this option.
 
-            Top level: * ''GLOBAL''
+            Top level: * 'GLOBAL'
 
-            Second level: continental regions: * ''NA'': North America
+            Second level: continental regions: * 'NA': North America
 
-            * ''JAPAC'': Japan and Asia Pacific
+            * 'JAPAC': Japan and Asia Pacific
 
-            * ''EMEA'': Europe, the Middle East and Africa
+            * 'EMEA': Europe, the Middle East and Africa
 
-            * ''LAC'': Latin America and the Caribbean
+            * 'LAC': Latin America and the Caribbean
 
             Third level: countries from ISO 3166-1 Country codes.
 
-            Valid regions: * ''GLOBAL'' * ''NA'' * ''JAPAC'' * ''EMEA'' * ''LAC''
-            * ''AE''
+            Valid regions: * 'GLOBAL' * 'NA' * 'JAPAC' * 'EMEA' * 'LAC'
+            * 'AE'
 
-            * ''AR'' * ''AT'' * ''AU'' * ''BE'' * ''BR'' * ''CA'' * ''CH'' * ''CL''
-            * ''CN'' * ''CO''
+            * 'AR' * 'AT' * 'AU' * 'BE' * 'BR' * 'CA' * 'CH' * 'CL'
+            * 'CN' * 'CO'
 
-            * ''CZ'' * ''DE'' * ''DK'' * ''DZ'' * ''EC'' * ''EE'' * ''EG'' * ''ES''
-            * ''FI'' * ''FR''
+            * 'CZ' * 'DE' * 'DK' * 'DZ' * 'EC' * 'EE' * 'EG' * 'ES'
+            * 'FI' * 'FR'
 
-            * ''GB'' * ''GR'' * ''HK'' * ''HU'' * ''ID'' * ''IE'' * ''IL'' * ''IN''
-            * ''IR'' * ''IT''
+            * 'GB' * 'GR' * 'HK' * 'HU' * 'ID' * 'IE' * 'IL' * 'IN'
+            * 'IR' * 'IT'
 
-            * ''JP'' * ''KR'' * ''LV'' * ''MA'' * ''MX'' * ''MY'' * ''NG'' * ''NL''
-            * ''NO'' * ''NZ''
+            * 'JP' * 'KR' * 'LV' * 'MA' * 'MX' * 'MY' * 'NG' * 'NL'
+            * 'NO' * 'NZ'
 
-            * ''PE'' * ''PH'' * ''PK'' * ''PL'' * ''PT'' * ''RO'' * ''RS'' * ''RU''
-            * ''SA'' * ''SE''
+            * 'PE' * 'PH' * 'PK' * 'PL' * 'PT' * 'RO' * 'RS' * 'RU'
+            * 'SA' * 'SE'
 
-            * ''SG'' * ''SI'' * ''SK'' * ''TH'' * ''TR'' * ''TW'' * ''UA'' * ''US''
-            * ''VE'' * ''VN''
+            * 'SG' * 'SI' * 'SK' * 'TH' * 'TR' * 'TW' * 'UA' * 'US'
+            * 'VE' * 'VN'
 
-            * ''ZA'''
+            * 'ZA'"
           isOptional: true
           parameterType: LIST
         forecasting_predefined_window_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Forecasting predefined window column.
           isOptional: true
           parameterType: STRING
         forecasting_time_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Forecasting time column.
           isOptional: true
           parameterType: STRING
@@ -1015,7 +1030,8 @@ components:
           isOptional: true
           parameterType: LIST
         forecasting_time_series_identifier_column:
-          description: '[Deprecated] A forecasting time series identifier column.
+          description:
+            '[Deprecated] A forecasting time series identifier column.
             Raises an exception if used - use the "time_series_identifier_column"
             field instead.'
           isOptional: true
@@ -1052,7 +1068,7 @@ components:
           isOptional: true
           parameterType: NUMBER_DOUBLE
         legacy_transformations_path:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         location:
@@ -1060,13 +1076,15 @@ components:
           parameterType: STRING
         materialized_examples_format:
           defaultValue: tfrecords_gzip
-          description: The format to use for the materialized examples. Should be
+          description:
+            The format to use for the materialized examples. Should be
             either 'tfrecords_gzip' (default) or 'parquet'.
           isOptional: true
           parameterType: STRING
         max_selected_features:
           defaultValue: 1000.0
-          description: Maximum number of features to select.  If specified, the transform
+          description:
+            Maximum number of features to select.  If specified, the transform
             config will be purged by only using the selected features that ranked
             top in the feature ranking, which has the ranking value for all supported
             features. If the number of input features is smaller than max_selected_features
@@ -1076,9 +1094,10 @@ components:
           isOptional: true
           parameterType: NUMBER_INTEGER
         model_type:
-          description: 'Model type, which we wish to engineer features for. Can be
+          description:
+            "Model type, which we wish to engineer features for. Can be
             one of: neural_network, boosted_trees, l2l, seq2seq, tft, or tide. Defaults
-            to the empty value, `None`.'
+            to the empty value, `None`."
           isOptional: true
           parameterType: STRING
         multimodal_image_columns:
@@ -1098,18 +1117,20 @@ components:
           parameterType: LIST
         multimodal_timeseries_columns:
           defaultValue: []
-          description: List of multimodal timeseries columns. Defaults to an empty
+          description:
+            List of multimodal timeseries columns. Defaults to an empty
             list
           isOptional: true
           parameterType: LIST
         predefined_split_key:
-          defaultValue: ''
+          defaultValue: ""
           description: Predefined split key.
           isOptional: true
           parameterType: STRING
         prediction_type:
-          defaultValue: ''
-          description: Model prediction type. One of "classification", "regression",
+          defaultValue: ""
+          description:
+            Model prediction type. One of "classification", "regression",
             "time_series".
           isOptional: true
           parameterType: STRING
@@ -1121,7 +1142,8 @@ components:
           parameterType: STRING
         run_distill:
           defaultValue: false
-          description: (deprecated) Whether the distillation should be applied to
+          description:
+            (deprecated) Whether the distillation should be applied to
             the training.
           isOptional: true
           parameterType: BOOLEAN
@@ -1132,18 +1154,19 @@ components:
           parameterType: BOOLEAN
         stats_gen_execution_engine:
           defaultValue: dataflow
-          description: 'Execution engine to perform statistics generation. Can be
+          description:
+            'Execution engine to perform statistics generation. Can be
             one of: "dataflow" (by default) or "bigquery". Using "bigquery" as the
             execution engine is experimental.'
           isOptional: true
           parameterType: STRING
         stratified_split_key:
-          defaultValue: ''
+          defaultValue: ""
           description: Stratified split key.
           isOptional: true
           parameterType: STRING
         target_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Target column of input data.
           isOptional: true
           parameterType: STRING
@@ -1158,7 +1181,8 @@ components:
           parameterType: NUMBER_DOUBLE
         tf_auto_transform_features:
           defaultValue: {}
-          description: 'Dict mapping auto and/or type-resolutions to TF transform
+          description:
+            'Dict mapping auto and/or type-resolutions to TF transform
             features. FTE will automatically configure a set of built-in transformations
             for each feature based on its data statistics. If users do not want auto
             type resolution, but want the set of transformations for a given type
@@ -1172,7 +1196,8 @@ components:
           parameterType: STRUCT
         tf_custom_transformation_definitions:
           defaultValue: []
-          description: 'List of TensorFlow-based custom transformation definitions.  Custom,
+          description:
+            'List of TensorFlow-based custom transformation definitions.  Custom,
             bring-your-own transform functions, where users can define and import
             their own transform function and use it with FTE''s built-in transformations.
             `[ { "transformation": "PlusOne", "module_path": "gs://bucket/custom_transform_fn.py",
@@ -1188,7 +1213,8 @@ components:
           parameterType: LIST
         tf_transform_execution_engine:
           defaultValue: dataflow
-          description: 'Execution engine to perform row-level TF transformations.
+          description:
+            'Execution engine to perform row-level TF transformations.
             Can be one of: "dataflow" (by default) or "bigquery". Using "bigquery"
             as the execution engine is experimental and is for allowlisted customers
             only. In addition, executing on "bigquery" only supports auto transformations
@@ -1198,8 +1224,9 @@ components:
           isOptional: true
           parameterType: STRING
         tf_transformations_path:
-          defaultValue: ''
-          description: "Path to TensorFlow-based transformation configuration.  Path\
+          defaultValue: ""
+          description:
+            "Path to TensorFlow-based transformation configuration.  Path\
             \ to a JSON file used to specified FTE's TF transformation configurations.\
             \  In the following, we provide some sample transform configurations to\
             \ demonstrate FTE's capabilities. All transformations on input columns\
@@ -1367,7 +1394,7 @@ components:
           isOptional: true
           parameterType: STRING
         timestamp_split_key:
-          defaultValue: ''
+          defaultValue: ""
           description: Timestamp split key.
           isOptional: true
           parameterType: STRING
@@ -1382,7 +1409,7 @@ components:
           isOptional: true
           parameterType: NUMBER_DOUBLE
         weight_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Weight column of input data.
           isOptional: true
           parameterType: STRING
@@ -1397,7 +1424,8 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: The ranking of features, all features supported in the dataset
+          description:
+            The ranking of features, all features supported in the dataset
             will be included. For "AMI" algorithm, array features won't be available
             in the ranking as arrays are not supported yet.
         instance_schema:
@@ -1420,27 +1448,33 @@ components:
           description: The transform output artifact.
       parameters:
         bigquery_downsampled_test_split_uri:
-          description: BigQuery URI for the downsampled test split to pass to the
+          description:
+            BigQuery URI for the downsampled test split to pass to the
             batch prediction component during batch explain.
           parameterType: STRING
         bigquery_test_split_uri:
-          description: BigQuery URI for the test split to pass to the batch prediction
+          description:
+            BigQuery URI for the test split to pass to the batch prediction
             component during evaluation.
           parameterType: STRING
         bigquery_train_split_uri:
-          description: BigQuery URI for the train split to pass to the batch prediction
+          description:
+            BigQuery URI for the train split to pass to the batch prediction
             component during distillation.
           parameterType: STRING
         bigquery_validation_split_uri:
-          description: BigQuery URI for the validation split to pass to the batch
+          description:
+            BigQuery URI for the validation split to pass to the batch
             prediction component during distillation.
           parameterType: STRING
         gcp_resources:
-          description: GCP resources created by this component. For more details,
+          description:
+            GCP resources created by this component. For more details,
             see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
           parameterType: STRING
         split_example_counts:
-          description: JSON string of data split example counts for train, validate,
+          description:
+            JSON string of data split example counts for train, validate,
             and test splits.
           parameterType: STRING
   comp-get-fte-suffix:
@@ -1464,7 +1498,7 @@ components:
     inputDefinitions:
       parameters:
         default_location:
-          defaultValue: ''
+          defaultValue: ""
           description: Location to return if no table was given.
           isOptional: true
           parameterType: STRING
@@ -1486,12 +1520,13 @@ components:
           artifactType:
             schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
-          description: 'The Vertex model used for evaluation. Must be located in the
+          description:
+            "The Vertex model used for evaluation. Must be located in the
             same
 
             region as the location argument. It is used to set the default
 
-            configurations for AutoML and custom-trained models.'
+            configurations for AutoML and custom-trained models."
           isOptional: true
         predictions_bigquery_source:
           artifactType:
@@ -1520,64 +1555,64 @@ components:
       parameters:
         dataflow_disk_size_gb:
           defaultValue: 50.0
-          description: 'The disk size (in GB) of the machine
+          description: "The disk size (in GB) of the machine
 
-            executing the evaluation run.'
+            executing the evaluation run."
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_machine_type:
           defaultValue: n1-standard-4
-          description: 'The machine type executing the
+          description: "The machine type executing the
 
-            evaluation run.'
+            evaluation run."
           isOptional: true
           parameterType: STRING
         dataflow_max_workers_num:
           defaultValue: 5.0
-          description: 'The max number of workers
+          description: "The max number of workers
 
-            executing the evaluation run.'
+            executing the evaluation run."
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
-          defaultValue: ''
-          description: 'Service account to run the
+          defaultValue: ""
+          description: "Service account to run the
 
             Dataflow job. If not set, Dataflow will use the default worker service
 
             account. For more details, see
 
-            https://cloud.google.com/dataflow/docs/concepts/secURIty-and-permissions#default_worker_service_account'
+            https://cloud.google.com/dataflow/docs/concepts/secURIty-and-permissions#default_worker_service_account"
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
-          defaultValue: ''
-          description: 'Dataflow''s fully qualified subnetwork
+          defaultValue: ""
+          description: "Dataflow's fully qualified subnetwork
 
             name, when empty the default subnetwork will be used. More
 
             details:
 
-            https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications'
+            https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications"
           isOptional: true
           parameterType: STRING
         dataflow_use_public_ips:
           defaultValue: true
-          description: 'Specifies whether Dataflow
+          description: "Specifies whether Dataflow
 
-            workers use public IP addresses.'
+            workers use public IP addresses."
           isOptional: true
           parameterType: BOOLEAN
         dataflow_workers_num:
           defaultValue: 1.0
-          description: 'The number of workers executing the
+          description: "The number of workers executing the
 
-            evaluation run.'
+            evaluation run."
           isOptional: true
           parameterType: NUMBER_INTEGER
         encryption_spec_key_name:
-          defaultValue: ''
-          description: ' Customer-managed encryption key options.
+          defaultValue: ""
+          description: " Customer-managed encryption key options.
 
             If set, resources created by this pipeline will be encrypted with the
 
@@ -1587,39 +1622,39 @@ components:
 
             The key needs to be in the same region as where the compute resource is
 
-            created.'
+            created."
           isOptional: true
           parameterType: STRING
         force_runner_mode:
-          defaultValue: ''
-          description: 'Flag to choose Beam runner. Valid options are
+          defaultValue: ""
+          description: "Flag to choose Beam runner. Valid options are
 
-            `DirectRunner` and `Dataflow`.'
+            `DirectRunner` and `Dataflow`."
           isOptional: true
           parameterType: STRING
         ground_truth_bigquery_source:
-          defaultValue: ''
-          description: 'Required for custom tabular.
+          defaultValue: ""
+          description: "Required for custom tabular.
 
             The BigQuery table URI representing where the ground truth is located.
 
             Used to provide ground truth for each prediction instance when they are
 
-            not part of the batch prediction jobs prediction instance.'
+            not part of the batch prediction jobs prediction instance."
           isOptional: true
           parameterType: STRING
         ground_truth_format:
           defaultValue: jsonl
-          description: 'Required for custom tabular and non
+          description: "Required for custom tabular and non
 
             tabular data. The file format for the ground truth files. `jsonl`,
 
-            `csv`, and `bigquery` are the allowed formats.'
+            `csv`, and `bigquery` are the allowed formats."
           isOptional: true
           parameterType: STRING
         ground_truth_gcs_source:
           defaultValue: []
-          description: 'Required for custom
+          description: "Required for custom
 
             tabular and non tabular data. The GCS URIs representing where the ground
 
@@ -1627,7 +1662,7 @@ components:
 
             instance when they are not part of the batch prediction jobs prediction
 
-            instance.'
+            instance."
           isOptional: true
           parameterType: LIST
         location:
@@ -1637,34 +1672,35 @@ components:
           parameterType: STRING
         prediction_score_column:
           defaultValue: prediction.value
-          description: 'The column name of the field
+          description: "The column name of the field
 
             containing batch prediction scores. Formatted to be able to find nested
 
-            columns, delimited by `.`.'
+            columns, delimited by `.`."
           isOptional: true
           parameterType: STRING
         predictions_format:
           defaultValue: jsonl
-          description: 'The file format for the batch
+          description: "The file format for the batch
 
             prediction results. `jsonl`, `csv`, and `bigquery` are the allowed
 
-            formats, from Vertex Batch Prediction.'
+            formats, from Vertex Batch Prediction."
           isOptional: true
           parameterType: STRING
         project:
-          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
-          description: Project to run evaluation container. Defaults to the project
+          defaultValue: "{{$.pipeline_google_cloud_project_id}}"
+          description:
+            Project to run evaluation container. Defaults to the project
             in which the PipelineJob is run.
           isOptional: true
           parameterType: STRING
         target_field_name:
-          description: 'The target field''s name. Formatted to be able to find
+          description: "The target field's name. Formatted to be able to find
 
-            nested columns, delimited by `.`. Prefixed with ''instance.'' on the
+            nested columns, delimited by `.`. Prefixed with 'instance.' on the
 
-            component for Vertex Batch Prediction.'
+            component for Vertex Batch Prediction."
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -1672,16 +1708,16 @@ components:
           artifactType:
             schemaTitle: google.RegressionMetrics
             schemaVersion: 0.0.1
-          description: '`google.RegressionMetrics` representing the regression
+          description: "`google.RegressionMetrics` representing the regression
 
-            evaluation metrics in GCS.'
+            evaluation metrics in GCS."
       parameters:
         gcp_resources:
-          description: 'Serialized gcp_resources proto tracking the Dataflow
+          description: "Serialized gcp_resources proto tracking the Dataflow
 
             job. For more details, see
 
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md."
           parameterType: STRING
   comp-model-upload:
     executorLabel: exec-model-upload
@@ -1691,14 +1727,16 @@ components:
           artifactType:
             schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
-          description: An artifact of a model which to upload a new version to. Only
+          description:
+            An artifact of a model which to upload a new version to. Only
             specify this field when uploading a new version. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload#request-body)
           isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
-          description: "The unmanaged container model to be uploaded.  The Model can\
+          description:
+            "The unmanaged container model to be uploaded.  The Model can\
             \ be passed from an upstream step or imported via a KFP `dsl.importer`.\n\
             :Examples:\n  ::\n\n    from kfp import dsl\n    from google_cloud_pipeline_components.google_cloud_pipeline_components.types\
             \ import artifact_types\n\n    importer_spec = dsl.importer(\n      artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',\n\
@@ -1708,20 +1746,20 @@ components:
           isOptional: true
       parameters:
         description:
-          defaultValue: ''
+          defaultValue: ""
           description: The description of the Model. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)
           isOptional: true
           parameterType: STRING
         display_name:
-          description: 'The display name of the Model. The name
+          description: "The display name of the Model. The name
 
             can be up to 128 characters long and can be consist of any UTF-8
 
-            characters. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)'
+            characters. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)"
           parameterType: STRING
         encryption_spec_key_name:
-          defaultValue: ''
-          description: 'Customer-managed encryption
+          defaultValue: ""
+          description: "Customer-managed encryption
 
             key spec for a Model. If set, this Model and all sub-resources of this
 
@@ -1731,27 +1769,27 @@ components:
 
             The key needs to be in the same region as where the compute resource
 
-            is created.'
+            is created."
           isOptional: true
           parameterType: STRING
         explanation_metadata:
           defaultValue: {}
-          description: 'Metadata describing the Model''s
+          description: "Metadata describing the Model's
 
             input and output for explanation. Both `explanation_metadata` and `explanation_parameters`
-            must be passed together when used. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata)'
+            must be passed together when used. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata)"
           isOptional: true
           parameterType: STRUCT
         explanation_parameters:
           defaultValue: {}
-          description: 'Parameters to configure
+          description: "Parameters to configure
 
-            explaining for Model''s predictions.  [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters)'
+            explaining for Model's predictions.  [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters)"
           isOptional: true
           parameterType: STRUCT
         labels:
           defaultValue: {}
-          description: 'The labels with user-defined metadata to
+          description: "The labels with user-defined metadata to
 
             organize your model.  Label keys and values can be no longer than 64
 
@@ -1761,19 +1799,20 @@ components:
 
             are allowed.  See https://goo.gl/xmQnxf for more information and
 
-            examples of labels.'
+            examples of labels."
           isOptional: true
           parameterType: STRUCT
         location:
           defaultValue: us-central1
-          description: 'Optional location to upload this Model to. If
+          description: "Optional location to upload this Model to. If
 
-            not set, defaults to `us-central1`.'
+            not set, defaults to `us-central1`."
           isOptional: true
           parameterType: STRING
         project:
-          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
-          description: Project to upload this Model to. Defaults to the project in
+          defaultValue: "{{$.pipeline_google_cloud_project_id}}"
+          description:
+            Project to upload this Model to. Defaults to the project in
             which the PipelineJob is run.
           isOptional: true
           parameterType: STRING
@@ -1786,7 +1825,8 @@ components:
           description: Artifact tracking the created Model.
       parameters:
         gcp_resources:
-          description: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
+          description:
+            Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
             which tracks the upload Model's long-running operation.
           parameterType: STRING
   comp-prophet-trainer:
@@ -1812,13 +1852,14 @@ components:
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
-          defaultValue: ''
+          defaultValue: ""
           description: Custom service account to run dataflow jobs.
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
-          defaultValue: ''
-          description: Dataflow's fully qualified subnetwork name, when empty the
+          defaultValue: ""
+          description:
+            Dataflow's fully qualified subnetwork name, when empty the
             default subnetwork will be used.
           isOptional: true
           parameterType: STRING
@@ -1828,12 +1869,13 @@ components:
           isOptional: true
           parameterType: BOOLEAN
         encryption_spec_key_name:
-          defaultValue: ''
+          defaultValue: ""
           description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         forecast_horizon:
-          description: The number of time periods into the future for which forecasts
+          description:
+            The number of time periods into the future for which forecasts
             will be created. Future periods start after the latest timestamp for each
             time series.
           parameterType: NUMBER_INTEGER
@@ -1842,20 +1884,23 @@ components:
           parameterType: STRING
         max_num_trials:
           defaultValue: 6.0
-          description: Maximum number of tuning trials to perform per time series.
+          description:
+            Maximum number of tuning trials to perform per time series.
             There are up to 100 possible combinations to explore for each time series.
             Recommended values to try are 3, 6, and 24.
           isOptional: true
           parameterType: NUMBER_INTEGER
         optimization_objective:
           defaultValue: rmse
-          description: Optimization objective for tuning. Supported metrics come from
+          description:
+            Optimization objective for tuning. Supported metrics come from
             Prophet's performance_metrics function. These are mse, rmse, mae, mape,
             mdape, smape, and coverage.
           isOptional: true
           parameterType: STRING
         predefined_split_column:
-          description: The predefined_split column name. A string that represents
+          description:
+            The predefined_split column name. A string that represents
             a list of comma separated CSV filenames.
           parameterType: STRING
         project:
@@ -1877,7 +1922,8 @@ components:
           description: Name of the column that identifies the time series.
           parameterType: STRING
         window_column:
-          description: Name of the column that should be used to filter input rows.  The
+          description:
+            Name of the column that should be used to filter input rows.  The
             column should contain either booleans or string booleans; if the value
             of the row is True, generate a sliding window from that row.
           parameterType: STRING
@@ -1894,7 +1940,8 @@ components:
           description: The UnmanagedContainerModel artifact.
       parameters:
         gcp_resources:
-          description: Serialized gcp_resources proto tracking the custom training
+          description:
+            Serialized gcp_resources proto tracking the custom training
             job.
           parameterType: STRING
   comp-table-to-uri:
@@ -1990,591 +2037,591 @@ deploymentSpec:
     exec-bigquery-create-dataset:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - bigquery_create_dataset
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - bigquery_create_dataset
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef bigquery_create_dataset(\n    project: str,\n    location: str,\n\
-          \    dataset: str,\n    exists_ok: bool = False,\n) -> NamedTuple('Outputs',\
-          \ [('project_id', str), ('dataset_id', str)]):\n  \"\"\"Creates a BigQuery\
-          \ dataset.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  import collections\n\n  from google.cloud import bigquery\n  # pylint:\
-          \ enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  client = bigquery.Client(project=project, location=location)\n  ref\
-          \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
-          \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
-          \   ref.project, ref.dataset_id)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef bigquery_create_dataset(\n    project: str,\n    location: str,\n\
+            \    dataset: str,\n    exists_ok: bool = False,\n) -> NamedTuple('Outputs',\
+            \ [('project_id', str), ('dataset_id', str)]):\n  \"\"\"Creates a BigQuery\
+            \ dataset.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  import collections\n\n  from google.cloud import bigquery\n  # pylint:\
+            \ enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  client = bigquery.Client(project=project, location=location)\n  ref\
+            \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
+            \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
+            \   ref.project, ref.dataset_id)\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-bigquery-delete-dataset-with-prefix:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - bigquery_delete_dataset_with_prefix
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - bigquery_delete_dataset_with_prefix
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef bigquery_delete_dataset_with_prefix(\n    project: str,\n   \
-          \ dataset_prefix: str,\n    delete_contents: bool = False,\n) -> None:\n\
-          \  \"\"\"Deletes all BigQuery datasets matching the given prefix.\"\"\"\n\
-          \  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  client = bigquery.Client(project=project)\n  for dataset in client.list_datasets(project=project):\n\
-          \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
-          \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
-          \n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef bigquery_delete_dataset_with_prefix(\n    project: str,\n   \
+            \ dataset_prefix: str,\n    delete_contents: bool = False,\n) -> None:\n\
+            \  \"\"\"Deletes all BigQuery datasets matching the given prefix.\"\"\"\n\
+            \  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  client = bigquery.Client(project=project)\n  for dataset in client.list_datasets(project=project):\n\
+            \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
+            \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
+            \n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-bigquery-query-job:
       container:
         args:
-        - --type
-        - BigqueryQueryJob
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --payload
-        - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
-          ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
-        - --job_configuration_query_override
-        - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
-          "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
-          ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", "}"]}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
+          - --type
+          - BigqueryQueryJob
+          - --project
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --payload
+          - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
+            ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
+          - --job_configuration_query_override
+          - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
+            "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
+            ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+            "\"}", "}"]}'
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --executor_input
+          - "{{$}}"
         command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
+          - python3
+          - -u
+          - -m
+          - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-build-job-configuration-query:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - build_job_configuration_query
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - build_job_configuration_query
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
-          \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
-          \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
-          \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
-          \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
-          \    config['destinationTable'] = {\n        'projectId': project_id,\n\
-          \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
-          \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
-          \  return config\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
+            \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
+            \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
+            \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
+            \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
+            \    config['destinationTable'] = {\n        'projectId': project_id,\n\
+            \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
+            \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
+            \  return config\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-feature-transform-engine:
       container:
         args:
-        - feature_transform_engine
-        - '{"Concat": ["--project=", "{{$.inputs.parameters[''project'']}}"]}'
-        - '{"Concat": ["--location=", "{{$.inputs.parameters[''location'']}}"]}'
-        - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
-        - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
-        - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
-        - '{"IfPresent": {"InputName": "forecasting_time_series_identifier_column",
-          "Then": {"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}}}'
-        - '{"Concat": ["--forecasting_time_series_identifier_columns=", "{{$.inputs.parameters[''forecasting_time_series_identifier_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_forecast_horizon=", "{{$.inputs.parameters[''forecasting_forecast_horizon'']}}"]}'
-        - '{"Concat": ["--forecasting_context_window=", "{{$.inputs.parameters[''forecasting_context_window'']}}"]}'
-        - '{"Concat": ["--forecasting_predefined_window_column=", "{{$.inputs.parameters[''forecasting_predefined_window_column'']}}"]}'
-        - '{"Concat": ["--forecasting_window_stride_length=", "{{$.inputs.parameters[''forecasting_window_stride_length'']}}"]}'
-        - '{"Concat": ["--forecasting_window_max_count=", "{{$.inputs.parameters[''forecasting_window_max_count'']}}"]}'
-        - '{"Concat": ["--forecasting_holiday_regions=", "{{$.inputs.parameters[''forecasting_holiday_regions'']}}"]}'
-        - '{"Concat": ["--forecasting_apply_windowing=", "{{$.inputs.parameters[''forecasting_apply_windowing'']}}"]}'
-        - '{"Concat": ["--predefined_split_key=", "{{$.inputs.parameters[''predefined_split_key'']}}"]}'
-        - '{"Concat": ["--stratified_split_key=", "{{$.inputs.parameters[''stratified_split_key'']}}"]}'
-        - '{"Concat": ["--timestamp_split_key=", "{{$.inputs.parameters[''timestamp_split_key'']}}"]}'
-        - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
-        - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
-        - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
-        - '{"Concat": ["--stats_gen_execution_engine=", "{{$.inputs.parameters[''stats_gen_execution_engine'']}}"]}'
-        - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
-        - '{"IfPresent": {"InputName": "tf_auto_transform_features", "Then": {"Concat":
-          ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}}}'
-        - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
-        - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
-        - '{"Concat": ["--legacy_transformations_path=", "{{$.inputs.parameters[''legacy_transformations_path'']}}"]}'
-        - '{"Concat": ["--data_source_csv_filenames=", "{{$.inputs.parameters[''data_source_csv_filenames'']}}"]}'
-        - '{"Concat": ["--data_source_bigquery_table_path=", "{{$.inputs.parameters[''data_source_bigquery_table_path'']}}"]}'
-        - '{"Concat": ["--bigquery_staging_full_dataset_id=", "{{$.inputs.parameters[''bigquery_staging_full_dataset_id'']}}"]}'
-        - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
-        - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
-        - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
-        - '{"IfPresent": {"InputName": "model_type", "Then": {"Concat": ["--model_type=",
-          "{{$.inputs.parameters[''model_type'']}}"]}}}'
-        - '{"Concat": ["--multimodal_tabular_columns=", "{{$.inputs.parameters[''multimodal_tabular_columns'']}}"]}'
-        - '{"Concat": ["--multimodal_timeseries_columns=", "{{$.inputs.parameters[''multimodal_timeseries_columns'']}}"]}'
-        - '{"Concat": ["--multimodal_text_columns=", "{{$.inputs.parameters[''multimodal_text_columns'']}}"]}'
-        - '{"Concat": ["--multimodal_image_columns=", "{{$.inputs.parameters[''multimodal_image_columns'']}}"]}'
-        - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
-        - '{"Concat": ["--run_feature_selection=", "{{$.inputs.parameters[''run_feature_selection'']}}"]}'
-        - '{"Concat": ["--materialized_examples_format=", "{{$.inputs.parameters[''materialized_examples_format'']}}"]}'
-        - '{"Concat": ["--max_selected_features=", "{{$.inputs.parameters[''max_selected_features'']}}"]}'
-        - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
-        - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
-        - '{"Concat": ["--feature_selection_execution_engine=", "{{$.inputs.parameters[''feature_selection_execution_engine'']}}"]}'
-        - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
-        - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
-        - '{"Concat": ["--stats_result_path=", "{{$.outputs.artifacts[''dataset_stats''].uri}}"]}'
-        - '{"Concat": ["--transform_output_artifact_path=", "{{$.outputs.artifacts[''transform_output''].uri}}"]}'
-        - '{"Concat": ["--transform_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform"]}'
-        - '{"Concat": ["--materialized_examples_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized"]}'
-        - '{"Concat": ["--export_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/export"]}'
-        - '{"Concat": ["--materialized_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data"]}'
-        - '{"Concat": ["--materialized_data_artifact_path=", "{{$.outputs.artifacts[''materialized_data''].uri}}"]}'
-        - '{"Concat": ["--bigquery_train_split_uri_path=", "{{$.outputs.parameters[''bigquery_train_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--bigquery_validation_split_uri_path=", "{{$.outputs.parameters[''bigquery_validation_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--bigquery_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_test_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--bigquery_downsampled_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_downsampled_test_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--split_example_counts_path=", "{{$.outputs.parameters[''split_example_counts''].output_file}}"]}'
-        - '{"Concat": ["--instance_schema_path=", "{{$.outputs.artifacts[''instance_schema''].path}}"]}'
-        - '{"Concat": ["--training_schema_path=", "{{$.outputs.artifacts[''training_schema''].path}}"]}'
-        - --job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
-        - '{"Concat": ["--dataflow_project=", "{{$.inputs.parameters[''project'']}}"]}'
-        - '{"Concat": ["--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging"]}'
-        - '{"Concat": ["--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
-        - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
-        - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
-        - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
-        - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
-        - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
-        - '{"Concat": ["--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}"]}'
-        - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
-        - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
-        - '{"IfPresent": {"InputName": "group_columns", "Then": {"Concat": ["--group_columns=",
-          "{{$.inputs.parameters[''group_columns'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_total_weight", "Then": {"Concat": ["--group_total_weight=",
-          "{{$.inputs.parameters[''group_total_weight'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "temporal_total_weight", "Then": {"Concat":
-          ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
-          ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
+          - feature_transform_engine
+          - '{"Concat": ["--project=", "{{$.inputs.parameters[''project'']}}"]}'
+          - '{"Concat": ["--location=", "{{$.inputs.parameters[''location'']}}"]}'
+          - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
+          - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
+          - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
+          - '{"IfPresent": {"InputName": "forecasting_time_series_identifier_column",
+            "Then": {"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}}}'
+          - '{"Concat": ["--forecasting_time_series_identifier_columns=", "{{$.inputs.parameters[''forecasting_time_series_identifier_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_forecast_horizon=", "{{$.inputs.parameters[''forecasting_forecast_horizon'']}}"]}'
+          - '{"Concat": ["--forecasting_context_window=", "{{$.inputs.parameters[''forecasting_context_window'']}}"]}'
+          - '{"Concat": ["--forecasting_predefined_window_column=", "{{$.inputs.parameters[''forecasting_predefined_window_column'']}}"]}'
+          - '{"Concat": ["--forecasting_window_stride_length=", "{{$.inputs.parameters[''forecasting_window_stride_length'']}}"]}'
+          - '{"Concat": ["--forecasting_window_max_count=", "{{$.inputs.parameters[''forecasting_window_max_count'']}}"]}'
+          - '{"Concat": ["--forecasting_holiday_regions=", "{{$.inputs.parameters[''forecasting_holiday_regions'']}}"]}'
+          - '{"Concat": ["--forecasting_apply_windowing=", "{{$.inputs.parameters[''forecasting_apply_windowing'']}}"]}'
+          - '{"Concat": ["--predefined_split_key=", "{{$.inputs.parameters[''predefined_split_key'']}}"]}'
+          - '{"Concat": ["--stratified_split_key=", "{{$.inputs.parameters[''stratified_split_key'']}}"]}'
+          - '{"Concat": ["--timestamp_split_key=", "{{$.inputs.parameters[''timestamp_split_key'']}}"]}'
+          - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
+          - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
+          - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+          - '{"Concat": ["--stats_gen_execution_engine=", "{{$.inputs.parameters[''stats_gen_execution_engine'']}}"]}'
+          - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
+          - '{"IfPresent": {"InputName": "tf_auto_transform_features", "Then": {"Concat":
+            ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}}}'
+          - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
+          - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
+          - '{"Concat": ["--legacy_transformations_path=", "{{$.inputs.parameters[''legacy_transformations_path'']}}"]}'
+          - '{"Concat": ["--data_source_csv_filenames=", "{{$.inputs.parameters[''data_source_csv_filenames'']}}"]}'
+          - '{"Concat": ["--data_source_bigquery_table_path=", "{{$.inputs.parameters[''data_source_bigquery_table_path'']}}"]}'
+          - '{"Concat": ["--bigquery_staging_full_dataset_id=", "{{$.inputs.parameters[''bigquery_staging_full_dataset_id'']}}"]}'
+          - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
+          - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
+          - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
+          - '{"IfPresent": {"InputName": "model_type", "Then": {"Concat": ["--model_type=",
+            "{{$.inputs.parameters[''model_type'']}}"]}}}'
+          - '{"Concat": ["--multimodal_tabular_columns=", "{{$.inputs.parameters[''multimodal_tabular_columns'']}}"]}'
+          - '{"Concat": ["--multimodal_timeseries_columns=", "{{$.inputs.parameters[''multimodal_timeseries_columns'']}}"]}'
+          - '{"Concat": ["--multimodal_text_columns=", "{{$.inputs.parameters[''multimodal_text_columns'']}}"]}'
+          - '{"Concat": ["--multimodal_image_columns=", "{{$.inputs.parameters[''multimodal_image_columns'']}}"]}'
+          - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
+          - '{"Concat": ["--run_feature_selection=", "{{$.inputs.parameters[''run_feature_selection'']}}"]}'
+          - '{"Concat": ["--materialized_examples_format=", "{{$.inputs.parameters[''materialized_examples_format'']}}"]}'
+          - '{"Concat": ["--max_selected_features=", "{{$.inputs.parameters[''max_selected_features'']}}"]}'
+          - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
+          - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
+          - '{"Concat": ["--feature_selection_execution_engine=", "{{$.inputs.parameters[''feature_selection_execution_engine'']}}"]}'
+          - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
+          - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
+          - '{"Concat": ["--stats_result_path=", "{{$.outputs.artifacts[''dataset_stats''].uri}}"]}'
+          - '{"Concat": ["--transform_output_artifact_path=", "{{$.outputs.artifacts[''transform_output''].uri}}"]}'
+          - '{"Concat": ["--transform_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform"]}'
+          - '{"Concat": ["--materialized_examples_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized"]}'
+          - '{"Concat": ["--export_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/export"]}'
+          - '{"Concat": ["--materialized_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data"]}'
+          - '{"Concat": ["--materialized_data_artifact_path=", "{{$.outputs.artifacts[''materialized_data''].uri}}"]}'
+          - '{"Concat": ["--bigquery_train_split_uri_path=", "{{$.outputs.parameters[''bigquery_train_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--bigquery_validation_split_uri_path=", "{{$.outputs.parameters[''bigquery_validation_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--bigquery_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_test_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--bigquery_downsampled_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_downsampled_test_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--split_example_counts_path=", "{{$.outputs.parameters[''split_example_counts''].output_file}}"]}'
+          - '{"Concat": ["--instance_schema_path=", "{{$.outputs.artifacts[''instance_schema''].path}}"]}'
+          - '{"Concat": ["--training_schema_path=", "{{$.outputs.artifacts[''training_schema''].path}}"]}'
+          - --job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
+          - '{"Concat": ["--dataflow_project=", "{{$.inputs.parameters[''project'']}}"]}'
+          - '{"Concat": ["--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging"]}'
+          - '{"Concat": ["--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
+          - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
+          - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
+          - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525
+          - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
+          - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
+          - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
+          - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
+          - '{"Concat": ["--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}"]}'
+          - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
+          - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
+          - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
+          - '{"IfPresent": {"InputName": "group_columns", "Then": {"Concat": ["--group_columns=",
+            "{{$.inputs.parameters[''group_columns'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_total_weight", "Then": {"Concat": ["--group_total_weight=",
+            "{{$.inputs.parameters[''group_total_weight'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "temporal_total_weight", "Then": {"Concat":
+            ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
+            ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
+          - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
     exec-get-fte-suffix:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - get_fte_suffix
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - get_fte_suffix
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef get_fte_suffix(\n    project: str,\n    location: str,\n    bigquery_staging_full_dataset_id:\
-          \ str,\n    fte_table: str,\n) -> str:\n  \"\"\"Infers the FTE suffix from\
-          \ the intermediate FTE table name.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  client = bigquery.Client(project=project, location=location)\n  for\
-          \ table in client.list_tables(bigquery_staging_full_dataset_id):\n    if\
-          \ table.table_id.startswith(fte_table):\n      return table.table_id[len(fte_table)\
-          \ + 1:]\n  raise ValueError(\n      f'No FTE output tables found in {bigquery_staging_full_dataset_id}.')\n\
-          \n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef get_fte_suffix(\n    project: str,\n    location: str,\n    bigquery_staging_full_dataset_id:\
+            \ str,\n    fte_table: str,\n) -> str:\n  \"\"\"Infers the FTE suffix from\
+            \ the intermediate FTE table name.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  client = bigquery.Client(project=project, location=location)\n  for\
+            \ table in client.list_tables(bigquery_staging_full_dataset_id):\n    if\
+            \ table.table_id.startswith(fte_table):\n      return table.table_id[len(fte_table)\
+            \ + 1:]\n  raise ValueError(\n      f'No FTE output tables found in {bigquery_staging_full_dataset_id}.')\n\
+            \n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-table-location:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - get_table_location
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - get_table_location
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n\
-          \    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region\
-          \ the given table belongs to.\n\n  Args:\n    project: The GCP project.\n\
-          \    table: The BigQuery table to get a location for.\n    default_location:\
-          \ Location to return if no table was given.\n\n  Returns:\n    A GCP region\
-          \ or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  if not table:\n    return default_location\n\n  client = bigquery.Client(project=project)\n\
-          \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
-          \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
-          \  return client.get_table(table).location\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n\
+            \    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region\
+            \ the given table belongs to.\n\n  Args:\n    project: The GCP project.\n\
+            \    table: The BigQuery table to get a location for.\n    default_location:\
+            \ Location to return if no table was given.\n\n  Returns:\n    A GCP region\
+            \ or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  if not table:\n    return default_location\n\n  client = bigquery.Client(project=project)\n\
+            \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
+            \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
+            \  return client.get_table(table).location\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-model-evaluation-regression:
       container:
         args:
-        - --setup_file
-        - /setup.py
-        - --json_mode
-        - 'true'
-        - --project_id
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --problem_type
-        - regression
-        - --target_field_name
-        - '{"Concat": ["instance.", "{{$.inputs.parameters[''target_field_name'']}}"]}'
-        - --batch_prediction_format
-        - '{{$.inputs.parameters[''predictions_format'']}}'
-        - '{"IfPresent": {"InputName": "predictions_gcs_source", "Then": ["--batch_prediction_gcs_source",
-          "{{$.inputs.artifacts[''predictions_gcs_source''].uri}}"]}}'
-        - '{"IfPresent": {"InputName": "predictions_bigquery_source", "Then": ["--batch_prediction_bigquery_source",
-          {"Concat": ["bq://", "{{$.inputs.artifacts[''predictions_bigquery_source''].metadata[''projectId'']}}",
-          ".", "{{$.inputs.artifacts[''predictions_bigquery_source''].metadata[''datasetId'']}}",
-          ".", "{{$.inputs.artifacts[''predictions_bigquery_source''].metadata[''tableId'']}}"]}]}}'
-        - '{"IfPresent": {"InputName": "model", "Then": ["--model_name", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}"]}}'
-        - --ground_truth_format
-        - '{{$.inputs.parameters[''ground_truth_format'']}}'
-        - --ground_truth_gcs_source
-        - '{{$.inputs.parameters[''ground_truth_gcs_source'']}}'
-        - --ground_truth_bigquery_source
-        - '{{$.inputs.parameters[''ground_truth_bigquery_source'']}}'
-        - --root_dir
-        - '{{$.pipeline_root}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}'
-        - --prediction_score_column
-        - '{{$.inputs.parameters[''prediction_score_column'']}}'
-        - --dataflow_job_prefix
-        - evaluation-regression-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
-        - --dataflow_service_account
-        - '{{$.inputs.parameters[''dataflow_service_account'']}}'
-        - --dataflow_disk_size
-        - '{{$.inputs.parameters[''dataflow_disk_size_gb'']}}'
-        - --dataflow_machine_type
-        - '{{$.inputs.parameters[''dataflow_machine_type'']}}'
-        - --dataflow_workers_num
-        - '{{$.inputs.parameters[''dataflow_workers_num'']}}'
-        - --dataflow_max_workers_num
-        - '{{$.inputs.parameters[''dataflow_max_workers_num'']}}'
-        - --dataflow_subnetwork
-        - '{{$.inputs.parameters[''dataflow_subnetwork'']}}'
-        - --dataflow_use_public_ips
-        - '{{$.inputs.parameters[''dataflow_use_public_ips'']}}'
-        - --kms_key_name
-        - '{{$.inputs.parameters[''encryption_spec_key_name'']}}'
-        - --force_runner_mode
-        - '{{$.inputs.parameters[''force_runner_mode'']}}'
-        - --output_metrics_gcs_path
-        - '{{$.outputs.artifacts[''evaluation_metrics''].path}}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
+          - --setup_file
+          - /setup.py
+          - --json_mode
+          - "true"
+          - --project_id
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --problem_type
+          - regression
+          - --target_field_name
+          - '{"Concat": ["instance.", "{{$.inputs.parameters[''target_field_name'']}}"]}'
+          - --batch_prediction_format
+          - "{{$.inputs.parameters['predictions_format']}}"
+          - '{"IfPresent": {"InputName": "predictions_gcs_source", "Then": ["--batch_prediction_gcs_source",
+            "{{$.inputs.artifacts[''predictions_gcs_source''].uri}}"]}}'
+          - '{"IfPresent": {"InputName": "predictions_bigquery_source", "Then": ["--batch_prediction_bigquery_source",
+            {"Concat": ["bq://", "{{$.inputs.artifacts[''predictions_bigquery_source''].metadata[''projectId'']}}",
+            ".", "{{$.inputs.artifacts[''predictions_bigquery_source''].metadata[''datasetId'']}}",
+            ".", "{{$.inputs.artifacts[''predictions_bigquery_source''].metadata[''tableId'']}}"]}]}}'
+          - '{"IfPresent": {"InputName": "model", "Then": ["--model_name", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}"]}}'
+          - --ground_truth_format
+          - "{{$.inputs.parameters['ground_truth_format']}}"
+          - --ground_truth_gcs_source
+          - "{{$.inputs.parameters['ground_truth_gcs_source']}}"
+          - --ground_truth_bigquery_source
+          - "{{$.inputs.parameters['ground_truth_bigquery_source']}}"
+          - --root_dir
+          - "{{$.pipeline_root}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+          - --prediction_score_column
+          - "{{$.inputs.parameters['prediction_score_column']}}"
+          - --dataflow_job_prefix
+          - evaluation-regression-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
+          - --dataflow_service_account
+          - "{{$.inputs.parameters['dataflow_service_account']}}"
+          - --dataflow_disk_size
+          - "{{$.inputs.parameters['dataflow_disk_size_gb']}}"
+          - --dataflow_machine_type
+          - "{{$.inputs.parameters['dataflow_machine_type']}}"
+          - --dataflow_workers_num
+          - "{{$.inputs.parameters['dataflow_workers_num']}}"
+          - --dataflow_max_workers_num
+          - "{{$.inputs.parameters['dataflow_max_workers_num']}}"
+          - --dataflow_subnetwork
+          - "{{$.inputs.parameters['dataflow_subnetwork']}}"
+          - --dataflow_use_public_ips
+          - "{{$.inputs.parameters['dataflow_use_public_ips']}}"
+          - --kms_key_name
+          - "{{$.inputs.parameters['encryption_spec_key_name']}}"
+          - --force_runner_mode
+          - "{{$.inputs.parameters['force_runner_mode']}}"
+          - --output_metrics_gcs_path
+          - "{{$.outputs.artifacts['evaluation_metrics'].path}}"
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --executor_input
+          - "{{$}}"
         command:
-        - python3
-        - /main.py
+          - python3
+          - /main.py
         image: gcr.io/ml-pipeline/model-evaluation:v0.9.2
     exec-model-upload:
       container:
         args:
-        - --type
-        - UploadModel
-        - --payload
-        - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''display_name'']}}",
-          "\"", ", \"description\": \"", "{{$.inputs.parameters[''description'']}}",
-          "\"", ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
-          ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
-          "}", ", \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"pipeline_job\":
-          \"", "projects/{{$.inputs.parameters[''project'']}}/locations/{{$.inputs.parameters[''location'']}}/pipelineJobs/{{$.pipeline_job_uuid}}",
-          "\"", "}"]}'
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
-        - '{"IfPresent": {"InputName": "parent_model", "Then": ["--parent_model_name",
-          "{{$.inputs.artifacts[''parent_model''].metadata[''resourceName'']}}"]}}'
+          - --type
+          - UploadModel
+          - --payload
+          - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''display_name'']}}",
+            "\"", ", \"description\": \"", "{{$.inputs.parameters[''description'']}}",
+            "\"", ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
+            ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
+            "}", ", \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+            "\"}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"pipeline_job\":
+            \"", "projects/{{$.inputs.parameters[''project'']}}/locations/{{$.inputs.parameters[''location'']}}/pipelineJobs/{{$.pipeline_job_uuid}}",
+            "\"", "}"]}'
+          - --project
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --executor_input
+          - "{{$}}"
+          - '{"IfPresent": {"InputName": "parent_model", "Then": ["--parent_model_name",
+            "{{$.inputs.artifacts[''parent_model''].metadata[''resourceName'']}}"]}}'
         command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.model.upload_model.launcher
+          - python3
+          - -u
+          - -m
+          - google_cloud_pipeline_components.container.v1.model.upload_model.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-prophet-trainer:
       container:
         args:
-        - --type
-        - CustomJob
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --payload
-        - '{"Concat": ["{\"display_name\": \"prophet-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
-          ", "\"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}, ", "\"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"1\",
-          ", "\"machine_spec\": {\"machine_type\": \"n1-standard-4\"}, ", "\"container_spec\":
-          {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250620_0525\",
-          ", "\"args\": [\"prophet_trainer\", \"", "--job_name=dataflow-{{$.pipeline_job_name}}\",
-          \"", "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525\",
-          \"", "--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20250620_0525\",
-          \"", "--artifacts_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/model/\",
-          \"", "--evaluated_examples_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/eval/\", \"", "--region=", "{{$.inputs.parameters[''location'']}}",
-          "\", \"", "--source_bigquery_uri=", "{{$.inputs.parameters[''source_bigquery_uri'']}}",
-          "\", \"", "--target_column=", "{{$.inputs.parameters[''target_column'']}}",
-          "\", \"", "--time_column=", "{{$.inputs.parameters[''time_column'']}}",
-          "\", \"", "--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}",
-          "\", \"", "--forecast_horizon=", "{{$.inputs.parameters[''forecast_horizon'']}}",
-          "\", \"", "--window_column=", "{{$.inputs.parameters[''window_column'']}}",
-          "\", \"", "--optimization_objective=", "{{$.inputs.parameters[''optimization_objective'']}}",
-          "\", \"", "--data_granularity_unit=", "{{$.inputs.parameters[''data_granularity_unit'']}}",
-          "\", \"", "--predefined_split_column=", "{{$.inputs.parameters[''predefined_split_column'']}}",
-          "\", \"", "--max_num_trials=", "{{$.inputs.parameters[''max_num_trials'']}}",
-          "\", \"", "--dataflow_project=", "{{$.inputs.parameters[''project'']}}",
-          "\", \"", "--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
-          "\", \"", "--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
-          "\", \"", "--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
-          "\", \"", "--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}",
-          "\", \"", "--dataflow_subnetwork=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
-          "\", \"", "--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}",
-          "\", \"", "--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"",
-          "--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
-          \"", "--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}",
-          "\", \"", "--executor_input={{$.json_escape[1]}}\"]}}]}}"]}'
+          - --type
+          - CustomJob
+          - --project
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --payload
+          - '{"Concat": ["{\"display_name\": \"prophet-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
+            ", "\"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+            "\"}, ", "\"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"1\",
+            ", "\"machine_spec\": {\"machine_type\": \"n1-standard-4\"}, ", "\"container_spec\":
+            {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250620_0525\",
+            ", "\"args\": [\"prophet_trainer\", \"", "--job_name=dataflow-{{$.pipeline_job_name}}\",
+            \"", "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525\",
+            \"", "--prediction_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:20250620_0525\",
+            \"", "--artifacts_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/model/\",
+            \"", "--evaluated_examples_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/eval/\", \"", "--region=", "{{$.inputs.parameters[''location'']}}",
+            "\", \"", "--source_bigquery_uri=", "{{$.inputs.parameters[''source_bigquery_uri'']}}",
+            "\", \"", "--target_column=", "{{$.inputs.parameters[''target_column'']}}",
+            "\", \"", "--time_column=", "{{$.inputs.parameters[''time_column'']}}",
+            "\", \"", "--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}",
+            "\", \"", "--forecast_horizon=", "{{$.inputs.parameters[''forecast_horizon'']}}",
+            "\", \"", "--window_column=", "{{$.inputs.parameters[''window_column'']}}",
+            "\", \"", "--optimization_objective=", "{{$.inputs.parameters[''optimization_objective'']}}",
+            "\", \"", "--data_granularity_unit=", "{{$.inputs.parameters[''data_granularity_unit'']}}",
+            "\", \"", "--predefined_split_column=", "{{$.inputs.parameters[''predefined_split_column'']}}",
+            "\", \"", "--max_num_trials=", "{{$.inputs.parameters[''max_num_trials'']}}",
+            "\", \"", "--dataflow_project=", "{{$.inputs.parameters[''project'']}}",
+            "\", \"", "--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}",
+            "\", \"", "--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}",
+            "\", \"", "--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}",
+            "\", \"", "--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}",
+            "\", \"", "--dataflow_subnetwork=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}",
+            "\", \"", "--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}",
+            "\", \"", "--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"",
+            "--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\",
+            \"", "--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}",
+            "\", \"", "--executor_input={{$.json_escape[1]}}\"]}}]}}"]}'
         command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.custom_job.launcher
+          - python3
+          - -u
+          - -m
+          - google_cloud_pipeline_components.container.v1.custom_job.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-table-to-uri:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - table_to_uri
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - table_to_uri
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
-          \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
-          \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
-          \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
-          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
-          \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
-          \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
-          \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
-          \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
-          \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
-          \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
+            \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
+            \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
+            \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
+            \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+            \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+            \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
+            \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
+            \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
+            \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
+            \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-validate-inputs:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - validate_inputs
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - validate_inputs
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef validate_inputs(\n    time_column: Optional[str] = None,\n  \
-          \  time_series_identifier_column: Optional[str] = None,\n    target_column:\
-          \ Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str]\
-          \ = None,\n    training_fraction: Optional[float] = None,\n    validation_fraction:\
-          \ Optional[float] = None,\n    test_fraction: Optional[float] = None,\n\
-          \    predefined_split_key: Optional[str] = None,\n    timestamp_split_key:\
-          \ Optional[str] = None,\n    data_source_csv_filenames: Optional[str] =\
-          \ None,\n    source_model_uri: Optional[str] = None,\n    bigquery_destination_uri:\
-          \ Optional[str] = None,\n    window_column: Optional[str] = None,\n    window_stride_length:\
-          \ Optional[int] = None,\n    window_max_count: Optional[int] = None,\n \
-          \   optimization_objective: Optional[str] = None,\n    data_granularity_unit:\
-          \ Optional[str] = None,\n) -> None:\n  \"\"\"Checks training pipeline input\
-          \ parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
-          \  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
-          \n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n\
-          \  dataset_pattern = r'[a-zA-Z0-9_]+'\n  table_pattern = r'[^\\.\\:`]+'\n\
-          \  dataset_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}')\n\
-          \  table_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}[.:]{table_pattern}')\n\
-          \n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters\
-          \ = [\n      time_column,\n      time_series_identifier_column,\n      target_column,\n\
-          \  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n \
-          \ for column in bigquery_column_parameters:\n    if column and not column_pattern.fullmatch(column):\n\
-          \      raise ValueError(f'Invalid column name: {column}.')\n  if (bigquery_destination_uri\
-          \ and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n\
-          \    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n\
-          \  if (source_model_uri and not table_uri_pattern.fullmatch(source_model_uri)):\n\
-          \    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\
-          \n  # Validate data source.\n  data_source_count = sum([bool(source) for\
-          \ source in [\n      data_source_bigquery_table_path, data_source_csv_filenames]])\n\
-          \  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source,\
-          \ found {data_source_count}.')\n  if (data_source_bigquery_table_path\n\
-          \      and not table_uri_pattern.fullmatch(data_source_bigquery_table_path)):\n\
-          \    raise ValueError(\n        f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n\
-          \  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if data_source_csv_filenames:\n\
-          \    csv_list = [filename.strip()\n                for filename in data_source_csv_filenames.split(',')]\n\
-          \    for gcs_path in csv_list:\n      if not gcs_path_pattern.fullmatch(gcs_path):\n\
-          \        raise ValueError(f'Invalid path to CSV stored in GCS: {gcs_path}.')\n\
-          \n  # Validate split spec.\n  fraction_splits = [\n      training_fraction,\n\
-          \      validation_fraction,\n      test_fraction,\n  ]\n  fraction_splits\
-          \ = [None if fraction == -1 else fraction\n                     for fraction\
-          \ in fraction_splits]\n  split_count = sum([\n      bool(source)\n     \
-          \ for source in [predefined_split_key,\n                     any(fraction_splits)]\n\
-          \  ])\n  if split_count > 1:\n    raise ValueError(f'Expected 1 split type,\
-          \ found {split_count}.')\n  if (predefined_split_key and\n      not column_pattern.fullmatch(predefined_split_key)):\n\
-          \    raise ValueError(f'Invalid column name: {predefined_split_key}.')\n\
-          \  if any(fraction_splits):\n    if not all(fraction_splits):\n      raise\
-          \ ValueError(\n          f'All fractions must be non-zero. Got: {fraction_splits}.')\n\
-          \    if sum(fraction_splits) != 1:\n      raise ValueError(\n          f'Fraction\
-          \ splits must sum to 1. Got: {sum(fraction_splits)}.')\n  if (timestamp_split_key\
-          \ and\n      not column_pattern.fullmatch(timestamp_split_key)):\n    raise\
-          \ ValueError(f'Invalid column name: {timestamp_split_key}.')\n  if timestamp_split_key\
-          \ and not all(fraction_splits):\n    raise ValueError('All fractions must\
-          \ be non-zero for timestamp split.')\n\n  # Validate window config.\n  if\
-          \ window_stride_length == -1:\n    window_stride_length = None\n  if window_max_count\
-          \ == -1:\n    window_max_count = None\n  window_configs = [window_column,\
-          \ window_stride_length, window_max_count]\n  window_config_count = sum([bool(config)\
-          \ for config in window_configs])\n  if window_config_count > 1:\n    raise\
-          \ ValueError(f'Expected 1 window config, found {window_config_count}.')\n\
-          \  if window_column and not column_pattern.fullmatch(window_column):\n \
-          \   raise ValueError(f'Invalid column name: {window_column}.')\n  if window_stride_length\
-          \ and (window_stride_length < 1 or\n                               window_stride_length\
-          \ > 1000):\n    raise ValueError('Stride must be between 1 and 1000. Got:\
-          \ '\n                     f'{window_stride_length}.')\n  if window_max_count\
-          \ and (window_max_count < 1000 or\n                           window_max_count\
-          \ > int(1e8)):\n    raise ValueError('Max count must be between 1000 and\
-          \ 100000000. Got: '\n                     f'{window_max_count}.')\n\n  #\
-          \ Validate eval metric.\n  valid_optimization_objectives = ['rmse', 'mae',\
-          \ 'rmsle']\n  if optimization_objective:\n    if optimization_objective\
-          \ not in valid_optimization_objectives:\n      raise ValueError(\n     \
-          \     'Optimization objective should be one of the following: '\n      \
-          \    f'{valid_optimization_objectives}, got: {optimization_objective}.')\n\
-          \n  # Validate data granularity unit.\n  valid_data_granularity_units =\
-          \ [\n      'minute', 'hour', 'day', 'week', 'month', 'year']\n  if data_granularity_unit:\n\
-          \    if data_granularity_unit not in valid_data_granularity_units:\n   \
-          \   raise ValueError(\n          'Granularity unit should be one of the\
-          \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
-          \n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef validate_inputs(\n    time_column: Optional[str] = None,\n  \
+            \  time_series_identifier_column: Optional[str] = None,\n    target_column:\
+            \ Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str]\
+            \ = None,\n    training_fraction: Optional[float] = None,\n    validation_fraction:\
+            \ Optional[float] = None,\n    test_fraction: Optional[float] = None,\n\
+            \    predefined_split_key: Optional[str] = None,\n    timestamp_split_key:\
+            \ Optional[str] = None,\n    data_source_csv_filenames: Optional[str] =\
+            \ None,\n    source_model_uri: Optional[str] = None,\n    bigquery_destination_uri:\
+            \ Optional[str] = None,\n    window_column: Optional[str] = None,\n    window_stride_length:\
+            \ Optional[int] = None,\n    window_max_count: Optional[int] = None,\n \
+            \   optimization_objective: Optional[str] = None,\n    data_granularity_unit:\
+            \ Optional[str] = None,\n) -> None:\n  \"\"\"Checks training pipeline input\
+            \ parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+            \  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+            \n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n\
+            \  dataset_pattern = r'[a-zA-Z0-9_]+'\n  table_pattern = r'[^\\.\\:`]+'\n\
+            \  dataset_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}')\n\
+            \  table_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}[.:]{table_pattern}')\n\
+            \n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters\
+            \ = [\n      time_column,\n      time_series_identifier_column,\n      target_column,\n\
+            \  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n \
+            \ for column in bigquery_column_parameters:\n    if column and not column_pattern.fullmatch(column):\n\
+            \      raise ValueError(f'Invalid column name: {column}.')\n  if (bigquery_destination_uri\
+            \ and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n\
+            \    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n\
+            \  if (source_model_uri and not table_uri_pattern.fullmatch(source_model_uri)):\n\
+            \    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\
+            \n  # Validate data source.\n  data_source_count = sum([bool(source) for\
+            \ source in [\n      data_source_bigquery_table_path, data_source_csv_filenames]])\n\
+            \  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source,\
+            \ found {data_source_count}.')\n  if (data_source_bigquery_table_path\n\
+            \      and not table_uri_pattern.fullmatch(data_source_bigquery_table_path)):\n\
+            \    raise ValueError(\n        f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n\
+            \  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if data_source_csv_filenames:\n\
+            \    csv_list = [filename.strip()\n                for filename in data_source_csv_filenames.split(',')]\n\
+            \    for gcs_path in csv_list:\n      if not gcs_path_pattern.fullmatch(gcs_path):\n\
+            \        raise ValueError(f'Invalid path to CSV stored in GCS: {gcs_path}.')\n\
+            \n  # Validate split spec.\n  fraction_splits = [\n      training_fraction,\n\
+            \      validation_fraction,\n      test_fraction,\n  ]\n  fraction_splits\
+            \ = [None if fraction == -1 else fraction\n                     for fraction\
+            \ in fraction_splits]\n  split_count = sum([\n      bool(source)\n     \
+            \ for source in [predefined_split_key,\n                     any(fraction_splits)]\n\
+            \  ])\n  if split_count > 1:\n    raise ValueError(f'Expected 1 split type,\
+            \ found {split_count}.')\n  if (predefined_split_key and\n      not column_pattern.fullmatch(predefined_split_key)):\n\
+            \    raise ValueError(f'Invalid column name: {predefined_split_key}.')\n\
+            \  if any(fraction_splits):\n    if not all(fraction_splits):\n      raise\
+            \ ValueError(\n          f'All fractions must be non-zero. Got: {fraction_splits}.')\n\
+            \    if sum(fraction_splits) != 1:\n      raise ValueError(\n          f'Fraction\
+            \ splits must sum to 1. Got: {sum(fraction_splits)}.')\n  if (timestamp_split_key\
+            \ and\n      not column_pattern.fullmatch(timestamp_split_key)):\n    raise\
+            \ ValueError(f'Invalid column name: {timestamp_split_key}.')\n  if timestamp_split_key\
+            \ and not all(fraction_splits):\n    raise ValueError('All fractions must\
+            \ be non-zero for timestamp split.')\n\n  # Validate window config.\n  if\
+            \ window_stride_length == -1:\n    window_stride_length = None\n  if window_max_count\
+            \ == -1:\n    window_max_count = None\n  window_configs = [window_column,\
+            \ window_stride_length, window_max_count]\n  window_config_count = sum([bool(config)\
+            \ for config in window_configs])\n  if window_config_count > 1:\n    raise\
+            \ ValueError(f'Expected 1 window config, found {window_config_count}.')\n\
+            \  if window_column and not column_pattern.fullmatch(window_column):\n \
+            \   raise ValueError(f'Invalid column name: {window_column}.')\n  if window_stride_length\
+            \ and (window_stride_length < 1 or\n                               window_stride_length\
+            \ > 1000):\n    raise ValueError('Stride must be between 1 and 1000. Got:\
+            \ '\n                     f'{window_stride_length}.')\n  if window_max_count\
+            \ and (window_max_count < 1000 or\n                           window_max_count\
+            \ > int(1e8)):\n    raise ValueError('Max count must be between 1000 and\
+            \ 100000000. Got: '\n                     f'{window_max_count}.')\n\n  #\
+            \ Validate eval metric.\n  valid_optimization_objectives = ['rmse', 'mae',\
+            \ 'rmsle']\n  if optimization_objective:\n    if optimization_objective\
+            \ not in valid_optimization_objectives:\n      raise ValueError(\n     \
+            \     'Optimization objective should be one of the following: '\n      \
+            \    f'{valid_optimization_objectives}, got: {optimization_objective}.')\n\
+            \n  # Validate data granularity unit.\n  valid_data_granularity_units =\
+            \ [\n      'minute', 'hour', 'day', 'week', 'month', 'year']\n  if data_granularity_unit:\n\
+            \    if data_granularity_unit not in valid_data_granularity_units:\n   \
+            \   raise ValueError(\n          'Granularity unit should be one of the\
+            \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
+            \n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-wrapped-in-list:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - wrapped_in_list
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - wrapped_in_list
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef wrapped_in_list(value: str) -> List[str]:\n  \"\"\"Wraps a string\
-          \ in a list.\"\"\"\n  return [value]\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef wrapped_in_list(value: str) -> List[str]:\n  \"\"\"Wraps a string\
+            \ in a list.\"\"\"\n  return [value]\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
 pipelineInfo:
   description: Trains one Prophet model per time series.
@@ -2587,7 +2634,7 @@ root:
         componentRef:
           name: comp-bigquery-delete-dataset-with-prefix
         dependentTasks:
-        - exit-handler-1
+          - exit-handler-1
         inputs:
           parameters:
             dataset_prefix:
@@ -2674,93 +2721,94 @@ root:
   inputDefinitions:
     parameters:
       data_granularity_unit:
-        description: 'String representing the units of time for the time
+        description: "String representing the units of time for the time
 
-          column.'
+          column."
         parameterType: STRING
       data_source_bigquery_table_path:
-        defaultValue: ''
-        description: 'The BigQuery table path of format
+        defaultValue: ""
+        description: "The BigQuery table path of format
 
-          bq://bq_project.bq_dataset.bq_table'
+          bq://bq_project.bq_dataset.bq_table"
         isOptional: true
         parameterType: STRING
       data_source_csv_filenames:
-        defaultValue: ''
-        description: 'A string that represents a list of comma
+        defaultValue: ""
+        description: "A string that represents a list of comma
 
-          separated CSV filenames.'
+          separated CSV filenames."
         isOptional: true
         parameterType: STRING
       dataflow_service_account:
-        defaultValue: ''
+        defaultValue: ""
         description: Custom service account to run dataflow jobs.
         isOptional: true
         parameterType: STRING
       dataflow_subnetwork:
-        defaultValue: ''
-        description: 'Dataflow''s fully qualified subnetwork name, when empty
+        defaultValue: ""
+        description: "Dataflow's fully qualified subnetwork name, when empty
 
-          the default subnetwork will be used.'
+          the default subnetwork will be used."
         isOptional: true
         parameterType: STRING
       dataflow_use_public_ips:
         defaultValue: true
-        description: 'Specifies whether Dataflow workers use public IP
+        description: "Specifies whether Dataflow workers use public IP
 
-          addresses.'
+          addresses."
         isOptional: true
         parameterType: BOOLEAN
       encryption_spec_key_name:
-        defaultValue: ''
+        defaultValue: ""
         description: The KMS key name.
         isOptional: true
         parameterType: STRING
       evaluation_dataflow_disk_size_gb:
         defaultValue: 40.0
-        description: 'Dataflow worker''s disk size in GB during
+        description: "Dataflow worker's disk size in GB during
 
-          evaluation.'
+          evaluation."
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_dataflow_machine_type:
         defaultValue: n1-standard-1
-        description: 'The dataflow machine type used for
+        description: "The dataflow machine type used for
 
-          evaluation.'
+          evaluation."
         isOptional: true
         parameterType: STRING
       evaluation_dataflow_max_num_workers:
         defaultValue: 10.0
-        description: 'The max number of Dataflow workers used
+        description: "The max number of Dataflow workers used
 
-          for evaluation.'
+          for evaluation."
         isOptional: true
         parameterType: NUMBER_INTEGER
       forecast_horizon:
-        description: 'The number of time periods into the future for which
+        description: "The number of time periods into the future for which
 
           forecasts will be created. Future periods start after the latest timestamp
 
-          for each time series.'
+          for each time series."
         parameterType: NUMBER_INTEGER
       location:
         description: The GCP region for Vertex AI.
         parameterType: STRING
       max_num_trials:
         defaultValue: 6.0
-        description: 'Maximum number of tuning trials to perform per time series.
+        description:
+          "Maximum number of tuning trials to perform per time series.
 
           There are up to 100 possible combinations to explore for each time series.
 
-          Recommended values to try are 3, 6, and 24.'
+          Recommended values to try are 3, 6, and 24."
         isOptional: true
         parameterType: NUMBER_INTEGER
       optimization_objective:
         description: Optimization objective for the model.
         parameterType: STRING
       predefined_split_key:
-        defaultValue: ''
+        defaultValue: ""
         description: The predefined_split column name.
         isOptional: true
         parameterType: STRING
@@ -2784,25 +2832,25 @@ root:
         isOptional: true
         parameterType: NUMBER_DOUBLE
       time_column:
-        description: 'Name of the column that identifies time order in the time
+        description: "Name of the column that identifies time order in the time
 
-          series.'
+          series."
         parameterType: STRING
       time_series_identifier_column:
-        description: 'Name of the column that identifies the time
+        description: "Name of the column that identifies the time
 
-          series.'
+          series."
         parameterType: STRING
       timestamp_split_key:
-        defaultValue: ''
+        defaultValue: ""
         description: The timestamp_split column name.
         isOptional: true
         parameterType: STRING
       trainer_dataflow_disk_size_gb:
         defaultValue: 40.0
-        description: 'Dataflow worker''s disk size in GB during
+        description: "Dataflow worker's disk size in GB during
 
-          training.'
+          training."
         isOptional: true
         parameterType: NUMBER_INTEGER
       trainer_dataflow_machine_type:
@@ -2812,9 +2860,9 @@ root:
         parameterType: STRING
       trainer_dataflow_max_num_workers:
         defaultValue: 10.0
-        description: 'The max number of Dataflow workers used
+        description: "The max number of Dataflow workers used
 
-          for training.'
+          for training."
         isOptional: true
         parameterType: NUMBER_INTEGER
       training_fraction:
@@ -2828,28 +2876,29 @@ root:
         isOptional: true
         parameterType: NUMBER_DOUBLE
       window_column:
-        defaultValue: ''
-        description: 'Name of the column that should be used to filter input rows.
+        defaultValue: ""
+        description:
+          "Name of the column that should be used to filter input rows.
 
           The column should contain either booleans or string booleans; if the value
 
-          of the row is True, generate a sliding window from that row.'
+          of the row is True, generate a sliding window from that row."
         isOptional: true
         parameterType: STRING
       window_max_count:
         defaultValue: -1.0
-        description: 'Number of rows that should be used to generate input
+        description: "Number of rows that should be used to generate input
 
           examples. If the total row count is larger than this number, the input
 
-          data will be randomly sampled to hit the count.'
+          data will be randomly sampled to hit the count."
         isOptional: true
         parameterType: NUMBER_INTEGER
       window_stride_length:
         defaultValue: -1.0
-        description: 'Step length used to generate input examples. Every
+        description: "Step length used to generate input examples. Every
 
-          window_stride_length rows will be used to generate a sliding window.'
+          window_stride_length rows will be used to generate a sliding window."
         isOptional: true
         parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0

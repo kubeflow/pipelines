@@ -97,8 +97,8 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
           {propertyMap
             .getEntryList()
             // TODO: __ALL_META__ is something of a hack, is redundant, and can be ignored
-            .filter(k => k[0] !== '__ALL_META__')
-            .map(k => (
+            .filter((k) => k[0] !== '__ALL_META__')
+            .map((k) => (
               <div className={css.field} key={k[0]} data-testid='resource-info-property'>
                 <dt className={css.term} data-testid='resource-info-property-key'>
                   {k[0]}
@@ -111,7 +111,7 @@ export class ResourceInfo extends React.Component<ResourceInfoProps, {}> {
         </dl>
         <h2 className={commonCss.header2}>Custom Properties</h2>
         <dl className={css.resourceInfo}>
-          {customPropertyMap.getEntryList().map(k => (
+          {customPropertyMap.getEntryList().map((k) => (
             <div className={css.field} key={k[0]} data-testid='resource-info-property'>
               <dt className={css.term} data-testid='resource-info-property-key'>
                 {k[0]}

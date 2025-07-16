@@ -21,4 +21,3 @@ Arguments:
   network_isolation: "True"
   role: ((SAGEMAKER_ROLE_ARN))
   update_endpoint: "True"
-  

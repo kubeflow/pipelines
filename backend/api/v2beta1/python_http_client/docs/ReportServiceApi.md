@@ -1,21 +1,20 @@
 # kfp_server_api.ReportServiceApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to _http://localhost_
 
-Method | HTTP request | Description
-------------- | ------------- | -------------
-[**report_service_report_scheduled_workflow**](ReportServiceApi.md#report_service_report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows | 
-[**report_service_report_workflow**](ReportServiceApi.md#report_service_report_workflow) | **POST** /apis/v2beta1/workflows | 
-
+| Method                                                                                                       | HTTP request                              | Description |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ----------- |
+| [**report_service_report_scheduled_workflow**](ReportServiceApi.md#report_service_report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows |
+| [**report_service_report_workflow**](ReportServiceApi.md#report_service_report_workflow)                     | **POST** /apis/v2beta1/workflows          |
 
 # **report_service_report_scheduled_workflow**
+
 > object report_service_report_scheduled_workflow(body)
-
-
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -58,9 +57,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **body** | **str**| ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string. | 
+| Name     | Type    | Description                                                                   | Notes |
+| -------- | ------- | ----------------------------------------------------------------------------- | ----- |
+| **body** | **str** | ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string. |
 
 ### Return type
 
@@ -72,25 +71,26 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
- - **Accept**: application/json
+- **Content-Type**: application/json
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **report_service_report_workflow**
+
 > object report_service_report_workflow(body)
-
-
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -133,9 +133,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **body** | **str**| Workflow is a workflow custom resource marshalled into a json string. | 
+| Name     | Type    | Description                                                           | Notes |
+| -------- | ------- | --------------------------------------------------------------------- | ----- |
+| **body** | **str** | Workflow is a workflow custom resource marshalled into a json string. |
 
 ### Return type
 
@@ -147,14 +147,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
- - **Accept**: application/json
+- **Content-Type**: application/json
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

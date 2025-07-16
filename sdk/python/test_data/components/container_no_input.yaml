@@ -8,8 +8,8 @@ deploymentSpec:
     exec-container-no-input:
       container:
         command:
-        - echo
-        - hello world
+          - echo
+          - hello world
         image: python:3.9
 pipelineInfo:
   name: container-no-input

@@ -3,29 +3,29 @@ kind: ClusterRole
 metadata:
   name: ml-pipeline-viewer-controller-role
 rules:
-- apiGroups:
-  - '*'
-  resources:
-  - deployments
-  - services
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - viewers
-  - viewers/finalizers
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-  - update
-  - patch
-  - delete
+  - apiGroups:
+      - "*"
+    resources:
+      - deployments
+      - services
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - kubeflow.org
+    resources:
+      - viewers
+      - viewers/finalizers
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - patch
+      - delete

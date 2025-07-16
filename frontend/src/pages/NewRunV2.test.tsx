@@ -432,7 +432,7 @@ describe('NewRunV2', () => {
     it('directs to new run v2 if it is v2 template (create run from pipeline)', async () => {
       jest
         .spyOn(features, 'isFeatureEnabled')
-        .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+        .mockImplementation((featureKey) => featureKey === features.FeatureKey.V2_ALPHA);
       const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineSpy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
       const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
@@ -463,7 +463,7 @@ describe('NewRunV2', () => {
 
       jest
         .spyOn(features, 'isFeatureEnabled')
-        .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+        .mockImplementation((featureKey) => featureKey === features.FeatureKey.V2_ALPHA);
       const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
       const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
       getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -500,7 +500,7 @@ describe('NewRunV2', () => {
 
         jest
           .spyOn(features, 'isFeatureEnabled')
-          .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+          .mockImplementation((featureKey) => featureKey === features.FeatureKey.V2_ALPHA);
         const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
         const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
         getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);
@@ -543,7 +543,7 @@ describe('NewRunV2', () => {
 
         jest
           .spyOn(features, 'isFeatureEnabled')
-          .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+          .mockImplementation((featureKey) => featureKey === features.FeatureKey.V2_ALPHA);
         const getPipelineV1Spy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
         const getPipelineV2Spy = jest.spyOn(Apis.pipelineServiceApiV2, 'getPipeline');
         getPipelineV2Spy.mockResolvedValue(ORIGINAL_TEST_PIPELINE);

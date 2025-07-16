@@ -1,23 +1,27 @@
 # Keras - Train classifier
+
 ### Trains classifier using Keras sequential model
 
 ## Inputs
-|Name|Type|Default|Description|
-|---|---|---|---|
-|training_set_features_path|GcsPath: {data_type: TSV}||Local or GCS path to the training set features table.|
-|training_set_labels_path|GcsPath: {data_type: TSV}||Local or GCS path to the training set labels (each label is a class index from 0 to num-classes - 1).|
-|output_model_uri|GcsPath: {data_type: Keras model}||Local or GCS path specifying where to save the trained model. The model (topology + weights + optimizer state) is saved in HDF5 format and can be loaded back by calling keras.models.load_model|
-|model_config|GcsPath: {data_type: Keras model config json}||JSON string containing the serialized model structure. Can be obtained by calling model.to_json() on a Keras model.|
-|number_of_classes|Integer||Number of classifier classes.|
-|number_of_epochs|Integer|100|Number of epochs to train the model. An epoch is an iteration over the entire `x` and `y` data provided.|
-|batch_size|Integer|32|Number of samples per gradient update|
+
+| Name                       | Type                                          | Default | Description                                                                                                                                                                                      |
+| -------------------------- | --------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| training_set_features_path | GcsPath: {data_type: TSV}                     |         | Local or GCS path to the training set features table.                                                                                                                                            |
+| training_set_labels_path   | GcsPath: {data_type: TSV}                     |         | Local or GCS path to the training set labels (each label is a class index from 0 to num-classes - 1).                                                                                            |
+| output_model_uri           | GcsPath: {data_type: Keras model}             |         | Local or GCS path specifying where to save the trained model. The model (topology + weights + optimizer state) is saved in HDF5 format and can be loaded back by calling keras.models.load_model |
+| model_config               | GcsPath: {data_type: Keras model config json} |         | JSON string containing the serialized model structure. Can be obtained by calling model.to_json() on a Keras model.                                                                              |
+| number_of_classes          | Integer                                       |         | Number of classifier classes.                                                                                                                                                                    |
+| number_of_epochs           | Integer                                       | 100     | Number of epochs to train the model. An epoch is an iteration over the entire `x` and `y` data provided.                                                                                         |
+| batch_size                 | Integer                                       | 32      | Number of samples per gradient update                                                                                                                                                            |
 
 ## Outputs
-|Name|Type|Default|Description|
-|---|---|---|---|
-|output_model_uri|GcsPath: {data_type: Keras model}||GCS path where the trained model has been saved. The model (topology + weights + optimizer state) is saved in HDF5 format and can be loaded back by calling keras.models.load_model|
+
+| Name             | Type                              | Default | Description                                                                                                                                                                         |
+| ---------------- | --------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| output_model_uri | GcsPath: {data_type: Keras model} |         | GCS path where the trained model has been saved. The model (topology + weights + optimizer state) is saved in HDF5 format and can be loaded back by calling keras.models.load_model |
 
 ## Container image
+
 gcr.io/ml-pipeline/components/sample/keras/train_classifier
 
 ## Usage:

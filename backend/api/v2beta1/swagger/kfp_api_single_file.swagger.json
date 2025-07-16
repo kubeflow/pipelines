@@ -14,16 +14,9 @@
       "url": "https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE"
     }
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v2beta1/auth": {
       "get": {
@@ -54,10 +47,7 @@
             "in": "query",
             "required": false,
             "type": "string",
-            "enum": [
-              "UNASSIGNED_RESOURCES",
-              "VIEWERS"
-            ],
+            "enum": ["UNASSIGNED_RESOURCES", "VIEWERS"],
             "default": "UNASSIGNED_RESOURCES"
           },
           {
@@ -65,18 +55,11 @@
             "in": "query",
             "required": false,
             "type": "string",
-            "enum": [
-              "UNASSIGNED_VERB",
-              "CREATE",
-              "GET",
-              "DELETE"
-            ],
+            "enum": ["UNASSIGNED_VERB", "CREATE", "GET", "DELETE"],
             "default": "UNASSIGNED_VERB"
           }
         ],
-        "tags": [
-          "AuthService"
-        ]
+        "tags": ["AuthService"]
       }
     },
     "/apis/v2beta1/experiments": {
@@ -135,9 +118,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       },
       "post": {
         "summary": "Creates a new experiment.",
@@ -167,9 +148,7 @@
             }
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v2beta1/experiments/{experiment_id}": {
@@ -199,9 +178,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       },
       "delete": {
         "summary": "Deletes an experiment without deleting the experiment's runs and recurring \nruns. To avoid unexpected behaviors, delete an experiment's runs and recurring \nruns before deleting the experiment.",
@@ -229,9 +206,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v2beta1/experiments/{experiment_id}:archive": {
@@ -261,9 +236,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v2beta1/experiments/{experiment_id}:unarchive": {
@@ -293,9 +266,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v2beta1/healthz": {
@@ -316,9 +287,7 @@
             }
           }
         },
-        "tags": [
-          "HealthzService"
-        ]
+        "tags": ["HealthzService"]
       }
     },
     "/apis/v2beta1/pipelines": {
@@ -377,9 +346,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "post": {
         "summary": "Creates a pipeline.",
@@ -409,9 +376,7 @@
             }
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/create": {
@@ -442,9 +407,7 @@
             }
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/names/{name}": {
@@ -481,9 +444,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/{pipeline_id}": {
@@ -513,9 +474,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "delete": {
         "summary": "Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.",
@@ -543,9 +502,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/{pipeline_id}/versions": {
@@ -604,9 +561,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "post": {
         "summary": "Adds a pipeline version to the specified pipeline ID.",
@@ -643,9 +598,7 @@
             }
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}": {
@@ -682,9 +635,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "delete": {
         "summary": "Deletes a specific pipeline version by pipeline version ID and pipeline ID.",
@@ -719,20 +670,14 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/upload": {
       "post": {
         "operationId": "UploadPipeline",
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "produces": [
-          "application/json"
-        ],
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
         "responses": {
           "200": {
             "description": "",
@@ -780,20 +725,14 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineUploadService"
-        ]
+        "tags": ["PipelineUploadService"]
       }
     },
     "/apis/v2beta1/pipelines/upload_version": {
       "post": {
         "operationId": "UploadPipelineVersion",
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "produces": [
-          "application/json"
-        ],
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
         "responses": {
           "200": {
             "description": "",
@@ -841,9 +780,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineUploadService"
-        ]
+        "tags": ["PipelineUploadService"]
       }
     },
     "/apis/v2beta1/recurringruns": {
@@ -909,9 +846,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       },
       "post": {
         "summary": "Creates a new recurring run in an experiment, given the experiment ID.",
@@ -941,9 +876,7 @@
             }
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       }
     },
     "/apis/v2beta1/recurringruns/{recurring_run_id}": {
@@ -973,9 +906,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       },
       "delete": {
         "summary": "Deletes a recurring run.",
@@ -1003,9 +934,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       }
     },
     "/apis/v2beta1/recurringruns/{recurring_run_id}:disable": {
@@ -1035,9 +964,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       }
     },
     "/apis/v2beta1/recurringruns/{recurring_run_id}:enable": {
@@ -1067,9 +994,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       }
     },
     "/apis/v2beta1/scheduledworkflows": {
@@ -1100,9 +1025,7 @@
             }
           }
         ],
-        "tags": [
-          "ReportService"
-        ]
+        "tags": ["ReportService"]
       }
     },
     "/apis/v2beta1/workflows": {
@@ -1133,9 +1056,7 @@
             }
           }
         ],
-        "tags": [
-          "ReportService"
-        ]
+        "tags": ["ReportService"]
       }
     },
     "/apis/v2beta1/runs": {
@@ -1201,9 +1122,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       },
       "post": {
         "summary": "Creates a new run in an experiment specified by experiment ID. \nIf experiment ID is not specified, the run is created in the default experiment.",
@@ -1240,9 +1159,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}": {
@@ -1279,9 +1196,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       },
       "delete": {
         "summary": "Deletes a run in an experiment given by run ID and experiment ID.",
@@ -1316,9 +1231,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
@@ -1369,9 +1282,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}:archive": {
@@ -1401,9 +1312,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}:retry": {
@@ -1433,9 +1342,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}:terminate": {
@@ -1465,9 +1372,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}:unarchive": {
@@ -1497,9 +1402,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/visualizations/{namespace}": {
@@ -1535,30 +1438,20 @@
             }
           }
         ],
-        "tags": [
-          "VisualizationService"
-        ]
+        "tags": ["VisualizationService"]
       }
     }
   },
   "definitions": {
     "AuthorizeRequestResources": {
       "type": "string",
-      "enum": [
-        "UNASSIGNED_RESOURCES",
-        "VIEWERS"
-      ],
+      "enum": ["UNASSIGNED_RESOURCES", "VIEWERS"],
       "default": "UNASSIGNED_RESOURCES",
       "description": "Type of resources in pipelines system."
     },
     "AuthorizeRequestVerb": {
       "type": "string",
-      "enum": [
-        "UNASSIGNED_VERB",
-        "CREATE",
-        "GET",
-        "DELETE"
-      ],
+      "enum": ["UNASSIGNED_VERB", "CREATE", "GET", "DELETE"],
       "default": "UNASSIGNED_VERB",
       "description": "Type of verbs that act on the resources."
     },
@@ -1635,11 +1528,7 @@
     },
     "v2beta1ExperimentStorageState": {
       "type": "string",
-      "enum": [
-        "STORAGE_STATE_UNSPECIFIED",
-        "AVAILABLE",
-        "ARCHIVED"
-      ],
+      "enum": ["STORAGE_STATE_UNSPECIFIED", "AVAILABLE", "ARCHIVED"],
       "default": "STORAGE_STATE_UNSPECIFIED",
       "description": "Describes whether an entity is available or archived.\n\n - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
     },
@@ -1813,9 +1702,7 @@
     },
     "protobufNullValue": {
       "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
+      "enum": ["NULL_VALUE"],
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     },
@@ -1965,11 +1852,7 @@
     },
     "RecurringRunMode": {
       "type": "string",
-      "enum": [
-        "MODE_UNSPECIFIED",
-        "ENABLE",
-        "DISABLE"
-      ],
+      "enum": ["MODE_UNSPECIFIED", "ENABLE", "DISABLE"],
       "default": "MODE_UNSPECIFIED",
       "description": "Required input.\nUser setting to enable or disable the recurring run. \nOnly used for creation of recurring runs. Later updates use enable/disable API.\n\n - DISABLE: The recurring run won't schedule any run if disabled."
     },
@@ -2130,11 +2013,7 @@
     },
     "v2beta1RecurringRunStatus": {
       "type": "string",
-      "enum": [
-        "STATUS_UNSPECIFIED",
-        "ENABLED",
-        "DISABLED"
-      ],
+      "enum": ["STATUS_UNSPECIFIED", "ENABLED", "DISABLED"],
       "default": "STATUS_UNSPECIFIED",
       "description": "Output. The status of the recurring run."
     },
@@ -2448,11 +2327,7 @@
     },
     "v2beta1RunStorageState": {
       "type": "string",
-      "enum": [
-        "STORAGE_STATE_UNSPECIFIED",
-        "AVAILABLE",
-        "ARCHIVED"
-      ],
+      "enum": ["STORAGE_STATE_UNSPECIFIED", "AVAILABLE", "ARCHIVED"],
       "default": "STORAGE_STATE_UNSPECIFIED",
       "description": "Describes whether an entity is available or archived.\n\n - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
     },
@@ -2517,13 +2392,7 @@
     },
     "v2beta1VisualizationType": {
       "type": "string",
-      "enum": [
-        "ROC_CURVE",
-        "TFDV",
-        "TFMA",
-        "TABLE",
-        "CUSTOM"
-      ],
+      "enum": ["ROC_CURVE", "TFDV", "TFMA", "TABLE", "CUSTOM"],
       "default": "ROC_CURVE",
       "description": "Type of visualization to be generated.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
     }

@@ -7,30 +7,30 @@ inputs:
       description: "The region to use for the training job",
     }
   ###########################GENERATED SECTION BELOW############################
-  
+
   - {
       name: monitoring_schedule_config,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "The configuration object that specifies the monitoring schedule and defines the monitoring job.",
     }
   - {
       name: monitoring_schedule_name,
       type: String,
-      default: '',
+      default: "",
       description: "The name of the monitoring schedule.",
     }
   - {
       name: tags,
       type: JsonArray,
-      default: '[]',
+      default: "[]",
       description: "(Optional) An array of key-value pairs.",
     }
   ###########################GENERATED SECTION ABOVE############################
 
 outputs:
   ###########################GENERATED SECTION BELOW############################
-  
+
   - {
       name: ack_resource_metadata,
       type: JsonObject,
@@ -88,6 +88,5 @@ implementation:
       - { inputValue: monitoring_schedule_name }
       - --tags
       - { inputValue: tags }
-      
-      ###########################GENERATED SECTION ABOVE############################
 
+      ###########################GENERATED SECTION ABOVE############################

@@ -14,11 +14,7 @@ steps:
     id: "BuildDownloadDataImage"
 
   - name: "gcr.io/cloud-builders/docker"
-    args:
-      [
-        "push",
-        "${_GCR_PATH}/kaggle_download:$COMMIT_SHA",
-      ]
+    args: ["push", "${_GCR_PATH}/kaggle_download:$COMMIT_SHA"]
     id: "PushDownloadDataImage"
     waitFor: ["BuildDownloadDataImage"]
 
@@ -35,13 +31,9 @@ steps:
         "${_CODE_PATH}/visualize_table/Dockerfile",
       ]
     id: "BuildVisualizeTableImage"
-  
+
   - name: "gcr.io/cloud-builders/docker"
-    args:
-      [
-        "push",
-        "${_GCR_PATH}/kaggle_visualize_table:$COMMIT_SHA",
-      ]
+    args: ["push", "${_GCR_PATH}/kaggle_visualize_table:$COMMIT_SHA"]
     id: "PushVisualizeTableImage"
     waitFor: ["BuildVisualizeTableImage"]
 
@@ -60,11 +52,7 @@ steps:
     id: "BuildVisualizeHTMLImage"
 
   - name: "gcr.io/cloud-builders/docker"
-    args:
-      [
-        "push",
-        "${_GCR_PATH}/kaggle_visualize_html:$COMMIT_SHA",
-      ]
+    args: ["push", "${_GCR_PATH}/kaggle_visualize_html:$COMMIT_SHA"]
     id: "PushVisualizeHTMLImage"
     waitFor: ["BuildVisualizeHTMLImage"]
 
@@ -83,11 +71,7 @@ steps:
     id: "BuildTrainImage"
 
   - name: "gcr.io/cloud-builders/docker"
-    args:
-      [
-        "push",
-        "${_GCR_PATH}/kaggle_train:$COMMIT_SHA",
-      ]
+    args: ["push", "${_GCR_PATH}/kaggle_train:$COMMIT_SHA"]
     id: "PushTrainImage"
     waitFor: ["BuildTrainImage"]
 
@@ -106,11 +90,7 @@ steps:
     id: "BuildSubmitImage"
 
   - name: "gcr.io/cloud-builders/docker"
-    args:
-      [
-        "push",
-        "${_GCR_PATH}/kaggle_submit:$COMMIT_SHA",
-      ]
+    args: ["push", "${_GCR_PATH}/kaggle_submit:$COMMIT_SHA"]
     id: "PushSubmitImage"
     waitFor: ["BuildSubmitImage"]
 
@@ -138,11 +118,10 @@ steps:
       [
         "cp",
         "/workspace/pipeline.zip",
-        "${_GS_BUCKET}/$COMMIT_SHA/pipeline.zip"
+        "${_GS_BUCKET}/$COMMIT_SHA/pipeline.zip",
       ]
     id: "KaggleUploadPipeline"
     waitFor: ["KagglePackagePipeline"]
-
 
   - name: "gcr.io/cloud-builders/kubectl"
     entrypoint: "/bin/sh"
@@ -155,11 +134,11 @@ steps:
         /builder/kubectl.bash;
         pip3 install kfp;
         pip3 install kubernetes;
-        python3 create_pipeline_version_and_run.py 
-        --pipeline_id ${_PIPELINE_ID} 
+        python3 create_pipeline_version_and_run.py
+        --pipeline_id ${_PIPELINE_ID}
         --commit_sha $COMMIT_SHA
         --bucket_name ${_GS_BUCKET}
-        --gcr_address ${_GCR_PATH}"
+        --gcr_address ${_GCR_PATH}",
       ]
     env:
       - "CLOUDSDK_COMPUTE_ZONE=[Your cluster zone, for example: us-central1-a]"
@@ -173,11 +152,14 @@ images:
   - "${_GCR_PATH}/kaggle_train:latest"
   - "${_GCR_PATH}/kaggle_submit:latest"
 
-
 substitutions:
   _CODE_PATH: /workspace/samples/contrib/versioned-pipeline-ci-samples/kaggle-ci-sample
   _NAMESPACE: kubeflow
   _GCR_PATH: [Your cloud registry path. For example, gcr.io/my-project-id]
-  _GS_BUCKET: [Name of your cloud storage bucket. For example, gs://my-project-bucket]
-  _PIPELINE_ID: [Your kubeflow pipeline id to create a version on. Get it from Kubeflow Pipeline UI.
-                 For example, f6f8558a-6eec-4ef4-b343-a650473ee613]
+  _GS_BUCKET:
+    [Name of your cloud storage bucket. For example, gs://my-project-bucket]
+  _PIPELINE_ID: [
+      Your kubeflow pipeline id to create a version on. Get it from Kubeflow Pipeline UI.
+      For example,
+      f6f8558a-6eec-4ef4-b343-a650473ee613,
+    ]

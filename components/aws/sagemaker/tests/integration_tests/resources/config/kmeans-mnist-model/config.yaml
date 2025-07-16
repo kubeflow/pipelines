@@ -8,4 +8,3 @@ Arguments:
   model_artifact_url: s3://((DATA_BUCKET))/mnist_kmeans_example/model/kmeans-mnist-model/model.tar.gz
   network_isolation: "True"
   role: ((SAGEMAKER_ROLE_ARN))
-  

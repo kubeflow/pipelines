@@ -1,15 +1,15 @@
-name: ''
+name: ""
 sources:
   s3Bucket:
   s3Key:
   architecture:
 simulationSoftwareSuite:
-  name: ''
-  version: ''
+  name: ""
+  version: ""
 robotSoftwareSuite:
-  name: ''
-  version: ''
+  name: ""
+  version: ""
 renderingEngine:
-  name: ''
-  version: ''
+  name: ""
+  version: ""
 tags: {}

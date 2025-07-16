@@ -7,72 +7,72 @@ inputs:
       description: "The region to use for the training job",
     }
   ###########################GENERATED SECTION BELOW############################
-  
+
   - {
       name: job_definition_name,
       type: String,
-      default: '',
+      default: "",
       description: "The name of the model explainability job definition.",
     }
   - {
       name: job_resources,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "Identifies the resources to deploy for a monitoring job.",
     }
   - {
       name: model_explainability_app_specification,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "Configures the model explainability job to run a specified Docker container image.",
     }
   - {
       name: model_explainability_baseline_config,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "The baseline configuration for a model explainability job.",
     }
   - {
       name: model_explainability_job_input,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "Inputs for the model explainability job.",
     }
   - {
       name: model_explainability_job_output_config,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "The output configuration for monitoring jobs.",
     }
   - {
       name: network_config,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "Networking options for a model explainability job.",
     }
   - {
       name: role_arn,
       type: String,
-      default: '',
+      default: "",
       description: "The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on your behalf.",
     }
   - {
       name: stopping_condition,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "A time limit for how long the monitoring job is allowed to run before stopping.",
     }
   - {
       name: tags,
       type: JsonArray,
-      default: '[]',
+      default: "[]",
       description: "(Optional) An array of key-value pairs.",
     }
   ###########################GENERATED SECTION ABOVE############################
 
 outputs:
   ###########################GENERATED SECTION BELOW############################
-  
+
   - {
       name: ack_resource_metadata,
       type: JsonObject,
@@ -119,6 +119,5 @@ implementation:
       - { inputValue: stopping_condition }
       - --tags
       - { inputValue: tags }
-      
-      ###########################GENERATED SECTION ABOVE############################
 
+      ###########################GENERATED SECTION ABOVE############################

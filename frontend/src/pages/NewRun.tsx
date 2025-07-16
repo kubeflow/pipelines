@@ -117,7 +117,7 @@ const css = stylesheet({
   },
 });
 
-const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props) => {
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
@@ -349,9 +349,8 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 emptyMessage='No pipeline versions found. Select or upload a pipeline then try again.'
                 initialSortColumn={PipelineVersionSortKeys.CREATED_AT}
                 selectionChanged={async (selectedId: string) => {
-                  const selectedPipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
-                    selectedId,
-                  );
+                  const selectedPipelineVersion =
+                    await Apis.pipelineServiceApi.getPipelineVersion(selectedId);
                   this.setStateSafe({
                     unconfirmedSelectedPipelineVersion: selectedPipelineVersion,
                   });
@@ -438,9 +437,8 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                 emptyMessage='No experiments found. Create an experiment and then try again.'
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
                 selectionChanged={async (selectedId: string) => {
-                  const selectedExperiment = await Apis.experimentServiceApi.getExperiment(
-                    selectedId,
-                  );
+                  const selectedExperiment =
+                    await Apis.experimentServiceApi.getExperiment(selectedId);
                   this.setStateSafe({ unconfirmedSelectedExperiment: selectedExperiment });
                 }}
               />
@@ -706,9 +704,8 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             (pipeline.default_version && pipeline.default_version.id);
           if (possiblePipelineVersionId) {
             try {
-              const pipelineVersion = await Apis.pipelineServiceApi.getPipelineVersion(
-                possiblePipelineVersionId,
-              );
+              const pipelineVersion =
+                await Apis.pipelineServiceApi.getPipelineVersion(possiblePipelineVersionId);
               this.setStateSafe({
                 parameters: pipelineVersion.parameters || [],
                 pipelineVersion,
@@ -1157,7 +1154,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       description: this.state.description,
       name: this.state.runName,
       pipeline_spec: {
-        parameters: (this.state.parameters || []).map(p => {
+        parameters: (this.state.parameters || []).map((p) => {
           p.value = (p.value || '').trim();
           return p;
         }),
@@ -1245,14 +1242,8 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
   private _validate(): void {
     // Validate state
-    const {
-      pipeline,
-      pipelineVersion,
-      workflowFromRun,
-      maxConcurrentRuns,
-      runName,
-      trigger,
-    } = this.state;
+    const { pipeline, pipelineVersion, workflowFromRun, maxConcurrentRuns, runName, trigger } =
+      this.state;
     try {
       if (!pipeline && !workflowFromRun) {
         throw new Error('A pipeline must be selected');
@@ -1291,6 +1282,6 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
   private _areParametersMissing(): boolean {
     const { parameters } = this.state;
-    return parameters.some(parameter => !parameter.value);
+    return parameters.some((parameter) => !parameter.value);
   }
 }

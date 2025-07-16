@@ -17,10 +17,10 @@ description: |
   Creates a MLEngine batch prediction job.
 metadata:
   labels:
-    add-pod-env: 'true'
+    add-pod-env: "true"
 inputs:
   - name: project_id
-    description: 'Required. The ID of the parent project of the job.'
+    description: "Required. The ID of the parent project of the job."
     type: GCPProjectID
   - name: model_path
     description: >-
@@ -39,52 +39,66 @@ inputs:
       https://cloud.google.com/ml-engine/reference/rest/v1/projects.jobs#DataFormat.
     type: String
   - name: output_path
-    description: 'Required. The output Google Cloud Storage location.'
+    description: "Required. The output Google Cloud Storage location."
     type: GCSPath
   - name: region
     description: >-
       Required. The Google Compute Engine region to run the prediction job in.
     type: GCPRegion
   - name: output_data_format
-    description: 'Optional. Format of the output data files, defaults to JSON.'
-    default: ''
+    description: "Optional. Format of the output data files, defaults to JSON."
+    default: ""
     type: String
   - name: prediction_input
-    description: 'Input parameters to create a prediction job.'
-    default: ''
+    description: "Input parameters to create a prediction job."
+    default: ""
     type: Dict
   - name: job_id_prefix
-    description: 'The prefix of the generated job id.'
-    default: ''
+    description: "The prefix of the generated job id."
+    default: ""
     type: String
   - name: wait_interval
-    description: 'Optional wait interval between calls to get job status. Defaults to 30.'
-    default: '30'
+    description: "Optional wait interval between calls to get job status. Defaults to 30."
+    default: "30"
     type: Integer
 outputs:
   - name: job_id
-    description: 'The ID of the created job.'
+    description: "The ID of the created job."
     type: String
   - name: MLPipeline UI metadata
     type: UI metadata
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.7.0-rc.3
-    command: ['python', '-u', '-m', 'kfp_component.launcher']
-    args: [
-      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
-      kfp_component.google.ml_engine, batch_predict,
-      --project_id, {inputValue: project_id},
-      --model_path, {inputValue: model_path},
-      --input_paths, {inputValue: input_paths},
-      --input_data_format, {inputValue: input_data_format},
-      --output_path, {inputValue: output_path},
-      --region, {inputValue: region},
-      --output_data_format, {inputValue: output_data_format},
-      --prediction_input, {inputValue: prediction_input},
-      --job_id_prefix, {inputValue: job_id_prefix},
-      --wait_interval, {inputValue: wait_interval},
-      --job_id_output_path, {outputPath: job_id},
-    ]
+    command: ["python", "-u", "-m", "kfp_component.launcher"]
+    args:
+      [
+        --ui_metadata_path,
+        { outputPath: MLPipeline UI metadata },
+        kfp_component.google.ml_engine,
+        batch_predict,
+        --project_id,
+        { inputValue: project_id },
+        --model_path,
+        { inputValue: model_path },
+        --input_paths,
+        { inputValue: input_paths },
+        --input_data_format,
+        { inputValue: input_data_format },
+        --output_path,
+        { inputValue: output_path },
+        --region,
+        { inputValue: region },
+        --output_data_format,
+        { inputValue: output_data_format },
+        --prediction_input,
+        { inputValue: prediction_input },
+        --job_id_prefix,
+        { inputValue: job_id_prefix },
+        --wait_interval,
+        { inputValue: wait_interval },
+        --job_id_output_path,
+        { outputPath: job_id },
+      ]
     env:
       KFP_POD_NAME: "{{pod.name}}"

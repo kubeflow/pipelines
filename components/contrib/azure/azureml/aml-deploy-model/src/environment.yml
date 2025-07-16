@@ -9,11 +9,11 @@ name: project_environment
 dependencies:
   # The python interpreter version.
   # Currently Azure ML only supports 3.5.2 and later.
-- python=3.6.2
+  - python=3.6.2
 
-- pip:
-    # Required packages for AzureML execution, history, and data preparation.
-  - azureml-defaults
-  - azureml-core
-  - numpy
-  - requests
+  - pip:
+      # Required packages for AzureML execution, history, and data preparation.
+      - azureml-defaults
+      - azureml-core
+      - numpy
+      - requests

@@ -19,15 +19,15 @@ spec:
       containers:
         - resources:
             limits:
-              cpu: '1'
+              cpu: "1"
               memory: 1Gi
             requests:
               cpu: 100m
               memory: 256Mi
           command: ["/usr/bin/metacontroller"]
           args:
-          - --zap-log-level=4
-          - --discovery-interval=3600s
+            - --zap-log-level=4
+            - --discovery-interval=3600s
           livenessProbe:
             httpGet:
               port: 8081
@@ -41,14 +41,14 @@ spec:
               type: RuntimeDefault
             capabilities:
               drop:
-              - ALL
+                - ALL
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
             privileged: false
             allowPrivilegeEscalation: false
           name: metacontroller
-          image: 'ghcr.io/metacontroller/metacontroller:v4.11.22'
+          image: "ghcr.io/metacontroller/metacontroller:v4.11.22"
       serviceAccountName: meta-controller-service
   # Workaround for https://github.com/kubernetes-sigs/kustomize/issues/677
   volumeClaimTemplates: []

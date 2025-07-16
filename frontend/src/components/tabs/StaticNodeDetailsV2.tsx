@@ -199,7 +199,7 @@ function ArtifactNodeDetail({ pipelineSpec, element, layers }: ArtifactNodeDetai
     return NODE_INFO_UNKNOWN;
   }
 
-  const artifactType = getOutputArtifacts(componentSpec).filter(a => a[0] === artifactKey);
+  const artifactType = getOutputArtifacts(componentSpec).filter((a) => a[0] === artifactKey);
   const artifactInfo = [
     ['Upstream Task', taskKey],
     ['Artifact Name', artifactKey],
@@ -222,7 +222,7 @@ function getInputArtifacts(componentSpec: ComponentSpec) {
   if (!artifacts) {
     return Array<KeyValue<string>>();
   }
-  const inputArtifacts: Array<KeyValue<string>> = Object.keys(artifacts).map(key => {
+  const inputArtifacts: Array<KeyValue<string>> = Object.keys(artifacts).map((key) => {
     const artifactSpec = artifacts[key];
     const type = artifactSpec.artifactType;
     let value = type?.schemaTitle || type?.instanceSchema;
@@ -240,7 +240,7 @@ function getOutputArtifacts(componentSpec: ComponentSpec) {
   if (!artifacts) {
     return Array<KeyValue<string>>();
   }
-  const outputArtifacts: Array<KeyValue<string>> = Object.keys(artifacts).map(key => {
+  const outputArtifacts: Array<KeyValue<string>> = Object.keys(artifacts).map((key) => {
     const artifactSpec = artifacts[key];
     const type = artifactSpec.artifactType;
     let value = type?.schemaTitle || type?.instanceSchema;
@@ -258,7 +258,7 @@ function getInputParameters(componentSpec: ComponentSpec) {
   if (!parameters) {
     return Array<KeyValue<string>>();
   }
-  const inputParameters: Array<KeyValue<string>> = Object.keys(parameters).map(key => {
+  const inputParameters: Array<KeyValue<string>> = Object.keys(parameters).map((key) => {
     const parameterSpec = parameters[key];
     const type = parameterSpec?.parameterType;
     return [key, getStringEnumKey(ParameterType.ParameterTypeEnum, type)];
@@ -272,7 +272,7 @@ function getOutputParameters(componentSpec: ComponentSpec) {
   if (!parameters) {
     return Array<KeyValue<string>>();
   }
-  const outputParameters: Array<KeyValue<string>> = Object.keys(parameters).map(key => {
+  const outputParameters: Array<KeyValue<string>> = Object.keys(parameters).map((key) => {
     const parameterSpec = parameters[key];
     const type = parameterSpec?.parameterType;
     return [key, getStringEnumKey(ParameterType.ParameterTypeEnum, type)];

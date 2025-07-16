@@ -3,13 +3,13 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-- cache-cert-issuer.yaml
-- cache-cert.yaml
-- cache-webhook-config.yaml
+  - cache-cert-issuer.yaml
+  - cache-cert.yaml
+  - cache-webhook-config.yaml
 
 configurations:
-- params.yaml
+  - params.yaml
 labels:
-- includeSelectors: true
-  pairs:
-    app: cache-server-cert-manager
+  - includeSelectors: true
+    pairs:
+      app: cache-server-cert-manager

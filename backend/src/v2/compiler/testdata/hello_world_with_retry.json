@@ -16,10 +16,7 @@
       "executors": {
         "exec-hello-world": {
           "container": {
-            "args": [
-              "--text",
-              "{{$.inputs.parameters['text']}}"
-            ],
+            "args": ["--text", "{{$.inputs.parameters['text']}}"],
             "command": [
               "sh",
               "-ec",
@@ -99,4 +96,3 @@
     }
   }
 }
-

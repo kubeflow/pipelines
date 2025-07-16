@@ -67,7 +67,7 @@ components:
     inputDefinitions:
       parameters:
         encryption_spec_key_name:
-          defaultValue: ''
+          defaultValue: ""
           description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
@@ -83,7 +83,8 @@ components:
     outputDefinitions:
       parameters:
         gcp_resources:
-          description: GCP resources created by this component. For more details,
+          description:
+            GCP resources created by this component. For more details,
             see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
           parameterType: STRING
   comp-automl-tabular-infra-validator:
@@ -112,8 +113,8 @@ components:
         artifacts:
           model-evaluation-evaluation_metrics:
             artifactSelectors:
-            - outputArtifactKey: evaluation_metrics
-              producerSubtask: model-evaluation
+              - outputArtifactKey: evaluation_metrics
+                producerSubtask: model-evaluation
       tasks:
         model-batch-predict:
           cachingOptions:
@@ -158,7 +159,7 @@ components:
           componentRef:
             name: comp-model-evaluation
           dependentTasks:
-          - model-batch-predict
+            - model-batch-predict
           inputs:
             artifacts:
               batch_prediction_job:
@@ -191,10 +192,10 @@ components:
                 componentInputParameter: pipelinechannel--location
               prediction_label_column:
                 runtimeValue:
-                  constant: ''
+                  constant: ""
               prediction_score_column:
                 runtimeValue:
-                  constant: ''
+                  constant: ""
               predictions_format:
                 runtimeValue:
                   constant: jsonl
@@ -261,8 +262,8 @@ components:
         artifacts:
           model-evaluation-evaluation_metrics:
             artifactSelectors:
-            - outputArtifactKey: model-evaluation-evaluation_metrics
-              producerSubtask: condition-2
+              - outputArtifactKey: model-evaluation-evaluation_metrics
+                producerSubtask: condition-2
       tasks:
         automl-tabular-infra-validator:
           cachingOptions:
@@ -270,7 +271,7 @@ components:
           componentRef:
             name: comp-automl-tabular-infra-validator
           dependentTasks:
-          - get-best-hyperparameter-tuning-job-trial
+            - get-best-hyperparameter-tuning-job-trial
           inputs:
             artifacts:
               unmanaged_container_model:
@@ -294,9 +295,9 @@ components:
           componentRef:
             name: comp-condition-2
           dependentTasks:
-          - bool-identity
-          - feature-transform-engine
-          - get-best-hyperparameter-tuning-job-trial
+            - bool-identity
+            - feature-transform-engine
+            - get-best-hyperparameter-tuning-job-trial
           inputs:
             artifacts:
               pipelinechannel--get-best-hyperparameter-tuning-job-trial-unmanaged_container_model:
@@ -347,7 +348,8 @@ components:
           taskInfo:
             name: run-evaluation
           triggerPolicy:
-            condition: inputs.parameter_values['pipelinechannel--bool-identity-Output']
+            condition:
+              inputs.parameter_values['pipelinechannel--bool-identity-Output']
               == 'true'
         feature-transform-engine:
           cachingOptions:
@@ -429,7 +431,7 @@ components:
           componentRef:
             name: comp-get-best-hyperparameter-tuning-job-trial
           dependentTasks:
-          - wide-and-deep-hyperparameter-tuning-job
+            - wide-and-deep-hyperparameter-tuning-job
           inputs:
             parameters:
               gcp_resources:
@@ -473,8 +475,8 @@ components:
           componentRef:
             name: comp-model-upload
           dependentTasks:
-          - automl-tabular-infra-validator
-          - get-best-hyperparameter-tuning-job-trial
+            - automl-tabular-infra-validator
+            - get-best-hyperparameter-tuning-job-trial
           inputs:
             artifacts:
               parent_model:
@@ -513,7 +515,7 @@ components:
           componentRef:
             name: comp-split-materialized-data
           dependentTasks:
-          - feature-transform-engine
+            - feature-transform-engine
           inputs:
             artifacts:
               materialized_data:
@@ -528,7 +530,7 @@ components:
           componentRef:
             name: comp-training-configurator-and-validator
           dependentTasks:
-          - feature-transform-engine
+            - feature-transform-engine
           inputs:
             artifacts:
               dataset_stats:
@@ -564,11 +566,11 @@ components:
           componentRef:
             name: comp-wide-and-deep-hyperparameter-tuning-job
           dependentTasks:
-          - feature-transform-engine
-          - get-wide-and-deep-study-spec-parameters
-          - parse-worker-pool-specs-override
-          - split-materialized-data
-          - training-configurator-and-validator
+            - feature-transform-engine
+            - get-wide-and-deep-study-spec-parameters
+            - parse-worker-pool-specs-override
+            - split-materialized-data
+            - training-configurator-and-validator
           inputs:
             artifacts:
               instance_baseline:
@@ -777,14 +779,15 @@ components:
       parameters:
         autodetect_csv_schema:
           defaultValue: false
-          description: 'If True, infers the column types
+          description: "If True, infers the column types
 
-            when importing CSVs into BigQuery.'
+            when importing CSVs into BigQuery."
           isOptional: true
           parameterType: BOOLEAN
         bigquery_staging_full_dataset_id:
-          defaultValue: ''
-          description: Dataset in "projectId.datasetId" format for storing intermediate-FTE
+          defaultValue: ""
+          description:
+            Dataset in "projectId.datasetId" format for storing intermediate-FTE
             BigQuery tables.  If the specified dataset does not exist in BigQuery,
             FTE will create the dataset. If no bigquery_staging_full_dataset_id is
             specified, all intermediate tables will be stored in a dataset created
@@ -794,42 +797,46 @@ components:
           isOptional: true
           parameterType: STRING
         data_source_bigquery_table_path:
-          defaultValue: ''
+          defaultValue: ""
           description: BigQuery input data source to run feature transform on.
           isOptional: true
           parameterType: STRING
         data_source_csv_filenames:
-          defaultValue: ''
+          defaultValue: ""
           description: CSV input data source to run feature transform on.
           isOptional: true
           parameterType: STRING
         dataflow_disk_size_gb:
           defaultValue: 40.0
-          description: The disk size, in gigabytes, to use on each Dataflow worker
+          description:
+            The disk size, in gigabytes, to use on each Dataflow worker
             instance. If not set, default to 40.
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_machine_type:
           defaultValue: n1-standard-16
-          description: The machine type used for dataflow jobs. If not set, default
+          description:
+            The machine type used for dataflow jobs. If not set, default
             to n1-standard-16.
           isOptional: true
           parameterType: STRING
         dataflow_max_num_workers:
           defaultValue: 25.0
-          description: The number of workers to run the dataflow job. If not set,
+          description:
+            The number of workers to run the dataflow job. If not set,
             default to 25.
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
-          defaultValue: ''
+          defaultValue: ""
           description: Custom service account to run Dataflow jobs.
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
-          defaultValue: ''
-          description: 'Dataflow''s fully qualified subnetwork name, when empty the
-            default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications'
+          defaultValue: ""
+          description:
+            "Dataflow's fully qualified subnetwork name, when empty the
+            default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications"
           isOptional: true
           parameterType: STRING
         dataflow_use_public_ips:
@@ -839,7 +846,8 @@ components:
           parameterType: BOOLEAN
         dataset_level_custom_transformation_definitions:
           defaultValue: []
-          description: 'List of dataset-level custom transformation definitions.  Custom,
+          description:
+            'List of dataset-level custom transformation definitions.  Custom,
             bring-your-own dataset-level transform functions, where users can define
             and import their own transform function and use it with FTE''s built-in
             transformations. Using custom transformations is an experimental feature
@@ -855,7 +863,8 @@ components:
           parameterType: LIST
         dataset_level_transformations:
           defaultValue: []
-          description: "List of dataset-level transformations.\n[ { \"transformation\"\
+          description:
+            "List of dataset-level transformations.\n[ { \"transformation\"\
             : \"Join\", \"right_table_uri\": \"bq://test-project.dataset_test.table\"\
             , \"join_keys\": [[\"join_key_col\", \"join_key_col\"]] }, ... ]  Additional\
             \ information about FTE's currently supported built-in\n    transformations:\n\
@@ -906,13 +915,14 @@ components:
           isOptional: true
           parameterType: LIST
         encryption_spec_key_name:
-          defaultValue: ''
+          defaultValue: ""
           description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         feature_selection_algorithm:
           defaultValue: AMI
-          description: "The algorithm of feature selection. One of \"AMI\", \"CMIM\"\
+          description:
+            "The algorithm of feature selection. One of \"AMI\", \"CMIM\"\
             , \"JMIM\", \"MRMR\", default to be \"AMI\". The algorithms available\
             \ are: AMI(Adjusted Mutual Information):\nReference: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_mutual_info_score.html\
             \ Arrays are not yet supported in this algorithm.  CMIM(Conditional Mutual\
@@ -932,7 +942,8 @@ components:
           parameterType: STRING
         feature_selection_execution_engine:
           defaultValue: dataflow
-          description: Execution engine to run feature selection, value can be dataflow,
+          description:
+            Execution engine to run feature selection, value can be dataflow,
             bigquery.
           isOptional: true
           parameterType: STRING
@@ -958,55 +969,56 @@ components:
           parameterType: NUMBER_INTEGER
         forecasting_holiday_regions:
           defaultValue: []
-          description: 'The geographical region based on which the holiday effect
+          description:
+            "The geographical region based on which the holiday effect
             is applied in modeling by adding holiday categorical array feature that
             include all holidays matching the date. This option only allowed when
             data granularity is day. By default, holiday effect modeling is disabled.
             To turn it on, specify the holiday region using this option.
 
-            Top level: * ''GLOBAL''
+            Top level: * 'GLOBAL'
 
-            Second level: continental regions: * ''NA'': North America
+            Second level: continental regions: * 'NA': North America
 
-            * ''JAPAC'': Japan and Asia Pacific
+            * 'JAPAC': Japan and Asia Pacific
 
-            * ''EMEA'': Europe, the Middle East and Africa
+            * 'EMEA': Europe, the Middle East and Africa
 
-            * ''LAC'': Latin America and the Caribbean
+            * 'LAC': Latin America and the Caribbean
 
             Third level: countries from ISO 3166-1 Country codes.
 
-            Valid regions: * ''GLOBAL'' * ''NA'' * ''JAPAC'' * ''EMEA'' * ''LAC''
-            * ''AE''
+            Valid regions: * 'GLOBAL' * 'NA' * 'JAPAC' * 'EMEA' * 'LAC'
+            * 'AE'
 
-            * ''AR'' * ''AT'' * ''AU'' * ''BE'' * ''BR'' * ''CA'' * ''CH'' * ''CL''
-            * ''CN'' * ''CO''
+            * 'AR' * 'AT' * 'AU' * 'BE' * 'BR' * 'CA' * 'CH' * 'CL'
+            * 'CN' * 'CO'
 
-            * ''CZ'' * ''DE'' * ''DK'' * ''DZ'' * ''EC'' * ''EE'' * ''EG'' * ''ES''
-            * ''FI'' * ''FR''
+            * 'CZ' * 'DE' * 'DK' * 'DZ' * 'EC' * 'EE' * 'EG' * 'ES'
+            * 'FI' * 'FR'
 
-            * ''GB'' * ''GR'' * ''HK'' * ''HU'' * ''ID'' * ''IE'' * ''IL'' * ''IN''
-            * ''IR'' * ''IT''
+            * 'GB' * 'GR' * 'HK' * 'HU' * 'ID' * 'IE' * 'IL' * 'IN'
+            * 'IR' * 'IT'
 
-            * ''JP'' * ''KR'' * ''LV'' * ''MA'' * ''MX'' * ''MY'' * ''NG'' * ''NL''
-            * ''NO'' * ''NZ''
+            * 'JP' * 'KR' * 'LV' * 'MA' * 'MX' * 'MY' * 'NG' * 'NL'
+            * 'NO' * 'NZ'
 
-            * ''PE'' * ''PH'' * ''PK'' * ''PL'' * ''PT'' * ''RO'' * ''RS'' * ''RU''
-            * ''SA'' * ''SE''
+            * 'PE' * 'PH' * 'PK' * 'PL' * 'PT' * 'RO' * 'RS' * 'RU'
+            * 'SA' * 'SE'
 
-            * ''SG'' * ''SI'' * ''SK'' * ''TH'' * ''TR'' * ''TW'' * ''UA'' * ''US''
-            * ''VE'' * ''VN''
+            * 'SG' * 'SI' * 'SK' * 'TH' * 'TR' * 'TW' * 'UA' * 'US'
+            * 'VE' * 'VN'
 
-            * ''ZA'''
+            * 'ZA'"
           isOptional: true
           parameterType: LIST
         forecasting_predefined_window_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Forecasting predefined window column.
           isOptional: true
           parameterType: STRING
         forecasting_time_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Forecasting time column.
           isOptional: true
           parameterType: STRING
@@ -1016,7 +1028,8 @@ components:
           isOptional: true
           parameterType: LIST
         forecasting_time_series_identifier_column:
-          description: '[Deprecated] A forecasting time series identifier column.
+          description:
+            '[Deprecated] A forecasting time series identifier column.
             Raises an exception if used - use the "time_series_identifier_column"
             field instead.'
           isOptional: true
@@ -1053,7 +1066,7 @@ components:
           isOptional: true
           parameterType: NUMBER_DOUBLE
         legacy_transformations_path:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         location:
@@ -1061,13 +1074,15 @@ components:
           parameterType: STRING
         materialized_examples_format:
           defaultValue: tfrecords_gzip
-          description: The format to use for the materialized examples. Should be
+          description:
+            The format to use for the materialized examples. Should be
             either 'tfrecords_gzip' (default) or 'parquet'.
           isOptional: true
           parameterType: STRING
         max_selected_features:
           defaultValue: 1000.0
-          description: Maximum number of features to select.  If specified, the transform
+          description:
+            Maximum number of features to select.  If specified, the transform
             config will be purged by only using the selected features that ranked
             top in the feature ranking, which has the ranking value for all supported
             features. If the number of input features is smaller than max_selected_features
@@ -1077,9 +1092,10 @@ components:
           isOptional: true
           parameterType: NUMBER_INTEGER
         model_type:
-          description: 'Model type, which we wish to engineer features for. Can be
+          description:
+            "Model type, which we wish to engineer features for. Can be
             one of: neural_network, boosted_trees, l2l, seq2seq, tft, or tide. Defaults
-            to the empty value, `None`.'
+            to the empty value, `None`."
           isOptional: true
           parameterType: STRING
         multimodal_image_columns:
@@ -1099,18 +1115,20 @@ components:
           parameterType: LIST
         multimodal_timeseries_columns:
           defaultValue: []
-          description: List of multimodal timeseries columns. Defaults to an empty
+          description:
+            List of multimodal timeseries columns. Defaults to an empty
             list
           isOptional: true
           parameterType: LIST
         predefined_split_key:
-          defaultValue: ''
+          defaultValue: ""
           description: Predefined split key.
           isOptional: true
           parameterType: STRING
         prediction_type:
-          defaultValue: ''
-          description: Model prediction type. One of "classification", "regression",
+          defaultValue: ""
+          description:
+            Model prediction type. One of "classification", "regression",
             "time_series".
           isOptional: true
           parameterType: STRING
@@ -1122,7 +1140,8 @@ components:
           parameterType: STRING
         run_distill:
           defaultValue: false
-          description: (deprecated) Whether the distillation should be applied to
+          description:
+            (deprecated) Whether the distillation should be applied to
             the training.
           isOptional: true
           parameterType: BOOLEAN
@@ -1133,18 +1152,19 @@ components:
           parameterType: BOOLEAN
         stats_gen_execution_engine:
           defaultValue: dataflow
-          description: 'Execution engine to perform statistics generation. Can be
+          description:
+            'Execution engine to perform statistics generation. Can be
             one of: "dataflow" (by default) or "bigquery". Using "bigquery" as the
             execution engine is experimental.'
           isOptional: true
           parameterType: STRING
         stratified_split_key:
-          defaultValue: ''
+          defaultValue: ""
           description: Stratified split key.
           isOptional: true
           parameterType: STRING
         target_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Target column of input data.
           isOptional: true
           parameterType: STRING
@@ -1159,7 +1179,8 @@ components:
           parameterType: NUMBER_DOUBLE
         tf_auto_transform_features:
           defaultValue: {}
-          description: 'Dict mapping auto and/or type-resolutions to TF transform
+          description:
+            'Dict mapping auto and/or type-resolutions to TF transform
             features. FTE will automatically configure a set of built-in transformations
             for each feature based on its data statistics. If users do not want auto
             type resolution, but want the set of transformations for a given type
@@ -1173,7 +1194,8 @@ components:
           parameterType: STRUCT
         tf_custom_transformation_definitions:
           defaultValue: []
-          description: 'List of TensorFlow-based custom transformation definitions.  Custom,
+          description:
+            'List of TensorFlow-based custom transformation definitions.  Custom,
             bring-your-own transform functions, where users can define and import
             their own transform function and use it with FTE''s built-in transformations.
             `[ { "transformation": "PlusOne", "module_path": "gs://bucket/custom_transform_fn.py",
@@ -1189,7 +1211,8 @@ components:
           parameterType: LIST
         tf_transform_execution_engine:
           defaultValue: dataflow
-          description: 'Execution engine to perform row-level TF transformations.
+          description:
+            'Execution engine to perform row-level TF transformations.
             Can be one of: "dataflow" (by default) or "bigquery". Using "bigquery"
             as the execution engine is experimental and is for allowlisted customers
             only. In addition, executing on "bigquery" only supports auto transformations
@@ -1199,8 +1222,9 @@ components:
           isOptional: true
           parameterType: STRING
         tf_transformations_path:
-          defaultValue: ''
-          description: "Path to TensorFlow-based transformation configuration.  Path\
+          defaultValue: ""
+          description:
+            "Path to TensorFlow-based transformation configuration.  Path\
             \ to a JSON file used to specified FTE's TF transformation configurations.\
             \  In the following, we provide some sample transform configurations to\
             \ demonstrate FTE's capabilities. All transformations on input columns\
@@ -1368,7 +1392,7 @@ components:
           isOptional: true
           parameterType: STRING
         timestamp_split_key:
-          defaultValue: ''
+          defaultValue: ""
           description: Timestamp split key.
           isOptional: true
           parameterType: STRING
@@ -1383,7 +1407,7 @@ components:
           isOptional: true
           parameterType: NUMBER_DOUBLE
         weight_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Weight column of input data.
           isOptional: true
           parameterType: STRING
@@ -1398,7 +1422,8 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: The ranking of features, all features supported in the dataset
+          description:
+            The ranking of features, all features supported in the dataset
             will be included. For "AMI" algorithm, array features won't be available
             in the ranking as arrays are not supported yet.
         instance_schema:
@@ -1421,27 +1446,33 @@ components:
           description: The transform output artifact.
       parameters:
         bigquery_downsampled_test_split_uri:
-          description: BigQuery URI for the downsampled test split to pass to the
+          description:
+            BigQuery URI for the downsampled test split to pass to the
             batch prediction component during batch explain.
           parameterType: STRING
         bigquery_test_split_uri:
-          description: BigQuery URI for the test split to pass to the batch prediction
+          description:
+            BigQuery URI for the test split to pass to the batch prediction
             component during evaluation.
           parameterType: STRING
         bigquery_train_split_uri:
-          description: BigQuery URI for the train split to pass to the batch prediction
+          description:
+            BigQuery URI for the train split to pass to the batch prediction
             component during distillation.
           parameterType: STRING
         bigquery_validation_split_uri:
-          description: BigQuery URI for the validation split to pass to the batch
+          description:
+            BigQuery URI for the validation split to pass to the batch
             prediction component during distillation.
           parameterType: STRING
         gcp_resources:
-          description: GCP resources created by this component. For more details,
+          description:
+            GCP resources created by this component. For more details,
             see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
           parameterType: STRING
         split_example_counts:
-          description: JSON string of data split example counts for train, validate,
+          description:
+            JSON string of data split example counts for train, validate,
             and test splits.
           parameterType: STRING
   comp-get-best-hyperparameter-tuning-job-trial:
@@ -1452,17 +1483,17 @@ components:
           description: Proto tracking the hyperparameter tuning job.
           parameterType: STRING
         instance_schema_uri:
-          defaultValue: ''
+          defaultValue: ""
           description: The instance schema uri.
           isOptional: true
           parameterType: STRING
         prediction_docker_uri:
-          defaultValue: ''
+          defaultValue: ""
           description: The prediction docker container uri.
           isOptional: true
           parameterType: STRING
         prediction_schema_uri:
-          defaultValue: ''
+          defaultValue: ""
           description: The prediction schema_uri.
           isOptional: true
           parameterType: STRING
@@ -1477,7 +1508,7 @@ components:
             "MAXIMIZE", "MINIMIZE".'
           parameterType: STRING
         trials_dir:
-          defaultValue: ''
+          defaultValue: ""
           description: The path to the hyperparameter tuning trials.
           isOptional: true
           parameterType: STRING
@@ -1502,13 +1533,13 @@ components:
     inputDefinitions:
       parameters:
         study_spec_parameters_override:
-          description: 'List of dictionaries representing parameters
+          description: "List of dictionaries representing parameters
 
             to optimize. The dictionary key is the parameter_id, which is passed to
 
             training job as a command line argument, and the dictionary value is the
 
-            parameter specification of the metric.'
+            parameter specification of the metric."
           parameterType: LIST
     outputDefinitions:
       parameters:
@@ -1522,52 +1553,55 @@ components:
           artifactType:
             schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
-          description: 'The Model used to get predictions via this job. Must share
+          description:
+            "The Model used to get predictions via this job. Must share
             the same
 
             ancestor Location. Starting this job has no impact on any existing
 
             deployments of the Model and their resources. Either this or
 
-            `unmanaged_container_model` must be specified.'
+            `unmanaged_container_model` must be specified."
           isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
-          description: 'The unmanaged container model used to get predictions via
+          description:
+            "The unmanaged container model used to get predictions via
             this job.
 
             This should be used for models that are not uploaded to Vertex. Either
 
-            this or model must be specified.'
+            this or model must be specified."
           isOptional: true
       parameters:
         accelerator_count:
           defaultValue: 0.0
-          description: 'The number of accelerators to attach
+          description: "The number of accelerators to attach
 
             to the `machine_type`. Only used if `machine_type` is set.  For more
 
             details about the machine spec, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec"
           isOptional: true
           parameterType: NUMBER_INTEGER
         accelerator_type:
-          defaultValue: ''
-          description: 'The type of accelerator(s) that may be
+          defaultValue: ""
+          description: "The type of accelerator(s) that may be
 
             attached to the machine as per `accelerator_count`. Only used if
 
             `machine_type` is set.  For more details about the machine spec, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec"
           isOptional: true
           parameterType: STRING
         bigquery_destination_output_uri:
-          defaultValue: ''
-          description: 'The BigQuery project location where the output is to be written
+          defaultValue: ""
+          description:
+            'The BigQuery project location where the output is to be written
             to. In
 
             the given project a new dataset is created with name
@@ -1604,19 +1638,20 @@ components:
           isOptional: true
           parameterType: STRING
         bigquery_source_input_uri:
-          defaultValue: ''
-          description: 'BigQuery URI to a table, up to 2000 characters long. For example:
+          defaultValue: ""
+          description:
+            "BigQuery URI to a table, up to 2000 characters long. For example:
 
             `projectId.bqDatasetId.bqTableId`  For more details about this input
 
             config, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig."
           isOptional: true
           parameterType: STRING
         encryption_spec_key_name:
-          defaultValue: ''
-          description: 'Customer-managed encryption
+          defaultValue: ""
+          description: "Customer-managed encryption
 
             key options for a BatchPredictionJob. If this is set, then all
 
@@ -1628,12 +1663,13 @@ components:
 
             The key needs to be in the same region as where the compute resource
 
-            is created.'
+            is created."
           isOptional: true
           parameterType: STRING
         excluded_fields:
           defaultValue: []
-          description: 'Fields that will be excluded in the prediction instance that
+          description:
+            "Fields that will be excluded in the prediction instance that
             is
 
             sent to the Model.
@@ -1648,12 +1684,12 @@ components:
 
             or TfRecord.
 
-            may be specified via the Model''s `parameters_schema_uri`.'
+            may be specified via the Model's `parameters_schema_uri`."
           isOptional: true
           parameterType: LIST
         explanation_metadata:
           defaultValue: {}
-          description: 'Explanation metadata
+          description: "Explanation metadata
 
             configuration for this BatchPredictionJob. Can be specified only if
 
@@ -1669,14 +1705,14 @@ components:
 
             more details, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata."
           isOptional: true
           parameterType: STRUCT
         explanation_parameters:
           defaultValue: {}
-          description: 'Parameters to configure
+          description: "Parameters to configure
 
-            explaining for Model''s predictions. Can be specified only if
+            explaining for Model's predictions. Can be specified only if
 
             `generate_explanation` is set to `True`.  This value overrides the
 
@@ -1690,12 +1726,12 @@ components:
 
             inherited.  For more details, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters.'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters."
           isOptional: true
           parameterType: STRUCT
         gcs_destination_output_uri_prefix:
-          defaultValue: ''
-          description: 'The Google Cloud
+          defaultValue: ""
+          description: "The Google Cloud
 
             Storage location of the directory where the output is to be written
 
@@ -1733,24 +1769,25 @@ components:
 
             `message` fields.  For more details about this output config, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig."
           isOptional: true
           parameterType: STRING
         gcs_source_uris:
           defaultValue: []
-          description: 'Google Cloud Storage URI(-s) to your instances to run batch
+          description:
+            "Google Cloud Storage URI(-s) to your instances to run batch
             prediction
 
             on. They must match `instances_format`. May contain wildcards. For more
 
             information on wildcards, see [WildcardNames](https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames).
 
-            For more details about this input config, see [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig).'
+            For more details about this input config, see [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig)."
           isOptional: true
           parameterType: LIST
         generate_explanation:
           defaultValue: false
-          description: 'Generate explanation along with
+          description: "Generate explanation along with
 
             the batch prediction results. This will cause the batch prediction
 
@@ -1770,12 +1807,13 @@ components:
 
             field is set to true, either the Model.explanation_spec or
 
-            explanation_metadata and explanation_parameters must be populated.'
+            explanation_metadata and explanation_parameters must be populated."
           isOptional: true
           parameterType: BOOLEAN
         included_fields:
           defaultValue: []
-          description: 'Fields that will be included in the prediction instance that
+          description:
+            "Fields that will be included in the prediction instance that
             is
 
             sent to the Model.
@@ -1788,12 +1826,13 @@ components:
 
             The input must be JSONL with objects at each line, CSV, BigQuery
 
-            or TfRecord.'
+            or TfRecord."
           isOptional: true
           parameterType: LIST
         instance_type:
-          defaultValue: ''
-          description: "The format of the instance that the Model\naccepts. Vertex\
+          defaultValue: ""
+          description:
+            "The format of the instance that the Model\naccepts. Vertex\
             \ AI will convert compatible\n[InstancesFormat](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig)\n\
             to the specified format. Supported values are:\n`object`: Each input is\
             \ converted to JSON object format.\n  * For `bigquery`, each row is converted\
@@ -1822,22 +1861,23 @@ components:
           parameterType: STRING
         instances_format:
           defaultValue: jsonl
-          description: 'The format in which instances are
+          description: "The format in which instances are
 
-            given, must be one of the [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models)''s
+            given, must be one of the [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models)'s
             supportedInputStorageFormats.
 
             For more details about this input config, see
 
-            [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.)'
+            [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.)"
           isOptional: true
           parameterType: STRING
         job_display_name:
           description: The user-defined name of this BatchPredictionJob.
           parameterType: STRING
         key_field:
-          defaultValue: ''
-          description: "The name of the field that is considered as a key.\nThe values\
+          defaultValue: ""
+          description:
+            "The name of the field that is considered as a key.\nThe values\
             \ identified by the key field is not included in the\ntransformed instances\
             \ that is sent to the Model. This is similar to\nspecifying this name\
             \ of the field in [excluded_fields](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig).\
@@ -1852,7 +1892,7 @@ components:
           parameterType: STRING
         labels:
           defaultValue: {}
-          description: 'The labels with user-defined metadata to
+          description: "The labels with user-defined metadata to
 
             organize your BatchPredictionJobs.  Label keys and values can be no
 
@@ -1862,7 +1902,7 @@ components:
 
             International characters are allowed.  See https://goo.gl/xmQnxf for
 
-            more information and examples of labels.'
+            more information and examples of labels."
           isOptional: true
           parameterType: STRUCT
         location:
@@ -1871,14 +1911,14 @@ components:
           isOptional: true
           parameterType: STRING
         machine_type:
-          defaultValue: ''
-          description: 'The type of machine for running batch
+          defaultValue: ""
+          description: "The type of machine for running batch
 
             prediction on dedicated resources. If the Model supports
 
             DEDICATED_RESOURCES this config may be provided (and the job will use
 
-            these resources). If the Model doesn''t support AUTOMATIC_RESOURCES,
+            these resources). If the Model doesn't support AUTOMATIC_RESOURCES,
 
             this config must be provided.  For more details about the
 
@@ -1888,12 +1928,12 @@ components:
 
             For more details about the machine spec, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec"
           isOptional: true
           parameterType: STRING
         manual_batch_tuning_parameters_batch_size:
           defaultValue: 0.0
-          description: 'The number of
+          description: "The number of
 
             the records (e.g. instances) of the operation given in each batch to a
 
@@ -1901,52 +1941,56 @@ components:
 
             considered when setting this parameter, higher value speeds up the
 
-            batch operation''s execution, but too high value will result in a whole
+            batch operation's execution, but too high value will result in a whole
 
-            batch not fitting in a machine''s memory, and the whole operation will
+            batch not fitting in a machine's memory, and the whole operation will
 
-            fail.'
+            fail."
           isOptional: true
           parameterType: NUMBER_INTEGER
         max_replica_count:
           defaultValue: 0.0
-          description: 'The maximum number of machine replicas the batch operation
+          description:
+            "The maximum number of machine replicas the batch operation
             may be scaled
 
-            to. Only used if `machine_type` is set.'
+            to. Only used if `machine_type` is set."
           isOptional: true
           parameterType: NUMBER_INTEGER
         model_parameters:
           defaultValue: {}
-          description: The parameters that govern the predictions. The schema of the
+          description:
+            The parameters that govern the predictions. The schema of the
             parameters
           isOptional: true
           parameterType: STRUCT
         predictions_format:
           defaultValue: jsonl
-          description: 'The format in which Vertex AI gives the predictions. Must
+          description:
+            "The format in which Vertex AI gives the predictions. Must
             be one of the
 
-            Model''s supportedOutputStorageFormats.
+            Model's supportedOutputStorageFormats.
 
-            For more details about this output config, see [OutputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig).'
+            For more details about this output config, see [OutputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig)."
           isOptional: true
           parameterType: STRING
         project:
-          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
-          description: Project to create the BatchPredictionJob. Defaults to the project
+          defaultValue: "{{$.pipeline_google_cloud_project_id}}"
+          description:
+            Project to create the BatchPredictionJob. Defaults to the project
             in which the PipelineJob is run.
           isOptional: true
           parameterType: STRING
         starting_replica_count:
           defaultValue: 0.0
-          description: 'The number of machine replicas
+          description: "The number of machine replicas
 
             used at the start of the batch operation. If not set, Vertex AI
 
             decides starting number, not greater than `max_replica_count`. Only
 
-            used if `machine_type` is set.'
+            used if `machine_type` is set."
           isOptional: true
           parameterType: NUMBER_INTEGER
     outputDefinitions:
@@ -1955,39 +1999,43 @@ components:
           artifactType:
             schemaTitle: google.VertexBatchPredictionJob
             schemaVersion: 0.0.1
-          description: '[**Deprecated. Use gcs_output_directory and bigquery_output_table
+          description:
+            "[**Deprecated. Use gcs_output_directory and bigquery_output_table
 
             instead.**] Artifact
 
-            representation of the created batch prediction job.'
+            representation of the created batch prediction job."
         bigquery_output_table:
           artifactType:
             schemaTitle: google.BQTable
             schemaVersion: 0.0.1
-          description: 'Artifact tracking the batch prediction job output. This is
+          description:
+            "Artifact tracking the batch prediction job output. This is
             only
 
             available if
 
-            bigquery_output_table is specified.'
+            bigquery_output_table is specified."
         gcs_output_directory:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'Artifact tracking the batch prediction job output. This is
+          description:
+            "Artifact tracking the batch prediction job output. This is
             only
 
             available if
 
-            gcs_destination_output_uri_prefix is specified.'
+            gcs_destination_output_uri_prefix is specified."
       parameters:
         gcp_resources:
-          description: 'Serialized gcp_resources proto tracking the batch prediction
+          description:
+            "Serialized gcp_resources proto tracking the batch prediction
             job.
 
             For more details, see
 
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md."
           parameterType: STRING
   comp-model-evaluation:
     executorLabel: exec-model-evaluation
@@ -2011,11 +2059,11 @@ components:
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         dataflow_use_public_ips:
@@ -2027,11 +2075,11 @@ components:
           isOptional: true
           parameterType: NUMBER_INTEGER
         encryption_spec_key_name:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         example_weight_column:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         ground_truth_column:
@@ -2045,15 +2093,15 @@ components:
           isOptional: true
           parameterType: STRING
         prediction_id_column:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         prediction_label_column:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         prediction_score_column:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         predictions_format:
@@ -2083,14 +2131,16 @@ components:
           artifactType:
             schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
-          description: An artifact of a model which to upload a new version to. Only
+          description:
+            An artifact of a model which to upload a new version to. Only
             specify this field when uploading a new version. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload#request-body)
           isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
-          description: "The unmanaged container model to be uploaded.  The Model can\
+          description:
+            "The unmanaged container model to be uploaded.  The Model can\
             \ be passed from an upstream step or imported via a KFP `dsl.importer`.\n\
             :Examples:\n  ::\n\n    from kfp import dsl\n    from google_cloud_pipeline_components.google_cloud_pipeline_components.types\
             \ import artifact_types\n\n    importer_spec = dsl.importer(\n      artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',\n\
@@ -2100,20 +2150,20 @@ components:
           isOptional: true
       parameters:
         description:
-          defaultValue: ''
+          defaultValue: ""
           description: The description of the Model. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)
           isOptional: true
           parameterType: STRING
         display_name:
-          description: 'The display name of the Model. The name
+          description: "The display name of the Model. The name
 
             can be up to 128 characters long and can be consist of any UTF-8
 
-            characters. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)'
+            characters. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#Model)"
           parameterType: STRING
         encryption_spec_key_name:
-          defaultValue: ''
-          description: 'Customer-managed encryption
+          defaultValue: ""
+          description: "Customer-managed encryption
 
             key spec for a Model. If set, this Model and all sub-resources of this
 
@@ -2123,27 +2173,27 @@ components:
 
             The key needs to be in the same region as where the compute resource
 
-            is created.'
+            is created."
           isOptional: true
           parameterType: STRING
         explanation_metadata:
           defaultValue: {}
-          description: 'Metadata describing the Model''s
+          description: "Metadata describing the Model's
 
             input and output for explanation. Both `explanation_metadata` and `explanation_parameters`
-            must be passed together when used. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata)'
+            must be passed together when used. [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata)"
           isOptional: true
           parameterType: STRUCT
         explanation_parameters:
           defaultValue: {}
-          description: 'Parameters to configure
+          description: "Parameters to configure
 
-            explaining for Model''s predictions.  [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters)'
+            explaining for Model's predictions.  [More information.](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters)"
           isOptional: true
           parameterType: STRUCT
         labels:
           defaultValue: {}
-          description: 'The labels with user-defined metadata to
+          description: "The labels with user-defined metadata to
 
             organize your model.  Label keys and values can be no longer than 64
 
@@ -2153,19 +2203,20 @@ components:
 
             are allowed.  See https://goo.gl/xmQnxf for more information and
 
-            examples of labels.'
+            examples of labels."
           isOptional: true
           parameterType: STRUCT
         location:
           defaultValue: us-central1
-          description: 'Optional location to upload this Model to. If
+          description: "Optional location to upload this Model to. If
 
-            not set, defaults to `us-central1`.'
+            not set, defaults to `us-central1`."
           isOptional: true
           parameterType: STRING
         project:
-          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
-          description: Project to upload this Model to. Defaults to the project in
+          defaultValue: "{{$.pipeline_google_cloud_project_id}}"
+          description:
+            Project to upload this Model to. Defaults to the project in
             which the PipelineJob is run.
           isOptional: true
           parameterType: STRING
@@ -2178,7 +2229,8 @@ components:
           description: Artifact tracking the created Model.
       parameters:
         gcp_resources:
-          description: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
+          description:
+            Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
             which tracks the upload Model's long-running operation.
           parameterType: STRING
   comp-parse-worker-pool-specs-override:
@@ -2186,9 +2238,9 @@ components:
     inputDefinitions:
       parameters:
         worker_pool_specs_override:
-          description: 'The list of dictionaries for overriding training
+          description: "The list of dictionaries for overriding training
 
-            and evaluation worker pool specs.'
+            and evaluation worker pool specs."
           parameterType: LIST
     outputDefinitions:
       parameters:
@@ -2240,9 +2292,9 @@ components:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
-          description: 'Materialized dataset output by the Feature
+          description: "Materialized dataset output by the Feature
 
-            Transform Engine.'
+            Transform Engine."
     outputDefinitions:
       artifacts:
         materialized_eval_split:
@@ -2291,7 +2343,8 @@ components:
           parameterType: NUMBER_INTEGER
         enable_probabilistic_inference:
           defaultValue: false
-          description: If probabilistic inference is enabled, the model will fit a
+          description:
+            If probabilistic inference is enabled, the model will fit a
             distribution that captures the uncertainty of a prediction. At inference
             time, the predictive distribution is used to make a point prediction that
             minimizes the optimization objective.  For example, the mean of a predictive
@@ -2305,36 +2358,41 @@ components:
           isOptional: true
           parameterType: NUMBER_INTEGER
         forecasting_model_type:
-          defaultValue: ''
+          defaultValue: ""
           description: The model types, e.g. l2l, seq2seq, tft.
           isOptional: true
           parameterType: STRING
         forecasting_transformations:
           defaultValue: {}
-          description: Dict mapping auto and/or type-resolutions to feature columns.
+          description:
+            Dict mapping auto and/or type-resolutions to feature columns.
             The supported types are auto, categorical, numeric, text, and timestamp.
           isOptional: true
           parameterType: STRUCT
         group_columns:
-          description: A list of time series attribute column names that define the
+          description:
+            A list of time series attribute column names that define the
             time series hierarchy.
           isOptional: true
           parameterType: LIST
         group_temporal_total_weight:
           defaultValue: 0.0
-          description: The weight of the loss for predictions aggregated over both
+          description:
+            The weight of the loss for predictions aggregated over both
             the horizon and time series in the same hierarchy group.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         group_total_weight:
           defaultValue: 0.0
-          description: The weight of the loss for predictions aggregated over time
+          description:
+            The weight of the loss for predictions aggregated over time
             series in the same group.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         optimization_objective:
-          defaultValue: ''
-          description: 'Objective function the model is optimizing towards. The training
+          defaultValue: ""
+          description:
+            'Objective function the model is optimizing towards. The training
             process creates a model that maximizes/minimizes the value of the objective
             function over the validation set. The supported optimization objectives
             depend on the prediction type. If the field is not set, a default objective
@@ -2352,19 +2410,22 @@ components:
           parameterType: STRING
         optimization_objective_precision_value:
           defaultValue: -1.0
-          description: Required when optimization_objective is "maximize-recall-at-precision".
+          description:
+            Required when optimization_objective is "maximize-recall-at-precision".
             Must be between 0 and 1, inclusive.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         optimization_objective_recall_value:
           defaultValue: -1.0
-          description: Required when optimization_objective is "maximize-precision-at-recall".
+          description:
+            Required when optimization_objective is "maximize-precision-at-recall".
             Must be between 0 and 1, inclusive.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         prediction_type:
-          defaultValue: ''
-          description: Model prediction type. One of "classification", "regression",
+          defaultValue: ""
+          description:
+            Model prediction type. One of "classification", "regression",
             "time_series".
           isOptional: true
           parameterType: STRING
@@ -2384,7 +2445,8 @@ components:
           isOptional: true
           parameterType: BOOLEAN
         split_example_counts:
-          description: JSON string of data split example counts for train, validate,
+          description:
+            JSON string of data split example counts for train, validate,
             and test splits.
           parameterType: STRING
         stage_1_deadline_hours:
@@ -2396,18 +2458,19 @@ components:
           isOptional: true
           parameterType: NUMBER_DOUBLE
         target_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Target column of input data.
           isOptional: true
           parameterType: STRING
         temporal_total_weight:
           defaultValue: 0.0
-          description: The weight of the loss for predictions aggregated over the
+          description:
+            The weight of the loss for predictions aggregated over the
             horizon for a single time series.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         time_column:
-          defaultValue: ''
+          defaultValue: ""
           description: The column that indicates the time. Used by forecasting only.
           isOptional: true
           parameterType: STRING
@@ -2417,25 +2480,28 @@ components:
           isOptional: true
           parameterType: LIST
         time_series_identifier_column:
-          description: '[Deprecated] The time series identifier column. Used by forecasting
+          description:
+            '[Deprecated] The time series identifier column. Used by forecasting
             only. Raises exception if used - use the "time_series_identifier_column"
             field instead.'
           isOptional: true
           parameterType: STRING
         time_series_identifier_columns:
           defaultValue: []
-          description: The list of time series identifier columns.  Used by forecasting
+          description:
+            The list of time series identifier columns.  Used by forecasting
             only.
           isOptional: true
           parameterType: LIST
         unavailable_at_forecast_columns:
           defaultValue: []
-          description: The names of the columns that are not available at forecast
+          description:
+            The names of the columns that are not available at forecast
             time.
           isOptional: true
           parameterType: LIST
         weight_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Weight column of input data.
           isOptional: true
           parameterType: STRING
@@ -2487,7 +2553,8 @@ components:
       parameters:
         cache_data:
           defaultValue: auto
-          description: Whether to cache data or not. If set to 'auto', caching is
+          description:
+            Whether to cache data or not. If set to 'auto', caching is
             determined based on the dataset size.
           isOptional: true
           parameterType: STRING
@@ -2497,7 +2564,7 @@ components:
           isOptional: true
           parameterType: BOOLEAN
         encryption_spec_key_name:
-          defaultValue: ''
+          defaultValue: ""
           description: The KMS key name.
           isOptional: true
           parameterType: STRING
@@ -2508,7 +2575,8 @@ components:
           parameterType: NUMBER_INTEGER
         eval_steps:
           defaultValue: 0.0
-          description: Number of steps to run evaluation for. If not specified or
+          description:
+            Number of steps to run evaluation for. If not specified or
             negative, it means run evaluation on the whole validation dataset. If
             set to 0, it means run evaluation for a fixed number of samples.
           isOptional: true
@@ -2518,7 +2586,8 @@ components:
           parameterType: STRING
         max_failed_trial_count:
           defaultValue: 0.0
-          description: The number of failed trials that need to be seen before failing
+          description:
+            The number of failed trials that need to be seen before failing
             the HyperparameterTuningJob. If set to 0, Vertex AI decides how many trials
             must fail before the whole job fails.
           isOptional: true
@@ -2530,7 +2599,8 @@ components:
           description: The desired number of trials to run in parallel.
           parameterType: NUMBER_INTEGER
         prediction_type:
-          description: The type of prediction the model is to produce. "classification"
+          description:
+            The type of prediction the model is to produce. "classification"
             or "regression".
           parameterType: STRING
         project:
@@ -2546,27 +2616,32 @@ components:
           parameterType: NUMBER_INTEGER
         study_spec_algorithm:
           defaultValue: ALGORITHM_UNSPECIFIED
-          description: The search algorithm specified for the study. One of 'ALGORITHM_UNSPECIFIED',
+          description:
+            The search algorithm specified for the study. One of 'ALGORITHM_UNSPECIFIED',
             'GRID_SEARCH', or 'RANDOM_SEARCH'.
           isOptional: true
           parameterType: STRING
         study_spec_measurement_selection_type:
           defaultValue: BEST_MEASUREMENT
-          description: Which measurement to use if/when the service automatically
+          description:
+            Which measurement to use if/when the service automatically
             selects the final measurement from previously reported intermediate measurements.
             One of "BEST_MEASUREMENT" or "LAST_MEASUREMENT".
           isOptional: true
           parameterType: STRING
         study_spec_metric_goal:
-          description: 'Optimization goal of the metric, possible values: "MAXIMIZE",
+          description:
+            'Optimization goal of the metric, possible values: "MAXIMIZE",
             "MINIMIZE".'
           parameterType: STRING
         study_spec_metric_id:
-          description: 'Metric to optimize, possible values: [ ''loss'', ''average_loss'',
-            ''rmse'', ''mae'', ''mql'', ''accuracy'', ''auc'', ''precision'', ''recall''].'
+          description:
+            "Metric to optimize, possible values: [ 'loss', 'average_loss',
+            'rmse', 'mae', 'mql', 'accuracy', 'auc', 'precision', 'recall']."
           parameterType: STRING
         study_spec_parameters_override:
-          description: List of dictionaries representing parameters to optimize. The
+          description:
+            List of dictionaries representing parameters to optimize. The
             dictionary key is the parameter_id, which is passed to training job as
             a command line argument, and the dictionary value is the parameter specification
             of the metric.
@@ -2584,12 +2659,13 @@ components:
         training_machine_spec:
           defaultValue:
             machine_type: c2-standard-16
-          description: The training machine spec. See https://cloud.google.com/compute/docs/machine-types
+          description:
+            The training machine spec. See https://cloud.google.com/compute/docs/machine-types
             for options.
           isOptional: true
           parameterType: STRUCT
         weight_column:
-          defaultValue: ''
+          defaultValue: ""
           description: The weight column name.
           isOptional: true
           parameterType: STRING
@@ -2599,7 +2675,8 @@ components:
           description: Core metrics in dictionary of hyperparameter tuning job execution.
           parameterType: STRUCT
         gcp_resources:
-          description: Serialized gcp_resources proto tracking the custom training
+          description:
+            Serialized gcp_resources proto tracking the custom training
             job.
           parameterType: STRING
         instance_schema_uri:
@@ -2619,34 +2696,34 @@ deploymentSpec:
     exec-automl-tabular-finalizer:
       container:
         args:
-        - --type
-        - CustomJob
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --payload
-        - '{"Concat": ["{\"display_name\": \"automl-tabular-finalizer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
-          \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
-          {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
-          "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250620_0525", "\",
-          \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
-          "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
+          - --type
+          - CustomJob
+          - --project
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --payload
+          - '{"Concat": ["{\"display_name\": \"automl-tabular-finalizer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
+            \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+            "\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\":
+            {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"",
+            "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20250620_0525", "\",
+            \"args\": [\"cancel_l2l_tuner\", \"--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--cleanup_lro_job_infos=",
+            "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/lro\"]}}]}}"]}'
         command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.custom_job.launcher
+          - python3
+          - -u
+          - -m
+          - google_cloud_pipeline_components.container.v1.custom_job.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
     exec-automl-tabular-infra-validator:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
+          - --executor_input
+          - "{{$}}"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20250620_0525
         resources:
           cpuLimit: 8.0
@@ -2654,127 +2731,127 @@ deploymentSpec:
     exec-bool-identity:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - _bool_identity
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - _bool_identity
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
-          \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
-          \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef _bool_identity(value: bool) -> str:\n  \"\"\"Returns boolean\
+            \ value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n\
+            \    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-feature-transform-engine:
       container:
         args:
-        - feature_transform_engine
-        - '{"Concat": ["--project=", "{{$.inputs.parameters[''project'']}}"]}'
-        - '{"Concat": ["--location=", "{{$.inputs.parameters[''location'']}}"]}'
-        - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
-        - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
-        - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
-        - '{"IfPresent": {"InputName": "forecasting_time_series_identifier_column",
-          "Then": {"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}}}'
-        - '{"Concat": ["--forecasting_time_series_identifier_columns=", "{{$.inputs.parameters[''forecasting_time_series_identifier_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_forecast_horizon=", "{{$.inputs.parameters[''forecasting_forecast_horizon'']}}"]}'
-        - '{"Concat": ["--forecasting_context_window=", "{{$.inputs.parameters[''forecasting_context_window'']}}"]}'
-        - '{"Concat": ["--forecasting_predefined_window_column=", "{{$.inputs.parameters[''forecasting_predefined_window_column'']}}"]}'
-        - '{"Concat": ["--forecasting_window_stride_length=", "{{$.inputs.parameters[''forecasting_window_stride_length'']}}"]}'
-        - '{"Concat": ["--forecasting_window_max_count=", "{{$.inputs.parameters[''forecasting_window_max_count'']}}"]}'
-        - '{"Concat": ["--forecasting_holiday_regions=", "{{$.inputs.parameters[''forecasting_holiday_regions'']}}"]}'
-        - '{"Concat": ["--forecasting_apply_windowing=", "{{$.inputs.parameters[''forecasting_apply_windowing'']}}"]}'
-        - '{"Concat": ["--predefined_split_key=", "{{$.inputs.parameters[''predefined_split_key'']}}"]}'
-        - '{"Concat": ["--stratified_split_key=", "{{$.inputs.parameters[''stratified_split_key'']}}"]}'
-        - '{"Concat": ["--timestamp_split_key=", "{{$.inputs.parameters[''timestamp_split_key'']}}"]}'
-        - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
-        - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
-        - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
-        - '{"Concat": ["--stats_gen_execution_engine=", "{{$.inputs.parameters[''stats_gen_execution_engine'']}}"]}'
-        - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
-        - '{"IfPresent": {"InputName": "tf_auto_transform_features", "Then": {"Concat":
-          ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}}}'
-        - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
-        - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
-        - '{"Concat": ["--legacy_transformations_path=", "{{$.inputs.parameters[''legacy_transformations_path'']}}"]}'
-        - '{"Concat": ["--data_source_csv_filenames=", "{{$.inputs.parameters[''data_source_csv_filenames'']}}"]}'
-        - '{"Concat": ["--data_source_bigquery_table_path=", "{{$.inputs.parameters[''data_source_bigquery_table_path'']}}"]}'
-        - '{"Concat": ["--bigquery_staging_full_dataset_id=", "{{$.inputs.parameters[''bigquery_staging_full_dataset_id'']}}"]}'
-        - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
-        - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
-        - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
-        - '{"IfPresent": {"InputName": "model_type", "Then": {"Concat": ["--model_type=",
-          "{{$.inputs.parameters[''model_type'']}}"]}}}'
-        - '{"Concat": ["--multimodal_tabular_columns=", "{{$.inputs.parameters[''multimodal_tabular_columns'']}}"]}'
-        - '{"Concat": ["--multimodal_timeseries_columns=", "{{$.inputs.parameters[''multimodal_timeseries_columns'']}}"]}'
-        - '{"Concat": ["--multimodal_text_columns=", "{{$.inputs.parameters[''multimodal_text_columns'']}}"]}'
-        - '{"Concat": ["--multimodal_image_columns=", "{{$.inputs.parameters[''multimodal_image_columns'']}}"]}'
-        - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
-        - '{"Concat": ["--run_feature_selection=", "{{$.inputs.parameters[''run_feature_selection'']}}"]}'
-        - '{"Concat": ["--materialized_examples_format=", "{{$.inputs.parameters[''materialized_examples_format'']}}"]}'
-        - '{"Concat": ["--max_selected_features=", "{{$.inputs.parameters[''max_selected_features'']}}"]}'
-        - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
-        - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
-        - '{"Concat": ["--feature_selection_execution_engine=", "{{$.inputs.parameters[''feature_selection_execution_engine'']}}"]}'
-        - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
-        - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
-        - '{"Concat": ["--stats_result_path=", "{{$.outputs.artifacts[''dataset_stats''].uri}}"]}'
-        - '{"Concat": ["--transform_output_artifact_path=", "{{$.outputs.artifacts[''transform_output''].uri}}"]}'
-        - '{"Concat": ["--transform_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform"]}'
-        - '{"Concat": ["--materialized_examples_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized"]}'
-        - '{"Concat": ["--export_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/export"]}'
-        - '{"Concat": ["--materialized_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data"]}'
-        - '{"Concat": ["--materialized_data_artifact_path=", "{{$.outputs.artifacts[''materialized_data''].uri}}"]}'
-        - '{"Concat": ["--bigquery_train_split_uri_path=", "{{$.outputs.parameters[''bigquery_train_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--bigquery_validation_split_uri_path=", "{{$.outputs.parameters[''bigquery_validation_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--bigquery_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_test_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--bigquery_downsampled_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_downsampled_test_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--split_example_counts_path=", "{{$.outputs.parameters[''split_example_counts''].output_file}}"]}'
-        - '{"Concat": ["--instance_schema_path=", "{{$.outputs.artifacts[''instance_schema''].path}}"]}'
-        - '{"Concat": ["--training_schema_path=", "{{$.outputs.artifacts[''training_schema''].path}}"]}'
-        - --job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
-        - '{"Concat": ["--dataflow_project=", "{{$.inputs.parameters[''project'']}}"]}'
-        - '{"Concat": ["--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging"]}'
-        - '{"Concat": ["--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
-        - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
-        - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
-        - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
-        - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
-        - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
-        - '{"Concat": ["--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}"]}'
-        - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
-        - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
-        - '{"IfPresent": {"InputName": "group_columns", "Then": {"Concat": ["--group_columns=",
-          "{{$.inputs.parameters[''group_columns'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_total_weight", "Then": {"Concat": ["--group_total_weight=",
-          "{{$.inputs.parameters[''group_total_weight'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "temporal_total_weight", "Then": {"Concat":
-          ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
-          ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
+          - feature_transform_engine
+          - '{"Concat": ["--project=", "{{$.inputs.parameters[''project'']}}"]}'
+          - '{"Concat": ["--location=", "{{$.inputs.parameters[''location'']}}"]}'
+          - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
+          - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
+          - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
+          - '{"IfPresent": {"InputName": "forecasting_time_series_identifier_column",
+            "Then": {"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}}}'
+          - '{"Concat": ["--forecasting_time_series_identifier_columns=", "{{$.inputs.parameters[''forecasting_time_series_identifier_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_forecast_horizon=", "{{$.inputs.parameters[''forecasting_forecast_horizon'']}}"]}'
+          - '{"Concat": ["--forecasting_context_window=", "{{$.inputs.parameters[''forecasting_context_window'']}}"]}'
+          - '{"Concat": ["--forecasting_predefined_window_column=", "{{$.inputs.parameters[''forecasting_predefined_window_column'']}}"]}'
+          - '{"Concat": ["--forecasting_window_stride_length=", "{{$.inputs.parameters[''forecasting_window_stride_length'']}}"]}'
+          - '{"Concat": ["--forecasting_window_max_count=", "{{$.inputs.parameters[''forecasting_window_max_count'']}}"]}'
+          - '{"Concat": ["--forecasting_holiday_regions=", "{{$.inputs.parameters[''forecasting_holiday_regions'']}}"]}'
+          - '{"Concat": ["--forecasting_apply_windowing=", "{{$.inputs.parameters[''forecasting_apply_windowing'']}}"]}'
+          - '{"Concat": ["--predefined_split_key=", "{{$.inputs.parameters[''predefined_split_key'']}}"]}'
+          - '{"Concat": ["--stratified_split_key=", "{{$.inputs.parameters[''stratified_split_key'']}}"]}'
+          - '{"Concat": ["--timestamp_split_key=", "{{$.inputs.parameters[''timestamp_split_key'']}}"]}'
+          - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
+          - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
+          - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+          - '{"Concat": ["--stats_gen_execution_engine=", "{{$.inputs.parameters[''stats_gen_execution_engine'']}}"]}'
+          - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
+          - '{"IfPresent": {"InputName": "tf_auto_transform_features", "Then": {"Concat":
+            ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}}}'
+          - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
+          - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
+          - '{"Concat": ["--legacy_transformations_path=", "{{$.inputs.parameters[''legacy_transformations_path'']}}"]}'
+          - '{"Concat": ["--data_source_csv_filenames=", "{{$.inputs.parameters[''data_source_csv_filenames'']}}"]}'
+          - '{"Concat": ["--data_source_bigquery_table_path=", "{{$.inputs.parameters[''data_source_bigquery_table_path'']}}"]}'
+          - '{"Concat": ["--bigquery_staging_full_dataset_id=", "{{$.inputs.parameters[''bigquery_staging_full_dataset_id'']}}"]}'
+          - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
+          - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
+          - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
+          - '{"IfPresent": {"InputName": "model_type", "Then": {"Concat": ["--model_type=",
+            "{{$.inputs.parameters[''model_type'']}}"]}}}'
+          - '{"Concat": ["--multimodal_tabular_columns=", "{{$.inputs.parameters[''multimodal_tabular_columns'']}}"]}'
+          - '{"Concat": ["--multimodal_timeseries_columns=", "{{$.inputs.parameters[''multimodal_timeseries_columns'']}}"]}'
+          - '{"Concat": ["--multimodal_text_columns=", "{{$.inputs.parameters[''multimodal_text_columns'']}}"]}'
+          - '{"Concat": ["--multimodal_image_columns=", "{{$.inputs.parameters[''multimodal_image_columns'']}}"]}'
+          - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
+          - '{"Concat": ["--run_feature_selection=", "{{$.inputs.parameters[''run_feature_selection'']}}"]}'
+          - '{"Concat": ["--materialized_examples_format=", "{{$.inputs.parameters[''materialized_examples_format'']}}"]}'
+          - '{"Concat": ["--max_selected_features=", "{{$.inputs.parameters[''max_selected_features'']}}"]}'
+          - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
+          - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
+          - '{"Concat": ["--feature_selection_execution_engine=", "{{$.inputs.parameters[''feature_selection_execution_engine'']}}"]}'
+          - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
+          - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
+          - '{"Concat": ["--stats_result_path=", "{{$.outputs.artifacts[''dataset_stats''].uri}}"]}'
+          - '{"Concat": ["--transform_output_artifact_path=", "{{$.outputs.artifacts[''transform_output''].uri}}"]}'
+          - '{"Concat": ["--transform_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform"]}'
+          - '{"Concat": ["--materialized_examples_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized"]}'
+          - '{"Concat": ["--export_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/export"]}'
+          - '{"Concat": ["--materialized_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data"]}'
+          - '{"Concat": ["--materialized_data_artifact_path=", "{{$.outputs.artifacts[''materialized_data''].uri}}"]}'
+          - '{"Concat": ["--bigquery_train_split_uri_path=", "{{$.outputs.parameters[''bigquery_train_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--bigquery_validation_split_uri_path=", "{{$.outputs.parameters[''bigquery_validation_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--bigquery_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_test_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--bigquery_downsampled_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_downsampled_test_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--split_example_counts_path=", "{{$.outputs.parameters[''split_example_counts''].output_file}}"]}'
+          - '{"Concat": ["--instance_schema_path=", "{{$.outputs.artifacts[''instance_schema''].path}}"]}'
+          - '{"Concat": ["--training_schema_path=", "{{$.outputs.artifacts[''training_schema''].path}}"]}'
+          - --job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
+          - '{"Concat": ["--dataflow_project=", "{{$.inputs.parameters[''project'']}}"]}'
+          - '{"Concat": ["--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging"]}'
+          - '{"Concat": ["--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
+          - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
+          - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
+          - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525
+          - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
+          - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
+          - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
+          - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
+          - '{"Concat": ["--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}"]}'
+          - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
+          - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
+          - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
+          - '{"IfPresent": {"InputName": "group_columns", "Then": {"Concat": ["--group_columns=",
+            "{{$.inputs.parameters[''group_columns'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_total_weight", "Then": {"Concat": ["--group_total_weight=",
+            "{{$.inputs.parameters[''group_total_weight'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "temporal_total_weight", "Then": {"Concat":
+            ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
+            ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
+          - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
         resources:
           cpuLimit: 8.0
@@ -2782,566 +2859,566 @@ deploymentSpec:
     exec-get-best-hyperparameter-tuning-job-trial:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - _get_best_hyperparameter_tuning_job_trial
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - _get_best_hyperparameter_tuning_job_trial
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef _get_best_hyperparameter_tuning_job_trial(\n    gcp_resources:\
-          \ str,\n    study_spec_metric_goal: str,\n    unmanaged_container_model:\
-          \ dsl.Output[dsl.Artifact],\n    trials_dir: str = '',\n    instance_schema_uri:\
-          \ str = '',\n    prediction_schema_uri: str = '',\n    prediction_docker_uri:\
-          \ str = '',\n    read_value_from_file: bool = False,\n):\n  \"\"\"Gets best\
-          \ HyperparameterTuningJob trial.\n\n  Args:\n    gcp_resources: Proto tracking\
-          \ the hyperparameter tuning job.\n    study_spec_metric_goal: Optimization\
-          \ goal of the metric, possible values:\n      \"MAXIMIZE\", \"MINIMIZE\"\
-          .\n    unmanaged_container_model: The unmanaged model.\n    trials_dir:\
-          \ The path to the hyperparameter tuning trials.\n    instance_schema_uri:\
-          \ The instance schema uri.\n    prediction_schema_uri: The prediction schema_uri.\n\
-          \    prediction_docker_uri: The prediction docker container uri.\n    read_value_from_file:\
-          \ If true, read file to get the relevant value.\n\n  Raises:\n    RuntimeError:\
-          \ If there are multiple metrics.\n  \"\"\"\n\n  import os\n  import json\n\
-          \  from google.api_core.retry import Retry\n  from google.cloud import aiplatform_v1beta1\
-          \ as aip\n  import tensorflow as tf\n\n  # If path to file with value is\
-          \ provided, read the file before continuing.\n  if read_value_from_file:\n\
-          \    with tf.io.gfile.GFile(trials_dir, 'r') as f:\n      trials_dir = f.read()\n\
-          \    with tf.io.gfile.GFile(instance_schema_uri, 'r') as f:\n      instance_schema_uri\
-          \ = f.read()\n    with tf.io.gfile.GFile(prediction_schema_uri, 'r') as\
-          \ f:\n      prediction_schema_uri = f.read()\n    with tf.io.gfile.GFile(prediction_docker_uri,\
-          \ 'r') as f:\n      prediction_docker_uri = f.read()\n\n  api_endpoint_suffix\
-          \ = '-aiplatform.googleapis.com'\n  gcp_resources_json = json.loads(gcp_resources)\n\
-          \  resource = gcp_resources_json['resources'][0]\n\n  uri_key = 'resource_uri'\n\
-          \  if uri_key not in resource:\n    uri_key = 'resourceUri'\n\n  gcp_resources_split\
-          \ = resource[uri_key].partition('projects')\n  resource_name = gcp_resources_split[1]\
-          \ + gcp_resources_split[2]\n  prefix_str = gcp_resources_split[0]\n  prefix_str\
-          \ = prefix_str[: prefix_str.find(api_endpoint_suffix)]\n  api_endpoint =\
-          \ (\n      prefix_str[(prefix_str.rfind('//') + 2) :] + api_endpoint_suffix\n\
-          \  )\n\n  job_client = aip.JobServiceClient(\n      client_options={'api_endpoint':\
-          \ api_endpoint}\n  )\n  response = job_client.get_hyperparameter_tuning_job(\n\
-          \      name=resource_name,\n      retry=Retry(initial=10.0, maximum=60.0,\
-          \ deadline=10.0 * 60.0),\n  )\n\n  # Get best trial\n  trials_list = []\n\
-          \  for trial in response.trials:\n    if trial.final_measurement:\n    \
-          \  trials_list.append({\n          'id': trial.id,\n          'objective_value':\
-          \ trial.final_measurement.metrics[0].value,\n      })\n\n  if study_spec_metric_goal\
-          \ == 'MAXIMIZE':\n    best_fn = max\n  elif study_spec_metric_goal == 'MINIMIZE':\n\
-          \    best_fn = min\n  else:\n    raise ValueError(\n        f'Unexpected\
-          \ study spec metric goal: {study_spec_metric_goal}'\n    )\n\n  best_trial\
-          \ = best_fn(trials_list, key=lambda trial: trial['objective_value'])\n\n\
-          \  # Build unmanaged_container_model\n  unmanaged_container_model.metadata['containerSpec']\
-          \ = {\n      'imageUri': prediction_docker_uri,\n      'healthRoute': '/health',\n\
-          \      'predictRoute': '/predict',\n  }\n  unmanaged_container_model.metadata['predictSchemata']\
-          \ = {\n      'instanceSchemaUri': instance_schema_uri,\n      'predictionSchemaUri':\
-          \ prediction_schema_uri,\n  }\n  unmanaged_container_model.uri = os.path.join(\n\
-          \      trials_dir, 'trial_{}'.format(best_trial['id']), 'model'\n  )\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef _get_best_hyperparameter_tuning_job_trial(\n    gcp_resources:\
+            \ str,\n    study_spec_metric_goal: str,\n    unmanaged_container_model:\
+            \ dsl.Output[dsl.Artifact],\n    trials_dir: str = '',\n    instance_schema_uri:\
+            \ str = '',\n    prediction_schema_uri: str = '',\n    prediction_docker_uri:\
+            \ str = '',\n    read_value_from_file: bool = False,\n):\n  \"\"\"Gets best\
+            \ HyperparameterTuningJob trial.\n\n  Args:\n    gcp_resources: Proto tracking\
+            \ the hyperparameter tuning job.\n    study_spec_metric_goal: Optimization\
+            \ goal of the metric, possible values:\n      \"MAXIMIZE\", \"MINIMIZE\"\
+            .\n    unmanaged_container_model: The unmanaged model.\n    trials_dir:\
+            \ The path to the hyperparameter tuning trials.\n    instance_schema_uri:\
+            \ The instance schema uri.\n    prediction_schema_uri: The prediction schema_uri.\n\
+            \    prediction_docker_uri: The prediction docker container uri.\n    read_value_from_file:\
+            \ If true, read file to get the relevant value.\n\n  Raises:\n    RuntimeError:\
+            \ If there are multiple metrics.\n  \"\"\"\n\n  import os\n  import json\n\
+            \  from google.api_core.retry import Retry\n  from google.cloud import aiplatform_v1beta1\
+            \ as aip\n  import tensorflow as tf\n\n  # If path to file with value is\
+            \ provided, read the file before continuing.\n  if read_value_from_file:\n\
+            \    with tf.io.gfile.GFile(trials_dir, 'r') as f:\n      trials_dir = f.read()\n\
+            \    with tf.io.gfile.GFile(instance_schema_uri, 'r') as f:\n      instance_schema_uri\
+            \ = f.read()\n    with tf.io.gfile.GFile(prediction_schema_uri, 'r') as\
+            \ f:\n      prediction_schema_uri = f.read()\n    with tf.io.gfile.GFile(prediction_docker_uri,\
+            \ 'r') as f:\n      prediction_docker_uri = f.read()\n\n  api_endpoint_suffix\
+            \ = '-aiplatform.googleapis.com'\n  gcp_resources_json = json.loads(gcp_resources)\n\
+            \  resource = gcp_resources_json['resources'][0]\n\n  uri_key = 'resource_uri'\n\
+            \  if uri_key not in resource:\n    uri_key = 'resourceUri'\n\n  gcp_resources_split\
+            \ = resource[uri_key].partition('projects')\n  resource_name = gcp_resources_split[1]\
+            \ + gcp_resources_split[2]\n  prefix_str = gcp_resources_split[0]\n  prefix_str\
+            \ = prefix_str[: prefix_str.find(api_endpoint_suffix)]\n  api_endpoint =\
+            \ (\n      prefix_str[(prefix_str.rfind('//') + 2) :] + api_endpoint_suffix\n\
+            \  )\n\n  job_client = aip.JobServiceClient(\n      client_options={'api_endpoint':\
+            \ api_endpoint}\n  )\n  response = job_client.get_hyperparameter_tuning_job(\n\
+            \      name=resource_name,\n      retry=Retry(initial=10.0, maximum=60.0,\
+            \ deadline=10.0 * 60.0),\n  )\n\n  # Get best trial\n  trials_list = []\n\
+            \  for trial in response.trials:\n    if trial.final_measurement:\n    \
+            \  trials_list.append({\n          'id': trial.id,\n          'objective_value':\
+            \ trial.final_measurement.metrics[0].value,\n      })\n\n  if study_spec_metric_goal\
+            \ == 'MAXIMIZE':\n    best_fn = max\n  elif study_spec_metric_goal == 'MINIMIZE':\n\
+            \    best_fn = min\n  else:\n    raise ValueError(\n        f'Unexpected\
+            \ study spec metric goal: {study_spec_metric_goal}'\n    )\n\n  best_trial\
+            \ = best_fn(trials_list, key=lambda trial: trial['objective_value'])\n\n\
+            \  # Build unmanaged_container_model\n  unmanaged_container_model.metadata['containerSpec']\
+            \ = {\n      'imageUri': prediction_docker_uri,\n      'healthRoute': '/health',\n\
+            \      'predictRoute': '/predict',\n  }\n  unmanaged_container_model.metadata['predictSchemata']\
+            \ = {\n      'instanceSchemaUri': instance_schema_uri,\n      'predictionSchemaUri':\
+            \ prediction_schema_uri,\n  }\n  unmanaged_container_model.uri = os.path.join(\n\
+            \      trials_dir, 'trial_{}'.format(best_trial['id']), 'model'\n  )\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-model-display-name:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - _get_model_display_name
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - _get_model_display_name
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef _get_model_display_name(\n    model_display_name: str,\n) ->\
-          \ NamedTuple('Outputs', [('model_display_name', str),]):\n  \"\"\"Returns\
-          \ the model display name.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \  import collections\n  import uuid\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \n  if not model_display_name:\n    model_display_name = f'tabular-workflow-model-{uuid.uuid4()}'\n\
-          \n  return collections.namedtuple(\n      'Outputs',\n      [\n        \
-          \  'model_display_name',\n      ],\n  )(\n      model_display_name,\n  )\n\
-          \n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef _get_model_display_name(\n    model_display_name: str,\n) ->\
+            \ NamedTuple('Outputs', [('model_display_name', str),]):\n  \"\"\"Returns\
+            \ the model display name.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+            \  import collections\n  import uuid\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+            \n  if not model_display_name:\n    model_display_name = f'tabular-workflow-model-{uuid.uuid4()}'\n\
+            \n  return collections.namedtuple(\n      'Outputs',\n      [\n        \
+            \  'model_display_name',\n      ],\n  )(\n      model_display_name,\n  )\n\
+            \n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-wide-and-deep-study-spec-parameters:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - get_wide_and_deep_study_spec_parameters
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - get_wide_and_deep_study_spec_parameters
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef get_wide_and_deep_study_spec_parameters(\n    study_spec_parameters_override:\
-          \ list  # Required for KFP validation; pylint:disable=g-bare-generic\n)\
-          \ -> list:  # Required by KFP; pylint:disable=g-bare-generic\n  \"\"\"Get\
-          \ study_spec_parameters for a Wide & Deep hyperparameter tuning job.\n\n\
-          \  Args:\n    study_spec_parameters_override: List of dictionaries representing\
-          \ parameters\n      to optimize. The dictionary key is the parameter_id,\
-          \ which is passed to\n      training job as a command line argument, and\
-          \ the dictionary value is the\n      parameter specification of the metric.\n\
-          \n  Returns:\n    List of final Vizier study_spec_parameters of type ParameterSpec.\n\
-          \  \"\"\"\n  default_params = [\n      {\n          'parameter_id': 'max_steps',\n\
-          \          'discrete_value_spec': {\n              'values': [5000, 10000,\
-          \ 20000, 30000, 40000, 50000]\n          },\n      },\n      {\n       \
-          \   'parameter_id': 'max_train_secs',\n          'discrete_value_spec':\
-          \ {'values': [-1]},\n      },\n      {\n          'parameter_id': 'learning_rate',\n\
-          \          'double_value_spec': {'min_value': 0.0001, 'max_value': 0.0005},\n\
-          \          'scale_type': 'UNIT_LINEAR_SCALE',\n      },\n      {\n     \
-          \     'parameter_id': 'optimizer_type',\n          'categorical_value_spec':\
-          \ {'values': ['adam', 'ftrl', 'sgd']},\n      },\n      {\n          'parameter_id':\
-          \ 'l1_regularization_strength',\n          'discrete_value_spec': {'values':\
-          \ [0, 0.01, 0.02]},\n      },\n      {\n          'parameter_id': 'l2_regularization_strength',\n\
-          \          'discrete_value_spec': {'values': [0, 0.01, 0.02]},\n      },\n\
-          \      {\n          'parameter_id': 'l2_shrinkage_regularization_strength',\n\
-          \          'discrete_value_spec': {'values': [0, 0.01, 0.02]},\n      },\n\
-          \      {\n          'parameter_id': 'beta_1',\n          'discrete_value_spec':\
-          \ {'values': [0.7, 0.8, 0.9]},\n      },\n      {\n          'parameter_id':\
-          \ 'beta_2',\n          'discrete_value_spec': {'values': [0.8, 0.9, 0.999]},\n\
-          \      },\n      {\n          'parameter_id': 'hidden_units',\n        \
-          \  'categorical_value_spec': {'values': ['30,30,30']},\n      },\n     \
-          \ {\n          'parameter_id': 'use_wide',\n          'categorical_value_spec':\
-          \ {'values': ['true', 'false']},\n      },\n      {\n          'parameter_id':\
-          \ 'embed_categories',\n          'categorical_value_spec': {'values': ['true',\
-          \ 'false']},\n      },\n      {\n          'parameter_id': 'dnn_dropout',\n\
-          \          'discrete_value_spec': {'values': [0, 0.1, 0.2]},\n      },\n\
-          \      {\n          'parameter_id': 'dnn_learning_rate',\n          'double_value_spec':\
-          \ {'min_value': 0.0001, 'max_value': 0.0005},\n          'scale_type': 'UNIT_LINEAR_SCALE',\n\
-          \      },\n      {\n          'parameter_id': 'dnn_optimizer_type',\n  \
-          \        'categorical_value_spec': {'values': ['adam', 'ftrl', 'sgd']},\n\
-          \      },\n      {\n          'parameter_id': 'dnn_l1_regularization_strength',\n\
-          \          'discrete_value_spec': {'values': [0, 0.01, 0.02]},\n      },\n\
-          \      {\n          'parameter_id': 'dnn_l2_regularization_strength',\n\
-          \          'discrete_value_spec': {'values': [0, 0.01, 0.02]},\n      },\n\
-          \      {\n          'parameter_id': 'dnn_l2_shrinkage_regularization_strength',\n\
-          \          'discrete_value_spec': {'values': [0, 0.01, 0.02]},\n      },\n\
-          \      {\n          'parameter_id': 'dnn_beta_1',\n          'discrete_value_spec':\
-          \ {'values': [0.7, 0.8, 0.9]},\n      },\n      {\n          'parameter_id':\
-          \ 'dnn_beta_2',\n          'discrete_value_spec': {'values': [0.8, 0.9,\
-          \ 0.999]},\n      },\n      {\n          'parameter_id': 'batch_size',\n\
-          \          'discrete_value_spec': {'values': [1024, 2048, 4096, 8192, 16384]},\n\
-          \      },\n  ]\n  # pylint:disable=g-import-not-at-top,redefined-outer-name\n\
-          \  import warnings\n  # pylint:enable=g-import-not-at-top,redefined-outer-name\n\
-          \n  override_params = {}\n  for param in study_spec_parameters_override:\n\
-          \    override_params[param['parameter_id']] = param\n\n  study_spec_parameters\
-          \ = []\n  for param in default_params:\n    study_spec_parameters.append(\n\
-          \        override_params.get(param['parameter_id'], param)\n    )\n\n  extra_overrides\
-          \ = set(override_params) - set(\n      p['parameter_id'] for p in default_params\n\
-          \  )\n  if extra_overrides:\n    extra_override_str = ', '.join(extra_overrides)\n\
-          \    warnings.warn(\n        f'The overrides {extra_override_str} were not\
-          \ found in the params and '\n        'will be ignored.'\n    )\n\n  return\
-          \ study_spec_parameters\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef get_wide_and_deep_study_spec_parameters(\n    study_spec_parameters_override:\
+            \ list  # Required for KFP validation; pylint:disable=g-bare-generic\n)\
+            \ -> list:  # Required by KFP; pylint:disable=g-bare-generic\n  \"\"\"Get\
+            \ study_spec_parameters for a Wide & Deep hyperparameter tuning job.\n\n\
+            \  Args:\n    study_spec_parameters_override: List of dictionaries representing\
+            \ parameters\n      to optimize. The dictionary key is the parameter_id,\
+            \ which is passed to\n      training job as a command line argument, and\
+            \ the dictionary value is the\n      parameter specification of the metric.\n\
+            \n  Returns:\n    List of final Vizier study_spec_parameters of type ParameterSpec.\n\
+            \  \"\"\"\n  default_params = [\n      {\n          'parameter_id': 'max_steps',\n\
+            \          'discrete_value_spec': {\n              'values': [5000, 10000,\
+            \ 20000, 30000, 40000, 50000]\n          },\n      },\n      {\n       \
+            \   'parameter_id': 'max_train_secs',\n          'discrete_value_spec':\
+            \ {'values': [-1]},\n      },\n      {\n          'parameter_id': 'learning_rate',\n\
+            \          'double_value_spec': {'min_value': 0.0001, 'max_value': 0.0005},\n\
+            \          'scale_type': 'UNIT_LINEAR_SCALE',\n      },\n      {\n     \
+            \     'parameter_id': 'optimizer_type',\n          'categorical_value_spec':\
+            \ {'values': ['adam', 'ftrl', 'sgd']},\n      },\n      {\n          'parameter_id':\
+            \ 'l1_regularization_strength',\n          'discrete_value_spec': {'values':\
+            \ [0, 0.01, 0.02]},\n      },\n      {\n          'parameter_id': 'l2_regularization_strength',\n\
+            \          'discrete_value_spec': {'values': [0, 0.01, 0.02]},\n      },\n\
+            \      {\n          'parameter_id': 'l2_shrinkage_regularization_strength',\n\
+            \          'discrete_value_spec': {'values': [0, 0.01, 0.02]},\n      },\n\
+            \      {\n          'parameter_id': 'beta_1',\n          'discrete_value_spec':\
+            \ {'values': [0.7, 0.8, 0.9]},\n      },\n      {\n          'parameter_id':\
+            \ 'beta_2',\n          'discrete_value_spec': {'values': [0.8, 0.9, 0.999]},\n\
+            \      },\n      {\n          'parameter_id': 'hidden_units',\n        \
+            \  'categorical_value_spec': {'values': ['30,30,30']},\n      },\n     \
+            \ {\n          'parameter_id': 'use_wide',\n          'categorical_value_spec':\
+            \ {'values': ['true', 'false']},\n      },\n      {\n          'parameter_id':\
+            \ 'embed_categories',\n          'categorical_value_spec': {'values': ['true',\
+            \ 'false']},\n      },\n      {\n          'parameter_id': 'dnn_dropout',\n\
+            \          'discrete_value_spec': {'values': [0, 0.1, 0.2]},\n      },\n\
+            \      {\n          'parameter_id': 'dnn_learning_rate',\n          'double_value_spec':\
+            \ {'min_value': 0.0001, 'max_value': 0.0005},\n          'scale_type': 'UNIT_LINEAR_SCALE',\n\
+            \      },\n      {\n          'parameter_id': 'dnn_optimizer_type',\n  \
+            \        'categorical_value_spec': {'values': ['adam', 'ftrl', 'sgd']},\n\
+            \      },\n      {\n          'parameter_id': 'dnn_l1_regularization_strength',\n\
+            \          'discrete_value_spec': {'values': [0, 0.01, 0.02]},\n      },\n\
+            \      {\n          'parameter_id': 'dnn_l2_regularization_strength',\n\
+            \          'discrete_value_spec': {'values': [0, 0.01, 0.02]},\n      },\n\
+            \      {\n          'parameter_id': 'dnn_l2_shrinkage_regularization_strength',\n\
+            \          'discrete_value_spec': {'values': [0, 0.01, 0.02]},\n      },\n\
+            \      {\n          'parameter_id': 'dnn_beta_1',\n          'discrete_value_spec':\
+            \ {'values': [0.7, 0.8, 0.9]},\n      },\n      {\n          'parameter_id':\
+            \ 'dnn_beta_2',\n          'discrete_value_spec': {'values': [0.8, 0.9,\
+            \ 0.999]},\n      },\n      {\n          'parameter_id': 'batch_size',\n\
+            \          'discrete_value_spec': {'values': [1024, 2048, 4096, 8192, 16384]},\n\
+            \      },\n  ]\n  # pylint:disable=g-import-not-at-top,redefined-outer-name\n\
+            \  import warnings\n  # pylint:enable=g-import-not-at-top,redefined-outer-name\n\
+            \n  override_params = {}\n  for param in study_spec_parameters_override:\n\
+            \    override_params[param['parameter_id']] = param\n\n  study_spec_parameters\
+            \ = []\n  for param in default_params:\n    study_spec_parameters.append(\n\
+            \        override_params.get(param['parameter_id'], param)\n    )\n\n  extra_overrides\
+            \ = set(override_params) - set(\n      p['parameter_id'] for p in default_params\n\
+            \  )\n  if extra_overrides:\n    extra_override_str = ', '.join(extra_overrides)\n\
+            \    warnings.warn(\n        f'The overrides {extra_override_str} were not\
+            \ found in the params and '\n        'will be ignored.'\n    )\n\n  return\
+            \ study_spec_parameters\n\n"
         image: python:3.7
     exec-model-batch-predict:
       container:
         args:
-        - --type
-        - BatchPredictionJob
-        - --payload
-        - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
-          "\", ", {"IfPresent": {"InputName": "model", "Then": {"Concat": ["\"model\":
-          \"", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}", "\","]}}},
-          " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
-          "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
-          "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
-          "\"", "}", "}", ", \"instance_config\": {", "\"instance_type\": \"", "{{$.inputs.parameters[''instance_type'']}}",
-          "\"", ", \"key_field\": \"", "{{$.inputs.parameters[''key_field'']}}", "\"
-          ", {"IfPresent": {"InputName": "included_fields", "Then": {"Concat": [",
-          \"included_fields\": ", "{{$.inputs.parameters[''included_fields'']}}"]}}},
-          {"IfPresent": {"InputName": "excluded_fields", "Then": {"Concat": [", \"excluded_fields\":
-          ", "{{$.inputs.parameters[''excluded_fields'']}}"]}}}, "}", ", \"model_parameters\":
-          ", "{{$.inputs.parameters[''model_parameters'']}}", ", \"output_config\":
-          {", "\"predictions_format\": \"", "{{$.inputs.parameters[''predictions_format'']}}",
-          "\"", ", \"gcs_destination\": {", "\"output_uri_prefix\": \"", "{{$.inputs.parameters[''gcs_destination_output_uri_prefix'']}}",
-          "\"", "}", ", \"bigquery_destination\": {", "\"output_uri\": \"", "{{$.inputs.parameters[''bigquery_destination_output_uri'']}}",
-          "\"", "}", "}", ", \"dedicated_resources\": {", "\"machine_spec\": {", "\"machine_type\":
-          \"", "{{$.inputs.parameters[''machine_type'']}}", "\"", ", \"accelerator_type\":
-          \"", "{{$.inputs.parameters[''accelerator_type'']}}", "\"", ", \"accelerator_count\":
-          ", "{{$.inputs.parameters[''accelerator_count'']}}", "}", ", \"starting_replica_count\":
-          ", "{{$.inputs.parameters[''starting_replica_count'']}}", ", \"max_replica_count\":
-          ", "{{$.inputs.parameters[''max_replica_count'']}}", "}", ", \"manual_batch_tuning_parameters\":
-          {", "\"batch_size\": ", "{{$.inputs.parameters[''manual_batch_tuning_parameters_batch_size'']}}",
-          "}", ", \"generate_explanation\": ", "{{$.inputs.parameters[''generate_explanation'']}}",
-          ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
-          ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
-          "}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"encryption_spec\":
-          {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", "}"]}'
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
+          - --type
+          - BatchPredictionJob
+          - --payload
+          - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
+            "\", ", {"IfPresent": {"InputName": "model", "Then": {"Concat": ["\"model\":
+            \"", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}", "\","]}}},
+            " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
+            "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
+            "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
+            "\"", "}", "}", ", \"instance_config\": {", "\"instance_type\": \"", "{{$.inputs.parameters[''instance_type'']}}",
+            "\"", ", \"key_field\": \"", "{{$.inputs.parameters[''key_field'']}}", "\"
+            ", {"IfPresent": {"InputName": "included_fields", "Then": {"Concat": [",
+            \"included_fields\": ", "{{$.inputs.parameters[''included_fields'']}}"]}}},
+            {"IfPresent": {"InputName": "excluded_fields", "Then": {"Concat": [", \"excluded_fields\":
+            ", "{{$.inputs.parameters[''excluded_fields'']}}"]}}}, "}", ", \"model_parameters\":
+            ", "{{$.inputs.parameters[''model_parameters'']}}", ", \"output_config\":
+            {", "\"predictions_format\": \"", "{{$.inputs.parameters[''predictions_format'']}}",
+            "\"", ", \"gcs_destination\": {", "\"output_uri_prefix\": \"", "{{$.inputs.parameters[''gcs_destination_output_uri_prefix'']}}",
+            "\"", "}", ", \"bigquery_destination\": {", "\"output_uri\": \"", "{{$.inputs.parameters[''bigquery_destination_output_uri'']}}",
+            "\"", "}", "}", ", \"dedicated_resources\": {", "\"machine_spec\": {", "\"machine_type\":
+            \"", "{{$.inputs.parameters[''machine_type'']}}", "\"", ", \"accelerator_type\":
+            \"", "{{$.inputs.parameters[''accelerator_type'']}}", "\"", ", \"accelerator_count\":
+            ", "{{$.inputs.parameters[''accelerator_count'']}}", "}", ", \"starting_replica_count\":
+            ", "{{$.inputs.parameters[''starting_replica_count'']}}", ", \"max_replica_count\":
+            ", "{{$.inputs.parameters[''max_replica_count'']}}", "}", ", \"manual_batch_tuning_parameters\":
+            {", "\"batch_size\": ", "{{$.inputs.parameters[''manual_batch_tuning_parameters_batch_size'']}}",
+            "}", ", \"generate_explanation\": ", "{{$.inputs.parameters[''generate_explanation'']}}",
+            ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
+            ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
+            "}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"encryption_spec\":
+            {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+            "\"}", "}"]}'
+          - --project
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --executor_input
+          - "{{$}}"
         command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
+          - python3
+          - -u
+          - -m
+          - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-model-evaluation:
       container:
         args:
-        - --setup_file
-        - /setup.py
-        - --json_mode
-        - 'true'
-        - --project_id
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --problem_type
-        - '{{$.inputs.parameters[''problem_type'']}}'
-        - --batch_prediction_format
-        - '{{$.inputs.parameters[''predictions_format'']}}'
-        - --batch_prediction_gcs_source
-        - '{{$.inputs.artifacts[''batch_prediction_job''].metadata[''gcsOutputDirectory'']}}'
-        - --ground_truth_format
-        - '{{$.inputs.parameters[''ground_truth_format'']}}'
-        - --key_prefix_in_prediction_dataset
-        - instance
-        - --root_dir
-        - '{{$.inputs.parameters[''root_dir'']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}'
-        - --classification_type
-        - multiclass
-        - --ground_truth_column
-        - instance.{{$.inputs.parameters['ground_truth_column']}}
-        - --prediction_score_column
-        - '{{$.inputs.parameters[''prediction_score_column'']}}'
-        - --prediction_label_column
-        - '{{$.inputs.parameters[''prediction_label_column'']}}'
-        - --prediction_id_column
-        - ''
-        - --example_weight_column
-        - ''
-        - --generate_feature_attribution
-        - 'false'
-        - --dataflow_job_prefix
-        - evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
-        - --dataflow_service_account
-        - '{{$.inputs.parameters[''dataflow_service_account'']}}'
-        - --dataflow_disk_size
-        - '{{$.inputs.parameters[''dataflow_disk_size'']}}'
-        - --dataflow_machine_type
-        - '{{$.inputs.parameters[''dataflow_machine_type'']}}'
-        - --dataflow_workers_num
-        - '{{$.inputs.parameters[''dataflow_workers_num'']}}'
-        - --dataflow_max_workers_num
-        - '{{$.inputs.parameters[''dataflow_max_workers_num'']}}'
-        - --dataflow_subnetwork
-        - '{{$.inputs.parameters[''dataflow_subnetwork'']}}'
-        - --dataflow_use_public_ips
-        - '{{$.inputs.parameters[''dataflow_use_public_ips'']}}'
-        - --kms_key_name
-        - '{{$.inputs.parameters[''encryption_spec_key_name'']}}'
-        - --output_metrics_gcs_path
-        - '{{$.outputs.artifacts[''evaluation_metrics''].uri}}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
+          - --setup_file
+          - /setup.py
+          - --json_mode
+          - "true"
+          - --project_id
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --problem_type
+          - "{{$.inputs.parameters['problem_type']}}"
+          - --batch_prediction_format
+          - "{{$.inputs.parameters['predictions_format']}}"
+          - --batch_prediction_gcs_source
+          - "{{$.inputs.artifacts['batch_prediction_job'].metadata['gcsOutputDirectory']}}"
+          - --ground_truth_format
+          - "{{$.inputs.parameters['ground_truth_format']}}"
+          - --key_prefix_in_prediction_dataset
+          - instance
+          - --root_dir
+          - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+          - --classification_type
+          - multiclass
+          - --ground_truth_column
+          - instance.{{$.inputs.parameters['ground_truth_column']}}
+          - --prediction_score_column
+          - "{{$.inputs.parameters['prediction_score_column']}}"
+          - --prediction_label_column
+          - "{{$.inputs.parameters['prediction_label_column']}}"
+          - --prediction_id_column
+          - ""
+          - --example_weight_column
+          - ""
+          - --generate_feature_attribution
+          - "false"
+          - --dataflow_job_prefix
+          - evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
+          - --dataflow_service_account
+          - "{{$.inputs.parameters['dataflow_service_account']}}"
+          - --dataflow_disk_size
+          - "{{$.inputs.parameters['dataflow_disk_size']}}"
+          - --dataflow_machine_type
+          - "{{$.inputs.parameters['dataflow_machine_type']}}"
+          - --dataflow_workers_num
+          - "{{$.inputs.parameters['dataflow_workers_num']}}"
+          - --dataflow_max_workers_num
+          - "{{$.inputs.parameters['dataflow_max_workers_num']}}"
+          - --dataflow_subnetwork
+          - "{{$.inputs.parameters['dataflow_subnetwork']}}"
+          - --dataflow_use_public_ips
+          - "{{$.inputs.parameters['dataflow_use_public_ips']}}"
+          - --kms_key_name
+          - "{{$.inputs.parameters['encryption_spec_key_name']}}"
+          - --output_metrics_gcs_path
+          - "{{$.outputs.artifacts['evaluation_metrics'].uri}}"
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --executor_input
+          - "{{$}}"
         command:
-        - python
-        - /main.py
+          - python
+          - /main.py
         image: gcr.io/ml-pipeline/model-evaluation:v0.4
     exec-model-upload:
       container:
         args:
-        - --type
-        - UploadModel
-        - --payload
-        - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''display_name'']}}",
-          "\"", ", \"description\": \"", "{{$.inputs.parameters[''description'']}}",
-          "\"", ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
-          ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
-          "}", ", \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"pipeline_job\":
-          \"", "projects/{{$.inputs.parameters[''project'']}}/locations/{{$.inputs.parameters[''location'']}}/pipelineJobs/{{$.pipeline_job_uuid}}",
-          "\"", "}"]}'
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
-        - '{"IfPresent": {"InputName": "parent_model", "Then": ["--parent_model_name",
-          "{{$.inputs.artifacts[''parent_model''].metadata[''resourceName'']}}"]}}'
+          - --type
+          - UploadModel
+          - --payload
+          - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''display_name'']}}",
+            "\"", ", \"description\": \"", "{{$.inputs.parameters[''description'']}}",
+            "\"", ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
+            ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
+            "}", ", \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+            "\"}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"pipeline_job\":
+            \"", "projects/{{$.inputs.parameters[''project'']}}/locations/{{$.inputs.parameters[''location'']}}/pipelineJobs/{{$.pipeline_job_uuid}}",
+            "\"", "}"]}'
+          - --project
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --executor_input
+          - "{{$}}"
+          - '{"IfPresent": {"InputName": "parent_model", "Then": ["--parent_model_name",
+            "{{$.inputs.artifacts[''parent_model''].metadata[''resourceName'']}}"]}}'
         command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.model.upload_model.launcher
+          - python3
+          - -u
+          - -m
+          - google_cloud_pipeline_components.container.v1.model.upload_model.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-parse-worker-pool-specs-override:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - _parse_worker_pool_specs_override
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - _parse_worker_pool_specs_override
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef _parse_worker_pool_specs_override(\n    worker_pool_specs_override:\
-          \ list,  # pylint:disable=g-bare-generic\n) -> NamedTuple(\n    'Outputs',\n\
-          \    [\n        ('training_machine_spec', dict),  # pylint:disable=g-bare-generic\n\
-          \        ('training_disk_spec', dict),\n        ('eval_machine_spec', dict),\
-          \  # pylint:disable=g-bare-generic\n        ('eval_replica_count', int),\n\
-          \    ],\n):\n  \"\"\"Parses worker_pool_specs_override and returns training\
-          \ and evaluation machine specifications.\n\n  Args:\n    worker_pool_specs_override:\
-          \ The list of dictionaries for overriding training\n      and evaluation\
-          \ worker pool specs.\n\n  Returns:\n      training_machine_spec: The training\
-          \ machine spec.\n      training_disk_spec: The training disk spec.\n   \
-          \   eval_machine_spec: The eval machine spec.\n      eval_replica_count:\
-          \ The replica count for eval.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \n  training_machine_spec = {'machine_type': 'c2-standard-16'}\n  training_disk_spec\
-          \ = {'boot_disk_type': 'pd-ssd', 'boot_disk_size_gb': 100}\n  eval_machine_spec\
-          \ = {'machine_type': 'c2-standard-8'}\n  eval_replica_count = 1\n\n  if\
-          \ worker_pool_specs_override:\n    if len(worker_pool_specs_override) >=\
-          \ 1 and isinstance(\n        worker_pool_specs_override[0], dict\n    ):\n\
-          \      training_machine_spec = worker_pool_specs_override[0].get(\n    \
-          \      'machine_spec', training_machine_spec\n      )\n      training_disk_spec\
-          \ = worker_pool_specs_override[0].get(\n          'disk_spec', training_disk_spec\n\
-          \      )\n    if len(worker_pool_specs_override) == 4 and isinstance(\n\
-          \        worker_pool_specs_override[3], dict\n    ):\n      eval_machine_spec\
-          \ = worker_pool_specs_override[3].get(\n          'machine_spec', eval_machine_spec\n\
-          \      )\n      eval_replica_count = worker_pool_specs_override[3].get(\n\
-          \          'replica_count', eval_replica_count\n      )\n\n  return collections.namedtuple(\n\
-          \      'Outputs',\n      [\n          'training_machine_spec',\n       \
-          \   'training_disk_spec',\n          'eval_machine_spec',\n          'eval_replica_count',\n\
-          \      ],\n  )(\n      training_machine_spec,\n      training_disk_spec,\n\
-          \      eval_machine_spec,\n      eval_replica_count,\n  )\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef _parse_worker_pool_specs_override(\n    worker_pool_specs_override:\
+            \ list,  # pylint:disable=g-bare-generic\n) -> NamedTuple(\n    'Outputs',\n\
+            \    [\n        ('training_machine_spec', dict),  # pylint:disable=g-bare-generic\n\
+            \        ('training_disk_spec', dict),\n        ('eval_machine_spec', dict),\
+            \  # pylint:disable=g-bare-generic\n        ('eval_replica_count', int),\n\
+            \    ],\n):\n  \"\"\"Parses worker_pool_specs_override and returns training\
+            \ and evaluation machine specifications.\n\n  Args:\n    worker_pool_specs_override:\
+            \ The list of dictionaries for overriding training\n      and evaluation\
+            \ worker pool specs.\n\n  Returns:\n      training_machine_spec: The training\
+            \ machine spec.\n      training_disk_spec: The training disk spec.\n   \
+            \   eval_machine_spec: The eval machine spec.\n      eval_replica_count:\
+            \ The replica count for eval.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+            \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+            \n  training_machine_spec = {'machine_type': 'c2-standard-16'}\n  training_disk_spec\
+            \ = {'boot_disk_type': 'pd-ssd', 'boot_disk_size_gb': 100}\n  eval_machine_spec\
+            \ = {'machine_type': 'c2-standard-8'}\n  eval_replica_count = 1\n\n  if\
+            \ worker_pool_specs_override:\n    if len(worker_pool_specs_override) >=\
+            \ 1 and isinstance(\n        worker_pool_specs_override[0], dict\n    ):\n\
+            \      training_machine_spec = worker_pool_specs_override[0].get(\n    \
+            \      'machine_spec', training_machine_spec\n      )\n      training_disk_spec\
+            \ = worker_pool_specs_override[0].get(\n          'disk_spec', training_disk_spec\n\
+            \      )\n    if len(worker_pool_specs_override) == 4 and isinstance(\n\
+            \        worker_pool_specs_override[3], dict\n    ):\n      eval_machine_spec\
+            \ = worker_pool_specs_override[3].get(\n          'machine_spec', eval_machine_spec\n\
+            \      )\n      eval_replica_count = worker_pool_specs_override[3].get(\n\
+            \          'replica_count', eval_replica_count\n      )\n\n  return collections.namedtuple(\n\
+            \      'Outputs',\n      [\n          'training_machine_spec',\n       \
+            \   'training_disk_spec',\n          'eval_machine_spec',\n          'eval_replica_count',\n\
+            \      ],\n  )(\n      training_machine_spec,\n      training_disk_spec,\n\
+            \      eval_machine_spec,\n      eval_replica_count,\n  )\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-set-optional-inputs:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - _set_optional_inputs
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - _set_optional_inputs
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef _set_optional_inputs(\n    project: str,\n    location: str,\n\
-          \    data_source_csv_filenames: str,\n    data_source_bigquery_table_path:\
-          \ str,\n    vertex_dataset: dsl.Input[dsl.Artifact],\n) -> NamedTuple(\n\
-          \    'Outputs',\n    [\n        ('data_source_csv_filenames', str),\n  \
-          \      ('data_source_bigquery_table_path', str),\n    ],\n):\n  \"\"\"Get\
-          \ the data source URI.\n\n  Args:\n    project: The GCP project that runs\
-          \ the pipeline components.\n    location: The GCP region that runs the pipeline\
-          \ components.\n    data_source_csv_filenames: The CSV GCS path when data\
-          \ source is CSV.\n    data_source_bigquery_table_path: The BigQuery table\
-          \ when data source is BQ.\n    vertex_dataset: The Vertex dataset when data\
-          \ source is Vertex dataset.\n\n  Returns:\n    A named tuple of CSV or BQ\
-          \ URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \  import collections\n  from google.cloud import aiplatform\n  from google.cloud\
-          \ import aiplatform_v1beta1 as aip\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
-          \n  if vertex_dataset is not None:\n    # of format\n    # projects/294348452381/locations/us-central1/datasets/7104764862735056896\n\
-          \    dataset_name = vertex_dataset.metadata['resourceName']\n\n    aiplatform.init(project=project,\
-          \ location=location)\n    client = aip.DatasetServiceClient(\n        client_options={'api_endpoint':\
-          \ f'{location}-aiplatform.googleapis.com'}\n    )\n    dataset = client.get_dataset(name=dataset_name)\n\
-          \    input_config = dataset.metadata['inputConfig']\n    if 'gcsSource'\
-          \ in input_config:\n      data_source_csv_filenames = ','.join(input_config['gcsSource']['uri'])\n\
-          \    elif 'bigquerySource' in input_config:\n      data_source_bigquery_table_path\
-          \ = input_config['bigquerySource']['uri']\n  elif data_source_csv_filenames:\n\
-          \    pass\n  elif data_source_bigquery_table_path:\n    pass\n  else:\n\
-          \    raise ValueError(\n        'One of vertex_dataset, data_source_csv_filenames,'\n\
-          \        ' data_source_bigquery_table_path must be specified'\n    )\n\n\
-          \  return collections.namedtuple(\n      'Outputs',\n      [\n         \
-          \ 'data_source_csv_filenames',\n          'data_source_bigquery_table_path',\n\
-          \      ],\n  )(\n      data_source_csv_filenames,\n      data_source_bigquery_table_path,\n\
-          \  )\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef _set_optional_inputs(\n    project: str,\n    location: str,\n\
+            \    data_source_csv_filenames: str,\n    data_source_bigquery_table_path:\
+            \ str,\n    vertex_dataset: dsl.Input[dsl.Artifact],\n) -> NamedTuple(\n\
+            \    'Outputs',\n    [\n        ('data_source_csv_filenames', str),\n  \
+            \      ('data_source_bigquery_table_path', str),\n    ],\n):\n  \"\"\"Get\
+            \ the data source URI.\n\n  Args:\n    project: The GCP project that runs\
+            \ the pipeline components.\n    location: The GCP region that runs the pipeline\
+            \ components.\n    data_source_csv_filenames: The CSV GCS path when data\
+            \ source is CSV.\n    data_source_bigquery_table_path: The BigQuery table\
+            \ when data source is BQ.\n    vertex_dataset: The Vertex dataset when data\
+            \ source is Vertex dataset.\n\n  Returns:\n    A named tuple of CSV or BQ\
+            \ URI.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+            \  import collections\n  from google.cloud import aiplatform\n  from google.cloud\
+            \ import aiplatform_v1beta1 as aip\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n\
+            \n  if vertex_dataset is not None:\n    # of format\n    # projects/294348452381/locations/us-central1/datasets/7104764862735056896\n\
+            \    dataset_name = vertex_dataset.metadata['resourceName']\n\n    aiplatform.init(project=project,\
+            \ location=location)\n    client = aip.DatasetServiceClient(\n        client_options={'api_endpoint':\
+            \ f'{location}-aiplatform.googleapis.com'}\n    )\n    dataset = client.get_dataset(name=dataset_name)\n\
+            \    input_config = dataset.metadata['inputConfig']\n    if 'gcsSource'\
+            \ in input_config:\n      data_source_csv_filenames = ','.join(input_config['gcsSource']['uri'])\n\
+            \    elif 'bigquerySource' in input_config:\n      data_source_bigquery_table_path\
+            \ = input_config['bigquerySource']['uri']\n  elif data_source_csv_filenames:\n\
+            \    pass\n  elif data_source_bigquery_table_path:\n    pass\n  else:\n\
+            \    raise ValueError(\n        'One of vertex_dataset, data_source_csv_filenames,'\n\
+            \        ' data_source_bigquery_table_path must be specified'\n    )\n\n\
+            \  return collections.namedtuple(\n      'Outputs',\n      [\n         \
+            \ 'data_source_csv_filenames',\n          'data_source_bigquery_table_path',\n\
+            \      ],\n  )(\n      data_source_csv_filenames,\n      data_source_bigquery_table_path,\n\
+            \  )\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-split-materialized-data:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - _split_materialized_data
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - _split_materialized_data
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef _split_materialized_data(\n    materialized_data: Input[Dataset],\n\
-          \    materialized_train_split: OutputPath('MaterializedSplit'),\n    materialized_eval_split:\
-          \ OutputPath('MaterializedSplit'),\n    materialized_test_split: OutputPath('MaterializedSplit')):\n\
-          \  \"\"\"Splits materialized_data into materialized_data test, train, and\
-          \ eval splits.\n\n  Necessary adapter between FTE pipeline and trainer.\n\
-          \n  Args:\n    materialized_data: materialized_data dataset output by FTE.\n\
-          \    materialized_train_split: Path patern to materialized_train_split.\n\
-          \    materialized_eval_split: Path patern to materialized_eval_split.\n\
-          \    materialized_test_split: Path patern to materialized_test_split.\n\
-          \  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  import json\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  with tf.io.gfile.GFile(materialized_data.path, 'r') as f:\n    artifact_path\
-          \ = f.read()\n\n  # needed to import tf because this is a path in gs://\n\
-          \  with tf.io.gfile.GFile(artifact_path, 'r') as f:\n    materialized_data_json\
-          \ = json.load(f)\n\n  if 'tf_record_data_source' in materialized_data_json:\n\
-          \    file_patterns = materialized_data_json['tf_record_data_source'][\n\
-          \        'file_patterns']\n  elif 'avro_data_source' in materialized_data_json:\n\
-          \    file_patterns = materialized_data_json['avro_data_source'][\n     \
-          \   'file_patterns']\n  elif 'parquet_data_source' in materialized_data_json:\n\
-          \    file_patterns = materialized_data_json['parquet_data_source'][\n  \
-          \      'file_patterns']\n  else:\n    raise ValueError(f'Unsupported training\
-          \ data source: {materialized_data_json}')\n\n  # we map indices to file\
-          \ patterns based on the ordering of insertion order\n  # in our transform_data\
-          \ (see above in _generate_analyze_and_transform_data)\n  with tf.io.gfile.GFile(materialized_train_split,\
-          \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
-          \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
-          \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef _split_materialized_data(\n    materialized_data: Input[Dataset],\n\
+            \    materialized_train_split: OutputPath('MaterializedSplit'),\n    materialized_eval_split:\
+            \ OutputPath('MaterializedSplit'),\n    materialized_test_split: OutputPath('MaterializedSplit')):\n\
+            \  \"\"\"Splits materialized_data into materialized_data test, train, and\
+            \ eval splits.\n\n  Necessary adapter between FTE pipeline and trainer.\n\
+            \n  Args:\n    materialized_data: materialized_data dataset output by FTE.\n\
+            \    materialized_train_split: Path patern to materialized_train_split.\n\
+            \    materialized_eval_split: Path patern to materialized_eval_split.\n\
+            \    materialized_test_split: Path patern to materialized_test_split.\n\
+            \  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  import json\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  with tf.io.gfile.GFile(materialized_data.path, 'r') as f:\n    artifact_path\
+            \ = f.read()\n\n  # needed to import tf because this is a path in gs://\n\
+            \  with tf.io.gfile.GFile(artifact_path, 'r') as f:\n    materialized_data_json\
+            \ = json.load(f)\n\n  if 'tf_record_data_source' in materialized_data_json:\n\
+            \    file_patterns = materialized_data_json['tf_record_data_source'][\n\
+            \        'file_patterns']\n  elif 'avro_data_source' in materialized_data_json:\n\
+            \    file_patterns = materialized_data_json['avro_data_source'][\n     \
+            \   'file_patterns']\n  elif 'parquet_data_source' in materialized_data_json:\n\
+            \    file_patterns = materialized_data_json['parquet_data_source'][\n  \
+            \      'file_patterns']\n  else:\n    raise ValueError(f'Unsupported training\
+            \ data source: {materialized_data_json}')\n\n  # we map indices to file\
+            \ patterns based on the ordering of insertion order\n  # in our transform_data\
+            \ (see above in _generate_analyze_and_transform_data)\n  with tf.io.gfile.GFile(materialized_train_split,\
+            \ 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split,\
+            \ 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split,\
+            \ 'w') as f:\n    f.write(file_patterns[2])\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525
     exec-training-configurator-and-validator:
       container:
         args:
-        - training_configurator_and_validator
-        - '{"Concat": ["--instance_schema_path=", "{{$.inputs.artifacts[''instance_schema''].uri}}"]}'
-        - '{"Concat": ["--training_schema_path=", "{{$.inputs.artifacts[''training_schema''].uri}}"]}'
-        - '{"Concat": ["--dataset_stats_path=", "{{$.inputs.artifacts[''dataset_stats''].uri}}"]}'
-        - '{"Concat": ["--split_example_counts=", "{{$.inputs.parameters[''split_example_counts'']}}"]}'
-        - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
-        - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
-        - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
-        - '{"Concat": ["--optimization_objective=", "{{$.inputs.parameters[''optimization_objective'']}}"]}'
-        - '{"Concat": ["--optimization_objective_recall_value=", "{{$.inputs.parameters[''optimization_objective_recall_value'']}}"]}'
-        - '{"Concat": ["--optimization_objective_precision_value=", "{{$.inputs.parameters[''optimization_objective_precision_value'']}}"]}'
-        - '{"Concat": ["--metadata_path=", "{{$.outputs.artifacts[''metadata''].uri}}"]}'
-        - '{"Concat": ["--instance_baseline_path=", "{{$.outputs.artifacts[''instance_baseline''].uri}}"]}'
-        - '{"Concat": ["--run_evaluation=", "{{$.inputs.parameters[''run_evaluation'']}}"]}'
-        - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
-        - '{"Concat": ["--enable_probabilistic_inference=", "{{$.inputs.parameters[''enable_probabilistic_inference'']}}"]}'
-        - '{"IfPresent": {"InputName": "time_series_identifier_column", "Then": {"Concat":
-          ["--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}"]}}}'
-        - '{"Concat": ["--time_series_identifier_columns=", "{{$.inputs.parameters[''time_series_identifier_columns'']}}"]}'
-        - '{"Concat": ["--time_column=", "{{$.inputs.parameters[''time_column'']}}"]}'
-        - '{"Concat": ["--time_series_attribute_columns=", "{{$.inputs.parameters[''time_series_attribute_columns'']}}"]}'
-        - '{"Concat": ["--available_at_forecast_columns=", "{{$.inputs.parameters[''available_at_forecast_columns'']}}"]}'
-        - '{"Concat": ["--unavailable_at_forecast_columns=", "{{$.inputs.parameters[''unavailable_at_forecast_columns'']}}"]}'
-        - '{"IfPresent": {"InputName": "quantiles", "Then": {"Concat": ["--quantiles=",
-          "{{$.inputs.parameters[''quantiles'']}}"]}}}'
-        - '{"Concat": ["--context_window=", "{{$.inputs.parameters[''context_window'']}}"]}'
-        - '{"Concat": ["--forecast_horizon=", "{{$.inputs.parameters[''forecast_horizon'']}}"]}'
-        - '{"Concat": ["--forecasting_model_type=", "{{$.inputs.parameters[''forecasting_model_type'']}}"]}'
-        - '{"Concat": ["--forecasting_transformations=", "{{$.inputs.parameters[''forecasting_transformations'']}}"]}'
-        - '{"IfPresent": {"InputName": "stage_1_deadline_hours", "Then": {"Concat":
-          ["--stage_1_deadline_hours=", "{{$.inputs.parameters[''stage_1_deadline_hours'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "stage_2_deadline_hours", "Then": {"Concat":
-          ["--stage_2_deadline_hours=", "{{$.inputs.parameters[''stage_2_deadline_hours'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_columns", "Then": {"Concat": ["--group_columns=",
-          "{{$.inputs.parameters[''group_columns'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_total_weight", "Then": {"Concat": ["--group_total_weight=",
-          "{{$.inputs.parameters[''group_total_weight'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "temporal_total_weight", "Then": {"Concat":
-          ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
-          ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
+          - training_configurator_and_validator
+          - '{"Concat": ["--instance_schema_path=", "{{$.inputs.artifacts[''instance_schema''].uri}}"]}'
+          - '{"Concat": ["--training_schema_path=", "{{$.inputs.artifacts[''training_schema''].uri}}"]}'
+          - '{"Concat": ["--dataset_stats_path=", "{{$.inputs.artifacts[''dataset_stats''].uri}}"]}'
+          - '{"Concat": ["--split_example_counts=", "{{$.inputs.parameters[''split_example_counts'']}}"]}'
+          - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
+          - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
+          - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
+          - '{"Concat": ["--optimization_objective=", "{{$.inputs.parameters[''optimization_objective'']}}"]}'
+          - '{"Concat": ["--optimization_objective_recall_value=", "{{$.inputs.parameters[''optimization_objective_recall_value'']}}"]}'
+          - '{"Concat": ["--optimization_objective_precision_value=", "{{$.inputs.parameters[''optimization_objective_precision_value'']}}"]}'
+          - '{"Concat": ["--metadata_path=", "{{$.outputs.artifacts[''metadata''].uri}}"]}'
+          - '{"Concat": ["--instance_baseline_path=", "{{$.outputs.artifacts[''instance_baseline''].uri}}"]}'
+          - '{"Concat": ["--run_evaluation=", "{{$.inputs.parameters[''run_evaluation'']}}"]}'
+          - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
+          - '{"Concat": ["--enable_probabilistic_inference=", "{{$.inputs.parameters[''enable_probabilistic_inference'']}}"]}'
+          - '{"IfPresent": {"InputName": "time_series_identifier_column", "Then": {"Concat":
+            ["--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}"]}}}'
+          - '{"Concat": ["--time_series_identifier_columns=", "{{$.inputs.parameters[''time_series_identifier_columns'']}}"]}'
+          - '{"Concat": ["--time_column=", "{{$.inputs.parameters[''time_column'']}}"]}'
+          - '{"Concat": ["--time_series_attribute_columns=", "{{$.inputs.parameters[''time_series_attribute_columns'']}}"]}'
+          - '{"Concat": ["--available_at_forecast_columns=", "{{$.inputs.parameters[''available_at_forecast_columns'']}}"]}'
+          - '{"Concat": ["--unavailable_at_forecast_columns=", "{{$.inputs.parameters[''unavailable_at_forecast_columns'']}}"]}'
+          - '{"IfPresent": {"InputName": "quantiles", "Then": {"Concat": ["--quantiles=",
+            "{{$.inputs.parameters[''quantiles'']}}"]}}}'
+          - '{"Concat": ["--context_window=", "{{$.inputs.parameters[''context_window'']}}"]}'
+          - '{"Concat": ["--forecast_horizon=", "{{$.inputs.parameters[''forecast_horizon'']}}"]}'
+          - '{"Concat": ["--forecasting_model_type=", "{{$.inputs.parameters[''forecasting_model_type'']}}"]}'
+          - '{"Concat": ["--forecasting_transformations=", "{{$.inputs.parameters[''forecasting_transformations'']}}"]}'
+          - '{"IfPresent": {"InputName": "stage_1_deadline_hours", "Then": {"Concat":
+            ["--stage_1_deadline_hours=", "{{$.inputs.parameters[''stage_1_deadline_hours'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "stage_2_deadline_hours", "Then": {"Concat":
+            ["--stage_2_deadline_hours=", "{{$.inputs.parameters[''stage_2_deadline_hours'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_columns", "Then": {"Concat": ["--group_columns=",
+            "{{$.inputs.parameters[''group_columns'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_total_weight", "Then": {"Concat": ["--group_total_weight=",
+            "{{$.inputs.parameters[''group_total_weight'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "temporal_total_weight", "Then": {"Concat":
+            ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
+            ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
     exec-wide-and-deep-hyperparameter-tuning-job:
       container:
         args:
-        - --type
-        - HyperparameterTuningJobWithMetrics
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --execution_metrics
-        - '{{$.outputs.parameters[''execution_metrics''].output_file}}'
-        - --payload
-        - '{"Concat": ["{\"display_name\": \"wide-and-deep-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
-          \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}, \"study_spec\": {\"metrics\": [{\"metric_id\": \"", "{{$.inputs.parameters[''study_spec_metric_id'']}}",
-          "\", \"goal\": \"", "{{$.inputs.parameters[''study_spec_metric_goal'']}}",
-          "\"}], \"parameters\": ", "{{$.inputs.parameters[''study_spec_parameters_override'']}}",
-          ", \"algorithm\": \"", "{{$.inputs.parameters[''study_spec_algorithm'']}}",
-          "\", \"measurement_selection_type\": \"", "{{$.inputs.parameters[''study_spec_measurement_selection_type'']}}",
-          "\"}, \"max_trial_count\": ", "{{$.inputs.parameters[''max_trial_count'']}}",
-          ", \"parallel_trial_count\": ", "{{$.inputs.parameters[''parallel_trial_count'']}}",
-          ", \"max_failed_trial_count\": ", "{{$.inputs.parameters[''max_failed_trial_count'']}}",
-          ", \"trial_job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"",
-          "1", "\", \"machine_spec\": ", "{{$.inputs.parameters[''training_machine_spec'']}}",
-          ", \"disk_spec\": ", "{{$.inputs.parameters[''training_disk_spec'']}}",
-          ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20250620_0525",
-          "\", \"args\": [\"--target_column=", "{{$.inputs.parameters[''target_column'']}}",
-          "\", \"--weight_column=", "{{$.inputs.parameters[''weight_column'']}}",
-          "\", \"--model_type=", "{{$.inputs.parameters[''prediction_type'']}}", "\",
-          \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20250620_0525",
-          "\", \"--prediction_docker_uri_artifact_path=", "{{$.outputs.parameters[''prediction_docker_uri_output''].output_file}}",
-          "\", \"--baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
-          "\", \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\",
-          \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
-          "\", \"--training_schema_path=", "{{$.inputs.artifacts[''training_schema_uri''].uri}}",
-          "\", \"--instance_schema_path=", "{{$.outputs.parameters[''instance_schema_uri''].output_file}}",
-          "\", \"--prediction_schema_path=", "{{$.outputs.parameters[''prediction_schema_uri''].output_file}}",
-          "\", \"--trials_path=", "{{$.outputs.parameters[''trials''].output_file}}",
-          "\", \"--job_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\",
-          \"--training_data_path=", "{{$.inputs.artifacts[''materialized_train_split''].uri}}",
-          "\", \"--validation_data_path=", "{{$.inputs.artifacts[''materialized_eval_split''].uri}}",
-          "\", \"--enable_profiler=", "{{$.inputs.parameters[''enable_profiler'']}}",
-          "\", \"--cache_data=", "{{$.inputs.parameters[''cache_data'']}}", "\", \"--measurement_selection_type=",
-          "{{$.inputs.parameters[''study_spec_measurement_selection_type'']}}", "\",
-          \"--metric_goal=", "{{$.inputs.parameters[''study_spec_metric_goal'']}}",
-          "\", \"--seed=", "{{$.inputs.parameters[''seed'']}}", "\", \"--eval_steps=",
-          "{{$.inputs.parameters[''eval_steps'']}}", "\", \"--eval_frequency_secs=",
-          "{{$.inputs.parameters[''eval_frequency_secs'']}}", "\"]}}]}}"]}'
+          - --type
+          - HyperparameterTuningJobWithMetrics
+          - --project
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --execution_metrics
+          - "{{$.outputs.parameters['execution_metrics'].output_file}}"
+          - --payload
+          - '{"Concat": ["{\"display_name\": \"wide-and-deep-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\",
+            \"encryption_spec\": {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+            "\"}, \"study_spec\": {\"metrics\": [{\"metric_id\": \"", "{{$.inputs.parameters[''study_spec_metric_id'']}}",
+            "\", \"goal\": \"", "{{$.inputs.parameters[''study_spec_metric_goal'']}}",
+            "\"}], \"parameters\": ", "{{$.inputs.parameters[''study_spec_parameters_override'']}}",
+            ", \"algorithm\": \"", "{{$.inputs.parameters[''study_spec_algorithm'']}}",
+            "\", \"measurement_selection_type\": \"", "{{$.inputs.parameters[''study_spec_measurement_selection_type'']}}",
+            "\"}, \"max_trial_count\": ", "{{$.inputs.parameters[''max_trial_count'']}}",
+            ", \"parallel_trial_count\": ", "{{$.inputs.parameters[''parallel_trial_count'']}}",
+            ", \"max_failed_trial_count\": ", "{{$.inputs.parameters[''max_failed_trial_count'']}}",
+            ", \"trial_job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"",
+            "1", "\", \"machine_spec\": ", "{{$.inputs.parameters[''training_machine_spec'']}}",
+            ", \"disk_spec\": ", "{{$.inputs.parameters[''training_disk_spec'']}}",
+            ", \"container_spec\": {\"image_uri\":\"", "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20250620_0525",
+            "\", \"args\": [\"--target_column=", "{{$.inputs.parameters[''target_column'']}}",
+            "\", \"--weight_column=", "{{$.inputs.parameters[''weight_column'']}}",
+            "\", \"--model_type=", "{{$.inputs.parameters[''prediction_type'']}}", "\",
+            \"--prediction_docker_uri=", "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20250620_0525",
+            "\", \"--prediction_docker_uri_artifact_path=", "{{$.outputs.parameters[''prediction_docker_uri_output''].output_file}}",
+            "\", \"--baseline_path=", "{{$.inputs.artifacts[''instance_baseline''].uri}}",
+            "\", \"--metadata_path=", "{{$.inputs.artifacts[''metadata''].uri}}", "\",
+            \"--transform_output_path=", "{{$.inputs.artifacts[''transform_output''].uri}}",
+            "\", \"--training_schema_path=", "{{$.inputs.artifacts[''training_schema_uri''].uri}}",
+            "\", \"--instance_schema_path=", "{{$.outputs.parameters[''instance_schema_uri''].output_file}}",
+            "\", \"--prediction_schema_path=", "{{$.outputs.parameters[''prediction_schema_uri''].output_file}}",
+            "\", \"--trials_path=", "{{$.outputs.parameters[''trials''].output_file}}",
+            "\", \"--job_dir=", "{{$.inputs.parameters[''root_dir'']}}", "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\",
+            \"--training_data_path=", "{{$.inputs.artifacts[''materialized_train_split''].uri}}",
+            "\", \"--validation_data_path=", "{{$.inputs.artifacts[''materialized_eval_split''].uri}}",
+            "\", \"--enable_profiler=", "{{$.inputs.parameters[''enable_profiler'']}}",
+            "\", \"--cache_data=", "{{$.inputs.parameters[''cache_data'']}}", "\", \"--measurement_selection_type=",
+            "{{$.inputs.parameters[''study_spec_measurement_selection_type'']}}", "\",
+            \"--metric_goal=", "{{$.inputs.parameters[''study_spec_metric_goal'']}}",
+            "\", \"--seed=", "{{$.inputs.parameters[''seed'']}}", "\", \"--eval_steps=",
+            "{{$.inputs.parameters[''eval_steps'']}}", "\", \"--eval_frequency_secs=",
+            "{{$.inputs.parameters[''eval_frequency_secs'']}}", "\"]}}]}}"]}'
         command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.hyperparameter_tuning_job.launcher
+          - python3
+          - -u
+          - -m
+          - google_cloud_pipeline_components.container.v1.hyperparameter_tuning_job.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.44
 pipelineInfo:
   description: The Wide & Deep built-in algorithm HyperparameterTuningJob pipeline.
@@ -3352,8 +3429,8 @@ root:
       artifacts:
         model-evaluation-evaluation_metrics:
           artifactSelectors:
-          - outputArtifactKey: model-evaluation-evaluation_metrics
-            producerSubtask: exit-handler-1
+            - outputArtifactKey: model-evaluation-evaluation_metrics
+              producerSubtask: exit-handler-1
     tasks:
       automl-tabular-finalizer:
         cachingOptions:
@@ -3361,7 +3438,7 @@ root:
         componentRef:
           name: comp-automl-tabular-finalizer
         dependentTasks:
-        - exit-handler-1
+          - exit-handler-1
         inputs:
           parameters:
             location:
@@ -3378,8 +3455,8 @@ root:
         componentRef:
           name: comp-exit-handler-1
         dependentTasks:
-        - get-model-display-name
-        - set-optional-inputs
+          - get-model-display-name
+          - set-optional-inputs
         inputs:
           artifacts:
             pipelinechannel--parent_model:
@@ -3549,62 +3626,62 @@ root:
         description: The Vertex dataset artifact.
     parameters:
       bigquery_staging_full_dataset_id:
-        defaultValue: ''
+        defaultValue: ""
         description: Staging directory for BigQuery tables.
         isOptional: true
         parameterType: STRING
       cache_data:
         defaultValue: auto
-        description: 'Whether to cache data or not. If set to ''auto'', caching is
+        description: "Whether to cache data or not. If set to 'auto', caching is
 
-          determined based on the dataset size.'
+          determined based on the dataset size."
         isOptional: true
         parameterType: STRING
       data_source_bigquery_table_path:
-        defaultValue: ''
-        description: 'The BigQuery table path of format
+        defaultValue: ""
+        description: "The BigQuery table path of format
 
-          bq://bq_project.bq_dataset.bq_table'
+          bq://bq_project.bq_dataset.bq_table"
         isOptional: true
         parameterType: STRING
       data_source_csv_filenames:
-        defaultValue: ''
-        description: 'A string that represents a list of comma
+        defaultValue: ""
+        description: "A string that represents a list of comma
 
-          separated CSV filenames.'
+          separated CSV filenames."
         isOptional: true
         parameterType: STRING
       dataflow_service_account:
-        defaultValue: ''
+        defaultValue: ""
         description: Custom service account to run dataflow jobs.
         isOptional: true
         parameterType: STRING
       dataflow_subnetwork:
-        defaultValue: ''
-        description: 'Dataflow''s fully qualified subnetwork name, when empty
+        defaultValue: ""
+        description: "Dataflow's fully qualified subnetwork name, when empty
 
           the default subnetwork will be used. Example:
 
-          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications'
+          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications"
         isOptional: true
         parameterType: STRING
       dataflow_use_public_ips:
         defaultValue: true
-        description: 'Specifies whether Dataflow workers use public IP
+        description: "Specifies whether Dataflow workers use public IP
 
-          addresses.'
+          addresses."
         isOptional: true
         parameterType: BOOLEAN
       dataset_level_custom_transformation_definitions:
-        description: 'Dataset-level custom
+        description: "Dataset-level custom
 
-          transformation definitions in string format.'
+          transformation definitions in string format."
         isOptional: true
         parameterType: LIST
       dataset_level_transformations:
-        description: 'Dataset-level transformation configuration in
+        description: "Dataset-level transformation configuration in
 
-          string format.'
+          string format."
         isOptional: true
         parameterType: LIST
       enable_profiler:
@@ -3613,73 +3690,73 @@ root:
         isOptional: true
         parameterType: BOOLEAN
       encryption_spec_key_name:
-        defaultValue: ''
+        defaultValue: ""
         description: The KMS key name.
         isOptional: true
         parameterType: STRING
       eval_frequency_secs:
         defaultValue: 600.0
-        description: 'Frequency at which evaluation and checkpointing will
+        description: "Frequency at which evaluation and checkpointing will
 
-          take place.'
+          take place."
         isOptional: true
         parameterType: NUMBER_INTEGER
       eval_steps:
         defaultValue: 0.0
-        description: 'Number of steps to run evaluation for. If not specified or
+        description: "Number of steps to run evaluation for. If not specified or
 
           negative, it means run evaluation on the whole validation dataset. If set
 
-          to 0, it means run evaluation for a fixed number of samples.'
+          to 0, it means run evaluation for a fixed number of samples."
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_batch_predict_machine_type:
         defaultValue: n1-highmem-8
-        description: 'The prediction server machine type
+        description: "The prediction server machine type
 
-          for batch predict components during evaluation.'
+          for batch predict components during evaluation."
         isOptional: true
         parameterType: STRING
       evaluation_batch_predict_max_replica_count:
         defaultValue: 20.0
-        description: 'The max number of prediction
+        description: "The max number of prediction
 
-          server for batch predict components during evaluation.'
+          server for batch predict components during evaluation."
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_batch_predict_starting_replica_count:
         defaultValue: 20.0
-        description: 'The initial number of
+        description: "The initial number of
 
-          prediction server for batch predict components during evaluation.'
+          prediction server for batch predict components during evaluation."
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_dataflow_disk_size_gb:
         defaultValue: 50.0
-        description: 'Dataflow worker''s disk size in GB for
+        description: "Dataflow worker's disk size in GB for
 
-          evaluation components.'
+          evaluation components."
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_dataflow_machine_type:
         defaultValue: n1-standard-4
-        description: 'The dataflow machine type for evaluation
+        description: "The dataflow machine type for evaluation
 
-          components.'
+          components."
         isOptional: true
         parameterType: STRING
       evaluation_dataflow_max_num_workers:
         defaultValue: 100.0
-        description: 'The max number of Dataflow workers for
+        description: "The max number of Dataflow workers for
 
-          evaluation components.'
+          evaluation components."
         isOptional: true
         parameterType: NUMBER_INTEGER
       evaluation_dataflow_starting_num_workers:
         defaultValue: 10.0
-        description: 'The initial number of Dataflow
+        description: "The initial number of Dataflow
 
-          workers for evaluation components.'
+          workers for evaluation components."
         isOptional: true
         parameterType: NUMBER_INTEGER
       feature_selection_algorithm:
@@ -3697,11 +3774,11 @@ root:
         parameterType: STRING
       max_failed_trial_count:
         defaultValue: 0.0
-        description: 'The number of failed trials that need to be seen
+        description: "The number of failed trials that need to be seen
 
           before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
 
-          how many trials must fail before the whole job fails.'
+          how many trials must fail before the whole job fails."
         isOptional: true
         parameterType: NUMBER_INTEGER
       max_selected_features:
@@ -3713,12 +3790,12 @@ root:
         description: The desired total number of trials.
         parameterType: NUMBER_INTEGER
       model_description:
-        defaultValue: ''
+        defaultValue: ""
         description: The description name of the uploaded Vertex model.
         isOptional: true
         parameterType: STRING
       model_display_name:
-        defaultValue: ''
+        defaultValue: ""
         description: The display name of the uploaded Vertex model.
         isOptional: true
         parameterType: STRING
@@ -3726,7 +3803,7 @@ root:
         description: The desired number of trials to run in parallel.
         parameterType: NUMBER_INTEGER
       predefined_split_key:
-        defaultValue: ''
+        defaultValue: ""
         description: Predefined split key.
         isOptional: true
         parameterType: STRING
@@ -3757,15 +3834,15 @@ root:
         isOptional: true
         parameterType: NUMBER_INTEGER
       stratified_split_key:
-        defaultValue: ''
+        defaultValue: ""
         description: Stratified split key.
         isOptional: true
         parameterType: STRING
       study_spec_algorithm:
         defaultValue: ALGORITHM_UNSPECIFIED
-        description: 'The search algorithm specified for the study. One of
+        description: "The search algorithm specified for the study. One of
 
-          ''ALGORITHM_UNSPECIFIED'', ''GRID_SEARCH'', or ''RANDOM_SEARCH''.'
+          'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'."
         isOptional: true
         parameterType: STRING
       study_spec_measurement_selection_type:
@@ -3785,20 +3862,20 @@ root:
           "MAXIMIZE", "MINIMIZE".'
         parameterType: STRING
       study_spec_metric_id:
-        description: 'Metric to optimize, possible values: [ ''loss'',
+        description: "Metric to optimize, possible values: [ 'loss',
 
-          ''average_loss'', ''rmse'', ''mae'', ''mql'', ''accuracy'', ''auc'', ''precision'',
+          'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc', 'precision',
 
-          ''recall''].'
+          'recall']."
         parameterType: STRING
       study_spec_parameters_override:
-        description: 'List of dictionaries representing parameters
+        description: "List of dictionaries representing parameters
 
           to optimize. The dictionary key is the parameter_id, which is passed to
 
           training job as a command line argument, and the dictionary value is the
 
-          parameter specification of the metric.'
+          parameter specification of the metric."
         parameterType: LIST
       target_column:
         description: The target column name.
@@ -3813,9 +3890,9 @@ root:
         isOptional: true
         parameterType: STRUCT
       tf_custom_transformation_definitions:
-        description: 'TF custom transformation definitions
+        description: "TF custom transformation definitions
 
-          in string format.'
+          in string format."
         isOptional: true
         parameterType: LIST
       tf_transform_execution_engine:
@@ -3826,7 +3903,7 @@ root:
         isOptional: true
         parameterType: STRING
       tf_transformations_path:
-        defaultValue: ''
+        defaultValue: ""
         description: Path to TF transformation configuration.
         isOptional: true
         parameterType: STRING
@@ -3837,23 +3914,23 @@ root:
         parameterType: NUMBER_DOUBLE
       transform_dataflow_disk_size_gb:
         defaultValue: 40.0
-        description: 'Dataflow worker''s disk size in GB for
+        description: "Dataflow worker's disk size in GB for
 
-          transform component.'
+          transform component."
         isOptional: true
         parameterType: NUMBER_INTEGER
       transform_dataflow_machine_type:
         defaultValue: n1-standard-16
-        description: 'The dataflow machine type for transform
+        description: "The dataflow machine type for transform
 
-          component.'
+          component."
         isOptional: true
         parameterType: STRING
       transform_dataflow_max_num_workers:
         defaultValue: 25.0
-        description: 'The max number of Dataflow workers for
+        description: "The max number of Dataflow workers for
 
-          transform component.'
+          transform component."
         isOptional: true
         parameterType: NUMBER_INTEGER
       validation_fraction:
@@ -3862,16 +3939,16 @@ root:
         isOptional: true
         parameterType: NUMBER_DOUBLE
       weight_column:
-        defaultValue: ''
+        defaultValue: ""
         description: The weight column name.
         isOptional: true
         parameterType: STRING
       worker_pool_specs_override:
-        description: 'The dictionary for overriding training and
+        description: "The dictionary for overriding training and
 
           evaluation worker pool specs. The dictionary should be of format
 
-          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.'
+          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172."
         isOptional: true
         parameterType: LIST
   outputDefinitions:

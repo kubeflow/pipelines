@@ -24,38 +24,38 @@ deploymentSpec:
     exec-print-text:
       container:
         command:
-        - sh
-        - -c
-        - 'set -e -x
+          - sh
+          - -c
+          - 'set -e -x
 
-          echo "$0"
+            echo "$0"
 
-          '
-        - '{{$.inputs.parameters[''text'']}}'
+            '
+          - "{{$.inputs.parameters['text']}}"
         image: alpine
     exec-print-text-2:
       container:
         command:
-        - sh
-        - -c
-        - 'set -e -x
+          - sh
+          - -c
+          - 'set -e -x
 
-          echo "$0"
+            echo "$0"
 
-          '
-        - '{{$.inputs.parameters[''text'']}}'
+            '
+          - "{{$.inputs.parameters['text']}}"
         image: alpine
     exec-print-text-3:
       container:
         command:
-        - sh
-        - -c
-        - 'set -e -x
+          - sh
+          - -c
+          - 'set -e -x
 
-          echo "$0"
+            echo "$0"
 
-          '
-        - '{{$.inputs.parameters[''text'']}}'
+            '
+          - "{{$.inputs.parameters['text']}}"
         image: alpine
 pipelineInfo:
   name: pipeline-with-after
@@ -81,7 +81,7 @@ root:
         componentRef:
           name: comp-print-text-2
         dependentTasks:
-        - print-text
+          - print-text
         inputs:
           parameters:
             text:
@@ -96,8 +96,8 @@ root:
         componentRef:
           name: comp-print-text-3
         dependentTasks:
-        - print-text
-        - print-text-2
+          - print-text
+          - print-text-2
         inputs:
           parameters:
             text:

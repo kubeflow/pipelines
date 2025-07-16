@@ -1,9 +1,8 @@
-import * as jspb from 'google-protobuf'
+import * as jspb from 'google-protobuf';
 
 import * as google_protobuf_duration_pb from 'google-protobuf/google/protobuf/duration_pb';
 import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
 import * as google_rpc_status_pb from './google/rpc/status_pb';
-
 
 export class PipelineJob extends jspb.Message {
   getName(): string;
@@ -35,12 +34,12 @@ export class PipelineJob extends jspb.Message {
 
 export namespace PipelineJob {
   export type AsObject = {
-    name: string,
-    displayName: string,
-    pipelineSpec?: google_protobuf_struct_pb.Struct.AsObject,
-    labelsMap: Array<[string, string]>,
-    runtimeConfig?: PipelineJob.RuntimeConfig.AsObject,
-  }
+    name: string;
+    displayName: string;
+    pipelineSpec?: google_protobuf_struct_pb.Struct.AsObject;
+    labelsMap: Array<[string, string]>;
+    runtimeConfig?: PipelineJob.RuntimeConfig.AsObject;
+  };
 
   export class RuntimeConfig extends jspb.Message {
     getParametersMap(): jspb.Map<string, Value>;
@@ -57,17 +56,19 @@ export namespace PipelineJob {
     static toObject(includeInstance: boolean, msg: RuntimeConfig): RuntimeConfig.AsObject;
     static serializeBinaryToWriter(message: RuntimeConfig, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): RuntimeConfig;
-    static deserializeBinaryFromReader(message: RuntimeConfig, reader: jspb.BinaryReader): RuntimeConfig;
+    static deserializeBinaryFromReader(
+      message: RuntimeConfig,
+      reader: jspb.BinaryReader,
+    ): RuntimeConfig;
   }
 
   export namespace RuntimeConfig {
     export type AsObject = {
-      parametersMap: Array<[string, Value.AsObject]>,
-      gcsOutputDirectory: string,
-      parameterValuesMap: Array<[string, google_protobuf_struct_pb.Value.AsObject]>,
-    }
+      parametersMap: Array<[string, Value.AsObject]>;
+      gcsOutputDirectory: string;
+      parameterValuesMap: Array<[string, google_protobuf_struct_pb.Value.AsObject]>;
+    };
   }
-
 }
 
 export class PipelineSpec extends jspb.Message {
@@ -103,19 +104,22 @@ export class PipelineSpec extends jspb.Message {
   static toObject(includeInstance: boolean, msg: PipelineSpec): PipelineSpec.AsObject;
   static serializeBinaryToWriter(message: PipelineSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): PipelineSpec;
-  static deserializeBinaryFromReader(message: PipelineSpec, reader: jspb.BinaryReader): PipelineSpec;
+  static deserializeBinaryFromReader(
+    message: PipelineSpec,
+    reader: jspb.BinaryReader,
+  ): PipelineSpec;
 }
 
 export namespace PipelineSpec {
   export type AsObject = {
-    pipelineInfo?: PipelineInfo.AsObject,
-    deploymentSpec?: google_protobuf_struct_pb.Struct.AsObject,
-    sdkVersion: string,
-    schemaVersion: string,
-    componentsMap: Array<[string, ComponentSpec.AsObject]>,
-    root?: ComponentSpec.AsObject,
-    defaultPipelineRoot: string,
-  }
+    pipelineInfo?: PipelineInfo.AsObject;
+    deploymentSpec?: google_protobuf_struct_pb.Struct.AsObject;
+    sdkVersion: string;
+    schemaVersion: string;
+    componentsMap: Array<[string, ComponentSpec.AsObject]>;
+    root?: ComponentSpec.AsObject;
+    defaultPipelineRoot: string;
+  };
 
   export class RuntimeParameter extends jspb.Message {
     getType(): PrimitiveType.PrimitiveTypeEnum;
@@ -131,16 +135,18 @@ export namespace PipelineSpec {
     static toObject(includeInstance: boolean, msg: RuntimeParameter): RuntimeParameter.AsObject;
     static serializeBinaryToWriter(message: RuntimeParameter, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): RuntimeParameter;
-    static deserializeBinaryFromReader(message: RuntimeParameter, reader: jspb.BinaryReader): RuntimeParameter;
+    static deserializeBinaryFromReader(
+      message: RuntimeParameter,
+      reader: jspb.BinaryReader,
+    ): RuntimeParameter;
   }
 
   export namespace RuntimeParameter {
     export type AsObject = {
-      type: PrimitiveType.PrimitiveTypeEnum,
-      defaultValue?: Value.AsObject,
-    }
+      type: PrimitiveType.PrimitiveTypeEnum;
+      defaultValue?: Value.AsObject;
+    };
   }
-
 }
 
 export class ComponentSpec extends jspb.Message {
@@ -169,18 +175,21 @@ export class ComponentSpec extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ComponentSpec): ComponentSpec.AsObject;
   static serializeBinaryToWriter(message: ComponentSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ComponentSpec;
-  static deserializeBinaryFromReader(message: ComponentSpec, reader: jspb.BinaryReader): ComponentSpec;
+  static deserializeBinaryFromReader(
+    message: ComponentSpec,
+    reader: jspb.BinaryReader,
+  ): ComponentSpec;
 }
 
 export namespace ComponentSpec {
   export type AsObject = {
-    inputDefinitions?: ComponentInputsSpec.AsObject,
-    outputDefinitions?: ComponentOutputsSpec.AsObject,
-    dag?: DagSpec.AsObject,
-    executorLabel: string,
-  }
+    inputDefinitions?: ComponentInputsSpec.AsObject;
+    outputDefinitions?: ComponentOutputsSpec.AsObject;
+    dag?: DagSpec.AsObject;
+    executorLabel: string;
+  };
 
-  export enum ImplementationCase { 
+  export enum ImplementationCase {
     IMPLEMENTATION_NOT_SET = 0,
     DAG = 3,
     EXECUTOR_LABEL = 4,
@@ -206,9 +215,9 @@ export class DagSpec extends jspb.Message {
 
 export namespace DagSpec {
   export type AsObject = {
-    tasksMap: Array<[string, PipelineTaskSpec.AsObject]>,
-    outputs?: DagOutputsSpec.AsObject,
-  }
+    tasksMap: Array<[string, PipelineTaskSpec.AsObject]>;
+    outputs?: DagOutputsSpec.AsObject;
+  };
 }
 
 export class DagOutputsSpec extends jspb.Message {
@@ -223,14 +232,17 @@ export class DagOutputsSpec extends jspb.Message {
   static toObject(includeInstance: boolean, msg: DagOutputsSpec): DagOutputsSpec.AsObject;
   static serializeBinaryToWriter(message: DagOutputsSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): DagOutputsSpec;
-  static deserializeBinaryFromReader(message: DagOutputsSpec, reader: jspb.BinaryReader): DagOutputsSpec;
+  static deserializeBinaryFromReader(
+    message: DagOutputsSpec,
+    reader: jspb.BinaryReader,
+  ): DagOutputsSpec;
 }
 
 export namespace DagOutputsSpec {
   export type AsObject = {
-    artifactsMap: Array<[string, DagOutputsSpec.DagOutputArtifactSpec.AsObject]>,
-    parametersMap: Array<[string, DagOutputsSpec.DagOutputParameterSpec.AsObject]>,
-  }
+    artifactsMap: Array<[string, DagOutputsSpec.DagOutputArtifactSpec.AsObject]>;
+    parametersMap: Array<[string, DagOutputsSpec.DagOutputParameterSpec.AsObject]>;
+  };
 
   export class ArtifactSelectorSpec extends jspb.Message {
     getProducerSubtask(): string;
@@ -241,40 +253,55 @@ export namespace DagOutputsSpec {
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ArtifactSelectorSpec.AsObject;
-    static toObject(includeInstance: boolean, msg: ArtifactSelectorSpec): ArtifactSelectorSpec.AsObject;
+    static toObject(
+      includeInstance: boolean,
+      msg: ArtifactSelectorSpec,
+    ): ArtifactSelectorSpec.AsObject;
     static serializeBinaryToWriter(message: ArtifactSelectorSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): ArtifactSelectorSpec;
-    static deserializeBinaryFromReader(message: ArtifactSelectorSpec, reader: jspb.BinaryReader): ArtifactSelectorSpec;
+    static deserializeBinaryFromReader(
+      message: ArtifactSelectorSpec,
+      reader: jspb.BinaryReader,
+    ): ArtifactSelectorSpec;
   }
 
   export namespace ArtifactSelectorSpec {
     export type AsObject = {
-      producerSubtask: string,
-      outputArtifactKey: string,
-    }
+      producerSubtask: string;
+      outputArtifactKey: string;
+    };
   }
-
 
   export class DagOutputArtifactSpec extends jspb.Message {
     getArtifactSelectorsList(): Array<DagOutputsSpec.ArtifactSelectorSpec>;
-    setArtifactSelectorsList(value: Array<DagOutputsSpec.ArtifactSelectorSpec>): DagOutputArtifactSpec;
+    setArtifactSelectorsList(
+      value: Array<DagOutputsSpec.ArtifactSelectorSpec>,
+    ): DagOutputArtifactSpec;
     clearArtifactSelectorsList(): DagOutputArtifactSpec;
-    addArtifactSelectors(value?: DagOutputsSpec.ArtifactSelectorSpec, index?: number): DagOutputsSpec.ArtifactSelectorSpec;
+    addArtifactSelectors(
+      value?: DagOutputsSpec.ArtifactSelectorSpec,
+      index?: number,
+    ): DagOutputsSpec.ArtifactSelectorSpec;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): DagOutputArtifactSpec.AsObject;
-    static toObject(includeInstance: boolean, msg: DagOutputArtifactSpec): DagOutputArtifactSpec.AsObject;
+    static toObject(
+      includeInstance: boolean,
+      msg: DagOutputArtifactSpec,
+    ): DagOutputArtifactSpec.AsObject;
     static serializeBinaryToWriter(message: DagOutputArtifactSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): DagOutputArtifactSpec;
-    static deserializeBinaryFromReader(message: DagOutputArtifactSpec, reader: jspb.BinaryReader): DagOutputArtifactSpec;
+    static deserializeBinaryFromReader(
+      message: DagOutputArtifactSpec,
+      reader: jspb.BinaryReader,
+    ): DagOutputArtifactSpec;
   }
 
   export namespace DagOutputArtifactSpec {
     export type AsObject = {
-      artifactSelectorsList: Array<DagOutputsSpec.ArtifactSelectorSpec.AsObject>,
-    }
+      artifactSelectorsList: Array<DagOutputsSpec.ArtifactSelectorSpec.AsObject>;
+    };
   }
-
 
   export class ParameterSelectorSpec extends jspb.Message {
     getProducerSubtask(): string;
@@ -285,40 +312,58 @@ export namespace DagOutputsSpec {
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ParameterSelectorSpec.AsObject;
-    static toObject(includeInstance: boolean, msg: ParameterSelectorSpec): ParameterSelectorSpec.AsObject;
+    static toObject(
+      includeInstance: boolean,
+      msg: ParameterSelectorSpec,
+    ): ParameterSelectorSpec.AsObject;
     static serializeBinaryToWriter(message: ParameterSelectorSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): ParameterSelectorSpec;
-    static deserializeBinaryFromReader(message: ParameterSelectorSpec, reader: jspb.BinaryReader): ParameterSelectorSpec;
+    static deserializeBinaryFromReader(
+      message: ParameterSelectorSpec,
+      reader: jspb.BinaryReader,
+    ): ParameterSelectorSpec;
   }
 
   export namespace ParameterSelectorSpec {
     export type AsObject = {
-      producerSubtask: string,
-      outputParameterKey: string,
-    }
+      producerSubtask: string;
+      outputParameterKey: string;
+    };
   }
-
 
   export class ParameterSelectorsSpec extends jspb.Message {
     getParameterSelectorsList(): Array<DagOutputsSpec.ParameterSelectorSpec>;
-    setParameterSelectorsList(value: Array<DagOutputsSpec.ParameterSelectorSpec>): ParameterSelectorsSpec;
+    setParameterSelectorsList(
+      value: Array<DagOutputsSpec.ParameterSelectorSpec>,
+    ): ParameterSelectorsSpec;
     clearParameterSelectorsList(): ParameterSelectorsSpec;
-    addParameterSelectors(value?: DagOutputsSpec.ParameterSelectorSpec, index?: number): DagOutputsSpec.ParameterSelectorSpec;
+    addParameterSelectors(
+      value?: DagOutputsSpec.ParameterSelectorSpec,
+      index?: number,
+    ): DagOutputsSpec.ParameterSelectorSpec;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ParameterSelectorsSpec.AsObject;
-    static toObject(includeInstance: boolean, msg: ParameterSelectorsSpec): ParameterSelectorsSpec.AsObject;
-    static serializeBinaryToWriter(message: ParameterSelectorsSpec, writer: jspb.BinaryWriter): void;
+    static toObject(
+      includeInstance: boolean,
+      msg: ParameterSelectorsSpec,
+    ): ParameterSelectorsSpec.AsObject;
+    static serializeBinaryToWriter(
+      message: ParameterSelectorsSpec,
+      writer: jspb.BinaryWriter,
+    ): void;
     static deserializeBinary(bytes: Uint8Array): ParameterSelectorsSpec;
-    static deserializeBinaryFromReader(message: ParameterSelectorsSpec, reader: jspb.BinaryReader): ParameterSelectorsSpec;
+    static deserializeBinaryFromReader(
+      message: ParameterSelectorsSpec,
+      reader: jspb.BinaryReader,
+    ): ParameterSelectorsSpec;
   }
 
   export namespace ParameterSelectorsSpec {
     export type AsObject = {
-      parameterSelectorsList: Array<DagOutputsSpec.ParameterSelectorSpec.AsObject>,
-    }
+      parameterSelectorsList: Array<DagOutputsSpec.ParameterSelectorSpec.AsObject>;
+    };
   }
-
 
   export class MapParameterSelectorsSpec extends jspb.Message {
     getMappedParametersMap(): jspb.Map<string, DagOutputsSpec.ParameterSelectorSpec>;
@@ -326,18 +371,26 @@ export namespace DagOutputsSpec {
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): MapParameterSelectorsSpec.AsObject;
-    static toObject(includeInstance: boolean, msg: MapParameterSelectorsSpec): MapParameterSelectorsSpec.AsObject;
-    static serializeBinaryToWriter(message: MapParameterSelectorsSpec, writer: jspb.BinaryWriter): void;
+    static toObject(
+      includeInstance: boolean,
+      msg: MapParameterSelectorsSpec,
+    ): MapParameterSelectorsSpec.AsObject;
+    static serializeBinaryToWriter(
+      message: MapParameterSelectorsSpec,
+      writer: jspb.BinaryWriter,
+    ): void;
     static deserializeBinary(bytes: Uint8Array): MapParameterSelectorsSpec;
-    static deserializeBinaryFromReader(message: MapParameterSelectorsSpec, reader: jspb.BinaryReader): MapParameterSelectorsSpec;
+    static deserializeBinaryFromReader(
+      message: MapParameterSelectorsSpec,
+      reader: jspb.BinaryReader,
+    ): MapParameterSelectorsSpec;
   }
 
   export namespace MapParameterSelectorsSpec {
     export type AsObject = {
-      mappedParametersMap: Array<[string, DagOutputsSpec.ParameterSelectorSpec.AsObject]>,
-    }
+      mappedParametersMap: Array<[string, DagOutputsSpec.ParameterSelectorSpec.AsObject]>;
+    };
   }
-
 
   export class DagOutputParameterSpec extends jspb.Message {
     getValueFromParameter(): DagOutputsSpec.ParameterSelectorSpec | undefined;
@@ -354,25 +407,33 @@ export namespace DagOutputsSpec {
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): DagOutputParameterSpec.AsObject;
-    static toObject(includeInstance: boolean, msg: DagOutputParameterSpec): DagOutputParameterSpec.AsObject;
-    static serializeBinaryToWriter(message: DagOutputParameterSpec, writer: jspb.BinaryWriter): void;
+    static toObject(
+      includeInstance: boolean,
+      msg: DagOutputParameterSpec,
+    ): DagOutputParameterSpec.AsObject;
+    static serializeBinaryToWriter(
+      message: DagOutputParameterSpec,
+      writer: jspb.BinaryWriter,
+    ): void;
     static deserializeBinary(bytes: Uint8Array): DagOutputParameterSpec;
-    static deserializeBinaryFromReader(message: DagOutputParameterSpec, reader: jspb.BinaryReader): DagOutputParameterSpec;
+    static deserializeBinaryFromReader(
+      message: DagOutputParameterSpec,
+      reader: jspb.BinaryReader,
+    ): DagOutputParameterSpec;
   }
 
   export namespace DagOutputParameterSpec {
     export type AsObject = {
-      valueFromParameter?: DagOutputsSpec.ParameterSelectorSpec.AsObject,
-      valueFromOneof?: DagOutputsSpec.ParameterSelectorsSpec.AsObject,
-    }
+      valueFromParameter?: DagOutputsSpec.ParameterSelectorSpec.AsObject;
+      valueFromOneof?: DagOutputsSpec.ParameterSelectorsSpec.AsObject;
+    };
 
-    export enum KindCase { 
+    export enum KindCase {
       KIND_NOT_SET = 0,
       VALUE_FROM_PARAMETER = 1,
       VALUE_FROM_ONEOF = 2,
     }
   }
-
 }
 
 export class ComponentInputsSpec extends jspb.Message {
@@ -387,14 +448,17 @@ export class ComponentInputsSpec extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ComponentInputsSpec): ComponentInputsSpec.AsObject;
   static serializeBinaryToWriter(message: ComponentInputsSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ComponentInputsSpec;
-  static deserializeBinaryFromReader(message: ComponentInputsSpec, reader: jspb.BinaryReader): ComponentInputsSpec;
+  static deserializeBinaryFromReader(
+    message: ComponentInputsSpec,
+    reader: jspb.BinaryReader,
+  ): ComponentInputsSpec;
 }
 
 export namespace ComponentInputsSpec {
   export type AsObject = {
-    artifactsMap: Array<[string, ComponentInputsSpec.ArtifactSpec.AsObject]>,
-    parametersMap: Array<[string, ComponentInputsSpec.ParameterSpec.AsObject]>,
-  }
+    artifactsMap: Array<[string, ComponentInputsSpec.ArtifactSpec.AsObject]>;
+    parametersMap: Array<[string, ComponentInputsSpec.ParameterSpec.AsObject]>;
+  };
 
   export class ArtifactSpec extends jspb.Message {
     getArtifactType(): ArtifactTypeSchema | undefined;
@@ -416,18 +480,20 @@ export namespace ComponentInputsSpec {
     static toObject(includeInstance: boolean, msg: ArtifactSpec): ArtifactSpec.AsObject;
     static serializeBinaryToWriter(message: ArtifactSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): ArtifactSpec;
-    static deserializeBinaryFromReader(message: ArtifactSpec, reader: jspb.BinaryReader): ArtifactSpec;
+    static deserializeBinaryFromReader(
+      message: ArtifactSpec,
+      reader: jspb.BinaryReader,
+    ): ArtifactSpec;
   }
 
   export namespace ArtifactSpec {
     export type AsObject = {
-      artifactType?: ArtifactTypeSchema.AsObject,
-      isArtifactList: boolean,
-      isOptional: boolean,
-      description: string,
-    }
+      artifactType?: ArtifactTypeSchema.AsObject;
+      isArtifactList: boolean;
+      isOptional: boolean;
+      description: string;
+    };
   }
-
 
   export class ParameterSpec extends jspb.Message {
     getType(): PrimitiveType.PrimitiveTypeEnum;
@@ -452,19 +518,21 @@ export namespace ComponentInputsSpec {
     static toObject(includeInstance: boolean, msg: ParameterSpec): ParameterSpec.AsObject;
     static serializeBinaryToWriter(message: ParameterSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): ParameterSpec;
-    static deserializeBinaryFromReader(message: ParameterSpec, reader: jspb.BinaryReader): ParameterSpec;
+    static deserializeBinaryFromReader(
+      message: ParameterSpec,
+      reader: jspb.BinaryReader,
+    ): ParameterSpec;
   }
 
   export namespace ParameterSpec {
     export type AsObject = {
-      type: PrimitiveType.PrimitiveTypeEnum,
-      parameterType: ParameterType.ParameterTypeEnum,
-      defaultValue?: google_protobuf_struct_pb.Value.AsObject,
-      isOptional: boolean,
-      description: string,
-    }
+      type: PrimitiveType.PrimitiveTypeEnum;
+      parameterType: ParameterType.ParameterTypeEnum;
+      defaultValue?: google_protobuf_struct_pb.Value.AsObject;
+      isOptional: boolean;
+      description: string;
+    };
   }
-
 }
 
 export class ComponentOutputsSpec extends jspb.Message {
@@ -476,17 +544,23 @@ export class ComponentOutputsSpec extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ComponentOutputsSpec.AsObject;
-  static toObject(includeInstance: boolean, msg: ComponentOutputsSpec): ComponentOutputsSpec.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: ComponentOutputsSpec,
+  ): ComponentOutputsSpec.AsObject;
   static serializeBinaryToWriter(message: ComponentOutputsSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ComponentOutputsSpec;
-  static deserializeBinaryFromReader(message: ComponentOutputsSpec, reader: jspb.BinaryReader): ComponentOutputsSpec;
+  static deserializeBinaryFromReader(
+    message: ComponentOutputsSpec,
+    reader: jspb.BinaryReader,
+  ): ComponentOutputsSpec;
 }
 
 export namespace ComponentOutputsSpec {
   export type AsObject = {
-    artifactsMap: Array<[string, ComponentOutputsSpec.ArtifactSpec.AsObject]>,
-    parametersMap: Array<[string, ComponentOutputsSpec.ParameterSpec.AsObject]>,
-  }
+    artifactsMap: Array<[string, ComponentOutputsSpec.ArtifactSpec.AsObject]>;
+    parametersMap: Array<[string, ComponentOutputsSpec.ParameterSpec.AsObject]>;
+  };
 
   export class ArtifactSpec extends jspb.Message {
     getArtifactType(): ArtifactTypeSchema | undefined;
@@ -516,20 +590,22 @@ export namespace ComponentOutputsSpec {
     static toObject(includeInstance: boolean, msg: ArtifactSpec): ArtifactSpec.AsObject;
     static serializeBinaryToWriter(message: ArtifactSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): ArtifactSpec;
-    static deserializeBinaryFromReader(message: ArtifactSpec, reader: jspb.BinaryReader): ArtifactSpec;
+    static deserializeBinaryFromReader(
+      message: ArtifactSpec,
+      reader: jspb.BinaryReader,
+    ): ArtifactSpec;
   }
 
   export namespace ArtifactSpec {
     export type AsObject = {
-      artifactType?: ArtifactTypeSchema.AsObject,
-      propertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>,
-      customPropertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>,
-      metadata?: google_protobuf_struct_pb.Struct.AsObject,
-      isArtifactList: boolean,
-      description: string,
-    }
+      artifactType?: ArtifactTypeSchema.AsObject;
+      propertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>;
+      customPropertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>;
+      metadata?: google_protobuf_struct_pb.Struct.AsObject;
+      isArtifactList: boolean;
+      description: string;
+    };
   }
-
 
   export class ParameterSpec extends jspb.Message {
     getType(): PrimitiveType.PrimitiveTypeEnum;
@@ -546,17 +622,19 @@ export namespace ComponentOutputsSpec {
     static toObject(includeInstance: boolean, msg: ParameterSpec): ParameterSpec.AsObject;
     static serializeBinaryToWriter(message: ParameterSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): ParameterSpec;
-    static deserializeBinaryFromReader(message: ParameterSpec, reader: jspb.BinaryReader): ParameterSpec;
+    static deserializeBinaryFromReader(
+      message: ParameterSpec,
+      reader: jspb.BinaryReader,
+    ): ParameterSpec;
   }
 
   export namespace ParameterSpec {
     export type AsObject = {
-      type: PrimitiveType.PrimitiveTypeEnum,
-      parameterType: ParameterType.ParameterTypeEnum,
-      description: string,
-    }
+      type: PrimitiveType.PrimitiveTypeEnum;
+      parameterType: ParameterType.ParameterTypeEnum;
+      description: string;
+    };
   }
-
 }
 
 export class TaskInputsSpec extends jspb.Message {
@@ -571,18 +649,23 @@ export class TaskInputsSpec extends jspb.Message {
   static toObject(includeInstance: boolean, msg: TaskInputsSpec): TaskInputsSpec.AsObject;
   static serializeBinaryToWriter(message: TaskInputsSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): TaskInputsSpec;
-  static deserializeBinaryFromReader(message: TaskInputsSpec, reader: jspb.BinaryReader): TaskInputsSpec;
+  static deserializeBinaryFromReader(
+    message: TaskInputsSpec,
+    reader: jspb.BinaryReader,
+  ): TaskInputsSpec;
 }
 
 export namespace TaskInputsSpec {
   export type AsObject = {
-    parametersMap: Array<[string, TaskInputsSpec.InputParameterSpec.AsObject]>,
-    artifactsMap: Array<[string, TaskInputsSpec.InputArtifactSpec.AsObject]>,
-  }
+    parametersMap: Array<[string, TaskInputsSpec.InputParameterSpec.AsObject]>;
+    artifactsMap: Array<[string, TaskInputsSpec.InputArtifactSpec.AsObject]>;
+  };
 
   export class InputArtifactSpec extends jspb.Message {
     getTaskOutputArtifact(): TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec | undefined;
-    setTaskOutputArtifact(value?: TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec): InputArtifactSpec;
+    setTaskOutputArtifact(
+      value?: TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec,
+    ): InputArtifactSpec;
     hasTaskOutputArtifact(): boolean;
     clearTaskOutputArtifact(): InputArtifactSpec;
 
@@ -596,14 +679,17 @@ export namespace TaskInputsSpec {
     static toObject(includeInstance: boolean, msg: InputArtifactSpec): InputArtifactSpec.AsObject;
     static serializeBinaryToWriter(message: InputArtifactSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): InputArtifactSpec;
-    static deserializeBinaryFromReader(message: InputArtifactSpec, reader: jspb.BinaryReader): InputArtifactSpec;
+    static deserializeBinaryFromReader(
+      message: InputArtifactSpec,
+      reader: jspb.BinaryReader,
+    ): InputArtifactSpec;
   }
 
   export namespace InputArtifactSpec {
     export type AsObject = {
-      taskOutputArtifact?: TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.AsObject,
-      componentInputArtifact: string,
-    }
+      taskOutputArtifact?: TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.AsObject;
+      componentInputArtifact: string;
+    };
 
     export class TaskOutputArtifactSpec extends jspb.Message {
       getProducerTask(): string;
@@ -614,31 +700,40 @@ export namespace TaskInputsSpec {
 
       serializeBinary(): Uint8Array;
       toObject(includeInstance?: boolean): TaskOutputArtifactSpec.AsObject;
-      static toObject(includeInstance: boolean, msg: TaskOutputArtifactSpec): TaskOutputArtifactSpec.AsObject;
-      static serializeBinaryToWriter(message: TaskOutputArtifactSpec, writer: jspb.BinaryWriter): void;
+      static toObject(
+        includeInstance: boolean,
+        msg: TaskOutputArtifactSpec,
+      ): TaskOutputArtifactSpec.AsObject;
+      static serializeBinaryToWriter(
+        message: TaskOutputArtifactSpec,
+        writer: jspb.BinaryWriter,
+      ): void;
       static deserializeBinary(bytes: Uint8Array): TaskOutputArtifactSpec;
-      static deserializeBinaryFromReader(message: TaskOutputArtifactSpec, reader: jspb.BinaryReader): TaskOutputArtifactSpec;
+      static deserializeBinaryFromReader(
+        message: TaskOutputArtifactSpec,
+        reader: jspb.BinaryReader,
+      ): TaskOutputArtifactSpec;
     }
 
     export namespace TaskOutputArtifactSpec {
       export type AsObject = {
-        producerTask: string,
-        outputArtifactKey: string,
-      }
+        producerTask: string;
+        outputArtifactKey: string;
+      };
     }
 
-
-    export enum KindCase { 
+    export enum KindCase {
       KIND_NOT_SET = 0,
       TASK_OUTPUT_ARTIFACT = 3,
       COMPONENT_INPUT_ARTIFACT = 4,
     }
   }
 
-
   export class InputParameterSpec extends jspb.Message {
     getTaskOutputParameter(): TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec | undefined;
-    setTaskOutputParameter(value?: TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec): InputParameterSpec;
+    setTaskOutputParameter(
+      value?: TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec,
+    ): InputParameterSpec;
     hasTaskOutputParameter(): boolean;
     clearTaskOutputParameter(): InputParameterSpec;
 
@@ -651,7 +746,9 @@ export namespace TaskInputsSpec {
     setComponentInputParameter(value: string): InputParameterSpec;
 
     getTaskFinalStatus(): TaskInputsSpec.InputParameterSpec.TaskFinalStatus | undefined;
-    setTaskFinalStatus(value?: TaskInputsSpec.InputParameterSpec.TaskFinalStatus): InputParameterSpec;
+    setTaskFinalStatus(
+      value?: TaskInputsSpec.InputParameterSpec.TaskFinalStatus,
+    ): InputParameterSpec;
     hasTaskFinalStatus(): boolean;
     clearTaskFinalStatus(): InputParameterSpec;
 
@@ -665,17 +762,20 @@ export namespace TaskInputsSpec {
     static toObject(includeInstance: boolean, msg: InputParameterSpec): InputParameterSpec.AsObject;
     static serializeBinaryToWriter(message: InputParameterSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): InputParameterSpec;
-    static deserializeBinaryFromReader(message: InputParameterSpec, reader: jspb.BinaryReader): InputParameterSpec;
+    static deserializeBinaryFromReader(
+      message: InputParameterSpec,
+      reader: jspb.BinaryReader,
+    ): InputParameterSpec;
   }
 
   export namespace InputParameterSpec {
     export type AsObject = {
-      taskOutputParameter?: TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.AsObject,
-      runtimeValue?: ValueOrRuntimeParameter.AsObject,
-      componentInputParameter: string,
-      taskFinalStatus?: TaskInputsSpec.InputParameterSpec.TaskFinalStatus.AsObject,
-      parameterExpressionSelector: string,
-    }
+      taskOutputParameter?: TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.AsObject;
+      runtimeValue?: ValueOrRuntimeParameter.AsObject;
+      componentInputParameter: string;
+      taskFinalStatus?: TaskInputsSpec.InputParameterSpec.TaskFinalStatus.AsObject;
+      parameterExpressionSelector: string;
+    };
 
     export class TaskOutputParameterSpec extends jspb.Message {
       getProducerTask(): string;
@@ -686,19 +786,27 @@ export namespace TaskInputsSpec {
 
       serializeBinary(): Uint8Array;
       toObject(includeInstance?: boolean): TaskOutputParameterSpec.AsObject;
-      static toObject(includeInstance: boolean, msg: TaskOutputParameterSpec): TaskOutputParameterSpec.AsObject;
-      static serializeBinaryToWriter(message: TaskOutputParameterSpec, writer: jspb.BinaryWriter): void;
+      static toObject(
+        includeInstance: boolean,
+        msg: TaskOutputParameterSpec,
+      ): TaskOutputParameterSpec.AsObject;
+      static serializeBinaryToWriter(
+        message: TaskOutputParameterSpec,
+        writer: jspb.BinaryWriter,
+      ): void;
       static deserializeBinary(bytes: Uint8Array): TaskOutputParameterSpec;
-      static deserializeBinaryFromReader(message: TaskOutputParameterSpec, reader: jspb.BinaryReader): TaskOutputParameterSpec;
+      static deserializeBinaryFromReader(
+        message: TaskOutputParameterSpec,
+        reader: jspb.BinaryReader,
+      ): TaskOutputParameterSpec;
     }
 
     export namespace TaskOutputParameterSpec {
       export type AsObject = {
-        producerTask: string,
-        outputParameterKey: string,
-      }
+        producerTask: string;
+        outputParameterKey: string;
+      };
     }
-
 
     export class TaskFinalStatus extends jspb.Message {
       getProducerTask(): string;
@@ -709,17 +817,19 @@ export namespace TaskInputsSpec {
       static toObject(includeInstance: boolean, msg: TaskFinalStatus): TaskFinalStatus.AsObject;
       static serializeBinaryToWriter(message: TaskFinalStatus, writer: jspb.BinaryWriter): void;
       static deserializeBinary(bytes: Uint8Array): TaskFinalStatus;
-      static deserializeBinaryFromReader(message: TaskFinalStatus, reader: jspb.BinaryReader): TaskFinalStatus;
+      static deserializeBinaryFromReader(
+        message: TaskFinalStatus,
+        reader: jspb.BinaryReader,
+      ): TaskFinalStatus;
     }
 
     export namespace TaskFinalStatus {
       export type AsObject = {
-        producerTask: string,
-      }
+        producerTask: string;
+      };
     }
 
-
-    export enum KindCase { 
+    export enum KindCase {
       KIND_NOT_SET = 0,
       TASK_OUTPUT_PARAMETER = 1,
       RUNTIME_VALUE = 2,
@@ -727,7 +837,6 @@ export namespace TaskInputsSpec {
       TASK_FINAL_STATUS = 5,
     }
   }
-
 }
 
 export class TaskOutputsSpec extends jspb.Message {
@@ -742,14 +851,17 @@ export class TaskOutputsSpec extends jspb.Message {
   static toObject(includeInstance: boolean, msg: TaskOutputsSpec): TaskOutputsSpec.AsObject;
   static serializeBinaryToWriter(message: TaskOutputsSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): TaskOutputsSpec;
-  static deserializeBinaryFromReader(message: TaskOutputsSpec, reader: jspb.BinaryReader): TaskOutputsSpec;
+  static deserializeBinaryFromReader(
+    message: TaskOutputsSpec,
+    reader: jspb.BinaryReader,
+  ): TaskOutputsSpec;
 }
 
 export namespace TaskOutputsSpec {
   export type AsObject = {
-    parametersMap: Array<[string, TaskOutputsSpec.OutputParameterSpec.AsObject]>,
-    artifactsMap: Array<[string, TaskOutputsSpec.OutputArtifactSpec.AsObject]>,
-  }
+    parametersMap: Array<[string, TaskOutputsSpec.OutputParameterSpec.AsObject]>;
+    artifactsMap: Array<[string, TaskOutputsSpec.OutputArtifactSpec.AsObject]>;
+  };
 
   export class OutputArtifactSpec extends jspb.Message {
     getArtifactType(): ArtifactTypeSchema | undefined;
@@ -768,17 +880,19 @@ export namespace TaskOutputsSpec {
     static toObject(includeInstance: boolean, msg: OutputArtifactSpec): OutputArtifactSpec.AsObject;
     static serializeBinaryToWriter(message: OutputArtifactSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): OutputArtifactSpec;
-    static deserializeBinaryFromReader(message: OutputArtifactSpec, reader: jspb.BinaryReader): OutputArtifactSpec;
+    static deserializeBinaryFromReader(
+      message: OutputArtifactSpec,
+      reader: jspb.BinaryReader,
+    ): OutputArtifactSpec;
   }
 
   export namespace OutputArtifactSpec {
     export type AsObject = {
-      artifactType?: ArtifactTypeSchema.AsObject,
-      propertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>,
-      customPropertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>,
-    }
+      artifactType?: ArtifactTypeSchema.AsObject;
+      propertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>;
+      customPropertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>;
+    };
   }
-
 
   export class OutputParameterSpec extends jspb.Message {
     getType(): PrimitiveType.PrimitiveTypeEnum;
@@ -786,18 +900,23 @@ export namespace TaskOutputsSpec {
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): OutputParameterSpec.AsObject;
-    static toObject(includeInstance: boolean, msg: OutputParameterSpec): OutputParameterSpec.AsObject;
+    static toObject(
+      includeInstance: boolean,
+      msg: OutputParameterSpec,
+    ): OutputParameterSpec.AsObject;
     static serializeBinaryToWriter(message: OutputParameterSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): OutputParameterSpec;
-    static deserializeBinaryFromReader(message: OutputParameterSpec, reader: jspb.BinaryReader): OutputParameterSpec;
+    static deserializeBinaryFromReader(
+      message: OutputParameterSpec,
+      reader: jspb.BinaryReader,
+    ): OutputParameterSpec;
   }
 
   export namespace OutputParameterSpec {
     export type AsObject = {
-      type: PrimitiveType.PrimitiveTypeEnum,
-    }
+      type: PrimitiveType.PrimitiveTypeEnum;
+    };
   }
-
 }
 
 export class PrimitiveType extends jspb.Message {
@@ -806,14 +925,16 @@ export class PrimitiveType extends jspb.Message {
   static toObject(includeInstance: boolean, msg: PrimitiveType): PrimitiveType.AsObject;
   static serializeBinaryToWriter(message: PrimitiveType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): PrimitiveType;
-  static deserializeBinaryFromReader(message: PrimitiveType, reader: jspb.BinaryReader): PrimitiveType;
+  static deserializeBinaryFromReader(
+    message: PrimitiveType,
+    reader: jspb.BinaryReader,
+  ): PrimitiveType;
 }
 
 export namespace PrimitiveType {
-  export type AsObject = {
-  }
+  export type AsObject = {};
 
-  export enum PrimitiveTypeEnum { 
+  export enum PrimitiveTypeEnum {
     PRIMITIVE_TYPE_UNSPECIFIED = 0,
     INT = 1,
     DOUBLE = 2,
@@ -827,14 +948,16 @@ export class ParameterType extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ParameterType): ParameterType.AsObject;
   static serializeBinaryToWriter(message: ParameterType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ParameterType;
-  static deserializeBinaryFromReader(message: ParameterType, reader: jspb.BinaryReader): ParameterType;
+  static deserializeBinaryFromReader(
+    message: ParameterType,
+    reader: jspb.BinaryReader,
+  ): ParameterType;
 }
 
 export namespace ParameterType {
-  export type AsObject = {
-  }
+  export type AsObject = {};
 
-  export enum ParameterTypeEnum { 
+  export enum ParameterTypeEnum {
     PARAMETER_TYPE_ENUM_UNSPECIFIED = 0,
     NUMBER_DOUBLE = 1,
     NUMBER_INTEGER = 2,
@@ -904,22 +1027,25 @@ export class PipelineTaskSpec extends jspb.Message {
   static toObject(includeInstance: boolean, msg: PipelineTaskSpec): PipelineTaskSpec.AsObject;
   static serializeBinaryToWriter(message: PipelineTaskSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): PipelineTaskSpec;
-  static deserializeBinaryFromReader(message: PipelineTaskSpec, reader: jspb.BinaryReader): PipelineTaskSpec;
+  static deserializeBinaryFromReader(
+    message: PipelineTaskSpec,
+    reader: jspb.BinaryReader,
+  ): PipelineTaskSpec;
 }
 
 export namespace PipelineTaskSpec {
   export type AsObject = {
-    taskInfo?: PipelineTaskInfo.AsObject,
-    inputs?: TaskInputsSpec.AsObject,
-    dependentTasksList: Array<string>,
-    cachingOptions?: PipelineTaskSpec.CachingOptions.AsObject,
-    componentRef?: ComponentRef.AsObject,
-    triggerPolicy?: PipelineTaskSpec.TriggerPolicy.AsObject,
-    artifactIterator?: ArtifactIteratorSpec.AsObject,
-    parameterIterator?: ParameterIteratorSpec.AsObject,
-    retryPolicy?: PipelineTaskSpec.RetryPolicy.AsObject,
-    iteratorPolicy?: PipelineTaskSpec.IteratorPolicy.AsObject,
-  }
+    taskInfo?: PipelineTaskInfo.AsObject;
+    inputs?: TaskInputsSpec.AsObject;
+    dependentTasksList: Array<string>;
+    cachingOptions?: PipelineTaskSpec.CachingOptions.AsObject;
+    componentRef?: ComponentRef.AsObject;
+    triggerPolicy?: PipelineTaskSpec.TriggerPolicy.AsObject;
+    artifactIterator?: ArtifactIteratorSpec.AsObject;
+    parameterIterator?: ParameterIteratorSpec.AsObject;
+    retryPolicy?: PipelineTaskSpec.RetryPolicy.AsObject;
+    iteratorPolicy?: PipelineTaskSpec.IteratorPolicy.AsObject;
+  };
 
   export class CachingOptions extends jspb.Message {
     getEnableCache(): boolean;
@@ -930,15 +1056,17 @@ export namespace PipelineTaskSpec {
     static toObject(includeInstance: boolean, msg: CachingOptions): CachingOptions.AsObject;
     static serializeBinaryToWriter(message: CachingOptions, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): CachingOptions;
-    static deserializeBinaryFromReader(message: CachingOptions, reader: jspb.BinaryReader): CachingOptions;
+    static deserializeBinaryFromReader(
+      message: CachingOptions,
+      reader: jspb.BinaryReader,
+    ): CachingOptions;
   }
 
   export namespace CachingOptions {
     export type AsObject = {
-      enableCache: boolean,
-    }
+      enableCache: boolean;
+    };
   }
-
 
   export class TriggerPolicy extends jspb.Message {
     getCondition(): string;
@@ -952,22 +1080,24 @@ export namespace PipelineTaskSpec {
     static toObject(includeInstance: boolean, msg: TriggerPolicy): TriggerPolicy.AsObject;
     static serializeBinaryToWriter(message: TriggerPolicy, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): TriggerPolicy;
-    static deserializeBinaryFromReader(message: TriggerPolicy, reader: jspb.BinaryReader): TriggerPolicy;
+    static deserializeBinaryFromReader(
+      message: TriggerPolicy,
+      reader: jspb.BinaryReader,
+    ): TriggerPolicy;
   }
 
   export namespace TriggerPolicy {
     export type AsObject = {
-      condition: string,
-      strategy: PipelineTaskSpec.TriggerPolicy.TriggerStrategy,
-    }
+      condition: string;
+      strategy: PipelineTaskSpec.TriggerPolicy.TriggerStrategy;
+    };
 
-    export enum TriggerStrategy { 
+    export enum TriggerStrategy {
       TRIGGER_STRATEGY_UNSPECIFIED = 0,
       ALL_UPSTREAM_TASKS_SUCCEEDED = 1,
       ALL_UPSTREAM_TASKS_COMPLETED = 2,
     }
   }
-
 
   export class RetryPolicy extends jspb.Message {
     getMaxRetryCount(): number;
@@ -991,18 +1121,20 @@ export namespace PipelineTaskSpec {
     static toObject(includeInstance: boolean, msg: RetryPolicy): RetryPolicy.AsObject;
     static serializeBinaryToWriter(message: RetryPolicy, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): RetryPolicy;
-    static deserializeBinaryFromReader(message: RetryPolicy, reader: jspb.BinaryReader): RetryPolicy;
+    static deserializeBinaryFromReader(
+      message: RetryPolicy,
+      reader: jspb.BinaryReader,
+    ): RetryPolicy;
   }
 
   export namespace RetryPolicy {
     export type AsObject = {
-      maxRetryCount: number,
-      backoffDuration?: google_protobuf_duration_pb.Duration.AsObject,
-      backoffFactor: number,
-      backoffMaxDuration?: google_protobuf_duration_pb.Duration.AsObject,
-    }
+      maxRetryCount: number;
+      backoffDuration?: google_protobuf_duration_pb.Duration.AsObject;
+      backoffFactor: number;
+      backoffMaxDuration?: google_protobuf_duration_pb.Duration.AsObject;
+    };
   }
-
 
   export class IteratorPolicy extends jspb.Message {
     getParallelismLimit(): number;
@@ -1013,17 +1145,19 @@ export namespace PipelineTaskSpec {
     static toObject(includeInstance: boolean, msg: IteratorPolicy): IteratorPolicy.AsObject;
     static serializeBinaryToWriter(message: IteratorPolicy, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): IteratorPolicy;
-    static deserializeBinaryFromReader(message: IteratorPolicy, reader: jspb.BinaryReader): IteratorPolicy;
+    static deserializeBinaryFromReader(
+      message: IteratorPolicy,
+      reader: jspb.BinaryReader,
+    ): IteratorPolicy;
   }
 
   export namespace IteratorPolicy {
     export type AsObject = {
-      parallelismLimit: number,
-    }
+      parallelismLimit: number;
+    };
   }
 
-
-  export enum IteratorCase { 
+  export enum IteratorCase {
     ITERATOR_NOT_SET = 0,
     ARTIFACT_ITERATOR = 9,
     PARAMETER_ITERATOR = 10,
@@ -1041,17 +1175,23 @@ export class ArtifactIteratorSpec extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ArtifactIteratorSpec.AsObject;
-  static toObject(includeInstance: boolean, msg: ArtifactIteratorSpec): ArtifactIteratorSpec.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: ArtifactIteratorSpec,
+  ): ArtifactIteratorSpec.AsObject;
   static serializeBinaryToWriter(message: ArtifactIteratorSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ArtifactIteratorSpec;
-  static deserializeBinaryFromReader(message: ArtifactIteratorSpec, reader: jspb.BinaryReader): ArtifactIteratorSpec;
+  static deserializeBinaryFromReader(
+    message: ArtifactIteratorSpec,
+    reader: jspb.BinaryReader,
+  ): ArtifactIteratorSpec;
 }
 
 export namespace ArtifactIteratorSpec {
   export type AsObject = {
-    items?: ArtifactIteratorSpec.ItemsSpec.AsObject,
-    itemInput: string,
-  }
+    items?: ArtifactIteratorSpec.ItemsSpec.AsObject;
+    itemInput: string;
+  };
 
   export class ItemsSpec extends jspb.Message {
     getInputArtifact(): string;
@@ -1067,10 +1207,9 @@ export namespace ArtifactIteratorSpec {
 
   export namespace ItemsSpec {
     export type AsObject = {
-      inputArtifact: string,
-    }
+      inputArtifact: string;
+    };
   }
-
 }
 
 export class ParameterIteratorSpec extends jspb.Message {
@@ -1084,17 +1223,23 @@ export class ParameterIteratorSpec extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ParameterIteratorSpec.AsObject;
-  static toObject(includeInstance: boolean, msg: ParameterIteratorSpec): ParameterIteratorSpec.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: ParameterIteratorSpec,
+  ): ParameterIteratorSpec.AsObject;
   static serializeBinaryToWriter(message: ParameterIteratorSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ParameterIteratorSpec;
-  static deserializeBinaryFromReader(message: ParameterIteratorSpec, reader: jspb.BinaryReader): ParameterIteratorSpec;
+  static deserializeBinaryFromReader(
+    message: ParameterIteratorSpec,
+    reader: jspb.BinaryReader,
+  ): ParameterIteratorSpec;
 }
 
 export namespace ParameterIteratorSpec {
   export type AsObject = {
-    items?: ParameterIteratorSpec.ItemsSpec.AsObject,
-    itemInput: string,
-  }
+    items?: ParameterIteratorSpec.ItemsSpec.AsObject;
+    itemInput: string;
+  };
 
   export class ItemsSpec extends jspb.Message {
     getRaw(): string;
@@ -1115,17 +1260,16 @@ export namespace ParameterIteratorSpec {
 
   export namespace ItemsSpec {
     export type AsObject = {
-      raw: string,
-      inputParameter: string,
-    }
+      raw: string;
+      inputParameter: string;
+    };
 
-    export enum KindCase { 
+    export enum KindCase {
       KIND_NOT_SET = 0,
       RAW = 1,
       INPUT_PARAMETER = 2,
     }
   }
-
 }
 
 export class ComponentRef extends jspb.Message {
@@ -1137,13 +1281,16 @@ export class ComponentRef extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ComponentRef): ComponentRef.AsObject;
   static serializeBinaryToWriter(message: ComponentRef, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ComponentRef;
-  static deserializeBinaryFromReader(message: ComponentRef, reader: jspb.BinaryReader): ComponentRef;
+  static deserializeBinaryFromReader(
+    message: ComponentRef,
+    reader: jspb.BinaryReader,
+  ): ComponentRef;
 }
 
 export namespace ComponentRef {
   export type AsObject = {
-    name: string,
-  }
+    name: string;
+  };
 }
 
 export class PipelineInfo extends jspb.Message {
@@ -1161,15 +1308,18 @@ export class PipelineInfo extends jspb.Message {
   static toObject(includeInstance: boolean, msg: PipelineInfo): PipelineInfo.AsObject;
   static serializeBinaryToWriter(message: PipelineInfo, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): PipelineInfo;
-  static deserializeBinaryFromReader(message: PipelineInfo, reader: jspb.BinaryReader): PipelineInfo;
+  static deserializeBinaryFromReader(
+    message: PipelineInfo,
+    reader: jspb.BinaryReader,
+  ): PipelineInfo;
 }
 
 export namespace PipelineInfo {
   export type AsObject = {
-    name: string,
-    displayName: string,
-    description: string,
-  }
+    name: string;
+    displayName: string;
+    description: string;
+  };
 }
 
 export class ArtifactTypeSchema extends jspb.Message {
@@ -1192,18 +1342,21 @@ export class ArtifactTypeSchema extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ArtifactTypeSchema): ArtifactTypeSchema.AsObject;
   static serializeBinaryToWriter(message: ArtifactTypeSchema, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ArtifactTypeSchema;
-  static deserializeBinaryFromReader(message: ArtifactTypeSchema, reader: jspb.BinaryReader): ArtifactTypeSchema;
+  static deserializeBinaryFromReader(
+    message: ArtifactTypeSchema,
+    reader: jspb.BinaryReader,
+  ): ArtifactTypeSchema;
 }
 
 export namespace ArtifactTypeSchema {
   export type AsObject = {
-    schemaTitle: string,
-    schemaUri: string,
-    instanceSchema: string,
-    schemaVersion: string,
-  }
+    schemaTitle: string;
+    schemaUri: string;
+    instanceSchema: string;
+    schemaVersion: string;
+  };
 
-  export enum KindCase { 
+  export enum KindCase {
     KIND_NOT_SET = 0,
     SCHEMA_TITLE = 1,
     SCHEMA_URI = 2,
@@ -1220,13 +1373,16 @@ export class PipelineTaskInfo extends jspb.Message {
   static toObject(includeInstance: boolean, msg: PipelineTaskInfo): PipelineTaskInfo.AsObject;
   static serializeBinaryToWriter(message: PipelineTaskInfo, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): PipelineTaskInfo;
-  static deserializeBinaryFromReader(message: PipelineTaskInfo, reader: jspb.BinaryReader): PipelineTaskInfo;
+  static deserializeBinaryFromReader(
+    message: PipelineTaskInfo,
+    reader: jspb.BinaryReader,
+  ): PipelineTaskInfo;
 }
 
 export namespace PipelineTaskInfo {
   export type AsObject = {
-    name: string,
-  }
+    name: string;
+  };
 }
 
 export class ValueOrRuntimeParameter extends jspb.Message {
@@ -1247,20 +1403,26 @@ export class ValueOrRuntimeParameter extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ValueOrRuntimeParameter.AsObject;
-  static toObject(includeInstance: boolean, msg: ValueOrRuntimeParameter): ValueOrRuntimeParameter.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: ValueOrRuntimeParameter,
+  ): ValueOrRuntimeParameter.AsObject;
   static serializeBinaryToWriter(message: ValueOrRuntimeParameter, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ValueOrRuntimeParameter;
-  static deserializeBinaryFromReader(message: ValueOrRuntimeParameter, reader: jspb.BinaryReader): ValueOrRuntimeParameter;
+  static deserializeBinaryFromReader(
+    message: ValueOrRuntimeParameter,
+    reader: jspb.BinaryReader,
+  ): ValueOrRuntimeParameter;
 }
 
 export namespace ValueOrRuntimeParameter {
   export type AsObject = {
-    constantValue?: Value.AsObject,
-    runtimeParameter: string,
-    constant?: google_protobuf_struct_pb.Value.AsObject,
-  }
+    constantValue?: Value.AsObject;
+    runtimeParameter: string;
+    constant?: google_protobuf_struct_pb.Value.AsObject;
+  };
 
-  export enum ValueCase { 
+  export enum ValueCase {
     VALUE_NOT_SET = 0,
     CONSTANT_VALUE = 1,
     RUNTIME_PARAMETER = 2,
@@ -1274,16 +1436,25 @@ export class PipelineDeploymentConfig extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): PipelineDeploymentConfig.AsObject;
-  static toObject(includeInstance: boolean, msg: PipelineDeploymentConfig): PipelineDeploymentConfig.AsObject;
-  static serializeBinaryToWriter(message: PipelineDeploymentConfig, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: PipelineDeploymentConfig,
+  ): PipelineDeploymentConfig.AsObject;
+  static serializeBinaryToWriter(
+    message: PipelineDeploymentConfig,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): PipelineDeploymentConfig;
-  static deserializeBinaryFromReader(message: PipelineDeploymentConfig, reader: jspb.BinaryReader): PipelineDeploymentConfig;
+  static deserializeBinaryFromReader(
+    message: PipelineDeploymentConfig,
+    reader: jspb.BinaryReader,
+  ): PipelineDeploymentConfig;
 }
 
 export namespace PipelineDeploymentConfig {
   export type AsObject = {
-    executorsMap: Array<[string, PipelineDeploymentConfig.ExecutorSpec.AsObject]>,
-  }
+    executorsMap: Array<[string, PipelineDeploymentConfig.ExecutorSpec.AsObject]>;
+  };
 
   export class PipelineContainerSpec extends jspb.Message {
     getImage(): string;
@@ -1300,41 +1471,58 @@ export namespace PipelineDeploymentConfig {
     addArgs(value: string, index?: number): PipelineContainerSpec;
 
     getLifecycle(): PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle | undefined;
-    setLifecycle(value?: PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle): PipelineContainerSpec;
+    setLifecycle(
+      value?: PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle,
+    ): PipelineContainerSpec;
     hasLifecycle(): boolean;
     clearLifecycle(): PipelineContainerSpec;
 
     getResources(): PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec | undefined;
-    setResources(value?: PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec): PipelineContainerSpec;
+    setResources(
+      value?: PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec,
+    ): PipelineContainerSpec;
     hasResources(): boolean;
     clearResources(): PipelineContainerSpec;
 
     getEnvList(): Array<PipelineDeploymentConfig.PipelineContainerSpec.EnvVar>;
-    setEnvList(value: Array<PipelineDeploymentConfig.PipelineContainerSpec.EnvVar>): PipelineContainerSpec;
+    setEnvList(
+      value: Array<PipelineDeploymentConfig.PipelineContainerSpec.EnvVar>,
+    ): PipelineContainerSpec;
     clearEnvList(): PipelineContainerSpec;
-    addEnv(value?: PipelineDeploymentConfig.PipelineContainerSpec.EnvVar, index?: number): PipelineDeploymentConfig.PipelineContainerSpec.EnvVar;
+    addEnv(
+      value?: PipelineDeploymentConfig.PipelineContainerSpec.EnvVar,
+      index?: number,
+    ): PipelineDeploymentConfig.PipelineContainerSpec.EnvVar;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): PipelineContainerSpec.AsObject;
-    static toObject(includeInstance: boolean, msg: PipelineContainerSpec): PipelineContainerSpec.AsObject;
+    static toObject(
+      includeInstance: boolean,
+      msg: PipelineContainerSpec,
+    ): PipelineContainerSpec.AsObject;
     static serializeBinaryToWriter(message: PipelineContainerSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): PipelineContainerSpec;
-    static deserializeBinaryFromReader(message: PipelineContainerSpec, reader: jspb.BinaryReader): PipelineContainerSpec;
+    static deserializeBinaryFromReader(
+      message: PipelineContainerSpec,
+      reader: jspb.BinaryReader,
+    ): PipelineContainerSpec;
   }
 
   export namespace PipelineContainerSpec {
     export type AsObject = {
-      image: string,
-      commandList: Array<string>,
-      argsList: Array<string>,
-      lifecycle?: PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.AsObject,
-      resources?: PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AsObject,
-      envList: Array<PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.AsObject>,
-    }
+      image: string;
+      commandList: Array<string>;
+      argsList: Array<string>;
+      lifecycle?: PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.AsObject;
+      resources?: PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AsObject;
+      envList: Array<PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.AsObject>;
+    };
 
     export class Lifecycle extends jspb.Message {
       getPreCacheCheck(): PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec | undefined;
-      setPreCacheCheck(value?: PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec): Lifecycle;
+      setPreCacheCheck(
+        value?: PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec,
+      ): Lifecycle;
       hasPreCacheCheck(): boolean;
       clearPreCacheCheck(): Lifecycle;
 
@@ -1348,8 +1536,8 @@ export namespace PipelineDeploymentConfig {
 
     export namespace Lifecycle {
       export type AsObject = {
-        preCacheCheck?: PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.AsObject,
-      }
+        preCacheCheck?: PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.AsObject;
+      };
 
       export class Exec extends jspb.Message {
         getCommandList(): Array<string>;
@@ -1372,13 +1560,11 @@ export namespace PipelineDeploymentConfig {
 
       export namespace Exec {
         export type AsObject = {
-          commandList: Array<string>,
-          argsList: Array<string>,
-        }
+          commandList: Array<string>;
+          argsList: Array<string>;
+        };
       }
-
     }
-
 
     export class ResourceSpec extends jspb.Message {
       getCpuLimit(): number;
@@ -1393,8 +1579,12 @@ export namespace PipelineDeploymentConfig {
       getMemoryRequest(): number;
       setMemoryRequest(value: number): ResourceSpec;
 
-      getAccelerator(): PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig | undefined;
-      setAccelerator(value?: PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig): ResourceSpec;
+      getAccelerator():
+        | PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig
+        | undefined;
+      setAccelerator(
+        value?: PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig,
+      ): ResourceSpec;
       hasAccelerator(): boolean;
       clearAccelerator(): ResourceSpec;
 
@@ -1403,17 +1593,20 @@ export namespace PipelineDeploymentConfig {
       static toObject(includeInstance: boolean, msg: ResourceSpec): ResourceSpec.AsObject;
       static serializeBinaryToWriter(message: ResourceSpec, writer: jspb.BinaryWriter): void;
       static deserializeBinary(bytes: Uint8Array): ResourceSpec;
-      static deserializeBinaryFromReader(message: ResourceSpec, reader: jspb.BinaryReader): ResourceSpec;
+      static deserializeBinaryFromReader(
+        message: ResourceSpec,
+        reader: jspb.BinaryReader,
+      ): ResourceSpec;
     }
 
     export namespace ResourceSpec {
       export type AsObject = {
-        cpuLimit: number,
-        memoryLimit: number,
-        cpuRequest: number,
-        memoryRequest: number,
-        accelerator?: PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.AsObject,
-      }
+        cpuLimit: number;
+        memoryLimit: number;
+        cpuRequest: number;
+        memoryRequest: number;
+        accelerator?: PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.AsObject;
+      };
 
       export class AcceleratorConfig extends jspb.Message {
         getType(): string;
@@ -1424,21 +1617,25 @@ export namespace PipelineDeploymentConfig {
 
         serializeBinary(): Uint8Array;
         toObject(includeInstance?: boolean): AcceleratorConfig.AsObject;
-        static toObject(includeInstance: boolean, msg: AcceleratorConfig): AcceleratorConfig.AsObject;
+        static toObject(
+          includeInstance: boolean,
+          msg: AcceleratorConfig,
+        ): AcceleratorConfig.AsObject;
         static serializeBinaryToWriter(message: AcceleratorConfig, writer: jspb.BinaryWriter): void;
         static deserializeBinary(bytes: Uint8Array): AcceleratorConfig;
-        static deserializeBinaryFromReader(message: AcceleratorConfig, reader: jspb.BinaryReader): AcceleratorConfig;
+        static deserializeBinaryFromReader(
+          message: AcceleratorConfig,
+          reader: jspb.BinaryReader,
+        ): AcceleratorConfig;
       }
 
       export namespace AcceleratorConfig {
         export type AsObject = {
-          type: string,
-          count: number,
-        }
+          type: string;
+          count: number;
+        };
       }
-
     }
-
 
     export class EnvVar extends jspb.Message {
       getName(): string;
@@ -1457,13 +1654,11 @@ export namespace PipelineDeploymentConfig {
 
     export namespace EnvVar {
       export type AsObject = {
-        name: string,
-        value: string,
-      }
+        name: string;
+        value: string;
+      };
     }
-
   }
-
 
   export class ImporterSpec extends jspb.Message {
     getArtifactUri(): ValueOrRuntimeParameter | undefined;
@@ -1495,23 +1690,28 @@ export namespace PipelineDeploymentConfig {
     static toObject(includeInstance: boolean, msg: ImporterSpec): ImporterSpec.AsObject;
     static serializeBinaryToWriter(message: ImporterSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): ImporterSpec;
-    static deserializeBinaryFromReader(message: ImporterSpec, reader: jspb.BinaryReader): ImporterSpec;
+    static deserializeBinaryFromReader(
+      message: ImporterSpec,
+      reader: jspb.BinaryReader,
+    ): ImporterSpec;
   }
 
   export namespace ImporterSpec {
     export type AsObject = {
-      artifactUri?: ValueOrRuntimeParameter.AsObject,
-      typeSchema?: ArtifactTypeSchema.AsObject,
-      propertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>,
-      customPropertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>,
-      metadata?: google_protobuf_struct_pb.Struct.AsObject,
-      reimport: boolean,
-    }
+      artifactUri?: ValueOrRuntimeParameter.AsObject;
+      typeSchema?: ArtifactTypeSchema.AsObject;
+      propertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>;
+      customPropertiesMap: Array<[string, ValueOrRuntimeParameter.AsObject]>;
+      metadata?: google_protobuf_struct_pb.Struct.AsObject;
+      reimport: boolean;
+    };
   }
 
-
   export class ResolverSpec extends jspb.Message {
-    getOutputArtifactQueriesMap(): jspb.Map<string, PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec>;
+    getOutputArtifactQueriesMap(): jspb.Map<
+      string,
+      PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec
+    >;
     clearOutputArtifactQueriesMap(): ResolverSpec;
 
     serializeBinary(): Uint8Array;
@@ -1519,13 +1719,18 @@ export namespace PipelineDeploymentConfig {
     static toObject(includeInstance: boolean, msg: ResolverSpec): ResolverSpec.AsObject;
     static serializeBinaryToWriter(message: ResolverSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): ResolverSpec;
-    static deserializeBinaryFromReader(message: ResolverSpec, reader: jspb.BinaryReader): ResolverSpec;
+    static deserializeBinaryFromReader(
+      message: ResolverSpec,
+      reader: jspb.BinaryReader,
+    ): ResolverSpec;
   }
 
   export namespace ResolverSpec {
     export type AsObject = {
-      outputArtifactQueriesMap: Array<[string, PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.AsObject]>,
-    }
+      outputArtifactQueriesMap: Array<
+        [string, PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.AsObject]
+      >;
+    };
 
     export class ArtifactQuerySpec extends jspb.Message {
       getFilter(): string;
@@ -1539,18 +1744,19 @@ export namespace PipelineDeploymentConfig {
       static toObject(includeInstance: boolean, msg: ArtifactQuerySpec): ArtifactQuerySpec.AsObject;
       static serializeBinaryToWriter(message: ArtifactQuerySpec, writer: jspb.BinaryWriter): void;
       static deserializeBinary(bytes: Uint8Array): ArtifactQuerySpec;
-      static deserializeBinaryFromReader(message: ArtifactQuerySpec, reader: jspb.BinaryReader): ArtifactQuerySpec;
+      static deserializeBinaryFromReader(
+        message: ArtifactQuerySpec,
+        reader: jspb.BinaryReader,
+      ): ArtifactQuerySpec;
     }
 
     export namespace ArtifactQuerySpec {
       export type AsObject = {
-        filter: string,
-        limit: number,
-      }
+        filter: string;
+        limit: number;
+      };
     }
-
   }
-
 
   export class AIPlatformCustomJobSpec extends jspb.Message {
     getCustomJob(): google_protobuf_struct_pb.Struct | undefined;
@@ -1560,18 +1766,26 @@ export namespace PipelineDeploymentConfig {
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): AIPlatformCustomJobSpec.AsObject;
-    static toObject(includeInstance: boolean, msg: AIPlatformCustomJobSpec): AIPlatformCustomJobSpec.AsObject;
-    static serializeBinaryToWriter(message: AIPlatformCustomJobSpec, writer: jspb.BinaryWriter): void;
+    static toObject(
+      includeInstance: boolean,
+      msg: AIPlatformCustomJobSpec,
+    ): AIPlatformCustomJobSpec.AsObject;
+    static serializeBinaryToWriter(
+      message: AIPlatformCustomJobSpec,
+      writer: jspb.BinaryWriter,
+    ): void;
     static deserializeBinary(bytes: Uint8Array): AIPlatformCustomJobSpec;
-    static deserializeBinaryFromReader(message: AIPlatformCustomJobSpec, reader: jspb.BinaryReader): AIPlatformCustomJobSpec;
+    static deserializeBinaryFromReader(
+      message: AIPlatformCustomJobSpec,
+      reader: jspb.BinaryReader,
+    ): AIPlatformCustomJobSpec;
   }
 
   export namespace AIPlatformCustomJobSpec {
     export type AsObject = {
-      customJob?: google_protobuf_struct_pb.Struct.AsObject,
-    }
+      customJob?: google_protobuf_struct_pb.Struct.AsObject;
+    };
   }
-
 
   export class ExecutorSpec extends jspb.Message {
     getContainer(): PipelineDeploymentConfig.PipelineContainerSpec | undefined;
@@ -1601,18 +1815,21 @@ export namespace PipelineDeploymentConfig {
     static toObject(includeInstance: boolean, msg: ExecutorSpec): ExecutorSpec.AsObject;
     static serializeBinaryToWriter(message: ExecutorSpec, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): ExecutorSpec;
-    static deserializeBinaryFromReader(message: ExecutorSpec, reader: jspb.BinaryReader): ExecutorSpec;
+    static deserializeBinaryFromReader(
+      message: ExecutorSpec,
+      reader: jspb.BinaryReader,
+    ): ExecutorSpec;
   }
 
   export namespace ExecutorSpec {
     export type AsObject = {
-      container?: PipelineDeploymentConfig.PipelineContainerSpec.AsObject,
-      importer?: PipelineDeploymentConfig.ImporterSpec.AsObject,
-      resolver?: PipelineDeploymentConfig.ResolverSpec.AsObject,
-      customJob?: PipelineDeploymentConfig.AIPlatformCustomJobSpec.AsObject,
-    }
+      container?: PipelineDeploymentConfig.PipelineContainerSpec.AsObject;
+      importer?: PipelineDeploymentConfig.ImporterSpec.AsObject;
+      resolver?: PipelineDeploymentConfig.ResolverSpec.AsObject;
+      customJob?: PipelineDeploymentConfig.AIPlatformCustomJobSpec.AsObject;
+    };
 
-    export enum SpecCase { 
+    export enum SpecCase {
       SPEC_NOT_SET = 0,
       CONTAINER = 1,
       IMPORTER = 2,
@@ -1620,7 +1837,6 @@ export namespace PipelineDeploymentConfig {
       CUSTOM_JOB = 4,
     }
   }
-
 }
 
 export class Value extends jspb.Message {
@@ -1645,12 +1861,12 @@ export class Value extends jspb.Message {
 
 export namespace Value {
   export type AsObject = {
-    intValue: number,
-    doubleValue: number,
-    stringValue: string,
-  }
+    intValue: number;
+    doubleValue: number;
+    stringValue: string;
+  };
 
-  export enum ValueCase { 
+  export enum ValueCase {
     VALUE_NOT_SET = 0,
     INT_VALUE = 1,
     DOUBLE_VALUE = 2,
@@ -1686,18 +1902,21 @@ export class RuntimeArtifact extends jspb.Message {
   static toObject(includeInstance: boolean, msg: RuntimeArtifact): RuntimeArtifact.AsObject;
   static serializeBinaryToWriter(message: RuntimeArtifact, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): RuntimeArtifact;
-  static deserializeBinaryFromReader(message: RuntimeArtifact, reader: jspb.BinaryReader): RuntimeArtifact;
+  static deserializeBinaryFromReader(
+    message: RuntimeArtifact,
+    reader: jspb.BinaryReader,
+  ): RuntimeArtifact;
 }
 
 export namespace RuntimeArtifact {
   export type AsObject = {
-    name: string,
-    type?: ArtifactTypeSchema.AsObject,
-    uri: string,
-    propertiesMap: Array<[string, Value.AsObject]>,
-    customPropertiesMap: Array<[string, Value.AsObject]>,
-    metadata?: google_protobuf_struct_pb.Struct.AsObject,
-  }
+    name: string;
+    type?: ArtifactTypeSchema.AsObject;
+    uri: string;
+    propertiesMap: Array<[string, Value.AsObject]>;
+    customPropertiesMap: Array<[string, Value.AsObject]>;
+    metadata?: google_protobuf_struct_pb.Struct.AsObject;
+  };
 }
 
 export class ArtifactList extends jspb.Message {
@@ -1711,13 +1930,16 @@ export class ArtifactList extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ArtifactList): ArtifactList.AsObject;
   static serializeBinaryToWriter(message: ArtifactList, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ArtifactList;
-  static deserializeBinaryFromReader(message: ArtifactList, reader: jspb.BinaryReader): ArtifactList;
+  static deserializeBinaryFromReader(
+    message: ArtifactList,
+    reader: jspb.BinaryReader,
+  ): ArtifactList;
 }
 
 export namespace ArtifactList {
   export type AsObject = {
-    artifactsList: Array<RuntimeArtifact.AsObject>,
-  }
+    artifactsList: Array<RuntimeArtifact.AsObject>;
+  };
 }
 
 export class ExecutorInput extends jspb.Message {
@@ -1736,14 +1958,17 @@ export class ExecutorInput extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ExecutorInput): ExecutorInput.AsObject;
   static serializeBinaryToWriter(message: ExecutorInput, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ExecutorInput;
-  static deserializeBinaryFromReader(message: ExecutorInput, reader: jspb.BinaryReader): ExecutorInput;
+  static deserializeBinaryFromReader(
+    message: ExecutorInput,
+    reader: jspb.BinaryReader,
+  ): ExecutorInput;
 }
 
 export namespace ExecutorInput {
   export type AsObject = {
-    inputs?: ExecutorInput.Inputs.AsObject,
-    outputs?: ExecutorInput.Outputs.AsObject,
-  }
+    inputs?: ExecutorInput.Inputs.AsObject;
+    outputs?: ExecutorInput.Outputs.AsObject;
+  };
 
   export class Inputs extends jspb.Message {
     getParametersMap(): jspb.Map<string, Value>;
@@ -1765,12 +1990,11 @@ export namespace ExecutorInput {
 
   export namespace Inputs {
     export type AsObject = {
-      parametersMap: Array<[string, Value.AsObject]>,
-      artifactsMap: Array<[string, ArtifactList.AsObject]>,
-      parameterValuesMap: Array<[string, google_protobuf_struct_pb.Value.AsObject]>,
-    }
+      parametersMap: Array<[string, Value.AsObject]>;
+      artifactsMap: Array<[string, ArtifactList.AsObject]>;
+      parameterValuesMap: Array<[string, google_protobuf_struct_pb.Value.AsObject]>;
+    };
   }
-
 
   export class OutputParameter extends jspb.Message {
     getOutputFile(): string;
@@ -1781,15 +2005,17 @@ export namespace ExecutorInput {
     static toObject(includeInstance: boolean, msg: OutputParameter): OutputParameter.AsObject;
     static serializeBinaryToWriter(message: OutputParameter, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): OutputParameter;
-    static deserializeBinaryFromReader(message: OutputParameter, reader: jspb.BinaryReader): OutputParameter;
+    static deserializeBinaryFromReader(
+      message: OutputParameter,
+      reader: jspb.BinaryReader,
+    ): OutputParameter;
   }
 
   export namespace OutputParameter {
     export type AsObject = {
-      outputFile: string,
-    }
+      outputFile: string;
+    };
   }
-
 
   export class Outputs extends jspb.Message {
     getParametersMap(): jspb.Map<string, ExecutorInput.OutputParameter>;
@@ -1811,12 +2037,11 @@ export namespace ExecutorInput {
 
   export namespace Outputs {
     export type AsObject = {
-      parametersMap: Array<[string, ExecutorInput.OutputParameter.AsObject]>,
-      artifactsMap: Array<[string, ArtifactList.AsObject]>,
-      outputFile: string,
-    }
+      parametersMap: Array<[string, ExecutorInput.OutputParameter.AsObject]>;
+      artifactsMap: Array<[string, ArtifactList.AsObject]>;
+      outputFile: string;
+    };
   }
-
 }
 
 export class ExecutorOutput extends jspb.Message {
@@ -1834,15 +2059,18 @@ export class ExecutorOutput extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ExecutorOutput): ExecutorOutput.AsObject;
   static serializeBinaryToWriter(message: ExecutorOutput, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ExecutorOutput;
-  static deserializeBinaryFromReader(message: ExecutorOutput, reader: jspb.BinaryReader): ExecutorOutput;
+  static deserializeBinaryFromReader(
+    message: ExecutorOutput,
+    reader: jspb.BinaryReader,
+  ): ExecutorOutput;
 }
 
 export namespace ExecutorOutput {
   export type AsObject = {
-    parametersMap: Array<[string, Value.AsObject]>,
-    artifactsMap: Array<[string, ArtifactList.AsObject]>,
-    parameterValuesMap: Array<[string, google_protobuf_struct_pb.Value.AsObject]>,
-  }
+    parametersMap: Array<[string, Value.AsObject]>;
+    artifactsMap: Array<[string, ArtifactList.AsObject]>;
+    parameterValuesMap: Array<[string, google_protobuf_struct_pb.Value.AsObject]>;
+  };
 }
 
 export class PipelineTaskFinalStatus extends jspb.Message {
@@ -1868,21 +2096,27 @@ export class PipelineTaskFinalStatus extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): PipelineTaskFinalStatus.AsObject;
-  static toObject(includeInstance: boolean, msg: PipelineTaskFinalStatus): PipelineTaskFinalStatus.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: PipelineTaskFinalStatus,
+  ): PipelineTaskFinalStatus.AsObject;
   static serializeBinaryToWriter(message: PipelineTaskFinalStatus, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): PipelineTaskFinalStatus;
-  static deserializeBinaryFromReader(message: PipelineTaskFinalStatus, reader: jspb.BinaryReader): PipelineTaskFinalStatus;
+  static deserializeBinaryFromReader(
+    message: PipelineTaskFinalStatus,
+    reader: jspb.BinaryReader,
+  ): PipelineTaskFinalStatus;
 }
 
 export namespace PipelineTaskFinalStatus {
   export type AsObject = {
-    state: string,
-    error?: google_rpc_status_pb.Status.AsObject,
-    pipelineJobUuid: number,
-    pipelineJobName: string,
-    pipelineJobResourceName: string,
-    pipelineTaskName: string,
-  }
+    state: string;
+    error?: google_rpc_status_pb.Status.AsObject;
+    pipelineJobUuid: number;
+    pipelineJobName: string;
+    pipelineJobResourceName: string;
+    pipelineTaskName: string;
+  };
 }
 
 export class PipelineStateEnum extends jspb.Message {
@@ -1891,14 +2125,16 @@ export class PipelineStateEnum extends jspb.Message {
   static toObject(includeInstance: boolean, msg: PipelineStateEnum): PipelineStateEnum.AsObject;
   static serializeBinaryToWriter(message: PipelineStateEnum, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): PipelineStateEnum;
-  static deserializeBinaryFromReader(message: PipelineStateEnum, reader: jspb.BinaryReader): PipelineStateEnum;
+  static deserializeBinaryFromReader(
+    message: PipelineStateEnum,
+    reader: jspb.BinaryReader,
+  ): PipelineStateEnum;
 }
 
 export namespace PipelineStateEnum {
-  export type AsObject = {
-  }
+  export type AsObject = {};
 
-  export enum PipelineTaskState { 
+  export enum PipelineTaskState {
     TASK_STATE_UNSPECIFIED = 0,
     PENDING = 1,
     RUNNING_DRIVER = 2,
@@ -1925,13 +2161,16 @@ export class PlatformSpec extends jspb.Message {
   static toObject(includeInstance: boolean, msg: PlatformSpec): PlatformSpec.AsObject;
   static serializeBinaryToWriter(message: PlatformSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): PlatformSpec;
-  static deserializeBinaryFromReader(message: PlatformSpec, reader: jspb.BinaryReader): PlatformSpec;
+  static deserializeBinaryFromReader(
+    message: PlatformSpec,
+    reader: jspb.BinaryReader,
+  ): PlatformSpec;
 }
 
 export namespace PlatformSpec {
   export type AsObject = {
-    platformsMap: Array<[string, SinglePlatformSpec.AsObject]>,
-  }
+    platformsMap: Array<[string, SinglePlatformSpec.AsObject]>;
+  };
 }
 
 export class SinglePlatformSpec extends jspb.Message {
@@ -1945,13 +2184,16 @@ export class SinglePlatformSpec extends jspb.Message {
   static toObject(includeInstance: boolean, msg: SinglePlatformSpec): SinglePlatformSpec.AsObject;
   static serializeBinaryToWriter(message: SinglePlatformSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): SinglePlatformSpec;
-  static deserializeBinaryFromReader(message: SinglePlatformSpec, reader: jspb.BinaryReader): SinglePlatformSpec;
+  static deserializeBinaryFromReader(
+    message: SinglePlatformSpec,
+    reader: jspb.BinaryReader,
+  ): SinglePlatformSpec;
 }
 
 export namespace SinglePlatformSpec {
   export type AsObject = {
-    deploymentSpec?: PlatformDeploymentConfig.AsObject,
-  }
+    deploymentSpec?: PlatformDeploymentConfig.AsObject;
+  };
 }
 
 export class PlatformDeploymentConfig extends jspb.Message {
@@ -1960,15 +2202,23 @@ export class PlatformDeploymentConfig extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): PlatformDeploymentConfig.AsObject;
-  static toObject(includeInstance: boolean, msg: PlatformDeploymentConfig): PlatformDeploymentConfig.AsObject;
-  static serializeBinaryToWriter(message: PlatformDeploymentConfig, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: PlatformDeploymentConfig,
+  ): PlatformDeploymentConfig.AsObject;
+  static serializeBinaryToWriter(
+    message: PlatformDeploymentConfig,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): PlatformDeploymentConfig;
-  static deserializeBinaryFromReader(message: PlatformDeploymentConfig, reader: jspb.BinaryReader): PlatformDeploymentConfig;
+  static deserializeBinaryFromReader(
+    message: PlatformDeploymentConfig,
+    reader: jspb.BinaryReader,
+  ): PlatformDeploymentConfig;
 }
 
 export namespace PlatformDeploymentConfig {
   export type AsObject = {
-    executorsMap: Array<[string, google_protobuf_struct_pb.Struct.AsObject]>,
-  }
+    executorsMap: Array<[string, google_protobuf_struct_pb.Struct.AsObject]>;
+  };
 }
-

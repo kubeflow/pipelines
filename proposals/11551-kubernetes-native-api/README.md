@@ -1,6 +1,7 @@
 # KEP-11551: Introducing a Kubernetes Native API for Pipelines and Pipeline Versions
 
 <!-- toc -->
+
 - [Summary](#summary)
 - [Motivation](#motivation)
   - [Goals](#goals)
@@ -34,7 +35,7 @@
   - [Sync from Kubernetes to the Database](#sync-from-kubernetes-to-the-database)
   - [A Kubernetes Aggregation Layer API Server](#a-kubernetes-aggregation-layer-api-server)
   - [Use Argo Workflows Directly](#use-argo-workflows-directly)
-<!-- /toc -->
+  <!-- /toc -->
 
 ## Summary
 

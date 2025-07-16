@@ -3,33 +3,33 @@ kind: ClusterRole
 metadata:
   name: ml-pipeline-persistenceagent-role
 rules:
-- apiGroups:
-  - argoproj.io
-  resources:
-  - workflows
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - scheduledworkflows
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - pipelines.kubeflow.org
-  resources:
-  - scheduledworkflows
-  - workflows
-  verbs:
-  - report
-- apiGroups:
-    - pipelines.kubeflow.org
-  resources:
-    - runs
-  verbs:
-    - reportMetrics
-    - readArtifact
+  - apiGroups:
+      - argoproj.io
+    resources:
+      - workflows
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - kubeflow.org
+    resources:
+      - scheduledworkflows
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - pipelines.kubeflow.org
+    resources:
+      - scheduledworkflows
+      - workflows
+    verbs:
+      - report
+  - apiGroups:
+      - pipelines.kubeflow.org
+    resources:
+      - runs
+    verbs:
+      - reportMetrics
+      - readArtifact

@@ -7,5 +7,5 @@ roleRef:
   kind: Role
   name: ml-pipeline-persistenceagent-role
 subjects:
-- kind: ServiceAccount
-  name: ml-pipeline-persistenceagent
+  - kind: ServiceAccount
+    name: ml-pipeline-persistenceagent

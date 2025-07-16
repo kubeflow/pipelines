@@ -1,4 +1,4 @@
 # Allow Kustomize var to replace following fields.
 varReference:
-- path: metadata/name
-  kind: Namespace
+  - path: metadata/name
+    kind: Namespace

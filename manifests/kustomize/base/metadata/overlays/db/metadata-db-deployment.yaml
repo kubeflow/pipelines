@@ -19,32 +19,32 @@ spec:
         sidecar.istio.io/inject: "false"
     spec:
       containers:
-      - name: db-container
-        image: mysql:8.0.3
-        args:
-        - --datadir
-        - /var/lib/mysql/datadir
-        envFrom:
-        - configMapRef:
-            name: metadata-db-parameters
-        - secretRef:
-            name: metadata-db-secrets
-        ports:
-        - name: dbapi
-          containerPort: 3306
-        readinessProbe:
-          exec:
-            command:
-            - "/bin/bash"
-            - "-c"
-            - "mysql -D $$MYSQL_DATABASE -p$$MYSQL_ROOT_PASSWORD -e 'SELECT 1'"
-          initialDelaySeconds: 5
-          periodSeconds: 2
-          timeoutSeconds: 1
-        volumeMounts:
-        - name: metadata-mysql
-          mountPath: /var/lib/mysql
+        - name: db-container
+          image: mysql:8.0.3
+          args:
+            - --datadir
+            - /var/lib/mysql/datadir
+          envFrom:
+            - configMapRef:
+                name: metadata-db-parameters
+            - secretRef:
+                name: metadata-db-secrets
+          ports:
+            - name: dbapi
+              containerPort: 3306
+          readinessProbe:
+            exec:
+              command:
+                - "/bin/bash"
+                - "-c"
+                - "mysql -D $$MYSQL_DATABASE -p$$MYSQL_ROOT_PASSWORD -e 'SELECT 1'"
+            initialDelaySeconds: 5
+            periodSeconds: 2
+            timeoutSeconds: 1
+          volumeMounts:
+            - name: metadata-mysql
+              mountPath: /var/lib/mysql
       volumes:
-      - name: metadata-mysql
-        persistentVolumeClaim:
-          claimName: metadata-mysql
+        - name: metadata-mysql
+          persistentVolumeClaim:
+            claimName: metadata-mysql

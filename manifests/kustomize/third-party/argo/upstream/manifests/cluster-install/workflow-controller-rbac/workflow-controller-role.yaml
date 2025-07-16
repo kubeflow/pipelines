@@ -3,7 +3,7 @@ kind: Role
 metadata: # kpt-merge: /argo-role
   name: argo-role
   annotations:
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|Role|default|argo-role'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|Role|default|argo-role"
 rules:
   - apiGroups:
       - coordination.k8s.io

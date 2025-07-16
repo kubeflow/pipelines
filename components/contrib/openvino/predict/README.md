@@ -1,11 +1,12 @@
 # Inference component with OpenVINO inference engine
 
 This component takes the following parameters:
-* path to the model in Intermediate Representation format ( xml and bin files)
-* numpy file with the input dataset. Input shape should fit to the used model definition.
-* classification labels which can be used to calculate model accuracy
-* input data can be scaled using parameters scale_div and scale_sub 
-* path to the folder where the inference results in numpy format should be uploaded
+
+- path to the model in Intermediate Representation format ( xml and bin files)
+- numpy file with the input dataset. Input shape should fit to the used model definition.
+- classification labels which can be used to calculate model accuracy
+- input data can be scaled using parameters scale_div and scale_sub
+- path to the folder where the inference results in numpy format should be uploaded
 
 In the component logs are included inference performance details.
 
@@ -43,9 +44,7 @@ optional arguments:
                         scale the np input by substraction of the value
 ```
 
-
 ## building docker image
-
 
 ```bash
 docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy .

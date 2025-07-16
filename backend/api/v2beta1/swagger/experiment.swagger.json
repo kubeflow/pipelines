@@ -4,16 +4,9 @@
     "title": "backend/api/v2beta1/experiment.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v2beta1/experiments": {
       "get": {
@@ -71,9 +64,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       },
       "post": {
         "summary": "Creates a new experiment.",
@@ -103,9 +94,7 @@
             }
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v2beta1/experiments/{experiment_id}": {
@@ -135,9 +124,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       },
       "delete": {
         "summary": "Deletes an experiment without deleting the experiment's runs and recurring \nruns. To avoid unexpected behaviors, delete an experiment's runs and recurring \nruns before deleting the experiment.",
@@ -165,9 +152,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v2beta1/experiments/{experiment_id}:archive": {
@@ -197,9 +182,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v2beta1/experiments/{experiment_id}:unarchive": {
@@ -229,9 +212,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     }
   },
@@ -309,11 +290,7 @@
     },
     "v2beta1ExperimentStorageState": {
       "type": "string",
-      "enum": [
-        "STORAGE_STATE_UNSPECIFIED",
-        "AVAILABLE",
-        "ARCHIVED"
-      ],
+      "enum": ["STORAGE_STATE_UNSPECIFIED", "AVAILABLE", "ARCHIVED"],
       "default": "STORAGE_STATE_UNSPECIFIED",
       "description": "Describes whether an entity is available or archived.\n\n - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
     },

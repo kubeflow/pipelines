@@ -14,20 +14,20 @@
 
 name: Download Folder from Tarball on GCS
 inputs:
-- {name: GCS Path, type: URI}
+  - { name: GCS Path, type: URI }
 outputs:
-- {name: Folder}
+  - { name: Folder }
 implementation:
   container:
     image: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
     command:
-    - sh
-    - -exc
-    - |
+      - sh
+      - -exc
+      - |
         uri="$0"
         output_path="$1"
         gsutil cp "$uri" artifact.tar.gz
         mkdir -p "$output_path"
         tar xvf artifact.tar.gz -C "$output_path"
-    - inputValue: GCS Path
-    - outputPath: Folder
+      - inputValue: GCS Path
+      - outputPath: Folder

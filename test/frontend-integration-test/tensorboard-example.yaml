@@ -20,32 +20,32 @@ spec:
   entrypoint: tensorboard-example
   serviceAccountName: pipeline-runner
   templates:
-  - name: tensorboard-example
-    script:
-      image: python:alpine3.9
-      command: [python]
-      source: |
-        import json
-        metadata = {
-          'outputs' : [{
-            'type': 'tensorboard',
-            'source': 'gs://ml-pipeline-dataset/tensorboard-train',
-          }]
-        }
-        with open('/mlpipeline-ui-metadata.json', 'w') as f:
-          json.dump(metadata, f)
-    outputs:
-      artifacts:
-      - name: mlpipeline-ui-metadata
-        path: /mlpipeline-ui-metadata.json
-        s3:
-          accessKeySecret:
-            key: accesskey
-            name: mlpipeline-minio-artifact
-          bucket: mlpipeline
-          endpoint: minio-service.kubeflow:9000
-          insecure: true
-          key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
-          secretKeySecret:
-            key: secretkey
-            name: mlpipeline-minio-artifact
+    - name: tensorboard-example
+      script:
+        image: python:alpine3.9
+        command: [python]
+        source: |
+          import json
+          metadata = {
+            'outputs' : [{
+              'type': 'tensorboard',
+              'source': 'gs://ml-pipeline-dataset/tensorboard-train',
+            }]
+          }
+          with open('/mlpipeline-ui-metadata.json', 'w') as f:
+            json.dump(metadata, f)
+      outputs:
+        artifacts:
+          - name: mlpipeline-ui-metadata
+            path: /mlpipeline-ui-metadata.json
+            s3:
+              accessKeySecret:
+                key: accesskey
+                name: mlpipeline-minio-artifact
+              bucket: mlpipeline
+              endpoint: minio-service.kubeflow:9000
+              insecure: true
+              key: runs/{{workflow.uid}}/{{pod.name}}/mlpipeline-ui-metadata.tgz
+              secretKeySecret:
+                key: secretkey
+                name: mlpipeline-minio-artifact

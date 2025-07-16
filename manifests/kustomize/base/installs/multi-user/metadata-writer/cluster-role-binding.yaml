@@ -7,5 +7,5 @@ roleRef:
   kind: ClusterRole
   name: kubeflow-pipelines-metadata-writer-role
 subjects:
-- kind: ServiceAccount
-  name: kubeflow-pipelines-metadata-writer
+  - kind: ServiceAccount
+    name: kubeflow-pipelines-metadata-writer

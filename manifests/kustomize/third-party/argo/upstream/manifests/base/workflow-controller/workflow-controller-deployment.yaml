@@ -3,7 +3,7 @@ kind: Deployment
 metadata: # kpt-merge: /workflow-controller
   name: workflow-controller
   annotations:
-    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|workflow-controller'
+    internal.kpt.dev/upstream-identifier: "apps|Deployment|default|workflow-controller"
 spec:
   selector:
     matchLabels:

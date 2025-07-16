@@ -1,23 +1,23 @@
 name: Add
 description: |
-    Component to add two numbers
+  Component to add two numbers
 inputs:
-- name: op-1
-  type: Integer
-- name: op2
-  type: Integer
+  - name: op-1
+    type: Integer
+  - name: op2
+    type: Integer
 outputs:
-- name: sum
-  type: Integer
+  - name: sum
+    type: Integer
 implementation:
   container:
     image: google/cloud-sdk:latest
     command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      echo "$(($0+$1))" | gsutil cp - "$2"
-    - {inputValue: op-1}
-    - {inputValue: op2}
-    - {outputPath: sum}
+      - sh
+      - -c
+      - |
+        set -e -x
+        echo "$(($0+$1))" | gsutil cp - "$2"
+      - { inputValue: op-1 }
+      - { inputValue: op2 }
+      - { outputPath: sum }

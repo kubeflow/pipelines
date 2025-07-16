@@ -31,9 +31,9 @@ export const KFP_FLAGS = {
         window['KFP_FLAGS']['DEPLOYMENT'] === Deployments.KUBEFLOW
         ? Deployments.KUBEFLOW
         : // tslint:disable-next-line:no-string-literal
-        window['KFP_FLAGS']['DEPLOYMENT'] === Deployments.MARKETPLACE
-        ? Deployments.MARKETPLACE
-        : DEPLOYMENT_DEFAULT
+          window['KFP_FLAGS']['DEPLOYMENT'] === Deployments.MARKETPLACE
+          ? Deployments.MARKETPLACE
+          : DEPLOYMENT_DEFAULT
       : DEPLOYMENT_DEFAULT,
   HIDE_SIDENAV: window && window['KFP_FLAGS'] ? window['KFP_FLAGS']['HIDE_SIDENAV'] : false,
 };

@@ -3,8 +3,8 @@ version: "2"
 run:
   timeout: 30m
   skip-files:
-  - "api\\*.go$"
-  - "backend\\api\\*.go"
+    - "api\\*.go$"
+    - "backend\\api\\*.go"
 
 issues:
   max-same-issues: 0

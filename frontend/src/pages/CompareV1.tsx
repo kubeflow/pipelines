@@ -104,7 +104,7 @@ class CompareV1 extends Page<{}, CompareState> {
 
     const runsPerViewerType = (viewerType: PlotType) => {
       return viewersMap.get(viewerType)
-        ? viewersMap.get(viewerType)!.filter(el => selectedIds.indexOf(el.runId) > -1)
+        ? viewersMap.get(viewerType)!.filter((el) => selectedIds.indexOf(el.runId) > -1)
         : [];
     };
 
@@ -180,7 +180,7 @@ class CompareV1 extends Page<{}, CompareState> {
                       {componentMap[viewerType].prototype.isAggregatable() &&
                         runsPerViewerType(viewerType).length > 1 && (
                           <PlotCard
-                            configs={runsPerViewerType(viewerType).map(t => t.config)}
+                            configs={runsPerViewerType(viewerType).map((t) => t.config)}
                             maxDimension={400}
                             title='Aggregated view'
                           />
@@ -229,7 +229,7 @@ class CompareV1 extends Page<{}, CompareState> {
     let lastError: Error | null = null;
 
     await Promise.all(
-      runIds.map(async id => {
+      runIds.map(async (id) => {
         try {
           const run = await Apis.runServiceApi.getRun(id);
           runs.push(run);
@@ -249,7 +249,7 @@ class CompareV1 extends Page<{}, CompareState> {
       return;
     } else if (
       runs.length > 0 &&
-      runs.every(runDetail => runDetail.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'))
+      runs.every((runDetail) => runDetail.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'))
     ) {
       this.props.updateBanner({
         additionalInfo:
@@ -261,7 +261,7 @@ class CompareV1 extends Page<{}, CompareState> {
       });
     }
 
-    const selectedIds = runs.map(r => r.run!.id!);
+    const selectedIds = runs.map((r) => r.run!.id!);
     this.setStateSafe({
       runs,
       selectedIds,
@@ -270,7 +270,7 @@ class CompareV1 extends Page<{}, CompareState> {
     this._loadParameters(selectedIds);
     this._loadMetrics(selectedIds);
 
-    const outputPathsList = workflowObjects.map(workflow =>
+    const outputPathsList = workflowObjects.map((workflow) =>
       WorkflowParser.loadAllOutputPaths(workflow),
     );
 
@@ -285,7 +285,7 @@ class CompareV1 extends Page<{}, CompareState> {
             path,
             workflowObjects[0]?.metadata?.namespace,
           );
-          configs.forEach(config => {
+          configs.forEach((config) => {
             const currentList: TaggedViewerConfig[] = viewersMap.get(config.type) || [];
             currentList.push({
               config,
@@ -314,7 +314,7 @@ class CompareV1 extends Page<{}, CompareState> {
       [PARAMS_SECTION_NAME]: true,
       [METRICS_SECTION_NAME]: true,
     };
-    Array.from(this.state.viewersMap.keys()).forEach(t => {
+    Array.from(this.state.viewersMap.keys()).forEach((t) => {
       const sectionName = componentMap[t].prototype.getDisplayName();
       collapseSections[sectionName] = true;
     });
@@ -324,7 +324,7 @@ class CompareV1 extends Page<{}, CompareState> {
   private _loadParameters(selectedIds: string[]): void {
     const { runs, workflowObjects } = this.state;
 
-    const selectedIndices = selectedIds.map(id => runs.findIndex(r => r.run!.id === id));
+    const selectedIndices = selectedIds.map((id) => runs.findIndex((r) => r.run!.id === id));
     const filteredRuns = runs.filter((_, i) => selectedIndices.indexOf(i) > -1);
     const filteredWorkflows = workflowObjects.filter((_, i) => selectedIndices.indexOf(i) > -1);
 
@@ -336,8 +336,8 @@ class CompareV1 extends Page<{}, CompareState> {
   private _loadMetrics(selectedIds: string[]): void {
     const { runs } = this.state;
 
-    const selectedIndices = selectedIds.map(id => runs.findIndex(r => r.run!.id === id));
-    const filteredRuns = runs.filter((_, i) => selectedIndices.indexOf(i) > -1).map(r => r.run!);
+    const selectedIndices = selectedIds.map((id) => runs.findIndex((r) => r.run!.id === id));
+    const filteredRuns = runs.filter((_, i) => selectedIndices.indexOf(i) > -1).map((r) => r.run!);
 
     const metricsCompareProps = CompareUtils.multiRunMetricsCompareProps(filteredRuns);
 
@@ -349,7 +349,7 @@ class CompareV1 extends Page<{}, CompareState> {
   }
 }
 
-const EnhancedCompareV1: React.FC<PageProps> = props => {
+const EnhancedCompareV1: React.FC<PageProps> = (props) => {
   const namespaceChanged = useNamespaceChangeEvent();
   if (namespaceChanged) {
     // Compare page compares two runs, when namespace changes, the runs don't

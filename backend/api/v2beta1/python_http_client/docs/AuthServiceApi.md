@@ -1,20 +1,19 @@
 # kfp_server_api.AuthServiceApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to _http://localhost_
 
-Method | HTTP request | Description
-------------- | ------------- | -------------
-[**auth_service_authorize**](AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth | 
-
+| Method                                                                 | HTTP request               | Description |
+| ---------------------------------------------------------------------- | -------------------------- | ----------- |
+| [**auth_service_authorize**](AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth |
 
 # **auth_service_authorize**
+
 > object auth_service_authorize(namespace=namespace, resources=resources, verb=verb)
-
-
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -59,11 +58,11 @@ verb = 'UNASSIGNED_VERB' # str |  (optional) (default to 'UNASSIGNED_VERB')
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **namespace** | **str**|  | [optional] 
- **resources** | **str**|  | [optional] [default to &#39;UNASSIGNED_RESOURCES&#39;]
- **verb** | **str**|  | [optional] [default to &#39;UNASSIGNED_VERB&#39;]
+| Name          | Type    | Description | Notes                                                  |
+| ------------- | ------- | ----------- | ------------------------------------------------------ |
+| **namespace** | **str** |             | [optional]                                             |
+| **resources** | **str** |             | [optional] [default to &#39;UNASSIGNED_RESOURCES&#39;] |
+| **verb**      | **str** |             | [optional] [default to &#39;UNASSIGNED_VERB&#39;]      |
 
 ### Return type
 
@@ -75,14 +74,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

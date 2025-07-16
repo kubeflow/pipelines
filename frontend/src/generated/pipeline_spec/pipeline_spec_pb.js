@@ -39,7 +39,11 @@ goog.exportSymbol('proto.ml_pipelines.DagOutputsSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec', null, global);
-goog.exportSymbol('proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.KindCase', null, global);
+goog.exportSymbol(
+  'proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.KindCase',
+  null,
+  global,
+);
 goog.exportSymbol('proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec', null, global);
@@ -55,18 +59,54 @@ goog.exportSymbol('proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.KindCase',
 goog.exportSymbol('proto.ml_pipelines.ParameterType', null, global);
 goog.exportSymbol('proto.ml_pipelines.ParameterType.ParameterTypeEnum', null, global);
 goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig', null, global);
-goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec', null, global);
+goog.exportSymbol(
+  'proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec',
+  null,
+  global,
+);
 goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec', null, global);
-goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.SpecCase', null, global);
+goog.exportSymbol(
+  'proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.SpecCase',
+  null,
+  global,
+);
 goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec', null, global);
-goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec', null, global);
-goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar', null, global);
-goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle', null, global);
-goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec', null, global);
-goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec', null, global);
-goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig', null, global);
+goog.exportSymbol(
+  'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec',
+  null,
+  global,
+);
+goog.exportSymbol(
+  'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar',
+  null,
+  global,
+);
+goog.exportSymbol(
+  'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle',
+  null,
+  global,
+);
+goog.exportSymbol(
+  'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec',
+  null,
+  global,
+);
+goog.exportSymbol(
+  'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec',
+  null,
+  global,
+);
+goog.exportSymbol(
+  'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig',
+  null,
+  global,
+);
 goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec', null, global);
-goog.exportSymbol('proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec', null, global);
+goog.exportSymbol(
+  'proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec',
+  null,
+  global,
+);
 goog.exportSymbol('proto.ml_pipelines.PipelineInfo', null, global);
 goog.exportSymbol('proto.ml_pipelines.PipelineJob', null, global);
 goog.exportSymbol('proto.ml_pipelines.PipelineJob.RuntimeConfig', null, global);
@@ -82,7 +122,11 @@ goog.exportSymbol('proto.ml_pipelines.PipelineTaskSpec.IteratorCase', null, glob
 goog.exportSymbol('proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy', null, global);
 goog.exportSymbol('proto.ml_pipelines.PipelineTaskSpec.RetryPolicy', null, global);
 goog.exportSymbol('proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy', null, global);
-goog.exportSymbol('proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy', null, global);
+goog.exportSymbol(
+  'proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy',
+  null,
+  global,
+);
 goog.exportSymbol('proto.ml_pipelines.PlatformDeploymentConfig', null, global);
 goog.exportSymbol('proto.ml_pipelines.PlatformSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.PrimitiveType', null, global);
@@ -92,11 +136,23 @@ goog.exportSymbol('proto.ml_pipelines.SinglePlatformSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.TaskInputsSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.KindCase', null, global);
-goog.exportSymbol('proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec', null, global);
+goog.exportSymbol(
+  'proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec',
+  null,
+  global,
+);
 goog.exportSymbol('proto.ml_pipelines.TaskInputsSpec.InputParameterSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.KindCase', null, global);
-goog.exportSymbol('proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus', null, global);
-goog.exportSymbol('proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec', null, global);
+goog.exportSymbol(
+  'proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus',
+  null,
+  global,
+);
+goog.exportSymbol(
+  'proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec',
+  null,
+  global,
+);
 goog.exportSymbol('proto.ml_pipelines.TaskOutputsSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec', null, global);
 goog.exportSymbol('proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec', null, global);
@@ -114,7 +170,7 @@ goog.exportSymbol('proto.ml_pipelines.ValueOrRuntimeParameter.ValueCase', null, 
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineJob = function(opt_data) {
+proto.ml_pipelines.PipelineJob = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineJob, jspb.Message);
@@ -135,7 +191,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig = function(opt_data) {
+proto.ml_pipelines.PipelineJob.RuntimeConfig = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineJob.RuntimeConfig, jspb.Message);
@@ -144,7 +200,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineJob.RuntimeConfig.displayName = 'proto.ml_pipelines.PipelineJob.RuntimeConfig';
+  proto.ml_pipelines.PipelineJob.RuntimeConfig.displayName =
+    'proto.ml_pipelines.PipelineJob.RuntimeConfig';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -156,7 +213,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineSpec = function(opt_data) {
+proto.ml_pipelines.PipelineSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineSpec, jspb.Message);
@@ -177,7 +234,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter = function(opt_data) {
+proto.ml_pipelines.PipelineSpec.RuntimeParameter = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineSpec.RuntimeParameter, jspb.Message);
@@ -186,7 +243,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineSpec.RuntimeParameter.displayName = 'proto.ml_pipelines.PipelineSpec.RuntimeParameter';
+  proto.ml_pipelines.PipelineSpec.RuntimeParameter.displayName =
+    'proto.ml_pipelines.PipelineSpec.RuntimeParameter';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -198,8 +256,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ComponentSpec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.ml_pipelines.ComponentSpec.oneofGroups_);
+proto.ml_pipelines.ComponentSpec = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    null,
+    proto.ml_pipelines.ComponentSpec.oneofGroups_,
+  );
 };
 goog.inherits(proto.ml_pipelines.ComponentSpec, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -219,7 +284,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.DagSpec = function(opt_data) {
+proto.ml_pipelines.DagSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.DagSpec, jspb.Message);
@@ -240,7 +305,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.DagOutputsSpec = function(opt_data) {
+proto.ml_pipelines.DagOutputsSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.DagOutputsSpec, jspb.Message);
@@ -261,7 +326,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec = function(opt_data) {
+proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec, jspb.Message);
@@ -270,7 +335,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.displayName = 'proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec';
+  proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.displayName =
+    'proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -282,8 +348,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.repeatedFields_, null);
+proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.repeatedFields_,
+    null,
+  );
 };
 goog.inherits(proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -291,7 +364,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.displayName = 'proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec';
+  proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.displayName =
+    'proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -303,7 +377,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec = function(opt_data) {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec, jspb.Message);
@@ -312,7 +386,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.displayName = 'proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec';
+  proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.displayName =
+    'proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -324,8 +399,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.repeatedFields_, null);
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.repeatedFields_,
+    null,
+  );
 };
 goog.inherits(proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -333,7 +415,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.displayName = 'proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec';
+  proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.displayName =
+    'proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -345,7 +428,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec = function(opt_data) {
+proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec, jspb.Message);
@@ -354,7 +437,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.displayName = 'proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec';
+  proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.displayName =
+    'proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -366,8 +450,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_);
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    null,
+    proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_,
+  );
 };
 goog.inherits(proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -375,7 +466,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.displayName = 'proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec';
+  proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.displayName =
+    'proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -387,7 +479,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ComponentInputsSpec = function(opt_data) {
+proto.ml_pipelines.ComponentInputsSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ComponentInputsSpec, jspb.Message);
@@ -408,7 +500,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec = function(opt_data) {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec, jspb.Message);
@@ -417,7 +509,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.displayName = 'proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec';
+  proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.displayName =
+    'proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -429,7 +522,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec = function(opt_data) {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ComponentInputsSpec.ParameterSpec, jspb.Message);
@@ -438,7 +531,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.displayName = 'proto.ml_pipelines.ComponentInputsSpec.ParameterSpec';
+  proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.displayName =
+    'proto.ml_pipelines.ComponentInputsSpec.ParameterSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -450,7 +544,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ComponentOutputsSpec = function(opt_data) {
+proto.ml_pipelines.ComponentOutputsSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ComponentOutputsSpec, jspb.Message);
@@ -471,7 +565,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec = function(opt_data) {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec, jspb.Message);
@@ -480,7 +574,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.displayName = 'proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec';
+  proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.displayName =
+    'proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -492,7 +587,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec = function(opt_data) {
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec, jspb.Message);
@@ -501,7 +596,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.displayName = 'proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec';
+  proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.displayName =
+    'proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -513,7 +609,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.TaskInputsSpec = function(opt_data) {
+proto.ml_pipelines.TaskInputsSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.TaskInputsSpec, jspb.Message);
@@ -534,8 +630,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_);
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    null,
+    proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_,
+  );
 };
 goog.inherits(proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -543,7 +646,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.displayName = 'proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec';
+  proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.displayName =
+    'proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -555,16 +659,20 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec = function(opt_data) {
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
-goog.inherits(proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec, jspb.Message);
+goog.inherits(
+  proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec,
+  jspb.Message,
+);
 if (goog.DEBUG && !COMPILED) {
   /**
    * @public
    * @override
    */
-  proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.displayName = 'proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec';
+  proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.displayName =
+    'proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -576,8 +684,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_);
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    null,
+    proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_,
+  );
 };
 goog.inherits(proto.ml_pipelines.TaskInputsSpec.InputParameterSpec, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -585,7 +700,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.displayName = 'proto.ml_pipelines.TaskInputsSpec.InputParameterSpec';
+  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.displayName =
+    'proto.ml_pipelines.TaskInputsSpec.InputParameterSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -597,16 +713,20 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec = function(opt_data) {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
-goog.inherits(proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec, jspb.Message);
+goog.inherits(
+  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec,
+  jspb.Message,
+);
 if (goog.DEBUG && !COMPILED) {
   /**
    * @public
    * @override
    */
-  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.displayName = 'proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec';
+  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.displayName =
+    'proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -618,7 +738,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus = function(opt_data) {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus, jspb.Message);
@@ -627,7 +747,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.displayName = 'proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus';
+  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.displayName =
+    'proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -639,7 +760,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.TaskOutputsSpec = function(opt_data) {
+proto.ml_pipelines.TaskOutputsSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.TaskOutputsSpec, jspb.Message);
@@ -660,7 +781,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec = function(opt_data) {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec, jspb.Message);
@@ -669,7 +790,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.displayName = 'proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec';
+  proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.displayName =
+    'proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -681,7 +803,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec = function(opt_data) {
+proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec, jspb.Message);
@@ -690,7 +812,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.displayName = 'proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec';
+  proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.displayName =
+    'proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -702,7 +825,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PrimitiveType = function(opt_data) {
+proto.ml_pipelines.PrimitiveType = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PrimitiveType, jspb.Message);
@@ -723,7 +846,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ParameterType = function(opt_data) {
+proto.ml_pipelines.ParameterType = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ParameterType, jspb.Message);
@@ -744,8 +867,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineTaskSpec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_pipelines.PipelineTaskSpec.repeatedFields_, proto.ml_pipelines.PipelineTaskSpec.oneofGroups_);
+proto.ml_pipelines.PipelineTaskSpec = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    proto.ml_pipelines.PipelineTaskSpec.repeatedFields_,
+    proto.ml_pipelines.PipelineTaskSpec.oneofGroups_,
+  );
 };
 goog.inherits(proto.ml_pipelines.PipelineTaskSpec, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -765,7 +895,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineTaskSpec.CachingOptions = function(opt_data) {
+proto.ml_pipelines.PipelineTaskSpec.CachingOptions = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineTaskSpec.CachingOptions, jspb.Message);
@@ -774,7 +904,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineTaskSpec.CachingOptions.displayName = 'proto.ml_pipelines.PipelineTaskSpec.CachingOptions';
+  proto.ml_pipelines.PipelineTaskSpec.CachingOptions.displayName =
+    'proto.ml_pipelines.PipelineTaskSpec.CachingOptions';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -786,7 +917,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy = function(opt_data) {
+proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy, jspb.Message);
@@ -795,7 +926,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.displayName = 'proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy';
+  proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.displayName =
+    'proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -807,7 +939,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy = function(opt_data) {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineTaskSpec.RetryPolicy, jspb.Message);
@@ -816,7 +948,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.displayName = 'proto.ml_pipelines.PipelineTaskSpec.RetryPolicy';
+  proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.displayName =
+    'proto.ml_pipelines.PipelineTaskSpec.RetryPolicy';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -828,7 +961,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy = function(opt_data) {
+proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy, jspb.Message);
@@ -837,7 +970,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.displayName = 'proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy';
+  proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.displayName =
+    'proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -849,7 +983,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ArtifactIteratorSpec = function(opt_data) {
+proto.ml_pipelines.ArtifactIteratorSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ArtifactIteratorSpec, jspb.Message);
@@ -870,7 +1004,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec = function(opt_data) {
+proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec, jspb.Message);
@@ -879,7 +1013,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.displayName = 'proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec';
+  proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.displayName =
+    'proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -891,7 +1026,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ParameterIteratorSpec = function(opt_data) {
+proto.ml_pipelines.ParameterIteratorSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ParameterIteratorSpec, jspb.Message);
@@ -912,8 +1047,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_);
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    null,
+    proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_,
+  );
 };
 goog.inherits(proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -921,7 +1063,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.displayName = 'proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec';
+  proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.displayName =
+    'proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -933,7 +1076,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ComponentRef = function(opt_data) {
+proto.ml_pipelines.ComponentRef = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ComponentRef, jspb.Message);
@@ -954,7 +1097,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineInfo = function(opt_data) {
+proto.ml_pipelines.PipelineInfo = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineInfo, jspb.Message);
@@ -975,8 +1118,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ArtifactTypeSchema = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_);
+proto.ml_pipelines.ArtifactTypeSchema = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    null,
+    proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_,
+  );
 };
 goog.inherits(proto.ml_pipelines.ArtifactTypeSchema, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -996,7 +1146,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineTaskInfo = function(opt_data) {
+proto.ml_pipelines.PipelineTaskInfo = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineTaskInfo, jspb.Message);
@@ -1017,8 +1167,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ValueOrRuntimeParameter = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_);
+proto.ml_pipelines.ValueOrRuntimeParameter = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    null,
+    proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_,
+  );
 };
 goog.inherits(proto.ml_pipelines.ValueOrRuntimeParameter, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -1026,7 +1183,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.ValueOrRuntimeParameter.displayName = 'proto.ml_pipelines.ValueOrRuntimeParameter';
+  proto.ml_pipelines.ValueOrRuntimeParameter.displayName =
+    'proto.ml_pipelines.ValueOrRuntimeParameter';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1038,7 +1196,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig = function(opt_data) {
+proto.ml_pipelines.PipelineDeploymentConfig = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig, jspb.Message);
@@ -1047,7 +1205,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig';
+  proto.ml_pipelines.PipelineDeploymentConfig.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1059,8 +1218,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.repeatedFields_, null);
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.repeatedFields_,
+    null,
+  );
 };
 goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -1068,7 +1234,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec';
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1080,16 +1247,20 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle = function(opt_data) {
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
-goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle, jspb.Message);
+goog.inherits(
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle,
+  jspb.Message,
+);
 if (goog.DEBUG && !COMPILED) {
   /**
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle';
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1101,16 +1272,30 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.repeatedFields_, null);
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec = function (
+  opt_data,
+) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec
+      .repeatedFields_,
+    null,
+  );
 };
-goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec, jspb.Message);
+goog.inherits(
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec,
+  jspb.Message,
+);
 if (goog.DEBUG && !COMPILED) {
   /**
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec';
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1122,16 +1307,22 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec = function(opt_data) {
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec = function (
+  opt_data,
+) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
-goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec, jspb.Message);
+goog.inherits(
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec,
+  jspb.Message,
+);
 if (goog.DEBUG && !COMPILED) {
   /**
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec';
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1143,16 +1334,46 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig = function(opt_data) {
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig =
+  function (opt_data) {
+    jspb.Message.initialize(this, opt_data, 0, -1, null, null);
+  };
+goog.inherits(
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig,
+  jspb.Message,
+);
+if (goog.DEBUG && !COMPILED) {
+  /**
+   * @public
+   * @override
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig';
+}
+/**
+ * Generated by JsPbCodeGenerator.
+ * @param {Array=} opt_data Optional initial data array, typically from a
+ * server response, or constructed directly in Javascript. The array is used
+ * in place and becomes part of the constructed object. It is not cloned.
+ * If no data is provided, the constructed object will be empty, but still
+ * valid.
+ * @extends {jspb.Message}
+ * @constructor
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
-goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig, jspb.Message);
+goog.inherits(
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar,
+  jspb.Message,
+);
 if (goog.DEBUG && !COMPILED) {
   /**
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig';
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1164,28 +1385,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
-};
-goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar, jspb.Message);
-if (goog.DEBUG && !COMPILED) {
-  /**
-   * @public
-   * @override
-   */
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar';
-}
-/**
- * Generated by JsPbCodeGenerator.
- * @param {Array=} opt_data Optional initial data array, typically from a
- * server response, or constructed directly in Javascript. The array is used
- * in place and becomes part of the constructed object. It is not cloned.
- * If no data is provided, the constructed object will be empty, but still
- * valid.
- * @extends {jspb.Message}
- * @constructor
- */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec = function(opt_data) {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec, jspb.Message);
@@ -1194,7 +1394,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec';
+  proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1206,7 +1407,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec = function(opt_data) {
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec, jspb.Message);
@@ -1215,7 +1416,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec';
+  proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1227,16 +1429,20 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec = function(opt_data) {
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
-goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec, jspb.Message);
+goog.inherits(
+  proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec,
+  jspb.Message,
+);
 if (goog.DEBUG && !COMPILED) {
   /**
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec';
+  proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1248,7 +1454,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec = function(opt_data) {
+proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec, jspb.Message);
@@ -1257,7 +1463,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec';
+  proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1269,8 +1476,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, null, proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_);
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    null,
+    proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_,
+  );
 };
 goog.inherits(proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -1278,7 +1492,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.displayName = 'proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec';
+  proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.displayName =
+    'proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1290,7 +1505,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.Value = function(opt_data) {
+proto.ml_pipelines.Value = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, proto.ml_pipelines.Value.oneofGroups_);
 };
 goog.inherits(proto.ml_pipelines.Value, jspb.Message);
@@ -1311,7 +1526,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.RuntimeArtifact = function(opt_data) {
+proto.ml_pipelines.RuntimeArtifact = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.RuntimeArtifact, jspb.Message);
@@ -1332,8 +1547,15 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ArtifactList = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.ml_pipelines.ArtifactList.repeatedFields_, null);
+proto.ml_pipelines.ArtifactList = function (opt_data) {
+  jspb.Message.initialize(
+    this,
+    opt_data,
+    0,
+    -1,
+    proto.ml_pipelines.ArtifactList.repeatedFields_,
+    null,
+  );
 };
 goog.inherits(proto.ml_pipelines.ArtifactList, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
@@ -1353,7 +1575,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ExecutorInput = function(opt_data) {
+proto.ml_pipelines.ExecutorInput = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ExecutorInput, jspb.Message);
@@ -1374,7 +1596,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ExecutorInput.Inputs = function(opt_data) {
+proto.ml_pipelines.ExecutorInput.Inputs = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ExecutorInput.Inputs, jspb.Message);
@@ -1395,7 +1617,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ExecutorInput.OutputParameter = function(opt_data) {
+proto.ml_pipelines.ExecutorInput.OutputParameter = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ExecutorInput.OutputParameter, jspb.Message);
@@ -1404,7 +1626,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.ExecutorInput.OutputParameter.displayName = 'proto.ml_pipelines.ExecutorInput.OutputParameter';
+  proto.ml_pipelines.ExecutorInput.OutputParameter.displayName =
+    'proto.ml_pipelines.ExecutorInput.OutputParameter';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1416,7 +1639,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ExecutorInput.Outputs = function(opt_data) {
+proto.ml_pipelines.ExecutorInput.Outputs = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ExecutorInput.Outputs, jspb.Message);
@@ -1437,7 +1660,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.ExecutorOutput = function(opt_data) {
+proto.ml_pipelines.ExecutorOutput = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.ExecutorOutput, jspb.Message);
@@ -1458,7 +1681,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineTaskFinalStatus = function(opt_data) {
+proto.ml_pipelines.PipelineTaskFinalStatus = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineTaskFinalStatus, jspb.Message);
@@ -1467,7 +1690,8 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PipelineTaskFinalStatus.displayName = 'proto.ml_pipelines.PipelineTaskFinalStatus';
+  proto.ml_pipelines.PipelineTaskFinalStatus.displayName =
+    'proto.ml_pipelines.PipelineTaskFinalStatus';
 }
 /**
  * Generated by JsPbCodeGenerator.
@@ -1479,7 +1703,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PipelineStateEnum = function(opt_data) {
+proto.ml_pipelines.PipelineStateEnum = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PipelineStateEnum, jspb.Message);
@@ -1500,7 +1724,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PlatformSpec = function(opt_data) {
+proto.ml_pipelines.PlatformSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PlatformSpec, jspb.Message);
@@ -1521,7 +1745,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.SinglePlatformSpec = function(opt_data) {
+proto.ml_pipelines.SinglePlatformSpec = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.SinglePlatformSpec, jspb.Message);
@@ -1542,7 +1766,7 @@ if (goog.DEBUG && !COMPILED) {
  * @extends {jspb.Message}
  * @constructor
  */
-proto.ml_pipelines.PlatformDeploymentConfig = function(opt_data) {
+proto.ml_pipelines.PlatformDeploymentConfig = function (opt_data) {
   jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
 goog.inherits(proto.ml_pipelines.PlatformDeploymentConfig, jspb.Message);
@@ -1551,66 +1775,67 @@ if (goog.DEBUG && !COMPILED) {
    * @public
    * @override
    */
-  proto.ml_pipelines.PlatformDeploymentConfig.displayName = 'proto.ml_pipelines.PlatformDeploymentConfig';
+  proto.ml_pipelines.PlatformDeploymentConfig.displayName =
+    'proto.ml_pipelines.PlatformDeploymentConfig';
 }
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineJob.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineJob.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineJob} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineJob.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    displayName: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    pipelineSpec: (f = msg.getPipelineSpec()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
-    labelsMap: (f = msg.getLabelsMap()) ? f.toObject(includeInstance, undefined) : [],
-    runtimeConfig: (f = msg.getRuntimeConfig()) && proto.ml_pipelines.PipelineJob.RuntimeConfig.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineJob.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PipelineJob.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineJob} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineJob.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        name: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        displayName: jspb.Message.getFieldWithDefault(msg, 2, ''),
+        pipelineSpec:
+          (f = msg.getPipelineSpec()) &&
+          google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
+        labelsMap: (f = msg.getLabelsMap()) ? f.toObject(includeInstance, undefined) : [],
+        runtimeConfig:
+          (f = msg.getRuntimeConfig()) &&
+          proto.ml_pipelines.PipelineJob.RuntimeConfig.toObject(includeInstance, f),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineJob}
  */
-proto.ml_pipelines.PipelineJob.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineJob.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineJob;
+  var msg = new proto.ml_pipelines.PipelineJob();
   return proto.ml_pipelines.PipelineJob.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -1619,56 +1844,65 @@ proto.ml_pipelines.PipelineJob.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineJob}
  */
-proto.ml_pipelines.PipelineJob.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineJob.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setName(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setDisplayName(value);
-      break;
-    case 7:
-      var value = new google_protobuf_struct_pb.Struct;
-      reader.readMessage(value,google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
-      msg.setPipelineSpec(value);
-      break;
-    case 11:
-      var value = msg.getLabelsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readString, null, "", "");
-         });
-      break;
-    case 12:
-      var value = new proto.ml_pipelines.PipelineJob.RuntimeConfig;
-      reader.readMessage(value,proto.ml_pipelines.PipelineJob.RuntimeConfig.deserializeBinaryFromReader);
-      msg.setRuntimeConfig(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setName(value);
+        break;
+      case 2:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setDisplayName(value);
+        break;
+      case 7:
+        var value = new google_protobuf_struct_pb.Struct();
+        reader.readMessage(value, google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
+        msg.setPipelineSpec(value);
+        break;
+      case 11:
+        var value = msg.getLabelsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readString,
+            null,
+            '',
+            '',
+          );
+        });
+        break;
+      case 12:
+        var value = new proto.ml_pipelines.PipelineJob.RuntimeConfig();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.PipelineJob.RuntimeConfig.deserializeBinaryFromReader,
+        );
+        msg.setRuntimeConfig(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineJob.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineJob.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineJob.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -1677,101 +1911,94 @@ proto.ml_pipelines.PipelineJob.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineJob.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineJob.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getName();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
   f = message.getDisplayName();
   if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
+    writer.writeString(2, f);
   }
   f = message.getPipelineSpec();
   if (f != null) {
-    writer.writeMessage(
-      7,
-      f,
-      google_protobuf_struct_pb.Struct.serializeBinaryToWriter
-    );
+    writer.writeMessage(7, f, google_protobuf_struct_pb.Struct.serializeBinaryToWriter);
   }
   f = message.getLabelsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(11, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeString);
+    f.serializeBinary(
+      11,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeString,
+    );
   }
   f = message.getRuntimeConfig();
   if (f != null) {
     writer.writeMessage(
       12,
       f,
-      proto.ml_pipelines.PipelineJob.RuntimeConfig.serializeBinaryToWriter
+      proto.ml_pipelines.PipelineJob.RuntimeConfig.serializeBinaryToWriter,
     );
   }
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineJob.RuntimeConfig.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineJob.RuntimeConfig} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    parametersMap: (f = msg.getParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject) : [],
-    gcsOutputDirectory: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    parameterValuesMap: (f = msg.getParameterValuesMap()) ? f.toObject(includeInstance, proto.google.protobuf.Value.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PipelineJob.RuntimeConfig.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineJob.RuntimeConfig} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineJob.RuntimeConfig.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        parametersMap: (f = msg.getParametersMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject)
+          : [],
+        gcsOutputDirectory: jspb.Message.getFieldWithDefault(msg, 2, ''),
+        parameterValuesMap: (f = msg.getParameterValuesMap())
+          ? f.toObject(includeInstance, proto.google.protobuf.Value.toObject)
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineJob.RuntimeConfig}
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineJob.RuntimeConfig.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineJob.RuntimeConfig;
+  var msg = new proto.ml_pipelines.PipelineJob.RuntimeConfig();
   return proto.ml_pipelines.PipelineJob.RuntimeConfig.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -1780,48 +2007,62 @@ proto.ml_pipelines.PipelineJob.RuntimeConfig.deserializeBinary = function(bytes)
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineJob.RuntimeConfig}
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineJob.RuntimeConfig.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getParametersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.Value.deserializeBinaryFromReader, "", new proto.ml_pipelines.Value());
-         });
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setGcsOutputDirectory(value);
-      break;
-    case 3:
-      var value = msg.getParameterValuesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.google.protobuf.Value.deserializeBinaryFromReader, "", new proto.google.protobuf.Value());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getParametersMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.Value.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.Value(),
+          );
+        });
+        break;
+      case 2:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setGcsOutputDirectory(value);
+        break;
+      case 3:
+        var value = msg.getParameterValuesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.google.protobuf.Value.deserializeBinaryFromReader,
+            '',
+            new proto.google.protobuf.Value(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineJob.RuntimeConfig.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -1830,25 +2071,33 @@ proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.serializeBinary = functio
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineJob.RuntimeConfig.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getParametersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.Value.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.Value.serializeBinaryToWriter,
+    );
   }
   f = message.getGcsOutputDirectory();
   if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
+    writer.writeString(2, f);
   }
   f = message.getParameterValuesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(3, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.google.protobuf.Value.serializeBinaryToWriter);
+    f.serializeBinary(
+      3,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.google.protobuf.Value.serializeBinaryToWriter,
+    );
   }
 };
-
 
 /**
  * map<string, Value> parameters = 1;
@@ -1856,39 +2105,38 @@ proto.ml_pipelines.PipelineJob.RuntimeConfig.serializeBinaryToWriter = function(
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.Value>}
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.getParametersMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.getParametersMap = function (
+  opt_noLazyCreate,
+) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.Value>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.Value));
+    jspb.Message.getMapField(this, 1, opt_noLazyCreate, proto.ml_pipelines.Value)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.PipelineJob.RuntimeConfig} returns this
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.clearParametersMap = function() {
+proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.clearParametersMap = function () {
   this.getParametersMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * optional string gcs_output_directory = 2;
  * @return {string}
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.getGcsOutputDirectory = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.getGcsOutputDirectory = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineJob.RuntimeConfig} returns this
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.setGcsOutputDirectory = function(value) {
+proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.setGcsOutputDirectory = function (value) {
   return jspb.Message.setProto3StringField(this, 2, value);
 };
-
 
 /**
  * map<string, google.protobuf.Value> parameter_values = 3;
@@ -1896,94 +2144,88 @@ proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.setGcsOutputDirectory = f
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.google.protobuf.Value>}
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.getParameterValuesMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.getParameterValuesMap = function (
+  opt_noLazyCreate,
+) {
   return /** @type {!jspb.Map<string,!proto.google.protobuf.Value>} */ (
-      jspb.Message.getMapField(this, 3, opt_noLazyCreate,
-      proto.google.protobuf.Value));
+    jspb.Message.getMapField(this, 3, opt_noLazyCreate, proto.google.protobuf.Value)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.PipelineJob.RuntimeConfig} returns this
  */
-proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.clearParameterValuesMap = function() {
+proto.ml_pipelines.PipelineJob.RuntimeConfig.prototype.clearParameterValuesMap = function () {
   this.getParameterValuesMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * optional string name = 1;
  * @return {string}
  */
-proto.ml_pipelines.PipelineJob.prototype.getName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.PipelineJob.prototype.getName = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineJob} returns this
  */
-proto.ml_pipelines.PipelineJob.prototype.setName = function(value) {
+proto.ml_pipelines.PipelineJob.prototype.setName = function (value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
-
 
 /**
  * optional string display_name = 2;
  * @return {string}
  */
-proto.ml_pipelines.PipelineJob.prototype.getDisplayName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+proto.ml_pipelines.PipelineJob.prototype.getDisplayName = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineJob} returns this
  */
-proto.ml_pipelines.PipelineJob.prototype.setDisplayName = function(value) {
+proto.ml_pipelines.PipelineJob.prototype.setDisplayName = function (value) {
   return jspb.Message.setProto3StringField(this, 2, value);
 };
-
 
 /**
  * optional google.protobuf.Struct pipeline_spec = 7;
  * @return {?proto.google.protobuf.Struct}
  */
-proto.ml_pipelines.PipelineJob.prototype.getPipelineSpec = function() {
+proto.ml_pipelines.PipelineJob.prototype.getPipelineSpec = function () {
   return /** @type{?proto.google.protobuf.Struct} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 7));
+    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 7)
+  );
 };
-
 
 /**
  * @param {?proto.google.protobuf.Struct|undefined} value
  * @return {!proto.ml_pipelines.PipelineJob} returns this
-*/
-proto.ml_pipelines.PipelineJob.prototype.setPipelineSpec = function(value) {
+ */
+proto.ml_pipelines.PipelineJob.prototype.setPipelineSpec = function (value) {
   return jspb.Message.setWrapperField(this, 7, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineJob} returns this
  */
-proto.ml_pipelines.PipelineJob.prototype.clearPipelineSpec = function() {
+proto.ml_pipelines.PipelineJob.prototype.clearPipelineSpec = function () {
   return this.setPipelineSpec(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineJob.prototype.hasPipelineSpec = function() {
+proto.ml_pipelines.PipelineJob.prototype.hasPipelineSpec = function () {
   return jspb.Message.getField(this, 7) != null;
 };
-
 
 /**
  * map<string, string> labels = 11;
@@ -1991,119 +2233,116 @@ proto.ml_pipelines.PipelineJob.prototype.hasPipelineSpec = function() {
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,string>}
  */
-proto.ml_pipelines.PipelineJob.prototype.getLabelsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.PipelineJob.prototype.getLabelsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,string>} */ (
-      jspb.Message.getMapField(this, 11, opt_noLazyCreate,
-      null));
+    jspb.Message.getMapField(this, 11, opt_noLazyCreate, null)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.PipelineJob} returns this
  */
-proto.ml_pipelines.PipelineJob.prototype.clearLabelsMap = function() {
+proto.ml_pipelines.PipelineJob.prototype.clearLabelsMap = function () {
   this.getLabelsMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * optional RuntimeConfig runtime_config = 12;
  * @return {?proto.ml_pipelines.PipelineJob.RuntimeConfig}
  */
-proto.ml_pipelines.PipelineJob.prototype.getRuntimeConfig = function() {
+proto.ml_pipelines.PipelineJob.prototype.getRuntimeConfig = function () {
   return /** @type{?proto.ml_pipelines.PipelineJob.RuntimeConfig} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineJob.RuntimeConfig, 12));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineJob.RuntimeConfig, 12)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineJob.RuntimeConfig|undefined} value
  * @return {!proto.ml_pipelines.PipelineJob} returns this
-*/
-proto.ml_pipelines.PipelineJob.prototype.setRuntimeConfig = function(value) {
+ */
+proto.ml_pipelines.PipelineJob.prototype.setRuntimeConfig = function (value) {
   return jspb.Message.setWrapperField(this, 12, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineJob} returns this
  */
-proto.ml_pipelines.PipelineJob.prototype.clearRuntimeConfig = function() {
+proto.ml_pipelines.PipelineJob.prototype.clearRuntimeConfig = function () {
   return this.setRuntimeConfig(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineJob.prototype.hasRuntimeConfig = function() {
+proto.ml_pipelines.PipelineJob.prototype.hasRuntimeConfig = function () {
   return jspb.Message.getField(this, 12) != null;
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    pipelineInfo: (f = msg.getPipelineInfo()) && proto.ml_pipelines.PipelineInfo.toObject(includeInstance, f),
-    deploymentSpec: (f = msg.getDeploymentSpec()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
-    sdkVersion: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    schemaVersion: jspb.Message.getFieldWithDefault(msg, 5, ""),
-    componentsMap: (f = msg.getComponentsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ComponentSpec.toObject) : [],
-    root: (f = msg.getRoot()) && proto.ml_pipelines.ComponentSpec.toObject(includeInstance, f),
-    defaultPipelineRoot: jspb.Message.getFieldWithDefault(msg, 10, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PipelineSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        pipelineInfo:
+          (f = msg.getPipelineInfo()) &&
+          proto.ml_pipelines.PipelineInfo.toObject(includeInstance, f),
+        deploymentSpec:
+          (f = msg.getDeploymentSpec()) &&
+          google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
+        sdkVersion: jspb.Message.getFieldWithDefault(msg, 4, ''),
+        schemaVersion: jspb.Message.getFieldWithDefault(msg, 5, ''),
+        componentsMap: (f = msg.getComponentsMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ComponentSpec.toObject)
+          : [],
+        root: (f = msg.getRoot()) && proto.ml_pipelines.ComponentSpec.toObject(includeInstance, f),
+        defaultPipelineRoot: jspb.Message.getFieldWithDefault(msg, 10, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineSpec}
  */
-proto.ml_pipelines.PipelineSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineSpec;
+  var msg = new proto.ml_pipelines.PipelineSpec();
   return proto.ml_pipelines.PipelineSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -2112,65 +2351,71 @@ proto.ml_pipelines.PipelineSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineSpec}
  */
-proto.ml_pipelines.PipelineSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.PipelineInfo;
-      reader.readMessage(value,proto.ml_pipelines.PipelineInfo.deserializeBinaryFromReader);
-      msg.setPipelineInfo(value);
-      break;
-    case 7:
-      var value = new google_protobuf_struct_pb.Struct;
-      reader.readMessage(value,google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
-      msg.setDeploymentSpec(value);
-      break;
-    case 4:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setSdkVersion(value);
-      break;
-    case 5:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setSchemaVersion(value);
-      break;
-    case 8:
-      var value = msg.getComponentsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ComponentSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.ComponentSpec());
-         });
-      break;
-    case 9:
-      var value = new proto.ml_pipelines.ComponentSpec;
-      reader.readMessage(value,proto.ml_pipelines.ComponentSpec.deserializeBinaryFromReader);
-      msg.setRoot(value);
-      break;
-    case 10:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setDefaultPipelineRoot(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.PipelineInfo();
+        reader.readMessage(value, proto.ml_pipelines.PipelineInfo.deserializeBinaryFromReader);
+        msg.setPipelineInfo(value);
+        break;
+      case 7:
+        var value = new google_protobuf_struct_pb.Struct();
+        reader.readMessage(value, google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
+        msg.setDeploymentSpec(value);
+        break;
+      case 4:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setSdkVersion(value);
+        break;
+      case 5:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setSchemaVersion(value);
+        break;
+      case 8:
+        var value = msg.getComponentsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ComponentSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ComponentSpec(),
+          );
+        });
+        break;
+      case 9:
+        var value = new proto.ml_pipelines.ComponentSpec();
+        reader.readMessage(value, proto.ml_pipelines.ComponentSpec.deserializeBinaryFromReader);
+        msg.setRoot(value);
+        break;
+      case 10:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setDefaultPipelineRoot(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -2179,115 +2424,97 @@ proto.ml_pipelines.PipelineSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getPipelineInfo();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.PipelineInfo.serializeBinaryToWriter
-    );
+    writer.writeMessage(1, f, proto.ml_pipelines.PipelineInfo.serializeBinaryToWriter);
   }
   f = message.getDeploymentSpec();
   if (f != null) {
-    writer.writeMessage(
-      7,
-      f,
-      google_protobuf_struct_pb.Struct.serializeBinaryToWriter
-    );
+    writer.writeMessage(7, f, google_protobuf_struct_pb.Struct.serializeBinaryToWriter);
   }
   f = message.getSdkVersion();
   if (f.length > 0) {
-    writer.writeString(
-      4,
-      f
-    );
+    writer.writeString(4, f);
   }
   f = message.getSchemaVersion();
   if (f.length > 0) {
-    writer.writeString(
-      5,
-      f
-    );
+    writer.writeString(5, f);
   }
   f = message.getComponentsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(8, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ComponentSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      8,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ComponentSpec.serializeBinaryToWriter,
+    );
   }
   f = message.getRoot();
   if (f != null) {
-    writer.writeMessage(
-      9,
-      f,
-      proto.ml_pipelines.ComponentSpec.serializeBinaryToWriter
-    );
+    writer.writeMessage(9, f, proto.ml_pipelines.ComponentSpec.serializeBinaryToWriter);
   }
   f = message.getDefaultPipelineRoot();
   if (f.length > 0) {
-    writer.writeString(
-      10,
-      f
-    );
+    writer.writeString(10, f);
   }
 };
-
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineSpec.RuntimeParameter.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineSpec.RuntimeParameter} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    type: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    defaultValue: (f = msg.getDefaultValue()) && proto.ml_pipelines.Value.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.PipelineSpec.RuntimeParameter.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineSpec.RuntimeParameter} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineSpec.RuntimeParameter.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        type: jspb.Message.getFieldWithDefault(msg, 1, 0),
+        defaultValue:
+          (f = msg.getDefaultValue()) && proto.ml_pipelines.Value.toObject(includeInstance, f),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineSpec.RuntimeParameter}
  */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineSpec.RuntimeParameter.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineSpec.RuntimeParameter;
+  var msg = new proto.ml_pipelines.PipelineSpec.RuntimeParameter();
   return proto.ml_pipelines.PipelineSpec.RuntimeParameter.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -2296,41 +2523,44 @@ proto.ml_pipelines.PipelineSpec.RuntimeParameter.deserializeBinary = function(by
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineSpec.RuntimeParameter}
  */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineSpec.RuntimeParameter.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (reader.readEnum());
-      msg.setType(value);
-      break;
-    case 2:
-      var value = new proto.ml_pipelines.Value;
-      reader.readMessage(value,proto.ml_pipelines.Value.deserializeBinaryFromReader);
-      msg.setDefaultValue(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (
+          reader.readEnum()
+        );
+        msg.setType(value);
+        break;
+      case 2:
+        var value = new proto.ml_pipelines.Value();
+        reader.readMessage(value, proto.ml_pipelines.Value.deserializeBinaryFromReader);
+        msg.setDefaultValue(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineSpec.RuntimeParameter.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -2339,190 +2569,172 @@ proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.serializeBinary = fun
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineSpec.RuntimeParameter.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getType();
   if (f !== 0.0) {
-    writer.writeEnum(
-      1,
-      f
-    );
+    writer.writeEnum(1, f);
   }
   f = message.getDefaultValue();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      proto.ml_pipelines.Value.serializeBinaryToWriter
-    );
+    writer.writeMessage(2, f, proto.ml_pipelines.Value.serializeBinaryToWriter);
   }
 };
-
 
 /**
  * optional PrimitiveType.PrimitiveTypeEnum type = 1;
  * @return {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum}
  */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.getType = function() {
-  return /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
+proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.getType = function () {
+  return /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (
+    jspb.Message.getFieldWithDefault(this, 1, 0)
+  );
 };
-
 
 /**
  * @param {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} value
  * @return {!proto.ml_pipelines.PipelineSpec.RuntimeParameter} returns this
  */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.setType = function(value) {
+proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.setType = function (value) {
   return jspb.Message.setProto3EnumField(this, 1, value);
 };
-
 
 /**
  * optional Value default_value = 2;
  * @return {?proto.ml_pipelines.Value}
  */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.getDefaultValue = function() {
+proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.getDefaultValue = function () {
   return /** @type{?proto.ml_pipelines.Value} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.Value, 2));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.Value, 2)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.Value|undefined} value
  * @return {!proto.ml_pipelines.PipelineSpec.RuntimeParameter} returns this
-*/
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.setDefaultValue = function(value) {
+ */
+proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.setDefaultValue = function (value) {
   return jspb.Message.setWrapperField(this, 2, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineSpec.RuntimeParameter} returns this
  */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.clearDefaultValue = function() {
+proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.clearDefaultValue = function () {
   return this.setDefaultValue(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.hasDefaultValue = function() {
+proto.ml_pipelines.PipelineSpec.RuntimeParameter.prototype.hasDefaultValue = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional PipelineInfo pipeline_info = 1;
  * @return {?proto.ml_pipelines.PipelineInfo}
  */
-proto.ml_pipelines.PipelineSpec.prototype.getPipelineInfo = function() {
+proto.ml_pipelines.PipelineSpec.prototype.getPipelineInfo = function () {
   return /** @type{?proto.ml_pipelines.PipelineInfo} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineInfo, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineInfo, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineInfo|undefined} value
  * @return {!proto.ml_pipelines.PipelineSpec} returns this
-*/
-proto.ml_pipelines.PipelineSpec.prototype.setPipelineInfo = function(value) {
+ */
+proto.ml_pipelines.PipelineSpec.prototype.setPipelineInfo = function (value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineSpec} returns this
  */
-proto.ml_pipelines.PipelineSpec.prototype.clearPipelineInfo = function() {
+proto.ml_pipelines.PipelineSpec.prototype.clearPipelineInfo = function () {
   return this.setPipelineInfo(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineSpec.prototype.hasPipelineInfo = function() {
+proto.ml_pipelines.PipelineSpec.prototype.hasPipelineInfo = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional google.protobuf.Struct deployment_spec = 7;
  * @return {?proto.google.protobuf.Struct}
  */
-proto.ml_pipelines.PipelineSpec.prototype.getDeploymentSpec = function() {
+proto.ml_pipelines.PipelineSpec.prototype.getDeploymentSpec = function () {
   return /** @type{?proto.google.protobuf.Struct} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 7));
+    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 7)
+  );
 };
-
 
 /**
  * @param {?proto.google.protobuf.Struct|undefined} value
  * @return {!proto.ml_pipelines.PipelineSpec} returns this
-*/
-proto.ml_pipelines.PipelineSpec.prototype.setDeploymentSpec = function(value) {
+ */
+proto.ml_pipelines.PipelineSpec.prototype.setDeploymentSpec = function (value) {
   return jspb.Message.setWrapperField(this, 7, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineSpec} returns this
  */
-proto.ml_pipelines.PipelineSpec.prototype.clearDeploymentSpec = function() {
+proto.ml_pipelines.PipelineSpec.prototype.clearDeploymentSpec = function () {
   return this.setDeploymentSpec(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineSpec.prototype.hasDeploymentSpec = function() {
+proto.ml_pipelines.PipelineSpec.prototype.hasDeploymentSpec = function () {
   return jspb.Message.getField(this, 7) != null;
 };
-
 
 /**
  * optional string sdk_version = 4;
  * @return {string}
  */
-proto.ml_pipelines.PipelineSpec.prototype.getSdkVersion = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+proto.ml_pipelines.PipelineSpec.prototype.getSdkVersion = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineSpec} returns this
  */
-proto.ml_pipelines.PipelineSpec.prototype.setSdkVersion = function(value) {
+proto.ml_pipelines.PipelineSpec.prototype.setSdkVersion = function (value) {
   return jspb.Message.setProto3StringField(this, 4, value);
 };
-
 
 /**
  * optional string schema_version = 5;
  * @return {string}
  */
-proto.ml_pipelines.PipelineSpec.prototype.getSchemaVersion = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+proto.ml_pipelines.PipelineSpec.prototype.getSchemaVersion = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineSpec} returns this
  */
-proto.ml_pipelines.PipelineSpec.prototype.setSchemaVersion = function(value) {
+proto.ml_pipelines.PipelineSpec.prototype.setSchemaVersion = function (value) {
   return jspb.Message.setProto3StringField(this, 5, value);
 };
-
 
 /**
  * map<string, ComponentSpec> components = 8;
@@ -2530,77 +2742,70 @@ proto.ml_pipelines.PipelineSpec.prototype.setSchemaVersion = function(value) {
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ComponentSpec>}
  */
-proto.ml_pipelines.PipelineSpec.prototype.getComponentsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.PipelineSpec.prototype.getComponentsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ComponentSpec>} */ (
-      jspb.Message.getMapField(this, 8, opt_noLazyCreate,
-      proto.ml_pipelines.ComponentSpec));
+    jspb.Message.getMapField(this, 8, opt_noLazyCreate, proto.ml_pipelines.ComponentSpec)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.PipelineSpec} returns this
  */
-proto.ml_pipelines.PipelineSpec.prototype.clearComponentsMap = function() {
+proto.ml_pipelines.PipelineSpec.prototype.clearComponentsMap = function () {
   this.getComponentsMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * optional ComponentSpec root = 9;
  * @return {?proto.ml_pipelines.ComponentSpec}
  */
-proto.ml_pipelines.PipelineSpec.prototype.getRoot = function() {
+proto.ml_pipelines.PipelineSpec.prototype.getRoot = function () {
   return /** @type{?proto.ml_pipelines.ComponentSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ComponentSpec, 9));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ComponentSpec, 9)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ComponentSpec|undefined} value
  * @return {!proto.ml_pipelines.PipelineSpec} returns this
-*/
-proto.ml_pipelines.PipelineSpec.prototype.setRoot = function(value) {
+ */
+proto.ml_pipelines.PipelineSpec.prototype.setRoot = function (value) {
   return jspb.Message.setWrapperField(this, 9, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineSpec} returns this
  */
-proto.ml_pipelines.PipelineSpec.prototype.clearRoot = function() {
+proto.ml_pipelines.PipelineSpec.prototype.clearRoot = function () {
   return this.setRoot(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineSpec.prototype.hasRoot = function() {
+proto.ml_pipelines.PipelineSpec.prototype.hasRoot = function () {
   return jspb.Message.getField(this, 9) != null;
 };
-
 
 /**
  * optional string default_pipeline_root = 10;
  * @return {string}
  */
-proto.ml_pipelines.PipelineSpec.prototype.getDefaultPipelineRoot = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 10, ""));
+proto.ml_pipelines.PipelineSpec.prototype.getDefaultPipelineRoot = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 10, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineSpec} returns this
  */
-proto.ml_pipelines.PipelineSpec.prototype.setDefaultPipelineRoot = function(value) {
+proto.ml_pipelines.PipelineSpec.prototype.setDefaultPipelineRoot = function (value) {
   return jspb.Message.setProto3StringField(this, 10, value);
 };
-
-
 
 /**
  * Oneof group definitions for this message. Each group defines the field
@@ -2610,7 +2815,7 @@ proto.ml_pipelines.PipelineSpec.prototype.setDefaultPipelineRoot = function(valu
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ml_pipelines.ComponentSpec.oneofGroups_ = [[3,4]];
+proto.ml_pipelines.ComponentSpec.oneofGroups_ = [[3, 4]];
 
 /**
  * @enum {number}
@@ -2618,72 +2823,74 @@ proto.ml_pipelines.ComponentSpec.oneofGroups_ = [[3,4]];
 proto.ml_pipelines.ComponentSpec.ImplementationCase = {
   IMPLEMENTATION_NOT_SET: 0,
   DAG: 3,
-  EXECUTOR_LABEL: 4
+  EXECUTOR_LABEL: 4,
 };
 
 /**
  * @return {proto.ml_pipelines.ComponentSpec.ImplementationCase}
  */
-proto.ml_pipelines.ComponentSpec.prototype.getImplementationCase = function() {
-  return /** @type {proto.ml_pipelines.ComponentSpec.ImplementationCase} */(jspb.Message.computeOneofCase(this, proto.ml_pipelines.ComponentSpec.oneofGroups_[0]));
+proto.ml_pipelines.ComponentSpec.prototype.getImplementationCase = function () {
+  return /** @type {proto.ml_pipelines.ComponentSpec.ImplementationCase} */ (
+    jspb.Message.computeOneofCase(this, proto.ml_pipelines.ComponentSpec.oneofGroups_[0])
+  );
 };
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ComponentSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ComponentSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ComponentSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ComponentSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    inputDefinitions: (f = msg.getInputDefinitions()) && proto.ml_pipelines.ComponentInputsSpec.toObject(includeInstance, f),
-    outputDefinitions: (f = msg.getOutputDefinitions()) && proto.ml_pipelines.ComponentOutputsSpec.toObject(includeInstance, f),
-    dag: (f = msg.getDag()) && proto.ml_pipelines.DagSpec.toObject(includeInstance, f),
-    executorLabel: jspb.Message.getFieldWithDefault(msg, 4, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ComponentSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ComponentSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ComponentSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ComponentSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        inputDefinitions:
+          (f = msg.getInputDefinitions()) &&
+          proto.ml_pipelines.ComponentInputsSpec.toObject(includeInstance, f),
+        outputDefinitions:
+          (f = msg.getOutputDefinitions()) &&
+          proto.ml_pipelines.ComponentOutputsSpec.toObject(includeInstance, f),
+        dag: (f = msg.getDag()) && proto.ml_pipelines.DagSpec.toObject(includeInstance, f),
+        executorLabel: jspb.Message.getFieldWithDefault(msg, 4, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ComponentSpec}
  */
-proto.ml_pipelines.ComponentSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ComponentSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ComponentSpec;
+  var msg = new proto.ml_pipelines.ComponentSpec();
   return proto.ml_pipelines.ComponentSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -2692,51 +2899,55 @@ proto.ml_pipelines.ComponentSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ComponentSpec}
  */
-proto.ml_pipelines.ComponentSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ComponentSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.ComponentInputsSpec;
-      reader.readMessage(value,proto.ml_pipelines.ComponentInputsSpec.deserializeBinaryFromReader);
-      msg.setInputDefinitions(value);
-      break;
-    case 2:
-      var value = new proto.ml_pipelines.ComponentOutputsSpec;
-      reader.readMessage(value,proto.ml_pipelines.ComponentOutputsSpec.deserializeBinaryFromReader);
-      msg.setOutputDefinitions(value);
-      break;
-    case 3:
-      var value = new proto.ml_pipelines.DagSpec;
-      reader.readMessage(value,proto.ml_pipelines.DagSpec.deserializeBinaryFromReader);
-      msg.setDag(value);
-      break;
-    case 4:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setExecutorLabel(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.ComponentInputsSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ComponentInputsSpec.deserializeBinaryFromReader,
+        );
+        msg.setInputDefinitions(value);
+        break;
+      case 2:
+        var value = new proto.ml_pipelines.ComponentOutputsSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ComponentOutputsSpec.deserializeBinaryFromReader,
+        );
+        msg.setOutputDefinitions(value);
+        break;
+      case 3:
+        var value = new proto.ml_pipelines.DagSpec();
+        reader.readMessage(value, proto.ml_pipelines.DagSpec.deserializeBinaryFromReader);
+        msg.setDag(value);
+        break;
+      case 4:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setExecutorLabel(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ComponentSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ComponentSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ComponentSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -2745,244 +2956,228 @@ proto.ml_pipelines.ComponentSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ComponentSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ComponentSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getInputDefinitions();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.ComponentInputsSpec.serializeBinaryToWriter
-    );
+    writer.writeMessage(1, f, proto.ml_pipelines.ComponentInputsSpec.serializeBinaryToWriter);
   }
   f = message.getOutputDefinitions();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      proto.ml_pipelines.ComponentOutputsSpec.serializeBinaryToWriter
-    );
+    writer.writeMessage(2, f, proto.ml_pipelines.ComponentOutputsSpec.serializeBinaryToWriter);
   }
   f = message.getDag();
   if (f != null) {
-    writer.writeMessage(
-      3,
-      f,
-      proto.ml_pipelines.DagSpec.serializeBinaryToWriter
-    );
+    writer.writeMessage(3, f, proto.ml_pipelines.DagSpec.serializeBinaryToWriter);
   }
   f = /** @type {string} */ (jspb.Message.getField(message, 4));
   if (f != null) {
-    writer.writeString(
-      4,
-      f
-    );
+    writer.writeString(4, f);
   }
 };
-
 
 /**
  * optional ComponentInputsSpec input_definitions = 1;
  * @return {?proto.ml_pipelines.ComponentInputsSpec}
  */
-proto.ml_pipelines.ComponentSpec.prototype.getInputDefinitions = function() {
+proto.ml_pipelines.ComponentSpec.prototype.getInputDefinitions = function () {
   return /** @type{?proto.ml_pipelines.ComponentInputsSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ComponentInputsSpec, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ComponentInputsSpec, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ComponentInputsSpec|undefined} value
  * @return {!proto.ml_pipelines.ComponentSpec} returns this
-*/
-proto.ml_pipelines.ComponentSpec.prototype.setInputDefinitions = function(value) {
+ */
+proto.ml_pipelines.ComponentSpec.prototype.setInputDefinitions = function (value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ComponentSpec} returns this
  */
-proto.ml_pipelines.ComponentSpec.prototype.clearInputDefinitions = function() {
+proto.ml_pipelines.ComponentSpec.prototype.clearInputDefinitions = function () {
   return this.setInputDefinitions(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentSpec.prototype.hasInputDefinitions = function() {
+proto.ml_pipelines.ComponentSpec.prototype.hasInputDefinitions = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional ComponentOutputsSpec output_definitions = 2;
  * @return {?proto.ml_pipelines.ComponentOutputsSpec}
  */
-proto.ml_pipelines.ComponentSpec.prototype.getOutputDefinitions = function() {
+proto.ml_pipelines.ComponentSpec.prototype.getOutputDefinitions = function () {
   return /** @type{?proto.ml_pipelines.ComponentOutputsSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ComponentOutputsSpec, 2));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ComponentOutputsSpec, 2)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ComponentOutputsSpec|undefined} value
  * @return {!proto.ml_pipelines.ComponentSpec} returns this
-*/
-proto.ml_pipelines.ComponentSpec.prototype.setOutputDefinitions = function(value) {
+ */
+proto.ml_pipelines.ComponentSpec.prototype.setOutputDefinitions = function (value) {
   return jspb.Message.setWrapperField(this, 2, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ComponentSpec} returns this
  */
-proto.ml_pipelines.ComponentSpec.prototype.clearOutputDefinitions = function() {
+proto.ml_pipelines.ComponentSpec.prototype.clearOutputDefinitions = function () {
   return this.setOutputDefinitions(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentSpec.prototype.hasOutputDefinitions = function() {
+proto.ml_pipelines.ComponentSpec.prototype.hasOutputDefinitions = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional DagSpec dag = 3;
  * @return {?proto.ml_pipelines.DagSpec}
  */
-proto.ml_pipelines.ComponentSpec.prototype.getDag = function() {
+proto.ml_pipelines.ComponentSpec.prototype.getDag = function () {
   return /** @type{?proto.ml_pipelines.DagSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.DagSpec, 3));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.DagSpec, 3)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.DagSpec|undefined} value
  * @return {!proto.ml_pipelines.ComponentSpec} returns this
-*/
-proto.ml_pipelines.ComponentSpec.prototype.setDag = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 3, proto.ml_pipelines.ComponentSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.ComponentSpec.prototype.setDag = function (value) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    3,
+    proto.ml_pipelines.ComponentSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ComponentSpec} returns this
  */
-proto.ml_pipelines.ComponentSpec.prototype.clearDag = function() {
+proto.ml_pipelines.ComponentSpec.prototype.clearDag = function () {
   return this.setDag(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentSpec.prototype.hasDag = function() {
+proto.ml_pipelines.ComponentSpec.prototype.hasDag = function () {
   return jspb.Message.getField(this, 3) != null;
 };
-
 
 /**
  * optional string executor_label = 4;
  * @return {string}
  */
-proto.ml_pipelines.ComponentSpec.prototype.getExecutorLabel = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+proto.ml_pipelines.ComponentSpec.prototype.getExecutorLabel = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ComponentSpec} returns this
  */
-proto.ml_pipelines.ComponentSpec.prototype.setExecutorLabel = function(value) {
-  return jspb.Message.setOneofField(this, 4, proto.ml_pipelines.ComponentSpec.oneofGroups_[0], value);
+proto.ml_pipelines.ComponentSpec.prototype.setExecutorLabel = function (value) {
+  return jspb.Message.setOneofField(
+    this,
+    4,
+    proto.ml_pipelines.ComponentSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.ComponentSpec} returns this
  */
-proto.ml_pipelines.ComponentSpec.prototype.clearExecutorLabel = function() {
-  return jspb.Message.setOneofField(this, 4, proto.ml_pipelines.ComponentSpec.oneofGroups_[0], undefined);
+proto.ml_pipelines.ComponentSpec.prototype.clearExecutorLabel = function () {
+  return jspb.Message.setOneofField(
+    this,
+    4,
+    proto.ml_pipelines.ComponentSpec.oneofGroups_[0],
+    undefined,
+  );
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentSpec.prototype.hasExecutorLabel = function() {
+proto.ml_pipelines.ComponentSpec.prototype.hasExecutorLabel = function () {
   return jspb.Message.getField(this, 4) != null;
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.DagSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.DagSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.DagSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.DagSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    tasksMap: (f = msg.getTasksMap()) ? f.toObject(includeInstance, proto.ml_pipelines.PipelineTaskSpec.toObject) : [],
-    outputs: (f = msg.getOutputs()) && proto.ml_pipelines.DagOutputsSpec.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.DagSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.DagSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.DagSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.DagSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        tasksMap: (f = msg.getTasksMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.PipelineTaskSpec.toObject)
+          : [],
+        outputs:
+          (f = msg.getOutputs()) && proto.ml_pipelines.DagOutputsSpec.toObject(includeInstance, f),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.DagSpec}
  */
-proto.ml_pipelines.DagSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.DagSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.DagSpec;
+  var msg = new proto.ml_pipelines.DagSpec();
   return proto.ml_pipelines.DagSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -2991,43 +3186,49 @@ proto.ml_pipelines.DagSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.DagSpec}
  */
-proto.ml_pipelines.DagSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.DagSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getTasksMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.PipelineTaskSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.PipelineTaskSpec());
-         });
-      break;
-    case 2:
-      var value = new proto.ml_pipelines.DagOutputsSpec;
-      reader.readMessage(value,proto.ml_pipelines.DagOutputsSpec.deserializeBinaryFromReader);
-      msg.setOutputs(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getTasksMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.PipelineTaskSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.PipelineTaskSpec(),
+          );
+        });
+        break;
+      case 2:
+        var value = new proto.ml_pipelines.DagOutputsSpec();
+        reader.readMessage(value, proto.ml_pipelines.DagOutputsSpec.deserializeBinaryFromReader);
+        msg.setOutputs(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.DagSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.DagSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.DagSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -3036,22 +3237,23 @@ proto.ml_pipelines.DagSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.DagSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.DagSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getTasksMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.PipelineTaskSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.PipelineTaskSpec.serializeBinaryToWriter,
+    );
   }
   f = message.getOutputs();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      proto.ml_pipelines.DagOutputsSpec.serializeBinaryToWriter
-    );
+    writer.writeMessage(2, f, proto.ml_pipelines.DagOutputsSpec.serializeBinaryToWriter);
   }
 };
-
 
 /**
  * map<string, PipelineTaskSpec> tasks = 1;
@@ -3059,114 +3261,115 @@ proto.ml_pipelines.DagSpec.serializeBinaryToWriter = function(message, writer) {
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.PipelineTaskSpec>}
  */
-proto.ml_pipelines.DagSpec.prototype.getTasksMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.DagSpec.prototype.getTasksMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.PipelineTaskSpec>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.PipelineTaskSpec));
+    jspb.Message.getMapField(this, 1, opt_noLazyCreate, proto.ml_pipelines.PipelineTaskSpec)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.DagSpec} returns this
  */
-proto.ml_pipelines.DagSpec.prototype.clearTasksMap = function() {
+proto.ml_pipelines.DagSpec.prototype.clearTasksMap = function () {
   this.getTasksMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * optional DagOutputsSpec outputs = 2;
  * @return {?proto.ml_pipelines.DagOutputsSpec}
  */
-proto.ml_pipelines.DagSpec.prototype.getOutputs = function() {
+proto.ml_pipelines.DagSpec.prototype.getOutputs = function () {
   return /** @type{?proto.ml_pipelines.DagOutputsSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.DagOutputsSpec, 2));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.DagOutputsSpec, 2)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.DagOutputsSpec|undefined} value
  * @return {!proto.ml_pipelines.DagSpec} returns this
-*/
-proto.ml_pipelines.DagSpec.prototype.setOutputs = function(value) {
+ */
+proto.ml_pipelines.DagSpec.prototype.setOutputs = function (value) {
   return jspb.Message.setWrapperField(this, 2, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.DagSpec} returns this
  */
-proto.ml_pipelines.DagSpec.prototype.clearOutputs = function() {
+proto.ml_pipelines.DagSpec.prototype.clearOutputs = function () {
   return this.setOutputs(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.DagSpec.prototype.hasOutputs = function() {
+proto.ml_pipelines.DagSpec.prototype.hasOutputs = function () {
   return jspb.Message.getField(this, 2) != null;
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.DagOutputsSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.DagOutputsSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.DagOutputsSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.DagOutputsSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    artifactsMap: (f = msg.getArtifactsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.toObject) : [],
-    parametersMap: (f = msg.getParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.DagOutputsSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.DagOutputsSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.DagOutputsSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.DagOutputsSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        artifactsMap: (f = msg.getArtifactsMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.toObject,
+            )
+          : [],
+        parametersMap: (f = msg.getParametersMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.toObject,
+            )
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.DagOutputsSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.DagOutputsSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.DagOutputsSpec;
+  var msg = new proto.ml_pipelines.DagOutputsSpec();
   return proto.ml_pipelines.DagOutputsSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -3175,44 +3378,58 @@ proto.ml_pipelines.DagOutputsSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.DagOutputsSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.DagOutputsSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getArtifactsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec());
-         });
-      break;
-    case 2:
-      var value = msg.getParametersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getArtifactsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec(),
+          );
+        });
+        break;
+      case 2:
+        var value = msg.getParametersMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.DagOutputsSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.DagOutputsSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.DagOutputsSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -3221,74 +3438,91 @@ proto.ml_pipelines.DagOutputsSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.DagOutputsSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.DagOutputsSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getArtifactsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.serializeBinaryToWriter,
+    );
   }
   f = message.getParametersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.serializeBinaryToWriter,
+    );
   }
 };
-
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    producerSubtask: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    outputArtifactKey: jspb.Message.getFieldWithDefault(msg, 2, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        producerSubtask: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        outputArtifactKey: jspb.Message.getFieldWithDefault(msg, 2, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec;
-  return proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec();
+  return proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -3297,40 +3531,41 @@ proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.deserializeBinary = funct
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setProducerSubtask(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setOutputArtifactKey(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setProducerSubtask(value);
+        break;
+      case 2:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setOutputArtifactKey(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -3339,61 +3574,57 @@ proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.serializeBinary
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getProducerSubtask();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
   f = message.getOutputArtifactKey();
   if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
+    writer.writeString(2, f);
   }
 };
-
 
 /**
  * optional string producer_subtask = 1;
  * @return {string}
  */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.getProducerSubtask = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.getProducerSubtask = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.setProducerSubtask = function(value) {
+proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.setProducerSubtask = function (
+  value,
+) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
-
 
 /**
  * optional string output_artifact_key = 2;
  * @return {string}
  */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.getOutputArtifactKey = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
-};
-
+proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.getOutputArtifactKey =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.setOutputArtifactKey = function(value) {
+proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.setOutputArtifactKey = function (
+  value,
+) {
   return jspb.Message.setProto3StringField(this, 2, value);
 };
-
-
 
 /**
  * List of repeated fields within this message type.
@@ -3402,60 +3633,70 @@ proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.prototype.setOutputArtifa
  */
 proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.repeatedFields_ = [1];
 
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    artifactSelectorsList: jspb.Message.toObjectList(msg.getArtifactSelectorsList(),
-    proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.toObject, includeInstance)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        artifactSelectorsList: jspb.Message.toObjectList(
+          msg.getArtifactSelectorsList(),
+          proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.toObject,
+          includeInstance,
+        ),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec;
-  return proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec();
+  return proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -3464,37 +3705,41 @@ proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.deserializeBinary = func
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec;
-      reader.readMessage(value,proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.deserializeBinaryFromReader);
-      msg.addArtifactSelectors(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.deserializeBinaryFromReader,
+        );
+        msg.addArtifactSelectors(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -3503,112 +3748,133 @@ proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.serializeBinar
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getArtifactSelectorsList();
   if (f.length > 0) {
     writer.writeRepeatedMessage(
       1,
       f,
-      proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.serializeBinaryToWriter
+      proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec.serializeBinaryToWriter,
     );
   }
 };
-
 
 /**
  * repeated ArtifactSelectorSpec artifact_selectors = 1;
  * @return {!Array<!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec>}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.getArtifactSelectorsList = function() {
-  return /** @type{!Array<!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec, 1));
-};
-
+proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.getArtifactSelectorsList =
+  function () {
+    return /** @type{!Array<!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec>} */ (
+      jspb.Message.getRepeatedWrapperField(
+        this,
+        proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec,
+        1,
+      )
+    );
+  };
 
 /**
  * @param {!Array<!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec>} value
  * @return {!proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec} returns this
-*/
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.setArtifactSelectorsList = function(value) {
-  return jspb.Message.setRepeatedWrapperField(this, 1, value);
-};
-
+ */
+proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.setArtifactSelectorsList =
+  function (value) {
+    return jspb.Message.setRepeatedWrapperField(this, 1, value);
+  };
 
 /**
  * @param {!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec=} opt_value
  * @param {number=} opt_index
  * @return {!proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.addArtifactSelectors = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec, opt_index);
+proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.addArtifactSelectors = function (
+  opt_value,
+  opt_index,
+) {
+  return jspb.Message.addToRepeatedWrapperField(
+    this,
+    1,
+    opt_value,
+    proto.ml_pipelines.DagOutputsSpec.ArtifactSelectorSpec,
+    opt_index,
+  );
 };
-
 
 /**
  * Clears the list making it empty but non-null.
  * @return {!proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.clearArtifactSelectorsList = function() {
-  return this.setArtifactSelectorsList([]);
-};
-
-
-
-
-
-if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    producerSubtask: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    outputParameterKey: jspb.Message.getFieldWithDefault(msg, 2, "")
+proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec.prototype.clearArtifactSelectorsList =
+  function () {
+    return this.setArtifactSelectorsList([]);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+if (jspb.Message.GENERATE_TO_OBJECT) {
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
+  };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        producerSubtask: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        outputParameterKey: jspb.Message.getFieldWithDefault(msg, 2, ''),
+      };
+
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec;
-  return proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec();
+  return proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -3617,40 +3883,41 @@ proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinary = func
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setProducerSubtask(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setOutputParameterKey(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setProducerSubtask(value);
+        break;
+      case 2:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setOutputParameterKey(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -3659,61 +3926,57 @@ proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.serializeBinar
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getProducerSubtask();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
   f = message.getOutputParameterKey();
   if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
+    writer.writeString(2, f);
   }
 };
-
 
 /**
  * optional string producer_subtask = 1;
  * @return {string}
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.getProducerSubtask = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.getProducerSubtask = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.setProducerSubtask = function(value) {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.setProducerSubtask = function (
+  value,
+) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
-
 
 /**
  * optional string output_parameter_key = 2;
  * @return {string}
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.getOutputParameterKey = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
-};
-
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.getOutputParameterKey =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.setOutputParameterKey = function(value) {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.setOutputParameterKey = function (
+  value,
+) {
   return jspb.Message.setProto3StringField(this, 2, value);
 };
-
-
 
 /**
  * List of repeated fields within this message type.
@@ -3722,60 +3985,70 @@ proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.prototype.setOutputParam
  */
 proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.repeatedFields_ = [1];
 
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    parameterSelectorsList: jspb.Message.toObjectList(msg.getParameterSelectorsList(),
-    proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.toObject, includeInstance)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        parameterSelectorsList: jspb.Message.toObjectList(
+          msg.getParameterSelectorsList(),
+          proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.toObject,
+          includeInstance,
+        ),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec;
-  return proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec();
+  return proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -3784,37 +4057,41 @@ proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.deserializeBinary = fun
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec;
-      reader.readMessage(value,proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinaryFromReader);
-      msg.addParameterSelectors(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinaryFromReader,
+        );
+        msg.addParameterSelectors(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -3823,111 +4100,135 @@ proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.serializeBina
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getParameterSelectorsList();
   if (f.length > 0) {
     writer.writeRepeatedMessage(
       1,
       f,
-      proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.serializeBinaryToWriter
+      proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.serializeBinaryToWriter,
     );
   }
 };
-
 
 /**
  * repeated ParameterSelectorSpec parameter_selectors = 1;
  * @return {!Array<!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec>}
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.getParameterSelectorsList = function() {
-  return /** @type{!Array<!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec, 1));
-};
-
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.getParameterSelectorsList =
+  function () {
+    return /** @type{!Array<!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec>} */ (
+      jspb.Message.getRepeatedWrapperField(
+        this,
+        proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec,
+        1,
+      )
+    );
+  };
 
 /**
  * @param {!Array<!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec>} value
  * @return {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec} returns this
-*/
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.setParameterSelectorsList = function(value) {
-  return jspb.Message.setRepeatedWrapperField(this, 1, value);
-};
-
+ */
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.setParameterSelectorsList =
+  function (value) {
+    return jspb.Message.setRepeatedWrapperField(this, 1, value);
+  };
 
 /**
  * @param {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec=} opt_value
  * @param {number=} opt_index
  * @return {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.addParameterSelectors = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec, opt_index);
-};
-
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.addParameterSelectors =
+  function (opt_value, opt_index) {
+    return jspb.Message.addToRepeatedWrapperField(
+      this,
+      1,
+      opt_value,
+      proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec,
+      opt_index,
+    );
+  };
 
 /**
  * Clears the list making it empty but non-null.
  * @return {!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.clearParameterSelectorsList = function() {
-  return this.setParameterSelectorsList([]);
-};
-
-
-
-
-
-if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    mappedParametersMap: (f = msg.getMappedParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.toObject) : []
+proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.prototype.clearParameterSelectorsList =
+  function () {
+    return this.setParameterSelectorsList([]);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+if (jspb.Message.GENERATE_TO_OBJECT) {
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
+  };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        mappedParametersMap: (f = msg.getMappedParametersMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.toObject,
+            )
+          : [],
+      };
+
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec;
-  return proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec();
+  return proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -3936,38 +4237,51 @@ proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.deserializeBinary = 
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 2:
-      var value = msg.getMappedParametersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 2:
+        var value = msg.getMappedParametersMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -3976,14 +4290,22 @@ proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.prototype.serializeB
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getMappedParametersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.serializeBinaryToWriter,
+    );
   }
 };
-
 
 /**
  * map<string, ParameterSelectorSpec> mapped_parameters = 2;
@@ -3991,22 +4313,27 @@ proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.serializeBinaryToWri
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec>}
  */
-proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.prototype.getMappedParametersMap = function(opt_noLazyCreate) {
-  return /** @type {!jspb.Map<string,!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec));
-};
-
+proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.prototype.getMappedParametersMap =
+  function (opt_noLazyCreate) {
+    return /** @type {!jspb.Map<string,!proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec>} */ (
+      jspb.Message.getMapField(
+        this,
+        2,
+        opt_noLazyCreate,
+        proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec,
+      )
+    );
+  };
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.prototype.clearMappedParametersMap = function() {
-  this.getMappedParametersMap().clear();
-  return this;};
-
-
+proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.prototype.clearMappedParametersMap =
+  function () {
+    this.getMappedParametersMap().clear();
+    return this;
+  };
 
 /**
  * Oneof group definitions for this message. Each group defines the field
@@ -4016,7 +4343,7 @@ proto.ml_pipelines.DagOutputsSpec.MapParameterSelectorsSpec.prototype.clearMappe
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_ = [[1,2]];
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_ = [[1, 2]];
 
 /**
  * @enum {number}
@@ -4024,70 +4351,86 @@ proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_ = [[1,2]];
 proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.KindCase = {
   KIND_NOT_SET: 0,
   VALUE_FROM_PARAMETER: 1,
-  VALUE_FROM_ONEOF: 2
+  VALUE_FROM_ONEOF: 2,
 };
 
 /**
  * @return {proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.KindCase}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.getKindCase = function() {
-  return /** @type {proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.KindCase} */(jspb.Message.computeOneofCase(this, proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_[0]));
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.getKindCase = function () {
+  return /** @type {proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.KindCase} */ (
+    jspb.Message.computeOneofCase(
+      this,
+      proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_[0],
+    )
+  );
 };
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    valueFromParameter: (f = msg.getValueFromParameter()) && proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.toObject(includeInstance, f),
-    valueFromOneof: (f = msg.getValueFromOneof()) && proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        valueFromParameter:
+          (f = msg.getValueFromParameter()) &&
+          proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.toObject(includeInstance, f),
+        valueFromOneof:
+          (f = msg.getValueFromOneof()) &&
+          proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.toObject(includeInstance, f),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec;
-  return proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec();
+  return proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -4096,42 +4439,49 @@ proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.deserializeBinary = fun
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec;
-      reader.readMessage(value,proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinaryFromReader);
-      msg.setValueFromParameter(value);
-      break;
-    case 2:
-      var value = new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec;
-      reader.readMessage(value,proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.deserializeBinaryFromReader);
-      msg.setValueFromOneof(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.deserializeBinaryFromReader,
+        );
+        msg.setValueFromParameter(value);
+        break;
+      case 2:
+        var value = new proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.deserializeBinaryFromReader,
+        );
+        msg.setValueFromOneof(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -4140,14 +4490,17 @@ proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.serializeBina
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getValueFromParameter();
   if (f != null) {
     writer.writeMessage(
       1,
       f,
-      proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.serializeBinaryToWriter
+      proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec.serializeBinaryToWriter,
     );
   }
   f = message.getValueFromOneof();
@@ -4155,85 +4508,95 @@ proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.serializeBinaryToWriter
     writer.writeMessage(
       2,
       f,
-      proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.serializeBinaryToWriter
+      proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec.serializeBinaryToWriter,
     );
   }
 };
-
 
 /**
  * optional ParameterSelectorSpec value_from_parameter = 1;
  * @return {?proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.getValueFromParameter = function() {
-  return /** @type{?proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec, 1));
-};
-
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.getValueFromParameter =
+  function () {
+    return /** @type{?proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec} */ (
+      jspb.Message.getWrapperField(this, proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec, 1)
+    );
+  };
 
 /**
  * @param {?proto.ml_pipelines.DagOutputsSpec.ParameterSelectorSpec|undefined} value
  * @return {!proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec} returns this
-*/
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.setValueFromParameter = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 1, proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_[0], value);
-};
-
+ */
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.setValueFromParameter =
+  function (value) {
+    return jspb.Message.setOneofWrapperField(
+      this,
+      1,
+      proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_[0],
+      value,
+    );
+  };
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.clearValueFromParameter = function() {
-  return this.setValueFromParameter(undefined);
-};
-
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.clearValueFromParameter =
+  function () {
+    return this.setValueFromParameter(undefined);
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.hasValueFromParameter = function() {
-  return jspb.Message.getField(this, 1) != null;
-};
-
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.hasValueFromParameter =
+  function () {
+    return jspb.Message.getField(this, 1) != null;
+  };
 
 /**
  * optional ParameterSelectorsSpec value_from_oneof = 2;
  * @return {?proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.getValueFromOneof = function() {
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.getValueFromOneof = function () {
   return /** @type{?proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec, 2));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec, 2)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.DagOutputsSpec.ParameterSelectorsSpec|undefined} value
  * @return {!proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec} returns this
-*/
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.setValueFromOneof = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 2, proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.setValueFromOneof = function (
+  value,
+) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    2,
+    proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.clearValueFromOneof = function() {
-  return this.setValueFromOneof(undefined);
-};
-
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.clearValueFromOneof =
+  function () {
+    return this.setValueFromOneof(undefined);
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.hasValueFromOneof = function() {
+proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.hasValueFromOneof = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * map<string, DagOutputArtifactSpec> artifacts = 1;
@@ -4241,21 +4604,25 @@ proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec.prototype.hasValueFromO
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec>}
  */
-proto.ml_pipelines.DagOutputsSpec.prototype.getArtifactsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.DagOutputsSpec.prototype.getArtifactsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec));
+    jspb.Message.getMapField(
+      this,
+      1,
+      opt_noLazyCreate,
+      proto.ml_pipelines.DagOutputsSpec.DagOutputArtifactSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.DagOutputsSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.prototype.clearArtifactsMap = function() {
+proto.ml_pipelines.DagOutputsSpec.prototype.clearArtifactsMap = function () {
   this.getArtifactsMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, DagOutputParameterSpec> parameters = 2;
@@ -4263,77 +4630,86 @@ proto.ml_pipelines.DagOutputsSpec.prototype.clearArtifactsMap = function() {
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec>}
  */
-proto.ml_pipelines.DagOutputsSpec.prototype.getParametersMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.DagOutputsSpec.prototype.getParametersMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec));
+    jspb.Message.getMapField(
+      this,
+      2,
+      opt_noLazyCreate,
+      proto.ml_pipelines.DagOutputsSpec.DagOutputParameterSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.DagOutputsSpec} returns this
  */
-proto.ml_pipelines.DagOutputsSpec.prototype.clearParametersMap = function() {
+proto.ml_pipelines.DagOutputsSpec.prototype.clearParametersMap = function () {
   this.getParametersMap().clear();
-  return this;};
-
-
-
-
+  return this;
+};
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ComponentInputsSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ComponentInputsSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ComponentInputsSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ComponentInputsSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    artifactsMap: (f = msg.getArtifactsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.toObject) : [],
-    parametersMap: (f = msg.getParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ComponentInputsSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ComponentInputsSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ComponentInputsSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ComponentInputsSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        artifactsMap: (f = msg.getArtifactsMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.toObject,
+            )
+          : [],
+        parametersMap: (f = msg.getParametersMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.toObject,
+            )
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ComponentInputsSpec}
  */
-proto.ml_pipelines.ComponentInputsSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ComponentInputsSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ComponentInputsSpec;
+  var msg = new proto.ml_pipelines.ComponentInputsSpec();
   return proto.ml_pipelines.ComponentInputsSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -4342,44 +4718,58 @@ proto.ml_pipelines.ComponentInputsSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ComponentInputsSpec}
  */
-proto.ml_pipelines.ComponentInputsSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ComponentInputsSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getArtifactsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec());
-         });
-      break;
-    case 2:
-      var value = msg.getParametersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.ComponentInputsSpec.ParameterSpec());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getArtifactsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec(),
+          );
+        });
+        break;
+      case 2:
+        var value = msg.getParametersMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ComponentInputsSpec.ParameterSpec(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ComponentInputsSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ComponentInputsSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ComponentInputsSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -4388,76 +4778,89 @@ proto.ml_pipelines.ComponentInputsSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ComponentInputsSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ComponentInputsSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getArtifactsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.serializeBinaryToWriter,
+    );
   }
   f = message.getParametersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.serializeBinaryToWriter,
+    );
   }
 };
-
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    artifactType: (f = msg.getArtifactType()) && proto.ml_pipelines.ArtifactTypeSchema.toObject(includeInstance, f),
-    isArtifactList: jspb.Message.getBooleanFieldWithDefault(msg, 2, false),
-    isOptional: jspb.Message.getBooleanFieldWithDefault(msg, 3, false),
-    description: jspb.Message.getFieldWithDefault(msg, 4, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        artifactType:
+          (f = msg.getArtifactType()) &&
+          proto.ml_pipelines.ArtifactTypeSchema.toObject(includeInstance, f),
+        isArtifactList: jspb.Message.getBooleanFieldWithDefault(msg, 2, false),
+        isOptional: jspb.Message.getBooleanFieldWithDefault(msg, 3, false),
+        description: jspb.Message.getFieldWithDefault(msg, 4, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec}
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec;
-  return proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec();
+  return proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -4466,49 +4869,53 @@ proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.deserializeBinary = function
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec}
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.ArtifactTypeSchema;
-      reader.readMessage(value,proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader);
-      msg.setArtifactType(value);
-      break;
-    case 2:
-      var value = /** @type {boolean} */ (reader.readBool());
-      msg.setIsArtifactList(value);
-      break;
-    case 3:
-      var value = /** @type {boolean} */ (reader.readBool());
-      msg.setIsOptional(value);
-      break;
-    case 4:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setDescription(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.ArtifactTypeSchema();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader,
+        );
+        msg.setArtifactType(value);
+        break;
+      case 2:
+        var value = /** @type {boolean} */ (reader.readBool());
+        msg.setIsArtifactList(value);
+        break;
+      case 3:
+        var value = /** @type {boolean} */ (reader.readBool());
+        msg.setIsOptional(value);
+        break;
+      case 4:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setDescription(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -4517,189 +4924,171 @@ proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.serializeBinary = 
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getArtifactType();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter
-    );
+    writer.writeMessage(1, f, proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter);
   }
   f = message.getIsArtifactList();
   if (f) {
-    writer.writeBool(
-      2,
-      f
-    );
+    writer.writeBool(2, f);
   }
   f = message.getIsOptional();
   if (f) {
-    writer.writeBool(
-      3,
-      f
-    );
+    writer.writeBool(3, f);
   }
   f = message.getDescription();
   if (f.length > 0) {
-    writer.writeString(
-      4,
-      f
-    );
+    writer.writeString(4, f);
   }
 };
-
 
 /**
  * optional ArtifactTypeSchema artifact_type = 1;
  * @return {?proto.ml_pipelines.ArtifactTypeSchema}
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.getArtifactType = function() {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.getArtifactType = function () {
   return /** @type{?proto.ml_pipelines.ArtifactTypeSchema} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactTypeSchema, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactTypeSchema, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ArtifactTypeSchema|undefined} value
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec} returns this
-*/
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.setArtifactType = function(value) {
+ */
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.setArtifactType = function (value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.clearArtifactType = function() {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.clearArtifactType = function () {
   return this.setArtifactType(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.hasArtifactType = function() {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.hasArtifactType = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional bool is_artifact_list = 2;
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.getIsArtifactList = function() {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.getIsArtifactList = function () {
   return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 2, false));
 };
-
 
 /**
  * @param {boolean} value
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.setIsArtifactList = function(value) {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.setIsArtifactList = function (value) {
   return jspb.Message.setProto3BooleanField(this, 2, value);
 };
-
 
 /**
  * optional bool is_optional = 3;
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.getIsOptional = function() {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.getIsOptional = function () {
   return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 3, false));
 };
-
 
 /**
  * @param {boolean} value
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.setIsOptional = function(value) {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.setIsOptional = function (value) {
   return jspb.Message.setProto3BooleanField(this, 3, value);
 };
-
 
 /**
  * optional string description = 4;
  * @return {string}
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.getDescription = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.getDescription = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.setDescription = function(value) {
+proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec.prototype.setDescription = function (value) {
   return jspb.Message.setProto3StringField(this, 4, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    type: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    parameterType: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    defaultValue: (f = msg.getDefaultValue()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f),
-    isOptional: jspb.Message.getBooleanFieldWithDefault(msg, 4, false),
-    description: jspb.Message.getFieldWithDefault(msg, 5, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        type: jspb.Message.getFieldWithDefault(msg, 1, 0),
+        parameterType: jspb.Message.getFieldWithDefault(msg, 2, 0),
+        defaultValue:
+          (f = msg.getDefaultValue()) &&
+          google_protobuf_struct_pb.Value.toObject(includeInstance, f),
+        isOptional: jspb.Message.getBooleanFieldWithDefault(msg, 4, false),
+        description: jspb.Message.getFieldWithDefault(msg, 5, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec}
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ComponentInputsSpec.ParameterSpec;
-  return proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.ComponentInputsSpec.ParameterSpec();
+  return proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -4708,53 +5097,58 @@ proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.deserializeBinary = functio
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec}
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (reader.readEnum());
-      msg.setType(value);
-      break;
-    case 2:
-      var value = /** @type {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} */ (reader.readEnum());
-      msg.setParameterType(value);
-      break;
-    case 3:
-      var value = new google_protobuf_struct_pb.Value;
-      reader.readMessage(value,google_protobuf_struct_pb.Value.deserializeBinaryFromReader);
-      msg.setDefaultValue(value);
-      break;
-    case 4:
-      var value = /** @type {boolean} */ (reader.readBool());
-      msg.setIsOptional(value);
-      break;
-    case 5:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setDescription(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (
+          reader.readEnum()
+        );
+        msg.setType(value);
+        break;
+      case 2:
+        var value = /** @type {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} */ (
+          reader.readEnum()
+        );
+        msg.setParameterType(value);
+        break;
+      case 3:
+        var value = new google_protobuf_struct_pb.Value();
+        reader.readMessage(value, google_protobuf_struct_pb.Value.deserializeBinaryFromReader);
+        msg.setDefaultValue(value);
+        break;
+      case 4:
+        var value = /** @type {boolean} */ (reader.readBool());
+        msg.setIsOptional(value);
+        break;
+      case 5:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setDescription(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -4763,155 +5157,134 @@ proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.serializeBinary =
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getType();
   if (f !== 0.0) {
-    writer.writeEnum(
-      1,
-      f
-    );
+    writer.writeEnum(1, f);
   }
   f = message.getParameterType();
   if (f !== 0.0) {
-    writer.writeEnum(
-      2,
-      f
-    );
+    writer.writeEnum(2, f);
   }
   f = message.getDefaultValue();
   if (f != null) {
-    writer.writeMessage(
-      3,
-      f,
-      google_protobuf_struct_pb.Value.serializeBinaryToWriter
-    );
+    writer.writeMessage(3, f, google_protobuf_struct_pb.Value.serializeBinaryToWriter);
   }
   f = message.getIsOptional();
   if (f) {
-    writer.writeBool(
-      4,
-      f
-    );
+    writer.writeBool(4, f);
   }
   f = message.getDescription();
   if (f.length > 0) {
-    writer.writeString(
-      5,
-      f
-    );
+    writer.writeString(5, f);
   }
 };
-
 
 /**
  * optional PrimitiveType.PrimitiveTypeEnum type = 1;
  * @return {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum}
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getType = function() {
-  return /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getType = function () {
+  return /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (
+    jspb.Message.getFieldWithDefault(this, 1, 0)
+  );
 };
-
 
 /**
  * @param {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} value
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setType = function(value) {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setType = function (value) {
   return jspb.Message.setProto3EnumField(this, 1, value);
 };
-
 
 /**
  * optional ParameterType.ParameterTypeEnum parameter_type = 2;
  * @return {!proto.ml_pipelines.ParameterType.ParameterTypeEnum}
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getParameterType = function() {
-  return /** @type {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getParameterType = function () {
+  return /** @type {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} */ (
+    jspb.Message.getFieldWithDefault(this, 2, 0)
+  );
 };
-
 
 /**
  * @param {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} value
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setParameterType = function(value) {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setParameterType = function (value) {
   return jspb.Message.setProto3EnumField(this, 2, value);
 };
-
 
 /**
  * optional google.protobuf.Value default_value = 3;
  * @return {?proto.google.protobuf.Value}
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getDefaultValue = function() {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getDefaultValue = function () {
   return /** @type{?proto.google.protobuf.Value} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Value, 3));
+    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Value, 3)
+  );
 };
-
 
 /**
  * @param {?proto.google.protobuf.Value|undefined} value
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec} returns this
-*/
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setDefaultValue = function(value) {
+ */
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setDefaultValue = function (value) {
   return jspb.Message.setWrapperField(this, 3, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.clearDefaultValue = function() {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.clearDefaultValue = function () {
   return this.setDefaultValue(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.hasDefaultValue = function() {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.hasDefaultValue = function () {
   return jspb.Message.getField(this, 3) != null;
 };
-
 
 /**
  * optional bool is_optional = 4;
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getIsOptional = function() {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getIsOptional = function () {
   return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 4, false));
 };
-
 
 /**
  * @param {boolean} value
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setIsOptional = function(value) {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setIsOptional = function (value) {
   return jspb.Message.setProto3BooleanField(this, 4, value);
 };
-
 
 /**
  * optional string description = 5;
  * @return {string}
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getDescription = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.getDescription = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setDescription = function(value) {
+proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setDescription = function (value) {
   return jspb.Message.setProto3StringField(this, 5, value);
 };
-
 
 /**
  * map<string, ArtifactSpec> artifacts = 1;
@@ -4919,21 +5292,25 @@ proto.ml_pipelines.ComponentInputsSpec.ParameterSpec.prototype.setDescription = 
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec>}
  */
-proto.ml_pipelines.ComponentInputsSpec.prototype.getArtifactsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ComponentInputsSpec.prototype.getArtifactsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec));
+    jspb.Message.getMapField(
+      this,
+      1,
+      opt_noLazyCreate,
+      proto.ml_pipelines.ComponentInputsSpec.ArtifactSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ComponentInputsSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.prototype.clearArtifactsMap = function() {
+proto.ml_pipelines.ComponentInputsSpec.prototype.clearArtifactsMap = function () {
   this.getArtifactsMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, ParameterSpec> parameters = 2;
@@ -4941,77 +5318,86 @@ proto.ml_pipelines.ComponentInputsSpec.prototype.clearArtifactsMap = function() 
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec>}
  */
-proto.ml_pipelines.ComponentInputsSpec.prototype.getParametersMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ComponentInputsSpec.prototype.getParametersMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ComponentInputsSpec.ParameterSpec>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.ComponentInputsSpec.ParameterSpec));
+    jspb.Message.getMapField(
+      this,
+      2,
+      opt_noLazyCreate,
+      proto.ml_pipelines.ComponentInputsSpec.ParameterSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ComponentInputsSpec} returns this
  */
-proto.ml_pipelines.ComponentInputsSpec.prototype.clearParametersMap = function() {
+proto.ml_pipelines.ComponentInputsSpec.prototype.clearParametersMap = function () {
   this.getParametersMap().clear();
-  return this;};
-
-
-
-
+  return this;
+};
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ComponentOutputsSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ComponentOutputsSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ComponentOutputsSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ComponentOutputsSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    artifactsMap: (f = msg.getArtifactsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.toObject) : [],
-    parametersMap: (f = msg.getParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ComponentOutputsSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ComponentOutputsSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ComponentOutputsSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ComponentOutputsSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        artifactsMap: (f = msg.getArtifactsMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.toObject,
+            )
+          : [],
+        parametersMap: (f = msg.getParametersMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.toObject,
+            )
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec}
  */
-proto.ml_pipelines.ComponentOutputsSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ComponentOutputsSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ComponentOutputsSpec;
+  var msg = new proto.ml_pipelines.ComponentOutputsSpec();
   return proto.ml_pipelines.ComponentOutputsSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -5020,44 +5406,58 @@ proto.ml_pipelines.ComponentOutputsSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec}
  */
-proto.ml_pipelines.ComponentOutputsSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ComponentOutputsSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getArtifactsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec());
-         });
-      break;
-    case 2:
-      var value = msg.getParametersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getArtifactsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec(),
+          );
+        });
+        break;
+      case 2:
+        var value = msg.getParametersMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ComponentOutputsSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ComponentOutputsSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ComponentOutputsSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -5066,78 +5466,96 @@ proto.ml_pipelines.ComponentOutputsSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ComponentOutputsSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ComponentOutputsSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getArtifactsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.serializeBinaryToWriter,
+    );
   }
   f = message.getParametersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.serializeBinaryToWriter,
+    );
   }
 };
-
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    artifactType: (f = msg.getArtifactType()) && proto.ml_pipelines.ArtifactTypeSchema.toObject(includeInstance, f),
-    propertiesMap: (f = msg.getPropertiesMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject) : [],
-    customPropertiesMap: (f = msg.getCustomPropertiesMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject) : [],
-    metadata: (f = msg.getMetadata()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
-    isArtifactList: jspb.Message.getBooleanFieldWithDefault(msg, 5, false),
-    description: jspb.Message.getFieldWithDefault(msg, 6, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        artifactType:
+          (f = msg.getArtifactType()) &&
+          proto.ml_pipelines.ArtifactTypeSchema.toObject(includeInstance, f),
+        propertiesMap: (f = msg.getPropertiesMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject)
+          : [],
+        customPropertiesMap: (f = msg.getCustomPropertiesMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject)
+          : [],
+        metadata:
+          (f = msg.getMetadata()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
+        isArtifactList: jspb.Message.getBooleanFieldWithDefault(msg, 5, false),
+        description: jspb.Message.getFieldWithDefault(msg, 6, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec;
-  return proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec();
+  return proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -5146,62 +5564,82 @@ proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.deserializeBinary = functio
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.ArtifactTypeSchema;
-      reader.readMessage(value,proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader);
-      msg.setArtifactType(value);
-      break;
-    case 2:
-      var value = msg.getPropertiesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader, "", new proto.ml_pipelines.ValueOrRuntimeParameter());
-         });
-      break;
-    case 3:
-      var value = msg.getCustomPropertiesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader, "", new proto.ml_pipelines.ValueOrRuntimeParameter());
-         });
-      break;
-    case 4:
-      var value = new google_protobuf_struct_pb.Struct;
-      reader.readMessage(value,google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
-      msg.setMetadata(value);
-      break;
-    case 5:
-      var value = /** @type {boolean} */ (reader.readBool());
-      msg.setIsArtifactList(value);
-      break;
-    case 6:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setDescription(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.ArtifactTypeSchema();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader,
+        );
+        msg.setArtifactType(value);
+        break;
+      case 2:
+        var value = msg.getPropertiesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ValueOrRuntimeParameter(),
+          );
+        });
+        break;
+      case 3:
+        var value = msg.getCustomPropertiesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ValueOrRuntimeParameter(),
+          );
+        });
+        break;
+      case 4:
+        var value = new google_protobuf_struct_pb.Struct();
+        reader.readMessage(value, google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
+        msg.setMetadata(value);
+        break;
+      case 5:
+        var value = /** @type {boolean} */ (reader.readBool());
+        msg.setIsArtifactList(value);
+        break;
+      case 6:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setDescription(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -5210,85 +5648,82 @@ proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.serializeBinary =
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getArtifactType();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter
-    );
+    writer.writeMessage(1, f, proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter);
   }
   f = message.getPropertiesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter,
+    );
   }
   f = message.getCustomPropertiesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(3, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter);
+    f.serializeBinary(
+      3,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter,
+    );
   }
   f = message.getMetadata();
   if (f != null) {
-    writer.writeMessage(
-      4,
-      f,
-      google_protobuf_struct_pb.Struct.serializeBinaryToWriter
-    );
+    writer.writeMessage(4, f, google_protobuf_struct_pb.Struct.serializeBinaryToWriter);
   }
   f = message.getIsArtifactList();
   if (f) {
-    writer.writeBool(
-      5,
-      f
-    );
+    writer.writeBool(5, f);
   }
   f = message.getDescription();
   if (f.length > 0) {
-    writer.writeString(
-      6,
-      f
-    );
+    writer.writeString(6, f);
   }
 };
-
 
 /**
  * optional ArtifactTypeSchema artifact_type = 1;
  * @return {?proto.ml_pipelines.ArtifactTypeSchema}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getArtifactType = function() {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getArtifactType = function () {
   return /** @type{?proto.ml_pipelines.ArtifactTypeSchema} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactTypeSchema, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactTypeSchema, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ArtifactTypeSchema|undefined} value
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec} returns this
-*/
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.setArtifactType = function(value) {
+ */
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.setArtifactType = function (value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.clearArtifactType = function() {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.clearArtifactType = function () {
   return this.setArtifactType(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.hasArtifactType = function() {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.hasArtifactType = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * map<string, ValueOrRuntimeParameter> properties = 2;
@@ -5296,21 +5731,22 @@ proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.hasArtifactType =
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getPropertiesMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getPropertiesMap = function (
+  opt_noLazyCreate,
+) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.ValueOrRuntimeParameter));
+    jspb.Message.getMapField(this, 2, opt_noLazyCreate, proto.ml_pipelines.ValueOrRuntimeParameter)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.clearPropertiesMap = function() {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.clearPropertiesMap = function () {
   this.getPropertiesMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, ValueOrRuntimeParameter> custom_properties = 3;
@@ -5318,151 +5754,151 @@ proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.clearPropertiesMa
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getCustomPropertiesMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getCustomPropertiesMap = function (
+  opt_noLazyCreate,
+) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>} */ (
-      jspb.Message.getMapField(this, 3, opt_noLazyCreate,
-      proto.ml_pipelines.ValueOrRuntimeParameter));
+    jspb.Message.getMapField(this, 3, opt_noLazyCreate, proto.ml_pipelines.ValueOrRuntimeParameter)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.clearCustomPropertiesMap = function() {
-  this.getCustomPropertiesMap().clear();
-  return this;};
-
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.clearCustomPropertiesMap =
+  function () {
+    this.getCustomPropertiesMap().clear();
+    return this;
+  };
 
 /**
  * optional google.protobuf.Struct metadata = 4;
  * @return {?proto.google.protobuf.Struct}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getMetadata = function() {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getMetadata = function () {
   return /** @type{?proto.google.protobuf.Struct} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 4));
+    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 4)
+  );
 };
-
 
 /**
  * @param {?proto.google.protobuf.Struct|undefined} value
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec} returns this
-*/
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.setMetadata = function(value) {
+ */
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.setMetadata = function (value) {
   return jspb.Message.setWrapperField(this, 4, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.clearMetadata = function() {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.clearMetadata = function () {
   return this.setMetadata(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.hasMetadata = function() {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.hasMetadata = function () {
   return jspb.Message.getField(this, 4) != null;
 };
-
 
 /**
  * optional bool is_artifact_list = 5;
  * @return {boolean}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getIsArtifactList = function() {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getIsArtifactList = function () {
   return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 5, false));
 };
-
 
 /**
  * @param {boolean} value
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.setIsArtifactList = function(value) {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.setIsArtifactList = function (
+  value,
+) {
   return jspb.Message.setProto3BooleanField(this, 5, value);
 };
-
 
 /**
  * optional string description = 6;
  * @return {string}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getDescription = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.getDescription = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.setDescription = function(value) {
+proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec.prototype.setDescription = function (value) {
   return jspb.Message.setProto3StringField(this, 6, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    type: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    parameterType: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    description: jspb.Message.getFieldWithDefault(msg, 3, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        type: jspb.Message.getFieldWithDefault(msg, 1, 0),
+        parameterType: jspb.Message.getFieldWithDefault(msg, 2, 0),
+        description: jspb.Message.getFieldWithDefault(msg, 3, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec;
-  return proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec();
+  return proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -5471,44 +5907,49 @@ proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.deserializeBinary = functi
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (reader.readEnum());
-      msg.setType(value);
-      break;
-    case 2:
-      var value = /** @type {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} */ (reader.readEnum());
-      msg.setParameterType(value);
-      break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setDescription(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (
+          reader.readEnum()
+        );
+        msg.setType(value);
+        break;
+      case 2:
+        var value = /** @type {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} */ (
+          reader.readEnum()
+        );
+        msg.setParameterType(value);
+        break;
+      case 3:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setDescription(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -5517,85 +5958,78 @@ proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.serializeBinary 
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getType();
   if (f !== 0.0) {
-    writer.writeEnum(
-      1,
-      f
-    );
+    writer.writeEnum(1, f);
   }
   f = message.getParameterType();
   if (f !== 0.0) {
-    writer.writeEnum(
-      2,
-      f
-    );
+    writer.writeEnum(2, f);
   }
   f = message.getDescription();
   if (f.length > 0) {
-    writer.writeString(
-      3,
-      f
-    );
+    writer.writeString(3, f);
   }
 };
-
 
 /**
  * optional PrimitiveType.PrimitiveTypeEnum type = 1;
  * @return {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.getType = function() {
-  return /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.getType = function () {
+  return /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (
+    jspb.Message.getFieldWithDefault(this, 1, 0)
+  );
 };
-
 
 /**
  * @param {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} value
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.setType = function(value) {
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.setType = function (value) {
   return jspb.Message.setProto3EnumField(this, 1, value);
 };
-
 
 /**
  * optional ParameterType.ParameterTypeEnum parameter_type = 2;
  * @return {!proto.ml_pipelines.ParameterType.ParameterTypeEnum}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.getParameterType = function() {
-  return /** @type {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.getParameterType = function () {
+  return /** @type {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} */ (
+    jspb.Message.getFieldWithDefault(this, 2, 0)
+  );
 };
-
 
 /**
  * @param {!proto.ml_pipelines.ParameterType.ParameterTypeEnum} value
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.setParameterType = function(value) {
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.setParameterType = function (
+  value,
+) {
   return jspb.Message.setProto3EnumField(this, 2, value);
 };
-
 
 /**
  * optional string description = 3;
  * @return {string}
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.getDescription = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.getDescription = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.setDescription = function(value) {
+proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.setDescription = function (value) {
   return jspb.Message.setProto3StringField(this, 3, value);
 };
-
 
 /**
  * map<string, ArtifactSpec> artifacts = 1;
@@ -5603,21 +6037,25 @@ proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec.prototype.setDescription =
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec>}
  */
-proto.ml_pipelines.ComponentOutputsSpec.prototype.getArtifactsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ComponentOutputsSpec.prototype.getArtifactsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec));
+    jspb.Message.getMapField(
+      this,
+      1,
+      opt_noLazyCreate,
+      proto.ml_pipelines.ComponentOutputsSpec.ArtifactSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.prototype.clearArtifactsMap = function() {
+proto.ml_pipelines.ComponentOutputsSpec.prototype.clearArtifactsMap = function () {
   this.getArtifactsMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, ParameterSpec> parameters = 2;
@@ -5625,77 +6063,86 @@ proto.ml_pipelines.ComponentOutputsSpec.prototype.clearArtifactsMap = function()
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec>}
  */
-proto.ml_pipelines.ComponentOutputsSpec.prototype.getParametersMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ComponentOutputsSpec.prototype.getParametersMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec));
+    jspb.Message.getMapField(
+      this,
+      2,
+      opt_noLazyCreate,
+      proto.ml_pipelines.ComponentOutputsSpec.ParameterSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ComponentOutputsSpec} returns this
  */
-proto.ml_pipelines.ComponentOutputsSpec.prototype.clearParametersMap = function() {
+proto.ml_pipelines.ComponentOutputsSpec.prototype.clearParametersMap = function () {
   this.getParametersMap().clear();
-  return this;};
-
-
-
-
+  return this;
+};
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.TaskInputsSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.TaskInputsSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.TaskInputsSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.TaskInputsSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    parametersMap: (f = msg.getParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.toObject) : [],
-    artifactsMap: (f = msg.getArtifactsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.TaskInputsSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.TaskInputsSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.TaskInputsSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.TaskInputsSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        parametersMap: (f = msg.getParametersMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.toObject,
+            )
+          : [],
+        artifactsMap: (f = msg.getArtifactsMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.toObject,
+            )
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.TaskInputsSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.TaskInputsSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.TaskInputsSpec;
+  var msg = new proto.ml_pipelines.TaskInputsSpec();
   return proto.ml_pipelines.TaskInputsSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -5704,44 +6151,58 @@ proto.ml_pipelines.TaskInputsSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.TaskInputsSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.TaskInputsSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getParametersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec());
-         });
-      break;
-    case 2:
-      var value = msg.getArtifactsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getParametersMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec(),
+          );
+        });
+        break;
+      case 2:
+        var value = msg.getArtifactsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.TaskInputsSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.TaskInputsSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.TaskInputsSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -5750,19 +6211,29 @@ proto.ml_pipelines.TaskInputsSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.TaskInputsSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.TaskInputsSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getParametersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.serializeBinaryToWriter,
+    );
   }
   f = message.getArtifactsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.serializeBinaryToWriter,
+    );
   }
 };
-
-
 
 /**
  * Oneof group definitions for this message. Each group defines the field
@@ -5772,7 +6243,7 @@ proto.ml_pipelines.TaskInputsSpec.serializeBinaryToWriter = function(message, wr
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_ = [[3,4]];
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_ = [[3, 4]];
 
 /**
  * @enum {number}
@@ -5780,70 +6251,81 @@ proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_ = [[3,4]];
 proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.KindCase = {
   KIND_NOT_SET: 0,
   TASK_OUTPUT_ARTIFACT: 3,
-  COMPONENT_INPUT_ARTIFACT: 4
+  COMPONENT_INPUT_ARTIFACT: 4,
 };
 
 /**
  * @return {proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.KindCase}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.getKindCase = function() {
-  return /** @type {proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.KindCase} */(jspb.Message.computeOneofCase(this, proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_[0]));
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.getKindCase = function () {
+  return /** @type {proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.KindCase} */ (
+    jspb.Message.computeOneofCase(
+      this,
+      proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_[0],
+    )
+  );
 };
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    taskOutputArtifact: (f = msg.getTaskOutputArtifact()) && proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.toObject(includeInstance, f),
-    componentInputArtifact: jspb.Message.getFieldWithDefault(msg, 4, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        taskOutputArtifact:
+          (f = msg.getTaskOutputArtifact()) &&
+          proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.toObject(
+            includeInstance,
+            f,
+          ),
+        componentInputArtifact: jspb.Message.getFieldWithDefault(msg, 4, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec;
-  return proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec();
+  return proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -5852,41 +6334,47 @@ proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.deserializeBinary = function
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 3:
-      var value = new proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec;
-      reader.readMessage(value,proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.deserializeBinaryFromReader);
-      msg.setTaskOutputArtifact(value);
-      break;
-    case 4:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setComponentInputArtifact(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 3:
+        var value =
+          new proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec
+            .deserializeBinaryFromReader,
+        );
+        msg.setTaskOutputArtifact(value);
+        break;
+      case 4:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setComponentInputArtifact(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -5895,81 +6383,87 @@ proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.serializeBinary = 
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getTaskOutputArtifact();
   if (f != null) {
     writer.writeMessage(
       3,
       f,
-      proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.serializeBinaryToWriter
+      proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec
+        .serializeBinaryToWriter,
     );
   }
   f = /** @type {string} */ (jspb.Message.getField(message, 4));
   if (f != null) {
-    writer.writeString(
-      4,
-      f
-    );
+    writer.writeString(4, f);
   }
 };
-
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.toObject(opt_includeInstance, this);
-};
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.toObject =
+    function (opt_includeInstance) {
+      return proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.toObject(
+        opt_includeInstance,
+        this,
+      );
+    };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        producerTask: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        outputArtifactKey: jspb.Message.getFieldWithDefault(msg, 2, ''),
+      };
 
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    producerTask: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    outputArtifactKey: jspb.Message.getFieldWithDefault(msg, 2, "")
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
   };
-
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
 }
-
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.deserializeBinary = function(bytes) {
-  var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec;
-  return proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.deserializeBinaryFromReader(msg, reader);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.deserializeBinary =
+  function (bytes) {
+    var reader = new jspb.BinaryReader(bytes);
+    var msg = new proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec();
+    return proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.deserializeBinaryFromReader(
+      msg,
+      reader,
+    );
+  };
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -5978,40 +6472,43 @@ proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.deser
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 1:
+          var value = /** @type {string} */ (reader.readString());
+          msg.setProducerTask(value);
+          break;
+        case 2:
+          var value = /** @type {string} */ (reader.readString());
+          msg.setOutputArtifactKey(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setProducerTask(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setOutputArtifactKey(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -6020,134 +6517,147 @@ proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.proto
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getProducerTask();
-  if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
-  }
-  f = message.getOutputArtifactKey();
-  if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
-  }
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getProducerTask();
+    if (f.length > 0) {
+      writer.writeString(1, f);
+    }
+    f = message.getOutputArtifactKey();
+    if (f.length > 0) {
+      writer.writeString(2, f);
+    }
+  };
 
 /**
  * optional string producer_task = 1;
  * @return {string}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.getProducerTask = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.getProducerTask =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.setProducerTask = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.setProducerTask =
+  function (value) {
+    return jspb.Message.setProto3StringField(this, 1, value);
+  };
 
 /**
  * optional string output_artifact_key = 2;
  * @return {string}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.getOutputArtifactKey = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.getOutputArtifactKey =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.setOutputArtifactKey = function(value) {
-  return jspb.Message.setProto3StringField(this, 2, value);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec.prototype.setOutputArtifactKey =
+  function (value) {
+    return jspb.Message.setProto3StringField(this, 2, value);
+  };
 
 /**
  * optional TaskOutputArtifactSpec task_output_artifact = 3;
  * @return {?proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.getTaskOutputArtifact = function() {
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.getTaskOutputArtifact = function () {
   return /** @type{?proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec, 3));
+    jspb.Message.getWrapperField(
+      this,
+      proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec,
+      3,
+    )
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.TaskOutputArtifactSpec|undefined} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec} returns this
-*/
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.setTaskOutputArtifact = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 3, proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.setTaskOutputArtifact = function (
+  value,
+) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    3,
+    proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.clearTaskOutputArtifact = function() {
-  return this.setTaskOutputArtifact(undefined);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.clearTaskOutputArtifact =
+  function () {
+    return this.setTaskOutputArtifact(undefined);
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.hasTaskOutputArtifact = function() {
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.hasTaskOutputArtifact = function () {
   return jspb.Message.getField(this, 3) != null;
 };
-
 
 /**
  * optional string component_input_artifact = 4;
  * @return {string}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.getComponentInputArtifact = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.getComponentInputArtifact =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.setComponentInputArtifact = function(value) {
-  return jspb.Message.setOneofField(this, 4, proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_[0], value);
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.setComponentInputArtifact = function (
+  value,
+) {
+  return jspb.Message.setOneofField(
+    this,
+    4,
+    proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.clearComponentInputArtifact = function() {
-  return jspb.Message.setOneofField(this, 4, proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_[0], undefined);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.clearComponentInputArtifact =
+  function () {
+    return jspb.Message.setOneofField(
+      this,
+      4,
+      proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.oneofGroups_[0],
+      undefined,
+    );
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.hasComponentInputArtifact = function() {
-  return jspb.Message.getField(this, 4) != null;
-};
-
-
+proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.hasComponentInputArtifact =
+  function () {
+    return jspb.Message.getField(this, 4) != null;
+  };
 
 /**
  * Oneof group definitions for this message. Each group defines the field
@@ -6157,7 +6667,7 @@ proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec.prototype.hasComponentInputA
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_ = [[1,2,3,5]];
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_ = [[1, 2, 3, 5]];
 
 /**
  * @enum {number}
@@ -6167,73 +6677,91 @@ proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.KindCase = {
   TASK_OUTPUT_PARAMETER: 1,
   RUNTIME_VALUE: 2,
   COMPONENT_INPUT_PARAMETER: 3,
-  TASK_FINAL_STATUS: 5
+  TASK_FINAL_STATUS: 5,
 };
 
 /**
  * @return {proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.KindCase}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getKindCase = function() {
-  return /** @type {proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.KindCase} */(jspb.Message.computeOneofCase(this, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0]));
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getKindCase = function () {
+  return /** @type {proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.KindCase} */ (
+    jspb.Message.computeOneofCase(
+      this,
+      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0],
+    )
+  );
 };
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    taskOutputParameter: (f = msg.getTaskOutputParameter()) && proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.toObject(includeInstance, f),
-    runtimeValue: (f = msg.getRuntimeValue()) && proto.ml_pipelines.ValueOrRuntimeParameter.toObject(includeInstance, f),
-    componentInputParameter: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    taskFinalStatus: (f = msg.getTaskFinalStatus()) && proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.toObject(includeInstance, f),
-    parameterExpressionSelector: jspb.Message.getFieldWithDefault(msg, 4, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        taskOutputParameter:
+          (f = msg.getTaskOutputParameter()) &&
+          proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.toObject(
+            includeInstance,
+            f,
+          ),
+        runtimeValue:
+          (f = msg.getRuntimeValue()) &&
+          proto.ml_pipelines.ValueOrRuntimeParameter.toObject(includeInstance, f),
+        componentInputParameter: jspb.Message.getFieldWithDefault(msg, 3, ''),
+        taskFinalStatus:
+          (f = msg.getTaskFinalStatus()) &&
+          proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.toObject(
+            includeInstance,
+            f,
+          ),
+        parameterExpressionSelector: jspb.Message.getFieldWithDefault(msg, 4, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec;
-  return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec();
+  return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -6242,55 +6770,68 @@ proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.deserializeBinary = functio
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec;
-      reader.readMessage(value,proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.deserializeBinaryFromReader);
-      msg.setTaskOutputParameter(value);
-      break;
-    case 2:
-      var value = new proto.ml_pipelines.ValueOrRuntimeParameter;
-      reader.readMessage(value,proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader);
-      msg.setRuntimeValue(value);
-      break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setComponentInputParameter(value);
-      break;
-    case 5:
-      var value = new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus;
-      reader.readMessage(value,proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.deserializeBinaryFromReader);
-      msg.setTaskFinalStatus(value);
-      break;
-    case 4:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setParameterExpressionSelector(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value =
+          new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
+            .deserializeBinaryFromReader,
+        );
+        msg.setTaskOutputParameter(value);
+        break;
+      case 2:
+        var value = new proto.ml_pipelines.ValueOrRuntimeParameter();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader,
+        );
+        msg.setRuntimeValue(value);
+        break;
+      case 3:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setComponentInputParameter(value);
+        break;
+      case 5:
+        var value = new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus
+            .deserializeBinaryFromReader,
+        );
+        msg.setTaskFinalStatus(value);
+        break;
+      case 4:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setParameterExpressionSelector(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -6299,104 +6840,103 @@ proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.serializeBinary =
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getTaskOutputParameter();
   if (f != null) {
     writer.writeMessage(
       1,
       f,
-      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.serializeBinaryToWriter
+      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec
+        .serializeBinaryToWriter,
     );
   }
   f = message.getRuntimeValue();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter
-    );
+    writer.writeMessage(2, f, proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter);
   }
   f = /** @type {string} */ (jspb.Message.getField(message, 3));
   if (f != null) {
-    writer.writeString(
-      3,
-      f
-    );
+    writer.writeString(3, f);
   }
   f = message.getTaskFinalStatus();
   if (f != null) {
     writer.writeMessage(
       5,
       f,
-      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.serializeBinaryToWriter
+      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.serializeBinaryToWriter,
     );
   }
   f = message.getParameterExpressionSelector();
   if (f.length > 0) {
-    writer.writeString(
-      4,
-      f
-    );
+    writer.writeString(4, f);
   }
 };
-
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.toObject(opt_includeInstance, this);
-};
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.toObject =
+    function (opt_includeInstance) {
+      return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.toObject(
+        opt_includeInstance,
+        this,
+      );
+    };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        producerTask: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        outputParameterKey: jspb.Message.getFieldWithDefault(msg, 2, ''),
+      };
 
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    producerTask: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    outputParameterKey: jspb.Message.getFieldWithDefault(msg, 2, "")
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
   };
-
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
 }
-
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.deserializeBinary = function(bytes) {
-  var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec;
-  return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.deserializeBinaryFromReader(msg, reader);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.deserializeBinary =
+  function (bytes) {
+    var reader = new jspb.BinaryReader(bytes);
+    var msg = new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec();
+    return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.deserializeBinaryFromReader(
+      msg,
+      reader,
+    );
+  };
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -6405,40 +6945,43 @@ proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.des
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 1:
+          var value = /** @type {string} */ (reader.readString());
+          msg.setProducerTask(value);
+          break;
+        case 2:
+          var value = /** @type {string} */ (reader.readString());
+          msg.setOutputParameterKey(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setProducerTask(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setOutputParameterKey(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -6447,115 +6990,116 @@ proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.pro
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getProducerTask();
-  if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
-  }
-  f = message.getOutputParameterKey();
-  if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
-  }
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getProducerTask();
+    if (f.length > 0) {
+      writer.writeString(1, f);
+    }
+    f = message.getOutputParameterKey();
+    if (f.length > 0) {
+      writer.writeString(2, f);
+    }
+  };
 
 /**
  * optional string producer_task = 1;
  * @return {string}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.getProducerTask = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.getProducerTask =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.setProducerTask = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.setProducerTask =
+  function (value) {
+    return jspb.Message.setProto3StringField(this, 1, value);
+  };
 
 /**
  * optional string output_parameter_key = 2;
  * @return {string}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.getOutputParameterKey = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.getOutputParameterKey =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.setOutputParameterKey = function(value) {
-  return jspb.Message.setProto3StringField(this, 2, value);
-};
-
-
-
-
-
-if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    producerTask: jspb.Message.getFieldWithDefault(msg, 1, "")
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec.prototype.setOutputParameterKey =
+  function (value) {
+    return jspb.Message.setProto3StringField(this, 2, value);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+if (jspb.Message.GENERATE_TO_OBJECT) {
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.prototype.toObject =
+    function (opt_includeInstance) {
+      return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.toObject(
+        opt_includeInstance,
+        this,
+      );
+    };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        producerTask: jspb.Message.getFieldWithDefault(msg, 1, ''),
+      };
+
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.deserializeBinary = function(bytes) {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.deserializeBinary = function (
+  bytes,
+) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus;
-  return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus();
+  return proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -6564,36 +7108,39 @@ proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.deserialize
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 1:
+          var value = /** @type {string} */ (reader.readString());
+          msg.setProducerTask(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setProducerTask(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -6602,200 +7149,228 @@ proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.prototype.s
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getProducerTask();
-  if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
-  }
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getProducerTask();
+    if (f.length > 0) {
+      writer.writeString(1, f);
+    }
+  };
 
 /**
  * optional string producer_task = 1;
  * @return {string}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.prototype.getProducerTask = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.prototype.getProducerTask =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.prototype.setProducerTask = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus.prototype.setProducerTask =
+  function (value) {
+    return jspb.Message.setProto3StringField(this, 1, value);
+  };
 
 /**
  * optional TaskOutputParameterSpec task_output_parameter = 1;
  * @return {?proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getTaskOutputParameter = function() {
-  return /** @type{?proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec, 1));
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getTaskOutputParameter =
+  function () {
+    return /** @type{?proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec} */ (
+      jspb.Message.getWrapperField(
+        this,
+        proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec,
+        1,
+      )
+    );
+  };
 
 /**
  * @param {?proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskOutputParameterSpec|undefined} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} returns this
-*/
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setTaskOutputParameter = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 1, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setTaskOutputParameter = function (
+  value,
+) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    1,
+    proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.clearTaskOutputParameter = function() {
-  return this.setTaskOutputParameter(undefined);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.clearTaskOutputParameter =
+  function () {
+    return this.setTaskOutputParameter(undefined);
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.hasTaskOutputParameter = function() {
-  return jspb.Message.getField(this, 1) != null;
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.hasTaskOutputParameter =
+  function () {
+    return jspb.Message.getField(this, 1) != null;
+  };
 
 /**
  * optional ValueOrRuntimeParameter runtime_value = 2;
  * @return {?proto.ml_pipelines.ValueOrRuntimeParameter}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getRuntimeValue = function() {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getRuntimeValue = function () {
   return /** @type{?proto.ml_pipelines.ValueOrRuntimeParameter} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ValueOrRuntimeParameter, 2));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ValueOrRuntimeParameter, 2)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ValueOrRuntimeParameter|undefined} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} returns this
-*/
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setRuntimeValue = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 2, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setRuntimeValue = function (value) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    2,
+    proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.clearRuntimeValue = function() {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.clearRuntimeValue = function () {
   return this.setRuntimeValue(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.hasRuntimeValue = function() {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.hasRuntimeValue = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional string component_input_parameter = 3;
  * @return {string}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getComponentInputParameter = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getComponentInputParameter =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setComponentInputParameter = function(value) {
-  return jspb.Message.setOneofField(this, 3, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0], value);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setComponentInputParameter =
+  function (value) {
+    return jspb.Message.setOneofField(
+      this,
+      3,
+      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0],
+      value,
+    );
+  };
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.clearComponentInputParameter = function() {
-  return jspb.Message.setOneofField(this, 3, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0], undefined);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.clearComponentInputParameter =
+  function () {
+    return jspb.Message.setOneofField(
+      this,
+      3,
+      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0],
+      undefined,
+    );
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.hasComponentInputParameter = function() {
-  return jspb.Message.getField(this, 3) != null;
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.hasComponentInputParameter =
+  function () {
+    return jspb.Message.getField(this, 3) != null;
+  };
 
 /**
  * optional TaskFinalStatus task_final_status = 5;
  * @return {?proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getTaskFinalStatus = function() {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getTaskFinalStatus = function () {
   return /** @type{?proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus, 5));
+    jspb.Message.getWrapperField(
+      this,
+      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus,
+      5,
+    )
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.TaskFinalStatus|undefined} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} returns this
-*/
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setTaskFinalStatus = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 5, proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setTaskFinalStatus = function (
+  value,
+) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    5,
+    proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.clearTaskFinalStatus = function() {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.clearTaskFinalStatus = function () {
   return this.setTaskFinalStatus(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.hasTaskFinalStatus = function() {
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.hasTaskFinalStatus = function () {
   return jspb.Message.getField(this, 5) != null;
 };
-
 
 /**
  * optional string parameter_expression_selector = 4;
  * @return {string}
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getParameterExpressionSelector = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.getParameterExpressionSelector =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setParameterExpressionSelector = function(value) {
-  return jspb.Message.setProto3StringField(this, 4, value);
-};
-
+proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setParameterExpressionSelector =
+  function (value) {
+    return jspb.Message.setProto3StringField(this, 4, value);
+  };
 
 /**
  * map<string, InputParameterSpec> parameters = 1;
@@ -6803,21 +7378,25 @@ proto.ml_pipelines.TaskInputsSpec.InputParameterSpec.prototype.setParameterExpre
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec>}
  */
-proto.ml_pipelines.TaskInputsSpec.prototype.getParametersMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.TaskInputsSpec.prototype.getParametersMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.TaskInputsSpec.InputParameterSpec>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec));
+    jspb.Message.getMapField(
+      this,
+      1,
+      opt_noLazyCreate,
+      proto.ml_pipelines.TaskInputsSpec.InputParameterSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.TaskInputsSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.prototype.clearParametersMap = function() {
+proto.ml_pipelines.TaskInputsSpec.prototype.clearParametersMap = function () {
   this.getParametersMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, InputArtifactSpec> artifacts = 2;
@@ -6825,77 +7404,86 @@ proto.ml_pipelines.TaskInputsSpec.prototype.clearParametersMap = function() {
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec>}
  */
-proto.ml_pipelines.TaskInputsSpec.prototype.getArtifactsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.TaskInputsSpec.prototype.getArtifactsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec));
+    jspb.Message.getMapField(
+      this,
+      2,
+      opt_noLazyCreate,
+      proto.ml_pipelines.TaskInputsSpec.InputArtifactSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.TaskInputsSpec} returns this
  */
-proto.ml_pipelines.TaskInputsSpec.prototype.clearArtifactsMap = function() {
+proto.ml_pipelines.TaskInputsSpec.prototype.clearArtifactsMap = function () {
   this.getArtifactsMap().clear();
-  return this;};
-
-
-
-
+  return this;
+};
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.TaskOutputsSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.TaskOutputsSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.TaskOutputsSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.TaskOutputsSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    parametersMap: (f = msg.getParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.toObject) : [],
-    artifactsMap: (f = msg.getArtifactsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.TaskOutputsSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.TaskOutputsSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.TaskOutputsSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.TaskOutputsSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        parametersMap: (f = msg.getParametersMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.toObject,
+            )
+          : [],
+        artifactsMap: (f = msg.getArtifactsMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.toObject,
+            )
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.TaskOutputsSpec}
  */
-proto.ml_pipelines.TaskOutputsSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.TaskOutputsSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.TaskOutputsSpec;
+  var msg = new proto.ml_pipelines.TaskOutputsSpec();
   return proto.ml_pipelines.TaskOutputsSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -6904,44 +7492,58 @@ proto.ml_pipelines.TaskOutputsSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.TaskOutputsSpec}
  */
-proto.ml_pipelines.TaskOutputsSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.TaskOutputsSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getParametersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec());
-         });
-      break;
-    case 2:
-      var value = msg.getArtifactsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getParametersMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec(),
+          );
+        });
+        break;
+      case 2:
+        var value = msg.getArtifactsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.TaskOutputsSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.TaskOutputsSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.TaskOutputsSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -6950,75 +7552,95 @@ proto.ml_pipelines.TaskOutputsSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.TaskOutputsSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.TaskOutputsSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getParametersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.serializeBinaryToWriter,
+    );
   }
   f = message.getArtifactsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.serializeBinaryToWriter,
+    );
   }
 };
-
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    artifactType: (f = msg.getArtifactType()) && proto.ml_pipelines.ArtifactTypeSchema.toObject(includeInstance, f),
-    propertiesMap: (f = msg.getPropertiesMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject) : [],
-    customPropertiesMap: (f = msg.getCustomPropertiesMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        artifactType:
+          (f = msg.getArtifactType()) &&
+          proto.ml_pipelines.ArtifactTypeSchema.toObject(includeInstance, f),
+        propertiesMap: (f = msg.getPropertiesMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject)
+          : [],
+        customPropertiesMap: (f = msg.getCustomPropertiesMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject)
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec;
-  return proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec();
+  return proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -7027,49 +7649,69 @@ proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.deserializeBinary = functi
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.ArtifactTypeSchema;
-      reader.readMessage(value,proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader);
-      msg.setArtifactType(value);
-      break;
-    case 2:
-      var value = msg.getPropertiesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader, "", new proto.ml_pipelines.ValueOrRuntimeParameter());
-         });
-      break;
-    case 3:
-      var value = msg.getCustomPropertiesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader, "", new proto.ml_pipelines.ValueOrRuntimeParameter());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.ArtifactTypeSchema();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader,
+        );
+        msg.setArtifactType(value);
+        break;
+      case 2:
+        var value = msg.getPropertiesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ValueOrRuntimeParameter(),
+          );
+        });
+        break;
+      case 3:
+        var value = msg.getCustomPropertiesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ValueOrRuntimeParameter(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -7078,63 +7720,70 @@ proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.serializeBinary 
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getArtifactType();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter
-    );
+    writer.writeMessage(1, f, proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter);
   }
   f = message.getPropertiesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter,
+    );
   }
   f = message.getCustomPropertiesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(3, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter);
+    f.serializeBinary(
+      3,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter,
+    );
   }
 };
-
 
 /**
  * optional ArtifactTypeSchema artifact_type = 1;
  * @return {?proto.ml_pipelines.ArtifactTypeSchema}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.getArtifactType = function() {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.getArtifactType = function () {
   return /** @type{?proto.ml_pipelines.ArtifactTypeSchema} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactTypeSchema, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactTypeSchema, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ArtifactTypeSchema|undefined} value
  * @return {!proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec} returns this
-*/
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.setArtifactType = function(value) {
+ */
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.setArtifactType = function (value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec} returns this
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.clearArtifactType = function() {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.clearArtifactType = function () {
   return this.setArtifactType(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.hasArtifactType = function() {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.hasArtifactType = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * map<string, ValueOrRuntimeParameter> properties = 2;
@@ -7142,21 +7791,22 @@ proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.hasArtifactType 
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.getPropertiesMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.getPropertiesMap = function (
+  opt_noLazyCreate,
+) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.ValueOrRuntimeParameter));
+    jspb.Message.getMapField(this, 2, opt_noLazyCreate, proto.ml_pipelines.ValueOrRuntimeParameter)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec} returns this
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.clearPropertiesMap = function() {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.clearPropertiesMap = function () {
   this.getPropertiesMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, ValueOrRuntimeParameter> custom_properties = 3;
@@ -7164,76 +7814,84 @@ proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.clearPropertiesM
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.getCustomPropertiesMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.getCustomPropertiesMap = function (
+  opt_noLazyCreate,
+) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>} */ (
-      jspb.Message.getMapField(this, 3, opt_noLazyCreate,
-      proto.ml_pipelines.ValueOrRuntimeParameter));
+    jspb.Message.getMapField(this, 3, opt_noLazyCreate, proto.ml_pipelines.ValueOrRuntimeParameter)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec} returns this
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.clearCustomPropertiesMap = function() {
-  this.getCustomPropertiesMap().clear();
-  return this;};
-
-
-
-
-
-if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    type: jspb.Message.getFieldWithDefault(msg, 1, 0)
+proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec.prototype.clearCustomPropertiesMap =
+  function () {
+    this.getCustomPropertiesMap().clear();
+    return this;
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+if (jspb.Message.GENERATE_TO_OBJECT) {
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
+  };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        type: jspb.Message.getFieldWithDefault(msg, 1, 0),
+      };
+
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec;
-  return proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec();
+  return proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -7242,36 +7900,39 @@ proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.deserializeBinary = funct
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (reader.readEnum());
-      msg.setType(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (
+          reader.readEnum()
+        );
+        msg.setType(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -7280,35 +7941,34 @@ proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.prototype.serializeBinary
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getType();
   if (f !== 0.0) {
-    writer.writeEnum(
-      1,
-      f
-    );
+    writer.writeEnum(1, f);
   }
 };
-
 
 /**
  * optional PrimitiveType.PrimitiveTypeEnum type = 1;
  * @return {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum}
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.prototype.getType = function() {
-  return /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
+proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.prototype.getType = function () {
+  return /** @type {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} */ (
+    jspb.Message.getFieldWithDefault(this, 1, 0)
+  );
 };
-
 
 /**
  * @param {!proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum} value
  * @return {!proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec} returns this
  */
-proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.prototype.setType = function(value) {
+proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.prototype.setType = function (value) {
   return jspb.Message.setProto3EnumField(this, 1, value);
 };
-
 
 /**
  * map<string, OutputParameterSpec> parameters = 1;
@@ -7316,21 +7976,25 @@ proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec.prototype.setType = funct
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec>}
  */
-proto.ml_pipelines.TaskOutputsSpec.prototype.getParametersMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.TaskOutputsSpec.prototype.getParametersMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec));
+    jspb.Message.getMapField(
+      this,
+      1,
+      opt_noLazyCreate,
+      proto.ml_pipelines.TaskOutputsSpec.OutputParameterSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.TaskOutputsSpec} returns this
  */
-proto.ml_pipelines.TaskOutputsSpec.prototype.clearParametersMap = function() {
+proto.ml_pipelines.TaskOutputsSpec.prototype.clearParametersMap = function () {
   this.getParametersMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, OutputArtifactSpec> artifacts = 2;
@@ -7338,76 +8002,73 @@ proto.ml_pipelines.TaskOutputsSpec.prototype.clearParametersMap = function() {
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec>}
  */
-proto.ml_pipelines.TaskOutputsSpec.prototype.getArtifactsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.TaskOutputsSpec.prototype.getArtifactsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec));
+    jspb.Message.getMapField(
+      this,
+      2,
+      opt_noLazyCreate,
+      proto.ml_pipelines.TaskOutputsSpec.OutputArtifactSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.TaskOutputsSpec} returns this
  */
-proto.ml_pipelines.TaskOutputsSpec.prototype.clearArtifactsMap = function() {
+proto.ml_pipelines.TaskOutputsSpec.prototype.clearArtifactsMap = function () {
   this.getArtifactsMap().clear();
-  return this;};
-
-
-
-
+  return this;
+};
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PrimitiveType.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PrimitiveType.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PrimitiveType} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PrimitiveType.toObject = function(includeInstance, msg) {
-  var f, obj = {
-
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PrimitiveType.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PrimitiveType.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PrimitiveType} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PrimitiveType.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {};
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PrimitiveType}
  */
-proto.ml_pipelines.PrimitiveType.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PrimitiveType.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PrimitiveType;
+  var msg = new proto.ml_pipelines.PrimitiveType();
   return proto.ml_pipelines.PrimitiveType.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -7416,32 +8077,30 @@ proto.ml_pipelines.PrimitiveType.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PrimitiveType}
  */
-proto.ml_pipelines.PrimitiveType.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PrimitiveType.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    default:
-      reader.skipField();
-      break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PrimitiveType.prototype.serializeBinary = function() {
+proto.ml_pipelines.PrimitiveType.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PrimitiveType.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -7450,10 +8109,9 @@ proto.ml_pipelines.PrimitiveType.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PrimitiveType.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PrimitiveType.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
 };
-
 
 /**
  * @enum {number}
@@ -7462,63 +8120,56 @@ proto.ml_pipelines.PrimitiveType.PrimitiveTypeEnum = {
   PRIMITIVE_TYPE_UNSPECIFIED: 0,
   INT: 1,
   DOUBLE: 2,
-  STRING: 3
+  STRING: 3,
 };
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ParameterType.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ParameterType.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ParameterType} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ParameterType.toObject = function(includeInstance, msg) {
-  var f, obj = {
-
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ParameterType.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ParameterType.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ParameterType} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ParameterType.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {};
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ParameterType}
  */
-proto.ml_pipelines.ParameterType.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ParameterType.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ParameterType;
+  var msg = new proto.ml_pipelines.ParameterType();
   return proto.ml_pipelines.ParameterType.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -7527,32 +8178,30 @@ proto.ml_pipelines.ParameterType.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ParameterType}
  */
-proto.ml_pipelines.ParameterType.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ParameterType.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    default:
-      reader.skipField();
-      break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ParameterType.prototype.serializeBinary = function() {
+proto.ml_pipelines.ParameterType.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ParameterType.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -7561,10 +8210,9 @@ proto.ml_pipelines.ParameterType.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ParameterType.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ParameterType.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
 };
-
 
 /**
  * @enum {number}
@@ -7577,9 +8225,8 @@ proto.ml_pipelines.ParameterType.ParameterTypeEnum = {
   BOOLEAN: 4,
   LIST: 5,
   STRUCT: 6,
-  TASK_FINAL_STATUS: 7
+  TASK_FINAL_STATUS: 7,
 };
-
 
 /**
  * List of repeated fields within this message type.
@@ -7596,7 +8243,7 @@ proto.ml_pipelines.PipelineTaskSpec.repeatedFields_ = [5];
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ml_pipelines.PipelineTaskSpec.oneofGroups_ = [[9,10]];
+proto.ml_pipelines.PipelineTaskSpec.oneofGroups_ = [[9, 10]];
 
 /**
  * @enum {number}
@@ -7604,78 +8251,93 @@ proto.ml_pipelines.PipelineTaskSpec.oneofGroups_ = [[9,10]];
 proto.ml_pipelines.PipelineTaskSpec.IteratorCase = {
   ITERATOR_NOT_SET: 0,
   ARTIFACT_ITERATOR: 9,
-  PARAMETER_ITERATOR: 10
+  PARAMETER_ITERATOR: 10,
 };
 
 /**
  * @return {proto.ml_pipelines.PipelineTaskSpec.IteratorCase}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getIteratorCase = function() {
-  return /** @type {proto.ml_pipelines.PipelineTaskSpec.IteratorCase} */(jspb.Message.computeOneofCase(this, proto.ml_pipelines.PipelineTaskSpec.oneofGroups_[0]));
+proto.ml_pipelines.PipelineTaskSpec.prototype.getIteratorCase = function () {
+  return /** @type {proto.ml_pipelines.PipelineTaskSpec.IteratorCase} */ (
+    jspb.Message.computeOneofCase(this, proto.ml_pipelines.PipelineTaskSpec.oneofGroups_[0])
+  );
 };
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineTaskSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineTaskSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineTaskSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineTaskSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    taskInfo: (f = msg.getTaskInfo()) && proto.ml_pipelines.PipelineTaskInfo.toObject(includeInstance, f),
-    inputs: (f = msg.getInputs()) && proto.ml_pipelines.TaskInputsSpec.toObject(includeInstance, f),
-    dependentTasksList: (f = jspb.Message.getRepeatedField(msg, 5)) == null ? undefined : f,
-    cachingOptions: (f = msg.getCachingOptions()) && proto.ml_pipelines.PipelineTaskSpec.CachingOptions.toObject(includeInstance, f),
-    componentRef: (f = msg.getComponentRef()) && proto.ml_pipelines.ComponentRef.toObject(includeInstance, f),
-    triggerPolicy: (f = msg.getTriggerPolicy()) && proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.toObject(includeInstance, f),
-    artifactIterator: (f = msg.getArtifactIterator()) && proto.ml_pipelines.ArtifactIteratorSpec.toObject(includeInstance, f),
-    parameterIterator: (f = msg.getParameterIterator()) && proto.ml_pipelines.ParameterIteratorSpec.toObject(includeInstance, f),
-    retryPolicy: (f = msg.getRetryPolicy()) && proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.toObject(includeInstance, f),
-    iteratorPolicy: (f = msg.getIteratorPolicy()) && proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineTaskSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PipelineTaskSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineTaskSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineTaskSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        taskInfo:
+          (f = msg.getTaskInfo()) &&
+          proto.ml_pipelines.PipelineTaskInfo.toObject(includeInstance, f),
+        inputs:
+          (f = msg.getInputs()) && proto.ml_pipelines.TaskInputsSpec.toObject(includeInstance, f),
+        dependentTasksList: (f = jspb.Message.getRepeatedField(msg, 5)) == null ? undefined : f,
+        cachingOptions:
+          (f = msg.getCachingOptions()) &&
+          proto.ml_pipelines.PipelineTaskSpec.CachingOptions.toObject(includeInstance, f),
+        componentRef:
+          (f = msg.getComponentRef()) &&
+          proto.ml_pipelines.ComponentRef.toObject(includeInstance, f),
+        triggerPolicy:
+          (f = msg.getTriggerPolicy()) &&
+          proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.toObject(includeInstance, f),
+        artifactIterator:
+          (f = msg.getArtifactIterator()) &&
+          proto.ml_pipelines.ArtifactIteratorSpec.toObject(includeInstance, f),
+        parameterIterator:
+          (f = msg.getParameterIterator()) &&
+          proto.ml_pipelines.ParameterIteratorSpec.toObject(includeInstance, f),
+        retryPolicy:
+          (f = msg.getRetryPolicy()) &&
+          proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.toObject(includeInstance, f),
+        iteratorPolicy:
+          (f = msg.getIteratorPolicy()) &&
+          proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.toObject(includeInstance, f),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineTaskSpec}
  */
-proto.ml_pipelines.PipelineTaskSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineTaskSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineTaskSpec;
+  var msg = new proto.ml_pipelines.PipelineTaskSpec();
   return proto.ml_pipelines.PipelineTaskSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -7684,81 +8346,97 @@ proto.ml_pipelines.PipelineTaskSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineTaskSpec}
  */
-proto.ml_pipelines.PipelineTaskSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineTaskSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.PipelineTaskInfo;
-      reader.readMessage(value,proto.ml_pipelines.PipelineTaskInfo.deserializeBinaryFromReader);
-      msg.setTaskInfo(value);
-      break;
-    case 2:
-      var value = new proto.ml_pipelines.TaskInputsSpec;
-      reader.readMessage(value,proto.ml_pipelines.TaskInputsSpec.deserializeBinaryFromReader);
-      msg.setInputs(value);
-      break;
-    case 5:
-      var value = /** @type {string} */ (reader.readString());
-      msg.addDependentTasks(value);
-      break;
-    case 6:
-      var value = new proto.ml_pipelines.PipelineTaskSpec.CachingOptions;
-      reader.readMessage(value,proto.ml_pipelines.PipelineTaskSpec.CachingOptions.deserializeBinaryFromReader);
-      msg.setCachingOptions(value);
-      break;
-    case 7:
-      var value = new proto.ml_pipelines.ComponentRef;
-      reader.readMessage(value,proto.ml_pipelines.ComponentRef.deserializeBinaryFromReader);
-      msg.setComponentRef(value);
-      break;
-    case 8:
-      var value = new proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy;
-      reader.readMessage(value,proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.deserializeBinaryFromReader);
-      msg.setTriggerPolicy(value);
-      break;
-    case 9:
-      var value = new proto.ml_pipelines.ArtifactIteratorSpec;
-      reader.readMessage(value,proto.ml_pipelines.ArtifactIteratorSpec.deserializeBinaryFromReader);
-      msg.setArtifactIterator(value);
-      break;
-    case 10:
-      var value = new proto.ml_pipelines.ParameterIteratorSpec;
-      reader.readMessage(value,proto.ml_pipelines.ParameterIteratorSpec.deserializeBinaryFromReader);
-      msg.setParameterIterator(value);
-      break;
-    case 11:
-      var value = new proto.ml_pipelines.PipelineTaskSpec.RetryPolicy;
-      reader.readMessage(value,proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.deserializeBinaryFromReader);
-      msg.setRetryPolicy(value);
-      break;
-    case 12:
-      var value = new proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy;
-      reader.readMessage(value,proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.deserializeBinaryFromReader);
-      msg.setIteratorPolicy(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.PipelineTaskInfo();
+        reader.readMessage(value, proto.ml_pipelines.PipelineTaskInfo.deserializeBinaryFromReader);
+        msg.setTaskInfo(value);
+        break;
+      case 2:
+        var value = new proto.ml_pipelines.TaskInputsSpec();
+        reader.readMessage(value, proto.ml_pipelines.TaskInputsSpec.deserializeBinaryFromReader);
+        msg.setInputs(value);
+        break;
+      case 5:
+        var value = /** @type {string} */ (reader.readString());
+        msg.addDependentTasks(value);
+        break;
+      case 6:
+        var value = new proto.ml_pipelines.PipelineTaskSpec.CachingOptions();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.PipelineTaskSpec.CachingOptions.deserializeBinaryFromReader,
+        );
+        msg.setCachingOptions(value);
+        break;
+      case 7:
+        var value = new proto.ml_pipelines.ComponentRef();
+        reader.readMessage(value, proto.ml_pipelines.ComponentRef.deserializeBinaryFromReader);
+        msg.setComponentRef(value);
+        break;
+      case 8:
+        var value = new proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.deserializeBinaryFromReader,
+        );
+        msg.setTriggerPolicy(value);
+        break;
+      case 9:
+        var value = new proto.ml_pipelines.ArtifactIteratorSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ArtifactIteratorSpec.deserializeBinaryFromReader,
+        );
+        msg.setArtifactIterator(value);
+        break;
+      case 10:
+        var value = new proto.ml_pipelines.ParameterIteratorSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ParameterIteratorSpec.deserializeBinaryFromReader,
+        );
+        msg.setParameterIterator(value);
+        break;
+      case 11:
+        var value = new proto.ml_pipelines.PipelineTaskSpec.RetryPolicy();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.deserializeBinaryFromReader,
+        );
+        msg.setRetryPolicy(value);
+        break;
+      case 12:
+        var value = new proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.deserializeBinaryFromReader,
+        );
+        msg.setIteratorPolicy(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineTaskSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -7767,77 +8445,54 @@ proto.ml_pipelines.PipelineTaskSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineTaskSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineTaskSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getTaskInfo();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.PipelineTaskInfo.serializeBinaryToWriter
-    );
+    writer.writeMessage(1, f, proto.ml_pipelines.PipelineTaskInfo.serializeBinaryToWriter);
   }
   f = message.getInputs();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      proto.ml_pipelines.TaskInputsSpec.serializeBinaryToWriter
-    );
+    writer.writeMessage(2, f, proto.ml_pipelines.TaskInputsSpec.serializeBinaryToWriter);
   }
   f = message.getDependentTasksList();
   if (f.length > 0) {
-    writer.writeRepeatedString(
-      5,
-      f
-    );
+    writer.writeRepeatedString(5, f);
   }
   f = message.getCachingOptions();
   if (f != null) {
     writer.writeMessage(
       6,
       f,
-      proto.ml_pipelines.PipelineTaskSpec.CachingOptions.serializeBinaryToWriter
+      proto.ml_pipelines.PipelineTaskSpec.CachingOptions.serializeBinaryToWriter,
     );
   }
   f = message.getComponentRef();
   if (f != null) {
-    writer.writeMessage(
-      7,
-      f,
-      proto.ml_pipelines.ComponentRef.serializeBinaryToWriter
-    );
+    writer.writeMessage(7, f, proto.ml_pipelines.ComponentRef.serializeBinaryToWriter);
   }
   f = message.getTriggerPolicy();
   if (f != null) {
     writer.writeMessage(
       8,
       f,
-      proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.serializeBinaryToWriter
+      proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.serializeBinaryToWriter,
     );
   }
   f = message.getArtifactIterator();
   if (f != null) {
-    writer.writeMessage(
-      9,
-      f,
-      proto.ml_pipelines.ArtifactIteratorSpec.serializeBinaryToWriter
-    );
+    writer.writeMessage(9, f, proto.ml_pipelines.ArtifactIteratorSpec.serializeBinaryToWriter);
   }
   f = message.getParameterIterator();
   if (f != null) {
-    writer.writeMessage(
-      10,
-      f,
-      proto.ml_pipelines.ParameterIteratorSpec.serializeBinaryToWriter
-    );
+    writer.writeMessage(10, f, proto.ml_pipelines.ParameterIteratorSpec.serializeBinaryToWriter);
   }
   f = message.getRetryPolicy();
   if (f != null) {
     writer.writeMessage(
       11,
       f,
-      proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.serializeBinaryToWriter
+      proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.serializeBinaryToWriter,
     );
   }
   f = message.getIteratorPolicy();
@@ -7845,66 +8500,65 @@ proto.ml_pipelines.PipelineTaskSpec.serializeBinaryToWriter = function(message, 
     writer.writeMessage(
       12,
       f,
-      proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.serializeBinaryToWriter
+      proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.serializeBinaryToWriter,
     );
   }
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineTaskSpec.CachingOptions.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineTaskSpec.CachingOptions.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineTaskSpec.CachingOptions} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineTaskSpec.CachingOptions.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    enableCache: jspb.Message.getBooleanFieldWithDefault(msg, 1, false)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineTaskSpec.CachingOptions.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.PipelineTaskSpec.CachingOptions.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineTaskSpec.CachingOptions} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineTaskSpec.CachingOptions.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        enableCache: jspb.Message.getBooleanFieldWithDefault(msg, 1, false),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineTaskSpec.CachingOptions}
  */
-proto.ml_pipelines.PipelineTaskSpec.CachingOptions.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineTaskSpec.CachingOptions.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineTaskSpec.CachingOptions;
-  return proto.ml_pipelines.PipelineTaskSpec.CachingOptions.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.PipelineTaskSpec.CachingOptions();
+  return proto.ml_pipelines.PipelineTaskSpec.CachingOptions.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -7913,36 +8567,37 @@ proto.ml_pipelines.PipelineTaskSpec.CachingOptions.deserializeBinary = function(
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineTaskSpec.CachingOptions}
  */
-proto.ml_pipelines.PipelineTaskSpec.CachingOptions.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineTaskSpec.CachingOptions.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {boolean} */ (reader.readBool());
-      msg.setEnableCache(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {boolean} */ (reader.readBool());
+        msg.setEnableCache(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineTaskSpec.CachingOptions.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineTaskSpec.CachingOptions.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineTaskSpec.CachingOptions.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -7951,91 +8606,85 @@ proto.ml_pipelines.PipelineTaskSpec.CachingOptions.prototype.serializeBinary = f
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineTaskSpec.CachingOptions.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineTaskSpec.CachingOptions.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getEnableCache();
   if (f) {
-    writer.writeBool(
-      1,
-      f
-    );
+    writer.writeBool(1, f);
   }
 };
-
 
 /**
  * optional bool enable_cache = 1;
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.CachingOptions.prototype.getEnableCache = function() {
+proto.ml_pipelines.PipelineTaskSpec.CachingOptions.prototype.getEnableCache = function () {
   return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 1, false));
 };
-
 
 /**
  * @param {boolean} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec.CachingOptions} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.CachingOptions.prototype.setEnableCache = function(value) {
+proto.ml_pipelines.PipelineTaskSpec.CachingOptions.prototype.setEnableCache = function (value) {
   return jspb.Message.setProto3BooleanField(this, 1, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    condition: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    strategy: jspb.Message.getFieldWithDefault(msg, 2, 0)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        condition: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        strategy: jspb.Message.getFieldWithDefault(msg, 2, 0),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy}
  */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy;
+  var msg = new proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy();
   return proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -8044,40 +8693,44 @@ proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.deserializeBinary = function(b
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy}
  */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setCondition(value);
-      break;
-    case 2:
-      var value = /** @type {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy} */ (reader.readEnum());
-      msg.setStrategy(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setCondition(value);
+        break;
+      case 2:
+        var value =
+          /** @type {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy} */ (
+            reader.readEnum()
+          );
+        msg.setStrategy(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -8086,24 +8739,20 @@ proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.serializeBinary = fu
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getCondition();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
   f = message.getStrategy();
   if (f !== 0.0) {
-    writer.writeEnum(
-      2,
-      f
-    );
+    writer.writeEnum(2, f);
   }
 };
-
 
 /**
  * @enum {number}
@@ -8111,102 +8760,101 @@ proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.serializeBinaryToWriter = func
 proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy = {
   TRIGGER_STRATEGY_UNSPECIFIED: 0,
   ALL_UPSTREAM_TASKS_SUCCEEDED: 1,
-  ALL_UPSTREAM_TASKS_COMPLETED: 2
+  ALL_UPSTREAM_TASKS_COMPLETED: 2,
 };
 
 /**
  * optional string condition = 1;
  * @return {string}
  */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.getCondition = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.getCondition = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.setCondition = function(value) {
+proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.setCondition = function (value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
-
 
 /**
  * optional TriggerStrategy strategy = 2;
  * @return {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy}
  */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.getStrategy = function() {
-  return /** @type {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.getStrategy = function () {
+  return /** @type {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy} */ (
+    jspb.Message.getFieldWithDefault(this, 2, 0)
+  );
 };
-
 
 /**
  * @param {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.TriggerStrategy} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.setStrategy = function(value) {
+proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy.prototype.setStrategy = function (value) {
   return jspb.Message.setProto3EnumField(this, 2, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineTaskSpec.RetryPolicy} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    maxRetryCount: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    backoffDuration: (f = msg.getBackoffDuration()) && google_protobuf_duration_pb.Duration.toObject(includeInstance, f),
-    backoffFactor: jspb.Message.getFloatingPointFieldWithDefault(msg, 3, 0.0),
-    backoffMaxDuration: (f = msg.getBackoffMaxDuration()) && google_protobuf_duration_pb.Duration.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineTaskSpec.RetryPolicy} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        maxRetryCount: jspb.Message.getFieldWithDefault(msg, 1, 0),
+        backoffDuration:
+          (f = msg.getBackoffDuration()) &&
+          google_protobuf_duration_pb.Duration.toObject(includeInstance, f),
+        backoffFactor: jspb.Message.getFloatingPointFieldWithDefault(msg, 3, 0.0),
+        backoffMaxDuration:
+          (f = msg.getBackoffMaxDuration()) &&
+          google_protobuf_duration_pb.Duration.toObject(includeInstance, f),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineTaskSpec.RetryPolicy}
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineTaskSpec.RetryPolicy;
+  var msg = new proto.ml_pipelines.PipelineTaskSpec.RetryPolicy();
   return proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -8215,50 +8863,51 @@ proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.deserializeBinary = function(byt
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineTaskSpec.RetryPolicy}
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {number} */ (reader.readInt32());
-      msg.setMaxRetryCount(value);
-      break;
-    case 2:
-      var value = new google_protobuf_duration_pb.Duration;
-      reader.readMessage(value,google_protobuf_duration_pb.Duration.deserializeBinaryFromReader);
-      msg.setBackoffDuration(value);
-      break;
-    case 3:
-      var value = /** @type {number} */ (reader.readDouble());
-      msg.setBackoffFactor(value);
-      break;
-    case 4:
-      var value = new google_protobuf_duration_pb.Duration;
-      reader.readMessage(value,google_protobuf_duration_pb.Duration.deserializeBinaryFromReader);
-      msg.setBackoffMaxDuration(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {number} */ (reader.readInt32());
+        msg.setMaxRetryCount(value);
+        break;
+      case 2:
+        var value = new google_protobuf_duration_pb.Duration();
+        reader.readMessage(value, google_protobuf_duration_pb.Duration.deserializeBinaryFromReader);
+        msg.setBackoffDuration(value);
+        break;
+      case 3:
+        var value = /** @type {number} */ (reader.readDouble());
+        msg.setBackoffFactor(value);
+        break;
+      case 4:
+        var value = new google_protobuf_duration_pb.Duration();
+        reader.readMessage(value, google_protobuf_duration_pb.Duration.deserializeBinaryFromReader);
+        msg.setBackoffMaxDuration(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -8267,205 +8916,183 @@ proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.serializeBinary = func
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getMaxRetryCount();
   if (f !== 0) {
-    writer.writeInt32(
-      1,
-      f
-    );
+    writer.writeInt32(1, f);
   }
   f = message.getBackoffDuration();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      google_protobuf_duration_pb.Duration.serializeBinaryToWriter
-    );
+    writer.writeMessage(2, f, google_protobuf_duration_pb.Duration.serializeBinaryToWriter);
   }
   f = message.getBackoffFactor();
   if (f !== 0.0) {
-    writer.writeDouble(
-      3,
-      f
-    );
+    writer.writeDouble(3, f);
   }
   f = message.getBackoffMaxDuration();
   if (f != null) {
-    writer.writeMessage(
-      4,
-      f,
-      google_protobuf_duration_pb.Duration.serializeBinaryToWriter
-    );
+    writer.writeMessage(4, f, google_protobuf_duration_pb.Duration.serializeBinaryToWriter);
   }
 };
-
 
 /**
  * optional int32 max_retry_count = 1;
  * @return {number}
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.getMaxRetryCount = function() {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.getMaxRetryCount = function () {
   return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
 };
-
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec.RetryPolicy} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.setMaxRetryCount = function(value) {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.setMaxRetryCount = function (value) {
   return jspb.Message.setProto3IntField(this, 1, value);
 };
-
 
 /**
  * optional google.protobuf.Duration backoff_duration = 2;
  * @return {?proto.google.protobuf.Duration}
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.getBackoffDuration = function() {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.getBackoffDuration = function () {
   return /** @type{?proto.google.protobuf.Duration} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_duration_pb.Duration, 2));
+    jspb.Message.getWrapperField(this, google_protobuf_duration_pb.Duration, 2)
+  );
 };
-
 
 /**
  * @param {?proto.google.protobuf.Duration|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec.RetryPolicy} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.setBackoffDuration = function(value) {
+ */
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.setBackoffDuration = function (value) {
   return jspb.Message.setWrapperField(this, 2, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec.RetryPolicy} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.clearBackoffDuration = function() {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.clearBackoffDuration = function () {
   return this.setBackoffDuration(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.hasBackoffDuration = function() {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.hasBackoffDuration = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional double backoff_factor = 3;
  * @return {number}
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.getBackoffFactor = function() {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.getBackoffFactor = function () {
   return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 3, 0.0));
 };
-
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec.RetryPolicy} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.setBackoffFactor = function(value) {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.setBackoffFactor = function (value) {
   return jspb.Message.setProto3FloatField(this, 3, value);
 };
-
 
 /**
  * optional google.protobuf.Duration backoff_max_duration = 4;
  * @return {?proto.google.protobuf.Duration}
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.getBackoffMaxDuration = function() {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.getBackoffMaxDuration = function () {
   return /** @type{?proto.google.protobuf.Duration} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_duration_pb.Duration, 4));
+    jspb.Message.getWrapperField(this, google_protobuf_duration_pb.Duration, 4)
+  );
 };
-
 
 /**
  * @param {?proto.google.protobuf.Duration|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec.RetryPolicy} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.setBackoffMaxDuration = function(value) {
+ */
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.setBackoffMaxDuration = function (value) {
   return jspb.Message.setWrapperField(this, 4, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec.RetryPolicy} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.clearBackoffMaxDuration = function() {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.clearBackoffMaxDuration = function () {
   return this.setBackoffMaxDuration(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.hasBackoffMaxDuration = function() {
+proto.ml_pipelines.PipelineTaskSpec.RetryPolicy.prototype.hasBackoffMaxDuration = function () {
   return jspb.Message.getField(this, 4) != null;
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    parallelismLimit: jspb.Message.getFieldWithDefault(msg, 1, 0)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        parallelismLimit: jspb.Message.getFieldWithDefault(msg, 1, 0),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy}
  */
-proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy;
-  return proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy();
+  return proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -8474,36 +9101,37 @@ proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.deserializeBinary = function(
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy}
  */
-proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {number} */ (reader.readInt32());
-      msg.setParallelismLimit(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {number} */ (reader.readInt32());
+        msg.setParallelismLimit(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -8512,461 +9140,436 @@ proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.prototype.serializeBinary = f
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getParallelismLimit();
   if (f !== 0) {
-    writer.writeInt32(
-      1,
-      f
-    );
+    writer.writeInt32(1, f);
   }
 };
-
 
 /**
  * optional int32 parallelism_limit = 1;
  * @return {number}
  */
-proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.prototype.getParallelismLimit = function() {
+proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.prototype.getParallelismLimit = function () {
   return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
 };
-
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.prototype.setParallelismLimit = function(value) {
+proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy.prototype.setParallelismLimit = function (
+  value,
+) {
   return jspb.Message.setProto3IntField(this, 1, value);
 };
-
 
 /**
  * optional PipelineTaskInfo task_info = 1;
  * @return {?proto.ml_pipelines.PipelineTaskInfo}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getTaskInfo = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.getTaskInfo = function () {
   return /** @type{?proto.ml_pipelines.PipelineTaskInfo} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineTaskInfo, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineTaskInfo, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineTaskInfo|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.prototype.setTaskInfo = function(value) {
+ */
+proto.ml_pipelines.PipelineTaskSpec.prototype.setTaskInfo = function (value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.clearTaskInfo = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.clearTaskInfo = function () {
   return this.setTaskInfo(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.hasTaskInfo = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.hasTaskInfo = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional TaskInputsSpec inputs = 2;
  * @return {?proto.ml_pipelines.TaskInputsSpec}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getInputs = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.getInputs = function () {
   return /** @type{?proto.ml_pipelines.TaskInputsSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.TaskInputsSpec, 2));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.TaskInputsSpec, 2)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.TaskInputsSpec|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.prototype.setInputs = function(value) {
+ */
+proto.ml_pipelines.PipelineTaskSpec.prototype.setInputs = function (value) {
   return jspb.Message.setWrapperField(this, 2, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.clearInputs = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.clearInputs = function () {
   return this.setInputs(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.hasInputs = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.hasInputs = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * repeated string dependent_tasks = 5;
  * @return {!Array<string>}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getDependentTasksList = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.getDependentTasksList = function () {
   return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 5));
 };
-
 
 /**
  * @param {!Array<string>} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.setDependentTasksList = function(value) {
+proto.ml_pipelines.PipelineTaskSpec.prototype.setDependentTasksList = function (value) {
   return jspb.Message.setField(this, 5, value || []);
 };
-
 
 /**
  * @param {string} value
  * @param {number=} opt_index
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.addDependentTasks = function(value, opt_index) {
+proto.ml_pipelines.PipelineTaskSpec.prototype.addDependentTasks = function (value, opt_index) {
   return jspb.Message.addToRepeatedField(this, 5, value, opt_index);
 };
-
 
 /**
  * Clears the list making it empty but non-null.
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.clearDependentTasksList = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.clearDependentTasksList = function () {
   return this.setDependentTasksList([]);
 };
-
 
 /**
  * optional CachingOptions caching_options = 6;
  * @return {?proto.ml_pipelines.PipelineTaskSpec.CachingOptions}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getCachingOptions = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.getCachingOptions = function () {
   return /** @type{?proto.ml_pipelines.PipelineTaskSpec.CachingOptions} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineTaskSpec.CachingOptions, 6));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineTaskSpec.CachingOptions, 6)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineTaskSpec.CachingOptions|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.prototype.setCachingOptions = function(value) {
+ */
+proto.ml_pipelines.PipelineTaskSpec.prototype.setCachingOptions = function (value) {
   return jspb.Message.setWrapperField(this, 6, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.clearCachingOptions = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.clearCachingOptions = function () {
   return this.setCachingOptions(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.hasCachingOptions = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.hasCachingOptions = function () {
   return jspb.Message.getField(this, 6) != null;
 };
-
 
 /**
  * optional ComponentRef component_ref = 7;
  * @return {?proto.ml_pipelines.ComponentRef}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getComponentRef = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.getComponentRef = function () {
   return /** @type{?proto.ml_pipelines.ComponentRef} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ComponentRef, 7));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ComponentRef, 7)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ComponentRef|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.prototype.setComponentRef = function(value) {
+ */
+proto.ml_pipelines.PipelineTaskSpec.prototype.setComponentRef = function (value) {
   return jspb.Message.setWrapperField(this, 7, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.clearComponentRef = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.clearComponentRef = function () {
   return this.setComponentRef(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.hasComponentRef = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.hasComponentRef = function () {
   return jspb.Message.getField(this, 7) != null;
 };
-
 
 /**
  * optional TriggerPolicy trigger_policy = 8;
  * @return {?proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getTriggerPolicy = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.getTriggerPolicy = function () {
   return /** @type{?proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy, 8));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy, 8)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineTaskSpec.TriggerPolicy|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.prototype.setTriggerPolicy = function(value) {
+ */
+proto.ml_pipelines.PipelineTaskSpec.prototype.setTriggerPolicy = function (value) {
   return jspb.Message.setWrapperField(this, 8, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.clearTriggerPolicy = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.clearTriggerPolicy = function () {
   return this.setTriggerPolicy(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.hasTriggerPolicy = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.hasTriggerPolicy = function () {
   return jspb.Message.getField(this, 8) != null;
 };
-
 
 /**
  * optional ArtifactIteratorSpec artifact_iterator = 9;
  * @return {?proto.ml_pipelines.ArtifactIteratorSpec}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getArtifactIterator = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.getArtifactIterator = function () {
   return /** @type{?proto.ml_pipelines.ArtifactIteratorSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactIteratorSpec, 9));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactIteratorSpec, 9)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ArtifactIteratorSpec|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.prototype.setArtifactIterator = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 9, proto.ml_pipelines.PipelineTaskSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.PipelineTaskSpec.prototype.setArtifactIterator = function (value) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    9,
+    proto.ml_pipelines.PipelineTaskSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.clearArtifactIterator = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.clearArtifactIterator = function () {
   return this.setArtifactIterator(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.hasArtifactIterator = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.hasArtifactIterator = function () {
   return jspb.Message.getField(this, 9) != null;
 };
-
 
 /**
  * optional ParameterIteratorSpec parameter_iterator = 10;
  * @return {?proto.ml_pipelines.ParameterIteratorSpec}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getParameterIterator = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.getParameterIterator = function () {
   return /** @type{?proto.ml_pipelines.ParameterIteratorSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ParameterIteratorSpec, 10));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ParameterIteratorSpec, 10)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ParameterIteratorSpec|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.prototype.setParameterIterator = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 10, proto.ml_pipelines.PipelineTaskSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.PipelineTaskSpec.prototype.setParameterIterator = function (value) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    10,
+    proto.ml_pipelines.PipelineTaskSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.clearParameterIterator = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.clearParameterIterator = function () {
   return this.setParameterIterator(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.hasParameterIterator = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.hasParameterIterator = function () {
   return jspb.Message.getField(this, 10) != null;
 };
-
 
 /**
  * optional RetryPolicy retry_policy = 11;
  * @return {?proto.ml_pipelines.PipelineTaskSpec.RetryPolicy}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getRetryPolicy = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.getRetryPolicy = function () {
   return /** @type{?proto.ml_pipelines.PipelineTaskSpec.RetryPolicy} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineTaskSpec.RetryPolicy, 11));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineTaskSpec.RetryPolicy, 11)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineTaskSpec.RetryPolicy|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.prototype.setRetryPolicy = function(value) {
+ */
+proto.ml_pipelines.PipelineTaskSpec.prototype.setRetryPolicy = function (value) {
   return jspb.Message.setWrapperField(this, 11, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.clearRetryPolicy = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.clearRetryPolicy = function () {
   return this.setRetryPolicy(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.hasRetryPolicy = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.hasRetryPolicy = function () {
   return jspb.Message.getField(this, 11) != null;
 };
-
 
 /**
  * optional IteratorPolicy iterator_policy = 12;
  * @return {?proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.getIteratorPolicy = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.getIteratorPolicy = function () {
   return /** @type{?proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy, 12));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy, 12)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineTaskSpec.IteratorPolicy|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
-*/
-proto.ml_pipelines.PipelineTaskSpec.prototype.setIteratorPolicy = function(value) {
+ */
+proto.ml_pipelines.PipelineTaskSpec.prototype.setIteratorPolicy = function (value) {
   return jspb.Message.setWrapperField(this, 12, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskSpec} returns this
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.clearIteratorPolicy = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.clearIteratorPolicy = function () {
   return this.setIteratorPolicy(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskSpec.prototype.hasIteratorPolicy = function() {
+proto.ml_pipelines.PipelineTaskSpec.prototype.hasIteratorPolicy = function () {
   return jspb.Message.getField(this, 12) != null;
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ArtifactIteratorSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ArtifactIteratorSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ArtifactIteratorSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ArtifactIteratorSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    items: (f = msg.getItems()) && proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.toObject(includeInstance, f),
-    itemInput: jspb.Message.getFieldWithDefault(msg, 2, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ArtifactIteratorSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ArtifactIteratorSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ArtifactIteratorSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ArtifactIteratorSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        items:
+          (f = msg.getItems()) &&
+          proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.toObject(includeInstance, f),
+        itemInput: jspb.Message.getFieldWithDefault(msg, 2, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ArtifactIteratorSpec}
  */
-proto.ml_pipelines.ArtifactIteratorSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ArtifactIteratorSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ArtifactIteratorSpec;
+  var msg = new proto.ml_pipelines.ArtifactIteratorSpec();
   return proto.ml_pipelines.ArtifactIteratorSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -8975,41 +9578,42 @@ proto.ml_pipelines.ArtifactIteratorSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ArtifactIteratorSpec}
  */
-proto.ml_pipelines.ArtifactIteratorSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ArtifactIteratorSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec;
-      reader.readMessage(value,proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.deserializeBinaryFromReader);
-      msg.setItems(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setItemInput(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.deserializeBinaryFromReader,
+        );
+        msg.setItems(value);
+        break;
+      case 2:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setItemInput(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ArtifactIteratorSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ArtifactIteratorSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ArtifactIteratorSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -9018,80 +9622,73 @@ proto.ml_pipelines.ArtifactIteratorSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ArtifactIteratorSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ArtifactIteratorSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getItems();
   if (f != null) {
     writer.writeMessage(
       1,
       f,
-      proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.serializeBinaryToWriter
+      proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.serializeBinaryToWriter,
     );
   }
   f = message.getItemInput();
   if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
+    writer.writeString(2, f);
   }
 };
-
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    inputArtifact: jspb.Message.getFieldWithDefault(msg, 1, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        inputArtifact: jspb.Message.getFieldWithDefault(msg, 1, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec}
  */
-proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec;
+  var msg = new proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec();
   return proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -9100,36 +9697,37 @@ proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.deserializeBinary = function(b
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec}
  */
-proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setInputArtifact(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setInputArtifact(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -9138,146 +9736,135 @@ proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.prototype.serializeBinary = fu
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getInputArtifact();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
 };
-
 
 /**
  * optional string input_artifact = 1;
  * @return {string}
  */
-proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.prototype.getInputArtifact = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.prototype.getInputArtifact = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec} returns this
  */
-proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.prototype.setInputArtifact = function(value) {
+proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec.prototype.setInputArtifact = function (value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
-
 
 /**
  * optional ItemsSpec items = 1;
  * @return {?proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec}
  */
-proto.ml_pipelines.ArtifactIteratorSpec.prototype.getItems = function() {
+proto.ml_pipelines.ArtifactIteratorSpec.prototype.getItems = function () {
   return /** @type{?proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ArtifactIteratorSpec.ItemsSpec|undefined} value
  * @return {!proto.ml_pipelines.ArtifactIteratorSpec} returns this
-*/
-proto.ml_pipelines.ArtifactIteratorSpec.prototype.setItems = function(value) {
+ */
+proto.ml_pipelines.ArtifactIteratorSpec.prototype.setItems = function (value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ArtifactIteratorSpec} returns this
  */
-proto.ml_pipelines.ArtifactIteratorSpec.prototype.clearItems = function() {
+proto.ml_pipelines.ArtifactIteratorSpec.prototype.clearItems = function () {
   return this.setItems(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ArtifactIteratorSpec.prototype.hasItems = function() {
+proto.ml_pipelines.ArtifactIteratorSpec.prototype.hasItems = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional string item_input = 2;
  * @return {string}
  */
-proto.ml_pipelines.ArtifactIteratorSpec.prototype.getItemInput = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+proto.ml_pipelines.ArtifactIteratorSpec.prototype.getItemInput = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ArtifactIteratorSpec} returns this
  */
-proto.ml_pipelines.ArtifactIteratorSpec.prototype.setItemInput = function(value) {
+proto.ml_pipelines.ArtifactIteratorSpec.prototype.setItemInput = function (value) {
   return jspb.Message.setProto3StringField(this, 2, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ParameterIteratorSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ParameterIteratorSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ParameterIteratorSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ParameterIteratorSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    items: (f = msg.getItems()) && proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.toObject(includeInstance, f),
-    itemInput: jspb.Message.getFieldWithDefault(msg, 2, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ParameterIteratorSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ParameterIteratorSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ParameterIteratorSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ParameterIteratorSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        items:
+          (f = msg.getItems()) &&
+          proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.toObject(includeInstance, f),
+        itemInput: jspb.Message.getFieldWithDefault(msg, 2, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ParameterIteratorSpec}
  */
-proto.ml_pipelines.ParameterIteratorSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ParameterIteratorSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ParameterIteratorSpec;
+  var msg = new proto.ml_pipelines.ParameterIteratorSpec();
   return proto.ml_pipelines.ParameterIteratorSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -9286,41 +9873,42 @@ proto.ml_pipelines.ParameterIteratorSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ParameterIteratorSpec}
  */
-proto.ml_pipelines.ParameterIteratorSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ParameterIteratorSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec;
-      reader.readMessage(value,proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.deserializeBinaryFromReader);
-      msg.setItems(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setItemInput(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.deserializeBinaryFromReader,
+        );
+        msg.setItems(value);
+        break;
+      case 2:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setItemInput(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ParameterIteratorSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ParameterIteratorSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ParameterIteratorSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -9329,26 +9917,21 @@ proto.ml_pipelines.ParameterIteratorSpec.prototype.serializeBinary = function() 
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ParameterIteratorSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ParameterIteratorSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getItems();
   if (f != null) {
     writer.writeMessage(
       1,
       f,
-      proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.serializeBinaryToWriter
+      proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.serializeBinaryToWriter,
     );
   }
   f = message.getItemInput();
   if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
+    writer.writeString(2, f);
   }
 };
-
-
 
 /**
  * Oneof group definitions for this message. Each group defines the field
@@ -9358,7 +9941,7 @@ proto.ml_pipelines.ParameterIteratorSpec.serializeBinaryToWriter = function(mess
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_ = [[1,2]];
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_ = [[1, 2]];
 
 /**
  * @enum {number}
@@ -9366,70 +9949,76 @@ proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_ = [[1,2]];
 proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.KindCase = {
   KIND_NOT_SET: 0,
   RAW: 1,
-  INPUT_PARAMETER: 2
+  INPUT_PARAMETER: 2,
 };
 
 /**
  * @return {proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.KindCase}
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.getKindCase = function() {
-  return /** @type {proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.KindCase} */(jspb.Message.computeOneofCase(this, proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_[0]));
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.getKindCase = function () {
+  return /** @type {proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.KindCase} */ (
+    jspb.Message.computeOneofCase(
+      this,
+      proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_[0],
+    )
+  );
 };
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    raw: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    inputParameter: jspb.Message.getFieldWithDefault(msg, 2, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        raw: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        inputParameter: jspb.Message.getFieldWithDefault(msg, 2, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec}
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec;
-  return proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec();
+  return proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -9438,40 +10027,41 @@ proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.deserializeBinary = function(
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec}
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setRaw(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setInputParameter(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setRaw(value);
+        break;
+      case 2:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setInputParameter(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -9480,206 +10070,204 @@ proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.serializeBinary = f
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = /** @type {string} */ (jspb.Message.getField(message, 1));
   if (f != null) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
   f = /** @type {string} */ (jspb.Message.getField(message, 2));
   if (f != null) {
-    writer.writeString(
-      2,
-      f
-    );
+    writer.writeString(2, f);
   }
 };
-
 
 /**
  * optional string raw = 1;
  * @return {string}
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.getRaw = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.getRaw = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec} returns this
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.setRaw = function(value) {
-  return jspb.Message.setOneofField(this, 1, proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_[0], value);
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.setRaw = function (value) {
+  return jspb.Message.setOneofField(
+    this,
+    1,
+    proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec} returns this
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.clearRaw = function() {
-  return jspb.Message.setOneofField(this, 1, proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_[0], undefined);
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.clearRaw = function () {
+  return jspb.Message.setOneofField(
+    this,
+    1,
+    proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_[0],
+    undefined,
+  );
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.hasRaw = function() {
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.hasRaw = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional string input_parameter = 2;
  * @return {string}
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.getInputParameter = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.getInputParameter = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec} returns this
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.setInputParameter = function(value) {
-  return jspb.Message.setOneofField(this, 2, proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_[0], value);
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.setInputParameter = function (value) {
+  return jspb.Message.setOneofField(
+    this,
+    2,
+    proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec} returns this
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.clearInputParameter = function() {
-  return jspb.Message.setOneofField(this, 2, proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_[0], undefined);
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.clearInputParameter = function () {
+  return jspb.Message.setOneofField(
+    this,
+    2,
+    proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.oneofGroups_[0],
+    undefined,
+  );
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.hasInputParameter = function() {
+proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec.prototype.hasInputParameter = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional ItemsSpec items = 1;
  * @return {?proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec}
  */
-proto.ml_pipelines.ParameterIteratorSpec.prototype.getItems = function() {
+proto.ml_pipelines.ParameterIteratorSpec.prototype.getItems = function () {
   return /** @type{?proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ParameterIteratorSpec.ItemsSpec|undefined} value
  * @return {!proto.ml_pipelines.ParameterIteratorSpec} returns this
-*/
-proto.ml_pipelines.ParameterIteratorSpec.prototype.setItems = function(value) {
+ */
+proto.ml_pipelines.ParameterIteratorSpec.prototype.setItems = function (value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ParameterIteratorSpec} returns this
  */
-proto.ml_pipelines.ParameterIteratorSpec.prototype.clearItems = function() {
+proto.ml_pipelines.ParameterIteratorSpec.prototype.clearItems = function () {
   return this.setItems(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ParameterIteratorSpec.prototype.hasItems = function() {
+proto.ml_pipelines.ParameterIteratorSpec.prototype.hasItems = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional string item_input = 2;
  * @return {string}
  */
-proto.ml_pipelines.ParameterIteratorSpec.prototype.getItemInput = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+proto.ml_pipelines.ParameterIteratorSpec.prototype.getItemInput = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ParameterIteratorSpec} returns this
  */
-proto.ml_pipelines.ParameterIteratorSpec.prototype.setItemInput = function(value) {
+proto.ml_pipelines.ParameterIteratorSpec.prototype.setItemInput = function (value) {
   return jspb.Message.setProto3StringField(this, 2, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ComponentRef.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ComponentRef.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ComponentRef} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ComponentRef.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ComponentRef.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ComponentRef.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ComponentRef} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ComponentRef.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        name: jspb.Message.getFieldWithDefault(msg, 1, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ComponentRef}
  */
-proto.ml_pipelines.ComponentRef.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ComponentRef.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ComponentRef;
+  var msg = new proto.ml_pipelines.ComponentRef();
   return proto.ml_pipelines.ComponentRef.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -9688,36 +10276,34 @@ proto.ml_pipelines.ComponentRef.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ComponentRef}
  */
-proto.ml_pipelines.ComponentRef.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ComponentRef.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setName(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setName(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ComponentRef.prototype.serializeBinary = function() {
+proto.ml_pipelines.ComponentRef.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ComponentRef.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -9726,92 +10312,81 @@ proto.ml_pipelines.ComponentRef.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ComponentRef.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ComponentRef.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getName();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
 };
-
 
 /**
  * optional string name = 1;
  * @return {string}
  */
-proto.ml_pipelines.ComponentRef.prototype.getName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.ComponentRef.prototype.getName = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ComponentRef} returns this
  */
-proto.ml_pipelines.ComponentRef.prototype.setName = function(value) {
+proto.ml_pipelines.ComponentRef.prototype.setName = function (value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineInfo.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineInfo.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineInfo} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineInfo.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    displayName: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    description: jspb.Message.getFieldWithDefault(msg, 3, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineInfo.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PipelineInfo.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineInfo} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineInfo.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        name: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        displayName: jspb.Message.getFieldWithDefault(msg, 2, ''),
+        description: jspb.Message.getFieldWithDefault(msg, 3, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineInfo}
  */
-proto.ml_pipelines.PipelineInfo.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineInfo.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineInfo;
+  var msg = new proto.ml_pipelines.PipelineInfo();
   return proto.ml_pipelines.PipelineInfo.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -9820,44 +10395,42 @@ proto.ml_pipelines.PipelineInfo.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineInfo}
  */
-proto.ml_pipelines.PipelineInfo.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineInfo.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setName(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setDisplayName(value);
-      break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setDescription(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setName(value);
+        break;
+      case 2:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setDisplayName(value);
+        break;
+      case 3:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setDescription(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineInfo.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineInfo.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineInfo.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -9866,86 +10439,69 @@ proto.ml_pipelines.PipelineInfo.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineInfo.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineInfo.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getName();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
   f = message.getDisplayName();
   if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
+    writer.writeString(2, f);
   }
   f = message.getDescription();
   if (f.length > 0) {
-    writer.writeString(
-      3,
-      f
-    );
+    writer.writeString(3, f);
   }
 };
-
 
 /**
  * optional string name = 1;
  * @return {string}
  */
-proto.ml_pipelines.PipelineInfo.prototype.getName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.PipelineInfo.prototype.getName = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineInfo} returns this
  */
-proto.ml_pipelines.PipelineInfo.prototype.setName = function(value) {
+proto.ml_pipelines.PipelineInfo.prototype.setName = function (value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
-
 
 /**
  * optional string display_name = 2;
  * @return {string}
  */
-proto.ml_pipelines.PipelineInfo.prototype.getDisplayName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+proto.ml_pipelines.PipelineInfo.prototype.getDisplayName = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineInfo} returns this
  */
-proto.ml_pipelines.PipelineInfo.prototype.setDisplayName = function(value) {
+proto.ml_pipelines.PipelineInfo.prototype.setDisplayName = function (value) {
   return jspb.Message.setProto3StringField(this, 2, value);
 };
-
 
 /**
  * optional string description = 3;
  * @return {string}
  */
-proto.ml_pipelines.PipelineInfo.prototype.getDescription = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+proto.ml_pipelines.PipelineInfo.prototype.getDescription = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineInfo} returns this
  */
-proto.ml_pipelines.PipelineInfo.prototype.setDescription = function(value) {
+proto.ml_pipelines.PipelineInfo.prototype.setDescription = function (value) {
   return jspb.Message.setProto3StringField(this, 3, value);
 };
-
-
 
 /**
  * Oneof group definitions for this message. Each group defines the field
@@ -9955,7 +10511,7 @@ proto.ml_pipelines.PipelineInfo.prototype.setDescription = function(value) {
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_ = [[1,2,3]];
+proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_ = [[1, 2, 3]];
 
 /**
  * @enum {number}
@@ -9964,72 +10520,70 @@ proto.ml_pipelines.ArtifactTypeSchema.KindCase = {
   KIND_NOT_SET: 0,
   SCHEMA_TITLE: 1,
   SCHEMA_URI: 2,
-  INSTANCE_SCHEMA: 3
+  INSTANCE_SCHEMA: 3,
 };
 
 /**
  * @return {proto.ml_pipelines.ArtifactTypeSchema.KindCase}
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.getKindCase = function() {
-  return /** @type {proto.ml_pipelines.ArtifactTypeSchema.KindCase} */(jspb.Message.computeOneofCase(this, proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0]));
+proto.ml_pipelines.ArtifactTypeSchema.prototype.getKindCase = function () {
+  return /** @type {proto.ml_pipelines.ArtifactTypeSchema.KindCase} */ (
+    jspb.Message.computeOneofCase(this, proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0])
+  );
 };
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ArtifactTypeSchema.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ArtifactTypeSchema} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ArtifactTypeSchema.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    schemaTitle: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    schemaUri: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    instanceSchema: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    schemaVersion: jspb.Message.getFieldWithDefault(msg, 4, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ArtifactTypeSchema.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ArtifactTypeSchema.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ArtifactTypeSchema} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ArtifactTypeSchema.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        schemaTitle: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        schemaUri: jspb.Message.getFieldWithDefault(msg, 2, ''),
+        instanceSchema: jspb.Message.getFieldWithDefault(msg, 3, ''),
+        schemaVersion: jspb.Message.getFieldWithDefault(msg, 4, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ArtifactTypeSchema}
  */
-proto.ml_pipelines.ArtifactTypeSchema.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ArtifactTypeSchema.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ArtifactTypeSchema;
+  var msg = new proto.ml_pipelines.ArtifactTypeSchema();
   return proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -10038,48 +10592,46 @@ proto.ml_pipelines.ArtifactTypeSchema.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ArtifactTypeSchema}
  */
-proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setSchemaTitle(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setSchemaUri(value);
-      break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setInstanceSchema(value);
-      break;
-    case 4:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setSchemaVersion(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setSchemaTitle(value);
+        break;
+      case 2:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setSchemaUri(value);
+        break;
+      case 3:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setInstanceSchema(value);
+        break;
+      case 4:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setSchemaVersion(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.serializeBinary = function() {
+proto.ml_pipelines.ArtifactTypeSchema.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -10088,219 +10640,217 @@ proto.ml_pipelines.ArtifactTypeSchema.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = /** @type {string} */ (jspb.Message.getField(message, 1));
   if (f != null) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
   f = /** @type {string} */ (jspb.Message.getField(message, 2));
   if (f != null) {
-    writer.writeString(
-      2,
-      f
-    );
+    writer.writeString(2, f);
   }
   f = /** @type {string} */ (jspb.Message.getField(message, 3));
   if (f != null) {
-    writer.writeString(
-      3,
-      f
-    );
+    writer.writeString(3, f);
   }
   f = message.getSchemaVersion();
   if (f.length > 0) {
-    writer.writeString(
-      4,
-      f
-    );
+    writer.writeString(4, f);
   }
 };
-
 
 /**
  * optional string schema_title = 1;
  * @return {string}
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.getSchemaTitle = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.ArtifactTypeSchema.prototype.getSchemaTitle = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ArtifactTypeSchema} returns this
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.setSchemaTitle = function(value) {
-  return jspb.Message.setOneofField(this, 1, proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0], value);
+proto.ml_pipelines.ArtifactTypeSchema.prototype.setSchemaTitle = function (value) {
+  return jspb.Message.setOneofField(
+    this,
+    1,
+    proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.ArtifactTypeSchema} returns this
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.clearSchemaTitle = function() {
-  return jspb.Message.setOneofField(this, 1, proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0], undefined);
+proto.ml_pipelines.ArtifactTypeSchema.prototype.clearSchemaTitle = function () {
+  return jspb.Message.setOneofField(
+    this,
+    1,
+    proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0],
+    undefined,
+  );
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.hasSchemaTitle = function() {
+proto.ml_pipelines.ArtifactTypeSchema.prototype.hasSchemaTitle = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional string schema_uri = 2;
  * @return {string}
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.getSchemaUri = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+proto.ml_pipelines.ArtifactTypeSchema.prototype.getSchemaUri = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ArtifactTypeSchema} returns this
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.setSchemaUri = function(value) {
-  return jspb.Message.setOneofField(this, 2, proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0], value);
+proto.ml_pipelines.ArtifactTypeSchema.prototype.setSchemaUri = function (value) {
+  return jspb.Message.setOneofField(
+    this,
+    2,
+    proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.ArtifactTypeSchema} returns this
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.clearSchemaUri = function() {
-  return jspb.Message.setOneofField(this, 2, proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0], undefined);
+proto.ml_pipelines.ArtifactTypeSchema.prototype.clearSchemaUri = function () {
+  return jspb.Message.setOneofField(
+    this,
+    2,
+    proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0],
+    undefined,
+  );
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.hasSchemaUri = function() {
+proto.ml_pipelines.ArtifactTypeSchema.prototype.hasSchemaUri = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional string instance_schema = 3;
  * @return {string}
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.getInstanceSchema = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+proto.ml_pipelines.ArtifactTypeSchema.prototype.getInstanceSchema = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ArtifactTypeSchema} returns this
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.setInstanceSchema = function(value) {
-  return jspb.Message.setOneofField(this, 3, proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0], value);
+proto.ml_pipelines.ArtifactTypeSchema.prototype.setInstanceSchema = function (value) {
+  return jspb.Message.setOneofField(
+    this,
+    3,
+    proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.ArtifactTypeSchema} returns this
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.clearInstanceSchema = function() {
-  return jspb.Message.setOneofField(this, 3, proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0], undefined);
+proto.ml_pipelines.ArtifactTypeSchema.prototype.clearInstanceSchema = function () {
+  return jspb.Message.setOneofField(
+    this,
+    3,
+    proto.ml_pipelines.ArtifactTypeSchema.oneofGroups_[0],
+    undefined,
+  );
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.hasInstanceSchema = function() {
+proto.ml_pipelines.ArtifactTypeSchema.prototype.hasInstanceSchema = function () {
   return jspb.Message.getField(this, 3) != null;
 };
-
 
 /**
  * optional string schema_version = 4;
  * @return {string}
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.getSchemaVersion = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+proto.ml_pipelines.ArtifactTypeSchema.prototype.getSchemaVersion = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ArtifactTypeSchema} returns this
  */
-proto.ml_pipelines.ArtifactTypeSchema.prototype.setSchemaVersion = function(value) {
+proto.ml_pipelines.ArtifactTypeSchema.prototype.setSchemaVersion = function (value) {
   return jspb.Message.setProto3StringField(this, 4, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineTaskInfo.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineTaskInfo.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineTaskInfo} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineTaskInfo.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineTaskInfo.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PipelineTaskInfo.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineTaskInfo} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineTaskInfo.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        name: jspb.Message.getFieldWithDefault(msg, 1, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineTaskInfo}
  */
-proto.ml_pipelines.PipelineTaskInfo.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineTaskInfo.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineTaskInfo;
+  var msg = new proto.ml_pipelines.PipelineTaskInfo();
   return proto.ml_pipelines.PipelineTaskInfo.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -10309,36 +10859,34 @@ proto.ml_pipelines.PipelineTaskInfo.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineTaskInfo}
  */
-proto.ml_pipelines.PipelineTaskInfo.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineTaskInfo.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setName(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setName(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineTaskInfo.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineTaskInfo.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineTaskInfo.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -10347,36 +10895,29 @@ proto.ml_pipelines.PipelineTaskInfo.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineTaskInfo.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineTaskInfo.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getName();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
 };
-
 
 /**
  * optional string name = 1;
  * @return {string}
  */
-proto.ml_pipelines.PipelineTaskInfo.prototype.getName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.PipelineTaskInfo.prototype.getName = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineTaskInfo} returns this
  */
-proto.ml_pipelines.PipelineTaskInfo.prototype.setName = function(value) {
+proto.ml_pipelines.PipelineTaskInfo.prototype.setName = function (value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
-
-
 
 /**
  * Oneof group definitions for this message. Each group defines the field
@@ -10386,7 +10927,7 @@ proto.ml_pipelines.PipelineTaskInfo.prototype.setName = function(value) {
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_ = [[1,2,3]];
+proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_ = [[1, 2, 3]];
 
 /**
  * @enum {number}
@@ -10395,71 +10936,71 @@ proto.ml_pipelines.ValueOrRuntimeParameter.ValueCase = {
   VALUE_NOT_SET: 0,
   CONSTANT_VALUE: 1,
   RUNTIME_PARAMETER: 2,
-  CONSTANT: 3
+  CONSTANT: 3,
 };
 
 /**
  * @return {proto.ml_pipelines.ValueOrRuntimeParameter.ValueCase}
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.getValueCase = function() {
-  return /** @type {proto.ml_pipelines.ValueOrRuntimeParameter.ValueCase} */(jspb.Message.computeOneofCase(this, proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_[0]));
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.getValueCase = function () {
+  return /** @type {proto.ml_pipelines.ValueOrRuntimeParameter.ValueCase} */ (
+    jspb.Message.computeOneofCase(this, proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_[0])
+  );
 };
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ValueOrRuntimeParameter.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ValueOrRuntimeParameter} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ValueOrRuntimeParameter.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    constantValue: (f = msg.getConstantValue()) && proto.ml_pipelines.Value.toObject(includeInstance, f),
-    runtimeParameter: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    constant: (f = msg.getConstant()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ValueOrRuntimeParameter.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ValueOrRuntimeParameter.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ValueOrRuntimeParameter} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ValueOrRuntimeParameter.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        constantValue:
+          (f = msg.getConstantValue()) && proto.ml_pipelines.Value.toObject(includeInstance, f),
+        runtimeParameter: jspb.Message.getFieldWithDefault(msg, 2, ''),
+        constant:
+          (f = msg.getConstant()) && google_protobuf_struct_pb.Value.toObject(includeInstance, f),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ValueOrRuntimeParameter}
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ValueOrRuntimeParameter;
+  var msg = new proto.ml_pipelines.ValueOrRuntimeParameter();
   return proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -10468,46 +11009,44 @@ proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ValueOrRuntimeParameter}
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.Value;
-      reader.readMessage(value,proto.ml_pipelines.Value.deserializeBinaryFromReader);
-      msg.setConstantValue(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setRuntimeParameter(value);
-      break;
-    case 3:
-      var value = new google_protobuf_struct_pb.Value;
-      reader.readMessage(value,google_protobuf_struct_pb.Value.deserializeBinaryFromReader);
-      msg.setConstant(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.Value();
+        reader.readMessage(value, proto.ml_pipelines.Value.deserializeBinaryFromReader);
+        msg.setConstantValue(value);
+        break;
+      case 2:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setRuntimeParameter(value);
+        break;
+      case 3:
+        var value = new google_protobuf_struct_pb.Value();
+        reader.readMessage(value, google_protobuf_struct_pb.Value.deserializeBinaryFromReader);
+        msg.setConstant(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.serializeBinary = function() {
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -10516,198 +11055,196 @@ proto.ml_pipelines.ValueOrRuntimeParameter.prototype.serializeBinary = function(
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getConstantValue();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.Value.serializeBinaryToWriter
-    );
+    writer.writeMessage(1, f, proto.ml_pipelines.Value.serializeBinaryToWriter);
   }
   f = /** @type {string} */ (jspb.Message.getField(message, 2));
   if (f != null) {
-    writer.writeString(
-      2,
-      f
-    );
+    writer.writeString(2, f);
   }
   f = message.getConstant();
   if (f != null) {
-    writer.writeMessage(
-      3,
-      f,
-      google_protobuf_struct_pb.Value.serializeBinaryToWriter
-    );
+    writer.writeMessage(3, f, google_protobuf_struct_pb.Value.serializeBinaryToWriter);
   }
 };
-
 
 /**
  * optional Value constant_value = 1;
  * @return {?proto.ml_pipelines.Value}
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.getConstantValue = function() {
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.getConstantValue = function () {
   return /** @type{?proto.ml_pipelines.Value} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.Value, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.Value, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.Value|undefined} value
  * @return {!proto.ml_pipelines.ValueOrRuntimeParameter} returns this
-*/
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.setConstantValue = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 1, proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.setConstantValue = function (value) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    1,
+    proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ValueOrRuntimeParameter} returns this
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.clearConstantValue = function() {
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.clearConstantValue = function () {
   return this.setConstantValue(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.hasConstantValue = function() {
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.hasConstantValue = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional string runtime_parameter = 2;
  * @return {string}
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.getRuntimeParameter = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.getRuntimeParameter = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ValueOrRuntimeParameter} returns this
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.setRuntimeParameter = function(value) {
-  return jspb.Message.setOneofField(this, 2, proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_[0], value);
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.setRuntimeParameter = function (value) {
+  return jspb.Message.setOneofField(
+    this,
+    2,
+    proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.ValueOrRuntimeParameter} returns this
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.clearRuntimeParameter = function() {
-  return jspb.Message.setOneofField(this, 2, proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_[0], undefined);
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.clearRuntimeParameter = function () {
+  return jspb.Message.setOneofField(
+    this,
+    2,
+    proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_[0],
+    undefined,
+  );
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.hasRuntimeParameter = function() {
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.hasRuntimeParameter = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional google.protobuf.Value constant = 3;
  * @return {?proto.google.protobuf.Value}
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.getConstant = function() {
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.getConstant = function () {
   return /** @type{?proto.google.protobuf.Value} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Value, 3));
+    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Value, 3)
+  );
 };
-
 
 /**
  * @param {?proto.google.protobuf.Value|undefined} value
  * @return {!proto.ml_pipelines.ValueOrRuntimeParameter} returns this
-*/
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.setConstant = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 3, proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.setConstant = function (value) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    3,
+    proto.ml_pipelines.ValueOrRuntimeParameter.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ValueOrRuntimeParameter} returns this
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.clearConstant = function() {
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.clearConstant = function () {
   return this.setConstant(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ValueOrRuntimeParameter.prototype.hasConstant = function() {
+proto.ml_pipelines.ValueOrRuntimeParameter.prototype.hasConstant = function () {
   return jspb.Message.getField(this, 3) != null;
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    executorsMap: (f = msg.getExecutorsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PipelineDeploymentConfig.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        executorsMap: (f = msg.getExecutorsMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.toObject,
+            )
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineDeploymentConfig.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig;
+  var msg = new proto.ml_pipelines.PipelineDeploymentConfig();
   return proto.ml_pipelines.PipelineDeploymentConfig.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -10716,38 +11253,44 @@ proto.ml_pipelines.PipelineDeploymentConfig.deserializeBinary = function(bytes) 
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineDeploymentConfig.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getExecutorsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getExecutorsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineDeploymentConfig.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -10756,82 +11299,108 @@ proto.ml_pipelines.PipelineDeploymentConfig.prototype.serializeBinary = function
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineDeploymentConfig.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getExecutorsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.serializeBinaryToWriter,
+    );
   }
 };
-
-
 
 /**
  * List of repeated fields within this message type.
  * @private {!Array<number>}
  * @const
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.repeatedFields_ = [2,3,6];
-
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.repeatedFields_ = [2, 3, 6];
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    image: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    commandList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
-    argsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
-    lifecycle: (f = msg.getLifecycle()) && proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.toObject(includeInstance, f),
-    resources: (f = msg.getResources()) && proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.toObject(includeInstance, f),
-    envList: jspb.Message.toObjectList(msg.getEnvList(),
-    proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.toObject, includeInstance)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        image: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        commandList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
+        argsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
+        lifecycle:
+          (f = msg.getLifecycle()) &&
+          proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.toObject(
+            includeInstance,
+            f,
+          ),
+        resources:
+          (f = msg.getResources()) &&
+          proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.toObject(
+            includeInstance,
+            f,
+          ),
+        envList: jspb.Message.toObjectList(
+          msg.getEnvList(),
+          proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.toObject,
+          includeInstance,
+        ),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.deserializeBinary = function (
+  bytes,
+) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec;
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec();
+  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -10840,59 +11409,77 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.deserializeBin
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 1:
+          var value = /** @type {string} */ (reader.readString());
+          msg.setImage(value);
+          break;
+        case 2:
+          var value = /** @type {string} */ (reader.readString());
+          msg.addCommand(value);
+          break;
+        case 3:
+          var value = /** @type {string} */ (reader.readString());
+          msg.addArgs(value);
+          break;
+        case 4:
+          var value =
+            new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle();
+          reader.readMessage(
+            value,
+            proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle
+              .deserializeBinaryFromReader,
+          );
+          msg.setLifecycle(value);
+          break;
+        case 5:
+          var value =
+            new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec();
+          reader.readMessage(
+            value,
+            proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec
+              .deserializeBinaryFromReader,
+          );
+          msg.setResources(value);
+          break;
+        case 6:
+          var value =
+            new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar();
+          reader.readMessage(
+            value,
+            proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+              .deserializeBinaryFromReader,
+          );
+          msg.addEnv(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setImage(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.addCommand(value);
-      break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.addArgs(value);
-      break;
-    case 4:
-      var value = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle;
-      reader.readMessage(value,proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.deserializeBinaryFromReader);
-      msg.setLifecycle(value);
-      break;
-    case 5:
-      var value = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec;
-      reader.readMessage(value,proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.deserializeBinaryFromReader);
-      msg.setResources(value);
-      break;
-    case 6:
-      var value = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar;
-      reader.readMessage(value,proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.deserializeBinaryFromReader);
-      msg.addEnv(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -10901,110 +11488,115 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.seri
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getImage();
-  if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
-  }
-  f = message.getCommandList();
-  if (f.length > 0) {
-    writer.writeRepeatedString(
-      2,
-      f
-    );
-  }
-  f = message.getArgsList();
-  if (f.length > 0) {
-    writer.writeRepeatedString(
-      3,
-      f
-    );
-  }
-  f = message.getLifecycle();
-  if (f != null) {
-    writer.writeMessage(
-      4,
-      f,
-      proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.serializeBinaryToWriter
-    );
-  }
-  f = message.getResources();
-  if (f != null) {
-    writer.writeMessage(
-      5,
-      f,
-      proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.serializeBinaryToWriter
-    );
-  }
-  f = message.getEnvList();
-  if (f.length > 0) {
-    writer.writeRepeatedMessage(
-      6,
-      f,
-      proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.serializeBinaryToWriter
-    );
-  }
-};
-
-
-
-
-
-if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    preCacheCheck: (f = msg.getPreCacheCheck()) && proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.toObject(includeInstance, f)
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getImage();
+    if (f.length > 0) {
+      writer.writeString(1, f);
+    }
+    f = message.getCommandList();
+    if (f.length > 0) {
+      writer.writeRepeatedString(2, f);
+    }
+    f = message.getArgsList();
+    if (f.length > 0) {
+      writer.writeRepeatedString(3, f);
+    }
+    f = message.getLifecycle();
+    if (f != null) {
+      writer.writeMessage(
+        4,
+        f,
+        proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle
+          .serializeBinaryToWriter,
+      );
+    }
+    f = message.getResources();
+    if (f != null) {
+      writer.writeMessage(
+        5,
+        f,
+        proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec
+          .serializeBinaryToWriter,
+      );
+    }
+    f = message.getEnvList();
+    if (f.length > 0) {
+      writer.writeRepeatedMessage(
+        6,
+        f,
+        proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar
+          .serializeBinaryToWriter,
+      );
+    }
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+if (jspb.Message.GENERATE_TO_OBJECT) {
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.toObject =
+    function (opt_includeInstance) {
+      return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.toObject(
+        opt_includeInstance,
+        this,
+      );
+    };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        preCacheCheck:
+          (f = msg.getPreCacheCheck()) &&
+          proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.toObject(
+            includeInstance,
+            f,
+          ),
+      };
+
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.deserializeBinary = function(bytes) {
-  var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle;
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.deserializeBinaryFromReader(msg, reader);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.deserializeBinary =
+  function (bytes) {
+    var reader = new jspb.BinaryReader(bytes);
+    var msg = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle();
+    return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.deserializeBinaryFromReader(
+      msg,
+      reader,
+    );
+  };
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -11013,37 +11605,45 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.dese
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 1:
+          var value =
+            new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec();
+          reader.readMessage(
+            value,
+            proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec
+              .deserializeBinaryFromReader,
+          );
+          msg.setPreCacheCheck(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec;
-      reader.readMessage(value,proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.deserializeBinaryFromReader);
-      msg.setPreCacheCheck(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -11052,81 +11652,89 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prot
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getPreCacheCheck();
-  if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.serializeBinaryToWriter
-    );
-  }
-};
-
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getPreCacheCheck();
+    if (f != null) {
+      writer.writeMessage(
+        1,
+        f,
+        proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec
+          .serializeBinaryToWriter,
+      );
+    }
+  };
 
 /**
  * List of repeated fields within this message type.
  * @private {!Array<number>}
  * @const
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.repeatedFields_ = [2,3];
-
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.repeatedFields_ = [
+  2, 3,
+];
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.toObject(opt_includeInstance, this);
-};
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.toObject =
+    function (opt_includeInstance) {
+      return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.toObject(
+        opt_includeInstance,
+        this,
+      );
+    };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.toObject =
+    function (includeInstance, msg) {
+      var f,
+        obj = {
+          commandList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
+          argsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
+        };
 
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    commandList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
-    argsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
-  };
-
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
+      if (includeInstance) {
+        obj.$jspbMessageInstance = msg;
+      }
+      return obj;
+    };
 }
-
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.deserializeBinary = function(bytes) {
-  var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec;
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.deserializeBinaryFromReader(msg, reader);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.deserializeBinary =
+  function (bytes) {
+    var reader = new jspb.BinaryReader(bytes);
+    var msg =
+      new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec();
+    return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.deserializeBinaryFromReader(
+      msg,
+      reader,
+    );
+  };
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -11135,40 +11743,43 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 2:
+          var value = /** @type {string} */ (reader.readString());
+          msg.addCommand(value);
+          break;
+        case 3:
+          var value = /** @type {string} */ (reader.readString());
+          msg.addArgs(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.addCommand(value);
-      break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.addArgs(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -11177,194 +11788,202 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getCommandList();
-  if (f.length > 0) {
-    writer.writeRepeatedString(
-      2,
-      f
-    );
-  }
-  f = message.getArgsList();
-  if (f.length > 0) {
-    writer.writeRepeatedString(
-      3,
-      f
-    );
-  }
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getCommandList();
+    if (f.length > 0) {
+      writer.writeRepeatedString(2, f);
+    }
+    f = message.getArgsList();
+    if (f.length > 0) {
+      writer.writeRepeatedString(3, f);
+    }
+  };
 
 /**
  * repeated string command = 2;
  * @return {!Array<string>}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.getCommandList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.getCommandList =
+  function () {
+    return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
+  };
 
 /**
  * @param {!Array<string>} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.setCommandList = function(value) {
-  return jspb.Message.setField(this, 2, value || []);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.setCommandList =
+  function (value) {
+    return jspb.Message.setField(this, 2, value || []);
+  };
 
 /**
  * @param {string} value
  * @param {number=} opt_index
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.addCommand = function(value, opt_index) {
-  return jspb.Message.addToRepeatedField(this, 2, value, opt_index);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.addCommand =
+  function (value, opt_index) {
+    return jspb.Message.addToRepeatedField(this, 2, value, opt_index);
+  };
 
 /**
  * Clears the list making it empty but non-null.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.clearCommandList = function() {
-  return this.setCommandList([]);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.clearCommandList =
+  function () {
+    return this.setCommandList([]);
+  };
 
 /**
  * repeated string args = 3;
  * @return {!Array<string>}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.getArgsList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.getArgsList =
+  function () {
+    return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
+  };
 
 /**
  * @param {!Array<string>} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.setArgsList = function(value) {
-  return jspb.Message.setField(this, 3, value || []);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.setArgsList =
+  function (value) {
+    return jspb.Message.setField(this, 3, value || []);
+  };
 
 /**
  * @param {string} value
  * @param {number=} opt_index
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.addArgs = function(value, opt_index) {
-  return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.addArgs =
+  function (value, opt_index) {
+    return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
+  };
 
 /**
  * Clears the list making it empty but non-null.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.clearArgsList = function() {
-  return this.setArgsList([]);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec.prototype.clearArgsList =
+  function () {
+    return this.setArgsList([]);
+  };
 
 /**
  * optional Exec pre_cache_check = 1;
  * @return {?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.getPreCacheCheck = function() {
-  return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec, 1));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.getPreCacheCheck =
+  function () {
+    return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec} */ (
+      jspb.Message.getWrapperField(
+        this,
+        proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec,
+        1,
+      )
+    );
+  };
 
 /**
  * @param {?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.Exec|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.setPreCacheCheck = function(value) {
-  return jspb.Message.setWrapperField(this, 1, value);
-};
-
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.setPreCacheCheck =
+  function (value) {
+    return jspb.Message.setWrapperField(this, 1, value);
+  };
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.clearPreCacheCheck = function() {
-  return this.setPreCacheCheck(undefined);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.clearPreCacheCheck =
+  function () {
+    return this.setPreCacheCheck(undefined);
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.hasPreCacheCheck = function() {
-  return jspb.Message.getField(this, 1) != null;
-};
-
-
-
-
-
-if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    cpuLimit: jspb.Message.getFloatingPointFieldWithDefault(msg, 1, 0.0),
-    memoryLimit: jspb.Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
-    cpuRequest: jspb.Message.getFloatingPointFieldWithDefault(msg, 5, 0.0),
-    memoryRequest: jspb.Message.getFloatingPointFieldWithDefault(msg, 6, 0.0),
-    accelerator: (f = msg.getAccelerator()) && proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.toObject(includeInstance, f)
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.prototype.hasPreCacheCheck =
+  function () {
+    return jspb.Message.getField(this, 1) != null;
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+if (jspb.Message.GENERATE_TO_OBJECT) {
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.toObject =
+    function (opt_includeInstance) {
+      return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.toObject(
+        opt_includeInstance,
+        this,
+      );
+    };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.toObject =
+    function (includeInstance, msg) {
+      var f,
+        obj = {
+          cpuLimit: jspb.Message.getFloatingPointFieldWithDefault(msg, 1, 0.0),
+          memoryLimit: jspb.Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
+          cpuRequest: jspb.Message.getFloatingPointFieldWithDefault(msg, 5, 0.0),
+          memoryRequest: jspb.Message.getFloatingPointFieldWithDefault(msg, 6, 0.0),
+          accelerator:
+            (f = msg.getAccelerator()) &&
+            proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.toObject(
+              includeInstance,
+              f,
+            ),
+        };
+
+      if (includeInstance) {
+        obj.$jspbMessageInstance = msg;
+      }
+      return obj;
+    };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.deserializeBinary = function(bytes) {
-  var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec;
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.deserializeBinaryFromReader(msg, reader);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.deserializeBinary =
+  function (bytes) {
+    var reader = new jspb.BinaryReader(bytes);
+    var msg = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec();
+    return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.deserializeBinaryFromReader(
+      msg,
+      reader,
+    );
+  };
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -11373,53 +11992,61 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.d
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 1:
+          var value = /** @type {number} */ (reader.readDouble());
+          msg.setCpuLimit(value);
+          break;
+        case 2:
+          var value = /** @type {number} */ (reader.readDouble());
+          msg.setMemoryLimit(value);
+          break;
+        case 5:
+          var value = /** @type {number} */ (reader.readDouble());
+          msg.setCpuRequest(value);
+          break;
+        case 6:
+          var value = /** @type {number} */ (reader.readDouble());
+          msg.setMemoryRequest(value);
+          break;
+        case 3:
+          var value =
+            new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig();
+          reader.readMessage(
+            value,
+            proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec
+              .AcceleratorConfig.deserializeBinaryFromReader,
+          );
+          msg.setAccelerator(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {number} */ (reader.readDouble());
-      msg.setCpuLimit(value);
-      break;
-    case 2:
-      var value = /** @type {number} */ (reader.readDouble());
-      msg.setMemoryLimit(value);
-      break;
-    case 5:
-      var value = /** @type {number} */ (reader.readDouble());
-      msg.setCpuRequest(value);
-      break;
-    case 6:
-      var value = /** @type {number} */ (reader.readDouble());
-      msg.setMemoryRequest(value);
-      break;
-    case 3:
-      var value = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig;
-      reader.readMessage(value,proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.deserializeBinaryFromReader);
-      msg.setAccelerator(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -11428,102 +12055,96 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.p
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getCpuLimit();
-  if (f !== 0.0) {
-    writer.writeDouble(
-      1,
-      f
-    );
-  }
-  f = message.getMemoryLimit();
-  if (f !== 0.0) {
-    writer.writeDouble(
-      2,
-      f
-    );
-  }
-  f = message.getCpuRequest();
-  if (f !== 0.0) {
-    writer.writeDouble(
-      5,
-      f
-    );
-  }
-  f = message.getMemoryRequest();
-  if (f !== 0.0) {
-    writer.writeDouble(
-      6,
-      f
-    );
-  }
-  f = message.getAccelerator();
-  if (f != null) {
-    writer.writeMessage(
-      3,
-      f,
-      proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.serializeBinaryToWriter
-    );
-  }
-};
-
-
-
-
-
-if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    type: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    count: jspb.Message.getFieldWithDefault(msg, 2, 0)
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getCpuLimit();
+    if (f !== 0.0) {
+      writer.writeDouble(1, f);
+    }
+    f = message.getMemoryLimit();
+    if (f !== 0.0) {
+      writer.writeDouble(2, f);
+    }
+    f = message.getCpuRequest();
+    if (f !== 0.0) {
+      writer.writeDouble(5, f);
+    }
+    f = message.getMemoryRequest();
+    if (f !== 0.0) {
+      writer.writeDouble(6, f);
+    }
+    f = message.getAccelerator();
+    if (f != null) {
+      writer.writeMessage(
+        3,
+        f,
+        proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec
+          .AcceleratorConfig.serializeBinaryToWriter,
+      );
+    }
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+if (jspb.Message.GENERATE_TO_OBJECT) {
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.toObject =
+    function (opt_includeInstance) {
+      return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.toObject(
+        opt_includeInstance,
+        this,
+      );
+    };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.toObject =
+    function (includeInstance, msg) {
+      var f,
+        obj = {
+          type: jspb.Message.getFieldWithDefault(msg, 1, ''),
+          count: jspb.Message.getFieldWithDefault(msg, 2, 0),
+        };
+
+      if (includeInstance) {
+        obj.$jspbMessageInstance = msg;
+      }
+      return obj;
+    };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.deserializeBinary = function(bytes) {
-  var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig;
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.deserializeBinaryFromReader(msg, reader);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.deserializeBinary =
+  function (bytes) {
+    var reader = new jspb.BinaryReader(bytes);
+    var msg =
+      new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig();
+    return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.deserializeBinaryFromReader(
+      msg,
+      reader,
+    );
+  };
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -11532,40 +12153,43 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.A
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 1:
+          var value = /** @type {string} */ (reader.readString());
+          msg.setType(value);
+          break;
+        case 2:
+          var value = /** @type {number} */ (reader.readInt64());
+          msg.setCount(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setType(value);
-      break;
-    case 2:
-      var value = /** @type {number} */ (reader.readInt64());
-      msg.setCount(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -11574,225 +12198,231 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.A
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getType();
-  if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
-  }
-  f = message.getCount();
-  if (f !== 0) {
-    writer.writeInt64(
-      2,
-      f
-    );
-  }
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getType();
+    if (f.length > 0) {
+      writer.writeString(1, f);
+    }
+    f = message.getCount();
+    if (f !== 0) {
+      writer.writeInt64(2, f);
+    }
+  };
 
 /**
  * optional string type = 1;
  * @return {string}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.getType = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.getType =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.setType = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.setType =
+  function (value) {
+    return jspb.Message.setProto3StringField(this, 1, value);
+  };
 
 /**
  * optional int64 count = 2;
  * @return {number}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.getCount = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.getCount =
+  function () {
+    return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+  };
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.setCount = function(value) {
-  return jspb.Message.setProto3IntField(this, 2, value);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig.prototype.setCount =
+  function (value) {
+    return jspb.Message.setProto3IntField(this, 2, value);
+  };
 
 /**
  * optional double cpu_limit = 1;
  * @return {number}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.getCpuLimit = function() {
-  return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 1, 0.0));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.getCpuLimit =
+  function () {
+    return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 1, 0.0));
+  };
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.setCpuLimit = function(value) {
-  return jspb.Message.setProto3FloatField(this, 1, value);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.setCpuLimit =
+  function (value) {
+    return jspb.Message.setProto3FloatField(this, 1, value);
+  };
 
 /**
  * optional double memory_limit = 2;
  * @return {number}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.getMemoryLimit = function() {
-  return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 2, 0.0));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.getMemoryLimit =
+  function () {
+    return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 2, 0.0));
+  };
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.setMemoryLimit = function(value) {
-  return jspb.Message.setProto3FloatField(this, 2, value);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.setMemoryLimit =
+  function (value) {
+    return jspb.Message.setProto3FloatField(this, 2, value);
+  };
 
 /**
  * optional double cpu_request = 5;
  * @return {number}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.getCpuRequest = function() {
-  return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 5, 0.0));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.getCpuRequest =
+  function () {
+    return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 5, 0.0));
+  };
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.setCpuRequest = function(value) {
-  return jspb.Message.setProto3FloatField(this, 5, value);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.setCpuRequest =
+  function (value) {
+    return jspb.Message.setProto3FloatField(this, 5, value);
+  };
 
 /**
  * optional double memory_request = 6;
  * @return {number}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.getMemoryRequest = function() {
-  return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 6, 0.0));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.getMemoryRequest =
+  function () {
+    return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 6, 0.0));
+  };
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.setMemoryRequest = function(value) {
-  return jspb.Message.setProto3FloatField(this, 6, value);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.setMemoryRequest =
+  function (value) {
+    return jspb.Message.setProto3FloatField(this, 6, value);
+  };
 
 /**
  * optional AcceleratorConfig accelerator = 3;
  * @return {?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.getAccelerator = function() {
-  return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig, 3));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.getAccelerator =
+  function () {
+    return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig} */ (
+      jspb.Message.getWrapperField(
+        this,
+        proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec
+          .AcceleratorConfig,
+        3,
+      )
+    );
+  };
 
 /**
  * @param {?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfig|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.setAccelerator = function(value) {
-  return jspb.Message.setWrapperField(this, 3, value);
-};
-
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.setAccelerator =
+  function (value) {
+    return jspb.Message.setWrapperField(this, 3, value);
+  };
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.clearAccelerator = function() {
-  return this.setAccelerator(undefined);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.clearAccelerator =
+  function () {
+    return this.setAccelerator(undefined);
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.hasAccelerator = function() {
-  return jspb.Message.getField(this, 3) != null;
-};
-
-
-
-
-
-if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    value: jspb.Message.getFieldWithDefault(msg, 2, "")
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.prototype.hasAccelerator =
+  function () {
+    return jspb.Message.getField(this, 3) != null;
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+if (jspb.Message.GENERATE_TO_OBJECT) {
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.toObject =
+    function (opt_includeInstance) {
+      return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.toObject(
+        opt_includeInstance,
+        this,
+      );
+    };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        name: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        value: jspb.Message.getFieldWithDefault(msg, 2, ''),
+      };
+
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.deserializeBinary = function(bytes) {
-  var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar;
-  return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.deserializeBinaryFromReader(msg, reader);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.deserializeBinary =
+  function (bytes) {
+    var reader = new jspb.BinaryReader(bytes);
+    var msg = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar();
+    return proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.deserializeBinaryFromReader(
+      msg,
+      reader,
+    );
+  };
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -11801,40 +12431,43 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.deseria
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 1:
+          var value = /** @type {string} */ (reader.readString());
+          msg.setName(value);
+          break;
+        case 2:
+          var value = /** @type {string} */ (reader.readString());
+          msg.setValue(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setName(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setValue(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -11843,324 +12476,362 @@ proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototy
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getName();
-  if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
-  }
-  f = message.getValue();
-  if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
-  }
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getName();
+    if (f.length > 0) {
+      writer.writeString(1, f);
+    }
+    f = message.getValue();
+    if (f.length > 0) {
+      writer.writeString(2, f);
+    }
+  };
 
 /**
  * optional string name = 1;
  * @return {string}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.getName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.getName =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.setName = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.setName =
+  function (value) {
+    return jspb.Message.setProto3StringField(this, 1, value);
+  };
 
 /**
  * optional string value = 2;
  * @return {string}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.getValue = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.getValue =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.setValue = function(value) {
-  return jspb.Message.setProto3StringField(this, 2, value);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar.prototype.setValue =
+  function (value) {
+    return jspb.Message.setProto3StringField(this, 2, value);
+  };
 
 /**
  * optional string image = 1;
  * @return {string}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getImage = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getImage = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setImage = function(value) {
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setImage = function (
+  value,
+) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
-
 
 /**
  * repeated string command = 2;
  * @return {!Array<string>}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getCommandList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getCommandList =
+  function () {
+    return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
+  };
 
 /**
  * @param {!Array<string>} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setCommandList = function(value) {
-  return jspb.Message.setField(this, 2, value || []);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setCommandList =
+  function (value) {
+    return jspb.Message.setField(this, 2, value || []);
+  };
 
 /**
  * @param {string} value
  * @param {number=} opt_index
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.addCommand = function(value, opt_index) {
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.addCommand = function (
+  value,
+  opt_index,
+) {
   return jspb.Message.addToRepeatedField(this, 2, value, opt_index);
 };
-
 
 /**
  * Clears the list making it empty but non-null.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.clearCommandList = function() {
-  return this.setCommandList([]);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.clearCommandList =
+  function () {
+    return this.setCommandList([]);
+  };
 
 /**
  * repeated string args = 3;
  * @return {!Array<string>}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getArgsList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getArgsList =
+  function () {
+    return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
+  };
 
 /**
  * @param {!Array<string>} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setArgsList = function(value) {
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setArgsList = function (
+  value,
+) {
   return jspb.Message.setField(this, 3, value || []);
 };
-
 
 /**
  * @param {string} value
  * @param {number=} opt_index
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.addArgs = function(value, opt_index) {
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.addArgs = function (
+  value,
+  opt_index,
+) {
   return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
 };
-
 
 /**
  * Clears the list making it empty but non-null.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.clearArgsList = function() {
-  return this.setArgsList([]);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.clearArgsList =
+  function () {
+    return this.setArgsList([]);
+  };
 
 /**
  * optional Lifecycle lifecycle = 4;
  * @return {?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getLifecycle = function() {
-  return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle, 4));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getLifecycle =
+  function () {
+    return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle} */ (
+      jspb.Message.getWrapperField(
+        this,
+        proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle,
+        4,
+      )
+    );
+  };
 
 /**
  * @param {?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setLifecycle = function(value) {
-  return jspb.Message.setWrapperField(this, 4, value);
-};
-
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setLifecycle =
+  function (value) {
+    return jspb.Message.setWrapperField(this, 4, value);
+  };
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.clearLifecycle = function() {
-  return this.setLifecycle(undefined);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.clearLifecycle =
+  function () {
+    return this.setLifecycle(undefined);
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.hasLifecycle = function() {
-  return jspb.Message.getField(this, 4) != null;
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.hasLifecycle =
+  function () {
+    return jspb.Message.getField(this, 4) != null;
+  };
 
 /**
  * optional ResourceSpec resources = 5;
  * @return {?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getResources = function() {
-  return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec, 5));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getResources =
+  function () {
+    return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec} */ (
+      jspb.Message.getWrapperField(
+        this,
+        proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec,
+        5,
+      )
+    );
+  };
 
 /**
  * @param {?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setResources = function(value) {
-  return jspb.Message.setWrapperField(this, 5, value);
-};
-
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setResources =
+  function (value) {
+    return jspb.Message.setWrapperField(this, 5, value);
+  };
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.clearResources = function() {
-  return this.setResources(undefined);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.clearResources =
+  function () {
+    return this.setResources(undefined);
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.hasResources = function() {
-  return jspb.Message.getField(this, 5) != null;
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.hasResources =
+  function () {
+    return jspb.Message.getField(this, 5) != null;
+  };
 
 /**
  * repeated EnvVar env = 6;
  * @return {!Array<!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar>}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getEnvList = function() {
-  return /** @type{!Array<!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar, 6));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.getEnvList =
+  function () {
+    return /** @type{!Array<!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar>} */ (
+      jspb.Message.getRepeatedWrapperField(
+        this,
+        proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar,
+        6,
+      )
+    );
+  };
 
 /**
  * @param {!Array<!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar>} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setEnvList = function(value) {
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.setEnvList = function (
+  value,
+) {
   return jspb.Message.setRepeatedWrapperField(this, 6, value);
 };
-
 
 /**
  * @param {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar=} opt_value
  * @param {number=} opt_index
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.addEnv = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 6, opt_value, proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar, opt_index);
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.addEnv = function (
+  opt_value,
+  opt_index,
+) {
+  return jspb.Message.addToRepeatedWrapperField(
+    this,
+    6,
+    opt_value,
+    proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.EnvVar,
+    opt_index,
+  );
 };
-
 
 /**
  * Clears the list making it empty but non-null.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.clearEnvList = function() {
-  return this.setEnvList([]);
-};
-
-
-
-
-
-if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    artifactUri: (f = msg.getArtifactUri()) && proto.ml_pipelines.ValueOrRuntimeParameter.toObject(includeInstance, f),
-    typeSchema: (f = msg.getTypeSchema()) && proto.ml_pipelines.ArtifactTypeSchema.toObject(includeInstance, f),
-    propertiesMap: (f = msg.getPropertiesMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject) : [],
-    customPropertiesMap: (f = msg.getCustomPropertiesMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject) : [],
-    metadata: (f = msg.getMetadata()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
-    reimport: jspb.Message.getBooleanFieldWithDefault(msg, 5, false)
+proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.prototype.clearEnvList =
+  function () {
+    return this.setEnvList([]);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+if (jspb.Message.GENERATE_TO_OBJECT) {
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
+  };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        artifactUri:
+          (f = msg.getArtifactUri()) &&
+          proto.ml_pipelines.ValueOrRuntimeParameter.toObject(includeInstance, f),
+        typeSchema:
+          (f = msg.getTypeSchema()) &&
+          proto.ml_pipelines.ArtifactTypeSchema.toObject(includeInstance, f),
+        propertiesMap: (f = msg.getPropertiesMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject)
+          : [],
+        customPropertiesMap: (f = msg.getCustomPropertiesMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ValueOrRuntimeParameter.toObject)
+          : [],
+        metadata:
+          (f = msg.getMetadata()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
+        reimport: jspb.Message.getBooleanFieldWithDefault(msg, 5, false),
+      };
+
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec;
-  return proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec();
+  return proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -12169,63 +12840,86 @@ proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.deserializeBinary = fun
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.ValueOrRuntimeParameter;
-      reader.readMessage(value,proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader);
-      msg.setArtifactUri(value);
-      break;
-    case 2:
-      var value = new proto.ml_pipelines.ArtifactTypeSchema;
-      reader.readMessage(value,proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader);
-      msg.setTypeSchema(value);
-      break;
-    case 3:
-      var value = msg.getPropertiesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader, "", new proto.ml_pipelines.ValueOrRuntimeParameter());
-         });
-      break;
-    case 4:
-      var value = msg.getCustomPropertiesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader, "", new proto.ml_pipelines.ValueOrRuntimeParameter());
-         });
-      break;
-    case 6:
-      var value = new google_protobuf_struct_pb.Struct;
-      reader.readMessage(value,google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
-      msg.setMetadata(value);
-      break;
-    case 5:
-      var value = /** @type {boolean} */ (reader.readBool());
-      msg.setReimport(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.ValueOrRuntimeParameter();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader,
+        );
+        msg.setArtifactUri(value);
+        break;
+      case 2:
+        var value = new proto.ml_pipelines.ArtifactTypeSchema();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader,
+        );
+        msg.setTypeSchema(value);
+        break;
+      case 3:
+        var value = msg.getPropertiesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ValueOrRuntimeParameter(),
+          );
+        });
+        break;
+      case 4:
+        var value = msg.getCustomPropertiesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ValueOrRuntimeParameter.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ValueOrRuntimeParameter(),
+          );
+        });
+        break;
+      case 6:
+        var value = new google_protobuf_struct_pb.Struct();
+        reader.readMessage(value, google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
+        msg.setMetadata(value);
+        break;
+      case 5:
+        var value = /** @type {boolean} */ (reader.readBool());
+        msg.setReimport(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -12234,123 +12928,120 @@ proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.serializeBina
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getArtifactUri();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter
-    );
+    writer.writeMessage(1, f, proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter);
   }
   f = message.getTypeSchema();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter
-    );
+    writer.writeMessage(2, f, proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter);
   }
   f = message.getPropertiesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(3, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter);
+    f.serializeBinary(
+      3,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter,
+    );
   }
   f = message.getCustomPropertiesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(4, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter);
+    f.serializeBinary(
+      4,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ValueOrRuntimeParameter.serializeBinaryToWriter,
+    );
   }
   f = message.getMetadata();
   if (f != null) {
-    writer.writeMessage(
-      6,
-      f,
-      google_protobuf_struct_pb.Struct.serializeBinaryToWriter
-    );
+    writer.writeMessage(6, f, google_protobuf_struct_pb.Struct.serializeBinaryToWriter);
   }
   f = message.getReimport();
   if (f) {
-    writer.writeBool(
-      5,
-      f
-    );
+    writer.writeBool(5, f);
   }
 };
-
 
 /**
  * optional ValueOrRuntimeParameter artifact_uri = 1;
  * @return {?proto.ml_pipelines.ValueOrRuntimeParameter}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getArtifactUri = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getArtifactUri = function () {
   return /** @type{?proto.ml_pipelines.ValueOrRuntimeParameter} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ValueOrRuntimeParameter, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ValueOrRuntimeParameter, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ValueOrRuntimeParameter|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.setArtifactUri = function(value) {
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.setArtifactUri = function (
+  value,
+) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearArtifactUri = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearArtifactUri = function () {
   return this.setArtifactUri(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.hasArtifactUri = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.hasArtifactUri = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional ArtifactTypeSchema type_schema = 2;
  * @return {?proto.ml_pipelines.ArtifactTypeSchema}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getTypeSchema = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getTypeSchema = function () {
   return /** @type{?proto.ml_pipelines.ArtifactTypeSchema} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactTypeSchema, 2));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactTypeSchema, 2)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ArtifactTypeSchema|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.setTypeSchema = function(value) {
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.setTypeSchema = function (
+  value,
+) {
   return jspb.Message.setWrapperField(this, 2, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearTypeSchema = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearTypeSchema = function () {
   return this.setTypeSchema(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.hasTypeSchema = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.hasTypeSchema = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * map<string, ValueOrRuntimeParameter> properties = 3;
@@ -12358,21 +13049,23 @@ proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.hasTypeSchema
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getPropertiesMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getPropertiesMap = function (
+  opt_noLazyCreate,
+) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>} */ (
-      jspb.Message.getMapField(this, 3, opt_noLazyCreate,
-      proto.ml_pipelines.ValueOrRuntimeParameter));
+    jspb.Message.getMapField(this, 3, opt_noLazyCreate, proto.ml_pipelines.ValueOrRuntimeParameter)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearPropertiesMap = function() {
-  this.getPropertiesMap().clear();
-  return this;};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearPropertiesMap =
+  function () {
+    this.getPropertiesMap().clear();
+    return this;
+  };
 
 /**
  * map<string, ValueOrRuntimeParameter> custom_properties = 4;
@@ -12380,131 +13073,143 @@ proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearProperti
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getCustomPropertiesMap = function(opt_noLazyCreate) {
-  return /** @type {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>} */ (
-      jspb.Message.getMapField(this, 4, opt_noLazyCreate,
-      proto.ml_pipelines.ValueOrRuntimeParameter));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getCustomPropertiesMap =
+  function (opt_noLazyCreate) {
+    return /** @type {!jspb.Map<string,!proto.ml_pipelines.ValueOrRuntimeParameter>} */ (
+      jspb.Message.getMapField(
+        this,
+        4,
+        opt_noLazyCreate,
+        proto.ml_pipelines.ValueOrRuntimeParameter,
+      )
+    );
+  };
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearCustomPropertiesMap = function() {
-  this.getCustomPropertiesMap().clear();
-  return this;};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearCustomPropertiesMap =
+  function () {
+    this.getCustomPropertiesMap().clear();
+    return this;
+  };
 
 /**
  * optional google.protobuf.Struct metadata = 6;
  * @return {?proto.google.protobuf.Struct}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getMetadata = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getMetadata = function () {
   return /** @type{?proto.google.protobuf.Struct} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 6));
+    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 6)
+  );
 };
-
 
 /**
  * @param {?proto.google.protobuf.Struct|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.setMetadata = function(value) {
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.setMetadata = function (value) {
   return jspb.Message.setWrapperField(this, 6, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearMetadata = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.clearMetadata = function () {
   return this.setMetadata(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.hasMetadata = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.hasMetadata = function () {
   return jspb.Message.getField(this, 6) != null;
 };
-
 
 /**
  * optional bool reimport = 5;
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getReimport = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.getReimport = function () {
   return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 5, false));
 };
-
 
 /**
  * @param {boolean} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.setReimport = function(value) {
+proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.prototype.setReimport = function (value) {
   return jspb.Message.setProto3BooleanField(this, 5, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    outputArtifactQueriesMap: (f = msg.getOutputArtifactQueriesMap()) ? f.toObject(includeInstance, proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        outputArtifactQueriesMap: (f = msg.getOutputArtifactQueriesMap())
+          ? f.toObject(
+              includeInstance,
+              proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.toObject,
+            )
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec;
-  return proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec();
+  return proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -12513,38 +13218,48 @@ proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.deserializeBinary = fun
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getOutputArtifactQueriesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getOutputArtifactQueriesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec
+              .deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -12553,70 +13268,85 @@ proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.prototype.serializeBina
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getOutputArtifactQueriesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec
+        .serializeBinaryToWriter,
+    );
   }
 };
-
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.toObject(opt_includeInstance, this);
-};
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.toObject =
+    function (opt_includeInstance) {
+      return proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.toObject(
+        opt_includeInstance,
+        this,
+      );
+    };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        filter: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        limit: jspb.Message.getFieldWithDefault(msg, 2, 0),
+      };
 
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    filter: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    limit: jspb.Message.getFieldWithDefault(msg, 2, 0)
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
   };
-
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
 }
-
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.deserializeBinary = function(bytes) {
-  var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec;
-  return proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.deserializeBinaryFromReader(msg, reader);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.deserializeBinary =
+  function (bytes) {
+    var reader = new jspb.BinaryReader(bytes);
+    var msg = new proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec();
+    return proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.deserializeBinaryFromReader(
+      msg,
+      reader,
+    );
+  };
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -12625,40 +13355,43 @@ proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.deser
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 1:
+          var value = /** @type {string} */ (reader.readString());
+          msg.setFilter(value);
+          break;
+        case 2:
+          var value = /** @type {number} */ (reader.readInt32());
+          msg.setLimit(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setFilter(value);
-      break;
-    case 2:
-      var value = /** @type {number} */ (reader.readInt32());
-      msg.setLimit(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -12667,60 +13400,54 @@ proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.proto
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getFilter();
-  if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
-  }
-  f = message.getLimit();
-  if (f !== 0) {
-    writer.writeInt32(
-      2,
-      f
-    );
-  }
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getFilter();
+    if (f.length > 0) {
+      writer.writeString(1, f);
+    }
+    f = message.getLimit();
+    if (f !== 0) {
+      writer.writeInt32(2, f);
+    }
+  };
 
 /**
  * optional string filter = 1;
  * @return {string}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.getFilter = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.getFilter =
+  function () {
+    return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
+  };
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.setFilter = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.setFilter =
+  function (value) {
+    return jspb.Message.setProto3StringField(this, 1, value);
+  };
 
 /**
  * optional int32 limit = 2;
  * @return {number}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.getLimit = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.getLimit =
+  function () {
+    return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+  };
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.setLimit = function(value) {
-  return jspb.Message.setProto3IntField(this, 2, value);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.prototype.setLimit =
+  function (value) {
+    return jspb.Message.setProto3IntField(this, 2, value);
+  };
 
 /**
  * map<string, ArtifactQuerySpec> output_artifact_queries = 1;
@@ -12728,76 +13455,90 @@ proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec.proto
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec>}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.prototype.getOutputArtifactQueriesMap = function(opt_noLazyCreate) {
-  return /** @type {!jspb.Map<string,!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.prototype.getOutputArtifactQueriesMap =
+  function (opt_noLazyCreate) {
+    return /** @type {!jspb.Map<string,!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec>} */ (
+      jspb.Message.getMapField(
+        this,
+        1,
+        opt_noLazyCreate,
+        proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.ArtifactQuerySpec,
+      )
+    );
+  };
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.prototype.clearOutputArtifactQueriesMap = function() {
-  this.getOutputArtifactQueriesMap().clear();
-  return this;};
-
-
-
-
-
-if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    customJob: (f = msg.getCustomJob()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f)
+proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.prototype.clearOutputArtifactQueriesMap =
+  function () {
+    this.getOutputArtifactQueriesMap().clear();
+    return this;
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+if (jspb.Message.GENERATE_TO_OBJECT) {
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.toObject =
+    function (opt_includeInstance) {
+      return proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.toObject(
+        opt_includeInstance,
+        this,
+      );
+    };
 
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        customJob:
+          (f = msg.getCustomJob()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
+      };
+
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.deserializeBinary = function (
+  bytes,
+) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec;
-  return proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec();
+  return proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -12806,37 +13547,40 @@ proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.deserializeB
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.deserializeBinaryFromReader = function(msg, reader) {
-  while (reader.nextField()) {
-    if (reader.isEndGroup()) {
-      break;
+proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.deserializeBinaryFromReader =
+  function (msg, reader) {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) {
+        break;
+      }
+      var field = reader.getFieldNumber();
+      switch (field) {
+        case 1:
+          var value = new google_protobuf_struct_pb.Struct();
+          reader.readMessage(value, google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
+          msg.setCustomJob(value);
+          break;
+        default:
+          reader.skipField();
+          break;
+      }
     }
-    var field = reader.getFieldNumber();
-    switch (field) {
-    case 1:
-      var value = new google_protobuf_struct_pb.Struct;
-      reader.readMessage(value,google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
-      msg.setCustomJob(value);
-      break;
-    default:
-      reader.skipField();
-      break;
-    }
-  }
-  return msg;
-};
-
+    return msg;
+  };
 
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.serializeBinary = function() {
-  var writer = new jspb.BinaryWriter();
-  proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.serializeBinaryToWriter(this, writer);
-  return writer.getResultBuffer();
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.serializeBinary =
+  function () {
+    var writer = new jspb.BinaryWriter();
+    proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.serializeBinaryToWriter(
+      this,
+      writer,
+    );
+    return writer.getResultBuffer();
+  };
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -12845,56 +13589,52 @@ proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.se
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.serializeBinaryToWriter = function(message, writer) {
-  var f = undefined;
-  f = message.getCustomJob();
-  if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      google_protobuf_struct_pb.Struct.serializeBinaryToWriter
-    );
-  }
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.serializeBinaryToWriter =
+  function (message, writer) {
+    var f = undefined;
+    f = message.getCustomJob();
+    if (f != null) {
+      writer.writeMessage(1, f, google_protobuf_struct_pb.Struct.serializeBinaryToWriter);
+    }
+  };
 
 /**
  * optional google.protobuf.Struct custom_job = 1;
  * @return {?proto.google.protobuf.Struct}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.getCustomJob = function() {
-  return /** @type{?proto.google.protobuf.Struct} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 1));
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.getCustomJob =
+  function () {
+    return /** @type{?proto.google.protobuf.Struct} */ (
+      jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 1)
+    );
+  };
 
 /**
  * @param {?proto.google.protobuf.Struct|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.setCustomJob = function(value) {
-  return jspb.Message.setWrapperField(this, 1, value);
-};
-
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.setCustomJob =
+  function (value) {
+    return jspb.Message.setWrapperField(this, 1, value);
+  };
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.clearCustomJob = function() {
-  return this.setCustomJob(undefined);
-};
-
+proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.clearCustomJob =
+  function () {
+    return this.setCustomJob(undefined);
+  };
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.hasCustomJob = function() {
-  return jspb.Message.getField(this, 1) != null;
-};
-
-
+proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.hasCustomJob =
+  function () {
+    return jspb.Message.getField(this, 1) != null;
+  };
 
 /**
  * Oneof group definitions for this message. Each group defines the field
@@ -12904,7 +13644,7 @@ proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.prototype.ha
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_ = [[1,2,3,4]];
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_ = [[1, 2, 3, 4]];
 
 /**
  * @enum {number}
@@ -12914,72 +13654,98 @@ proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.SpecCase = {
   CONTAINER: 1,
   IMPORTER: 2,
   RESOLVER: 3,
-  CUSTOM_JOB: 4
+  CUSTOM_JOB: 4,
 };
 
 /**
  * @return {proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.SpecCase}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.getSpecCase = function() {
-  return /** @type {proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.SpecCase} */(jspb.Message.computeOneofCase(this, proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_[0]));
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.getSpecCase = function () {
+  return /** @type {proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.SpecCase} */ (
+    jspb.Message.computeOneofCase(
+      this,
+      proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_[0],
+    )
+  );
 };
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    container: (f = msg.getContainer()) && proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.toObject(includeInstance, f),
-    importer: (f = msg.getImporter()) && proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.toObject(includeInstance, f),
-    resolver: (f = msg.getResolver()) && proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.toObject(includeInstance, f),
-    customJob: (f = msg.getCustomJob()) && proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.toObject(
+      opt_includeInstance,
+      this,
+    );
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.toObject = function (
+    includeInstance,
+    msg,
+  ) {
+    var f,
+      obj = {
+        container:
+          (f = msg.getContainer()) &&
+          proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.toObject(
+            includeInstance,
+            f,
+          ),
+        importer:
+          (f = msg.getImporter()) &&
+          proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.toObject(includeInstance, f),
+        resolver:
+          (f = msg.getResolver()) &&
+          proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.toObject(includeInstance, f),
+        customJob:
+          (f = msg.getCustomJob()) &&
+          proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.toObject(
+            includeInstance,
+            f,
+          ),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec;
-  return proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec();
+  return proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.deserializeBinaryFromReader(
+    msg,
+    reader,
+  );
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -12988,52 +13754,67 @@ proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.deserializeBinary = fun
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec;
-      reader.readMessage(value,proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.deserializeBinaryFromReader);
-      msg.setContainer(value);
-      break;
-    case 2:
-      var value = new proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec;
-      reader.readMessage(value,proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.deserializeBinaryFromReader);
-      msg.setImporter(value);
-      break;
-    case 3:
-      var value = new proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec;
-      reader.readMessage(value,proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.deserializeBinaryFromReader);
-      msg.setResolver(value);
-      break;
-    case 4:
-      var value = new proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec;
-      reader.readMessage(value,proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.deserializeBinaryFromReader);
-      msg.setCustomJob(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec
+            .deserializeBinaryFromReader,
+        );
+        msg.setContainer(value);
+        break;
+      case 2:
+        var value = new proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.deserializeBinaryFromReader,
+        );
+        msg.setImporter(value);
+        break;
+      case 3:
+        var value = new proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.deserializeBinaryFromReader,
+        );
+        msg.setResolver(value);
+        break;
+      case 4:
+        var value = new proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec
+            .deserializeBinaryFromReader,
+        );
+        msg.setCustomJob(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -13042,14 +13823,17 @@ proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.serializeBina
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getContainer();
   if (f != null) {
     writer.writeMessage(
       1,
       f,
-      proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.serializeBinaryToWriter
+      proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.serializeBinaryToWriter,
     );
   }
   f = message.getImporter();
@@ -13057,7 +13841,7 @@ proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.serializeBinaryToWriter
     writer.writeMessage(
       2,
       f,
-      proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.serializeBinaryToWriter
+      proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec.serializeBinaryToWriter,
     );
   }
   f = message.getResolver();
@@ -13065,7 +13849,7 @@ proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.serializeBinaryToWriter
     writer.writeMessage(
       3,
       f,
-      proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.serializeBinaryToWriter
+      proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec.serializeBinaryToWriter,
     );
   }
   f = message.getCustomJob();
@@ -13073,159 +13857,174 @@ proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.serializeBinaryToWriter
     writer.writeMessage(
       4,
       f,
-      proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.serializeBinaryToWriter
+      proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec.serializeBinaryToWriter,
     );
   }
 };
-
 
 /**
  * optional PipelineContainerSpec container = 1;
  * @return {?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.getContainer = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.getContainer = function () {
   return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec, 1));
+    jspb.Message.getWrapperField(
+      this,
+      proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec,
+      1,
+    )
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.setContainer = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 1, proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.setContainer = function (value) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    1,
+    proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.clearContainer = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.clearContainer = function () {
   return this.setContainer(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.hasContainer = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.hasContainer = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional ImporterSpec importer = 2;
  * @return {?proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.getImporter = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.getImporter = function () {
   return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec, 2));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec, 2)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineDeploymentConfig.ImporterSpec|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.setImporter = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 2, proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.setImporter = function (value) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    2,
+    proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.clearImporter = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.clearImporter = function () {
   return this.setImporter(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.hasImporter = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.hasImporter = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional ResolverSpec resolver = 3;
  * @return {?proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.getResolver = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.getResolver = function () {
   return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec, 3));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec, 3)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineDeploymentConfig.ResolverSpec|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.setResolver = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 3, proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.setResolver = function (value) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    3,
+    proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.clearResolver = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.clearResolver = function () {
   return this.setResolver(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.hasResolver = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.hasResolver = function () {
   return jspb.Message.getField(this, 3) != null;
 };
-
 
 /**
  * optional AIPlatformCustomJobSpec custom_job = 4;
  * @return {?proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.getCustomJob = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.getCustomJob = function () {
   return /** @type{?proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec, 4));
+    jspb.Message.getWrapperField(
+      this,
+      proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec,
+      4,
+    )
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PipelineDeploymentConfig.AIPlatformCustomJobSpec|undefined} value
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec} returns this
-*/
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.setCustomJob = function(value) {
-  return jspb.Message.setOneofWrapperField(this, 4, proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_[0], value);
+ */
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.setCustomJob = function (value) {
+  return jspb.Message.setOneofWrapperField(
+    this,
+    4,
+    proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.oneofGroups_[0],
+    value,
+  );
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.clearCustomJob = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.clearCustomJob = function () {
   return this.setCustomJob(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.hasCustomJob = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.hasCustomJob = function () {
   return jspb.Message.getField(this, 4) != null;
 };
-
 
 /**
  * map<string, ExecutorSpec> executors = 1;
@@ -13233,22 +14032,27 @@ proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec.prototype.hasCustomJob 
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec>}
  */
-proto.ml_pipelines.PipelineDeploymentConfig.prototype.getExecutorsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.PipelineDeploymentConfig.prototype.getExecutorsMap = function (
+  opt_noLazyCreate,
+) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec));
+    jspb.Message.getMapField(
+      this,
+      1,
+      opt_noLazyCreate,
+      proto.ml_pipelines.PipelineDeploymentConfig.ExecutorSpec,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.PipelineDeploymentConfig} returns this
  */
-proto.ml_pipelines.PipelineDeploymentConfig.prototype.clearExecutorsMap = function() {
+proto.ml_pipelines.PipelineDeploymentConfig.prototype.clearExecutorsMap = function () {
   this.getExecutorsMap().clear();
-  return this;};
-
-
+  return this;
+};
 
 /**
  * Oneof group definitions for this message. Each group defines the field
@@ -13258,7 +14062,7 @@ proto.ml_pipelines.PipelineDeploymentConfig.prototype.clearExecutorsMap = functi
  * @private {!Array<!Array<number>>}
  * @const
  */
-proto.ml_pipelines.Value.oneofGroups_ = [[1,2,3]];
+proto.ml_pipelines.Value.oneofGroups_ = [[1, 2, 3]];
 
 /**
  * @enum {number}
@@ -13267,71 +14071,69 @@ proto.ml_pipelines.Value.ValueCase = {
   VALUE_NOT_SET: 0,
   INT_VALUE: 1,
   DOUBLE_VALUE: 2,
-  STRING_VALUE: 3
+  STRING_VALUE: 3,
 };
 
 /**
  * @return {proto.ml_pipelines.Value.ValueCase}
  */
-proto.ml_pipelines.Value.prototype.getValueCase = function() {
-  return /** @type {proto.ml_pipelines.Value.ValueCase} */(jspb.Message.computeOneofCase(this, proto.ml_pipelines.Value.oneofGroups_[0]));
+proto.ml_pipelines.Value.prototype.getValueCase = function () {
+  return /** @type {proto.ml_pipelines.Value.ValueCase} */ (
+    jspb.Message.computeOneofCase(this, proto.ml_pipelines.Value.oneofGroups_[0])
+  );
 };
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.Value.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.Value.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.Value} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.Value.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    intValue: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    doubleValue: jspb.Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
-    stringValue: jspb.Message.getFieldWithDefault(msg, 3, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.Value.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.Value.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.Value} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.Value.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        intValue: jspb.Message.getFieldWithDefault(msg, 1, 0),
+        doubleValue: jspb.Message.getFloatingPointFieldWithDefault(msg, 2, 0.0),
+        stringValue: jspb.Message.getFieldWithDefault(msg, 3, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.Value}
  */
-proto.ml_pipelines.Value.deserializeBinary = function(bytes) {
+proto.ml_pipelines.Value.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.Value;
+  var msg = new proto.ml_pipelines.Value();
   return proto.ml_pipelines.Value.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -13340,44 +14142,42 @@ proto.ml_pipelines.Value.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.Value}
  */
-proto.ml_pipelines.Value.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.Value.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {number} */ (reader.readInt64());
-      msg.setIntValue(value);
-      break;
-    case 2:
-      var value = /** @type {number} */ (reader.readDouble());
-      msg.setDoubleValue(value);
-      break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setStringValue(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {number} */ (reader.readInt64());
+        msg.setIntValue(value);
+        break;
+      case 2:
+        var value = /** @type {number} */ (reader.readDouble());
+        msg.setDoubleValue(value);
+        break;
+      case 3:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setStringValue(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.Value.prototype.serializeBinary = function() {
+proto.ml_pipelines.Value.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.Value.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -13386,199 +14186,178 @@ proto.ml_pipelines.Value.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.Value.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.Value.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = /** @type {number} */ (jspb.Message.getField(message, 1));
   if (f != null) {
-    writer.writeInt64(
-      1,
-      f
-    );
+    writer.writeInt64(1, f);
   }
   f = /** @type {number} */ (jspb.Message.getField(message, 2));
   if (f != null) {
-    writer.writeDouble(
-      2,
-      f
-    );
+    writer.writeDouble(2, f);
   }
   f = /** @type {string} */ (jspb.Message.getField(message, 3));
   if (f != null) {
-    writer.writeString(
-      3,
-      f
-    );
+    writer.writeString(3, f);
   }
 };
-
 
 /**
  * optional int64 int_value = 1;
  * @return {number}
  */
-proto.ml_pipelines.Value.prototype.getIntValue = function() {
+proto.ml_pipelines.Value.prototype.getIntValue = function () {
   return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 1, 0));
 };
-
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.Value} returns this
  */
-proto.ml_pipelines.Value.prototype.setIntValue = function(value) {
+proto.ml_pipelines.Value.prototype.setIntValue = function (value) {
   return jspb.Message.setOneofField(this, 1, proto.ml_pipelines.Value.oneofGroups_[0], value);
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.Value} returns this
  */
-proto.ml_pipelines.Value.prototype.clearIntValue = function() {
+proto.ml_pipelines.Value.prototype.clearIntValue = function () {
   return jspb.Message.setOneofField(this, 1, proto.ml_pipelines.Value.oneofGroups_[0], undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.Value.prototype.hasIntValue = function() {
+proto.ml_pipelines.Value.prototype.hasIntValue = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional double double_value = 2;
  * @return {number}
  */
-proto.ml_pipelines.Value.prototype.getDoubleValue = function() {
+proto.ml_pipelines.Value.prototype.getDoubleValue = function () {
   return /** @type {number} */ (jspb.Message.getFloatingPointFieldWithDefault(this, 2, 0.0));
 };
-
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.Value} returns this
  */
-proto.ml_pipelines.Value.prototype.setDoubleValue = function(value) {
+proto.ml_pipelines.Value.prototype.setDoubleValue = function (value) {
   return jspb.Message.setOneofField(this, 2, proto.ml_pipelines.Value.oneofGroups_[0], value);
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.Value} returns this
  */
-proto.ml_pipelines.Value.prototype.clearDoubleValue = function() {
+proto.ml_pipelines.Value.prototype.clearDoubleValue = function () {
   return jspb.Message.setOneofField(this, 2, proto.ml_pipelines.Value.oneofGroups_[0], undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.Value.prototype.hasDoubleValue = function() {
+proto.ml_pipelines.Value.prototype.hasDoubleValue = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional string string_value = 3;
  * @return {string}
  */
-proto.ml_pipelines.Value.prototype.getStringValue = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+proto.ml_pipelines.Value.prototype.getStringValue = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.Value} returns this
  */
-proto.ml_pipelines.Value.prototype.setStringValue = function(value) {
+proto.ml_pipelines.Value.prototype.setStringValue = function (value) {
   return jspb.Message.setOneofField(this, 3, proto.ml_pipelines.Value.oneofGroups_[0], value);
 };
-
 
 /**
  * Clears the field making it undefined.
  * @return {!proto.ml_pipelines.Value} returns this
  */
-proto.ml_pipelines.Value.prototype.clearStringValue = function() {
+proto.ml_pipelines.Value.prototype.clearStringValue = function () {
   return jspb.Message.setOneofField(this, 3, proto.ml_pipelines.Value.oneofGroups_[0], undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.Value.prototype.hasStringValue = function() {
+proto.ml_pipelines.Value.prototype.hasStringValue = function () {
   return jspb.Message.getField(this, 3) != null;
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.RuntimeArtifact.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.RuntimeArtifact.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.RuntimeArtifact} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.RuntimeArtifact.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    name: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    type: (f = msg.getType()) && proto.ml_pipelines.ArtifactTypeSchema.toObject(includeInstance, f),
-    uri: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    propertiesMap: (f = msg.getPropertiesMap()) ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject) : [],
-    customPropertiesMap: (f = msg.getCustomPropertiesMap()) ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject) : [],
-    metadata: (f = msg.getMetadata()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.RuntimeArtifact.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.RuntimeArtifact.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.RuntimeArtifact} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.RuntimeArtifact.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        name: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        type:
+          (f = msg.getType()) && proto.ml_pipelines.ArtifactTypeSchema.toObject(includeInstance, f),
+        uri: jspb.Message.getFieldWithDefault(msg, 3, ''),
+        propertiesMap: (f = msg.getPropertiesMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject)
+          : [],
+        customPropertiesMap: (f = msg.getCustomPropertiesMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject)
+          : [],
+        metadata:
+          (f = msg.getMetadata()) && google_protobuf_struct_pb.Struct.toObject(includeInstance, f),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.RuntimeArtifact}
  */
-proto.ml_pipelines.RuntimeArtifact.deserializeBinary = function(bytes) {
+proto.ml_pipelines.RuntimeArtifact.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.RuntimeArtifact;
+  var msg = new proto.ml_pipelines.RuntimeArtifact();
   return proto.ml_pipelines.RuntimeArtifact.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -13587,62 +14366,79 @@ proto.ml_pipelines.RuntimeArtifact.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.RuntimeArtifact}
  */
-proto.ml_pipelines.RuntimeArtifact.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.RuntimeArtifact.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setName(value);
-      break;
-    case 2:
-      var value = new proto.ml_pipelines.ArtifactTypeSchema;
-      reader.readMessage(value,proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader);
-      msg.setType(value);
-      break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setUri(value);
-      break;
-    case 4:
-      var value = msg.getPropertiesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.Value.deserializeBinaryFromReader, "", new proto.ml_pipelines.Value());
-         });
-      break;
-    case 5:
-      var value = msg.getCustomPropertiesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.Value.deserializeBinaryFromReader, "", new proto.ml_pipelines.Value());
-         });
-      break;
-    case 6:
-      var value = new google_protobuf_struct_pb.Struct;
-      reader.readMessage(value,google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
-      msg.setMetadata(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setName(value);
+        break;
+      case 2:
+        var value = new proto.ml_pipelines.ArtifactTypeSchema();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ArtifactTypeSchema.deserializeBinaryFromReader,
+        );
+        msg.setType(value);
+        break;
+      case 3:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setUri(value);
+        break;
+      case 4:
+        var value = msg.getPropertiesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.Value.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.Value(),
+          );
+        });
+        break;
+      case 5:
+        var value = msg.getCustomPropertiesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.Value.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.Value(),
+          );
+        });
+        break;
+      case 6:
+        var value = new google_protobuf_struct_pb.Struct();
+        reader.readMessage(value, google_protobuf_struct_pb.Struct.deserializeBinaryFromReader);
+        msg.setMetadata(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.serializeBinary = function() {
+proto.ml_pipelines.RuntimeArtifact.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.RuntimeArtifact.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -13651,121 +14447,111 @@ proto.ml_pipelines.RuntimeArtifact.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.RuntimeArtifact.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.RuntimeArtifact.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getName();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
   f = message.getType();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter
-    );
+    writer.writeMessage(2, f, proto.ml_pipelines.ArtifactTypeSchema.serializeBinaryToWriter);
   }
   f = message.getUri();
   if (f.length > 0) {
-    writer.writeString(
-      3,
-      f
-    );
+    writer.writeString(3, f);
   }
   f = message.getPropertiesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(4, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.Value.serializeBinaryToWriter);
+    f.serializeBinary(
+      4,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.Value.serializeBinaryToWriter,
+    );
   }
   f = message.getCustomPropertiesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(5, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.Value.serializeBinaryToWriter);
+    f.serializeBinary(
+      5,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.Value.serializeBinaryToWriter,
+    );
   }
   f = message.getMetadata();
   if (f != null) {
-    writer.writeMessage(
-      6,
-      f,
-      google_protobuf_struct_pb.Struct.serializeBinaryToWriter
-    );
+    writer.writeMessage(6, f, google_protobuf_struct_pb.Struct.serializeBinaryToWriter);
   }
 };
-
 
 /**
  * optional string name = 1;
  * @return {string}
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.getName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.RuntimeArtifact.prototype.getName = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.RuntimeArtifact} returns this
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.setName = function(value) {
+proto.ml_pipelines.RuntimeArtifact.prototype.setName = function (value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
-
 
 /**
  * optional ArtifactTypeSchema type = 2;
  * @return {?proto.ml_pipelines.ArtifactTypeSchema}
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.getType = function() {
+proto.ml_pipelines.RuntimeArtifact.prototype.getType = function () {
   return /** @type{?proto.ml_pipelines.ArtifactTypeSchema} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactTypeSchema, 2));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ArtifactTypeSchema, 2)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ArtifactTypeSchema|undefined} value
  * @return {!proto.ml_pipelines.RuntimeArtifact} returns this
-*/
-proto.ml_pipelines.RuntimeArtifact.prototype.setType = function(value) {
+ */
+proto.ml_pipelines.RuntimeArtifact.prototype.setType = function (value) {
   return jspb.Message.setWrapperField(this, 2, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.RuntimeArtifact} returns this
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.clearType = function() {
+proto.ml_pipelines.RuntimeArtifact.prototype.clearType = function () {
   return this.setType(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.hasType = function() {
+proto.ml_pipelines.RuntimeArtifact.prototype.hasType = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional string uri = 3;
  * @return {string}
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.getUri = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+proto.ml_pipelines.RuntimeArtifact.prototype.getUri = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.RuntimeArtifact} returns this
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.setUri = function(value) {
+proto.ml_pipelines.RuntimeArtifact.prototype.setUri = function (value) {
   return jspb.Message.setProto3StringField(this, 3, value);
 };
-
 
 /**
  * map<string, Value> properties = 4;
@@ -13773,21 +14559,20 @@ proto.ml_pipelines.RuntimeArtifact.prototype.setUri = function(value) {
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.Value>}
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.getPropertiesMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.RuntimeArtifact.prototype.getPropertiesMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.Value>} */ (
-      jspb.Message.getMapField(this, 4, opt_noLazyCreate,
-      proto.ml_pipelines.Value));
+    jspb.Message.getMapField(this, 4, opt_noLazyCreate, proto.ml_pipelines.Value)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.RuntimeArtifact} returns this
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.clearPropertiesMap = function() {
+proto.ml_pipelines.RuntimeArtifact.prototype.clearPropertiesMap = function () {
   this.getPropertiesMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, Value> custom_properties = 5;
@@ -13795,59 +14580,54 @@ proto.ml_pipelines.RuntimeArtifact.prototype.clearPropertiesMap = function() {
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.Value>}
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.getCustomPropertiesMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.RuntimeArtifact.prototype.getCustomPropertiesMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.Value>} */ (
-      jspb.Message.getMapField(this, 5, opt_noLazyCreate,
-      proto.ml_pipelines.Value));
+    jspb.Message.getMapField(this, 5, opt_noLazyCreate, proto.ml_pipelines.Value)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.RuntimeArtifact} returns this
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.clearCustomPropertiesMap = function() {
+proto.ml_pipelines.RuntimeArtifact.prototype.clearCustomPropertiesMap = function () {
   this.getCustomPropertiesMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * optional google.protobuf.Struct metadata = 6;
  * @return {?proto.google.protobuf.Struct}
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.getMetadata = function() {
+proto.ml_pipelines.RuntimeArtifact.prototype.getMetadata = function () {
   return /** @type{?proto.google.protobuf.Struct} */ (
-    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 6));
+    jspb.Message.getWrapperField(this, google_protobuf_struct_pb.Struct, 6)
+  );
 };
-
 
 /**
  * @param {?proto.google.protobuf.Struct|undefined} value
  * @return {!proto.ml_pipelines.RuntimeArtifact} returns this
-*/
-proto.ml_pipelines.RuntimeArtifact.prototype.setMetadata = function(value) {
+ */
+proto.ml_pipelines.RuntimeArtifact.prototype.setMetadata = function (value) {
   return jspb.Message.setWrapperField(this, 6, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.RuntimeArtifact} returns this
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.clearMetadata = function() {
+proto.ml_pipelines.RuntimeArtifact.prototype.clearMetadata = function () {
   return this.setMetadata(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.RuntimeArtifact.prototype.hasMetadata = function() {
+proto.ml_pipelines.RuntimeArtifact.prototype.hasMetadata = function () {
   return jspb.Message.getField(this, 6) != null;
 };
-
-
 
 /**
  * List of repeated fields within this message type.
@@ -13856,60 +14636,59 @@ proto.ml_pipelines.RuntimeArtifact.prototype.hasMetadata = function() {
  */
 proto.ml_pipelines.ArtifactList.repeatedFields_ = [1];
 
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ArtifactList.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ArtifactList.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ArtifactList} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ArtifactList.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    artifactsList: jspb.Message.toObjectList(msg.getArtifactsList(),
-    proto.ml_pipelines.RuntimeArtifact.toObject, includeInstance)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ArtifactList.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ArtifactList.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ArtifactList} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ArtifactList.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        artifactsList: jspb.Message.toObjectList(
+          msg.getArtifactsList(),
+          proto.ml_pipelines.RuntimeArtifact.toObject,
+          includeInstance,
+        ),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ArtifactList}
  */
-proto.ml_pipelines.ArtifactList.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ArtifactList.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ArtifactList;
+  var msg = new proto.ml_pipelines.ArtifactList();
   return proto.ml_pipelines.ArtifactList.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -13918,37 +14697,35 @@ proto.ml_pipelines.ArtifactList.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ArtifactList}
  */
-proto.ml_pipelines.ArtifactList.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ArtifactList.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.RuntimeArtifact;
-      reader.readMessage(value,proto.ml_pipelines.RuntimeArtifact.deserializeBinaryFromReader);
-      msg.addArtifacts(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.RuntimeArtifact();
+        reader.readMessage(value, proto.ml_pipelines.RuntimeArtifact.deserializeBinaryFromReader);
+        msg.addArtifacts(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ArtifactList.prototype.serializeBinary = function() {
+proto.ml_pipelines.ArtifactList.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ArtifactList.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -13957,112 +14734,109 @@ proto.ml_pipelines.ArtifactList.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ArtifactList.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ArtifactList.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getArtifactsList();
   if (f.length > 0) {
-    writer.writeRepeatedMessage(
-      1,
-      f,
-      proto.ml_pipelines.RuntimeArtifact.serializeBinaryToWriter
-    );
+    writer.writeRepeatedMessage(1, f, proto.ml_pipelines.RuntimeArtifact.serializeBinaryToWriter);
   }
 };
-
 
 /**
  * repeated RuntimeArtifact artifacts = 1;
  * @return {!Array<!proto.ml_pipelines.RuntimeArtifact>}
  */
-proto.ml_pipelines.ArtifactList.prototype.getArtifactsList = function() {
+proto.ml_pipelines.ArtifactList.prototype.getArtifactsList = function () {
   return /** @type{!Array<!proto.ml_pipelines.RuntimeArtifact>} */ (
-    jspb.Message.getRepeatedWrapperField(this, proto.ml_pipelines.RuntimeArtifact, 1));
+    jspb.Message.getRepeatedWrapperField(this, proto.ml_pipelines.RuntimeArtifact, 1)
+  );
 };
-
 
 /**
  * @param {!Array<!proto.ml_pipelines.RuntimeArtifact>} value
  * @return {!proto.ml_pipelines.ArtifactList} returns this
-*/
-proto.ml_pipelines.ArtifactList.prototype.setArtifactsList = function(value) {
+ */
+proto.ml_pipelines.ArtifactList.prototype.setArtifactsList = function (value) {
   return jspb.Message.setRepeatedWrapperField(this, 1, value);
 };
-
 
 /**
  * @param {!proto.ml_pipelines.RuntimeArtifact=} opt_value
  * @param {number=} opt_index
  * @return {!proto.ml_pipelines.RuntimeArtifact}
  */
-proto.ml_pipelines.ArtifactList.prototype.addArtifacts = function(opt_value, opt_index) {
-  return jspb.Message.addToRepeatedWrapperField(this, 1, opt_value, proto.ml_pipelines.RuntimeArtifact, opt_index);
+proto.ml_pipelines.ArtifactList.prototype.addArtifacts = function (opt_value, opt_index) {
+  return jspb.Message.addToRepeatedWrapperField(
+    this,
+    1,
+    opt_value,
+    proto.ml_pipelines.RuntimeArtifact,
+    opt_index,
+  );
 };
-
 
 /**
  * Clears the list making it empty but non-null.
  * @return {!proto.ml_pipelines.ArtifactList} returns this
  */
-proto.ml_pipelines.ArtifactList.prototype.clearArtifactsList = function() {
+proto.ml_pipelines.ArtifactList.prototype.clearArtifactsList = function () {
   return this.setArtifactsList([]);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ExecutorInput.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ExecutorInput.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ExecutorInput} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ExecutorInput.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    inputs: (f = msg.getInputs()) && proto.ml_pipelines.ExecutorInput.Inputs.toObject(includeInstance, f),
-    outputs: (f = msg.getOutputs()) && proto.ml_pipelines.ExecutorInput.Outputs.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ExecutorInput.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ExecutorInput.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ExecutorInput} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ExecutorInput.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        inputs:
+          (f = msg.getInputs()) &&
+          proto.ml_pipelines.ExecutorInput.Inputs.toObject(includeInstance, f),
+        outputs:
+          (f = msg.getOutputs()) &&
+          proto.ml_pipelines.ExecutorInput.Outputs.toObject(includeInstance, f),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ExecutorInput}
  */
-proto.ml_pipelines.ExecutorInput.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ExecutorInput.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ExecutorInput;
+  var msg = new proto.ml_pipelines.ExecutorInput();
   return proto.ml_pipelines.ExecutorInput.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -14071,42 +14845,46 @@ proto.ml_pipelines.ExecutorInput.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ExecutorInput}
  */
-proto.ml_pipelines.ExecutorInput.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ExecutorInput.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.ExecutorInput.Inputs;
-      reader.readMessage(value,proto.ml_pipelines.ExecutorInput.Inputs.deserializeBinaryFromReader);
-      msg.setInputs(value);
-      break;
-    case 2:
-      var value = new proto.ml_pipelines.ExecutorInput.Outputs;
-      reader.readMessage(value,proto.ml_pipelines.ExecutorInput.Outputs.deserializeBinaryFromReader);
-      msg.setOutputs(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.ExecutorInput.Inputs();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ExecutorInput.Inputs.deserializeBinaryFromReader,
+        );
+        msg.setInputs(value);
+        break;
+      case 2:
+        var value = new proto.ml_pipelines.ExecutorInput.Outputs();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.ExecutorInput.Outputs.deserializeBinaryFromReader,
+        );
+        msg.setOutputs(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ExecutorInput.prototype.serializeBinary = function() {
+proto.ml_pipelines.ExecutorInput.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ExecutorInput.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -14115,83 +14893,75 @@ proto.ml_pipelines.ExecutorInput.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ExecutorInput.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ExecutorInput.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getInputs();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.ExecutorInput.Inputs.serializeBinaryToWriter
-    );
+    writer.writeMessage(1, f, proto.ml_pipelines.ExecutorInput.Inputs.serializeBinaryToWriter);
   }
   f = message.getOutputs();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      proto.ml_pipelines.ExecutorInput.Outputs.serializeBinaryToWriter
-    );
+    writer.writeMessage(2, f, proto.ml_pipelines.ExecutorInput.Outputs.serializeBinaryToWriter);
   }
 };
-
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ExecutorInput.Inputs.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ExecutorInput.Inputs.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ExecutorInput.Inputs} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ExecutorInput.Inputs.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    parametersMap: (f = msg.getParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject) : [],
-    artifactsMap: (f = msg.getArtifactsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ArtifactList.toObject) : [],
-    parameterValuesMap: (f = msg.getParameterValuesMap()) ? f.toObject(includeInstance, proto.google.protobuf.Value.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ExecutorInput.Inputs.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ExecutorInput.Inputs.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ExecutorInput.Inputs} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ExecutorInput.Inputs.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        parametersMap: (f = msg.getParametersMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject)
+          : [],
+        artifactsMap: (f = msg.getArtifactsMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ArtifactList.toObject)
+          : [],
+        parameterValuesMap: (f = msg.getParameterValuesMap())
+          ? f.toObject(includeInstance, proto.google.protobuf.Value.toObject)
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ExecutorInput.Inputs}
  */
-proto.ml_pipelines.ExecutorInput.Inputs.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ExecutorInput.Inputs.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ExecutorInput.Inputs;
+  var msg = new proto.ml_pipelines.ExecutorInput.Inputs();
   return proto.ml_pipelines.ExecutorInput.Inputs.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -14200,50 +14970,72 @@ proto.ml_pipelines.ExecutorInput.Inputs.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ExecutorInput.Inputs}
  */
-proto.ml_pipelines.ExecutorInput.Inputs.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ExecutorInput.Inputs.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getParametersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.Value.deserializeBinaryFromReader, "", new proto.ml_pipelines.Value());
-         });
-      break;
-    case 2:
-      var value = msg.getArtifactsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ArtifactList.deserializeBinaryFromReader, "", new proto.ml_pipelines.ArtifactList());
-         });
-      break;
-    case 3:
-      var value = msg.getParameterValuesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.google.protobuf.Value.deserializeBinaryFromReader, "", new proto.google.protobuf.Value());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getParametersMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.Value.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.Value(),
+          );
+        });
+        break;
+      case 2:
+        var value = msg.getArtifactsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ArtifactList.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ArtifactList(),
+          );
+        });
+        break;
+      case 3:
+        var value = msg.getParameterValuesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.google.protobuf.Value.deserializeBinaryFromReader,
+            '',
+            new proto.google.protobuf.Value(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ExecutorInput.Inputs.prototype.serializeBinary = function() {
+proto.ml_pipelines.ExecutorInput.Inputs.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ExecutorInput.Inputs.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -14252,22 +15044,39 @@ proto.ml_pipelines.ExecutorInput.Inputs.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ExecutorInput.Inputs.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ExecutorInput.Inputs.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getParametersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.Value.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.Value.serializeBinaryToWriter,
+    );
   }
   f = message.getArtifactsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ArtifactList.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ArtifactList.serializeBinaryToWriter,
+    );
   }
   f = message.getParameterValuesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(3, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.google.protobuf.Value.serializeBinaryToWriter);
+    f.serializeBinary(
+      3,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.google.protobuf.Value.serializeBinaryToWriter,
+    );
   }
 };
-
 
 /**
  * map<string, Value> parameters = 1;
@@ -14275,21 +15084,20 @@ proto.ml_pipelines.ExecutorInput.Inputs.serializeBinaryToWriter = function(messa
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.Value>}
  */
-proto.ml_pipelines.ExecutorInput.Inputs.prototype.getParametersMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ExecutorInput.Inputs.prototype.getParametersMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.Value>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.Value));
+    jspb.Message.getMapField(this, 1, opt_noLazyCreate, proto.ml_pipelines.Value)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ExecutorInput.Inputs} returns this
  */
-proto.ml_pipelines.ExecutorInput.Inputs.prototype.clearParametersMap = function() {
+proto.ml_pipelines.ExecutorInput.Inputs.prototype.clearParametersMap = function () {
   this.getParametersMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, ArtifactList> artifacts = 2;
@@ -14297,21 +15105,20 @@ proto.ml_pipelines.ExecutorInput.Inputs.prototype.clearParametersMap = function(
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ArtifactList>}
  */
-proto.ml_pipelines.ExecutorInput.Inputs.prototype.getArtifactsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ExecutorInput.Inputs.prototype.getArtifactsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ArtifactList>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.ArtifactList));
+    jspb.Message.getMapField(this, 2, opt_noLazyCreate, proto.ml_pipelines.ArtifactList)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ExecutorInput.Inputs} returns this
  */
-proto.ml_pipelines.ExecutorInput.Inputs.prototype.clearArtifactsMap = function() {
+proto.ml_pipelines.ExecutorInput.Inputs.prototype.clearArtifactsMap = function () {
   this.getArtifactsMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, google.protobuf.Value> parameter_values = 3;
@@ -14319,76 +15126,74 @@ proto.ml_pipelines.ExecutorInput.Inputs.prototype.clearArtifactsMap = function()
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.google.protobuf.Value>}
  */
-proto.ml_pipelines.ExecutorInput.Inputs.prototype.getParameterValuesMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ExecutorInput.Inputs.prototype.getParameterValuesMap = function (
+  opt_noLazyCreate,
+) {
   return /** @type {!jspb.Map<string,!proto.google.protobuf.Value>} */ (
-      jspb.Message.getMapField(this, 3, opt_noLazyCreate,
-      proto.google.protobuf.Value));
+    jspb.Message.getMapField(this, 3, opt_noLazyCreate, proto.google.protobuf.Value)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ExecutorInput.Inputs} returns this
  */
-proto.ml_pipelines.ExecutorInput.Inputs.prototype.clearParameterValuesMap = function() {
+proto.ml_pipelines.ExecutorInput.Inputs.prototype.clearParameterValuesMap = function () {
   this.getParameterValuesMap().clear();
-  return this;};
-
-
-
-
+  return this;
+};
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ExecutorInput.OutputParameter.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ExecutorInput.OutputParameter.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ExecutorInput.OutputParameter} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ExecutorInput.OutputParameter.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    outputFile: jspb.Message.getFieldWithDefault(msg, 1, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ExecutorInput.OutputParameter.prototype.toObject = function (
+    opt_includeInstance,
+  ) {
+    return proto.ml_pipelines.ExecutorInput.OutputParameter.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ExecutorInput.OutputParameter} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ExecutorInput.OutputParameter.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        outputFile: jspb.Message.getFieldWithDefault(msg, 1, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ExecutorInput.OutputParameter}
  */
-proto.ml_pipelines.ExecutorInput.OutputParameter.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ExecutorInput.OutputParameter.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ExecutorInput.OutputParameter;
+  var msg = new proto.ml_pipelines.ExecutorInput.OutputParameter();
   return proto.ml_pipelines.ExecutorInput.OutputParameter.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -14397,36 +15202,37 @@ proto.ml_pipelines.ExecutorInput.OutputParameter.deserializeBinary = function(by
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ExecutorInput.OutputParameter}
  */
-proto.ml_pipelines.ExecutorInput.OutputParameter.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ExecutorInput.OutputParameter.deserializeBinaryFromReader = function (
+  msg,
+  reader,
+) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setOutputFile(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setOutputFile(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ExecutorInput.OutputParameter.prototype.serializeBinary = function() {
+proto.ml_pipelines.ExecutorInput.OutputParameter.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ExecutorInput.OutputParameter.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -14435,92 +15241,88 @@ proto.ml_pipelines.ExecutorInput.OutputParameter.prototype.serializeBinary = fun
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ExecutorInput.OutputParameter.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ExecutorInput.OutputParameter.serializeBinaryToWriter = function (
+  message,
+  writer,
+) {
   var f = undefined;
   f = message.getOutputFile();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
 };
-
 
 /**
  * optional string output_file = 1;
  * @return {string}
  */
-proto.ml_pipelines.ExecutorInput.OutputParameter.prototype.getOutputFile = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.ExecutorInput.OutputParameter.prototype.getOutputFile = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ExecutorInput.OutputParameter} returns this
  */
-proto.ml_pipelines.ExecutorInput.OutputParameter.prototype.setOutputFile = function(value) {
+proto.ml_pipelines.ExecutorInput.OutputParameter.prototype.setOutputFile = function (value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ExecutorInput.Outputs.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ExecutorInput.Outputs.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ExecutorInput.Outputs} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ExecutorInput.Outputs.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    parametersMap: (f = msg.getParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ExecutorInput.OutputParameter.toObject) : [],
-    artifactsMap: (f = msg.getArtifactsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ArtifactList.toObject) : [],
-    outputFile: jspb.Message.getFieldWithDefault(msg, 3, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ExecutorInput.Outputs.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ExecutorInput.Outputs.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ExecutorInput.Outputs} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ExecutorInput.Outputs.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        parametersMap: (f = msg.getParametersMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ExecutorInput.OutputParameter.toObject)
+          : [],
+        artifactsMap: (f = msg.getArtifactsMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ArtifactList.toObject)
+          : [],
+        outputFile: jspb.Message.getFieldWithDefault(msg, 3, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ExecutorInput.Outputs}
  */
-proto.ml_pipelines.ExecutorInput.Outputs.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ExecutorInput.Outputs.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ExecutorInput.Outputs;
+  var msg = new proto.ml_pipelines.ExecutorInput.Outputs();
   return proto.ml_pipelines.ExecutorInput.Outputs.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -14529,48 +15331,62 @@ proto.ml_pipelines.ExecutorInput.Outputs.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ExecutorInput.Outputs}
  */
-proto.ml_pipelines.ExecutorInput.Outputs.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ExecutorInput.Outputs.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getParametersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ExecutorInput.OutputParameter.deserializeBinaryFromReader, "", new proto.ml_pipelines.ExecutorInput.OutputParameter());
-         });
-      break;
-    case 2:
-      var value = msg.getArtifactsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ArtifactList.deserializeBinaryFromReader, "", new proto.ml_pipelines.ArtifactList());
-         });
-      break;
-    case 3:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setOutputFile(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getParametersMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ExecutorInput.OutputParameter.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ExecutorInput.OutputParameter(),
+          );
+        });
+        break;
+      case 2:
+        var value = msg.getArtifactsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ArtifactList.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ArtifactList(),
+          );
+        });
+        break;
+      case 3:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setOutputFile(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ExecutorInput.Outputs.prototype.serializeBinary = function() {
+proto.ml_pipelines.ExecutorInput.Outputs.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ExecutorInput.Outputs.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -14579,25 +15395,33 @@ proto.ml_pipelines.ExecutorInput.Outputs.prototype.serializeBinary = function() 
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ExecutorInput.Outputs.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ExecutorInput.Outputs.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getParametersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ExecutorInput.OutputParameter.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ExecutorInput.OutputParameter.serializeBinaryToWriter,
+    );
   }
   f = message.getArtifactsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ArtifactList.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ArtifactList.serializeBinaryToWriter,
+    );
   }
   f = message.getOutputFile();
   if (f.length > 0) {
-    writer.writeString(
-      3,
-      f
-    );
+    writer.writeString(3, f);
   }
 };
-
 
 /**
  * map<string, OutputParameter> parameters = 1;
@@ -14605,21 +15429,25 @@ proto.ml_pipelines.ExecutorInput.Outputs.serializeBinaryToWriter = function(mess
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ExecutorInput.OutputParameter>}
  */
-proto.ml_pipelines.ExecutorInput.Outputs.prototype.getParametersMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ExecutorInput.Outputs.prototype.getParametersMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ExecutorInput.OutputParameter>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.ExecutorInput.OutputParameter));
+    jspb.Message.getMapField(
+      this,
+      1,
+      opt_noLazyCreate,
+      proto.ml_pipelines.ExecutorInput.OutputParameter,
+    )
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ExecutorInput.Outputs} returns this
  */
-proto.ml_pipelines.ExecutorInput.Outputs.prototype.clearParametersMap = function() {
+proto.ml_pipelines.ExecutorInput.Outputs.prototype.clearParametersMap = function () {
   this.getParametersMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, ArtifactList> artifacts = 2;
@@ -14627,170 +15455,162 @@ proto.ml_pipelines.ExecutorInput.Outputs.prototype.clearParametersMap = function
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ArtifactList>}
  */
-proto.ml_pipelines.ExecutorInput.Outputs.prototype.getArtifactsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ExecutorInput.Outputs.prototype.getArtifactsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ArtifactList>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.ArtifactList));
+    jspb.Message.getMapField(this, 2, opt_noLazyCreate, proto.ml_pipelines.ArtifactList)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ExecutorInput.Outputs} returns this
  */
-proto.ml_pipelines.ExecutorInput.Outputs.prototype.clearArtifactsMap = function() {
+proto.ml_pipelines.ExecutorInput.Outputs.prototype.clearArtifactsMap = function () {
   this.getArtifactsMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * optional string output_file = 3;
  * @return {string}
  */
-proto.ml_pipelines.ExecutorInput.Outputs.prototype.getOutputFile = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+proto.ml_pipelines.ExecutorInput.Outputs.prototype.getOutputFile = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.ExecutorInput.Outputs} returns this
  */
-proto.ml_pipelines.ExecutorInput.Outputs.prototype.setOutputFile = function(value) {
+proto.ml_pipelines.ExecutorInput.Outputs.prototype.setOutputFile = function (value) {
   return jspb.Message.setProto3StringField(this, 3, value);
 };
-
 
 /**
  * optional Inputs inputs = 1;
  * @return {?proto.ml_pipelines.ExecutorInput.Inputs}
  */
-proto.ml_pipelines.ExecutorInput.prototype.getInputs = function() {
+proto.ml_pipelines.ExecutorInput.prototype.getInputs = function () {
   return /** @type{?proto.ml_pipelines.ExecutorInput.Inputs} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ExecutorInput.Inputs, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ExecutorInput.Inputs, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ExecutorInput.Inputs|undefined} value
  * @return {!proto.ml_pipelines.ExecutorInput} returns this
-*/
-proto.ml_pipelines.ExecutorInput.prototype.setInputs = function(value) {
+ */
+proto.ml_pipelines.ExecutorInput.prototype.setInputs = function (value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ExecutorInput} returns this
  */
-proto.ml_pipelines.ExecutorInput.prototype.clearInputs = function() {
+proto.ml_pipelines.ExecutorInput.prototype.clearInputs = function () {
   return this.setInputs(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ExecutorInput.prototype.hasInputs = function() {
+proto.ml_pipelines.ExecutorInput.prototype.hasInputs = function () {
   return jspb.Message.getField(this, 1) != null;
 };
-
 
 /**
  * optional Outputs outputs = 2;
  * @return {?proto.ml_pipelines.ExecutorInput.Outputs}
  */
-proto.ml_pipelines.ExecutorInput.prototype.getOutputs = function() {
+proto.ml_pipelines.ExecutorInput.prototype.getOutputs = function () {
   return /** @type{?proto.ml_pipelines.ExecutorInput.Outputs} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.ExecutorInput.Outputs, 2));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.ExecutorInput.Outputs, 2)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.ExecutorInput.Outputs|undefined} value
  * @return {!proto.ml_pipelines.ExecutorInput} returns this
-*/
-proto.ml_pipelines.ExecutorInput.prototype.setOutputs = function(value) {
+ */
+proto.ml_pipelines.ExecutorInput.prototype.setOutputs = function (value) {
   return jspb.Message.setWrapperField(this, 2, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.ExecutorInput} returns this
  */
-proto.ml_pipelines.ExecutorInput.prototype.clearOutputs = function() {
+proto.ml_pipelines.ExecutorInput.prototype.clearOutputs = function () {
   return this.setOutputs(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.ExecutorInput.prototype.hasOutputs = function() {
+proto.ml_pipelines.ExecutorInput.prototype.hasOutputs = function () {
   return jspb.Message.getField(this, 2) != null;
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.ExecutorOutput.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.ExecutorOutput.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.ExecutorOutput} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.ExecutorOutput.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    parametersMap: (f = msg.getParametersMap()) ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject) : [],
-    artifactsMap: (f = msg.getArtifactsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.ArtifactList.toObject) : [],
-    parameterValuesMap: (f = msg.getParameterValuesMap()) ? f.toObject(includeInstance, proto.google.protobuf.Value.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.ExecutorOutput.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.ExecutorOutput.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.ExecutorOutput} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.ExecutorOutput.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        parametersMap: (f = msg.getParametersMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.Value.toObject)
+          : [],
+        artifactsMap: (f = msg.getArtifactsMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.ArtifactList.toObject)
+          : [],
+        parameterValuesMap: (f = msg.getParameterValuesMap())
+          ? f.toObject(includeInstance, proto.google.protobuf.Value.toObject)
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.ExecutorOutput}
  */
-proto.ml_pipelines.ExecutorOutput.deserializeBinary = function(bytes) {
+proto.ml_pipelines.ExecutorOutput.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.ExecutorOutput;
+  var msg = new proto.ml_pipelines.ExecutorOutput();
   return proto.ml_pipelines.ExecutorOutput.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -14799,50 +15619,72 @@ proto.ml_pipelines.ExecutorOutput.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.ExecutorOutput}
  */
-proto.ml_pipelines.ExecutorOutput.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.ExecutorOutput.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getParametersMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.Value.deserializeBinaryFromReader, "", new proto.ml_pipelines.Value());
-         });
-      break;
-    case 2:
-      var value = msg.getArtifactsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.ArtifactList.deserializeBinaryFromReader, "", new proto.ml_pipelines.ArtifactList());
-         });
-      break;
-    case 3:
-      var value = msg.getParameterValuesMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.google.protobuf.Value.deserializeBinaryFromReader, "", new proto.google.protobuf.Value());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getParametersMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.Value.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.Value(),
+          );
+        });
+        break;
+      case 2:
+        var value = msg.getArtifactsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.ArtifactList.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.ArtifactList(),
+          );
+        });
+        break;
+      case 3:
+        var value = msg.getParameterValuesMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.google.protobuf.Value.deserializeBinaryFromReader,
+            '',
+            new proto.google.protobuf.Value(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.ExecutorOutput.prototype.serializeBinary = function() {
+proto.ml_pipelines.ExecutorOutput.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.ExecutorOutput.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -14851,22 +15693,39 @@ proto.ml_pipelines.ExecutorOutput.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.ExecutorOutput.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.ExecutorOutput.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getParametersMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.Value.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.Value.serializeBinaryToWriter,
+    );
   }
   f = message.getArtifactsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(2, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.ArtifactList.serializeBinaryToWriter);
+    f.serializeBinary(
+      2,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.ArtifactList.serializeBinaryToWriter,
+    );
   }
   f = message.getParameterValuesMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(3, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.google.protobuf.Value.serializeBinaryToWriter);
+    f.serializeBinary(
+      3,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.google.protobuf.Value.serializeBinaryToWriter,
+    );
   }
 };
-
 
 /**
  * map<string, Value> parameters = 1;
@@ -14874,21 +15733,20 @@ proto.ml_pipelines.ExecutorOutput.serializeBinaryToWriter = function(message, wr
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.Value>}
  */
-proto.ml_pipelines.ExecutorOutput.prototype.getParametersMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ExecutorOutput.prototype.getParametersMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.Value>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.Value));
+    jspb.Message.getMapField(this, 1, opt_noLazyCreate, proto.ml_pipelines.Value)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ExecutorOutput} returns this
  */
-proto.ml_pipelines.ExecutorOutput.prototype.clearParametersMap = function() {
+proto.ml_pipelines.ExecutorOutput.prototype.clearParametersMap = function () {
   this.getParametersMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, ArtifactList> artifacts = 2;
@@ -14896,21 +15754,20 @@ proto.ml_pipelines.ExecutorOutput.prototype.clearParametersMap = function() {
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.ArtifactList>}
  */
-proto.ml_pipelines.ExecutorOutput.prototype.getArtifactsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ExecutorOutput.prototype.getArtifactsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.ArtifactList>} */ (
-      jspb.Message.getMapField(this, 2, opt_noLazyCreate,
-      proto.ml_pipelines.ArtifactList));
+    jspb.Message.getMapField(this, 2, opt_noLazyCreate, proto.ml_pipelines.ArtifactList)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ExecutorOutput} returns this
  */
-proto.ml_pipelines.ExecutorOutput.prototype.clearArtifactsMap = function() {
+proto.ml_pipelines.ExecutorOutput.prototype.clearArtifactsMap = function () {
   this.getArtifactsMap().clear();
-  return this;};
-
+  return this;
+};
 
 /**
  * map<string, google.protobuf.Value> parameter_values = 3;
@@ -14918,81 +15775,75 @@ proto.ml_pipelines.ExecutorOutput.prototype.clearArtifactsMap = function() {
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.google.protobuf.Value>}
  */
-proto.ml_pipelines.ExecutorOutput.prototype.getParameterValuesMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.ExecutorOutput.prototype.getParameterValuesMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.google.protobuf.Value>} */ (
-      jspb.Message.getMapField(this, 3, opt_noLazyCreate,
-      proto.google.protobuf.Value));
+    jspb.Message.getMapField(this, 3, opt_noLazyCreate, proto.google.protobuf.Value)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.ExecutorOutput} returns this
  */
-proto.ml_pipelines.ExecutorOutput.prototype.clearParameterValuesMap = function() {
+proto.ml_pipelines.ExecutorOutput.prototype.clearParameterValuesMap = function () {
   this.getParameterValuesMap().clear();
-  return this;};
-
-
-
-
+  return this;
+};
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineTaskFinalStatus.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineTaskFinalStatus} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineTaskFinalStatus.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    state: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    error: (f = msg.getError()) && google_rpc_status_pb.Status.toObject(includeInstance, f),
-    pipelineJobUuid: jspb.Message.getFieldWithDefault(msg, 3, 0),
-    pipelineJobName: jspb.Message.getFieldWithDefault(msg, 4, ""),
-    pipelineJobResourceName: jspb.Message.getFieldWithDefault(msg, 5, ""),
-    pipelineTaskName: jspb.Message.getFieldWithDefault(msg, 6, "")
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineTaskFinalStatus.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PipelineTaskFinalStatus.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineTaskFinalStatus} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineTaskFinalStatus.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        state: jspb.Message.getFieldWithDefault(msg, 1, ''),
+        error: (f = msg.getError()) && google_rpc_status_pb.Status.toObject(includeInstance, f),
+        pipelineJobUuid: jspb.Message.getFieldWithDefault(msg, 3, 0),
+        pipelineJobName: jspb.Message.getFieldWithDefault(msg, 4, ''),
+        pipelineJobResourceName: jspb.Message.getFieldWithDefault(msg, 5, ''),
+        pipelineTaskName: jspb.Message.getFieldWithDefault(msg, 6, ''),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineTaskFinalStatus}
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineTaskFinalStatus.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineTaskFinalStatus;
+  var msg = new proto.ml_pipelines.PipelineTaskFinalStatus();
   return proto.ml_pipelines.PipelineTaskFinalStatus.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -15001,57 +15852,55 @@ proto.ml_pipelines.PipelineTaskFinalStatus.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineTaskFinalStatus}
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineTaskFinalStatus.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setState(value);
-      break;
-    case 2:
-      var value = new google_rpc_status_pb.Status;
-      reader.readMessage(value,google_rpc_status_pb.Status.deserializeBinaryFromReader);
-      msg.setError(value);
-      break;
-    case 3:
-      var value = /** @type {number} */ (reader.readInt64());
-      msg.setPipelineJobUuid(value);
-      break;
-    case 4:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setPipelineJobName(value);
-      break;
-    case 5:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setPipelineJobResourceName(value);
-      break;
-    case 6:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setPipelineTaskName(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setState(value);
+        break;
+      case 2:
+        var value = new google_rpc_status_pb.Status();
+        reader.readMessage(value, google_rpc_status_pb.Status.deserializeBinaryFromReader);
+        msg.setError(value);
+        break;
+      case 3:
+        var value = /** @type {number} */ (reader.readInt64());
+        msg.setPipelineJobUuid(value);
+        break;
+      case 4:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setPipelineJobName(value);
+        break;
+      case 5:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setPipelineJobResourceName(value);
+        break;
+      case 6:
+        var value = /** @type {string} */ (reader.readString());
+        msg.setPipelineTaskName(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineTaskFinalStatus.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -15060,235 +15909,195 @@ proto.ml_pipelines.PipelineTaskFinalStatus.prototype.serializeBinary = function(
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineTaskFinalStatus.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getState();
   if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
+    writer.writeString(1, f);
   }
   f = message.getError();
   if (f != null) {
-    writer.writeMessage(
-      2,
-      f,
-      google_rpc_status_pb.Status.serializeBinaryToWriter
-    );
+    writer.writeMessage(2, f, google_rpc_status_pb.Status.serializeBinaryToWriter);
   }
   f = message.getPipelineJobUuid();
   if (f !== 0) {
-    writer.writeInt64(
-      3,
-      f
-    );
+    writer.writeInt64(3, f);
   }
   f = message.getPipelineJobName();
   if (f.length > 0) {
-    writer.writeString(
-      4,
-      f
-    );
+    writer.writeString(4, f);
   }
   f = message.getPipelineJobResourceName();
   if (f.length > 0) {
-    writer.writeString(
-      5,
-      f
-    );
+    writer.writeString(5, f);
   }
   f = message.getPipelineTaskName();
   if (f.length > 0) {
-    writer.writeString(
-      6,
-      f
-    );
+    writer.writeString(6, f);
   }
 };
-
 
 /**
  * optional string state = 1;
  * @return {string}
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getState = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getState = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineTaskFinalStatus} returns this
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setState = function(value) {
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setState = function (value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
-
 
 /**
  * optional google.rpc.Status error = 2;
  * @return {?proto.google.rpc.Status}
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getError = function() {
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getError = function () {
   return /** @type{?proto.google.rpc.Status} */ (
-    jspb.Message.getWrapperField(this, google_rpc_status_pb.Status, 2));
+    jspb.Message.getWrapperField(this, google_rpc_status_pb.Status, 2)
+  );
 };
-
 
 /**
  * @param {?proto.google.rpc.Status|undefined} value
  * @return {!proto.ml_pipelines.PipelineTaskFinalStatus} returns this
-*/
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setError = function(value) {
+ */
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setError = function (value) {
   return jspb.Message.setWrapperField(this, 2, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.PipelineTaskFinalStatus} returns this
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.clearError = function() {
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.clearError = function () {
   return this.setError(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.hasError = function() {
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.hasError = function () {
   return jspb.Message.getField(this, 2) != null;
 };
-
 
 /**
  * optional int64 pipeline_job_uuid = 3;
  * @return {number}
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineJobUuid = function() {
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineJobUuid = function () {
   return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 3, 0));
 };
-
 
 /**
  * @param {number} value
  * @return {!proto.ml_pipelines.PipelineTaskFinalStatus} returns this
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineJobUuid = function(value) {
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineJobUuid = function (value) {
   return jspb.Message.setProto3IntField(this, 3, value);
 };
-
 
 /**
  * optional string pipeline_job_name = 4;
  * @return {string}
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineJobName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineJobName = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 4, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineTaskFinalStatus} returns this
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineJobName = function(value) {
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineJobName = function (value) {
   return jspb.Message.setProto3StringField(this, 4, value);
 };
-
 
 /**
  * optional string pipeline_job_resource_name = 5;
  * @return {string}
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineJobResourceName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineJobResourceName = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineTaskFinalStatus} returns this
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineJobResourceName = function(value) {
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineJobResourceName = function (value) {
   return jspb.Message.setProto3StringField(this, 5, value);
 };
-
 
 /**
  * optional string pipeline_task_name = 6;
  * @return {string}
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineTaskName = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ""));
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.getPipelineTaskName = function () {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 6, ''));
 };
-
 
 /**
  * @param {string} value
  * @return {!proto.ml_pipelines.PipelineTaskFinalStatus} returns this
  */
-proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineTaskName = function(value) {
+proto.ml_pipelines.PipelineTaskFinalStatus.prototype.setPipelineTaskName = function (value) {
   return jspb.Message.setProto3StringField(this, 6, value);
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PipelineStateEnum.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PipelineStateEnum.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PipelineStateEnum} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PipelineStateEnum.toObject = function(includeInstance, msg) {
-  var f, obj = {
-
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PipelineStateEnum.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PipelineStateEnum.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PipelineStateEnum} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PipelineStateEnum.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {};
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PipelineStateEnum}
  */
-proto.ml_pipelines.PipelineStateEnum.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PipelineStateEnum.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PipelineStateEnum;
+  var msg = new proto.ml_pipelines.PipelineStateEnum();
   return proto.ml_pipelines.PipelineStateEnum.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -15297,32 +16106,30 @@ proto.ml_pipelines.PipelineStateEnum.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PipelineStateEnum}
  */
-proto.ml_pipelines.PipelineStateEnum.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PipelineStateEnum.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    default:
-      reader.skipField();
-      break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PipelineStateEnum.prototype.serializeBinary = function() {
+proto.ml_pipelines.PipelineStateEnum.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PipelineStateEnum.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -15331,10 +16138,9 @@ proto.ml_pipelines.PipelineStateEnum.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PipelineStateEnum.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PipelineStateEnum.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
 };
-
 
 /**
  * @enum {number}
@@ -15353,63 +16159,60 @@ proto.ml_pipelines.PipelineStateEnum.PipelineTaskState = {
   SKIPPED: 10,
   QUEUED: 11,
   NOT_TRIGGERED: 12,
-  UNSCHEDULABLE: 13
+  UNSCHEDULABLE: 13,
 };
-
-
-
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PlatformSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PlatformSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PlatformSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PlatformSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    platformsMap: (f = msg.getPlatformsMap()) ? f.toObject(includeInstance, proto.ml_pipelines.SinglePlatformSpec.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PlatformSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PlatformSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PlatformSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PlatformSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        platformsMap: (f = msg.getPlatformsMap())
+          ? f.toObject(includeInstance, proto.ml_pipelines.SinglePlatformSpec.toObject)
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PlatformSpec}
  */
-proto.ml_pipelines.PlatformSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PlatformSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PlatformSpec;
+  var msg = new proto.ml_pipelines.PlatformSpec();
   return proto.ml_pipelines.PlatformSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -15418,38 +16221,44 @@ proto.ml_pipelines.PlatformSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PlatformSpec}
  */
-proto.ml_pipelines.PlatformSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PlatformSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getPlatformsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.ml_pipelines.SinglePlatformSpec.deserializeBinaryFromReader, "", new proto.ml_pipelines.SinglePlatformSpec());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getPlatformsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.ml_pipelines.SinglePlatformSpec.deserializeBinaryFromReader,
+            '',
+            new proto.ml_pipelines.SinglePlatformSpec(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PlatformSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.PlatformSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PlatformSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -15458,14 +16267,19 @@ proto.ml_pipelines.PlatformSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PlatformSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PlatformSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getPlatformsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.ml_pipelines.SinglePlatformSpec.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.ml_pipelines.SinglePlatformSpec.serializeBinaryToWriter,
+    );
   }
 };
-
 
 /**
  * map<string, SinglePlatformSpec> platforms = 1;
@@ -15473,76 +16287,72 @@ proto.ml_pipelines.PlatformSpec.serializeBinaryToWriter = function(message, writ
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.ml_pipelines.SinglePlatformSpec>}
  */
-proto.ml_pipelines.PlatformSpec.prototype.getPlatformsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.PlatformSpec.prototype.getPlatformsMap = function (opt_noLazyCreate) {
   return /** @type {!jspb.Map<string,!proto.ml_pipelines.SinglePlatformSpec>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.ml_pipelines.SinglePlatformSpec));
+    jspb.Message.getMapField(this, 1, opt_noLazyCreate, proto.ml_pipelines.SinglePlatformSpec)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.PlatformSpec} returns this
  */
-proto.ml_pipelines.PlatformSpec.prototype.clearPlatformsMap = function() {
+proto.ml_pipelines.PlatformSpec.prototype.clearPlatformsMap = function () {
   this.getPlatformsMap().clear();
-  return this;};
-
-
-
-
+  return this;
+};
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.SinglePlatformSpec.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.SinglePlatformSpec.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.SinglePlatformSpec} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.SinglePlatformSpec.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    deploymentSpec: (f = msg.getDeploymentSpec()) && proto.ml_pipelines.PlatformDeploymentConfig.toObject(includeInstance, f)
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.SinglePlatformSpec.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.SinglePlatformSpec.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.SinglePlatformSpec} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.SinglePlatformSpec.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        deploymentSpec:
+          (f = msg.getDeploymentSpec()) &&
+          proto.ml_pipelines.PlatformDeploymentConfig.toObject(includeInstance, f),
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.SinglePlatformSpec}
  */
-proto.ml_pipelines.SinglePlatformSpec.deserializeBinary = function(bytes) {
+proto.ml_pipelines.SinglePlatformSpec.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.SinglePlatformSpec;
+  var msg = new proto.ml_pipelines.SinglePlatformSpec();
   return proto.ml_pipelines.SinglePlatformSpec.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -15551,37 +16361,38 @@ proto.ml_pipelines.SinglePlatformSpec.deserializeBinary = function(bytes) {
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.SinglePlatformSpec}
  */
-proto.ml_pipelines.SinglePlatformSpec.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.SinglePlatformSpec.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = new proto.ml_pipelines.PlatformDeploymentConfig;
-      reader.readMessage(value,proto.ml_pipelines.PlatformDeploymentConfig.deserializeBinaryFromReader);
-      msg.setDeploymentSpec(value);
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = new proto.ml_pipelines.PlatformDeploymentConfig();
+        reader.readMessage(
+          value,
+          proto.ml_pipelines.PlatformDeploymentConfig.deserializeBinaryFromReader,
+        );
+        msg.setDeploymentSpec(value);
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.SinglePlatformSpec.prototype.serializeBinary = function() {
+proto.ml_pipelines.SinglePlatformSpec.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.SinglePlatformSpec.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -15590,110 +16401,99 @@ proto.ml_pipelines.SinglePlatformSpec.prototype.serializeBinary = function() {
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.SinglePlatformSpec.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.SinglePlatformSpec.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getDeploymentSpec();
   if (f != null) {
-    writer.writeMessage(
-      1,
-      f,
-      proto.ml_pipelines.PlatformDeploymentConfig.serializeBinaryToWriter
-    );
+    writer.writeMessage(1, f, proto.ml_pipelines.PlatformDeploymentConfig.serializeBinaryToWriter);
   }
 };
-
 
 /**
  * optional PlatformDeploymentConfig deployment_spec = 1;
  * @return {?proto.ml_pipelines.PlatformDeploymentConfig}
  */
-proto.ml_pipelines.SinglePlatformSpec.prototype.getDeploymentSpec = function() {
+proto.ml_pipelines.SinglePlatformSpec.prototype.getDeploymentSpec = function () {
   return /** @type{?proto.ml_pipelines.PlatformDeploymentConfig} */ (
-    jspb.Message.getWrapperField(this, proto.ml_pipelines.PlatformDeploymentConfig, 1));
+    jspb.Message.getWrapperField(this, proto.ml_pipelines.PlatformDeploymentConfig, 1)
+  );
 };
-
 
 /**
  * @param {?proto.ml_pipelines.PlatformDeploymentConfig|undefined} value
  * @return {!proto.ml_pipelines.SinglePlatformSpec} returns this
-*/
-proto.ml_pipelines.SinglePlatformSpec.prototype.setDeploymentSpec = function(value) {
+ */
+proto.ml_pipelines.SinglePlatformSpec.prototype.setDeploymentSpec = function (value) {
   return jspb.Message.setWrapperField(this, 1, value);
 };
-
 
 /**
  * Clears the message field making it undefined.
  * @return {!proto.ml_pipelines.SinglePlatformSpec} returns this
  */
-proto.ml_pipelines.SinglePlatformSpec.prototype.clearDeploymentSpec = function() {
+proto.ml_pipelines.SinglePlatformSpec.prototype.clearDeploymentSpec = function () {
   return this.setDeploymentSpec(undefined);
 };
-
 
 /**
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.ml_pipelines.SinglePlatformSpec.prototype.hasDeploymentSpec = function() {
+proto.ml_pipelines.SinglePlatformSpec.prototype.hasDeploymentSpec = function () {
   return jspb.Message.getField(this, 1) != null;
 };
 
-
-
-
-
 if (jspb.Message.GENERATE_TO_OBJECT) {
-/**
- * Creates an object representation of this proto.
- * Field names that are reserved in JavaScript and will be renamed to pb_name.
- * Optional fields that are not set will be set to undefined.
- * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
- * For the list of reserved names please see:
- *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
- * @param {boolean=} opt_includeInstance Deprecated. whether to include the
- *     JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @return {!Object}
- */
-proto.ml_pipelines.PlatformDeploymentConfig.prototype.toObject = function(opt_includeInstance) {
-  return proto.ml_pipelines.PlatformDeploymentConfig.toObject(opt_includeInstance, this);
-};
-
-
-/**
- * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Deprecated. Whether to include
- *     the JSPB instance for transitional soy proto support:
- *     http://goto/soy-param-migration
- * @param {!proto.ml_pipelines.PlatformDeploymentConfig} msg The msg instance to transform.
- * @return {!Object}
- * @suppress {unusedLocalVariables} f is only used for nested messages
- */
-proto.ml_pipelines.PlatformDeploymentConfig.toObject = function(includeInstance, msg) {
-  var f, obj = {
-    executorsMap: (f = msg.getExecutorsMap()) ? f.toObject(includeInstance, proto.google.protobuf.Struct.toObject) : []
+  /**
+   * Creates an object representation of this proto.
+   * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
+   * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
+   * For the list of reserved names please see:
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @return {!Object}
+   */
+  proto.ml_pipelines.PlatformDeploymentConfig.prototype.toObject = function (opt_includeInstance) {
+    return proto.ml_pipelines.PlatformDeploymentConfig.toObject(opt_includeInstance, this);
   };
 
-  if (includeInstance) {
-    obj.$jspbMessageInstance = msg;
-  }
-  return obj;
-};
-}
+  /**
+   * Static version of the {@see toObject} method.
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
+   * @param {!proto.ml_pipelines.PlatformDeploymentConfig} msg The msg instance to transform.
+   * @return {!Object}
+   * @suppress {unusedLocalVariables} f is only used for nested messages
+   */
+  proto.ml_pipelines.PlatformDeploymentConfig.toObject = function (includeInstance, msg) {
+    var f,
+      obj = {
+        executorsMap: (f = msg.getExecutorsMap())
+          ? f.toObject(includeInstance, proto.google.protobuf.Struct.toObject)
+          : [],
+      };
 
+    if (includeInstance) {
+      obj.$jspbMessageInstance = msg;
+    }
+    return obj;
+  };
+}
 
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
  * @return {!proto.ml_pipelines.PlatformDeploymentConfig}
  */
-proto.ml_pipelines.PlatformDeploymentConfig.deserializeBinary = function(bytes) {
+proto.ml_pipelines.PlatformDeploymentConfig.deserializeBinary = function (bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.ml_pipelines.PlatformDeploymentConfig;
+  var msg = new proto.ml_pipelines.PlatformDeploymentConfig();
   return proto.ml_pipelines.PlatformDeploymentConfig.deserializeBinaryFromReader(msg, reader);
 };
-
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
@@ -15702,38 +16502,44 @@ proto.ml_pipelines.PlatformDeploymentConfig.deserializeBinary = function(bytes) 
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
  * @return {!proto.ml_pipelines.PlatformDeploymentConfig}
  */
-proto.ml_pipelines.PlatformDeploymentConfig.deserializeBinaryFromReader = function(msg, reader) {
+proto.ml_pipelines.PlatformDeploymentConfig.deserializeBinaryFromReader = function (msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = msg.getExecutorsMap();
-      reader.readMessage(value, function(message, reader) {
-        jspb.Map.deserializeBinary(message, reader, jspb.BinaryReader.prototype.readString, jspb.BinaryReader.prototype.readMessage, proto.google.protobuf.Struct.deserializeBinaryFromReader, "", new proto.google.protobuf.Struct());
-         });
-      break;
-    default:
-      reader.skipField();
-      break;
+      case 1:
+        var value = msg.getExecutorsMap();
+        reader.readMessage(value, function (message, reader) {
+          jspb.Map.deserializeBinary(
+            message,
+            reader,
+            jspb.BinaryReader.prototype.readString,
+            jspb.BinaryReader.prototype.readMessage,
+            proto.google.protobuf.Struct.deserializeBinaryFromReader,
+            '',
+            new proto.google.protobuf.Struct(),
+          );
+        });
+        break;
+      default:
+        reader.skipField();
+        break;
     }
   }
   return msg;
 };
 
-
 /**
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.ml_pipelines.PlatformDeploymentConfig.prototype.serializeBinary = function() {
+proto.ml_pipelines.PlatformDeploymentConfig.prototype.serializeBinary = function () {
   var writer = new jspb.BinaryWriter();
   proto.ml_pipelines.PlatformDeploymentConfig.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
-
 
 /**
  * Serializes the given message to binary data (in protobuf wire
@@ -15742,14 +16548,19 @@ proto.ml_pipelines.PlatformDeploymentConfig.prototype.serializeBinary = function
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.ml_pipelines.PlatformDeploymentConfig.serializeBinaryToWriter = function(message, writer) {
+proto.ml_pipelines.PlatformDeploymentConfig.serializeBinaryToWriter = function (message, writer) {
   var f = undefined;
   f = message.getExecutorsMap(true);
   if (f && f.getLength() > 0) {
-    f.serializeBinary(1, writer, jspb.BinaryWriter.prototype.writeString, jspb.BinaryWriter.prototype.writeMessage, proto.google.protobuf.Struct.serializeBinaryToWriter);
+    f.serializeBinary(
+      1,
+      writer,
+      jspb.BinaryWriter.prototype.writeString,
+      jspb.BinaryWriter.prototype.writeMessage,
+      proto.google.protobuf.Struct.serializeBinaryToWriter,
+    );
   }
 };
-
 
 /**
  * map<string, google.protobuf.Struct> executors = 1;
@@ -15757,20 +16568,21 @@ proto.ml_pipelines.PlatformDeploymentConfig.serializeBinaryToWriter = function(m
  * empty, instead returning `undefined`
  * @return {!jspb.Map<string,!proto.google.protobuf.Struct>}
  */
-proto.ml_pipelines.PlatformDeploymentConfig.prototype.getExecutorsMap = function(opt_noLazyCreate) {
+proto.ml_pipelines.PlatformDeploymentConfig.prototype.getExecutorsMap = function (
+  opt_noLazyCreate,
+) {
   return /** @type {!jspb.Map<string,!proto.google.protobuf.Struct>} */ (
-      jspb.Message.getMapField(this, 1, opt_noLazyCreate,
-      proto.google.protobuf.Struct));
+    jspb.Message.getMapField(this, 1, opt_noLazyCreate, proto.google.protobuf.Struct)
+  );
 };
-
 
 /**
  * Clears values from the map. The map will be non-null.
  * @return {!proto.ml_pipelines.PlatformDeploymentConfig} returns this
  */
-proto.ml_pipelines.PlatformDeploymentConfig.prototype.clearExecutorsMap = function() {
+proto.ml_pipelines.PlatformDeploymentConfig.prototype.clearExecutorsMap = function () {
   this.getExecutorsMap().clear();
-  return this;};
-
+  return this;
+};
 
 goog.object.extend(exports, proto.ml_pipelines);

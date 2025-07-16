@@ -1,9 +1,10 @@
 ## CRD controller
+
 This directory contains code for custom Kubernetes CRDs and controllers used by
 the Kubeflow pipelines system. Currently there are 2 such systems:
 
-* ScheduledWorkflow
-* Viewer
+- ScheduledWorkflow
+- Viewer
 
 The following are guidelines on developing and running these controllers.
 
@@ -177,6 +178,7 @@ go run ./controller/viewer/ -kubecfg=$HOME/.kube/config -alsologtostderr=true
 ```
 
 Now, let's create a simple Tensorboard viewer using the supplied sample:
+
 ```
 $ kubectl create -f samples/viewer/mnist.yaml
 viewer.kubeflow.org/viewer-75tkf created
@@ -187,6 +189,7 @@ viewer-75tkf   108s
 ```
 
 Verify that the viewer created a deployment and service to house the Tensorboard instance:
+
 ```
 $ kubectl -n kubeflow get deployments -l app=viewer
 NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
@@ -202,9 +205,11 @@ There are two ways one can access the running Tensorboard instance, via
 as described below.
 
 #### Access via Ambassador
+
 The Tensorboard instance's service has the right annotations to allow it to
 be routed via Ambassador. Set up port forwarding to the Ambassador instance
 in your cluster:
+
 ```
 $ kubectl port-forward -n kubeflow \
   $(kubectl get pods -n kubeflow --selector service=ambassador -o jsonpath='{.items[0].metadata.name}')  \
@@ -221,6 +226,7 @@ corresponds to the new viewer name, and the URL must end with the trailing
 slash.
 
 #### Access via port-forwarding
+
 You can also access the instance directly by setting up port-forwarding to
 the Pod running the Tensorboard instance. Note that the serving path will
 still be under `/tensorboard/viewer-75tkf`, similar to the Ambassador routing
@@ -228,6 +234,7 @@ scenario above.
 
 To set up port-forwarding to the viewer named `viewer-75ktf`, run the
 following command:
+
 ```
 kubectl port-forward -n kubeflow \
   $(kubectl get pods -n kubeflow --selector=viewer=viewer-t6qst -o jsonpath='{.items[0].metadata.name}') \

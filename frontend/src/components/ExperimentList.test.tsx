@@ -54,7 +54,7 @@ describe('ExperimentList', () => {
   }
 
   function mockNExperiments(n: number): void {
-    getExperimentSpy.mockImplementation(id =>
+    getExperimentSpy.mockImplementation((id) =>
       Promise.resolve({
         experiment_id: 'testexperiment' + id,
         display_name: 'experiment with id: testexperiment' + id,
@@ -62,7 +62,7 @@ describe('ExperimentList', () => {
     );
     listExperimentsSpy.mockImplementation(() =>
       Promise.resolve({
-        experiments: range(1, n + 1).map(i => {
+        experiments: range(1, n + 1).map((i) => {
           return {
             experiment_id: 'testexperiment' + i,
             display_name: 'experiment with id: testexperiment' + i,
@@ -259,10 +259,7 @@ describe('ExperimentList', () => {
       },
     ]);
     // Expand the first experiment
-    tree
-      .find('button[aria-label="Expand"]')
-      .at(0)
-      .simulate('click');
+    tree.find('button[aria-label="Expand"]').at(0).simulate('click');
     await listRunsSpy;
     tree.update();
     expect(tree.state()).toHaveProperty('displayExperiments', [
@@ -310,10 +307,7 @@ describe('ExperimentList', () => {
       },
     ]);
     // Expand the first experiment
-    tree
-      .find('button[aria-label="Expand"]')
-      .at(0)
-      .simulate('click');
+    tree.find('button[aria-label="Expand"]').at(0).simulate('click');
     await listRunsSpy;
     tree.update();
     expect(tree.state()).toHaveProperty('displayExperiments', [

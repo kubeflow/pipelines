@@ -9,5 +9,5 @@ roleRef:
   kind: Role
   name: ml-pipeline
 subjects:
-- kind: ServiceAccount
-  name: ml-pipeline
+  - kind: ServiceAccount
+    name: ml-pipeline

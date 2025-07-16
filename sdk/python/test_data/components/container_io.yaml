@@ -20,11 +20,11 @@ deploymentSpec:
     exec-container-io:
       container:
         args:
-        - --output_path
-        - '{{$.outputs.parameters[''output_path''].output_file}}'
+          - --output_path
+          - "{{$.outputs.parameters['output_path'].output_file}}"
         command:
-        - my_program
-        - '{{$.inputs.parameters[''text'']}}'
+          - my_program
+          - "{{$.inputs.parameters['text']}}"
         image: python:3.9
 pipelineInfo:
   name: container-io

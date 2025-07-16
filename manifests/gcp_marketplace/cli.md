@@ -20,10 +20,10 @@ workstation to complete these steps.
 You'll need the following tools in your development environment. If you are
 using Cloud Shell, these tools are installed in your environment by default.
 
--   [gcloud](https://cloud.google.com/sdk/gcloud/)
--   [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/)
--   [docker](https://docs.docker.com/install/)
--   [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+- [gcloud](https://cloud.google.com/sdk/gcloud/)
+- [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/)
+- [docker](https://docs.docker.com/install/)
+- [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
 Configure `gcloud` as a Docker credential helper:
 
@@ -33,9 +33,9 @@ gcloud auth configure-docker
 
 You can install Kubeflow Pipelines in an existing GKE cluster or create a new GKE cluster.
 
-* If you want to **create** a new Google GKE cluster, follow the instructions from the section [Create a GKE cluster](#create-gke-cluster) onwards.
+- If you want to **create** a new Google GKE cluster, follow the instructions from the section [Create a GKE cluster](#create-gke-cluster) onwards.
 
-* If you have an **existing** GKE cluster, ensure that the cluster nodes have a minimum 3 node cluster with each node having a minimum of 2 vCPU and running k8s version 1.9 and follow the instructions from section [Install the application resource definition](#install-application-resource-definition) onwards.
+- If you have an **existing** GKE cluster, ensure that the cluster nodes have a minimum 3 node cluster with each node having a minimum of 2 vCPU and running k8s version 1.9 and follow the instructions from section [Install the application resource definition](#install-application-resource-definition) onwards.
 
 ### <a name="create-gke-cluster"></a>Create a GKE cluster
 
@@ -84,6 +84,7 @@ community. The source code can be found on
 [github.com/kubernetes-sigs/application](https://github.com/kubernetes-sigs/application).
 
 ### Prerequisites for using Role-Based Access Control
+
 You must grant your user the ability to create roles in Kubernetes by running the following command.
 
 ```shell
@@ -94,10 +95,10 @@ kubectl create clusterrolebinding cluster-admin-binding \
 
 You need to run this command once.
 
-
 ## Install the Application
 
 ### Run installer script
+
 Set your application instance name and the Kubernetes namespace to deploy:
 
 ```shell
@@ -109,12 +110,14 @@ export NAMESPACE=<namespace>
 ```
 
 Creat the namespace
+
 ```shell
 kubectl create namespace $NAMESPACE
 ```
 
 Follow the [instruction](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools/blob/master/docs/tool-prerequisites.md#tool-prerequisites) and install mpdev
 TODO: The official mpdev won't work because it doesn't have permission to deploy CRD. The latest unofficial build will have right permission. Remove following instruction when change is in prod.
+
 ```
 BIN_FILE="$HOME/bin/mpdev"
 docker run gcr.io/cloud-marketplace-staging/marketplace-k8s-app-tools/k8s/dev:remove-ui-ownerrefs cat /scripts/dev > "$BIN_FILE"
@@ -137,6 +140,7 @@ kubectl get pods -n $NAMESPACE --watch
 ```
 
 Get public endpoint
+
 ```shell
 kubectl describe configmap inverse-proxy-config -n $NAMESPACE | grep googleusercontent.com
 

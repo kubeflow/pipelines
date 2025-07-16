@@ -5,22 +5,19 @@ on:
     branches: [master]
   pull_request:
     paths:
-      - '.github/workflows/kfp-kubernetes-library-test.yml'
-      - 'sdk/python/**'
-      - 'api/v2alpha1/**'
-      - 'kubernetes_platform/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/kfp-kubernetes-library-test.yml"
+      - "sdk/python/**"
+      - "api/v2alpha1/**"
+      - "kubernetes_platform/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   kfp-kubernetes-library-test:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        python: [
-          { 'version': '3.9' },
-          { 'version': '3.13' }
-        ]
+        python: [{ "version": "3.9" }, { "version": "3.13" }]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

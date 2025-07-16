@@ -4,8 +4,8 @@ outputLocation:
 loggingConfig:
   recordAllRosTopics: False
 maxJobDurationInSeconds: 28800
-iamRole: ''
-failureBehavior: 'Fail'
+iamRole: ""
+failureBehavior: "Fail"
 robotApplications: []
 simulationApplications: []
 dataSources: []

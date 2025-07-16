@@ -42,35 +42,35 @@ deploymentSpec:
     exec-ingestion:
       container:
         args:
-        - --input-location
-        - '{{$.inputs.parameters[''input_location'']}}'
-        - --output-examples
-        - '{{$.outputs.artifacts[''examples''].uri}}'
+          - --input-location
+          - "{{$.inputs.parameters['input_location']}}"
+          - --output-examples
+          - "{{$.outputs.artifacts['examples'].uri}}"
         image: gcr.io/my-project/my-ingestor
     exec-trainer:
       container:
         args:
-        - --input-examples
-        - '{{$.inputs.artifacts[''examples''].uri}}'
-        - --optimizer
-        - '{{$.inputs.parameters[''optimizer'']}}'
-        - --n_epochs
-        - '{{$.inputs.parameters[''n_epochs'']}}'
-        - --output-model
-        - '{{$.outputs.artifacts[''model''].uri}}'
+          - --input-examples
+          - "{{$.inputs.artifacts['examples'].uri}}"
+          - --optimizer
+          - "{{$.inputs.parameters['optimizer']}}"
+          - --n_epochs
+          - "{{$.inputs.parameters['n_epochs']}}"
+          - --output-model
+          - "{{$.outputs.artifacts['model'].uri}}"
         image: gcr.io/my-project/my-fancy-trainer
         resources:
           accelerator:
-            count: '1'
-            resourceCount: '1'
+            count: "1"
+            resourceCount: "1"
             resourceType: tpu-v3
             type: tpu-v3
           cpuLimit: 4.0
           cpuRequest: 2.0
           memoryLimit: 15.032385536
           memoryRequest: 4.294967296
-          resourceCpuLimit: '4'
-          resourceCpuRequest: '2'
+          resourceCpuLimit: "4"
+          resourceCpuRequest: "2"
           resourceMemoryLimit: 14Gi
           resourceMemoryRequest: 4Gi
 pipelineInfo:
@@ -97,7 +97,7 @@ root:
         componentRef:
           name: comp-trainer
         dependentTasks:
-        - ingestion
+          - ingestion
         inputs:
           artifacts:
             examples:

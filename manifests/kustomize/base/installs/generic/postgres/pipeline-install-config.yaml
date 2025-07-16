@@ -12,9 +12,9 @@ data:
     namespace: `kubectl rollout restart deployment -n <your-namespace>`.
   appName: pipeline
   appVersion: 2.0.0
-  dbHost: postgres  # relic to be removed after release
-  dbPort: "5432"    # relic to be removed after release
-  dbType: postgres  
+  dbHost: postgres # relic to be removed after release
+  dbPort: "5432" # relic to be removed after release
+  dbType: postgres
   postgresHost: postgres
   postgresPort: "5432"
   mlmdDb: metadb
@@ -24,7 +24,7 @@ data:
   ## defaultPipelineRoot: Optional. Default pipeline root in v2 compatible mode.
   ## https://www.kubeflow.org/docs/components/pipelines/sdk/v2/v2-compatibility/
   ##
-  ## If the field is not set, kfp-launcher configmaps won't be created and 
+  ## If the field is not set, kfp-launcher configmaps won't be created and
   ## v2 compatible mode defaults to minio://mlpipeline/v2/artifacts as pipeline
   ## root.
   ##
@@ -61,20 +61,20 @@ data:
   ## [Alpha](https://github.com/kubeflow/pipelines/blob/master/docs/release/feature-stages.md#alpha)
   cronScheduleTimezone: "UTC"
   ## cacheImage is the image that the mutating webhook will use to patch
-  ## cached steps with. Will be used to echo a message announcing that 
-  ## the cached step result will be used. If not set it will default to 
+  ## cached steps with. Will be used to echo a message announcing that
+  ## the cached step result will be used. If not set it will default to
   ## 'ghcr.io/containerd/busybox'
   cacheImage: "ghcr.io/containerd/busybox"
   ## cacheNodeRestrictions the dummy container runing if output is cached
   ## will run with the same affinity and node selector as the default pipeline
-  ## step. This is defaulted to 'false' to allow the pod to be scheduled on 
+  ## step. This is defaulted to 'false' to allow the pod to be scheduled on
   ## any node and avoid defaulting to specific nodes. Allowed values are:
   ## 'false' and 'true'.
   cacheNodeRestrictions: "false"
   ## MAXIMUM_CACHE_STALENESS configures caching according to
   ## https://www.kubeflow.org/docs/components/pipelines/overview/caching/ and
   ## https://www.kubeflow.org/docs/components/pipelines/overview/caching-v2/.
-  ## Larger than MAXIMUM_CACHE_STALENESS per pipeline user set values are 
+  ## Larger than MAXIMUM_CACHE_STALENESS per pipeline user set values are
   ## reduced to MAXIMUM_CACHE_STALENESS.
   ## The administrator of the storage backend can rely on it to delete old cache
   ## artifacts.

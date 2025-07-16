@@ -18,17 +18,20 @@ spec:
       containers:
         - image: gcr.io/cloudsql-docker/gce-proxy:1.25.0
           name: cloudsqlproxy
-          env:            
+          env:
             - name: GCP_CLOUDSQL_INSTANCE_NAME
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: gcsCloudSqlInstanceName
-          command: ["/cloud_sql_proxy",
-                    "-dir=/cloudsql",                    
-                    "-instances=$(GCP_CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
-                    "-use_http_health_check",
-                    "term_timeout=10s"]
+          command:
+            [
+              "/cloud_sql_proxy",
+              "-dir=/cloudsql",
+              "-instances=$(GCP_CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
+              "-use_http_health_check",
+              "term_timeout=10s",
+            ]
           # set term_timeout if require graceful handling of shutdown
           # NOTE: proxy will stop accepting new connections; only wait on existing connections
           lifecycle:
@@ -36,7 +39,7 @@ spec:
               exec:
                 # (optional) add a preStop hook so that termination is delayed
                 # this is required if your server still require new connections (e.g., connection pools)
-                command: ['sleep', '10']
+                command: ["sleep", "10"]
           # Liveness probe configuration is adviced by Cloud SQL Proxy examples:
           # https://github.com/GoogleCloudPlatform/cloudsql-proxy/tree/main/examples/k8s-health-check
           # For details, see https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/

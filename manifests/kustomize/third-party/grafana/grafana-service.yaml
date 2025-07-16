@@ -8,7 +8,7 @@ spec:
   selector:
     app: grafana
   ports:
-  - name: grafanaui
-    protocol: TCP
-    port: 3000
-    targetPort: 3000
+    - name: grafanaui
+      protocol: TCP
+      port: 3000
+      targetPort: 3000

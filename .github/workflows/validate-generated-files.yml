@@ -5,20 +5,20 @@ on:
       - master
   pull_request:
     paths:
-      - '.github/workflows/validate-generated-files.yml'
-      - 'backend/api/**/*.proto'
-      - 'backend/api/**/go_http_client/**'
-      - 'backend/api/**/go_client/**'
-      - 'backend/api/**/python_http_client/**'
-      - 'backend/api/**/swagger/**'
-      - 'api/**/*.proto'
-      - 'api/**/*.go'
-      - 'kubernetes_platform/**/*.proto'
-      - 'kubernetes_platform/**/*.go'
-      - 'backend/src/crd/kubernetes/**/*.go'
-      - 'manifests/kustomize/base/crds/*.yaml'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/validate-generated-files.yml"
+      - "backend/api/**/*.proto"
+      - "backend/api/**/go_http_client/**"
+      - "backend/api/**/go_client/**"
+      - "backend/api/**/python_http_client/**"
+      - "backend/api/**/swagger/**"
+      - "api/**/*.proto"
+      - "api/**/*.go"
+      - "kubernetes_platform/**/*.proto"
+      - "kubernetes_platform/**/*.go"
+      - "backend/src/crd/kubernetes/**/*.go"
+      - "manifests/kustomize/base/crds/*.yaml"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   validate-generated-files:
@@ -33,12 +33,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.9
-      
+
       - name: Install Dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y protobuf-compiler jq default-jdk
@@ -47,7 +47,7 @@ jobs:
       - name: Generate API proto files
         working-directory: ./api
         run: make clean all
-  
+
       - name: Generate kfp-kubernetes proto files from source
         working-directory: ./kubernetes_platform
         run: make clean all

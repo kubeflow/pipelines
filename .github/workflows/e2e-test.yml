@@ -6,24 +6,24 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/e2e-test.yml'
-      - '.github/resources/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'backend/**'
-      - 'frontend/**'
-      - 'proxy/**'
-      - 'manifests/kustomize/**'
-      - 'test/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/e2e-test.yml"
+      - ".github/resources/**"
+      - "go.mod"
+      - "go.sum"
+      - "backend/**"
+      - "frontend/**"
+      - "proxy/**"
+      - "manifests/kustomize/**"
+      - "test/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   initialization-tests-v1:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: Initialization tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: Initialization tests v2 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -123,7 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: API integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -179,8 +179,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        pipeline_store: [ "database", "kubernetes" ]
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        pipeline_store: ["database", "kubernetes"]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -238,7 +238,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.31.0" ]
+        k8s_version: ["v1.31.0"]
     name: API integration tests v2 with proxy - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -254,7 +254,7 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-          proxy: 'true'
+          proxy: "true"
         continue-on-error: true
 
       - name: Forward API port
@@ -296,7 +296,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.31.0" ]
+        k8s_version: ["v1.31.0"]
     name: API integration tests v2 with cache disabled - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -312,7 +312,7 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-          cache_enabled: 'false'
+          cache_enabled: "false"
         continue-on-error: true
 
       - name: Forward API port
@@ -353,7 +353,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -410,7 +410,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: Basic Sample Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -449,7 +449,7 @@ jobs:
       - name: Generate API proto files
         working-directory: ./api
         run: make python
-      
+
       - name: Install local kfp from source
         run: python3 -m pip install -I sdk/python
 

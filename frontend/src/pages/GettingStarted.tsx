@@ -99,10 +99,10 @@ export class GettingStarted extends Page<{}, { links: string[] }> {
   // token size sort filter
   public async componentDidMount() {
     const ids = await Promise.all(
-      DEMO_PIPELINES.map(name =>
+      DEMO_PIPELINES.map((name) =>
         Apis.pipelineServiceApiV2
           .listPipelines(undefined, undefined, 10, undefined, createAndEncodeFilter(name))
-          .then(pipelineList => {
+          .then((pipelineList) => {
             const pipelines = pipelineList.pipelines;
             if (pipelines?.length !== 1) {
               // This should be accurate, do not accept ambiguous results.

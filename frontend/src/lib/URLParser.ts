@@ -59,7 +59,7 @@ export class URLParser {
     return (
       '?' +
       Object.keys(obj)
-        .map(k => k + '=' + obj[k])
+        .map((k) => k + '=' + obj[k])
         .join('&')
     );
   }

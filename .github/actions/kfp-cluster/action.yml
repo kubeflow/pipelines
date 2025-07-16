@@ -7,7 +7,7 @@ inputs:
     required: true
   pipeline_store:
     description: "Flag to deploy KFP with K8s Native API"
-    default: 'database'
+    default: "database"
     required: false
   proxy:
     description: "If KFP should be deployed with proxy configuration"
@@ -16,7 +16,7 @@ inputs:
   cache_enabled:
     description: "If KFP should be deployed with cache enabled globally"
     required: false
-    default: 'true'
+    default: "true"
 
 runs:
   using: "composite"
@@ -56,5 +56,5 @@ runs:
         elif [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
           ARGS="${ARGS}  --deploy-k8s-native"
         fi
-        
+
         ./.github/resources/scripts/deploy-kfp.sh $ARGS

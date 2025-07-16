@@ -120,18 +120,16 @@ describe('GettingStarted page', () => {
 
   it('fallbacks to show pipeline list page if request failed', async () => {
     let count = 0;
-    pipelineListSpy.mockImplementation(
-      (): Promise<V2beta1ListPipelinesResponse> => {
-        ++count;
-        if (count === 1) {
-          return Promise.reject(new Error('Mocked error'));
-        }
-        return Promise.resolve({
-          pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
-          total_size: 1,
-        });
-      },
-    );
+    pipelineListSpy.mockImplementation((): Promise<V2beta1ListPipelinesResponse> => {
+      ++count;
+      if (count === 1) {
+        return Promise.reject(new Error('Mocked error'));
+      }
+      return Promise.resolve({
+        pipelines: [{ pipeline_id: `pipeline-id-${count}` }],
+        total_size: 1,
+      });
+    });
     const { container } = render(<GettingStarted {...generateProps()} />);
     const base = container.innerHTML;
     await TestUtils.flushPromises();

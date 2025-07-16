@@ -7,5 +7,5 @@ roleRef:
   kind: ClusterRole
   name: kubeflow-metacontroller
 subjects:
-- kind: ServiceAccount
-  name: meta-controller-service
+  - kind: ServiceAccount
+    name: meta-controller-service

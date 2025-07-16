@@ -3,7 +3,7 @@ kind: RoleBinding
 metadata: # kpt-merge: /github.com
   name: github.com
   annotations:
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|RoleBinding|default|github.com'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|RoleBinding|default|github.com"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

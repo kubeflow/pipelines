@@ -169,7 +169,7 @@ describe('CompareV2', () => {
   it('getRun is called with query param IDs', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -185,7 +185,7 @@ describe('CompareV2', () => {
   it('Clear banner when getRun and MLMD requests succeed', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -194,13 +194,13 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [newMockArtifact(1), newMockArtifact(2), newMockArtifact(3)];
@@ -235,7 +235,7 @@ describe('CompareV2', () => {
   it('Log warning when artifact with specified ID is not found', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -244,13 +244,13 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [newMockArtifact(1), newMockArtifact(3)];
@@ -283,7 +283,7 @@ describe('CompareV2', () => {
   it('Show page error on page when getRun request fails', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation(_ => {
+    getRunSpy.mockImplementation((_) => {
       throw {
         text: () => Promise.resolve('test error'),
       };
@@ -308,7 +308,7 @@ describe('CompareV2', () => {
   it('Failed MLMD request creates error banner', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
     jest
       .spyOn(mlmdUtils, 'getKfpV2RunContext')
       .mockRejectedValue(new Error('Not connected to MLMD'));
@@ -332,7 +332,7 @@ describe('CompareV2', () => {
   it('Failed getArtifactTypes request creates error banner', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     jest.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
     jest.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
@@ -359,7 +359,7 @@ describe('CompareV2', () => {
   it('Allows individual sections to be collapsed and expanded', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -390,7 +390,7 @@ describe('CompareV2', () => {
   it('All runs are initially selected', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -401,18 +401,18 @@ describe('CompareV2', () => {
 
     // Four checkboxes: three runs and one table header
     let runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
-    expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(4);
+    expect(runCheckboxes.filter((r) => r.nodeName === 'INPUT')).toHaveLength(4);
 
     // Uncheck all run checkboxes
     fireEvent.click(runCheckboxes[0]);
     runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
-    expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(0);
+    expect(runCheckboxes.filter((r) => r.nodeName === 'INPUT')).toHaveLength(0);
   });
 
   it('Parameters and Scalar metrics tab initially enabled with loading then error, and switch tabs', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     render(
       <CommonTestWrapper>
@@ -446,7 +446,7 @@ describe('CompareV2', () => {
   it('Metrics tabs have no content loaded as artifacts are not present', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     jest.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
     jest.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
@@ -481,7 +481,7 @@ describe('CompareV2', () => {
   it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -490,14 +490,14 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [
@@ -558,7 +558,7 @@ describe('CompareV2', () => {
   it('Confusion matrix shown on select and removed after run is de-selected', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -567,14 +567,14 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [
@@ -620,7 +620,7 @@ describe('CompareV2', () => {
     // De-selecting the relevant run will remove the confusion matrix display.
     const runCheckboxes = screen
       .queryAllByRole('checkbox', { checked: true })
-      .filter(r => r.nodeName === 'INPUT');
+      .filter((r) => r.nodeName === 'INPUT');
     fireEvent.click(runCheckboxes[1]);
     screen.getByText(/Confusion Matrix: artifactName/);
     fireEvent.click(runCheckboxes[2]);
@@ -630,7 +630,7 @@ describe('CompareV2', () => {
   it('One ROC Curve shown on select, hidden on run de-select', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -639,14 +639,14 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [
@@ -683,7 +683,7 @@ describe('CompareV2', () => {
 
     const runCheckboxes = screen
       .queryAllByRole('checkbox', { checked: true })
-      .filter(r => r.nodeName === 'INPUT');
+      .filter((r) => r.nodeName === 'INPUT');
     fireEvent.click(runCheckboxes[1]);
     screen.getByText('ROC Curve: artifactName');
     fireEvent.click(runCheckboxes[2]);
@@ -693,7 +693,7 @@ describe('CompareV2', () => {
   it('Multiple ROC Curves shown on select', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApiV2, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run_id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run_id === id));
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
@@ -702,14 +702,14 @@ describe('CompareV2', () => {
     ];
     const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
+      Promise.resolve(contexts.find((c) => c.getName() === runID)),
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
     const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(300)]];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+      Promise.resolve(executions.find((e) => e[0].getId() === context.getId())),
     );
 
     const artifacts = [

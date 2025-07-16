@@ -7,5 +7,5 @@ roleRef:
   kind: Role
   name: pipeline-runner
 subjects:
-- kind: ServiceAccount
-  name: pipeline-runner
+  - kind: ServiceAccount
+    name: pipeline-runner

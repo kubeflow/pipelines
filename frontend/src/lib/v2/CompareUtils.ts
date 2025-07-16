@@ -106,14 +106,14 @@ export const getParamsTableProps = (runs: V2beta1Run[]): CompareTableProps | und
   }
 
   const yLabels = chain(flatten(parameterNames))
-    .countBy(p => p) // count by parameter name
+    .countBy((p) => p) // count by parameter name
     .map((k, v) => ({ name: v, count: k })) // convert to counter objects
     .orderBy('count', 'desc') // sort on count field, descending
-    .map(o => o.name)
+    .map((o) => o.name)
     .value();
 
-  const rows: string[][] = yLabels.map(yLabel => {
-    return runs.map(run => {
+  const rows: string[][] = yLabels.map((yLabel) => {
+    return runs.map((run) => {
       const dataValue = dataMap[run.run_id!][yLabel];
       return dataValue === undefined ? '' : JSON.stringify(dataValue);
     });
@@ -140,12 +140,12 @@ export const getValidRocCurveArtifactData = (
   const validRocCurveIdSet: Set<string> = new Set();
   const fullArtifactPathMap: FullArtifactPathMap = {};
   const validLinkedArtifacts = flatMapDeep(
-    rocCurveRunArtifacts.map(runArtifact =>
-      runArtifact.executionArtifacts.map(executionArtifact => {
+    rocCurveRunArtifacts.map((runArtifact) =>
+      runArtifact.executionArtifacts.map((executionArtifact) => {
         const validArtifacts = getValidArtifacts(executionArtifact);
 
         // Save the names and IDs for the run, execution, and linked artifact to a map.
-        validArtifacts.forEach(validArtifact => {
+        validArtifacts.forEach((validArtifact) => {
           const rocCurveId = getRocCurveId(validArtifact);
           fullArtifactPathMap[rocCurveId] = getFullArtifactPath(
             runArtifact.run,
@@ -168,7 +168,7 @@ export const getValidRocCurveArtifactData = (
 // Get the valid ROC Curve linked artifacts (those which have confidence metrics data).
 const getValidArtifacts = (executionArtifact: ExecutionArtifact): LinkedArtifact[] => {
   const validLinkedArtifacts: LinkedArtifact[] = [];
-  executionArtifact.linkedArtifacts.forEach(linkedArtifact => {
+  executionArtifact.linkedArtifacts.forEach((linkedArtifact) => {
     const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
     const confidenceMetrics = customProperties
       .get('confidenceMetrics')

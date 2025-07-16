@@ -6,11 +6,11 @@ on:
 
   pull_request:
     paths:
-      - 'sdk/python/**'
-      - 'test/presubmit-isort-sdk.sh'
-      - '.github/workflows/sdk-isort.yml'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - "sdk/python/**"
+      - "test/presubmit-isort-sdk.sh"
+      - ".github/workflows/sdk-isort.yml"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   test-isort-kfp-sdk:

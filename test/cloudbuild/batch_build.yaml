@@ -2,48 +2,126 @@ steps:
   - id: "persistenceagent"
     name: "gcr.io/cloud-builders/docker"
     args:
-      ["build", "-t", "$_GCR_BASE/persistenceagent", "-f", "backend/Dockerfile.persistenceagent", "."]
+      [
+        "build",
+        "-t",
+        "$_GCR_BASE/persistenceagent",
+        "-f",
+        "backend/Dockerfile.persistenceagent",
+        ".",
+      ]
     waitFor: ["-"]
   - id: "scheduledworkflow"
     name: "gcr.io/cloud-builders/docker"
     args:
-      ["build", "-t", "$_GCR_BASE/scheduledworkflow", "-f", "backend/Dockerfile.scheduledworkflow", "."]
+      [
+        "build",
+        "-t",
+        "$_GCR_BASE/scheduledworkflow",
+        "-f",
+        "backend/Dockerfile.scheduledworkflow",
+        ".",
+      ]
     waitFor: ["-"]
   - id: "frontend"
     name: "gcr.io/cloud-builders/docker"
     args:
-      ["build", "-t", "$_GCR_BASE/frontend", "-f", "frontend/Dockerfile", '--build-arg', 'COMMIT_HASH=abcdefg', '--build-arg', 'TAG_NAME=test', "."]
+      [
+        "build",
+        "-t",
+        "$_GCR_BASE/frontend",
+        "-f",
+        "frontend/Dockerfile",
+        "--build-arg",
+        "COMMIT_HASH=abcdefg",
+        "--build-arg",
+        "TAG_NAME=test",
+        ".",
+      ]
     waitFor: ["-"]
   - id: "viewer-crd-controller"
     name: "gcr.io/cloud-builders/docker"
     args:
-      ["build", "-t", "$_GCR_BASE/viewer-crd-controller", "-f", "backend/Dockerfile.viewercontroller", "."]
+      [
+        "build",
+        "-t",
+        "$_GCR_BASE/viewer-crd-controller",
+        "-f",
+        "backend/Dockerfile.viewercontroller",
+        ".",
+      ]
     waitFor: ["-"]
   - id: "visualization-server"
     name: "gcr.io/cloud-builders/docker"
     args:
-      ["build", "-t", "$_GCR_BASE/visualization-server", "-f", "backend/Dockerfile.visualization", "."]
+      [
+        "build",
+        "-t",
+        "$_GCR_BASE/visualization-server",
+        "-f",
+        "backend/Dockerfile.visualization",
+        ".",
+      ]
     waitFor: ["-"]
   - id: "inverse-proxy-agent"
     name: "gcr.io/cloud-builders/docker"
     args:
-      ["build", "-t", "$_GCR_BASE/inverse-proxy-agent", "-f", "proxy/Dockerfile", "./proxy"]
+      [
+        "build",
+        "-t",
+        "$_GCR_BASE/inverse-proxy-agent",
+        "-f",
+        "proxy/Dockerfile",
+        "./proxy",
+      ]
     waitFor: ["-"]
-  - id: 'buildMetadataWriter'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/metadata-writer', '-f', 'backend/metadata_writer/Dockerfile', '.']
+  - id: "buildMetadataWriter"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "$_GCR_BASE/metadata-writer",
+        "-f",
+        "backend/metadata_writer/Dockerfile",
+        ".",
+      ]
     waitFor: ["-"]
-  - id: 'buildCacheServer'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/cache-server', '-f', 'backend/Dockerfile.cacheserver', '.']
+  - id: "buildCacheServer"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "$_GCR_BASE/cache-server",
+        "-f",
+        "backend/Dockerfile.cacheserver",
+        ".",
+      ]
     waitFor: ["-"]
-  - id: 'buildCacheDeployer'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/cache-deployer', '-f', 'backend/src/cache/deployer/Dockerfile', '.']
+  - id: "buildCacheDeployer"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "$_GCR_BASE/cache-deployer",
+        "-f",
+        "backend/src/cache/deployer/Dockerfile",
+        ".",
+      ]
     waitFor: ["-"]
-  - id: 'buildMetadataEnvoy'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', '$_GCR_BASE/metadata-envoy', '-f', 'third_party/metadata_envoy/Dockerfile', '.']
+  - id: "buildMetadataEnvoy"
+    name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "$_GCR_BASE/metadata-envoy",
+        "-f",
+        "third_party/metadata_envoy/Dockerfile",
+        ".",
+      ]
     waitFor: ["-"]
 options:
   machineType: N1_HIGHCPU_8 # use a fast machine to build because there a lot of work

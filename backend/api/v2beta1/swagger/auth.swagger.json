@@ -4,16 +4,9 @@
     "title": "backend/api/v2beta1/auth.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v2beta1/auth": {
       "get": {
@@ -44,10 +37,7 @@
             "in": "query",
             "required": false,
             "type": "string",
-            "enum": [
-              "UNASSIGNED_RESOURCES",
-              "VIEWERS"
-            ],
+            "enum": ["UNASSIGNED_RESOURCES", "VIEWERS"],
             "default": "UNASSIGNED_RESOURCES"
           },
           {
@@ -55,39 +45,24 @@
             "in": "query",
             "required": false,
             "type": "string",
-            "enum": [
-              "UNASSIGNED_VERB",
-              "CREATE",
-              "GET",
-              "DELETE"
-            ],
+            "enum": ["UNASSIGNED_VERB", "CREATE", "GET", "DELETE"],
             "default": "UNASSIGNED_VERB"
           }
         ],
-        "tags": [
-          "AuthService"
-        ]
+        "tags": ["AuthService"]
       }
     }
   },
   "definitions": {
     "AuthorizeRequestResources": {
       "type": "string",
-      "enum": [
-        "UNASSIGNED_RESOURCES",
-        "VIEWERS"
-      ],
+      "enum": ["UNASSIGNED_RESOURCES", "VIEWERS"],
       "default": "UNASSIGNED_RESOURCES",
       "description": "Type of resources in pipelines system."
     },
     "AuthorizeRequestVerb": {
       "type": "string",
-      "enum": [
-        "UNASSIGNED_VERB",
-        "CREATE",
-        "GET",
-        "DELETE"
-      ],
+      "enum": ["UNASSIGNED_VERB", "CREATE", "GET", "DELETE"],
       "default": "UNASSIGNED_VERB",
       "description": "Type of verbs that act on the resources."
     },

@@ -4,12 +4,8 @@
     "title": "backend/api/v1beta1/task.proto",
     "version": "version not set"
   },
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v1alpha1/tasks": {
       "get": {
@@ -83,9 +79,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "TaskService"
-        ]
+        "tags": ["TaskService"]
       },
       "post": {
         "summary": "Creates a new task.",
@@ -114,9 +108,7 @@
             }
           }
         ],
-        "tags": [
-          "TaskService"
-        ]
+        "tags": ["TaskService"]
       }
     }
   },

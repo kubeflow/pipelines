@@ -29,7 +29,7 @@ static_resources:
                           route:
                             cluster: metadata-cluster
                             max_stream_duration:
-                              grpc_timeout_header_max: '0s'
+                              grpc_timeout_header_max: "0s"
                           typed_per_filter_config:
                             envoy.filter.http.cors:
                               "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.CorsPolicy
@@ -55,12 +55,12 @@ static_resources:
       connect_timeout: 30.0s
       type: logical_dns
       typed_extension_protocol_options:
-        envoy.extensions.upstreams.http.v3.HttpProtocolOptions: 
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
           "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
           explicit_http_config:
             http2_protocol_options: {}
       lb_policy: round_robin
-      load_assignment: 
+      load_assignment:
         cluster_name: metadata-grpc
         endpoints:
           - lb_endpoints:

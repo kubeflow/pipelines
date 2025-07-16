@@ -12,7 +12,10 @@ outputs:
 implementation:
   container:
     image: gcr.io/my-project/my-ingestor
-    args: [
-      --input-location, {inputValue: input_location},
-      --output-examples, {outputUri: examples},
-    ]
+    args:
+      [
+        --input-location,
+        { inputValue: input_location },
+        --output-examples,
+        { outputUri: examples },
+      ]

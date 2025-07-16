@@ -40,14 +40,15 @@ components:
       parameters:
         autodetect_csv_schema:
           defaultValue: false
-          description: 'If True, infers the column types
+          description: "If True, infers the column types
 
-            when importing CSVs into BigQuery.'
+            when importing CSVs into BigQuery."
           isOptional: true
           parameterType: BOOLEAN
         bigquery_staging_full_dataset_id:
-          defaultValue: ''
-          description: Dataset in "projectId.datasetId" format for storing intermediate-FTE
+          defaultValue: ""
+          description:
+            Dataset in "projectId.datasetId" format for storing intermediate-FTE
             BigQuery tables.  If the specified dataset does not exist in BigQuery,
             FTE will create the dataset. If no bigquery_staging_full_dataset_id is
             specified, all intermediate tables will be stored in a dataset created
@@ -57,42 +58,46 @@ components:
           isOptional: true
           parameterType: STRING
         data_source_bigquery_table_path:
-          defaultValue: ''
+          defaultValue: ""
           description: BigQuery input data source to run feature transform on.
           isOptional: true
           parameterType: STRING
         data_source_csv_filenames:
-          defaultValue: ''
+          defaultValue: ""
           description: CSV input data source to run feature transform on.
           isOptional: true
           parameterType: STRING
         dataflow_disk_size_gb:
           defaultValue: 40.0
-          description: The disk size, in gigabytes, to use on each Dataflow worker
+          description:
+            The disk size, in gigabytes, to use on each Dataflow worker
             instance. If not set, default to 40.
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_machine_type:
           defaultValue: n1-standard-16
-          description: The machine type used for dataflow jobs. If not set, default
+          description:
+            The machine type used for dataflow jobs. If not set, default
             to n1-standard-16.
           isOptional: true
           parameterType: STRING
         dataflow_max_num_workers:
           defaultValue: 25.0
-          description: The number of workers to run the dataflow job. If not set,
+          description:
+            The number of workers to run the dataflow job. If not set,
             default to 25.
           isOptional: true
           parameterType: NUMBER_INTEGER
         dataflow_service_account:
-          defaultValue: ''
+          defaultValue: ""
           description: Custom service account to run Dataflow jobs.
           isOptional: true
           parameterType: STRING
         dataflow_subnetwork:
-          defaultValue: ''
-          description: 'Dataflow''s fully qualified subnetwork name, when empty the
-            default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications'
+          defaultValue: ""
+          description:
+            "Dataflow's fully qualified subnetwork name, when empty the
+            default subnetwork will be used. More details: https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications"
           isOptional: true
           parameterType: STRING
         dataflow_use_public_ips:
@@ -102,7 +107,8 @@ components:
           parameterType: BOOLEAN
         dataset_level_custom_transformation_definitions:
           defaultValue: []
-          description: 'List of dataset-level custom transformation definitions.  Custom,
+          description:
+            'List of dataset-level custom transformation definitions.  Custom,
             bring-your-own dataset-level transform functions, where users can define
             and import their own transform function and use it with FTE''s built-in
             transformations. Using custom transformations is an experimental feature
@@ -118,7 +124,8 @@ components:
           parameterType: LIST
         dataset_level_transformations:
           defaultValue: []
-          description: "List of dataset-level transformations.\n[ { \"transformation\"\
+          description:
+            "List of dataset-level transformations.\n[ { \"transformation\"\
             : \"Join\", \"right_table_uri\": \"bq://test-project.dataset_test.table\"\
             , \"join_keys\": [[\"join_key_col\", \"join_key_col\"]] }, ... ]  Additional\
             \ information about FTE's currently supported built-in\n    transformations:\n\
@@ -169,13 +176,14 @@ components:
           isOptional: true
           parameterType: LIST
         encryption_spec_key_name:
-          defaultValue: ''
+          defaultValue: ""
           description: Customer-managed encryption key.
           isOptional: true
           parameterType: STRING
         feature_selection_algorithm:
           defaultValue: AMI
-          description: "The algorithm of feature selection. One of \"AMI\", \"CMIM\"\
+          description:
+            "The algorithm of feature selection. One of \"AMI\", \"CMIM\"\
             , \"JMIM\", \"MRMR\", default to be \"AMI\". The algorithms available\
             \ are: AMI(Adjusted Mutual Information):\nReference: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.adjusted_mutual_info_score.html\
             \ Arrays are not yet supported in this algorithm.  CMIM(Conditional Mutual\
@@ -195,7 +203,8 @@ components:
           parameterType: STRING
         feature_selection_execution_engine:
           defaultValue: dataflow
-          description: Execution engine to run feature selection, value can be dataflow,
+          description:
+            Execution engine to run feature selection, value can be dataflow,
             bigquery.
           isOptional: true
           parameterType: STRING
@@ -221,55 +230,56 @@ components:
           parameterType: NUMBER_INTEGER
         forecasting_holiday_regions:
           defaultValue: []
-          description: 'The geographical region based on which the holiday effect
+          description:
+            "The geographical region based on which the holiday effect
             is applied in modeling by adding holiday categorical array feature that
             include all holidays matching the date. This option only allowed when
             data granularity is day. By default, holiday effect modeling is disabled.
             To turn it on, specify the holiday region using this option.
 
-            Top level: * ''GLOBAL''
+            Top level: * 'GLOBAL'
 
-            Second level: continental regions: * ''NA'': North America
+            Second level: continental regions: * 'NA': North America
 
-            * ''JAPAC'': Japan and Asia Pacific
+            * 'JAPAC': Japan and Asia Pacific
 
-            * ''EMEA'': Europe, the Middle East and Africa
+            * 'EMEA': Europe, the Middle East and Africa
 
-            * ''LAC'': Latin America and the Caribbean
+            * 'LAC': Latin America and the Caribbean
 
             Third level: countries from ISO 3166-1 Country codes.
 
-            Valid regions: * ''GLOBAL'' * ''NA'' * ''JAPAC'' * ''EMEA'' * ''LAC''
-            * ''AE''
+            Valid regions: * 'GLOBAL' * 'NA' * 'JAPAC' * 'EMEA' * 'LAC'
+            * 'AE'
 
-            * ''AR'' * ''AT'' * ''AU'' * ''BE'' * ''BR'' * ''CA'' * ''CH'' * ''CL''
-            * ''CN'' * ''CO''
+            * 'AR' * 'AT' * 'AU' * 'BE' * 'BR' * 'CA' * 'CH' * 'CL'
+            * 'CN' * 'CO'
 
-            * ''CZ'' * ''DE'' * ''DK'' * ''DZ'' * ''EC'' * ''EE'' * ''EG'' * ''ES''
-            * ''FI'' * ''FR''
+            * 'CZ' * 'DE' * 'DK' * 'DZ' * 'EC' * 'EE' * 'EG' * 'ES'
+            * 'FI' * 'FR'
 
-            * ''GB'' * ''GR'' * ''HK'' * ''HU'' * ''ID'' * ''IE'' * ''IL'' * ''IN''
-            * ''IR'' * ''IT''
+            * 'GB' * 'GR' * 'HK' * 'HU' * 'ID' * 'IE' * 'IL' * 'IN'
+            * 'IR' * 'IT'
 
-            * ''JP'' * ''KR'' * ''LV'' * ''MA'' * ''MX'' * ''MY'' * ''NG'' * ''NL''
-            * ''NO'' * ''NZ''
+            * 'JP' * 'KR' * 'LV' * 'MA' * 'MX' * 'MY' * 'NG' * 'NL'
+            * 'NO' * 'NZ'
 
-            * ''PE'' * ''PH'' * ''PK'' * ''PL'' * ''PT'' * ''RO'' * ''RS'' * ''RU''
-            * ''SA'' * ''SE''
+            * 'PE' * 'PH' * 'PK' * 'PL' * 'PT' * 'RO' * 'RS' * 'RU'
+            * 'SA' * 'SE'
 
-            * ''SG'' * ''SI'' * ''SK'' * ''TH'' * ''TR'' * ''TW'' * ''UA'' * ''US''
-            * ''VE'' * ''VN''
+            * 'SG' * 'SI' * 'SK' * 'TH' * 'TR' * 'TW' * 'UA' * 'US'
+            * 'VE' * 'VN'
 
-            * ''ZA'''
+            * 'ZA'"
           isOptional: true
           parameterType: LIST
         forecasting_predefined_window_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Forecasting predefined window column.
           isOptional: true
           parameterType: STRING
         forecasting_time_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Forecasting time column.
           isOptional: true
           parameterType: STRING
@@ -279,7 +289,8 @@ components:
           isOptional: true
           parameterType: LIST
         forecasting_time_series_identifier_column:
-          description: '[Deprecated] A forecasting time series identifier column.
+          description:
+            '[Deprecated] A forecasting time series identifier column.
             Raises an exception if used - use the "time_series_identifier_column"
             field instead.'
           isOptional: true
@@ -316,7 +327,7 @@ components:
           isOptional: true
           parameterType: NUMBER_DOUBLE
         legacy_transformations_path:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         location:
@@ -324,13 +335,15 @@ components:
           parameterType: STRING
         materialized_examples_format:
           defaultValue: tfrecords_gzip
-          description: The format to use for the materialized examples. Should be
+          description:
+            The format to use for the materialized examples. Should be
             either 'tfrecords_gzip' (default) or 'parquet'.
           isOptional: true
           parameterType: STRING
         max_selected_features:
           defaultValue: 1000.0
-          description: Maximum number of features to select.  If specified, the transform
+          description:
+            Maximum number of features to select.  If specified, the transform
             config will be purged by only using the selected features that ranked
             top in the feature ranking, which has the ranking value for all supported
             features. If the number of input features is smaller than max_selected_features
@@ -340,9 +353,10 @@ components:
           isOptional: true
           parameterType: NUMBER_INTEGER
         model_type:
-          description: 'Model type, which we wish to engineer features for. Can be
+          description:
+            "Model type, which we wish to engineer features for. Can be
             one of: neural_network, boosted_trees, l2l, seq2seq, tft, or tide. Defaults
-            to the empty value, `None`.'
+            to the empty value, `None`."
           isOptional: true
           parameterType: STRING
         multimodal_image_columns:
@@ -362,18 +376,20 @@ components:
           parameterType: LIST
         multimodal_timeseries_columns:
           defaultValue: []
-          description: List of multimodal timeseries columns. Defaults to an empty
+          description:
+            List of multimodal timeseries columns. Defaults to an empty
             list
           isOptional: true
           parameterType: LIST
         predefined_split_key:
-          defaultValue: ''
+          defaultValue: ""
           description: Predefined split key.
           isOptional: true
           parameterType: STRING
         prediction_type:
-          defaultValue: ''
-          description: Model prediction type. One of "classification", "regression",
+          defaultValue: ""
+          description:
+            Model prediction type. One of "classification", "regression",
             "time_series".
           isOptional: true
           parameterType: STRING
@@ -385,7 +401,8 @@ components:
           parameterType: STRING
         run_distill:
           defaultValue: false
-          description: (deprecated) Whether the distillation should be applied to
+          description:
+            (deprecated) Whether the distillation should be applied to
             the training.
           isOptional: true
           parameterType: BOOLEAN
@@ -396,18 +413,19 @@ components:
           parameterType: BOOLEAN
         stats_gen_execution_engine:
           defaultValue: dataflow
-          description: 'Execution engine to perform statistics generation. Can be
+          description:
+            'Execution engine to perform statistics generation. Can be
             one of: "dataflow" (by default) or "bigquery". Using "bigquery" as the
             execution engine is experimental.'
           isOptional: true
           parameterType: STRING
         stratified_split_key:
-          defaultValue: ''
+          defaultValue: ""
           description: Stratified split key.
           isOptional: true
           parameterType: STRING
         target_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Target column of input data.
           isOptional: true
           parameterType: STRING
@@ -422,7 +440,8 @@ components:
           parameterType: NUMBER_DOUBLE
         tf_auto_transform_features:
           defaultValue: {}
-          description: 'Dict mapping auto and/or type-resolutions to TF transform
+          description:
+            'Dict mapping auto and/or type-resolutions to TF transform
             features. FTE will automatically configure a set of built-in transformations
             for each feature based on its data statistics. If users do not want auto
             type resolution, but want the set of transformations for a given type
@@ -436,7 +455,8 @@ components:
           parameterType: STRUCT
         tf_custom_transformation_definitions:
           defaultValue: []
-          description: 'List of TensorFlow-based custom transformation definitions.  Custom,
+          description:
+            'List of TensorFlow-based custom transformation definitions.  Custom,
             bring-your-own transform functions, where users can define and import
             their own transform function and use it with FTE''s built-in transformations.
             `[ { "transformation": "PlusOne", "module_path": "gs://bucket/custom_transform_fn.py",
@@ -452,7 +472,8 @@ components:
           parameterType: LIST
         tf_transform_execution_engine:
           defaultValue: dataflow
-          description: 'Execution engine to perform row-level TF transformations.
+          description:
+            'Execution engine to perform row-level TF transformations.
             Can be one of: "dataflow" (by default) or "bigquery". Using "bigquery"
             as the execution engine is experimental and is for allowlisted customers
             only. In addition, executing on "bigquery" only supports auto transformations
@@ -462,8 +483,9 @@ components:
           isOptional: true
           parameterType: STRING
         tf_transformations_path:
-          defaultValue: ''
-          description: "Path to TensorFlow-based transformation configuration.  Path\
+          defaultValue: ""
+          description:
+            "Path to TensorFlow-based transformation configuration.  Path\
             \ to a JSON file used to specified FTE's TF transformation configurations.\
             \  In the following, we provide some sample transform configurations to\
             \ demonstrate FTE's capabilities. All transformations on input columns\
@@ -631,7 +653,7 @@ components:
           isOptional: true
           parameterType: STRING
         timestamp_split_key:
-          defaultValue: ''
+          defaultValue: ""
           description: Timestamp split key.
           isOptional: true
           parameterType: STRING
@@ -646,7 +668,7 @@ components:
           isOptional: true
           parameterType: NUMBER_DOUBLE
         weight_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Weight column of input data.
           isOptional: true
           parameterType: STRING
@@ -661,7 +683,8 @@ components:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: The ranking of features, all features supported in the dataset
+          description:
+            The ranking of features, all features supported in the dataset
             will be included. For "AMI" algorithm, array features won't be available
             in the ranking as arrays are not supported yet.
         instance_schema:
@@ -684,27 +707,33 @@ components:
           description: The transform output artifact.
       parameters:
         bigquery_downsampled_test_split_uri:
-          description: BigQuery URI for the downsampled test split to pass to the
+          description:
+            BigQuery URI for the downsampled test split to pass to the
             batch prediction component during batch explain.
           parameterType: STRING
         bigquery_test_split_uri:
-          description: BigQuery URI for the test split to pass to the batch prediction
+          description:
+            BigQuery URI for the test split to pass to the batch prediction
             component during evaluation.
           parameterType: STRING
         bigquery_train_split_uri:
-          description: BigQuery URI for the train split to pass to the batch prediction
+          description:
+            BigQuery URI for the train split to pass to the batch prediction
             component during distillation.
           parameterType: STRING
         bigquery_validation_split_uri:
-          description: BigQuery URI for the validation split to pass to the batch
+          description:
+            BigQuery URI for the validation split to pass to the batch
             prediction component during distillation.
           parameterType: STRING
         gcp_resources:
-          description: GCP resources created by this component. For more details,
+          description:
+            GCP resources created by this component. For more details,
             see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
           parameterType: STRING
         split_example_counts:
-          description: JSON string of data split example counts for train, validate,
+          description:
+            JSON string of data split example counts for train, validate,
             and test splits.
           parameterType: STRING
   comp-training-configurator-and-validator:
@@ -738,7 +767,8 @@ components:
           parameterType: NUMBER_INTEGER
         enable_probabilistic_inference:
           defaultValue: false
-          description: If probabilistic inference is enabled, the model will fit a
+          description:
+            If probabilistic inference is enabled, the model will fit a
             distribution that captures the uncertainty of a prediction. At inference
             time, the predictive distribution is used to make a point prediction that
             minimizes the optimization objective.  For example, the mean of a predictive
@@ -752,36 +782,41 @@ components:
           isOptional: true
           parameterType: NUMBER_INTEGER
         forecasting_model_type:
-          defaultValue: ''
+          defaultValue: ""
           description: The model types, e.g. l2l, seq2seq, tft.
           isOptional: true
           parameterType: STRING
         forecasting_transformations:
           defaultValue: {}
-          description: Dict mapping auto and/or type-resolutions to feature columns.
+          description:
+            Dict mapping auto and/or type-resolutions to feature columns.
             The supported types are auto, categorical, numeric, text, and timestamp.
           isOptional: true
           parameterType: STRUCT
         group_columns:
-          description: A list of time series attribute column names that define the
+          description:
+            A list of time series attribute column names that define the
             time series hierarchy.
           isOptional: true
           parameterType: LIST
         group_temporal_total_weight:
           defaultValue: 0.0
-          description: The weight of the loss for predictions aggregated over both
+          description:
+            The weight of the loss for predictions aggregated over both
             the horizon and time series in the same hierarchy group.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         group_total_weight:
           defaultValue: 0.0
-          description: The weight of the loss for predictions aggregated over time
+          description:
+            The weight of the loss for predictions aggregated over time
             series in the same group.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         optimization_objective:
-          defaultValue: ''
-          description: 'Objective function the model is optimizing towards. The training
+          defaultValue: ""
+          description:
+            'Objective function the model is optimizing towards. The training
             process creates a model that maximizes/minimizes the value of the objective
             function over the validation set. The supported optimization objectives
             depend on the prediction type. If the field is not set, a default objective
@@ -799,19 +834,22 @@ components:
           parameterType: STRING
         optimization_objective_precision_value:
           defaultValue: -1.0
-          description: Required when optimization_objective is "maximize-recall-at-precision".
+          description:
+            Required when optimization_objective is "maximize-recall-at-precision".
             Must be between 0 and 1, inclusive.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         optimization_objective_recall_value:
           defaultValue: -1.0
-          description: Required when optimization_objective is "maximize-precision-at-recall".
+          description:
+            Required when optimization_objective is "maximize-precision-at-recall".
             Must be between 0 and 1, inclusive.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         prediction_type:
-          defaultValue: ''
-          description: Model prediction type. One of "classification", "regression",
+          defaultValue: ""
+          description:
+            Model prediction type. One of "classification", "regression",
             "time_series".
           isOptional: true
           parameterType: STRING
@@ -831,7 +869,8 @@ components:
           isOptional: true
           parameterType: BOOLEAN
         split_example_counts:
-          description: JSON string of data split example counts for train, validate,
+          description:
+            JSON string of data split example counts for train, validate,
             and test splits.
           parameterType: STRING
         stage_1_deadline_hours:
@@ -843,18 +882,19 @@ components:
           isOptional: true
           parameterType: NUMBER_DOUBLE
         target_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Target column of input data.
           isOptional: true
           parameterType: STRING
         temporal_total_weight:
           defaultValue: 0.0
-          description: The weight of the loss for predictions aggregated over the
+          description:
+            The weight of the loss for predictions aggregated over the
             horizon for a single time series.
           isOptional: true
           parameterType: NUMBER_DOUBLE
         time_column:
-          defaultValue: ''
+          defaultValue: ""
           description: The column that indicates the time. Used by forecasting only.
           isOptional: true
           parameterType: STRING
@@ -864,25 +904,28 @@ components:
           isOptional: true
           parameterType: LIST
         time_series_identifier_column:
-          description: '[Deprecated] The time series identifier column. Used by forecasting
+          description:
+            '[Deprecated] The time series identifier column. Used by forecasting
             only. Raises exception if used - use the "time_series_identifier_column"
             field instead.'
           isOptional: true
           parameterType: STRING
         time_series_identifier_columns:
           defaultValue: []
-          description: The list of time series identifier columns.  Used by forecasting
+          description:
+            The list of time series identifier columns.  Used by forecasting
             only.
           isOptional: true
           parameterType: LIST
         unavailable_at_forecast_columns:
           defaultValue: []
-          description: The names of the columns that are not available at forecast
+          description:
+            The names of the columns that are not available at forecast
             time.
           isOptional: true
           parameterType: LIST
         weight_column:
-          defaultValue: ''
+          defaultValue: ""
           description: Weight column of input data.
           isOptional: true
           parameterType: STRING
@@ -902,105 +945,105 @@ deploymentSpec:
     exec-feature-transform-engine:
       container:
         args:
-        - feature_transform_engine
-        - '{"Concat": ["--project=", "{{$.inputs.parameters[''project'']}}"]}'
-        - '{"Concat": ["--location=", "{{$.inputs.parameters[''location'']}}"]}'
-        - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
-        - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
-        - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
-        - '{"IfPresent": {"InputName": "forecasting_time_series_identifier_column",
-          "Then": {"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}}}'
-        - '{"Concat": ["--forecasting_time_series_identifier_columns=", "{{$.inputs.parameters[''forecasting_time_series_identifier_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
-        - '{"Concat": ["--forecasting_forecast_horizon=", "{{$.inputs.parameters[''forecasting_forecast_horizon'']}}"]}'
-        - '{"Concat": ["--forecasting_context_window=", "{{$.inputs.parameters[''forecasting_context_window'']}}"]}'
-        - '{"Concat": ["--forecasting_predefined_window_column=", "{{$.inputs.parameters[''forecasting_predefined_window_column'']}}"]}'
-        - '{"Concat": ["--forecasting_window_stride_length=", "{{$.inputs.parameters[''forecasting_window_stride_length'']}}"]}'
-        - '{"Concat": ["--forecasting_window_max_count=", "{{$.inputs.parameters[''forecasting_window_max_count'']}}"]}'
-        - '{"Concat": ["--forecasting_holiday_regions=", "{{$.inputs.parameters[''forecasting_holiday_regions'']}}"]}'
-        - '{"Concat": ["--forecasting_apply_windowing=", "{{$.inputs.parameters[''forecasting_apply_windowing'']}}"]}'
-        - '{"Concat": ["--predefined_split_key=", "{{$.inputs.parameters[''predefined_split_key'']}}"]}'
-        - '{"Concat": ["--stratified_split_key=", "{{$.inputs.parameters[''stratified_split_key'']}}"]}'
-        - '{"Concat": ["--timestamp_split_key=", "{{$.inputs.parameters[''timestamp_split_key'']}}"]}'
-        - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
-        - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
-        - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
-        - '{"Concat": ["--stats_gen_execution_engine=", "{{$.inputs.parameters[''stats_gen_execution_engine'']}}"]}'
-        - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
-        - '{"IfPresent": {"InputName": "tf_auto_transform_features", "Then": {"Concat":
-          ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}}}'
-        - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
-        - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
-        - '{"Concat": ["--legacy_transformations_path=", "{{$.inputs.parameters[''legacy_transformations_path'']}}"]}'
-        - '{"Concat": ["--data_source_csv_filenames=", "{{$.inputs.parameters[''data_source_csv_filenames'']}}"]}'
-        - '{"Concat": ["--data_source_bigquery_table_path=", "{{$.inputs.parameters[''data_source_bigquery_table_path'']}}"]}'
-        - '{"Concat": ["--bigquery_staging_full_dataset_id=", "{{$.inputs.parameters[''bigquery_staging_full_dataset_id'']}}"]}'
-        - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
-        - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
-        - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
-        - '{"IfPresent": {"InputName": "model_type", "Then": {"Concat": ["--model_type=",
-          "{{$.inputs.parameters[''model_type'']}}"]}}}'
-        - '{"Concat": ["--multimodal_tabular_columns=", "{{$.inputs.parameters[''multimodal_tabular_columns'']}}"]}'
-        - '{"Concat": ["--multimodal_timeseries_columns=", "{{$.inputs.parameters[''multimodal_timeseries_columns'']}}"]}'
-        - '{"Concat": ["--multimodal_text_columns=", "{{$.inputs.parameters[''multimodal_text_columns'']}}"]}'
-        - '{"Concat": ["--multimodal_image_columns=", "{{$.inputs.parameters[''multimodal_image_columns'']}}"]}'
-        - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
-        - '{"Concat": ["--run_feature_selection=", "{{$.inputs.parameters[''run_feature_selection'']}}"]}'
-        - '{"Concat": ["--materialized_examples_format=", "{{$.inputs.parameters[''materialized_examples_format'']}}"]}'
-        - '{"Concat": ["--max_selected_features=", "{{$.inputs.parameters[''max_selected_features'']}}"]}'
-        - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
-        - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
-        - '{"Concat": ["--feature_selection_execution_engine=", "{{$.inputs.parameters[''feature_selection_execution_engine'']}}"]}'
-        - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
-        - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
-        - '{"Concat": ["--stats_result_path=", "{{$.outputs.artifacts[''dataset_stats''].uri}}"]}'
-        - '{"Concat": ["--transform_output_artifact_path=", "{{$.outputs.artifacts[''transform_output''].uri}}"]}'
-        - '{"Concat": ["--transform_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform"]}'
-        - '{"Concat": ["--materialized_examples_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized"]}'
-        - '{"Concat": ["--export_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/export"]}'
-        - '{"Concat": ["--materialized_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data"]}'
-        - '{"Concat": ["--materialized_data_artifact_path=", "{{$.outputs.artifacts[''materialized_data''].uri}}"]}'
-        - '{"Concat": ["--bigquery_train_split_uri_path=", "{{$.outputs.parameters[''bigquery_train_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--bigquery_validation_split_uri_path=", "{{$.outputs.parameters[''bigquery_validation_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--bigquery_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_test_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--bigquery_downsampled_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_downsampled_test_split_uri''].output_file}}"]}'
-        - '{"Concat": ["--split_example_counts_path=", "{{$.outputs.parameters[''split_example_counts''].output_file}}"]}'
-        - '{"Concat": ["--instance_schema_path=", "{{$.outputs.artifacts[''instance_schema''].path}}"]}'
-        - '{"Concat": ["--training_schema_path=", "{{$.outputs.artifacts[''training_schema''].path}}"]}'
-        - --job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
-        - '{"Concat": ["--dataflow_project=", "{{$.inputs.parameters[''project'']}}"]}'
-        - '{"Concat": ["--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging"]}'
-        - '{"Concat": ["--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}",
-          "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
-        - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
-        - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
-        - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525
-        - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
-        - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
-        - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
-        - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
-        - '{"Concat": ["--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}"]}'
-        - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
-        - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
-        - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
-        - '{"IfPresent": {"InputName": "group_columns", "Then": {"Concat": ["--group_columns=",
-          "{{$.inputs.parameters[''group_columns'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_total_weight", "Then": {"Concat": ["--group_total_weight=",
-          "{{$.inputs.parameters[''group_total_weight'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "temporal_total_weight", "Then": {"Concat":
-          ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
-          ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
-        - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
+          - feature_transform_engine
+          - '{"Concat": ["--project=", "{{$.inputs.parameters[''project'']}}"]}'
+          - '{"Concat": ["--location=", "{{$.inputs.parameters[''location'']}}"]}'
+          - '{"Concat": ["--dataset_level_custom_transformation_definitions=", "{{$.inputs.parameters[''dataset_level_custom_transformation_definitions'']}}"]}'
+          - '{"Concat": ["--dataset_level_transformations=", "{{$.inputs.parameters[''dataset_level_transformations'']}}"]}'
+          - '{"Concat": ["--forecasting_time_column=", "{{$.inputs.parameters[''forecasting_time_column'']}}"]}'
+          - '{"IfPresent": {"InputName": "forecasting_time_series_identifier_column",
+            "Then": {"Concat": ["--forecasting_time_series_identifier_column=", "{{$.inputs.parameters[''forecasting_time_series_identifier_column'']}}"]}}}'
+          - '{"Concat": ["--forecasting_time_series_identifier_columns=", "{{$.inputs.parameters[''forecasting_time_series_identifier_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_time_series_attribute_columns=", "{{$.inputs.parameters[''forecasting_time_series_attribute_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_unavailable_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_unavailable_at_forecast_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_available_at_forecast_columns=", "{{$.inputs.parameters[''forecasting_available_at_forecast_columns'']}}"]}'
+          - '{"Concat": ["--forecasting_forecast_horizon=", "{{$.inputs.parameters[''forecasting_forecast_horizon'']}}"]}'
+          - '{"Concat": ["--forecasting_context_window=", "{{$.inputs.parameters[''forecasting_context_window'']}}"]}'
+          - '{"Concat": ["--forecasting_predefined_window_column=", "{{$.inputs.parameters[''forecasting_predefined_window_column'']}}"]}'
+          - '{"Concat": ["--forecasting_window_stride_length=", "{{$.inputs.parameters[''forecasting_window_stride_length'']}}"]}'
+          - '{"Concat": ["--forecasting_window_max_count=", "{{$.inputs.parameters[''forecasting_window_max_count'']}}"]}'
+          - '{"Concat": ["--forecasting_holiday_regions=", "{{$.inputs.parameters[''forecasting_holiday_regions'']}}"]}'
+          - '{"Concat": ["--forecasting_apply_windowing=", "{{$.inputs.parameters[''forecasting_apply_windowing'']}}"]}'
+          - '{"Concat": ["--predefined_split_key=", "{{$.inputs.parameters[''predefined_split_key'']}}"]}'
+          - '{"Concat": ["--stratified_split_key=", "{{$.inputs.parameters[''stratified_split_key'']}}"]}'
+          - '{"Concat": ["--timestamp_split_key=", "{{$.inputs.parameters[''timestamp_split_key'']}}"]}'
+          - '{"Concat": ["--training_fraction=", "{{$.inputs.parameters[''training_fraction'']}}"]}'
+          - '{"Concat": ["--validation_fraction=", "{{$.inputs.parameters[''validation_fraction'']}}"]}'
+          - '{"Concat": ["--test_fraction=", "{{$.inputs.parameters[''test_fraction'']}}"]}'
+          - '{"Concat": ["--stats_gen_execution_engine=", "{{$.inputs.parameters[''stats_gen_execution_engine'']}}"]}'
+          - '{"Concat": ["--tf_transform_execution_engine=", "{{$.inputs.parameters[''tf_transform_execution_engine'']}}"]}'
+          - '{"IfPresent": {"InputName": "tf_auto_transform_features", "Then": {"Concat":
+            ["--tf_auto_transform_features=", "{{$.inputs.parameters[''tf_auto_transform_features'']}}"]}}}'
+          - '{"Concat": ["--tf_custom_transformation_definitions=", "{{$.inputs.parameters[''tf_custom_transformation_definitions'']}}"]}'
+          - '{"Concat": ["--tf_transformations_path=", "{{$.inputs.parameters[''tf_transformations_path'']}}"]}'
+          - '{"Concat": ["--legacy_transformations_path=", "{{$.inputs.parameters[''legacy_transformations_path'']}}"]}'
+          - '{"Concat": ["--data_source_csv_filenames=", "{{$.inputs.parameters[''data_source_csv_filenames'']}}"]}'
+          - '{"Concat": ["--data_source_bigquery_table_path=", "{{$.inputs.parameters[''data_source_bigquery_table_path'']}}"]}'
+          - '{"Concat": ["--bigquery_staging_full_dataset_id=", "{{$.inputs.parameters[''bigquery_staging_full_dataset_id'']}}"]}'
+          - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
+          - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
+          - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
+          - '{"IfPresent": {"InputName": "model_type", "Then": {"Concat": ["--model_type=",
+            "{{$.inputs.parameters[''model_type'']}}"]}}}'
+          - '{"Concat": ["--multimodal_tabular_columns=", "{{$.inputs.parameters[''multimodal_tabular_columns'']}}"]}'
+          - '{"Concat": ["--multimodal_timeseries_columns=", "{{$.inputs.parameters[''multimodal_timeseries_columns'']}}"]}'
+          - '{"Concat": ["--multimodal_text_columns=", "{{$.inputs.parameters[''multimodal_text_columns'']}}"]}'
+          - '{"Concat": ["--multimodal_image_columns=", "{{$.inputs.parameters[''multimodal_image_columns'']}}"]}'
+          - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
+          - '{"Concat": ["--run_feature_selection=", "{{$.inputs.parameters[''run_feature_selection'']}}"]}'
+          - '{"Concat": ["--materialized_examples_format=", "{{$.inputs.parameters[''materialized_examples_format'']}}"]}'
+          - '{"Concat": ["--max_selected_features=", "{{$.inputs.parameters[''max_selected_features'']}}"]}'
+          - '{"Concat": ["--feature_selection_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir"]}'
+          - '{"Concat": ["--feature_selection_algorithm=", "{{$.inputs.parameters[''feature_selection_algorithm'']}}"]}'
+          - '{"Concat": ["--feature_selection_execution_engine=", "{{$.inputs.parameters[''feature_selection_execution_engine'']}}"]}'
+          - '{"Concat": ["--feature_ranking_path=", "{{$.outputs.artifacts[''feature_ranking''].uri}}"]}'
+          - '{"Concat": ["--error_file_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt"]}'
+          - '{"Concat": ["--stats_result_path=", "{{$.outputs.artifacts[''dataset_stats''].uri}}"]}'
+          - '{"Concat": ["--transform_output_artifact_path=", "{{$.outputs.artifacts[''transform_output''].uri}}"]}'
+          - '{"Concat": ["--transform_output_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform"]}'
+          - '{"Concat": ["--materialized_examples_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized"]}'
+          - '{"Concat": ["--export_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/export"]}'
+          - '{"Concat": ["--materialized_data_path=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data"]}'
+          - '{"Concat": ["--materialized_data_artifact_path=", "{{$.outputs.artifacts[''materialized_data''].uri}}"]}'
+          - '{"Concat": ["--bigquery_train_split_uri_path=", "{{$.outputs.parameters[''bigquery_train_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--bigquery_validation_split_uri_path=", "{{$.outputs.parameters[''bigquery_validation_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--bigquery_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_test_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--bigquery_downsampled_test_split_uri_path=", "{{$.outputs.parameters[''bigquery_downsampled_test_split_uri''].output_file}}"]}'
+          - '{"Concat": ["--split_example_counts_path=", "{{$.outputs.parameters[''split_example_counts''].output_file}}"]}'
+          - '{"Concat": ["--instance_schema_path=", "{{$.outputs.artifacts[''instance_schema''].path}}"]}'
+          - '{"Concat": ["--training_schema_path=", "{{$.outputs.artifacts[''training_schema''].path}}"]}'
+          - --job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}
+          - '{"Concat": ["--dataflow_project=", "{{$.inputs.parameters[''project'']}}"]}'
+          - '{"Concat": ["--dataflow_staging_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging"]}'
+          - '{"Concat": ["--dataflow_tmp_dir=", "{{$.inputs.parameters[''root_dir'']}}",
+            "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp"]}'
+          - '{"Concat": ["--dataflow_max_num_workers=", "{{$.inputs.parameters[''dataflow_max_num_workers'']}}"]}'
+          - '{"Concat": ["--dataflow_machine_type=", "{{$.inputs.parameters[''dataflow_machine_type'']}}"]}'
+          - --dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20250620_0525
+          - --feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
+          - '{"Concat": ["--dataflow_disk_size_gb=", "{{$.inputs.parameters[''dataflow_disk_size_gb'']}}"]}'
+          - '{"Concat": ["--dataflow_subnetwork_fully_qualified=", "{{$.inputs.parameters[''dataflow_subnetwork'']}}"]}'
+          - '{"Concat": ["--dataflow_use_public_ips=", "{{$.inputs.parameters[''dataflow_use_public_ips'']}}"]}'
+          - '{"Concat": ["--dataflow_service_account=", "{{$.inputs.parameters[''dataflow_service_account'']}}"]}'
+          - '{"Concat": ["--dataflow_kms_key=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
+          - '{"Concat": ["--autodetect_csv_schema=", "{{$.inputs.parameters[''autodetect_csv_schema'']}}"]}'
+          - '{"Concat": ["--gcp_resources_path=", "{{$.outputs.parameters[''gcp_resources''].output_file}}"]}'
+          - '{"IfPresent": {"InputName": "group_columns", "Then": {"Concat": ["--group_columns=",
+            "{{$.inputs.parameters[''group_columns'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_total_weight", "Then": {"Concat": ["--group_total_weight=",
+            "{{$.inputs.parameters[''group_total_weight'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "temporal_total_weight", "Then": {"Concat":
+            ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
+            ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
+          - '{"Concat": ["--encryption_spec_key_name=", "{{$.inputs.parameters[''encryption_spec_key_name'']}}"]}'
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
         resources:
           cpuLimit: 8.0
@@ -1008,47 +1051,47 @@ deploymentSpec:
     exec-training-configurator-and-validator:
       container:
         args:
-        - training_configurator_and_validator
-        - '{"Concat": ["--instance_schema_path=", "{{$.inputs.artifacts[''instance_schema''].uri}}"]}'
-        - '{"Concat": ["--training_schema_path=", "{{$.inputs.artifacts[''training_schema''].uri}}"]}'
-        - '{"Concat": ["--dataset_stats_path=", "{{$.inputs.artifacts[''dataset_stats''].uri}}"]}'
-        - '{"Concat": ["--split_example_counts=", "{{$.inputs.parameters[''split_example_counts'']}}"]}'
-        - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
-        - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
-        - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
-        - '{"Concat": ["--optimization_objective=", "{{$.inputs.parameters[''optimization_objective'']}}"]}'
-        - '{"Concat": ["--optimization_objective_recall_value=", "{{$.inputs.parameters[''optimization_objective_recall_value'']}}"]}'
-        - '{"Concat": ["--optimization_objective_precision_value=", "{{$.inputs.parameters[''optimization_objective_precision_value'']}}"]}'
-        - '{"Concat": ["--metadata_path=", "{{$.outputs.artifacts[''metadata''].uri}}"]}'
-        - '{"Concat": ["--instance_baseline_path=", "{{$.outputs.artifacts[''instance_baseline''].uri}}"]}'
-        - '{"Concat": ["--run_evaluation=", "{{$.inputs.parameters[''run_evaluation'']}}"]}'
-        - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
-        - '{"Concat": ["--enable_probabilistic_inference=", "{{$.inputs.parameters[''enable_probabilistic_inference'']}}"]}'
-        - '{"IfPresent": {"InputName": "time_series_identifier_column", "Then": {"Concat":
-          ["--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}"]}}}'
-        - '{"Concat": ["--time_series_identifier_columns=", "{{$.inputs.parameters[''time_series_identifier_columns'']}}"]}'
-        - '{"Concat": ["--time_column=", "{{$.inputs.parameters[''time_column'']}}"]}'
-        - '{"Concat": ["--time_series_attribute_columns=", "{{$.inputs.parameters[''time_series_attribute_columns'']}}"]}'
-        - '{"Concat": ["--available_at_forecast_columns=", "{{$.inputs.parameters[''available_at_forecast_columns'']}}"]}'
-        - '{"Concat": ["--unavailable_at_forecast_columns=", "{{$.inputs.parameters[''unavailable_at_forecast_columns'']}}"]}'
-        - '{"IfPresent": {"InputName": "quantiles", "Then": {"Concat": ["--quantiles=",
-          "{{$.inputs.parameters[''quantiles'']}}"]}}}'
-        - '{"Concat": ["--context_window=", "{{$.inputs.parameters[''context_window'']}}"]}'
-        - '{"Concat": ["--forecast_horizon=", "{{$.inputs.parameters[''forecast_horizon'']}}"]}'
-        - '{"Concat": ["--forecasting_model_type=", "{{$.inputs.parameters[''forecasting_model_type'']}}"]}'
-        - '{"Concat": ["--forecasting_transformations=", "{{$.inputs.parameters[''forecasting_transformations'']}}"]}'
-        - '{"IfPresent": {"InputName": "stage_1_deadline_hours", "Then": {"Concat":
-          ["--stage_1_deadline_hours=", "{{$.inputs.parameters[''stage_1_deadline_hours'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "stage_2_deadline_hours", "Then": {"Concat":
-          ["--stage_2_deadline_hours=", "{{$.inputs.parameters[''stage_2_deadline_hours'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_columns", "Then": {"Concat": ["--group_columns=",
-          "{{$.inputs.parameters[''group_columns'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_total_weight", "Then": {"Concat": ["--group_total_weight=",
-          "{{$.inputs.parameters[''group_total_weight'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "temporal_total_weight", "Then": {"Concat":
-          ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
-        - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
-          ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
+          - training_configurator_and_validator
+          - '{"Concat": ["--instance_schema_path=", "{{$.inputs.artifacts[''instance_schema''].uri}}"]}'
+          - '{"Concat": ["--training_schema_path=", "{{$.inputs.artifacts[''training_schema''].uri}}"]}'
+          - '{"Concat": ["--dataset_stats_path=", "{{$.inputs.artifacts[''dataset_stats''].uri}}"]}'
+          - '{"Concat": ["--split_example_counts=", "{{$.inputs.parameters[''split_example_counts'']}}"]}'
+          - '{"Concat": ["--target_column=", "{{$.inputs.parameters[''target_column'']}}"]}'
+          - '{"Concat": ["--weight_column=", "{{$.inputs.parameters[''weight_column'']}}"]}'
+          - '{"Concat": ["--prediction_type=", "{{$.inputs.parameters[''prediction_type'']}}"]}'
+          - '{"Concat": ["--optimization_objective=", "{{$.inputs.parameters[''optimization_objective'']}}"]}'
+          - '{"Concat": ["--optimization_objective_recall_value=", "{{$.inputs.parameters[''optimization_objective_recall_value'']}}"]}'
+          - '{"Concat": ["--optimization_objective_precision_value=", "{{$.inputs.parameters[''optimization_objective_precision_value'']}}"]}'
+          - '{"Concat": ["--metadata_path=", "{{$.outputs.artifacts[''metadata''].uri}}"]}'
+          - '{"Concat": ["--instance_baseline_path=", "{{$.outputs.artifacts[''instance_baseline''].uri}}"]}'
+          - '{"Concat": ["--run_evaluation=", "{{$.inputs.parameters[''run_evaluation'']}}"]}'
+          - '{"Concat": ["--run_distill=", "{{$.inputs.parameters[''run_distill'']}}"]}'
+          - '{"Concat": ["--enable_probabilistic_inference=", "{{$.inputs.parameters[''enable_probabilistic_inference'']}}"]}'
+          - '{"IfPresent": {"InputName": "time_series_identifier_column", "Then": {"Concat":
+            ["--time_series_identifier_column=", "{{$.inputs.parameters[''time_series_identifier_column'']}}"]}}}'
+          - '{"Concat": ["--time_series_identifier_columns=", "{{$.inputs.parameters[''time_series_identifier_columns'']}}"]}'
+          - '{"Concat": ["--time_column=", "{{$.inputs.parameters[''time_column'']}}"]}'
+          - '{"Concat": ["--time_series_attribute_columns=", "{{$.inputs.parameters[''time_series_attribute_columns'']}}"]}'
+          - '{"Concat": ["--available_at_forecast_columns=", "{{$.inputs.parameters[''available_at_forecast_columns'']}}"]}'
+          - '{"Concat": ["--unavailable_at_forecast_columns=", "{{$.inputs.parameters[''unavailable_at_forecast_columns'']}}"]}'
+          - '{"IfPresent": {"InputName": "quantiles", "Then": {"Concat": ["--quantiles=",
+            "{{$.inputs.parameters[''quantiles'']}}"]}}}'
+          - '{"Concat": ["--context_window=", "{{$.inputs.parameters[''context_window'']}}"]}'
+          - '{"Concat": ["--forecast_horizon=", "{{$.inputs.parameters[''forecast_horizon'']}}"]}'
+          - '{"Concat": ["--forecasting_model_type=", "{{$.inputs.parameters[''forecasting_model_type'']}}"]}'
+          - '{"Concat": ["--forecasting_transformations=", "{{$.inputs.parameters[''forecasting_transformations'']}}"]}'
+          - '{"IfPresent": {"InputName": "stage_1_deadline_hours", "Then": {"Concat":
+            ["--stage_1_deadline_hours=", "{{$.inputs.parameters[''stage_1_deadline_hours'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "stage_2_deadline_hours", "Then": {"Concat":
+            ["--stage_2_deadline_hours=", "{{$.inputs.parameters[''stage_2_deadline_hours'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_columns", "Then": {"Concat": ["--group_columns=",
+            "{{$.inputs.parameters[''group_columns'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_total_weight", "Then": {"Concat": ["--group_total_weight=",
+            "{{$.inputs.parameters[''group_total_weight'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "temporal_total_weight", "Then": {"Concat":
+            ["--temporal_total_weight=", "{{$.inputs.parameters[''temporal_total_weight'']}}"]}}}'
+          - '{"IfPresent": {"InputName": "group_temporal_total_weight", "Then": {"Concat":
+            ["--group_temporal_total_weight=", "{{$.inputs.parameters[''group_temporal_total_weight'']}}"]}}}'
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20250620_0525
 pipelineInfo:
   description: Defines pipeline for feature transform engine component.
@@ -1105,10 +1148,10 @@ root:
                 constant: []
             forecasting_predefined_window_column:
               runtimeValue:
-                constant: ''
+                constant: ""
             forecasting_time_column:
               runtimeValue:
-                constant: ''
+                constant: ""
             forecasting_time_series_attribute_columns:
               runtimeValue:
                 constant: []
@@ -1169,7 +1212,7 @@ root:
                 constant: dataflow
             tf_transformations_path:
               runtimeValue:
-                constant: ''
+                constant: ""
             training_fraction:
               componentInputParameter: training_fraction
             validation_fraction:
@@ -1184,7 +1227,7 @@ root:
         componentRef:
           name: comp-training-configurator-and-validator
         dependentTasks:
-        - feature-transform-engine
+          - feature-transform-engine
         inputs:
           artifacts:
             dataset_stats:
@@ -1240,7 +1283,7 @@ root:
               componentInputParameter: target_column
             time_column:
               runtimeValue:
-                constant: ''
+                constant: ""
             time_series_attribute_columns:
               runtimeValue:
                 constant: []
@@ -1257,15 +1300,15 @@ root:
   inputDefinitions:
     parameters:
       bigquery_staging_full_dataset_id:
-        defaultValue: ''
+        defaultValue: ""
         isOptional: true
         parameterType: STRING
       data_source_bigquery_table_path:
-        defaultValue: ''
+        defaultValue: ""
         isOptional: true
         parameterType: STRING
       data_source_csv_filenames:
-        defaultValue: ''
+        defaultValue: ""
         isOptional: true
         parameterType: STRING
       dataflow_disk_size_gb:
@@ -1281,11 +1324,11 @@ root:
         isOptional: true
         parameterType: NUMBER_INTEGER
       dataflow_service_account:
-        defaultValue: ''
+        defaultValue: ""
         isOptional: true
         parameterType: STRING
       dataflow_subnetwork:
-        defaultValue: ''
+        defaultValue: ""
         isOptional: true
         parameterType: STRING
       dataflow_use_public_ips:
@@ -1299,7 +1342,7 @@ root:
         isOptional: true
         parameterType: LIST
       encryption_spec_key_name:
-        defaultValue: ''
+        defaultValue: ""
         isOptional: true
         parameterType: STRING
       feature_selection_algorithm:
@@ -1319,7 +1362,7 @@ root:
       optimization_objective:
         parameterType: STRING
       predefined_split_key:
-        defaultValue: ''
+        defaultValue: ""
         isOptional: true
         parameterType: STRING
       prediction_type:
@@ -1341,7 +1384,7 @@ root:
         isOptional: true
         parameterType: NUMBER_DOUBLE
       stratified_split_key:
-        defaultValue: ''
+        defaultValue: ""
         isOptional: true
         parameterType: STRING
       target_column:
@@ -1362,7 +1405,7 @@ root:
         isOptional: true
         parameterType: NUMBER_DOUBLE
       weight_column:
-        defaultValue: ''
+        defaultValue: ""
         isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0

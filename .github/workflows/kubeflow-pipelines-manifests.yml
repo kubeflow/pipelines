@@ -5,17 +5,17 @@ on:
     branches: [master]
   pull_request:
     paths:
-      - '.github/workflows/kubeflow-pipelines-manifests.yml'
-      - 'manifests/kustomize/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/kubeflow-pipelines-manifests.yml"
+      - "manifests/kustomize/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
-  kubeflow-pipelines-manifests:    
-    runs-on: ubuntu-latest    
+  kubeflow-pipelines-manifests:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4    
+        uses: actions/checkout@v4
 
       - name: Run tests
-        run: ./manifests/kustomize/hack/presubmit.sh 
+        run: ./manifests/kustomize/hack/presubmit.sh

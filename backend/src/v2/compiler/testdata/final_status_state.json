@@ -89,9 +89,7 @@
             "componentRef": {
               "name": "comp-echo-state"
             },
-            "dependentTasks": [
-              "exit-handler-1"
-            ],
+            "dependentTasks": ["exit-handler-1"],
             "inputs": {
               "parameters": {
                 "status": {
@@ -123,4 +121,3 @@
     "sdkVersion": "kfp-2.13.0"
   }
 }
-

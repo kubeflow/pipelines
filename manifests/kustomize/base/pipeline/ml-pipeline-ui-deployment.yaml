@@ -19,70 +19,70 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-      - name: config-volume
-        configMap:
-          name: ml-pipeline-ui-configmap
-      containers:
-      - image: ghcr.io/kubeflow/kfp-frontend:dummy
-        imagePullPolicy: IfNotPresent
-        name: ml-pipeline-ui
-        ports:
-        - containerPort: 3000
-        volumeMounts:
         - name: config-volume
-          mountPath: /etc/config
-          readOnly: true
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 0
-          capabilities:
-            drop:
-            - ALL
-        env:
-          - name: VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH
-            value: /etc/config/viewer-pod-template.json
-          - name: MINIO_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-          - name: MINIO_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: mlpipeline-minio-artifact
-                key: accesskey
-          - name: MINIO_SECRET_KEY
-            valueFrom:
-              secretKeyRef:
-                name: mlpipeline-minio-artifact
-                key: secretkey
-          - name: ALLOW_CUSTOM_VISUALIZATIONS
-            value: "true"
-          - name: FRONTEND_SERVER_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-          - name: ARGO_ARCHIVE_LOGS
-            value: "true"
-          - name: DISABLE_GKE_METADATA
-            value: "true"
-        readinessProbe:
-          httpGet:
-            path: /apis/v1beta1/healthz
-            port: 3000
-          initialDelaySeconds: 3
-          periodSeconds: 5
-          timeoutSeconds: 2
-        livenessProbe:
-          httpGet:
-            path: /apis/v1beta1/healthz
-            port: 3000
-          initialDelaySeconds: 3
-          periodSeconds: 5
-          timeoutSeconds: 2
-        resources:
-          requests:
-            cpu: 10m
-            memory: 70Mi
+          configMap:
+            name: ml-pipeline-ui-configmap
+      containers:
+        - image: ghcr.io/kubeflow/kfp-frontend:dummy
+          imagePullPolicy: IfNotPresent
+          name: ml-pipeline-ui
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH
+              value: /etc/config/viewer-pod-template.json
+            - name: MINIO_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: accesskey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: secretkey
+            - name: ALLOW_CUSTOM_VISUALIZATIONS
+              value: "true"
+            - name: FRONTEND_SERVER_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ARGO_ARCHIVE_LOGS
+              value: "true"
+            - name: DISABLE_GKE_METADATA
+              value: "true"
+          readinessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /apis/v1beta1/healthz
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
+          resources:
+            requests:
+              cpu: 10m
+              memory: 70Mi
       serviceAccountName: ml-pipeline-ui

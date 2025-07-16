@@ -117,11 +117,11 @@ function filterRunArtifactsByType(
         e.linkedArtifacts,
       );
       if (metricsType === MetricsType.CONFUSION_MATRIX) {
-        typeArtifacts = typeArtifacts.filter(x =>
+        typeArtifacts = typeArtifacts.filter((x) =>
           x.artifact.getCustomPropertiesMap().has('confusionMatrix'),
         );
       } else if (metricsType === MetricsType.ROC_CURVE) {
-        typeArtifacts = typeArtifacts.filter(x =>
+        typeArtifacts = typeArtifacts.filter((x) =>
           x.artifact.getCustomPropertiesMap().has('confidenceMetrics'),
         );
       }
@@ -148,13 +148,13 @@ function filterRunArtifactsByType(
 
 function getRunArtifacts(runs: V2beta1Run[], mlmdPackages: MlmdPackage[]): RunArtifact[] {
   return mlmdPackages.map((mlmdPackage, index) => {
-    const events = mlmdPackage.events.filter(e => e.getType() === Event.Type.OUTPUT);
+    const events = mlmdPackage.events.filter((e) => e.getType() === Event.Type.OUTPUT);
 
     // Match artifacts to executions.
     const artifactMap = new Map();
-    mlmdPackage.artifacts.forEach(artifact => artifactMap.set(artifact.getId(), artifact));
-    const executionArtifacts = mlmdPackage.executions.map(execution => {
-      const executionEvents = events.filter(e => e.getExecutionId() === execution.getId());
+    mlmdPackage.artifacts.forEach((artifact) => artifactMap.set(artifact.getId(), artifact));
+    const executionArtifacts = mlmdPackage.executions.map((execution) => {
+      const executionEvents = events.filter((e) => e.getExecutionId() === execution.getId());
       const linkedArtifacts: LinkedArtifact[] = [];
       for (const event of executionEvents) {
         const artifactId = event.getArtifactId();
@@ -295,7 +295,7 @@ function CompareV2(props: CompareV2Props) {
     refetch,
   } = useQuery<V2beta1Run[], Error>(
     ['v2_run_details', { ids: runIds }],
-    () => Promise.all(runIds.map(async id => await Apis.runServiceApiV2.getRun(id))),
+    () => Promise.all(runIds.map(async (id) => await Apis.runServiceApiV2.getRun(id))),
     {
       staleTime: Infinity,
     },
@@ -311,7 +311,7 @@ function CompareV2(props: CompareV2Props) {
     ['run_artifacts', { runs }],
     () =>
       Promise.all(
-        runIds.map(async runId => {
+        runIds.map(async (runId) => {
           // TODO(zijianjoy): MLMD query is limited to 100 artifacts per run.
           // https://github.com/google/ml-metadata/blob/5757f09d3b3ae0833078dbfd2d2d1a63208a9821/ml_metadata/proto/metadata_store.proto#L733-L737
           const context = await getKfpV2RunContext(runId);
@@ -373,8 +373,8 @@ function CompareV2(props: CompareV2Props) {
   useEffect(() => {
     if (runs && selectedIds && mlmdPackages && artifactTypes) {
       const selectedIdsSet = new Set(selectedIds);
-      const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages).filter(runArtifact =>
-        selectedIdsSet.has(runArtifact.run.run_id!),
+      const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages).filter(
+        (runArtifact) => selectedIdsSet.has(runArtifact.run.run_id!),
       );
       const scalarMetricsArtifactData = filterRunArtifactsByType(
         runArtifacts,
@@ -439,11 +439,8 @@ function CompareV2(props: CompareV2Props) {
 
   // Update the ROC Curve colors and selection.
   const updateRocCurveDisplay = (runArtifacts: RunArtifact[]) => {
-    const {
-      validLinkedArtifacts,
-      fullArtifactPathMap,
-      validRocCurveIdSet,
-    } = getValidRocCurveArtifactData(runArtifacts);
+    const { validLinkedArtifacts, fullArtifactPathMap, validRocCurveIdSet } =
+      getValidRocCurveArtifactData(runArtifacts);
 
     setFullArtifactPathMap(fullArtifactPathMap);
     setRocCurveLinkedArtifacts(validLinkedArtifacts);
@@ -460,13 +457,13 @@ function CompareV2(props: CompareV2Props) {
     let updatedRocCurveIds: string[] = selectedRocCurveIds;
     if (isInitialArtifactsLoad) {
       updatedRocCurveIds = validLinkedArtifacts
-        .map(linkedArtifact => getRocCurveId(linkedArtifact))
+        .map((linkedArtifact) => getRocCurveId(linkedArtifact))
         .slice(0, 3);
-      updatedRocCurveIds.forEach(rocCurveId => {
+      updatedRocCurveIds.forEach((rocCurveId) => {
         selectedIdColorMap[rocCurveId] = lineColorsStack.pop()!;
       });
     } else {
-      updatedRocCurveIds = updatedRocCurveIds.filter(rocCurveId => {
+      updatedRocCurveIds = updatedRocCurveIds.filter((rocCurveId) => {
         if (removedRocCurveIds.has(rocCurveId)) {
           lineColorsStack.push(selectedIdColorMap[rocCurveId]);
           delete selectedIdColorMap[rocCurveId];
@@ -486,7 +483,7 @@ function CompareV2(props: CompareV2Props) {
     }
 
     if (isErrorRunDetails) {
-      (async function() {
+      (async function () {
         const errorMessage = await errorToMessage(errorRunDetails);
         updateBanner({
           additionalInfo: errorMessage ? errorMessage : undefined,
@@ -554,14 +551,14 @@ function CompareV2(props: CompareV2Props) {
 
   useEffect(() => {
     if (runs) {
-      setSelectedIds(runs.map(r => r.run_id!));
+      setSelectedIds(runs.map((r) => r.run_id!));
     }
   }, [runs]);
 
   useEffect(() => {
     if (runs) {
       const selectedIdsSet = new Set(selectedIds);
-      const selectedRuns: V2beta1Run[] = runs.filter(run => selectedIdsSet.has(run.run_id!));
+      const selectedRuns: V2beta1Run[] = runs.filter((run) => selectedIdsSet.has(run.run_id!));
       setParamsTableProps(getParamsTableProps(selectedRuns));
     } else {
       setParamsTableProps(undefined);

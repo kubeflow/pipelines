@@ -239,7 +239,7 @@ function extractFirstTarRecordAsStream() {
       extract.write(chunk, callback);
     },
   });
-  extract.once('entry', function(_header, stream, next) {
+  extract.once('entry', function (_header, stream, next) {
     stream.on('data', (buffer: any) => transformStream.push(buffer));
     stream.on('end', () => {
       transformStream.emit('end');
@@ -247,7 +247,7 @@ function extractFirstTarRecordAsStream() {
     });
     stream.resume(); // just auto drain the stream
   });
-  extract.on('error', error => transformStream.emit('error', error));
+  extract.on('error', (error) => transformStream.emit('error', error));
   return transformStream;
 }
 

@@ -3,35 +3,35 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-- ../../base
-- metadata-db-pvc.yaml
-- metadata-db-deployment.yaml
-- metadata-db-service.yaml
+  - ../../base
+  - metadata-db-pvc.yaml
+  - metadata-db-deployment.yaml
+  - metadata-db-service.yaml
 
 patches:
-- path: patches/metadata-grpc-deployment.yaml
+  - path: patches/metadata-grpc-deployment.yaml
 
 configMapGenerator:
-- envs:
-  - params.env
-  name: metadata-postgres-db-parameters
+  - envs:
+      - params.env
+    name: metadata-postgres-db-parameters
 secretGenerator:
-- envs:
-  - secrets.env
-  name: metadata-postgres-db-secrets
+  - envs:
+      - secrets.env
+    name: metadata-postgres-db-secrets
 generatorOptions:
   disableNameSuffixHash: true
 
 images:
-- name: postgres
-  newName: postgres
-  newTag: 14.7-alpine3.17
+  - name: postgres
+    newName: postgres
+    newTag: 14.7-alpine3.17
 
 vars:
-- fieldref:
-    fieldPath: metadata.name
-  name: MLMD_DB_HOST
-  objref:
-    apiVersion: v1
-    kind: Service
-    name: metadata-postgres-db
+  - fieldref:
+      fieldPath: metadata.name
+    name: MLMD_DB_HOST
+    objref:
+      apiVersion: v1
+      kind: Service
+      name: metadata-postgres-db

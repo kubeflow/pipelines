@@ -70,10 +70,10 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       newMockRun(MOCK_RUN_2_ID, true),
       newMockRun(MOCK_RUN_3_ID, true),
     ];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
 
     // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -98,10 +98,10 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       newMockRun(MOCK_RUN_2_ID, false),
       newMockRun(MOCK_RUN_3_ID, false),
     ];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
 
     // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -125,10 +125,10 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       newMockRun(MOCK_RUN_2_ID, true),
       newMockRun(MOCK_RUN_3_ID, true),
     ];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
 
     // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -157,10 +157,10 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
   it('Show invalid run count page error if there are less than two runs', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID, true)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
 
     // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -202,10 +202,10 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       newMockRun('10', true),
       newMockRun('11', true),
     ];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
 
     // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -239,7 +239,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       newMockRun(MOCK_RUN_2_ID, true),
       newMockRun(MOCK_RUN_3_ID, true),
     ];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
 
     // v2 feature is turn off.
     jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(false);
@@ -257,7 +257,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
   it('Show no error on v1 page if there are less than two runs and v2 feature flag disabled', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID, true)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
 
     // v2 feature is turn off.
     jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(false);
@@ -281,10 +281,10 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       newMockRun(MOCK_RUN_2_ID, true),
       newMockRun(MOCK_RUN_3_ID, true),
     ];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
 
     // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
@@ -308,7 +308,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       newMockRun(MOCK_RUN_2_ID, true),
       newMockRun(MOCK_RUN_3_ID, true),
     ];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
 
     // v2 feature is turn off.
     jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(false);
@@ -330,7 +330,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       newMockRun(MOCK_RUN_2_ID, true),
       newMockRun(MOCK_RUN_3_ID, true),
     ];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    getRunSpy.mockImplementation((id: string) => runs.find((r) => r.run!.id === id));
 
     // v2 feature is turn off.
     jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(false);
@@ -352,14 +352,14 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       newMockRun(MOCK_RUN_2_ID, true),
       newMockRun(MOCK_RUN_3_ID, true),
     ];
-    getRunSpy.mockImplementation(_ => {
+    getRunSpy.mockImplementation((_) => {
       throw {
         text: () => Promise.resolve('test error'),
       };
     });
 
     // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation((featureKey) => {
       if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }

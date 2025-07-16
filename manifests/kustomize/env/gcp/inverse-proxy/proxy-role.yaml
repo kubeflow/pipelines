@@ -5,9 +5,9 @@ metadata:
     app: proxy-agent-runner
   name: proxy-agent-runner
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - '*'
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - "*"

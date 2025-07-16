@@ -37,10 +37,11 @@ function NewRunSwitcher(props: PageProps) {
   let pipelineVersionIdFromRunOrRecurringRun;
 
   // Retrieve v2 run details
-  const { isSuccess: getV2RunSuccess, isFetching: v2RunIsFetching, data: v2Run } = useQuery<
-    V2beta1Run,
-    Error
-  >(
+  const {
+    isSuccess: getV2RunSuccess,
+    isFetching: v2RunIsFetching,
+    data: v2Run,
+  } = useQuery<V2beta1Run, Error>(
     ['v2_run_details', existingRunId],
     () => {
       if (!existingRunId) {
@@ -127,9 +128,8 @@ function NewRunSwitcher(props: PageProps) {
 
       let v1TemplateResponse;
       if (pipelineVersionId) {
-        v1TemplateResponse = await Apis.pipelineServiceApi.getPipelineVersionTemplate(
-          pipelineVersionId,
-        );
+        v1TemplateResponse =
+          await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
         return v1TemplateResponse.template || '';
       } else {
         v1TemplateResponse = await Apis.pipelineServiceApi.getTemplate(pipelineId);

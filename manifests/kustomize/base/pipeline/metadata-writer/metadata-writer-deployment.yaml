@@ -17,21 +17,21 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
-    
+
       containers:
-      - name: main
-        image: ghcr.io/kubeflow/kfp-metadata-writer:dummy
-        env:
-        - name: NAMESPACE_TO_WATCH
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 0
-          capabilities:
-            drop:
-            - ALL
+        - name: main
+          image: ghcr.io/kubeflow/kfp-metadata-writer:dummy
+          env:
+            - name: NAMESPACE_TO_WATCH
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
       serviceAccountName: kubeflow-pipelines-metadata-writer

@@ -99,7 +99,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
       });
     }
 
-    const rows: Row[] = this.state.recurringRuns.map(j => {
+    const rows: Row[] = this.state.recurringRuns.map((j) => {
       const row = {
         error: j.error,
         id: j.recurringRun.recurring_run_id!,
@@ -138,8 +138,8 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
               this.props.experimentIdMask
                 ? ' for this experiment'
                 : this.props.namespaceMask
-                ? ' for this namespace'
-                : ''
+                  ? ' for this namespace'
+                  : ''
             }.`
           }
         />
@@ -160,7 +160,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
       <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
         <Link
           className={commonCss.link}
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
           to={RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.recurringRunId, props.id)}
         >
           {props.value}
@@ -179,7 +179,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     return (
       <Link
         className={commonCss.link}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.value.id)}
       >
         {props.value.displayName}
@@ -222,8 +222,8 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
       props.value === V2beta1RecurringRunStatus.ENABLED
         ? color.success
         : props.value === V2beta1RecurringRunStatus.DISABLED
-        ? color.inactive
-        : color.errorText;
+          ? color.inactive
+          : color.errorText;
     return <div style={{ color: textColor }}>{props.value}</div>;
   };
 
@@ -232,7 +232,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     let nextPageToken = '';
 
     if (Array.isArray(this.props.recurringRunIdListMask)) {
-      displayRecurringRuns = this.props.recurringRunIdListMask.map(id => ({
+      displayRecurringRuns = this.props.recurringRunIdListMask.map((id) => ({
         recurringRun: { recurring_run_id: id },
       }));
       // listRecurringRuns doesn't currently support batching by IDs, so in this case we
@@ -249,7 +249,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
           this.props.experimentIdMask,
         );
 
-        displayRecurringRuns = (response.recurringRuns || []).map(rr => ({ recurringRun: rr }));
+        displayRecurringRuns = (response.recurringRuns || []).map((rr) => ({ recurringRun: rr }));
         nextPageToken = response.next_page_token || '';
       } catch (err) {
         const error = new Error(await errorToMessage(err));
@@ -291,13 +291,13 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     }
 
     return Promise.all(
-      displayRecurringRuns.map(displayRecurringRun => {
+      displayRecurringRuns.map((displayRecurringRun) => {
         if (!this.props.hideExperimentColumn) {
           const experimentId = displayRecurringRun.recurringRun.experiment_id;
 
           if (experimentId) {
             const experiment = experimentsResponse?.experiments?.find(
-              e => e.experiment_id === displayRecurringRun.recurringRun.experiment_id,
+              (e) => e.experiment_id === displayRecurringRun.recurringRun.experiment_id,
             );
             // If matching experiment id not found (typically because it has
             // been deleted), set display name to "-".
@@ -325,7 +325,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
     displayRecurringRuns: DisplayRecurringRun[],
   ): Promise<DisplayRecurringRun[]> {
     return Promise.all(
-      displayRecurringRuns.map(async displayRecurringRun => {
+      displayRecurringRuns.map(async (displayRecurringRun) => {
         let getRecurringRunResponse: V2beta1RecurringRun;
         try {
           getRecurringRunResponse = await Apis.recurringRunServiceApi.getRecurringRun(

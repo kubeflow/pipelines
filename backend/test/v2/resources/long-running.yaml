@@ -10,18 +10,18 @@ deploymentSpec:
     exec-wait-op:
       container:
         args:
-        - echo step-1 sleeping for 5m; sleep 300; echo done1
+          - echo step-1 sleeping for 5m; sleep 300; echo done1
         command:
-        - sh
-        - -c
+          - sh
+          - -c
         image: alpine:latest
     exec-wait-op-2:
       container:
         args:
-        - echo step-1 sleeping for 5m; sleep 300; echo done1
+          - echo step-1 sleeping for 5m; sleep 300; echo done1
         command:
-        - sh
-        - -c
+          - sh
+          - -c
         image: alpine:latest
 pipelineInfo:
   name: wait-awhile
@@ -41,7 +41,7 @@ root:
         componentRef:
           name: comp-wait-op-2
         dependentTasks:
-        - wait-op
+          - wait-op
         taskInfo:
           name: wait-op-2
 schemaVersion: 2.1.0

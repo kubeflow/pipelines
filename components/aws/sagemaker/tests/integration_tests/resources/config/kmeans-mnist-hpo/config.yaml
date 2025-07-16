@@ -37,7 +37,7 @@ Arguments:
       InputMode: File
   categorical_parameters:
     - Name: init_method
-      Values: 
+      Values:
         - random
         - kmeans++
   early_stopping_type: "Off"

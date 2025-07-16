@@ -10,50 +10,50 @@ spec:
         sidecar.istio.io/inject: "false"
     spec:
       containers:
-      - name: profile-controller
-        securityContext:
-          allowPrivilegeEscalation: false
-          seccompProfile:
-            type: RuntimeDefault
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 0
-          capabilities:
-            drop:
-            - ALL
-        image: public.ecr.aws/docker/library/python:3.12
-        command: ["python", "/hooks/sync.py"]
-        envFrom:
-        - configMapRef:
-            name: kubeflow-pipelines-profile-controller-env
-        env:
-        - name: KFP_VERSION
-          valueFrom:
-            configMapKeyRef:
-              name: pipeline-install-config
-              key: appVersion
-        - name: KFP_DEFAULT_PIPELINE_ROOT
-          valueFrom:
-            configMapKeyRef:
-              optional: true
-              name: pipeline-install-config
-              key: defaultPipelineRoot
-        - name: MINIO_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: mlpipeline-minio-artifact
-              key: accesskey
-        - name: MINIO_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: mlpipeline-minio-artifact
-              key: secretkey
-        volumeMounts:
-        - name: hooks
-          mountPath: /hooks
-        ports:
-        - containerPort: 8080
+        - name: profile-controller
+          securityContext:
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
+          image: public.ecr.aws/docker/library/python:3.12
+          command: ["python", "/hooks/sync.py"]
+          envFrom:
+            - configMapRef:
+                name: kubeflow-pipelines-profile-controller-env
+          env:
+            - name: KFP_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: appVersion
+            - name: KFP_DEFAULT_PIPELINE_ROOT
+              valueFrom:
+                configMapKeyRef:
+                  optional: true
+                  name: pipeline-install-config
+                  key: defaultPipelineRoot
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: accesskey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlpipeline-minio-artifact
+                  key: secretkey
+          volumeMounts:
+            - name: hooks
+              mountPath: /hooks
+          ports:
+            - containerPort: 8080
       volumes:
-      - name: hooks
-        configMap:
-          name: kubeflow-pipelines-profile-controller-code
+        - name: hooks
+          configMap:
+            name: kubeflow-pipelines-profile-controller-code

@@ -100,12 +100,12 @@ components:
           pipelinechannel--condition-branches-1-oneof-1:
             valueFromOneof:
               parameterSelectors:
-              - outputParameterKey: pipelinechannel--print-and-return-Output
-                producerSubtask: condition-2
-              - outputParameterKey: pipelinechannel--print-and-return-2-Output
-                producerSubtask: condition-3
-              - outputParameterKey: pipelinechannel--special-print-and-return-output_key
-                producerSubtask: condition-4
+                - outputParameterKey: pipelinechannel--print-and-return-Output
+                  producerSubtask: condition-2
+                - outputParameterKey: pipelinechannel--print-and-return-2-Output
+                  producerSubtask: condition-3
+                - outputParameterKey: pipelinechannel--special-print-and-return-output_key
+                  producerSubtask: condition-4
       tasks:
         condition-2:
           componentRef:
@@ -117,7 +117,8 @@ components:
           taskInfo:
             name: condition-2
           triggerPolicy:
-            condition: inputs.parameter_values['pipelinechannel--flip-three-sided-die-Output']
+            condition:
+              inputs.parameter_values['pipelinechannel--flip-three-sided-die-Output']
               == 'heads'
         condition-3:
           componentRef:
@@ -129,9 +130,10 @@ components:
           taskInfo:
             name: condition-3
           triggerPolicy:
-            condition: '!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
-              == ''heads'') && inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
-              == ''tails'''
+            condition:
+              "!(inputs.parameter_values['pipelinechannel--flip-three-sided-die-Output']
+              == 'heads') && inputs.parameter_values['pipelinechannel--flip-three-sided-die-Output']
+              == 'tails'"
         condition-4:
           componentRef:
             name: comp-condition-4
@@ -142,9 +144,10 @@ components:
           taskInfo:
             name: condition-4
           triggerPolicy:
-            condition: '!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
-              == ''heads'') && !(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
-              == ''tails'')'
+            condition:
+              "!(inputs.parameter_values['pipelinechannel--flip-three-sided-die-Output']
+              == 'heads') && !(inputs.parameter_values['pipelinechannel--flip-three-sided-die-Output']
+              == 'tails')"
     inputDefinitions:
       parameters:
         pipelinechannel--flip-three-sided-die-Output:
@@ -202,7 +205,7 @@ components:
           componentRef:
             name: comp-condition-branches-1
           dependentTasks:
-          - flip-three-sided-die
+            - flip-three-sided-die
           inputs:
             parameters:
               pipelinechannel--flip-three-sided-die-Output:
@@ -238,150 +241,150 @@ deploymentSpec:
     exec-flip-three-sided-die:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - flip_three_sided_die
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - flip_three_sided_die
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef flip_three_sided_die() -> str:\n    import random\n    val =\
-          \ random.randint(0, 2)\n\n    if val == 0:\n        return 'heads'\n   \
-          \ elif val == 1:\n        return 'tails'\n    else:\n        return 'draw'\n\
-          \n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef flip_three_sided_die() -> str:\n    import random\n    val =\
+            \ random.randint(0, 2)\n\n    if val == 0:\n        return 'heads'\n   \
+            \ elif val == 1:\n        return 'tails'\n    else:\n        return 'draw'\n\
+            \n"
         image: python:3.9
     exec-print-and-return:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_and_return
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - print_and_return
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
-          \ text\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+            \ text\n\n"
         image: python:3.9
     exec-print-and-return-2:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_and_return
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - print_and_return
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
-          \ text\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+            \ text\n\n"
         image: python:3.9
     exec-print-and-return-3:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_and_return
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - print_and_return
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
-          \ text\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_and_return(text: str) -> str:\n    print(text)\n    return\
+            \ text\n\n"
         image: python:3.9
     exec-special-print-and-return:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - special_print_and_return
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - special_print_and_return
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef special_print_and_return(text: str, output_key: dsl.OutputPath(str)):\n\
-          \    print('Got the special state:', text)\n    with open(output_key, 'w')\
-          \ as f:\n        f.write(text)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef special_print_and_return(text: str, output_key: dsl.OutputPath(str)):\n\
+            \    print('Got the special state:', text)\n    with open(output_key, 'w')\
+            \ as f:\n        f.write(text)\n\n"
         image: python:3.9
 pipelineInfo:
   name: outer-pipeline
@@ -400,7 +403,7 @@ root:
         componentRef:
           name: comp-print-and-return-3
         dependentTasks:
-        - roll-die-pipeline
+          - roll-die-pipeline
         inputs:
           parameters:
             text:

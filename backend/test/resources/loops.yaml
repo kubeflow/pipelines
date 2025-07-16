@@ -20,23 +20,23 @@ spec:
   entrypoint: loop-example
   serviceAccountName: pipeline-runner
   templates:
-  - name: loop-example
-    steps:
-    - - name: print-message
-        template: whalesay
-        arguments:
-          parameters:
-          - name: message
-            value: "{{item}}"
-        withItems:
-        - hello world
-        - goodbye world
+    - name: loop-example
+      steps:
+        - - name: print-message
+            template: whalesay
+            arguments:
+              parameters:
+                - name: message
+                  value: "{{item}}"
+            withItems:
+              - hello world
+              - goodbye world
 
-  - name: whalesay
-    inputs:
-      parameters:
-      - name: message
-    container:
-      image: docker/whalesay:latest
-      command: [cowsay]
-      args: ["{{inputs.parameters.message}}"]
+    - name: whalesay
+      inputs:
+        parameters:
+          - name: message
+      container:
+        image: docker/whalesay:latest
+        command: [cowsay]
+        args: ["{{inputs.parameters.message}}"]

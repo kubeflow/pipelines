@@ -6,9 +6,9 @@ spec:
   commonName: kfp-api-webhook-cert
   isCA: true
   dnsNames:
-  - ml-pipeline
-  - ml-pipeline.$(kfp-namespace)
-  - ml-pipeline.$(kfp-namespace).svc
+    - ml-pipeline
+    - ml-pipeline.$(kfp-namespace)
+    - ml-pipeline.$(kfp-namespace).svc
   issuerRef:
     kind: Issuer
     name: kfp-api-webhook-selfsigned-issuer

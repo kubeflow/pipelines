@@ -28,27 +28,27 @@ deploymentSpec:
     exec-read-from-gcs:
       container:
         command:
-        - sh
-        - -c
-        - 'set -e -x
+          - sh
+          - -c
+          - 'set -e -x
 
-          gsutil cat "$0"
+            gsutil cat "$0"
 
-          '
-        - '{{$.inputs.artifacts[''input_gcs_path''].uri}}'
+            '
+          - "{{$.inputs.artifacts['input_gcs_path'].uri}}"
         image: google/cloud-sdk:slim
     exec-write-to-gcs:
       container:
         command:
-        - sh
-        - -c
-        - 'set -e -x
+          - sh
+          - -c
+          - 'set -e -x
 
-          echo "$0" | gsutil cp - "$1"
+            echo "$0" | gsutil cp - "$1"
 
-          '
-        - '{{$.inputs.parameters[''text'']}}'
-        - '{{$.outputs.artifacts[''output_gcs_path''].uri}}'
+            '
+          - "{{$.inputs.parameters['text']}}"
+          - "{{$.outputs.artifacts['output_gcs_path'].uri}}"
         image: google/cloud-sdk:slim
 pipelineInfo:
   name: simple-two-step-pipeline
@@ -61,7 +61,7 @@ root:
         componentRef:
           name: comp-read-from-gcs
         dependentTasks:
-        - write-to-gcs
+          - write-to-gcs
         inputs:
           artifacts:
             input_gcs_path:

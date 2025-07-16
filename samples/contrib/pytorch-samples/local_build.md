@@ -26,21 +26,18 @@ The output of the above script will generate a yaml file which can be uploaded t
 
 ### Uploading and invoking a run
 
-  1. Create an Experiment from `kubeflow dashboard -> Experiments -> Create Experiment`.
-  2. Upload the generated pipeline to `kubeflow dashboard -> Pipelines -> Upload Pipeline` 
-  3. Create run from `kubeflow dashboard -> Pipelines -> {Pipeline Name} -> Create Run`
+1. Create an Experiment from `kubeflow dashboard -> Experiments -> Create Experiment`.
+2. Upload the generated pipeline to `kubeflow dashboard -> Pipelines -> Upload Pipeline`
+3. Create run from `kubeflow dashboard -> Pipelines -> {Pipeline Name} -> Create Run`
 
-      **Pipeline params can be added while creating a run.**
+   **Pipeline params can be added while creating a run.**
 
-  Refer: [Kubeflow Pipelines Quickstart](https://www.kubeflow.org/docs/components/pipelines/pipelines-quickstart/)
-  
-  4. Click on the visualization tab, select the custom tensorboard image from the dropdown (examples screenshot shown below) and click `Start Tensorboard`. Tensoboard UI will be loaded with the run details.
+Refer: [Kubeflow Pipelines Quickstart](https://www.kubeflow.org/docs/components/pipelines/pipelines-quickstart/)
 
-  ![](screenshots/tensorboard.png)
+4. Click on the visualization tab, select the custom tensorboard image from the dropdown (examples screenshot shown below) and click `Start Tensorboard`. Tensoboard UI will be loaded with the run details.
 
+![](screenshots/tensorboard.png)
 
 **For testing any code changes or adding new examples, use the build script**
 
-  Refer: [Creating New examples](README.md##Adding-new-example)
-
-
+Refer: [Creating New examples](README.md##Adding-new-example)

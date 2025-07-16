@@ -1,50 +1,93 @@
 name: SageMaker - Private Workforce
 description: Private workforce in SageMaker
 inputs:
-- {name: region, type: String, description: The region for the SageMaker resource.}
-- {name: endpoint_url, type: String, description: The URL to use when communicating
-    with the SageMaker service., default: ''}
-- {name: assume_role, type: String, description: The ARN of an IAM role to assume
-    when connecting to SageMaker., default: ''}
-- {name: tags, type: JsonObject, description: 'An array of key-value pairs, to categorize
-    AWS resources.', default: '{}'}
-- {name: team_name, type: String, description: The name of your work team.}
-- {name: description, type: String, description: A description of the work team.}
-- {name: user_pool, type: String, description: An identifier for a user pool. The
-    user pool must be in the same region as the service that you are calling., default: ''}
-- {name: user_groups, type: String, description: A list of identifiers for user groups
-    separated by commas., default: ''}
-- {name: client_id, type: String, description: An identifier for an application client.
-    You must create the app client ID using Amazon Cognito., default: ''}
-- {name: sns_topic, type: String, description: The ARN for the SNS topic to which
-    notifications should be published., default: ''}
+  - {
+      name: region,
+      type: String,
+      description: The region for the SageMaker resource.,
+    }
+  - {
+      name: endpoint_url,
+      type: String,
+      description: The URL to use when communicating
+        with the SageMaker service.,
+      default: "",
+    }
+  - {
+      name: assume_role,
+      type: String,
+      description: The ARN of an IAM role to assume
+        when connecting to SageMaker.,
+      default: "",
+    }
+  - {
+      name: tags,
+      type: JsonObject,
+      description: "An array of key-value pairs, to categorize
+        AWS resources.",
+      default: "{}",
+    }
+  - { name: team_name, type: String, description: The name of your work team. }
+  - {
+      name: description,
+      type: String,
+      description: A description of the work team.,
+    }
+  - {
+      name: user_pool,
+      type: String,
+      description: An identifier for a user pool. The
+        user pool must be in the same region as the service that you are calling.,
+      default: "",
+    }
+  - {
+      name: user_groups,
+      type: String,
+      description: A list of identifiers for user groups
+        separated by commas.,
+      default: "",
+    }
+  - {
+      name: client_id,
+      type: String,
+      description: An identifier for an application client.
+        You must create the app client ID using Amazon Cognito.,
+      default: "",
+    }
+  - {
+      name: sns_topic,
+      type: String,
+      description: The ARN for the SNS topic to which
+        notifications should be published.,
+      default: "",
+    }
 outputs:
-- {name: workteam_arn, description: The ARN of the workteam.}
+  - { name: workteam_arn, description: The ARN of the workteam. }
 implementation:
   container:
     image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:1.1.2
     command: [python3]
     args:
-    - workteam/src/sagemaker_workteam_component.py
-    - --region
-    - {inputValue: region}
-    - --endpoint_url
-    - {inputValue: endpoint_url}
-    - --assume_role
-    - {inputValue: assume_role}
-    - --tags
-    - {inputValue: tags}
-    - --team_name
-    - {inputValue: team_name}
-    - --description
-    - {inputValue: description}
-    - --user_pool
-    - {inputValue: user_pool}
-    - --user_groups
-    - {inputValue: user_groups}
-    - --client_id
-    - {inputValue: client_id}
-    - --sns_topic
-    - {inputValue: sns_topic}
-    - --workteam_arn_output_path
-    - {outputPath: workteam_arn}
+      - workteam/src/sagemaker_workteam_component.py
+      - --region
+      - { inputValue: region }
+      - --endpoint_url
+      - { inputValue: endpoint_url }
+      - --assume_role
+      - { inputValue: assume_role }
+      - --tags
+      - { inputValue: tags }
+      - --team_name
+      - { inputValue: team_name }
+      - --description
+      - { inputValue: description }
+      - --user_pool
+      - { inputValue: user_pool }
+      - --user_groups
+      - { inputValue: user_groups }
+      - --client_id
+      - { inputValue: client_id }
+      - --sns_topic
+      - { inputValue: sns_topic }
+      - --workteam_arn_output_path
+      - { outputPath: workteam_arn }

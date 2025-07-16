@@ -6,21 +6,21 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/kfp-kubernetes-execution-tests.yml'
-      - '.github/resources/**'
-      - 'sdk/python/**'
-      - 'api/v2alpha1/**'
-      - 'kubernetes_platform/**'
-      - 'backend/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/kfp-kubernetes-execution-tests.yml"
+      - ".github/resources/**"
+      - "sdk/python/**"
+      - "api/v2alpha1/**"
+      - "kubernetes_platform/**"
+      - "backend/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   kfp-kubernetes-execution-tests:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: kfp-kubernetes execution tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -29,19 +29,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
       # This is intended to address disk space issues that have surfaced
       # intermittently during CI -
       # https://github.com/actions/runner-images/issues/2840#issuecomment-1284059930
       - name: Free up space in /dev/root
         run: |
-            echo "Disk usage before clean up:"
-            df -h
-            sudo rm -rf /usr/share/dotnet
-            sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-            echo "Disk usage after clean up:"
-            df -h
+          echo "Disk usage before clean up:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "Disk usage after clean up:"
+          df -h
 
       - name: Create KFP cluster
         id: create-kfp-cluster

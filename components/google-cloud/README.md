@@ -12,27 +12,29 @@
 Please see the [Google Cloud Pipeline Components user guide](https://cloud.google.com/vertex-ai/docs/pipelines/components-introduction).
 
 ### API documentation
+
 Please see the [Google Cloud Pipeline Components API reference documentation](https://google-cloud-pipeline-components.readthedocs.io/).
 
 ### Release details
+
 For details about previous and upcoming releases, please see the [release notes](https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/RELEASE.md).
 
 ## Examples
-*   [Train an image classification model using Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_automl_images.ipynb).
-*   [Train a classification model using tabular data and Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/automl_tabular_classification_beans.ipynb).
-*   [Train a linear regression model using tabular data and Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_automl_tabular.ipynb).
-*   [Train a text classification model using Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_automl_text.ipynb).
-*   [Use the Google Cloud pipeline components to upload and deploy a model](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_model_train_upload_deploy.ipynb).
+
+- [Train an image classification model using Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_automl_images.ipynb).
+- [Train a classification model using tabular data and Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/automl_tabular_classification_beans.ipynb).
+- [Train a linear regression model using tabular data and Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_automl_tabular.ipynb).
+- [Train a text classification model using Vertex AI AutoML](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_automl_text.ipynb).
+- [Use the Google Cloud pipeline components to upload and deploy a model](https://github.com/GoogleCloudPlatform/vertex-ai-samples/blob/master/notebooks/official/pipelines/google_cloud_pipeline_components_model_train_upload_deploy.ipynb).
 
 ## Installation
 
 ### Requirements
 
--   Python >= 3.7
--   [A Google Cloud project with the Vertex API enabled.](https://cloud.google.com/vertex-ai/docs/start/cloud-environment)
--   An
-    [authenticated GCP account](https://cloud.google.com/ai-platform/docs/getting-started-keras#authenticate_your_gcp_account)
-
+- Python >= 3.7
+- [A Google Cloud project with the Vertex API enabled.](https://cloud.google.com/vertex-ai/docs/start/cloud-environment)
+- An
+  [authenticated GCP account](https://cloud.google.com/ai-platform/docs/getting-started-keras#authenticate_your_gcp_account)
 
 ### Install latest release
 

@@ -4,16 +4,9 @@
     "title": "backend/api/v2beta1/pipeline.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v2beta1/pipelines": {
       "get": {
@@ -71,9 +64,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "post": {
         "summary": "Creates a pipeline.",
@@ -103,9 +94,7 @@
             }
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/create": {
@@ -136,9 +125,7 @@
             }
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/names/{name}": {
@@ -175,9 +162,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/{pipeline_id}": {
@@ -207,9 +192,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "delete": {
         "summary": "Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.",
@@ -237,9 +220,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/{pipeline_id}/versions": {
@@ -298,9 +279,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "post": {
         "summary": "Adds a pipeline version to the specified pipeline ID.",
@@ -337,9 +316,7 @@
             }
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}": {
@@ -376,9 +353,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "delete": {
         "summary": "Deletes a specific pipeline version by pipeline version ID and pipeline ID.",
@@ -413,9 +388,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     }
   },
@@ -459,9 +432,7 @@
     },
     "protobufNullValue": {
       "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
+      "enum": ["NULL_VALUE"],
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     },

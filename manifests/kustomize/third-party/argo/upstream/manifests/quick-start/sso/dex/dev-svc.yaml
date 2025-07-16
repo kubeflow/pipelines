@@ -3,10 +3,10 @@ kind: Service
 metadata: # kpt-merge: /dex
   name: dex
   annotations:
-    internal.kpt.dev/upstream-identifier: '|Service|default|dex'
+    internal.kpt.dev/upstream-identifier: "|Service|default|dex"
 spec:
   ports:
-  - name: http
-    port: 5556
+    - name: http
+      port: 5556
   selector:
     app: dex

@@ -10,25 +10,25 @@ spec:
     plural: viewers
     singular: viewer
     shortNames:
-    - vi
+      - vi
   scope: Namespaced
   versions:
-  - name: v1beta1
-    schema:
-      openAPIV3Schema:
-        properties:
-          apiVersion:
-            type: string
-          kind:
-            type: string
-          metadata:
-            type: object
-          spec:
-            type: object
-            x-kubernetes-preserve-unknown-fields: true
-            x-kubernetes-map-type: atomic
-        required:
-        - spec
-        type: object
-    served: true
-    storage: true
+    - name: v1beta1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              x-kubernetes-map-type: atomic
+          required:
+            - spec
+          type: object
+      served: true
+      storage: true

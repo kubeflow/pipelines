@@ -3,7 +3,7 @@ kind: RoleBinding
 metadata: # kpt-merge: /artifactgc-default
   name: artifactgc-default
   annotations:
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|RoleBinding|default|artifactgc-default'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|RoleBinding|default|artifactgc-default"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

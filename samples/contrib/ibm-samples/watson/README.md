@@ -6,23 +6,23 @@ This sample requires the user to have provisioned a machine learning service on 
 
 To provision your own Watson Machine Learning services and cloud object store, following are the required steps.
 
-* IBM Watson Machine Learning service instance
+- IBM Watson Machine Learning service instance
 
 To create a machine learning service, go to [IBM Cloud](https://console.bluemix.net), login with IBM account id first. From the `Catalog` page, click on `AI` tab on the left side to go to this [page](https://console.bluemix.net/catalog/?category=ai). Then click on the [`Machine Learning`](https://console.bluemix.net/catalog/services/machine-learning) link and follow the instructions to create the service.
 
 Once the service is created, from service's `Dashboard`, follow the instruction to generate `service credentials`. Refer to IBM Cloud [documents](https://console.bluemix.net/docs/) for help if needed. Collect the `url`, `apikey`, and `instance_id` info from the service credentials as these will be required to access the service.
 
-* A cloud object store
+- A cloud object store
 
 Watson Machine Learning service loads datasets from cloud object store and stores model outputs and other artifacts to cloud object store. Users can use any cloud object store they already preserve. Users can also create a cloud object store with `IBM Cloud Object Storage` service by following this [link](https://console.bluemix.net/catalog/services/cloud-object-storage).
 
-Collect the `access_key_id` and `secret_access_key` fields from the service credentials for the cloud object store. Create the service credentials first if not existed. To ensure generating HMAC credentials, specify the following in the `Add Inline Configuration Parameters` field: `{"HMAC":true}`.  
+Collect the `access_key_id` and `secret_access_key` fields from the service credentials for the cloud object store. Create the service credentials first if not existed. To ensure generating HMAC credentials, specify the following in the `Add Inline Configuration Parameters` field: `{"HMAC":true}`.
 
 Collect the `endpoint` info from the endpoint section in the cloud object store service.
 
 Create two buckets, one for storing the train datasets and model source codes, and one for storing the model outputs.
 
-* Set up access credentials
+- Set up access credentials
 
 This pipeline sample reads the credentials from a file hosted in a github repo. Refer to `creds.ini` file and input user's specific credentials. Then upload the file to a github repo the user has access.
 

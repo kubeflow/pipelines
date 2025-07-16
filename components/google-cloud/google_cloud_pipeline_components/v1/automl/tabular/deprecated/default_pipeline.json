@@ -879,9 +879,7 @@
               "componentRef": {
                 "name": "comp-automl-tabular-infra-validator-2"
               },
-              "dependentTasks": [
-                "automl-tabular-ensemble-2"
-              ],
+              "dependentTasks": ["automl-tabular-ensemble-2"],
               "inputs": {
                 "artifacts": {
                   "unmanaged_container_model": {
@@ -903,9 +901,7 @@
               "componentRef": {
                 "name": "comp-automl-tabular-stage-1-tuner-2"
               },
-              "dependentTasks": [
-                "automl-tabular-transform-2"
-              ],
+              "dependentTasks": ["automl-tabular-transform-2"],
               "inputs": {
                 "artifacts": {
                   "materialized_eval_split": {
@@ -1104,10 +1100,7 @@
               "componentRef": {
                 "name": "comp-condition-is-evaluation-5"
               },
-              "dependentTasks": [
-                "automl-tabular-ensemble-2",
-                "model-upload-3"
-              ],
+              "dependentTasks": ["automl-tabular-ensemble-2", "model-upload-3"],
               "inputs": {
                 "artifacts": {
                   "pipelineparam--automl-tabular-ensemble-2-explanation_metadata_artifact": {
@@ -1209,10 +1202,7 @@
               "componentRef": {
                 "name": "comp-model-batch-predict-2"
               },
-              "dependentTasks": [
-                "model-upload-2",
-                "read-input-uri"
-              ],
+              "dependentTasks": ["model-upload-2", "read-input-uri"],
               "inputs": {
                 "artifacts": {
                   "model": {
@@ -1354,10 +1344,7 @@
               "componentRef": {
                 "name": "comp-model-batch-predict-3"
               },
-              "dependentTasks": [
-                "model-upload-2",
-                "read-input-uri-2"
-              ],
+              "dependentTasks": ["model-upload-2", "read-input-uri-2"],
               "inputs": {
                 "artifacts": {
                   "model": {
@@ -1499,9 +1486,7 @@
               "componentRef": {
                 "name": "comp-model-upload-2"
               },
-              "dependentTasks": [
-                "set-model-can-skip-validation"
-              ],
+              "dependentTasks": ["set-model-can-skip-validation"],
               "inputs": {
                 "artifacts": {
                   "explanation_metadata_artifact": {
@@ -1695,9 +1680,7 @@
               "componentRef": {
                 "name": "comp-write-bp-result-path"
               },
-              "dependentTasks": [
-                "model-batch-predict-2"
-              ],
+              "dependentTasks": ["model-batch-predict-2"],
               "inputs": {
                 "artifacts": {
                   "bp_job": {
@@ -1719,9 +1702,7 @@
               "componentRef": {
                 "name": "comp-write-bp-result-path-2"
               },
-              "dependentTasks": [
-                "model-batch-predict-3"
-              ],
+              "dependentTasks": ["model-batch-predict-3"],
               "inputs": {
                 "artifacts": {
                   "bp_job": {
@@ -2207,9 +2188,7 @@
               "componentRef": {
                 "name": "comp-model-evaluation"
               },
-              "dependentTasks": [
-                "model-batch-predict"
-              ],
+              "dependentTasks": ["model-batch-predict"],
               "inputs": {
                 "artifacts": {
                   "batch_prediction_job": {
@@ -2360,9 +2339,7 @@
               "componentRef": {
                 "name": "comp-model-evaluation-2"
               },
-              "dependentTasks": [
-                "model-batch-explanation"
-              ],
+              "dependentTasks": ["model-batch-explanation"],
               "inputs": {
                 "artifacts": {
                   "batch_prediction_job": {
@@ -2513,10 +2490,7 @@
               "componentRef": {
                 "name": "comp-model-evaluation-import"
               },
-              "dependentTasks": [
-                "model-evaluation",
-                "model-evaluation-2"
-              ],
+              "dependentTasks": ["model-evaluation", "model-evaluation-2"],
               "inputs": {
                 "artifacts": {
                   "explanation": {
@@ -2975,9 +2949,7 @@
               "componentRef": {
                 "name": "comp-model-evaluation-3"
               },
-              "dependentTasks": [
-                "model-batch-predict-4"
-              ],
+              "dependentTasks": ["model-batch-predict-4"],
               "inputs": {
                 "artifacts": {
                   "batch_prediction_job": {
@@ -3128,9 +3100,7 @@
               "componentRef": {
                 "name": "comp-model-evaluation-4"
               },
-              "dependentTasks": [
-                "model-batch-explanation-2"
-              ],
+              "dependentTasks": ["model-batch-explanation-2"],
               "inputs": {
                 "artifacts": {
                   "batch_prediction_job": {
@@ -3281,10 +3251,7 @@
               "componentRef": {
                 "name": "comp-model-evaluation-import-2"
               },
-              "dependentTasks": [
-                "model-evaluation-3",
-                "model-evaluation-4"
-              ],
+              "dependentTasks": ["model-evaluation-3", "model-evaluation-4"],
               "inputs": {
                 "artifacts": {
                   "explanation": {
@@ -3471,9 +3438,7 @@
               "componentRef": {
                 "name": "comp-condition-is-evaluation-3"
               },
-              "dependentTasks": [
-                "model-upload"
-              ],
+              "dependentTasks": ["model-upload"],
               "inputs": {
                 "artifacts": {
                   "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact": {
@@ -3919,9 +3884,7 @@
               "componentRef": {
                 "name": "comp-automl-tabular-infra-validator"
               },
-              "dependentTasks": [
-                "automl-tabular-ensemble"
-              ],
+              "dependentTasks": ["automl-tabular-ensemble"],
               "inputs": {
                 "artifacts": {
                   "unmanaged_container_model": {
@@ -4059,9 +4022,7 @@
               "componentRef": {
                 "name": "comp-automl-tabular-transform"
               },
-              "dependentTasks": [
-                "tabular-stats-and-example-gen"
-              ],
+              "dependentTasks": ["tabular-stats-and-example-gen"],
               "inputs": {
                 "artifacts": {
                   "dataset_schema": {
@@ -4476,9 +4437,7 @@
               "componentRef": {
                 "name": "comp-merge-materialized-splits"
               },
-              "dependentTasks": [
-                "automl-tabular-transform"
-              ],
+              "dependentTasks": ["automl-tabular-transform"],
               "inputs": {
                 "artifacts": {
                   "split_0": {
@@ -6565,10 +6524,7 @@
         },
         "exec-automl-tabular-infra-validator": {
           "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}"
-            ],
+            "args": ["--executor_input", "{{$}}"],
             "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod",
             "resources": {
               "cpuLimit": 8.0,
@@ -6578,10 +6534,7 @@
         },
         "exec-automl-tabular-infra-validator-2": {
           "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}"
-            ],
+            "args": ["--executor_input", "{{$}}"],
             "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod",
             "resources": {
               "cpuLimit": 8.0,
@@ -6750,12 +6703,7 @@
               "--executor_input",
               "{{$}}"
             ],
-            "command": [
-              "python3",
-              "-u",
-              "-m",
-              "launcher"
-            ],
+            "command": ["python3", "-u", "-m", "launcher"],
             "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.13"
           }
         },
@@ -6775,12 +6723,7 @@
               "--executor_input",
               "{{$}}"
             ],
-            "command": [
-              "python3",
-              "-u",
-              "-m",
-              "launcher"
-            ],
+            "command": ["python3", "-u", "-m", "launcher"],
             "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.13"
           }
         },
@@ -6954,10 +6897,7 @@
               "--executor_input",
               "{{$}}"
             ],
-            "command": [
-              "python",
-              "/main.py"
-            ],
+            "command": ["python", "/main.py"],
             "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
@@ -7031,10 +6971,7 @@
               "--executor_input",
               "{{$}}"
             ],
-            "command": [
-              "python",
-              "/main.py"
-            ],
+            "command": ["python", "/main.py"],
             "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
@@ -7108,10 +7045,7 @@
               "--executor_input",
               "{{$}}"
             ],
-            "command": [
-              "python",
-              "/main.py"
-            ],
+            "command": ["python", "/main.py"],
             "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
@@ -7185,10 +7119,7 @@
               "--executor_input",
               "{{$}}"
             ],
-            "command": [
-              "python",
-              "/main.py"
-            ],
+            "command": ["python", "/main.py"],
             "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
@@ -7282,12 +7213,7 @@
               "--executor_input",
               "{{$}}"
             ],
-            "command": [
-              "python3",
-              "-u",
-              "-m",
-              "launcher"
-            ],
+            "command": ["python3", "-u", "-m", "launcher"],
             "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.13"
           }
         },
@@ -7307,12 +7233,7 @@
               "--executor_input",
               "{{$}}"
             ],
-            "command": [
-              "python3",
-              "-u",
-              "-m",
-              "launcher"
-            ],
+            "command": ["python3", "-u", "-m", "launcher"],
             "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.13"
           }
         },
@@ -7332,12 +7253,7 @@
               "--executor_input",
               "{{$}}"
             ],
-            "command": [
-              "python3",
-              "-u",
-              "-m",
-              "launcher"
-            ],
+            "command": ["python3", "-u", "-m", "launcher"],
             "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.13"
           }
         },
@@ -7497,9 +7413,7 @@
             "componentRef": {
               "name": "comp-automl-tabular-finalizer"
             },
-            "dependentTasks": [
-              "exit-handler-1"
-            ],
+            "dependentTasks": ["exit-handler-1"],
             "inputs": {
               "parameters": {
                 "encryption_spec_key_name": {

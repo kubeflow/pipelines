@@ -3,6 +3,7 @@
 1. Create an EKS cluster
 
 Run this command to create EKS cluster
+
 ```
 eksctl create cluster \
 --name AWS-KFP \
@@ -33,6 +34,7 @@ aws s3 mb s3://$S3_BUCKET --region $AWS_REGION
 Follow this [doc](https://awslabs.github.io/kubeflow-manifests/docs/deployment/rds-s3/guide/) to set up AWS RDS instance.
 
 4. Customize your values
+
 - Edit [params.env](params.env), [secret.env](secret.env) and [minio-artifact-secret-patch.env](minio-artifact-secret-patch.env)
 
 5. Install

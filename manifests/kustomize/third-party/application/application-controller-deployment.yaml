@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - command:
-          - /kube-app-manager
+            - /kube-app-manager
           # Built from https://github.com/kubernetes-sigs/application master branch on the date specified in the image tag.
           image: gcr.io/ml-pipeline/application-crd-controller:20231101
           imagePullPolicy: IfNotPresent

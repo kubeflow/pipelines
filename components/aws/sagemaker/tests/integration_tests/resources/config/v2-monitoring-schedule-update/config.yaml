@@ -22,10 +22,10 @@ Arguments:
       s3DataDistributionType: FullyReplicated
   data_quality_job_output_config:
     monitoringOutputs:
-    - s3Output:
-        localPath: /opt/ml/processing/output
-        s3URI: s3://((DATA_BUCKET))/model-monitor/reports/data-quality-job-definition/
-      s3UploadMode: Continuous
+      - s3Output:
+          localPath: /opt/ml/processing/output
+          s3URI: s3://((DATA_BUCKET))/model-monitor/reports/data-quality-job-definition/
+        s3UploadMode: Continuous
   job_resources:
     clusterConfig:
       instanceCount: 1

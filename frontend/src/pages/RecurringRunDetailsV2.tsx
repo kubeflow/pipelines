@@ -72,7 +72,7 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
         ['Description', run.description!],
         ['Created at', formatDateString(run.created_at)],
       ];
-      inputParameters = Object.entries(run.runtime_config?.parameters || []).map(param => [
+      inputParameters = Object.entries(run.runtime_config?.parameters || []).map((param) => [
         param[0] || '',
         param[1] || '',
       ]);

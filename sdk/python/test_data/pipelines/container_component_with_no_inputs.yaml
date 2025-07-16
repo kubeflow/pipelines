@@ -8,8 +8,8 @@ deploymentSpec:
     exec-hello-world-container:
       container:
         command:
-        - echo
-        - hello world
+          - echo
+          - hello world
         image: python:3.9
 pipelineInfo:
   name: v2-container-component-no-input

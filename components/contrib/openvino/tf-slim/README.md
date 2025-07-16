@@ -1,7 +1,7 @@
 # Slim models generator
 
 This component is automating implementation of [slim models](https://github.com/tensorflow/models/blob/master/research/slim).
-It can create a graph from slim models zoo, load the variables pre-trained checkpoint and export the model in the form 
+It can create a graph from slim models zoo, load the variables pre-trained checkpoint and export the model in the form
 of Tensorflow `frozen graph` and `saved model`.
 
 The results of the component can be saved in a local path or in GCS cloud storage. The can be used to other ML pipeline
@@ -12,7 +12,6 @@ components like OpenVINO model optimizer, OpenVINO predict or OpenVINO Model Ser
 ```bash
 docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy .
 ```
-
 
 ## Using the component
 
@@ -38,29 +37,29 @@ optional arguments:
                         number of model classes
 ```
 
-*Model name* can be any model defined in the slim repository. The naming convention needs to match the key name from 
+_Model name_ can be any model defined in the slim repository. The naming convention needs to match the key name from
 [net_factory.py]()https://github.com/tensorflow/models/blob/master/research/slim/nets/nets_factory.py#L39)
 
-*export dir* can be a local path in the container or it might be GCS path to store generated files:
+_export dir_ can be a local path in the container or it might be GCS path to store generated files:
+
 - model graph file in pb format
 - frozen graph including weights from the provided checkpoint
 - event file which can be imported in tensorboard
 - saved model which will be stored in subfolder called `1`.
 
-*batch size* represent the batch used in the exported models. It can be natural number to represent fixed batch size
+_batch size_ represent the batch used in the exported models. It can be natural number to represent fixed batch size
 or `-1` value can be set for dynamic batch size.
 
-*checkpoint_url* is the URL to a pre-trained checkpoint https://github.com/tensorflow/models/tree/master/research/slim#pre-trained-models
+_checkpoint_url_ is the URL to a pre-trained checkpoint https://github.com/tensorflow/models/tree/master/research/slim#pre-trained-models
 It must match the model specified in model_name parameter.
 
-*num classes* should include model specific number of classes in the outputs. For slim models it should be a value 
+_num classes_ should include model specific number of classes in the outputs. For slim models it should be a value
 of `1000` or `1001`. It must match the number of classes used in the requested model name.
-
 
 ## Examples
 
 ```
-python slim_model.py --model_name mobilenet_v1_050 --export_dir /tmp/mobilnet 
+python slim_model.py --model_name mobilenet_v1_050 --export_dir /tmp/mobilnet
 --batch_size 1 --num_classes=1001 \
 --checkpoint_url http://download.tensorflow.org/models/mobilenet_v1_2018_02_22/mobilenet_v1_0.5_160.tgz
 
@@ -76,4 +75,3 @@ python slim_model.py --model_name vgg_19 --export_dir /tmp/vgg \
 --batch_size 1 --num_classes=1000 \
 --checkpoint_url http://download.tensorflow.org/models/vgg_19_2016_08_28.tar.gz
 ```
-

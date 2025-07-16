@@ -6,8 +6,8 @@ spec:
   template:
     spec:
       containers:
-      - name: ml-pipeline-persistenceagent
-        env:
-        - name: NAMESPACE
-          value: ''
-          valueFrom: null
+        - name: ml-pipeline-persistenceagent
+          env:
+            - name: NAMESPACE
+              value: ""
+              valueFrom: null

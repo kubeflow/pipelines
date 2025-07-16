@@ -4,10 +4,10 @@
 
 Tools needed:
 
-* [docker](https://docs.docker.com/get-docker/)
-* [make](https://www.gnu.org/software/make/)
-* [java](https://www.java.com/en/download/)
-* [python3](https://www.python.org/downloads/)
+- [docker](https://docs.docker.com/get-docker/)
+- [make](https://www.gnu.org/software/make/)
+- [java](https://www.java.com/en/download/)
+- [python3](https://www.python.org/downloads/)
 
 Set the environment variable `API_VERSION` to the version that you want to generate. We use `v1beta1` as example here.
 
@@ -18,15 +18,16 @@ export API_VERSION="v2beta1"
 ## Compiling `.proto` files to Go client and swagger definitions
 
 Use `make generate` command to generate clients using a pre-built api-generator image:
+
 ```bash
 make generate
 ```
 
 Go client library will be placed into:
 
-* `./${API_VERSION}/go_client`
-* `./${API_VERSION}/go_http_client`
-* `./${API_VERSION}/swagger`
+- `./${API_VERSION}/go_client`
+- `./${API_VERSION}/go_http_client`
+- `./${API_VERSION}/swagger`
 
 > **Note**
 > `./${API_VERSION}/swagger/pipeline.upload.swagger.json` is manually created, while the rest of `./${API_VERSION}/swagger/*.swagger.json` are compiled from `./${API_VERSION}/*.proto` files.
@@ -49,15 +50,16 @@ Python client will be placed into `./${API_VERSION}/python_http_client`.
 API definitions in this folder are used to generate [`v1beta1`](https://www.kubeflow.org/docs/components/pipelines/v1/reference/api/kubeflow-pipeline-api-spec/) and [`v2beta1`](https://www.kubeflow.org/docs/components/pipelines/v2/reference/api/kubeflow-pipeline-api-spec/) API reference documentation on kubeflow.org. Follow the steps below to update the documentation:
 
 1. Install [bootprint-openapi](https://github.com/bootprint/bootprint-monorepo/tree/master/packages/bootprint-openapi) and [html-inline](https://www.npmjs.com/package/html-inline) packages using `npm`:
+
    ```bash
    npm install -g bootprint
    npm install -g bootprint-openapi
    npm -g install html-inline
    ```
 
-2. Generate *self-contained html file(s)* with API reference documentation from `./${API_VERSION}/swagger/kfp_api_single_file.swagger.json`:
+2. Generate _self-contained html file(s)_ with API reference documentation from `./${API_VERSION}/swagger/kfp_api_single_file.swagger.json`:
 
-    Fov `v1beta1`:
+   Fov `v1beta1`:
 
    ```bash
    bootprint openapi ./v1beta1/swagger/kfp_api_single_file.swagger.json ./temp/v1
@@ -81,8 +83,8 @@ API definitions in this folder are used to generate [`v1beta1`](https://www.kube
 
 API generator image is defined in [Dockerfile](`./Dockerfile`). If you need to update the container, follow these steps:
 
-1. Login to GHCR container registry: `echo "<PAT>" | docker login ghcr.io -u <USERNAME> --password-stdin` 
-   * Replace `<PAT>` with a GitHub Personal Access Token (PAT) with the write:packages and `read:packages` scopes, as well as `delete:packages` if needed. 
+1. Login to GHCR container registry: `echo "<PAT>" | docker login ghcr.io -u <USERNAME> --password-stdin`
+   - Replace `<PAT>` with a GitHub Personal Access Token (PAT) with the write:packages and `read:packages` scopes, as well as `delete:packages` if needed.
 1. Update the [Dockerfile](`./Dockerfile`) and build the image by running `docker build -t ghcr.io/kubeflow/kfp-api-generator:$VERSION .`
 1. Push the new container by running `docker push ghcr.io/kubeflow/kfp-api-generator:$VERSION`.
 1. Update the `PREBUILT_REMOTE_IMAGE` variable in the [Makefile](./Makefile) to point to your new image.

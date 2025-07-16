@@ -52,9 +52,9 @@ describe('RecurringRunList', () => {
   }
 
   function mockNRecurringRuns(n: number, recurringRunTemplate: Partial<V2beta1RecurringRun>): void {
-    getRecurringRunSpy.mockImplementation(id =>
+    getRecurringRunSpy.mockImplementation((id) =>
       Promise.resolve(
-        produce(recurringRunTemplate, draft => {
+        produce(recurringRunTemplate, (draft) => {
           draft.recurring_run_id = id;
           draft.display_name = 'recurring run with id: ' + id;
         }),
@@ -63,9 +63,9 @@ describe('RecurringRunList', () => {
 
     listRecurringRunsSpy.mockImplementation(() =>
       Promise.resolve({
-        recurringRuns: range(1, n + 1).map(i => {
+        recurringRuns: range(1, n + 1).map((i) => {
           if (recurringRunTemplate) {
-            return produce(recurringRunTemplate as Partial<V2beta1RecurringRun>, draft => {
+            return produce(recurringRunTemplate as Partial<V2beta1RecurringRun>, (draft) => {
               draft.recurring_run_id = 'testrecurringrun' + i;
               draft.display_name = 'recurring run with id: testrecurringrun' + i;
             });

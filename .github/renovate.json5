@@ -1,7 +1,7 @@
 {
-  "enabled": false,
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
+  enabled: false,
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
     "config:base",
     "schedule:weekly",
     ":dependencyDashboard",
@@ -9,45 +9,48 @@
     ":semanticCommitScope(deps)",
     "group:linters",
     "group:googleapis",
-    "group:goOpenapi"
+    "group:goOpenapi",
   ],
-  "packageRules": [
+  packageRules: [
     {
-      "datasources": ["docker"],
-      "updateTypes": ["patch"],
-      "groupName": "docker patch updates",
-      "groupSlug": "docker-updates"
-    },
-    {
-      "datasources": ["go"],
-      "updateTypes": ["patch", "minor"],
-      "groupName": "go.mod dependencies",
-      "groupSlug": "go-mod-updates"
+      datasources: ["docker"],
+      updateTypes: ["patch"],
+      groupName: "docker patch updates",
+      groupSlug: "docker-updates",
     },
     {
-      "datasources": ["npm"],
-      "rangeStrategy": "update-lockfile",
+      datasources: ["go"],
+      updateTypes: ["patch", "minor"],
+      groupName: "go.mod dependencies",
+      groupSlug: "go-mod-updates",
     },
     {
-      "datasources": ["npm"],
-      "updateTypes": ["patch", "minor"],
-      "groupName": "npm dependencies",
-      "groupSlug": "npm-updates",
+      datasources: ["npm"],
+      rangeStrategy: "update-lockfile",
     },
-    { // major updates do not create PRs automatically
-      "updateTypes": ["major"],
-      "dependencyDashboardApproval": true,
+    {
+      datasources: ["npm"],
+      updateTypes: ["patch", "minor"],
+      groupName: "npm dependencies",
+      groupSlug: "npm-updates",
     },
-    { // disable python package updates initially, because they are not stable
-      "languages": ["python"],
-      "enabled": false
+    {
+      // major updates do not create PRs automatically
+      updateTypes: ["major"],
+      dependencyDashboardApproval: true,
     },
-    { // we've deprecated bazel
-      "managers": ["bazel"],
-      "enabled": false
-    }
+    {
+      // disable python package updates initially, because they are not stable
+      languages: ["python"],
+      enabled: false,
+    },
+    {
+      // we've deprecated bazel
+      managers: ["bazel"],
+      enabled: false,
+    },
   ],
-  "ignorePaths": [
+  ignorePaths: [
     "components/deprecated/",
     "third_party/",
     "components/ibm-components/",
@@ -56,8 +59,8 @@
     "components/arena/",
     "components/aws/",
     "backend/api/python_http_client/",
-    "manifests/kustomize/"
+    "manifests/kustomize/",
   ],
-  "dependencyDashboardApproval": true, // require approval for all updates initially
-  "separateMinorPatch": true
+  dependencyDashboardApproval: true, // require approval for all updates initially
+  separateMinorPatch: true,
 }

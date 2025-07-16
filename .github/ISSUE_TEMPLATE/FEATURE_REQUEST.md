@@ -14,7 +14,6 @@ labels: kind/feature
 <!-- /area samples -->
 <!-- /area components -->
 
-
 ### What feature would you like to see?
 
 <!-- Provide a description of this feature and the user experience. -->
@@ -27,8 +26,8 @@ labels: kind/feature
 
 <!-- Without this feature, how do you accomplish your task today? -->
 
-
 ---
 
 <!-- Don't delete message below to encourage users to support your feature request! -->
-Love this idea? Give it a 👍. 
+
+Love this idea? Give it a 👍.

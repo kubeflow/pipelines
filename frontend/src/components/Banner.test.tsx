@@ -67,7 +67,7 @@ describe('Banner', () => {
         }}
       />,
     );
-    expect(tree.findWhere(el => el.text() === 'Refresh').exists()).toEqual(false);
+    expect(tree.findWhere((el) => el.text() === 'Refresh').exists()).toEqual(false);
   });
 
   it('shows troubleshooting link instructed by prop', () => {
@@ -104,24 +104,18 @@ describe('Banner', () => {
     const tree = shallow(
       <Banner message='Some message' mode='warning' showTroubleshootingGuideLink={true} />,
     );
-    expect(tree.findWhere(el => el.text() === 'Troubleshooting guide').exists()).toEqual(false);
+    expect(tree.findWhere((el) => el.text() === 'Troubleshooting guide').exists()).toEqual(false);
   });
 
   it('opens details dialog when button is clicked', () => {
     const tree = shallow(<Banner message='hello' additionalInfo='world' />);
-    tree
-      .find('WithStyles(Button)')
-      .at(0)
-      .simulate('click');
+    tree.find('WithStyles(Button)').at(0).simulate('click');
     expect(tree.state()).toHaveProperty('dialogOpen', true);
   });
 
   it('closes details dialog when cancel button is clicked', () => {
     const tree = shallow(<Banner message='hello' additionalInfo='world' />);
-    tree
-      .find('WithStyles(Button)')
-      .at(0)
-      .simulate('click');
+    tree.find('WithStyles(Button)').at(0).simulate('click');
     expect(tree.state()).toHaveProperty('dialogOpen', true);
     tree.find('#dismissDialogBtn').simulate('click');
     expect(tree.state()).toHaveProperty('dialogOpen', false);

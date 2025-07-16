@@ -26,11 +26,11 @@ deploymentSpec:
     exec-container-with-concat-placeholder:
       container:
         args:
-        - --output_path
-        - '{{$.outputs.parameters[''output_path''].output_file}}'
+          - --output_path
+          - "{{$.outputs.parameters['output_path'].output_file}}"
         command:
-        - my_program
-        - '{"Concat": ["prefix-", "{{$.inputs.parameters[''text1'']}}", "{{$.outputs.artifacts[''text2''].uri}}"]}'
+          - my_program
+          - '{"Concat": ["prefix-", "{{$.inputs.parameters[''text1'']}}", "{{$.outputs.artifacts[''text2''].uri}}"]}'
         image: python:3.9
 pipelineInfo:
   name: container-with-concat-placeholder
@@ -40,8 +40,8 @@ root:
       artifacts:
         text2:
           artifactSelectors:
-          - outputArtifactKey: text2
-            producerSubtask: container-with-concat-placeholder
+            - outputArtifactKey: text2
+              producerSubtask: container-with-concat-placeholder
       parameters:
         output_path:
           valueFromParameter:

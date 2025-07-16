@@ -76,7 +76,10 @@ export class BaseAPI {
  */
 export class RequiredError extends Error {
   name: 'RequiredError';
-  constructor(public field: string, msg?: string) {
+  constructor(
+    public field: string,
+    msg?: string,
+  ) {
     super(msg);
   }
 }
@@ -502,7 +505,7 @@ export enum ProtobufNullValue {
  * JobServiceApi - fetch parameter creator
  * @export
  */
-export const JobServiceApiFetchParamCreator = function(configuration?: Configuration) {
+export const JobServiceApiFetchParamCreator = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -835,7 +838,7 @@ export const JobServiceApiFetchParamCreator = function(configuration?: Configura
  * JobServiceApi - functional programming interface
  * @export
  */
-export const JobServiceApiFp = function(configuration?: Configuration) {
+export const JobServiceApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -853,13 +856,15 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -875,13 +880,15 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -897,13 +904,15 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -919,13 +928,15 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -938,13 +949,15 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
     getJob(id: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<ApiJob> {
       const localVarFetchArgs = JobServiceApiFetchParamCreator(configuration).getJob(id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -984,13 +997,15 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
   };
@@ -1000,7 +1015,7 @@ export const JobServiceApiFp = function(configuration?: Configuration) {
  * JobServiceApi - factory interface
  * @export
  */
-export const JobServiceApiFactory = function(
+export const JobServiceApiFactory = function (
   configuration?: Configuration,
   fetch?: FetchAPI,
   basePath?: string,

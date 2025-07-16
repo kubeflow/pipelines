@@ -3,11 +3,11 @@ kind: RoleBinding
 metadata: # kpt-merge: /argo-binding
   name: argo-binding
   annotations:
-    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|RoleBinding|default|argo-binding'
+    internal.kpt.dev/upstream-identifier: "rbac.authorization.k8s.io|RoleBinding|default|argo-binding"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: argo-role
 subjects:
-- kind: ServiceAccount
-  name: argo
+  - kind: ServiceAccount
+    name: argo

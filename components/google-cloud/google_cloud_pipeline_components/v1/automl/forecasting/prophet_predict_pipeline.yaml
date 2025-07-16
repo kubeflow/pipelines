@@ -52,8 +52,8 @@ components:
     inputDefinitions:
       parameters:
         encryption_spec_key_name:
-          defaultValue: ''
-          description: 'Describes the Cloud
+          defaultValue: ""
+          description: "Describes the Cloud
 
             KMS encryption key that will be used to protect destination
 
@@ -65,16 +65,16 @@ components:
 
             job_configuration_query, the value in here will override the other
 
-            one.'
+            one."
           isOptional: true
           parameterType: STRING
         job_configuration_query:
           defaultValue: {}
-          description: 'A json formatted string
+          description: "A json formatted string
 
             describing the rest of the job configuration.  For more details, see
 
-            https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery'
+            https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery"
           isOptional: true
           parameterType: STRUCT
         labels:
@@ -96,39 +96,40 @@ components:
           parameterType: STRUCT
         location:
           defaultValue: us-central1
-          description: 'Location for creating the BigQuery job. If not
+          description: "Location for creating the BigQuery job. If not
 
             set, default to `US` multi-region.  For more details, see
 
-            https://cloud.google.com/bigquery/docs/locations#specifying_your_location'
+            https://cloud.google.com/bigquery/docs/locations#specifying_your_location"
           isOptional: true
           parameterType: STRING
         project:
-          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
-          description: Project to run the BigQuery query job. Defaults to the project
+          defaultValue: "{{$.pipeline_google_cloud_project_id}}"
+          description:
+            Project to run the BigQuery query job. Defaults to the project
             in which the PipelineJob is run.
           isOptional: true
           parameterType: STRING
         query:
-          defaultValue: ''
-          description: 'SQL query text to execute. Only standard SQL is
+          defaultValue: ""
+          description: "SQL query text to execute. Only standard SQL is
 
             supported.  If query are both specified in here and in
 
             job_configuration_query, the value in here will override the other
 
-            one.'
+            one."
           isOptional: true
           parameterType: STRING
         query_parameters:
           defaultValue: []
-          description: 'jobs.query parameters for
+          description: "jobs.query parameters for
 
             standard SQL queries.  If query_parameters are both specified in here
 
             and in job_configuration_query, the value in here will override the
 
-            other one.'
+            other one."
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -137,7 +138,8 @@ components:
           artifactType:
             schemaTitle: google.BQTable
             schemaVersion: 0.0.1
-          description: 'Describes the table where the query results should be stored.
+          description:
+            "Describes the table where the query results should be stored.
 
             This property must be set for large results that exceed the maximum
 
@@ -145,22 +147,23 @@ components:
 
             For queries that produce anonymous (cached) results, this field will
 
-            be populated by BigQuery.'
+            be populated by BigQuery."
       parameters:
         gcp_resources:
-          description: 'Serialized gcp_resources proto tracking the BigQuery job.
+          description:
+            "Serialized gcp_resources proto tracking the BigQuery job.
 
             For more details, see
 
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md."
           parameterType: STRING
   comp-bigquery-query-job-2:
     executorLabel: exec-bigquery-query-job-2
     inputDefinitions:
       parameters:
         encryption_spec_key_name:
-          defaultValue: ''
-          description: 'Describes the Cloud
+          defaultValue: ""
+          description: "Describes the Cloud
 
             KMS encryption key that will be used to protect destination
 
@@ -172,16 +175,16 @@ components:
 
             job_configuration_query, the value in here will override the other
 
-            one.'
+            one."
           isOptional: true
           parameterType: STRING
         job_configuration_query:
           defaultValue: {}
-          description: 'A json formatted string
+          description: "A json formatted string
 
             describing the rest of the job configuration.  For more details, see
 
-            https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery'
+            https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery"
           isOptional: true
           parameterType: STRUCT
         labels:
@@ -203,39 +206,40 @@ components:
           parameterType: STRUCT
         location:
           defaultValue: us-central1
-          description: 'Location for creating the BigQuery job. If not
+          description: "Location for creating the BigQuery job. If not
 
             set, default to `US` multi-region.  For more details, see
 
-            https://cloud.google.com/bigquery/docs/locations#specifying_your_location'
+            https://cloud.google.com/bigquery/docs/locations#specifying_your_location"
           isOptional: true
           parameterType: STRING
         project:
-          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
-          description: Project to run the BigQuery query job. Defaults to the project
+          defaultValue: "{{$.pipeline_google_cloud_project_id}}"
+          description:
+            Project to run the BigQuery query job. Defaults to the project
             in which the PipelineJob is run.
           isOptional: true
           parameterType: STRING
         query:
-          defaultValue: ''
-          description: 'SQL query text to execute. Only standard SQL is
+          defaultValue: ""
+          description: "SQL query text to execute. Only standard SQL is
 
             supported.  If query are both specified in here and in
 
             job_configuration_query, the value in here will override the other
 
-            one.'
+            one."
           isOptional: true
           parameterType: STRING
         query_parameters:
           defaultValue: []
-          description: 'jobs.query parameters for
+          description: "jobs.query parameters for
 
             standard SQL queries.  If query_parameters are both specified in here
 
             and in job_configuration_query, the value in here will override the
 
-            other one.'
+            other one."
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -244,7 +248,8 @@ components:
           artifactType:
             schemaTitle: google.BQTable
             schemaVersion: 0.0.1
-          description: 'Describes the table where the query results should be stored.
+          description:
+            "Describes the table where the query results should be stored.
 
             This property must be set for large results that exceed the maximum
 
@@ -252,21 +257,22 @@ components:
 
             For queries that produce anonymous (cached) results, this field will
 
-            be populated by BigQuery.'
+            be populated by BigQuery."
       parameters:
         gcp_resources:
-          description: 'Serialized gcp_resources proto tracking the BigQuery job.
+          description:
+            "Serialized gcp_resources proto tracking the BigQuery job.
 
             For more details, see
 
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md."
           parameterType: STRING
   comp-build-job-configuration-query:
     executorLabel: exec-build-job-configuration-query
     inputDefinitions:
       parameters:
         dataset_id:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         priority:
@@ -274,15 +280,15 @@ components:
           isOptional: true
           parameterType: STRING
         project_id:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         table_id:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         write_disposition:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
     outputDefinitions:
@@ -294,7 +300,7 @@ components:
     inputDefinitions:
       parameters:
         dataset_id:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         priority:
@@ -302,15 +308,15 @@ components:
           isOptional: true
           parameterType: STRING
         project_id:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         table_id:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         write_disposition:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
     outputDefinitions:
@@ -325,8 +331,8 @@ components:
           componentRef:
             name: comp-bigquery-create-dataset
           dependentTasks:
-          - get-table-location
-          - validate-inputs
+            - get-table-location
+            - validate-inputs
           inputs:
             parameters:
               dataset:
@@ -346,9 +352,9 @@ components:
           componentRef:
             name: comp-bigquery-query-job
           dependentTasks:
-          - build-job-configuration-query
-          - get-first-valid
-          - get-table-location
+            - build-job-configuration-query
+            - get-first-valid
+            - get-table-location
           inputs:
             parameters:
               encryption_spec_key_name:
@@ -373,7 +379,8 @@ components:
                 componentInputParameter: pipelinechannel--project
               query:
                 runtimeValue:
-                  constant: "\n      WITH\n        base_data AS (\n          SELECT\
+                  constant:
+                    "\n      WITH\n        base_data AS (\n          SELECT\
                     \ * FROM `{{$.inputs.parameters['pipelinechannel--get-first-valid-Output']}}`\n\
                     \        )\n      SELECT\n        CAST({{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}}\
                     \ AS STRING) AS {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
@@ -391,9 +398,9 @@ components:
           componentRef:
             name: comp-bigquery-query-job-2
           dependentTasks:
-          - build-job-configuration-query-2
-          - get-table-location-2
-          - table-to-uri-2
+            - build-job-configuration-query-2
+            - get-table-location-2
+            - table-to-uri-2
           inputs:
             parameters:
               encryption_spec_key_name:
@@ -420,7 +427,8 @@ components:
                 componentInputParameter: pipelinechannel--project
               query:
                 runtimeValue:
-                  constant: "\n      WITH\n        predictions AS (\n          SELECT\n\
+                  constant:
+                    "\n      WITH\n        predictions AS (\n          SELECT\n\
                     \            {{$.inputs.parameters['pipelinechannel--time_series_identifier_column']}},\n\
                     \            JSON_QUERY_ARRAY(prediction, '$.{{$.inputs.parameters['pipelinechannel--time_column']}}')\
                     \ AS {{$.inputs.parameters['pipelinechannel--time_column']}},\n\
@@ -451,12 +459,12 @@ components:
           componentRef:
             name: comp-build-job-configuration-query
           dependentTasks:
-          - bigquery-create-dataset
+            - bigquery-create-dataset
           inputs:
             parameters:
               dataset_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}'
+                  constant: "{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}"
               pipelinechannel--bigquery-create-dataset-dataset_id:
                 taskOutputParameter:
                   outputParameterKey: dataset_id
@@ -467,7 +475,7 @@ components:
                   producerTask: bigquery-create-dataset
               project_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}'
+                  constant: "{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}"
               table_id:
                 runtimeValue:
                   constant: data
@@ -482,12 +490,12 @@ components:
           componentRef:
             name: comp-build-job-configuration-query-2
           dependentTasks:
-          - table-to-uri-2
+            - table-to-uri-2
           inputs:
             parameters:
               dataset_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-2-dataset_id'']}}'
+                  constant: "{{$.inputs.parameters['pipelinechannel--table-to-uri-2-dataset_id']}}"
               pipelinechannel--table-to-uri-2-dataset_id:
                 taskOutputParameter:
                   outputParameterKey: dataset_id
@@ -502,10 +510,10 @@ components:
                   producerTask: table-to-uri-2
               project_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-2-project_id'']}}'
+                  constant: "{{$.inputs.parameters['pipelinechannel--table-to-uri-2-project_id']}}"
               table_id:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--table-to-uri-2-table_id'']}}'
+                  constant: "{{$.inputs.parameters['pipelinechannel--table-to-uri-2-table_id']}}"
               write_disposition:
                 runtimeValue:
                   constant: WRITE_TRUNCATE
@@ -517,7 +525,7 @@ components:
           componentRef:
             name: comp-get-first-valid
           dependentTasks:
-          - load-table-from-uri
+            - load-table-from-uri
           inputs:
             parameters:
               pipelinechannel--data_source_bigquery_table_path:
@@ -528,7 +536,8 @@ components:
                   producerTask: load-table-from-uri
               values:
                 runtimeValue:
-                  constant: '["{{$.inputs.parameters[''pipelinechannel--data_source_bigquery_table_path'']}}",
+                  constant:
+                    '["{{$.inputs.parameters[''pipelinechannel--data_source_bigquery_table_path'']}}",
                     "{{$.inputs.parameters[''pipelinechannel--load-table-from-uri-Output'']}}"]'
           taskInfo:
             name: get-first-valid
@@ -553,7 +562,7 @@ components:
           componentRef:
             name: comp-get-table-location-2
           dependentTasks:
-          - table-to-uri-2
+            - table-to-uri-2
           inputs:
             parameters:
               project:
@@ -570,13 +579,13 @@ components:
           componentRef:
             name: comp-load-table-from-uri
           dependentTasks:
-          - bigquery-create-dataset
-          - get-table-location
+            - bigquery-create-dataset
+            - get-table-location
           inputs:
             parameters:
               destination:
                 runtimeValue:
-                  constant: '{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-project_id'']}}.{{$.inputs.parameters[''pipelinechannel--bigquery-create-dataset-dataset_id'']}}.csv_export'
+                  constant: "{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-project_id']}}.{{$.inputs.parameters['pipelinechannel--bigquery-create-dataset-dataset_id']}}.csv_export"
               location:
                 taskOutputParameter:
                   outputParameterKey: Output
@@ -630,9 +639,9 @@ components:
           componentRef:
             name: comp-model-batch-predict
           dependentTasks:
-          - make-vertex-model-artifact
-          - maybe-replace-with-default
-          - table-to-uri
+            - make-vertex-model-artifact
+            - maybe-replace-with-default
+            - table-to-uri
           inputs:
             artifacts:
               model:
@@ -679,7 +688,7 @@ components:
           componentRef:
             name: comp-table-to-uri
           dependentTasks:
-          - bigquery-query-job
+            - bigquery-query-job
           inputs:
             artifacts:
               table:
@@ -694,7 +703,7 @@ components:
           componentRef:
             name: comp-table-to-uri-2
           dependentTasks:
-          - model-batch-predict
+            - model-batch-predict
           inputs:
             artifacts:
               table:
@@ -759,7 +768,7 @@ components:
     inputDefinitions:
       parameters:
         default_location:
-          defaultValue: ''
+          defaultValue: ""
           description: Location to return if no table was given.
           isOptional: true
           parameterType: STRING
@@ -778,7 +787,7 @@ components:
     inputDefinitions:
       parameters:
         default_location:
-          defaultValue: ''
+          defaultValue: ""
           description: Location to return if no table was given.
           isOptional: true
           parameterType: STRING
@@ -807,15 +816,16 @@ components:
           parameterType: STRING
         source_format:
           defaultValue: CSV
-          description: 'The file format for the files being imported. Only CSV is
+          description:
+            "The file format for the files being imported. Only CSV is
 
-            supported.'
+            supported."
           isOptional: true
           parameterType: STRING
         source_uris:
-          description: 'URIs of data files to be loaded; in format
+          description: "URIs of data files to be loaded; in format
 
-            gs://<bucket_name>/<object_name_or_glob>.'
+            gs://<bucket_name>/<object_name_or_glob>."
           parameterType: STRING
     outputDefinitions:
       parameters:
@@ -840,7 +850,7 @@ components:
     inputDefinitions:
       parameters:
         default:
-          defaultValue: ''
+          defaultValue: ""
           isOptional: true
           parameterType: STRING
         value:
@@ -857,52 +867,55 @@ components:
           artifactType:
             schemaTitle: google.VertexModel
             schemaVersion: 0.0.1
-          description: 'The Model used to get predictions via this job. Must share
+          description:
+            "The Model used to get predictions via this job. Must share
             the same
 
             ancestor Location. Starting this job has no impact on any existing
 
             deployments of the Model and their resources. Either this or
 
-            `unmanaged_container_model` must be specified.'
+            `unmanaged_container_model` must be specified."
           isOptional: true
         unmanaged_container_model:
           artifactType:
             schemaTitle: google.UnmanagedContainerModel
             schemaVersion: 0.0.1
-          description: 'The unmanaged container model used to get predictions via
+          description:
+            "The unmanaged container model used to get predictions via
             this job.
 
             This should be used for models that are not uploaded to Vertex. Either
 
-            this or model must be specified.'
+            this or model must be specified."
           isOptional: true
       parameters:
         accelerator_count:
           defaultValue: 0.0
-          description: 'The number of accelerators to attach
+          description: "The number of accelerators to attach
 
             to the `machine_type`. Only used if `machine_type` is set.  For more
 
             details about the machine spec, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec"
           isOptional: true
           parameterType: NUMBER_INTEGER
         accelerator_type:
-          defaultValue: ''
-          description: 'The type of accelerator(s) that may be
+          defaultValue: ""
+          description: "The type of accelerator(s) that may be
 
             attached to the machine as per `accelerator_count`. Only used if
 
             `machine_type` is set.  For more details about the machine spec, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec"
           isOptional: true
           parameterType: STRING
         bigquery_destination_output_uri:
-          defaultValue: ''
-          description: 'The BigQuery project location where the output is to be written
+          defaultValue: ""
+          description:
+            'The BigQuery project location where the output is to be written
             to. In
 
             the given project a new dataset is created with name
@@ -939,19 +952,20 @@ components:
           isOptional: true
           parameterType: STRING
         bigquery_source_input_uri:
-          defaultValue: ''
-          description: 'BigQuery URI to a table, up to 2000 characters long. For example:
+          defaultValue: ""
+          description:
+            "BigQuery URI to a table, up to 2000 characters long. For example:
 
             `projectId.bqDatasetId.bqTableId`  For more details about this input
 
             config, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig."
           isOptional: true
           parameterType: STRING
         encryption_spec_key_name:
-          defaultValue: ''
-          description: 'Customer-managed encryption
+          defaultValue: ""
+          description: "Customer-managed encryption
 
             key options for a BatchPredictionJob. If this is set, then all
 
@@ -963,12 +977,13 @@ components:
 
             The key needs to be in the same region as where the compute resource
 
-            is created.'
+            is created."
           isOptional: true
           parameterType: STRING
         excluded_fields:
           defaultValue: []
-          description: 'Fields that will be excluded in the prediction instance that
+          description:
+            "Fields that will be excluded in the prediction instance that
             is
 
             sent to the Model.
@@ -983,12 +998,12 @@ components:
 
             or TfRecord.
 
-            may be specified via the Model''s `parameters_schema_uri`.'
+            may be specified via the Model's `parameters_schema_uri`."
           isOptional: true
           parameterType: LIST
         explanation_metadata:
           defaultValue: {}
-          description: 'Explanation metadata
+          description: "Explanation metadata
 
             configuration for this BatchPredictionJob. Can be specified only if
 
@@ -1004,14 +1019,14 @@ components:
 
             more details, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata."
           isOptional: true
           parameterType: STRUCT
         explanation_parameters:
           defaultValue: {}
-          description: 'Parameters to configure
+          description: "Parameters to configure
 
-            explaining for Model''s predictions. Can be specified only if
+            explaining for Model's predictions. Can be specified only if
 
             `generate_explanation` is set to `True`.  This value overrides the
 
@@ -1025,12 +1040,12 @@ components:
 
             inherited.  For more details, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters.'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#ExplanationParameters."
           isOptional: true
           parameterType: STRUCT
         gcs_destination_output_uri_prefix:
-          defaultValue: ''
-          description: 'The Google Cloud
+          defaultValue: ""
+          description: "The Google Cloud
 
             Storage location of the directory where the output is to be written
 
@@ -1068,24 +1083,25 @@ components:
 
             `message` fields.  For more details about this output config, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig.'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig."
           isOptional: true
           parameterType: STRING
         gcs_source_uris:
           defaultValue: []
-          description: 'Google Cloud Storage URI(-s) to your instances to run batch
+          description:
+            "Google Cloud Storage URI(-s) to your instances to run batch
             prediction
 
             on. They must match `instances_format`. May contain wildcards. For more
 
             information on wildcards, see [WildcardNames](https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames).
 
-            For more details about this input config, see [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig).'
+            For more details about this input config, see [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig)."
           isOptional: true
           parameterType: LIST
         generate_explanation:
           defaultValue: false
-          description: 'Generate explanation along with
+          description: "Generate explanation along with
 
             the batch prediction results. This will cause the batch prediction
 
@@ -1105,12 +1121,13 @@ components:
 
             field is set to true, either the Model.explanation_spec or
 
-            explanation_metadata and explanation_parameters must be populated.'
+            explanation_metadata and explanation_parameters must be populated."
           isOptional: true
           parameterType: BOOLEAN
         included_fields:
           defaultValue: []
-          description: 'Fields that will be included in the prediction instance that
+          description:
+            "Fields that will be included in the prediction instance that
             is
 
             sent to the Model.
@@ -1123,12 +1140,13 @@ components:
 
             The input must be JSONL with objects at each line, CSV, BigQuery
 
-            or TfRecord.'
+            or TfRecord."
           isOptional: true
           parameterType: LIST
         instance_type:
-          defaultValue: ''
-          description: "The format of the instance that the Model\naccepts. Vertex\
+          defaultValue: ""
+          description:
+            "The format of the instance that the Model\naccepts. Vertex\
             \ AI will convert compatible\n[InstancesFormat](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig)\n\
             to the specified format. Supported values are:\n`object`: Each input is\
             \ converted to JSON object format.\n  * For `bigquery`, each row is converted\
@@ -1157,22 +1175,23 @@ components:
           parameterType: STRING
         instances_format:
           defaultValue: jsonl
-          description: 'The format in which instances are
+          description: "The format in which instances are
 
-            given, must be one of the [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models)''s
+            given, must be one of the [Model](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models)'s
             supportedInputStorageFormats.
 
             For more details about this input config, see
 
-            [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.)'
+            [InputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig.)"
           isOptional: true
           parameterType: STRING
         job_display_name:
           description: The user-defined name of this BatchPredictionJob.
           parameterType: STRING
         key_field:
-          defaultValue: ''
-          description: "The name of the field that is considered as a key.\nThe values\
+          defaultValue: ""
+          description:
+            "The name of the field that is considered as a key.\nThe values\
             \ identified by the key field is not included in the\ntransformed instances\
             \ that is sent to the Model. This is similar to\nspecifying this name\
             \ of the field in [excluded_fields](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#InputConfig).\
@@ -1187,7 +1206,7 @@ components:
           parameterType: STRING
         labels:
           defaultValue: {}
-          description: 'The labels with user-defined metadata to
+          description: "The labels with user-defined metadata to
 
             organize your BatchPredictionJobs.  Label keys and values can be no
 
@@ -1197,7 +1216,7 @@ components:
 
             International characters are allowed.  See https://goo.gl/xmQnxf for
 
-            more information and examples of labels.'
+            more information and examples of labels."
           isOptional: true
           parameterType: STRUCT
         location:
@@ -1206,14 +1225,14 @@ components:
           isOptional: true
           parameterType: STRING
         machine_type:
-          defaultValue: ''
-          description: 'The type of machine for running batch
+          defaultValue: ""
+          description: "The type of machine for running batch
 
             prediction on dedicated resources. If the Model supports
 
             DEDICATED_RESOURCES this config may be provided (and the job will use
 
-            these resources). If the Model doesn''t support AUTOMATIC_RESOURCES,
+            these resources). If the Model doesn't support AUTOMATIC_RESOURCES,
 
             this config must be provided.  For more details about the
 
@@ -1223,12 +1242,12 @@ components:
 
             For more details about the machine spec, see
 
-            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec'
+            https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec"
           isOptional: true
           parameterType: STRING
         manual_batch_tuning_parameters_batch_size:
           defaultValue: 0.0
-          description: 'The number of
+          description: "The number of
 
             the records (e.g. instances) of the operation given in each batch to a
 
@@ -1236,52 +1255,56 @@ components:
 
             considered when setting this parameter, higher value speeds up the
 
-            batch operation''s execution, but too high value will result in a whole
+            batch operation's execution, but too high value will result in a whole
 
-            batch not fitting in a machine''s memory, and the whole operation will
+            batch not fitting in a machine's memory, and the whole operation will
 
-            fail.'
+            fail."
           isOptional: true
           parameterType: NUMBER_INTEGER
         max_replica_count:
           defaultValue: 0.0
-          description: 'The maximum number of machine replicas the batch operation
+          description:
+            "The maximum number of machine replicas the batch operation
             may be scaled
 
-            to. Only used if `machine_type` is set.'
+            to. Only used if `machine_type` is set."
           isOptional: true
           parameterType: NUMBER_INTEGER
         model_parameters:
           defaultValue: {}
-          description: The parameters that govern the predictions. The schema of the
+          description:
+            The parameters that govern the predictions. The schema of the
             parameters
           isOptional: true
           parameterType: STRUCT
         predictions_format:
           defaultValue: jsonl
-          description: 'The format in which Vertex AI gives the predictions. Must
+          description:
+            "The format in which Vertex AI gives the predictions. Must
             be one of the
 
-            Model''s supportedOutputStorageFormats.
+            Model's supportedOutputStorageFormats.
 
-            For more details about this output config, see [OutputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig).'
+            For more details about this output config, see [OutputConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#OutputConfig)."
           isOptional: true
           parameterType: STRING
         project:
-          defaultValue: '{{$.pipeline_google_cloud_project_id}}'
-          description: Project to create the BatchPredictionJob. Defaults to the project
+          defaultValue: "{{$.pipeline_google_cloud_project_id}}"
+          description:
+            Project to create the BatchPredictionJob. Defaults to the project
             in which the PipelineJob is run.
           isOptional: true
           parameterType: STRING
         starting_replica_count:
           defaultValue: 0.0
-          description: 'The number of machine replicas
+          description: "The number of machine replicas
 
             used at the start of the batch operation. If not set, Vertex AI
 
             decides starting number, not greater than `max_replica_count`. Only
 
-            used if `machine_type` is set.'
+            used if `machine_type` is set."
           isOptional: true
           parameterType: NUMBER_INTEGER
     outputDefinitions:
@@ -1290,39 +1313,43 @@ components:
           artifactType:
             schemaTitle: google.VertexBatchPredictionJob
             schemaVersion: 0.0.1
-          description: '[**Deprecated. Use gcs_output_directory and bigquery_output_table
+          description:
+            "[**Deprecated. Use gcs_output_directory and bigquery_output_table
 
             instead.**] Artifact
 
-            representation of the created batch prediction job.'
+            representation of the created batch prediction job."
         bigquery_output_table:
           artifactType:
             schemaTitle: google.BQTable
             schemaVersion: 0.0.1
-          description: 'Artifact tracking the batch prediction job output. This is
+          description:
+            "Artifact tracking the batch prediction job output. This is
             only
 
             available if
 
-            bigquery_output_table is specified.'
+            bigquery_output_table is specified."
         gcs_output_directory:
           artifactType:
             schemaTitle: system.Artifact
             schemaVersion: 0.0.1
-          description: 'Artifact tracking the batch prediction job output. This is
+          description:
+            "Artifact tracking the batch prediction job output. This is
             only
 
             available if
 
-            gcs_destination_output_uri_prefix is specified.'
+            gcs_destination_output_uri_prefix is specified."
       parameters:
         gcp_resources:
-          description: 'Serialized gcp_resources proto tracking the batch prediction
+          description:
+            "Serialized gcp_resources proto tracking the batch prediction
             job.
 
             For more details, see
 
-            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.'
+            https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md."
           parameterType: STRING
   comp-table-to-uri:
     executorLabel: exec-table-to-uri
@@ -1430,581 +1457,581 @@ deploymentSpec:
     exec-bigquery-create-dataset:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - bigquery_create_dataset
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - bigquery_create_dataset
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef bigquery_create_dataset(\n    project: str,\n    location: str,\n\
-          \    dataset: str,\n    exists_ok: bool = False,\n) -> NamedTuple('Outputs',\
-          \ [('project_id', str), ('dataset_id', str)]):\n  \"\"\"Creates a BigQuery\
-          \ dataset.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  import collections\n\n  from google.cloud import bigquery\n  # pylint:\
-          \ enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  client = bigquery.Client(project=project, location=location)\n  ref\
-          \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
-          \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
-          \   ref.project, ref.dataset_id)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef bigquery_create_dataset(\n    project: str,\n    location: str,\n\
+            \    dataset: str,\n    exists_ok: bool = False,\n) -> NamedTuple('Outputs',\
+            \ [('project_id', str), ('dataset_id', str)]):\n  \"\"\"Creates a BigQuery\
+            \ dataset.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  import collections\n\n  from google.cloud import bigquery\n  # pylint:\
+            \ enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  client = bigquery.Client(project=project, location=location)\n  ref\
+            \ = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return\
+            \ collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n   \
+            \   ref.project, ref.dataset_id)\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-bigquery-delete-dataset-with-prefix:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - bigquery_delete_dataset_with_prefix
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - bigquery_delete_dataset_with_prefix
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef bigquery_delete_dataset_with_prefix(\n    project: str,\n   \
-          \ dataset_prefix: str,\n    delete_contents: bool = False,\n) -> None:\n\
-          \  \"\"\"Deletes all BigQuery datasets matching the given prefix.\"\"\"\n\
-          \  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  client = bigquery.Client(project=project)\n  for dataset in client.list_datasets(project=project):\n\
-          \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
-          \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
-          \n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef bigquery_delete_dataset_with_prefix(\n    project: str,\n   \
+            \ dataset_prefix: str,\n    delete_contents: bool = False,\n) -> None:\n\
+            \  \"\"\"Deletes all BigQuery datasets matching the given prefix.\"\"\"\n\
+            \  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  client = bigquery.Client(project=project)\n  for dataset in client.list_datasets(project=project):\n\
+            \    if dataset.dataset_id.startswith(dataset_prefix):\n      client.delete_dataset(\n\
+            \          dataset=dataset.dataset_id,\n          delete_contents=delete_contents)\n\
+            \n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-bigquery-query-job:
       container:
         args:
-        - --type
-        - BigqueryQueryJob
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --payload
-        - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
-          ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
-        - --job_configuration_query_override
-        - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
-          "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
-          ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", "}"]}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
+          - --type
+          - BigqueryQueryJob
+          - --project
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --payload
+          - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
+            ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
+          - --job_configuration_query_override
+          - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
+            "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
+            ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+            "\"}", "}"]}'
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --executor_input
+          - "{{$}}"
         command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
+          - python3
+          - -u
+          - -m
+          - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-bigquery-query-job-2:
       container:
         args:
-        - --type
-        - BigqueryQueryJob
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --payload
-        - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
-          ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
-        - --job_configuration_query_override
-        - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
-          "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
-          ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", "}"]}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
+          - --type
+          - BigqueryQueryJob
+          - --project
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --payload
+          - '{"Concat": ["{", "\"configuration\": {", "\"query\": ", "{{$.inputs.parameters[''job_configuration_query'']}}",
+            ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", "}", "}"]}'
+          - --job_configuration_query_override
+          - '{"Concat": ["{", "\"query\": \"", "{{$.inputs.parameters[''query'']}}",
+            "\"", ", \"query_parameters\": ", "{{$.inputs.parameters[''query_parameters'']}}",
+            ", \"destination_encryption_configuration\": {", "\"kmsKeyName\": \"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+            "\"}", "}"]}'
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --executor_input
+          - "{{$}}"
         command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
+          - python3
+          - -u
+          - -m
+          - google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-build-job-configuration-query:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - build_job_configuration_query
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - build_job_configuration_query
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
-          \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
-          \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
-          \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
-          \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
-          \    config['destinationTable'] = {\n        'projectId': project_id,\n\
-          \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
-          \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
-          \  return config\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
+            \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
+            \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
+            \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
+            \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
+            \    config['destinationTable'] = {\n        'projectId': project_id,\n\
+            \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
+            \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
+            \  return config\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-build-job-configuration-query-2:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - build_job_configuration_query
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - build_job_configuration_query
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
-          \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
-          \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
-          \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
-          \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
-          \    config['destinationTable'] = {\n        'projectId': project_id,\n\
-          \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
-          \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
-          \  return config\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef build_job_configuration_query(\n    project_id: str = '',\n \
+            \   dataset_id: str = '',\n    table_id: str = '',\n    write_disposition:\
+            \ str = '',\n    priority: str = 'INTERACTIVE',\n) -> dict:  # pylint: disable=g-bare-generic\n\
+            \  \"\"\"Creates a JobConfigurationQuery object.\"\"\"\n  config = {\n \
+            \     'priority': priority,\n  }\n  if all([project_id, dataset_id, table_id]):\n\
+            \    config['destinationTable'] = {\n        'projectId': project_id,\n\
+            \        'datasetId': dataset_id,\n        'tableId': table_id,\n    }\n\
+            \  if write_disposition:\n    config['write_disposition'] = write_disposition\n\
+            \  return config\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-first-valid:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - get_first_valid
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - get_first_valid
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef get_first_valid(values: str) -> str:\n  \"\"\"Returns the first\
-          \ truthy value from the given serialized JSON list.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  for value in json.loads(values):\n    if value:\n      return value\n\
-          \  raise ValueError('No valid values.')\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef get_first_valid(values: str) -> str:\n  \"\"\"Returns the first\
+            \ truthy value from the given serialized JSON list.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  for value in json.loads(values):\n    if value:\n      return value\n\
+            \  raise ValueError('No valid values.')\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-table-location:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - get_table_location
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - get_table_location
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n\
-          \    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region\
-          \ the given table belongs to.\n\n  Args:\n    project: The GCP project.\n\
-          \    table: The BigQuery table to get a location for.\n    default_location:\
-          \ Location to return if no table was given.\n\n  Returns:\n    A GCP region\
-          \ or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  if not table:\n    return default_location\n\n  client = bigquery.Client(project=project)\n\
-          \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
-          \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
-          \  return client.get_table(table).location\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n\
+            \    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region\
+            \ the given table belongs to.\n\n  Args:\n    project: The GCP project.\n\
+            \    table: The BigQuery table to get a location for.\n    default_location:\
+            \ Location to return if no table was given.\n\n  Returns:\n    A GCP region\
+            \ or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  if not table:\n    return default_location\n\n  client = bigquery.Client(project=project)\n\
+            \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
+            \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
+            \  return client.get_table(table).location\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-get-table-location-2:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - get_table_location
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - get_table_location
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n\
-          \    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region\
-          \ the given table belongs to.\n\n  Args:\n    project: The GCP project.\n\
-          \    table: The BigQuery table to get a location for.\n    default_location:\
-          \ Location to return if no table was given.\n\n  Returns:\n    A GCP region\
-          \ or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  if not table:\n    return default_location\n\n  client = bigquery.Client(project=project)\n\
-          \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
-          \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
-          \  return client.get_table(table).location\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n\
+            \    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region\
+            \ the given table belongs to.\n\n  Args:\n    project: The GCP project.\n\
+            \    table: The BigQuery table to get a location for.\n    default_location:\
+            \ Location to return if no table was given.\n\n  Returns:\n    A GCP region\
+            \ or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  if not table:\n    return default_location\n\n  client = bigquery.Client(project=project)\n\
+            \  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif\
+            \ table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n\
+            \  return client.get_table(table).location\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-load-table-from-uri:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - load_table_from_uri
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - load_table_from_uri
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-rc.2'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef load_table_from_uri(\n    project: str,\n    location: str,\n\
-          \    source_uris: str,\n    destination: str,\n    source_format: str =\
-          \ 'CSV',\n) -> str:\n  \"\"\"Creates a table from a list of URIs.\n\n  Args:\n\
-          \    project: The GCP project.\n    location: The GCP region.\n    source_uris:\
-          \ URIs of data files to be loaded; in format\n      gs://<bucket_name>/<object_name_or_glob>.\n\
-          \    destination: Table into which data is to be loaded.\n    source_format:\
-          \ The file format for the files being imported. Only CSV is\n      supported.\n\
-          \n  Returns:\n    The destination table containing imported data.\n  \"\"\
-          \"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
-          \n  if not source_uris:\n    return ''\n\n  csv_list = [filename.strip()\
-          \ for filename in source_uris.split(',')]\n  client = bigquery.Client(project=project,\
-          \ location=location)\n  job_config = bigquery.LoadJobConfig(\n      autodetect=True,\
-          \ source_format=source_format)\n  client.load_table_from_uri(\n      source_uris=csv_list,\n\
-          \      destination=destination,\n      project=project,\n      location=location,\n\
-          \      job_config=job_config).result()\n  return destination\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef load_table_from_uri(\n    project: str,\n    location: str,\n\
+            \    source_uris: str,\n    destination: str,\n    source_format: str =\
+            \ 'CSV',\n) -> str:\n  \"\"\"Creates a table from a list of URIs.\n\n  Args:\n\
+            \    project: The GCP project.\n    location: The GCP region.\n    source_uris:\
+            \ URIs of data files to be loaded; in format\n      gs://<bucket_name>/<object_name_or_glob>.\n\
+            \    destination: Table into which data is to be loaded.\n    source_format:\
+            \ The file format for the files being imported. Only CSV is\n      supported.\n\
+            \n  Returns:\n    The destination table containing imported data.\n  \"\"\
+            \"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\
+            \n  if not source_uris:\n    return ''\n\n  csv_list = [filename.strip()\
+            \ for filename in source_uris.split(',')]\n  client = bigquery.Client(project=project,\
+            \ location=location)\n  job_config = bigquery.LoadJobConfig(\n      autodetect=True,\
+            \ source_format=source_format)\n  client.load_table_from_uri(\n      source_uris=csv_list,\n\
+            \      destination=destination,\n      project=project,\n      location=location,\n\
+            \      job_config=job_config).result()\n  return destination\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-make-vertex-model-artifact:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - make_vertex_model_artifact
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - make_vertex_model_artifact
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef make_vertex_model_artifact(\n    location: str,\n    model_resource_name:\
-          \ str,\n    vertex_model: dsl.Output[dsl.Artifact],\n) -> None:\n  \"\"\"\
-          Creates a google.VertexModel artifact.\"\"\"\n  vertex_model.metadata =\
-          \ {'resourceName': model_resource_name}\n  vertex_model.uri = (f'https://{location}-aiplatform.googleapis.com'\n\
-          \                      f'/v1/{model_resource_name}')\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef make_vertex_model_artifact(\n    location: str,\n    model_resource_name:\
+            \ str,\n    vertex_model: dsl.Output[dsl.Artifact],\n) -> None:\n  \"\"\"\
+            Creates a google.VertexModel artifact.\"\"\"\n  vertex_model.metadata =\
+            \ {'resourceName': model_resource_name}\n  vertex_model.uri = (f'https://{location}-aiplatform.googleapis.com'\n\
+            \                      f'/v1/{model_resource_name}')\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-maybe-replace-with-default:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - maybe_replace_with_default
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - maybe_replace_with_default
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
-          \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
-          \n  return default if not value else value\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef maybe_replace_with_default(value: str, default: str = '') ->\
+            \ str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\
+            \n  return default if not value else value\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-model-batch-predict:
       container:
         args:
-        - --type
-        - BatchPredictionJob
-        - --payload
-        - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
-          "\", ", {"IfPresent": {"InputName": "model", "Then": {"Concat": ["\"model\":
-          \"", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}", "\","]}}},
-          " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
-          "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
-          "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
-          "\"", "}", "}", ", \"instance_config\": {", "\"instance_type\": \"", "{{$.inputs.parameters[''instance_type'']}}",
-          "\"", ", \"key_field\": \"", "{{$.inputs.parameters[''key_field'']}}", "\"
-          ", {"IfPresent": {"InputName": "included_fields", "Then": {"Concat": [",
-          \"included_fields\": ", "{{$.inputs.parameters[''included_fields'']}}"]}}},
-          {"IfPresent": {"InputName": "excluded_fields", "Then": {"Concat": [", \"excluded_fields\":
-          ", "{{$.inputs.parameters[''excluded_fields'']}}"]}}}, "}", ", \"model_parameters\":
-          ", "{{$.inputs.parameters[''model_parameters'']}}", ", \"output_config\":
-          {", "\"predictions_format\": \"", "{{$.inputs.parameters[''predictions_format'']}}",
-          "\"", ", \"gcs_destination\": {", "\"output_uri_prefix\": \"", "{{$.inputs.parameters[''gcs_destination_output_uri_prefix'']}}",
-          "\"", "}", ", \"bigquery_destination\": {", "\"output_uri\": \"", "{{$.inputs.parameters[''bigquery_destination_output_uri'']}}",
-          "\"", "}", "}", ", \"dedicated_resources\": {", "\"machine_spec\": {", "\"machine_type\":
-          \"", "{{$.inputs.parameters[''machine_type'']}}", "\"", ", \"accelerator_type\":
-          \"", "{{$.inputs.parameters[''accelerator_type'']}}", "\"", ", \"accelerator_count\":
-          ", "{{$.inputs.parameters[''accelerator_count'']}}", "}", ", \"starting_replica_count\":
-          ", "{{$.inputs.parameters[''starting_replica_count'']}}", ", \"max_replica_count\":
-          ", "{{$.inputs.parameters[''max_replica_count'']}}", "}", ", \"manual_batch_tuning_parameters\":
-          {", "\"batch_size\": ", "{{$.inputs.parameters[''manual_batch_tuning_parameters_batch_size'']}}",
-          "}", ", \"generate_explanation\": ", "{{$.inputs.parameters[''generate_explanation'']}}",
-          ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
-          ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
-          "}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"encryption_spec\":
-          {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
-          "\"}", "}"]}'
-        - --project
-        - '{{$.inputs.parameters[''project'']}}'
-        - --location
-        - '{{$.inputs.parameters[''location'']}}'
-        - --gcp_resources
-        - '{{$.outputs.parameters[''gcp_resources''].output_file}}'
-        - --executor_input
-        - '{{$}}'
+          - --type
+          - BatchPredictionJob
+          - --payload
+          - '{"Concat": ["{", "\"display_name\": \"", "{{$.inputs.parameters[''job_display_name'']}}",
+            "\", ", {"IfPresent": {"InputName": "model", "Then": {"Concat": ["\"model\":
+            \"", "{{$.inputs.artifacts[''model''].metadata[''resourceName'']}}", "\","]}}},
+            " \"input_config\": {", "\"instances_format\": \"", "{{$.inputs.parameters[''instances_format'']}}",
+            "\"", ", \"gcs_source\": {", "\"uris\":", "{{$.inputs.parameters[''gcs_source_uris'']}}",
+            "}", ", \"bigquery_source\": {", "\"input_uri\": \"", "{{$.inputs.parameters[''bigquery_source_input_uri'']}}",
+            "\"", "}", "}", ", \"instance_config\": {", "\"instance_type\": \"", "{{$.inputs.parameters[''instance_type'']}}",
+            "\"", ", \"key_field\": \"", "{{$.inputs.parameters[''key_field'']}}", "\"
+            ", {"IfPresent": {"InputName": "included_fields", "Then": {"Concat": [",
+            \"included_fields\": ", "{{$.inputs.parameters[''included_fields'']}}"]}}},
+            {"IfPresent": {"InputName": "excluded_fields", "Then": {"Concat": [", \"excluded_fields\":
+            ", "{{$.inputs.parameters[''excluded_fields'']}}"]}}}, "}", ", \"model_parameters\":
+            ", "{{$.inputs.parameters[''model_parameters'']}}", ", \"output_config\":
+            {", "\"predictions_format\": \"", "{{$.inputs.parameters[''predictions_format'']}}",
+            "\"", ", \"gcs_destination\": {", "\"output_uri_prefix\": \"", "{{$.inputs.parameters[''gcs_destination_output_uri_prefix'']}}",
+            "\"", "}", ", \"bigquery_destination\": {", "\"output_uri\": \"", "{{$.inputs.parameters[''bigquery_destination_output_uri'']}}",
+            "\"", "}", "}", ", \"dedicated_resources\": {", "\"machine_spec\": {", "\"machine_type\":
+            \"", "{{$.inputs.parameters[''machine_type'']}}", "\"", ", \"accelerator_type\":
+            \"", "{{$.inputs.parameters[''accelerator_type'']}}", "\"", ", \"accelerator_count\":
+            ", "{{$.inputs.parameters[''accelerator_count'']}}", "}", ", \"starting_replica_count\":
+            ", "{{$.inputs.parameters[''starting_replica_count'']}}", ", \"max_replica_count\":
+            ", "{{$.inputs.parameters[''max_replica_count'']}}", "}", ", \"manual_batch_tuning_parameters\":
+            {", "\"batch_size\": ", "{{$.inputs.parameters[''manual_batch_tuning_parameters_batch_size'']}}",
+            "}", ", \"generate_explanation\": ", "{{$.inputs.parameters[''generate_explanation'']}}",
+            ", \"explanation_spec\": {", "\"parameters\": ", "{{$.inputs.parameters[''explanation_parameters'']}}",
+            ", \"metadata\": ", "{{$.inputs.parameters[''explanation_metadata'']}}",
+            "}", ", \"labels\": ", "{{$.inputs.parameters[''labels'']}}", ", \"encryption_spec\":
+            {\"kms_key_name\":\"", "{{$.inputs.parameters[''encryption_spec_key_name'']}}",
+            "\"}", "}"]}'
+          - --project
+          - "{{$.inputs.parameters['project']}}"
+          - --location
+          - "{{$.inputs.parameters['location']}}"
+          - --gcp_resources
+          - "{{$.outputs.parameters['gcp_resources'].output_file}}"
+          - --executor_input
+          - "{{$}}"
         command:
-        - python3
-        - -u
-        - -m
-        - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
+          - python3
+          - -u
+          - -m
+          - google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher
         image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.3.1
     exec-table-to-uri:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - table_to_uri
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - table_to_uri
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
-          \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
-          \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
-          \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
-          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
-          \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
-          \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
-          \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
-          \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
-          \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
-          \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
+            \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
+            \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
+            \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
+            \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+            \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+            \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
+            \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
+            \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
+            \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
+            \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-table-to-uri-2:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - table_to_uri
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - table_to_uri
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
-          \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
-          \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
-          \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
-          \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
-          \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
-          \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
-          \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
-          \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
-          \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
-          \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n    use_bq_prefix:\
+            \ bool = False,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('project_id',\
+            \ str),\n        ('dataset_id', str),\n        ('table_id', str),\n    \
+            \    ('uri', str),\n    ],\n):\n  \"\"\"Converts a google.BQTable to a URI.\"\
+            \"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+            \  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+            \n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n\
+            \      table.metadata['tableId'],\n  ]\n  bq_uri = '.'.join(outputs)\n \
+            \ if use_bq_prefix:\n    bq_uri = 'bq://' + bq_uri\n  outputs.append(bq_uri)\n\
+            \  return collections.namedtuple(\n      'Outputs',\n      ['project_id',\
+            \ 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
     exec-validate-inputs:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - validate_inputs
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - validate_inputs
         command:
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef validate_inputs(\n    time_column: Optional[str] = None,\n  \
-          \  time_series_identifier_column: Optional[str] = None,\n    target_column:\
-          \ Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str]\
-          \ = None,\n    training_fraction: Optional[float] = None,\n    validation_fraction:\
-          \ Optional[float] = None,\n    test_fraction: Optional[float] = None,\n\
-          \    predefined_split_key: Optional[str] = None,\n    timestamp_split_key:\
-          \ Optional[str] = None,\n    data_source_csv_filenames: Optional[str] =\
-          \ None,\n    source_model_uri: Optional[str] = None,\n    bigquery_destination_uri:\
-          \ Optional[str] = None,\n    window_column: Optional[str] = None,\n    window_stride_length:\
-          \ Optional[int] = None,\n    window_max_count: Optional[int] = None,\n \
-          \   optimization_objective: Optional[str] = None,\n    data_granularity_unit:\
-          \ Optional[str] = None,\n) -> None:\n  \"\"\"Checks training pipeline input\
-          \ parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
-          \  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
-          \n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n\
-          \  dataset_pattern = r'[a-zA-Z0-9_]+'\n  table_pattern = r'[^\\.\\:`]+'\n\
-          \  dataset_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}')\n\
-          \  table_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}[.:]{table_pattern}')\n\
-          \n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters\
-          \ = [\n      time_column,\n      time_series_identifier_column,\n      target_column,\n\
-          \  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n \
-          \ for column in bigquery_column_parameters:\n    if column and not column_pattern.fullmatch(column):\n\
-          \      raise ValueError(f'Invalid column name: {column}.')\n  if (bigquery_destination_uri\
-          \ and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n\
-          \    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n\
-          \  if (source_model_uri and not table_uri_pattern.fullmatch(source_model_uri)):\n\
-          \    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\
-          \n  # Validate data source.\n  data_source_count = sum([bool(source) for\
-          \ source in [\n      data_source_bigquery_table_path, data_source_csv_filenames]])\n\
-          \  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source,\
-          \ found {data_source_count}.')\n  if (data_source_bigquery_table_path\n\
-          \      and not table_uri_pattern.fullmatch(data_source_bigquery_table_path)):\n\
-          \    raise ValueError(\n        f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n\
-          \  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if data_source_csv_filenames:\n\
-          \    csv_list = [filename.strip()\n                for filename in data_source_csv_filenames.split(',')]\n\
-          \    for gcs_path in csv_list:\n      if not gcs_path_pattern.fullmatch(gcs_path):\n\
-          \        raise ValueError(f'Invalid path to CSV stored in GCS: {gcs_path}.')\n\
-          \n  # Validate split spec.\n  fraction_splits = [\n      training_fraction,\n\
-          \      validation_fraction,\n      test_fraction,\n  ]\n  fraction_splits\
-          \ = [None if fraction == -1 else fraction\n                     for fraction\
-          \ in fraction_splits]\n  split_count = sum([\n      bool(source)\n     \
-          \ for source in [predefined_split_key,\n                     any(fraction_splits)]\n\
-          \  ])\n  if split_count > 1:\n    raise ValueError(f'Expected 1 split type,\
-          \ found {split_count}.')\n  if (predefined_split_key and\n      not column_pattern.fullmatch(predefined_split_key)):\n\
-          \    raise ValueError(f'Invalid column name: {predefined_split_key}.')\n\
-          \  if any(fraction_splits):\n    if not all(fraction_splits):\n      raise\
-          \ ValueError(\n          f'All fractions must be non-zero. Got: {fraction_splits}.')\n\
-          \    if sum(fraction_splits) != 1:\n      raise ValueError(\n          f'Fraction\
-          \ splits must sum to 1. Got: {sum(fraction_splits)}.')\n  if (timestamp_split_key\
-          \ and\n      not column_pattern.fullmatch(timestamp_split_key)):\n    raise\
-          \ ValueError(f'Invalid column name: {timestamp_split_key}.')\n  if timestamp_split_key\
-          \ and not all(fraction_splits):\n    raise ValueError('All fractions must\
-          \ be non-zero for timestamp split.')\n\n  # Validate window config.\n  if\
-          \ window_stride_length == -1:\n    window_stride_length = None\n  if window_max_count\
-          \ == -1:\n    window_max_count = None\n  window_configs = [window_column,\
-          \ window_stride_length, window_max_count]\n  window_config_count = sum([bool(config)\
-          \ for config in window_configs])\n  if window_config_count > 1:\n    raise\
-          \ ValueError(f'Expected 1 window config, found {window_config_count}.')\n\
-          \  if window_column and not column_pattern.fullmatch(window_column):\n \
-          \   raise ValueError(f'Invalid column name: {window_column}.')\n  if window_stride_length\
-          \ and (window_stride_length < 1 or\n                               window_stride_length\
-          \ > 1000):\n    raise ValueError('Stride must be between 1 and 1000. Got:\
-          \ '\n                     f'{window_stride_length}.')\n  if window_max_count\
-          \ and (window_max_count < 1000 or\n                           window_max_count\
-          \ > int(1e8)):\n    raise ValueError('Max count must be between 1000 and\
-          \ 100000000. Got: '\n                     f'{window_max_count}.')\n\n  #\
-          \ Validate eval metric.\n  valid_optimization_objectives = ['rmse', 'mae',\
-          \ 'rmsle']\n  if optimization_objective:\n    if optimization_objective\
-          \ not in valid_optimization_objectives:\n      raise ValueError(\n     \
-          \     'Optimization objective should be one of the following: '\n      \
-          \    f'{valid_optimization_objectives}, got: {optimization_objective}.')\n\
-          \n  # Validate data granularity unit.\n  valid_data_granularity_units =\
-          \ [\n      'minute', 'hour', 'day', 'week', 'month', 'year']\n  if data_granularity_unit:\n\
-          \    if data_granularity_unit not in valid_data_granularity_units:\n   \
-          \   raise ValueError(\n          'Granularity unit should be one of the\
-          \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
-          \n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef validate_inputs(\n    time_column: Optional[str] = None,\n  \
+            \  time_series_identifier_column: Optional[str] = None,\n    target_column:\
+            \ Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str]\
+            \ = None,\n    training_fraction: Optional[float] = None,\n    validation_fraction:\
+            \ Optional[float] = None,\n    test_fraction: Optional[float] = None,\n\
+            \    predefined_split_key: Optional[str] = None,\n    timestamp_split_key:\
+            \ Optional[str] = None,\n    data_source_csv_filenames: Optional[str] =\
+            \ None,\n    source_model_uri: Optional[str] = None,\n    bigquery_destination_uri:\
+            \ Optional[str] = None,\n    window_column: Optional[str] = None,\n    window_stride_length:\
+            \ Optional[int] = None,\n    window_max_count: Optional[int] = None,\n \
+            \   optimization_objective: Optional[str] = None,\n    data_granularity_unit:\
+            \ Optional[str] = None,\n) -> None:\n  \"\"\"Checks training pipeline input\
+            \ parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n\
+            \  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\
+            \n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n\
+            \  dataset_pattern = r'[a-zA-Z0-9_]+'\n  table_pattern = r'[^\\.\\:`]+'\n\
+            \  dataset_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}')\n\
+            \  table_uri_pattern = re.compile(\n      f'(bq://)?{project_pattern}[.:]{dataset_pattern}[.:]{table_pattern}')\n\
+            \n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters\
+            \ = [\n      time_column,\n      time_series_identifier_column,\n      target_column,\n\
+            \  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n \
+            \ for column in bigquery_column_parameters:\n    if column and not column_pattern.fullmatch(column):\n\
+            \      raise ValueError(f'Invalid column name: {column}.')\n  if (bigquery_destination_uri\
+            \ and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n\
+            \    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n\
+            \  if (source_model_uri and not table_uri_pattern.fullmatch(source_model_uri)):\n\
+            \    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\
+            \n  # Validate data source.\n  data_source_count = sum([bool(source) for\
+            \ source in [\n      data_source_bigquery_table_path, data_source_csv_filenames]])\n\
+            \  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source,\
+            \ found {data_source_count}.')\n  if (data_source_bigquery_table_path\n\
+            \      and not table_uri_pattern.fullmatch(data_source_bigquery_table_path)):\n\
+            \    raise ValueError(\n        f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n\
+            \  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if data_source_csv_filenames:\n\
+            \    csv_list = [filename.strip()\n                for filename in data_source_csv_filenames.split(',')]\n\
+            \    for gcs_path in csv_list:\n      if not gcs_path_pattern.fullmatch(gcs_path):\n\
+            \        raise ValueError(f'Invalid path to CSV stored in GCS: {gcs_path}.')\n\
+            \n  # Validate split spec.\n  fraction_splits = [\n      training_fraction,\n\
+            \      validation_fraction,\n      test_fraction,\n  ]\n  fraction_splits\
+            \ = [None if fraction == -1 else fraction\n                     for fraction\
+            \ in fraction_splits]\n  split_count = sum([\n      bool(source)\n     \
+            \ for source in [predefined_split_key,\n                     any(fraction_splits)]\n\
+            \  ])\n  if split_count > 1:\n    raise ValueError(f'Expected 1 split type,\
+            \ found {split_count}.')\n  if (predefined_split_key and\n      not column_pattern.fullmatch(predefined_split_key)):\n\
+            \    raise ValueError(f'Invalid column name: {predefined_split_key}.')\n\
+            \  if any(fraction_splits):\n    if not all(fraction_splits):\n      raise\
+            \ ValueError(\n          f'All fractions must be non-zero. Got: {fraction_splits}.')\n\
+            \    if sum(fraction_splits) != 1:\n      raise ValueError(\n          f'Fraction\
+            \ splits must sum to 1. Got: {sum(fraction_splits)}.')\n  if (timestamp_split_key\
+            \ and\n      not column_pattern.fullmatch(timestamp_split_key)):\n    raise\
+            \ ValueError(f'Invalid column name: {timestamp_split_key}.')\n  if timestamp_split_key\
+            \ and not all(fraction_splits):\n    raise ValueError('All fractions must\
+            \ be non-zero for timestamp split.')\n\n  # Validate window config.\n  if\
+            \ window_stride_length == -1:\n    window_stride_length = None\n  if window_max_count\
+            \ == -1:\n    window_max_count = None\n  window_configs = [window_column,\
+            \ window_stride_length, window_max_count]\n  window_config_count = sum([bool(config)\
+            \ for config in window_configs])\n  if window_config_count > 1:\n    raise\
+            \ ValueError(f'Expected 1 window config, found {window_config_count}.')\n\
+            \  if window_column and not column_pattern.fullmatch(window_column):\n \
+            \   raise ValueError(f'Invalid column name: {window_column}.')\n  if window_stride_length\
+            \ and (window_stride_length < 1 or\n                               window_stride_length\
+            \ > 1000):\n    raise ValueError('Stride must be between 1 and 1000. Got:\
+            \ '\n                     f'{window_stride_length}.')\n  if window_max_count\
+            \ and (window_max_count < 1000 or\n                           window_max_count\
+            \ > int(1e8)):\n    raise ValueError('Max count must be between 1000 and\
+            \ 100000000. Got: '\n                     f'{window_max_count}.')\n\n  #\
+            \ Validate eval metric.\n  valid_optimization_objectives = ['rmse', 'mae',\
+            \ 'rmsle']\n  if optimization_objective:\n    if optimization_objective\
+            \ not in valid_optimization_objectives:\n      raise ValueError(\n     \
+            \     'Optimization objective should be one of the following: '\n      \
+            \    f'{valid_optimization_objectives}, got: {optimization_objective}.')\n\
+            \n  # Validate data granularity unit.\n  valid_data_granularity_units =\
+            \ [\n      'minute', 'hour', 'day', 'week', 'month', 'year']\n  if data_granularity_unit:\n\
+            \    if data_granularity_unit not in valid_data_granularity_units:\n   \
+            \   raise ValueError(\n          'Granularity unit should be one of the\
+            \ following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\
+            \n"
         image: us-docker.pkg.dev/vertex-ai/automl-tabular/kfp-v2-base:20250620_0525
 pipelineInfo:
   description: Creates a batch prediction using a Prophet model.
@@ -2017,7 +2044,7 @@ root:
         componentRef:
           name: comp-bigquery-delete-dataset-with-prefix
         dependentTasks:
-        - exit-handler-1
+          - exit-handler-1
         inputs:
           parameters:
             dataset_prefix:
@@ -2066,32 +2093,32 @@ root:
   inputDefinitions:
     parameters:
       bigquery_destination_uri:
-        defaultValue: ''
-        description: 'URI of the desired destination dataset. If not
+        defaultValue: ""
+        description: "URI of the desired destination dataset. If not
 
           specified, resources will be created under a new dataset in the project.
 
           Unlike in Vertex Forecasting, all resources will be given hardcoded names
 
-          under this dataset, and the model artifact will also be exported here.'
+          under this dataset, and the model artifact will also be exported here."
         isOptional: true
         parameterType: STRING
       data_source_bigquery_table_path:
-        defaultValue: ''
-        description: 'The BigQuery table path of format
+        defaultValue: ""
+        description: "The BigQuery table path of format
 
-          bq://bq_project.bq_dataset.bq_table'
+          bq://bq_project.bq_dataset.bq_table"
         isOptional: true
         parameterType: STRING
       data_source_csv_filenames:
-        defaultValue: ''
-        description: 'A string that represents a list of comma
+        defaultValue: ""
+        description: "A string that represents a list of comma
 
-          separated CSV filenames.'
+          separated CSV filenames."
         isOptional: true
         parameterType: STRING
       encryption_spec_key_name:
-        defaultValue: ''
+        defaultValue: ""
         description: The KMS key name.
         isOptional: true
         parameterType: STRING
@@ -2109,9 +2136,9 @@ root:
         isOptional: true
         parameterType: NUMBER_INTEGER
       model_name:
-        description: 'The name of the Model resource, in a form of
+        description: "The name of the Model resource, in a form of
 
-          projects/{project}/locations/{location}/models/{model}.'
+          projects/{project}/locations/{location}/models/{model}."
         parameterType: STRING
       project:
         description: The GCP project that runs the pipeline components.
@@ -2120,14 +2147,14 @@ root:
         description: Name of the column that the model is to predict values for.
         parameterType: STRING
       time_column:
-        description: 'Name of the column that identifies time order in the time
+        description: "Name of the column that identifies time order in the time
 
-          series.'
+          series."
         parameterType: STRING
       time_series_identifier_column:
-        description: 'Name of the column that identifies the time
+        description: "Name of the column that identifies the time
 
-          series.'
+          series."
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-rc.2

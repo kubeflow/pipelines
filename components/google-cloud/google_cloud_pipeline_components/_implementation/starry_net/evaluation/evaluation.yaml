@@ -145,20 +145,20 @@ implementation:
       - --batch_prediction_format
       - { inputValue: predictions_format }
       - if:
-          cond: {isPresent: predictions_gcs_source}
+          cond: { isPresent: predictions_gcs_source }
           then:
-          - --batch_prediction_gcs_source
-          - "{{$.inputs.artifacts['predictions_gcs_source'].uri}}"
+            - --batch_prediction_gcs_source
+            - "{{$.inputs.artifacts['predictions_gcs_source'].uri}}"
       - if:
-          cond: {isPresent: predictions_bigquery_source}
+          cond: { isPresent: predictions_bigquery_source }
           then:
-          - --batch_prediction_bigquery_source
-          - "bq://{{$.inputs.artifacts['predictions_bigquery_source'].metadata['projectId']}}.{{$.inputs.artifacts['predictions_bigquery_source'].metadata['datasetId']}}.{{$.inputs.artifacts['predictions_bigquery_source'].metadata['tableId']}}"
+            - --batch_prediction_bigquery_source
+            - "bq://{{$.inputs.artifacts['predictions_bigquery_source'].metadata['projectId']}}.{{$.inputs.artifacts['predictions_bigquery_source'].metadata['datasetId']}}.{{$.inputs.artifacts['predictions_bigquery_source'].metadata['tableId']}}"
       - if:
-          cond: {isPresent: model}
+          cond: { isPresent: model }
           then:
-          - --model_name
-          - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
+            - --model_name
+            - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - --ground_truth_format
       - { inputValue: ground_truth_format }
       - --ground_truth_gcs_source

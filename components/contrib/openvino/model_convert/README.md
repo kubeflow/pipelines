@@ -1,12 +1,13 @@
 # Model optimization component
 
-This component is executing model optimization process using OpenVINO Toolkit and generate as output the model in 
+This component is executing model optimization process using OpenVINO Toolkit and generate as output the model in
 Intermediate Representation format.
 
 Component takes the following arguments:
-* model input GCS path
-* model optimizer parameters
-* model output GCS path
+
+- model input GCS path
+- model optimizer parameters
+- model output GCS path
 
 ```bash
 usage: convert_model.py [-h] [--input_path INPUT_PATH]
@@ -22,23 +23,25 @@ optional arguments:
                         OpenVINO Model Optimizer options
   --output_path OUTPUT_PATH
                         GCS path of output folder
-                        
+
 ```
 
 ## Component parameters
 
 It takes as input GCS path to the input model in any of the OpenVINO supported frameworks:
-* Tensorflow
-* Caffe
-* MXNET
-* Kaldi
-* ONNX
+
+- Tensorflow
+- Caffe
+- MXNET
+- Kaldi
+- ONNX
 
 Input model path can be a folder or an individual file which will be copied to a component working directory
 
 Model optimizer options can include any of the parameters supported by OpenVINO toolkit model optimizer.
 
-Refer to OpenVINO [documentation](https://software.intel.com/en-us/articles/OpenVINO-ModelOptimizer) for details. 
+Refer to OpenVINO [documentation](https://software.intel.com/en-us/articles/OpenVINO-ModelOptimizer) for details.
+
 ```bash
 mo.py --help
 usage: mo.py [-h] [--framework {tf,caffe,mxnet,kaldi,onnx}]
@@ -291,10 +294,11 @@ The output folder specify then should be uploaded the generated model file in IR
 extensions.
 
 The component also creates 3 files including the paths to generated model:
+
 - `/tmp/output.txt` - GSC path to the folder including the generated model files.
-- `/tmp/bin_path.txt` -  GSC path to weights model file 
-- `/tmp/xml_path.txt` - GSC path to graph model file 
-They can be used as parameters to be passed to other jobs in ML pipelines.
+- `/tmp/bin_path.txt` - GSC path to weights model file
+- `/tmp/xml_path.txt` - GSC path to graph model file
+  They can be used as parameters to be passed to other jobs in ML pipelines.
 
 ## Examples
 
@@ -306,14 +310,13 @@ Input path - gs://tensorflow_model_path/resnet/1<br />
 MO options - --saved_model_dir 1<br />
 Output path - gs://tensorflow_model_path/resnet/dldt/1<br />
 
-
 ## Building docker image
 
 ```bash
 docker build --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy .
 ```
 
-## Starting and testing the component locally 
+## Starting and testing the component locally
 
 This component requires GCP authentication token in json format generated for the service account,
 which has access to GCS location. In the example below it is in key.json in the current path.
@@ -324,4 +327,3 @@ docker run --rm -it -v $(pwd)/key.json:/etc/credentials/gcp-key.json \
 -e GOOGLE_APPLICATION_CREDENTIALS=/etc/credentials/gcp-key.json <image_name> $COMMAND
 
 ```
-

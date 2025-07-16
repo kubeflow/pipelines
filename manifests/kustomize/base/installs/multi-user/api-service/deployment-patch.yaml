@@ -6,12 +6,12 @@ spec:
   template:
     spec:
       containers:
-      - name: ml-pipeline-api-server
-        envFrom:
-        - configMapRef:
-            name: pipeline-api-server-config
-        env:
-        - name: KUBEFLOW_USERID_HEADER
-          value: kubeflow-userid
-        - name: KUBEFLOW_USERID_PREFIX
-          value: ""
+        - name: ml-pipeline-api-server
+          envFrom:
+            - configMapRef:
+                name: pipeline-api-server-config
+          env:
+            - name: KUBEFLOW_USERID_HEADER
+              value: kubeflow-userid
+            - name: KUBEFLOW_USERID_PREFIX
+              value: ""

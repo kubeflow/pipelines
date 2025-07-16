@@ -45,44 +45,44 @@ deploymentSpec:
     exec-add:
       container:
         command:
-        - sh
-        - -c
-        - 'set -e -x
+          - sh
+          - -c
+          - 'set -e -x
 
-          echo "$(($0+$1))" | gsutil cp - "$2"
+            echo "$(($0+$1))" | gsutil cp - "$2"
 
-          '
-        - '{{$.inputs.parameters[''op_1'']}}'
-        - '{{$.inputs.parameters[''op2'']}}'
-        - '{{$.outputs.parameters[''sum''].output_file}}'
+            '
+          - "{{$.inputs.parameters['op_1']}}"
+          - "{{$.inputs.parameters['op2']}}"
+          - "{{$.outputs.parameters['sum'].output_file}}"
         image: google/cloud-sdk:latest
     exec-add-2:
       container:
         command:
-        - sh
-        - -c
-        - 'set -e -x
+          - sh
+          - -c
+          - 'set -e -x
 
-          echo "$(($0+$1))" | gsutil cp - "$2"
+            echo "$(($0+$1))" | gsutil cp - "$2"
 
-          '
-        - '{{$.inputs.parameters[''op_1'']}}'
-        - '{{$.inputs.parameters[''op2'']}}'
-        - '{{$.outputs.parameters[''sum''].output_file}}'
+            '
+          - "{{$.inputs.parameters['op_1']}}"
+          - "{{$.inputs.parameters['op2']}}"
+          - "{{$.outputs.parameters['sum'].output_file}}"
         image: google/cloud-sdk:latest
     exec-add-3:
       container:
         command:
-        - sh
-        - -c
-        - 'set -e -x
+          - sh
+          - -c
+          - 'set -e -x
 
-          echo "$(($0+$1))" | gsutil cp - "$2"
+            echo "$(($0+$1))" | gsutil cp - "$2"
 
-          '
-        - '{{$.inputs.parameters[''op_1'']}}'
-        - '{{$.inputs.parameters[''op2'']}}'
-        - '{{$.outputs.parameters[''sum''].output_file}}'
+            '
+          - "{{$.inputs.parameters['op_1']}}"
+          - "{{$.inputs.parameters['op2']}}"
+          - "{{$.outputs.parameters['sum'].output_file}}"
         image: google/cloud-sdk:latest
 pipelineInfo:
   name: add-pipeline
@@ -110,7 +110,7 @@ root:
         componentRef:
           name: comp-add-2
         dependentTasks:
-        - add
+          - add
         inputs:
           parameters:
             op2:
@@ -128,7 +128,7 @@ root:
         componentRef:
           name: comp-add-3
         dependentTasks:
-        - add-2
+          - add-2
         inputs:
           parameters:
             op2:

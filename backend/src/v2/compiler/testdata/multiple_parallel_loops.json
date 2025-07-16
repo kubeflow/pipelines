@@ -1,5 +1,5 @@
 {
-  "pipelineSpec" :{
+  "pipelineSpec": {
     "components": {
       "comp-for-loop-2": {
         "dag": {

@@ -66,14 +66,14 @@ describe('WorkflowUtils', () => {
   it('detects v2 template (yaml file without k8s platform spec)', () => {
     jest
       .spyOn(features, 'isFeatureEnabled')
-      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+      .mockImplementation((featureKey) => featureKey === features.FeatureKey.V2_ALPHA);
     expect(isTemplateV2(V2_LW_YAML_TEMPLATE_STRING)).toBeTruthy();
   });
 
   it('detects v2 template (yaml file with k8s platform spec)', () => {
     jest
       .spyOn(features, 'isFeatureEnabled')
-      .mockImplementation(featureKey => featureKey === features.FeatureKey.V2_ALPHA);
+      .mockImplementation((featureKey) => featureKey === features.FeatureKey.V2_ALPHA);
     expect(isTemplateV2(V2_PVC_TEMPLATE_STRING)).toBeTruthy();
   });
 

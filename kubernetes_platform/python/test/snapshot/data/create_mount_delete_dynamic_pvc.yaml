@@ -12,56 +12,59 @@ components:
     inputDefinitions:
       parameters:
         access_modes:
-          description: 'AccessModes to request for the provisioned PVC. May
+          description: "AccessModes to request for the provisioned PVC. May
 
-            be one or more of ``''ReadWriteOnce''``, ``''ReadOnlyMany''``, ``''ReadWriteMany''``,
+            be one or more of ``'ReadWriteOnce'``, ``'ReadOnlyMany'``, ``'ReadWriteMany'``,
             or
 
-            ``''ReadWriteOncePod''``. Corresponds to `PersistentVolumeClaim.spec.accessModes
-            <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_.'
+            ``'ReadWriteOncePod'``. Corresponds to `PersistentVolumeClaim.spec.accessModes
+            <https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes>`_."
           parameterType: LIST
         annotations:
-          description: Annotations for the PVC's metadata. Corresponds to `PersistentVolumeClaim.metadata.annotations
+          description:
+            Annotations for the PVC's metadata. Corresponds to `PersistentVolumeClaim.metadata.annotations
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
           isOptional: true
           parameterType: STRUCT
         pvc_name:
-          description: 'Name of the PVC. Corresponds to `PersistentVolumeClaim.metadata.name
+          description:
+            "Name of the PVC. Corresponds to `PersistentVolumeClaim.metadata.name
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaim>`_.
             Only one of ``pvc_name`` and ``pvc_name_suffix`` can
 
-            be provided.'
+            be provided."
           isOptional: true
           parameterType: STRING
         pvc_name_suffix:
-          description: 'Prefix to use for a dynamically generated name, which
+          description: "Prefix to use for a dynamically generated name, which
 
             will take the form ``<argo-workflow-name>-<pvc_name_suffix>``. Only one
 
-            of ``pvc_name`` and ``pvc_name_suffix`` can be provided.'
+            of ``pvc_name`` and ``pvc_name_suffix`` can be provided."
           isOptional: true
           parameterType: STRING
         size:
-          description: The size of storage requested by the PVC that will be provisioned.
+          description:
+            The size of storage requested by the PVC that will be provisioned.
             For example, ``'5Gi'``. Corresponds to `PersistentVolumeClaim.spec.resources.requests.storage
             <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.
           parameterType: STRING
         storage_class_name:
-          defaultValue: ''
-          description: 'Name of StorageClass from which to provision the PV
+          defaultValue: ""
+          description: "Name of StorageClass from which to provision the PV
 
-            to back the PVC. ``None`` indicates to use the cluster''s default
+            to back the PVC. ``None`` indicates to use the cluster's default
 
-            storage_class_name. Set to ``''''`` for a statically specified PVC.'
+            storage_class_name. Set to ``''`` for a statically specified PVC."
           isOptional: true
           parameterType: STRING
         volume_name:
-          description: 'Pre-existing PersistentVolume that should back the
+          description: "Pre-existing PersistentVolume that should back the
 
             provisioned PersistentVolumeClaim. Used for statically
 
             specified PV only. Corresponds to `PersistentVolumeClaim.spec.volumeName
-            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_.'
+            <https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/persistent-volume-claim-v1/#PersistentVolumeClaimSpec>`_."
           isOptional: true
           parameterType: STRING
     outputDefinitions:
@@ -73,7 +76,8 @@ components:
     inputDefinitions:
       parameters:
         pvc_name:
-          description: Name of the PVC to delete. Supports passing a runtime-generated
+          description:
+            Name of the PVC to delete. Supports passing a runtime-generated
             name, such as a name provided by ``kubernetes.CreatePvcOp().outputs['name']``.
           parameterType: STRING
   comp-producer:
@@ -87,32 +91,32 @@ deploymentSpec:
     exec-consumer:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - consumer
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - consumer
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef consumer() -> str:\n    with open('/data/file.txt', 'r') as file:\n\
-          \        content = file.read()\n    print(content)\n    return content\n\
-          \n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef consumer() -> str:\n    with open('/data/file.txt', 'r') as file:\n\
+            \        content = file.read()\n    print(content)\n    return content\n\
+            \n"
         image: python:3.9
     exec-createpvc:
       container:
@@ -123,33 +127,33 @@ deploymentSpec:
     exec-producer:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - producer
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - producer
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef producer() -> str:\n    with open('/data/file.txt', 'w') as file:\n\
-          \        file.write('Hello world')\n    with open('/data/file.txt', 'r')\
-          \ as file:\n        content = file.read()\n    print(content)\n    return\
-          \ content\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef producer() -> str:\n    with open('/data/file.txt', 'w') as file:\n\
+            \        file.write('Hello world')\n    with open('/data/file.txt', 'r')\
+            \ as file:\n        content = file.read()\n    print(content)\n    return\
+            \ content\n\n"
         image: python:3.9
 pipelineInfo:
   name: my-pipeline
@@ -162,8 +166,8 @@ root:
         componentRef:
           name: comp-consumer
         dependentTasks:
-        - createpvc
-        - producer
+          - createpvc
+          - producer
         taskInfo:
           name: consumer
       createpvc:
@@ -176,7 +180,7 @@ root:
             access_modes:
               runtimeValue:
                 constant:
-                - ReadWriteOnce
+                  - ReadWriteOnce
             pvc_name_suffix:
               runtimeValue:
                 constant: -my-pvc
@@ -194,8 +198,8 @@ root:
         componentRef:
           name: comp-deletepvc
         dependentTasks:
-        - consumer
-        - createpvc
+          - consumer
+          - createpvc
         inputs:
           parameters:
             pvc_name:
@@ -210,7 +214,7 @@ root:
         componentRef:
           name: comp-producer
         dependentTasks:
-        - createpvc
+          - createpvc
         taskInfo:
           name: producer
 schemaVersion: 2.1.0
@@ -222,21 +226,21 @@ platforms:
       executors:
         exec-consumer:
           pvcMount:
-          - mountPath: /data
-            pvcNameParameter:
+            - mountPath: /data
+              pvcNameParameter:
+                taskOutputParameter:
+                  outputParameterKey: name
+                  producerTask: createpvc
               taskOutputParameter:
                 outputParameterKey: name
                 producerTask: createpvc
-            taskOutputParameter:
-              outputParameterKey: name
-              producerTask: createpvc
         exec-producer:
           pvcMount:
-          - mountPath: /data
-            pvcNameParameter:
+            - mountPath: /data
+              pvcNameParameter:
+                taskOutputParameter:
+                  outputParameterKey: name
+                  producerTask: createpvc
               taskOutputParameter:
                 outputParameterKey: name
                 producerTask: createpvc
-            taskOutputParameter:
-              outputParameterKey: name
-              producerTask: createpvc

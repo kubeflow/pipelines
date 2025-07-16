@@ -5,7 +5,7 @@ metadata: # kpt-merge: /dex
     app: dex
   name: dex
   annotations:
-    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|dex'
+    internal.kpt.dev/upstream-identifier: "apps|Deployment|default|dex"
 spec:
   selector:
     matchLabels:

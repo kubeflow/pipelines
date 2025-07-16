@@ -204,7 +204,7 @@ describe('Status', () => {
       expect(tree).toMatchSnapshot();
     });
 
-    Object.keys(V2beta1RuntimeState).map(status =>
+    Object.keys(V2beta1RuntimeState).map((status) =>
       it('renders an icon with tooltip for phase: ' + status, () => {
         const tree = shallow(statusToIcon(V2beta1RuntimeState[status]));
         expect(tree).toMatchSnapshot();

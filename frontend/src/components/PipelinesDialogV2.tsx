@@ -50,9 +50,8 @@ export interface PipelinesDialogV2Props extends PageProps {
 const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element | null => {
   const buildInfo = React.useContext(BuildInfoContext);
   const [view, setView] = React.useState(NamespacedAndSharedTab.NAMESPACED);
-  const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] = React.useState<
-    V2beta1Pipeline
-  >();
+  const [unconfirmedSelectedPipeline, setUnconfirmedSelectedPipeline] =
+    React.useState<V2beta1Pipeline>();
 
   function getPipelinesList(): JSX.Element {
     return (
@@ -76,7 +75,7 @@ const PipelinesDialogV2: React.FC<PipelinesDialogV2Props> = (props): JSX.Element
           );
           return {
             nextPageToken: response.next_page_token || '',
-            resources: response.pipelines?.map(p => convertPipelineToResource(p)) || [],
+            resources: response.pipelines?.map((p) => convertPipelineToResource(p)) || [],
           };
         }}
         columns={props.pipelineSelectorColumns}

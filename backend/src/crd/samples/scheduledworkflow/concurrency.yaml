@@ -29,16 +29,17 @@ spec:
       entrypoint: sleep-n-sec
       arguments:
         parameters:
-        - name: seconds
-          value: "60"
-      templates:
-      - name: sleep-n-sec
-        inputs:
-          parameters:
           - name: seconds
-        container:
-          image: alpine:latest
-          command: [sh, -c]
-          args: ["echo sleeping for {{inputs.parameters.seconds}} seconds; sleep {{inputs.parameters.seconds}}; echo done"]
-
-
+            value: "60"
+      templates:
+        - name: sleep-n-sec
+          inputs:
+            parameters:
+              - name: seconds
+          container:
+            image: alpine:latest
+            command: [sh, -c]
+            args:
+              [
+                "echo sleeping for {{inputs.parameters.seconds}} seconds; sleep {{inputs.parameters.seconds}}; echo done",
+              ]

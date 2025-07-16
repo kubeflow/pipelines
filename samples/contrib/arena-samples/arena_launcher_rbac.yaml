@@ -5,18 +5,18 @@ metadata:
   name: arena
   namespace: kubeflow
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - '*'
-- apiGroups:
-  - ""
-  resources:
-  - services/proxy
-  verbs:
-  - get
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - "*"
+  - apiGroups:
+      - ""
+    resources:
+      - services/proxy
+    verbs:
+      - get
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -29,6 +29,6 @@ roleRef:
   kind: Role
   name: arena
 subjects:
-- kind: ServiceAccount
-  name: pipeline-runner
-  namespace: kubeflow
+  - kind: ServiceAccount
+    name: pipeline-runner
+    namespace: kubeflow

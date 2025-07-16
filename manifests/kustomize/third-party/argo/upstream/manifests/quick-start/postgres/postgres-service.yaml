@@ -5,7 +5,7 @@ metadata: # kpt-merge: /postgres
   labels:
     app: postgres
   annotations:
-    internal.kpt.dev/upstream-identifier: '|Service|default|postgres'
+    internal.kpt.dev/upstream-identifier: "|Service|default|postgres"
 spec:
   selector:
     app: postgres

@@ -33,12 +33,7 @@
     "executors": {
       "exec-print-params": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_params"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_params"],
           "command": [
             "sh",
             "-c",

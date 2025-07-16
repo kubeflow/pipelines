@@ -12,8 +12,8 @@ deploymentSpec:
     exec-component-with-concat-placeholder:
       container:
         args:
-        - --arg0
-        - '{"Concat": ["{{$.inputs.parameters[''input_prefix'']}}", "some value"]}'
+          - --arg0
+          - '{"Concat": ["{{$.inputs.parameters[''input_prefix'']}}", "some value"]}'
         image: gcr.io/my-project/my-image
 pipelineInfo:
   name: one-step-pipeline-with-concat-placeholder
@@ -29,7 +29,7 @@ root:
           parameters:
             input_prefix:
               runtimeValue:
-                constant: 'some prefix:'
+                constant: "some prefix:"
         taskInfo:
           name: component-with-concat-placeholder
           taskName: component-with-concat-placeholder

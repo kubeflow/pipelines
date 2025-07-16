@@ -4,7 +4,7 @@ metadata:
   name: kubeflow-pipelines-profile-controller
 spec:
   ports:
-  - name: http
-    port: 80
-    protocol: TCP
-    targetPort: 8080
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080

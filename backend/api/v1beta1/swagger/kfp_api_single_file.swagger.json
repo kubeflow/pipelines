@@ -14,16 +14,9 @@
       "url": "https://raw.githubusercontent.com/kubeflow/pipelines/master/LICENSE"
     }
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v1beta1/experiments": {
       "get": {
@@ -97,9 +90,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       },
       "post": {
         "summary": "Creates a new experiment.",
@@ -129,9 +120,7 @@
             }
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v1beta1/experiments/{id}": {
@@ -161,9 +150,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       },
       "delete": {
         "summary": "Deletes an experiment without deleting the experiment's runs and jobs. To\navoid unexpected behaviors, delete an experiment's runs and jobs before\ndeleting the experiment.",
@@ -191,9 +178,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v1beta1/experiments/{id}:archive": {
@@ -223,9 +208,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v1beta1/experiments/{id}:unarchive": {
@@ -255,9 +238,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v1beta1/runs": {
@@ -332,9 +313,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       },
       "post": {
         "summary": "Creates a new run.",
@@ -363,9 +342,7 @@
             }
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v1beta1/runs/{id}": {
@@ -395,9 +372,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v1beta1/runs/{id}:archive": {
@@ -427,9 +402,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v1beta1/runs/{id}:unarchive": {
@@ -459,9 +432,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v1beta1/runs/{run_id}": {
@@ -491,9 +462,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
@@ -537,9 +506,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v1beta1/runs/{run_id}/retry": {
@@ -569,9 +536,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v1beta1/runs/{run_id}/terminate": {
@@ -601,9 +566,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v1beta1/runs/{run_id}:reportMetrics": {
@@ -641,9 +604,7 @@
             }
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v1beta1/jobs": {
@@ -718,9 +679,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       },
       "post": {
         "summary": "Creates a new job.",
@@ -750,9 +709,7 @@
             }
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       }
     },
     "/apis/v1beta1/jobs/{id}": {
@@ -782,9 +739,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       },
       "delete": {
         "summary": "Deletes a job.",
@@ -812,9 +767,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       }
     },
     "/apis/v1beta1/jobs/{id}/disable": {
@@ -844,9 +797,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       }
     },
     "/apis/v1beta1/jobs/{id}/enable": {
@@ -876,9 +827,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "JobService"
-        ]
+        "tags": ["JobService"]
       }
     },
     "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}": {
@@ -915,9 +864,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipeline_versions": {
@@ -992,9 +939,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "post": {
         "summary": "Adds a pipeline version to the specified pipeline.",
@@ -1024,9 +969,7 @@
             }
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipeline_versions/{version_id}": {
@@ -1056,9 +999,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "delete": {
         "summary": "Deletes a pipeline version by pipeline version ID. If the deleted pipeline\nversion is the default pipeline version, the pipeline's default version\nchanges to the pipeline's most recent pipeline version. If there are no\nremaining pipeline versions, the pipeline will have no default version.\nExamines the run_service_api.ipynb notebook to learn more about creating a\nrun using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).",
@@ -1086,9 +1027,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipeline_versions/{version_id}/templates": {
@@ -1118,9 +1057,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipelines": {
@@ -1195,9 +1132,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "post": {
         "summary": "Creates a pipeline.",
@@ -1226,9 +1161,7 @@
             }
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipelines/{id}": {
@@ -1258,9 +1191,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "delete": {
         "summary": "Deletes a pipeline and its pipeline versions.",
@@ -1288,9 +1219,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipelines/{id}/templates": {
@@ -1320,9 +1249,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}": {
@@ -1359,20 +1286,14 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipelines/upload": {
       "post": {
         "operationId": "UploadPipeline",
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "produces": [
-          "application/json"
-        ],
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
         "responses": {
           "200": {
             "description": "",
@@ -1414,20 +1335,14 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineUploadService"
-        ]
+        "tags": ["PipelineUploadService"]
       }
     },
     "/apis/v1beta1/pipelines/upload_version": {
       "post": {
         "operationId": "UploadPipelineVersion",
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "produces": [
-          "application/json"
-        ],
+        "consumes": ["multipart/form-data"],
+        "produces": ["application/json"],
         "responses": {
           "200": {
             "description": "",
@@ -1475,9 +1390,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineUploadService"
-        ]
+        "tags": ["PipelineUploadService"]
       }
     },
     "/apis/v1beta1/healthz": {
@@ -1498,9 +1411,7 @@
             }
           }
         },
-        "tags": [
-          "HealthzService"
-        ]
+        "tags": ["HealthzService"]
       }
     }
   },
@@ -1570,11 +1481,7 @@
     },
     "apiRelationship": {
       "type": "string",
-      "enum": [
-        "UNKNOWN_RELATIONSHIP",
-        "OWNER",
-        "CREATOR"
-      ],
+      "enum": ["UNKNOWN_RELATIONSHIP", "OWNER", "CREATOR"],
       "default": "UNKNOWN_RELATIONSHIP"
     },
     "apiResourceKey": {
@@ -1706,11 +1613,7 @@
     },
     "RunMetricFormat": {
       "type": "string",
-      "enum": [
-        "UNSPECIFIED",
-        "RAW",
-        "PERCENTAGE"
-      ],
+      "enum": ["UNSPECIFIED", "RAW", "PERCENTAGE"],
       "default": "UNSPECIFIED",
       "description": " - UNSPECIFIED: Default value if not present.\n - RAW: Display value as its raw format.\n - PERCENTAGE: Display value in percentage format."
     },
@@ -1928,27 +1831,18 @@
     },
     "apiRunStorageState": {
       "type": "string",
-      "enum": [
-        "STORAGESTATE_AVAILABLE",
-        "STORAGESTATE_ARCHIVED"
-      ],
+      "enum": ["STORAGESTATE_AVAILABLE", "STORAGESTATE_ARCHIVED"],
       "default": "STORAGESTATE_AVAILABLE"
     },
     "protobufNullValue": {
       "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
+      "enum": ["NULL_VALUE"],
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     },
     "JobMode": {
       "type": "string",
-      "enum": [
-        "UNKNOWN_MODE",
-        "ENABLED",
-        "DISABLED"
-      ],
+      "enum": ["UNKNOWN_MODE", "ENABLED", "DISABLED"],
       "default": "UNKNOWN_MODE",
       "description": "Required input.\n\n - DISABLED: The job won't schedule any run if disabled."
     },

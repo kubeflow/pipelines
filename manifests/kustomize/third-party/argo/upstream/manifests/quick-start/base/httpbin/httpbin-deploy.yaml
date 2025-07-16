@@ -5,7 +5,7 @@ metadata: # kpt-merge: /httpbin
   labels:
     app: httpbin
   annotations:
-    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|httpbin'
+    internal.kpt.dev/upstream-identifier: "apps|Deployment|default|httpbin"
 spec:
   selector:
     matchLabels:

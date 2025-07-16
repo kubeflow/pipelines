@@ -36,7 +36,8 @@ spec:
               name: postgres
           readinessProbe:
             exec:
-              command: ["psql", "-U", "user", "-d", "postgres", "-c", "SELECT 1"]
+              command:
+                ["psql", "-U", "user", "-d", "postgres", "-c", "SELECT 1"]
             initialDelaySeconds: 15
             timeoutSeconds: 2
           volumeMounts:

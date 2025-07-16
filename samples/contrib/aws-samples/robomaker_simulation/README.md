@@ -4,10 +4,9 @@ Examples for creating a simulation application, running a simulation job, runnin
 
 The examples are based on a notebook from the [AWS SageMaker Examples](https://github.com/aws/amazon-sagemaker-examples) repo.
 
-The simulation jobs that are launched by these examples are based on the 
+The simulation jobs that are launched by these examples are based on the
 [`rl_objecttracker_robomaker_coach_gazebo`](https://github.com/aws/amazon-sagemaker-examples/tree/3de42334720a7197ea1f15395b66c44cf5ef7fd4/reinforcement_learning/rl_objecttracker_robomaker_coach_gazebo) notebook.
 This is an older notebook example, but you can still download it from github and upload directly to Jupyter Lab in SageMaker.
-
 
 ## Prerequisites
 
@@ -16,6 +15,7 @@ Some of the inputs are used to create the RoboMaker Simulation Application and s
 Simulation Job.
 
 required inputs for simulation job example:
+
 ```
 role = <robomaker execution role, this is created for you automatically when you launch a notebook instance>
 region = <region in which to deploy the robomaker resources>
@@ -37,6 +37,7 @@ use_public_ip = <whether or not to use a public ip to access the simulation job>
 ```
 
 required inputs for simulation job batch example:
+
 ```
 role = <robomaker execution role, this is created for you automatically when you launch a notebook instance>
 region = <region in which to deploy the robomaker resources>
@@ -84,4 +85,4 @@ Once the pipeline done, you can go to the S3 path specified in `output` to check
 ## Components source
 
 RoboMaker Create Simulation Application:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/create_simulation_application/src)
+[source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/create_simulation_application/src)

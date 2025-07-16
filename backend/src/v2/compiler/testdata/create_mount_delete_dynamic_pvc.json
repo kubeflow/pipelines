@@ -63,7 +63,12 @@
       "executors": {
         "exec-comp": {
           "container": {
-            "args": ["--executor_input", "{{$}}", "--function_to_execute", "comp"],
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "comp"
+            ],
             "command": [
               "sh",
               "-c",
@@ -78,7 +83,12 @@
         },
         "exec-comp-2": {
           "container": {
-            "args": ["--executor_input", "{{$}}", "--function_to_execute", "comp"],
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "comp"
+            ],
             "command": [
               "sh",
               "-c",

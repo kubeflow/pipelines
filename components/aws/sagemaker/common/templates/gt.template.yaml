@@ -1,38 +1,38 @@
-LabelingJobName: ''
-LabelAttributeName: ''
+LabelingJobName: ""
+LabelAttributeName: ""
 InputConfig:
   DataSource:
     S3DataSource:
-      ManifestS3Uri: ''
+      ManifestS3Uri: ""
   DataAttributes:
     ContentClassifiers: []
 OutputConfig:
-  S3OutputPath: ''
-  KmsKeyId: ''
-RoleArn: ''
-LabelCategoryConfigS3Uri: ''
+  S3OutputPath: ""
+  KmsKeyId: ""
+RoleArn: ""
+LabelCategoryConfigS3Uri: ""
 StoppingConditions:
   MaxHumanLabeledObjectCount: 1
   MaxPercentageOfInputDatasetLabeled: 100
 LabelingJobAlgorithmsConfig:
-  LabelingJobAlgorithmSpecificationArn: ''
-  InitialActiveLearningModelArn: ''
+  LabelingJobAlgorithmSpecificationArn: ""
+  InitialActiveLearningModelArn: ""
   LabelingJobResourceConfig:
-    VolumeKmsKeyId: ''
+    VolumeKmsKeyId: ""
 HumanTaskConfig:
-  WorkteamArn: ''
+  WorkteamArn: ""
   UiConfig:
-    UiTemplateS3Uri: ''
-  PreHumanTaskLambdaArn: ''
+    UiTemplateS3Uri: ""
+  PreHumanTaskLambdaArn: ""
   TaskKeywords: []
-  TaskTitle: ''
-  TaskDescription: ''
+  TaskTitle: ""
+  TaskDescription: ""
   NumberOfHumanWorkersPerDataObject: 1
   TaskTimeLimitInSeconds: 30
   TaskAvailabilityLifetimeInSeconds: 1
   MaxConcurrentTaskCount: 1
   AnnotationConsolidationConfig:
-    AnnotationConsolidationLambdaArn: ''
+    AnnotationConsolidationLambdaArn: ""
   PublicWorkforceTaskPrice:
     AmountInUsd:
       Dollars: 0

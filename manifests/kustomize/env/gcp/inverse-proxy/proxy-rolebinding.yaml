@@ -9,5 +9,5 @@ roleRef:
   kind: Role
   name: proxy-agent-runner
 subjects:
-- kind: ServiceAccount
-  name: proxy-agent-runner
+  - kind: ServiceAccount
+    name: proxy-agent-runner

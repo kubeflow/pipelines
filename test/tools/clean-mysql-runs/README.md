@@ -10,6 +10,7 @@
 The following script will delete all runs created before `DATE_THRESHOLD` as defined in the `delete_old_runs.py` script.
 
 First, set the `kubectl` context to the `kfp-ci` test cluster `gke_kfp-ci_us-central1_kfp-standalone-1` associated with the sample test KFP deployment. Then, run the following script:
+
 ```
 source ./test/tools/clean-mysql-runs/clean-mysql-runs.sh
 ```

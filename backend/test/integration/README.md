@@ -1,6 +1,7 @@
 ## Api Server Integration Tests
 
 ### WARNING
+
 **These integration tests will delete all the data in your KFP instance, please only use a test cluster to run these.**
 
 ### How to run
@@ -21,13 +22,12 @@ the tests with `make -C backend/test/integration test-webhook` from the root of 
 
 ### Run database tests with PostgreSQL
 
-To run this test, you need to first deploy the PostgreSQL images on your Kubernetes cluster. For how to deploy, 
+To run this test, you need to first deploy the PostgreSQL images on your Kubernetes cluster. For how to deploy,
 see [instructions here](../../../manifests/kustomize/third-party/postgresql/README.md).
 
-When testing against postgreSQL, all integration tests with MySQL will be disabled. Use an argument `postgres` to run 
+When testing against postgreSQL, all integration tests with MySQL will be disabled. Use an argument `postgres` to run
 test against a PostgreSQL database:
+
 ```
 NAMESPACE=<kfp-namespace> ./run_tests_locally.sh postgres
 ```
-
-

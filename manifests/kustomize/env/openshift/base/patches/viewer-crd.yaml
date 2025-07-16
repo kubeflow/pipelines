@@ -5,4 +5,3 @@ metadata:
   namespace: kubeflow
 spec:
   replicas: 0
-

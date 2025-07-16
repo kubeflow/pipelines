@@ -21,37 +21,61 @@ spec:
   serviceAccountName: pipeline-runner
   arguments:
     parameters:
-    - name: message
-      value: hello world
+      - name: message
+        value: hello world
 
   templates:
-  - name: diamond
-    dag:
-      tasks:
-      - name: A
-        template: echo
-        arguments:
-          parameters: [{name: message, value: "{{workflow.parameters.message}} from node: A"}]
-      - name: B
-        dependencies: [A]
-        template: echo
-        arguments:
-          parameters: [{name: message, value: "{{workflow.parameters.message}} from node: B"}]
-      - name: C
-        dependencies: [A]
-        template: echo
-        arguments:
-          parameters: [{name: message, value: "{{workflow.parameters.message}} from node: C"}]
-      - name: D
-        dependencies: [B, C]
-        template: echo
-        arguments:
-          parameters: [{name: message, value: "{{workflow.parameters.message}} from node: D"}]
+    - name: diamond
+      dag:
+        tasks:
+          - name: A
+            template: echo
+            arguments:
+              parameters:
+                [
+                  {
+                    name: message,
+                    value: "{{workflow.parameters.message}} from node: A",
+                  },
+                ]
+          - name: B
+            dependencies: [A]
+            template: echo
+            arguments:
+              parameters:
+                [
+                  {
+                    name: message,
+                    value: "{{workflow.parameters.message}} from node: B",
+                  },
+                ]
+          - name: C
+            dependencies: [A]
+            template: echo
+            arguments:
+              parameters:
+                [
+                  {
+                    name: message,
+                    value: "{{workflow.parameters.message}} from node: C",
+                  },
+                ]
+          - name: D
+            dependencies: [B, C]
+            template: echo
+            arguments:
+              parameters:
+                [
+                  {
+                    name: message,
+                    value: "{{workflow.parameters.message}} from node: D",
+                  },
+                ]
 
-  - name: echo
-    inputs:
-      parameters:
-      - name: message
-    container:
-      image: alpine:3.7
-      command: [echo, "{{inputs.parameters.message}}"]
+    - name: echo
+      inputs:
+        parameters:
+          - name: message
+      container:
+        image: alpine:3.7
+        command: [echo, "{{inputs.parameters.message}}"]

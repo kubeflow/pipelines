@@ -58,10 +58,10 @@ deploymentSpec:
           runtimeParameter: uri
         metadata:
           containerSpec:
-            imageUri: '{{$.inputs.parameters[''metadata-2'']}}'
+            imageUri: "{{$.inputs.parameters['metadata-2']}}"
           name:
-          - '{{$.inputs.parameters[''metadata'']}}'
-          - alias-name
+            - "{{$.inputs.parameters['metadata']}}"
+            - alias-name
         typeSchema:
           schemaTitle: system.Dataset
           schemaVersion: 0.0.1
@@ -73,42 +73,42 @@ deploymentSpec:
           containerSpec:
             imageUri: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
           list-of-data:
-          - '{{$.inputs.parameters[''metadata'']}}'
-          - '{{$.inputs.parameters[''metadata-2'']}}'
-          - '{{$.inputs.parameters[''metadata-3'']}}'
+            - "{{$.inputs.parameters['metadata']}}"
+            - "{{$.inputs.parameters['metadata-2']}}"
+            - "{{$.inputs.parameters['metadata-3']}}"
           name: prefix-{{$.inputs.parameters['metadata']}}
-          '{{$.inputs.parameters[''metadata'']}}': '{{$.inputs.parameters[''metadata'']}}'
-          '{{$.inputs.parameters[''metadata-2'']}}': us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
+          "{{$.inputs.parameters['metadata']}}": "{{$.inputs.parameters['metadata']}}"
+          "{{$.inputs.parameters['metadata-2']}}": us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
         typeSchema:
           schemaTitle: system.Dataset
           schemaVersion: 0.0.1
     exec-make-name:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - make_name
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - make_name
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef make_name(name: str) -> str:\n    return name\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef make_name(name: str) -> str:\n    return name\n\n"
         image: python:3.9
 pipelineInfo:
   name: pipeline-with-importer
@@ -137,7 +137,7 @@ root:
         componentRef:
           name: comp-importer-2
         dependentTasks:
-        - make-name
+          - make-name
         inputs:
           parameters:
             metadata:

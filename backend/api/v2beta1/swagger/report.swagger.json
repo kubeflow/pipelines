@@ -4,12 +4,8 @@
     "title": "backend/api/v2beta1/report.proto",
     "version": "version not set"
   },
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v2beta1/scheduledworkflows": {
       "post": {
@@ -39,9 +35,7 @@
             }
           }
         ],
-        "tags": [
-          "ReportService"
-        ]
+        "tags": ["ReportService"]
       }
     },
     "/apis/v2beta1/workflows": {
@@ -72,9 +66,7 @@
             }
           }
         ],
-        "tags": [
-          "ReportService"
-        ]
+        "tags": ["ReportService"]
       }
     }
   },

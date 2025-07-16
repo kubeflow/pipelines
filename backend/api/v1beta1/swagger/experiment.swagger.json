@@ -4,16 +4,9 @@
     "title": "backend/api/v1beta1/experiment.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v1beta1/experiments": {
       "get": {
@@ -87,9 +80,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       },
       "post": {
         "summary": "Creates a new experiment.",
@@ -119,9 +110,7 @@
             }
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v1beta1/experiments/{id}": {
@@ -151,9 +140,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       },
       "delete": {
         "summary": "Deletes an experiment without deleting the experiment's runs and jobs. To\navoid unexpected behaviors, delete an experiment's runs and jobs before\ndeleting the experiment.",
@@ -181,9 +168,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v1beta1/experiments/{id}:archive": {
@@ -213,9 +198,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     },
     "/apis/v1beta1/experiments/{id}:unarchive": {
@@ -245,9 +228,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "ExperimentService"
-        ]
+        "tags": ["ExperimentService"]
       }
     }
   },
@@ -317,11 +298,7 @@
     },
     "apiRelationship": {
       "type": "string",
-      "enum": [
-        "UNKNOWN_RELATIONSHIP",
-        "OWNER",
-        "CREATOR"
-      ],
+      "enum": ["UNKNOWN_RELATIONSHIP", "OWNER", "CREATOR"],
       "default": "UNKNOWN_RELATIONSHIP"
     },
     "apiResourceKey": {

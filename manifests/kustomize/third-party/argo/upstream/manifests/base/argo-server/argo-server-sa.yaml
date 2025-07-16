@@ -3,4 +3,4 @@ kind: ServiceAccount
 metadata: # kpt-merge: /argo-server
   name: argo-server
   annotations:
-    internal.kpt.dev/upstream-identifier: '|ServiceAccount|default|argo-server'
+    internal.kpt.dev/upstream-identifier: "|ServiceAccount|default|argo-server"

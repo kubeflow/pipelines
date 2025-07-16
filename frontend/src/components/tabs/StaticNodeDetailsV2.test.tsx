@@ -35,7 +35,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={''}
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'train',
@@ -55,7 +55,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={v2YamlTemplateString}
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'preprocess',
@@ -107,7 +107,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={v2YamlTemplateString}
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'train',
@@ -147,7 +147,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={v2YamlSubDagTemplateString}
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'DAG: condition-1',
@@ -170,7 +170,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={v2YamlSubDagTemplateString}
           layers={['root', 'condition-1']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'DAG: for-loop-2',
@@ -193,7 +193,7 @@ describe('StaticNodeDetailsV2', () => {
         <StaticNodeDetailsV2
           templateString={v2YamlTemplateString}
           layers={['root']}
-          onLayerChange={layers => {}}
+          onLayerChange={(layers) => {}}
           element={{
             data: {
               label: 'system.Model: model',

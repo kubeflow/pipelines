@@ -23,37 +23,37 @@ deploymentSpec:
     exec-sum-numbers:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - sum_numbers
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - sum_numbers
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef sum_numbers(a: int, b: int) -> int:\n    return a + b\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef sum_numbers(a: int, b: int) -> int:\n    return a + b\n\n"
         image: python:3.9
         resources:
           accelerator:
-            resourceCount: '{{$.inputs.parameters[''pipelinechannel--accelerator_limit'']}}'
-            resourceType: '{{$.inputs.parameters[''pipelinechannel--accelerator_type'']}}'
-          resourceCpuLimit: '{{$.inputs.parameters[''pipelinechannel--cpu_limit'']}}'
-          resourceMemoryLimit: '{{$.inputs.parameters[''pipelinechannel--memory_limit'']}}'
+            resourceCount: "{{$.inputs.parameters['pipelinechannel--accelerator_limit']}}"
+            resourceType: "{{$.inputs.parameters['pipelinechannel--accelerator_type']}}"
+          resourceCpuLimit: "{{$.inputs.parameters['pipelinechannel--cpu_limit']}}"
+          resourceMemoryLimit: "{{$.inputs.parameters['pipelinechannel--memory_limit']}}"
 pipelineInfo:
   name: pipeline
 root:
@@ -71,19 +71,19 @@ root:
                 constant: 1.0
             accelerator_count:
               runtimeValue:
-                constant: '{{$.inputs.parameters[''pipelinechannel--accelerator_limit'']}}'
+                constant: "{{$.inputs.parameters['pipelinechannel--accelerator_limit']}}"
             accelerator_type:
               runtimeValue:
-                constant: '{{$.inputs.parameters[''pipelinechannel--accelerator_type'']}}'
+                constant: "{{$.inputs.parameters['pipelinechannel--accelerator_type']}}"
             b:
               runtimeValue:
                 constant: 2.0
             cpu_limit:
               runtimeValue:
-                constant: '{{$.inputs.parameters[''pipelinechannel--cpu_limit'']}}'
+                constant: "{{$.inputs.parameters['pipelinechannel--cpu_limit']}}"
             memory_limit:
               runtimeValue:
-                constant: '{{$.inputs.parameters[''pipelinechannel--memory_limit'']}}'
+                constant: "{{$.inputs.parameters['pipelinechannel--memory_limit']}}"
             pipelinechannel--accelerator_limit:
               componentInputParameter: accelerator_limit
             pipelinechannel--accelerator_type:
@@ -98,7 +98,7 @@ root:
   inputDefinitions:
     parameters:
       accelerator_limit:
-        defaultValue: '1'
+        defaultValue: "1"
         isOptional: true
         parameterType: STRING
       accelerator_type:

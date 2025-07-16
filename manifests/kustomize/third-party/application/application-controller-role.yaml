@@ -4,9 +4,9 @@ metadata:
   name: application-manager-role
 rules:
   - apiGroups:
-      - '*'
+      - "*"
     resources:
-      - '*'
+      - "*"
     verbs:
       - get
       - list
@@ -16,6 +16,6 @@ rules:
   - apiGroups:
       - app.k8s.io
     resources:
-      - '*'
+      - "*"
     verbs:
-      - '*'
+      - "*"

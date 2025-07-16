@@ -113,7 +113,7 @@ const css = stylesheet({
 
 const getK8sNameRegex = () => /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 
-const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = (props) => {
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
@@ -244,7 +244,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
 
           {newPipeline === true && this.props.buildInfo?.apiServerMultiUser && (
             <PrivateSharedSelector
-              onChange={val => {
+              onChange={(val) => {
                 this.setState({
                   isPrivate: val,
                 });
@@ -528,10 +528,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
         pipelineVersionName:
           pipelineResponse.display_name +
           '-version-at-' +
-          currDate
-            .toISOString()
-            .toLowerCase()
-            .replace(/:/g, '-'),
+          currDate.toISOString().toLowerCase().replace(/:/g, '-'),
       });
     }
 
@@ -549,12 +546,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
       this.setState(
         {
           pipelineVersionName:
-            value +
-            '-version-at-' +
-            currDate
-              .toISOString()
-              .toLowerCase()
-              .replace(/:/g, '-'),
+            value + '-version-at-' + currDate.toISOString().toLowerCase().replace(/:/g, '-'),
         },
         this._validate.bind(this),
       );
@@ -580,10 +572,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
           (pipeline &&
             pipeline.name +
               '-version-at-' +
-              currDate
-                .toISOString()
-                .toLowerCase()
-                .replace(/:/g, '-')) ||
+              currDate.toISOString().toLowerCase().replace(/:/g, '-')) ||
           '',
       },
       () => this._validate(),
@@ -635,9 +624,8 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
             name: this.state.pipelineName,
             namespace,
           };
-          const createPipelineResponse = await Apis.pipelineServiceApiV2.createPipeline(
-            newPipeline,
-          );
+          const createPipelineResponse =
+            await Apis.pipelineServiceApiV2.createPipeline(newPipeline);
           this.setState({ pipelineId: createPipelineResponse.pipeline_id });
           pipelineVersionResponse = await this._createPipelineVersion();
         } else {
@@ -699,14 +687,8 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
     // (1) new pipeline (and a default version) from local file
     // (2) new pipeline (and a default version) from url
     // (3) new pipeline version (under an existing pipeline) from url
-    const {
-      fileName,
-      pipeline,
-      pipelineVersionName,
-      packageUrl,
-      newPipeline,
-      pipelineName,
-    } = this.state;
+    const { fileName, pipeline, pipelineVersionName, packageUrl, newPipeline, pipelineName } =
+      this.state;
     try {
       if (newPipeline) {
         if (!packageUrl && !fileName) {
@@ -772,7 +754,7 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
   }
 }
 
-const EnhancedNewPipelineVersion: React.FC<PageProps> = props => {
+const EnhancedNewPipelineVersion: React.FC<PageProps> = (props) => {
   const buildInfo = React.useContext(BuildInfoContext);
   const namespace = React.useContext(NamespaceContext);
 

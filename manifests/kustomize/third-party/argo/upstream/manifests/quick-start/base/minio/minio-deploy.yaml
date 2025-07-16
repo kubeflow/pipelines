@@ -5,7 +5,7 @@ metadata: # kpt-merge: /minio
   labels:
     app: minio
   annotations:
-    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|minio'
+    internal.kpt.dev/upstream-identifier: "apps|Deployment|default|minio"
 spec:
   selector:
     matchLabels:

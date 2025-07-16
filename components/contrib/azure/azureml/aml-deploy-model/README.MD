@@ -5,27 +5,29 @@ This component deploys trained model with [Azure Machine Learning Service](https
 This `Azure ML Deploy Model` component, is a self-contained set of code to perform model deployment operation using Azure Machine Learning service.
 
 It performs the following workflow:
+
 - Prepare an inference configuration.
 - Prepare an entry script.
-- Choose a compute target. 
+- Choose a compute target.
 - Deploy the model to the compute target.
 
 ## Inputs
 
-| Name                       | Type   | Required | Description                             |
-| -------------------------- | ------ | -------- | ----------------------------------------|
-| deployment_name            | string | Y        | Name for the deployed model endpoint    |
-| model_name                 | string | Y        | Name for registered model and version   |
-| inference_config           | string | Y        | File Path for inferenceconfig.json      |
-| deployment_config          | string | Y        | File Path for deploymentconfig.json     |
-| tenant_id                  | string | Y        | Azure AD tenant Id                      |
-| service_principal_id       | string | Y        | Azure service principal (client) Id     |
-| service_principal_password | string | Y        | Azure service principal password        |
-| subscription_id            | string | Y        | Azure subscription Id                   |
-| resource_group             | string | Y        | Azure resource group                    |
-| workspace                  | string | Y        | Azure ML workspace name                 |
+| Name                       | Type   | Required | Description                           |
+| -------------------------- | ------ | -------- | ------------------------------------- |
+| deployment_name            | string | Y        | Name for the deployed model endpoint  |
+| model_name                 | string | Y        | Name for registered model and version |
+| inference_config           | string | Y        | File Path for inferenceconfig.json    |
+| deployment_config          | string | Y        | File Path for deploymentconfig.json   |
+| tenant_id                  | string | Y        | Azure AD tenant Id                    |
+| service_principal_id       | string | Y        | Azure service principal (client) Id   |
+| service_principal_password | string | Y        | Azure service principal password      |
+| subscription_id            | string | Y        | Azure subscription Id                 |
+| resource_group             | string | Y        | Azure resource group                  |
+| workspace                  | string | Y        | Azure ML workspace name               |
 
 ## Outputs
+
 Output `output_config` holds description of the deployed web service for the machine learning model.
 Output `score_uri` holds endpoint for the deployed model.
 
@@ -46,7 +48,8 @@ az aks update -n {myAKSCluster} -g {MyResourceGroup} --attach-acr {REGISTRY_NAME
 A service principal is used to allow your pipeline to securely interface with your Azure services without having to directly login in the pipeline and use admin privileges. See [here](https://docs.microsoft.com/en-us/powerapps/developer/common-data-service/walkthrough-register-app-azure-active-directory) for a detailed guide to create a service principal. Also please ensure to add a **Contributor** role to the service principal to be able access Azure resources.
 
 ## Usage
-In `./src` folder, adjust pre-configured `inferenceconfig.json`, `deploymentconfig.json`, and `environment.yml` to specify the resources for deployment like the compute type, number of cores etc. Additionaly, `deploymentconfig_aks.json` could be specified from parameters to use Azure Kubernetes Service to deploy the web service. `score.py` is the entry script for inference, where `init()` and `run(data)` are the functions to be *edited* to use the model. See here for [a detailed instruction on constructing the entry script](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-deploy-and-where?tabs=azcli). See [Deploy your existing model with Azure](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-deploy-existing-model#entry-script-scorepy) for an example of `score.py`. If additional pip packages are used for `score.py`, please ensure them being added to `environment.yml`. In the end, build and push the image to the Container Registry, the pipeline operation will directly pull the image from ACR.
+
+In `./src` folder, adjust pre-configured `inferenceconfig.json`, `deploymentconfig.json`, and `environment.yml` to specify the resources for deployment like the compute type, number of cores etc. Additionaly, `deploymentconfig_aks.json` could be specified from parameters to use Azure Kubernetes Service to deploy the web service. `score.py` is the entry script for inference, where `init()` and `run(data)` are the functions to be _edited_ to use the model. See here for [a detailed instruction on constructing the entry script](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-deploy-and-where?tabs=azcli). See [Deploy your existing model with Azure](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-deploy-existing-model#entry-script-scorepy) for an example of `score.py`. If additional pip packages are used for `score.py`, please ensure them being added to `environment.yml`. In the end, build and push the image to the Container Registry, the pipeline operation will directly pull the image from ACR.
 
 A sample script to build and push the image:
 
@@ -55,8 +58,7 @@ docker build . -t {your_ACR_name}.azurecr.io/deploy/{your_image_name}:latest
 docker push {your_ACR_name}.azurecr.io/deploy/{your_image_name}:latest
 ```
 
-
-An example usage for the component is provided in the `compile_pipeline.py` file. It is a single-operation pipeline to use this component and `use_azure_secret` function from `kfp.azure`. You can also provide service principal parameters as pipeline parameters. 
+An example usage for the component is provided in the `compile_pipeline.py` file. It is a single-operation pipeline to use this component and `use_azure_secret` function from `kfp.azure`. You can also provide service principal parameters as pipeline parameters.
 
 ```
 @dsl.pipeline(

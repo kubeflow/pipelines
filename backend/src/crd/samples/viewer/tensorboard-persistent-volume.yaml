@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # This example shows how to use a Kubernetes persistent volume with Tensorboard
 # viewer. The definition below assumes you have a GCE persistent disk called
 # 'my-persistent-disk' in the cluster. This persistent disk will be mounted to
@@ -31,8 +30,8 @@ spec:
     spec:
       containers:
         - volumeMounts:
-          - name: my-pvc-volume
-            mountPath: /mountedlogdir
+            - name: my-pvc-volume
+              mountPath: /mountedlogdir
       volumes:
         - name: my-pvc-volume
           gcePersistentDisk:

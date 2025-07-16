@@ -1,9 +1,10 @@
 # Change log for AWS SageMaker Components
 
-The version of the AWS SageMaker Components is determined by the docker image tag used in YAML spec   
+The version of the AWS SageMaker Components is determined by the docker image tag used in YAML spec  
 Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components) or [Dockerhub](https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components). New releases after v1.1.1 will be using the public ECR repository
 
----------------------------------------------
+---
+
 **Change log for version 2.3.0**
 
 - Introducing SageMaker Model Monitor components v2. This release includes [Monitoring Schedule](./MonitoringSchedule/), [DataQualityJobDefinition](./DataQualityJobDefinition/), [ModelQualityJobDefinition](./ModelQualityJobDefinition/), [ModelExplainabilityJobDefinition](./ModelExplainabilityJobDefinition/), [ModelBiasJobDefinition](./ModelBiasJobDefinition/).
@@ -13,151 +14,158 @@ Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-k
 Note: [#9253](https://github.com/kubeflow/pipelines/pull/9253) was merged accidentally with image pointing to an unofficial repository. Please do not pin to the commit corresponding to this PR.
 
 **Change log for version 2.2.1**
+
 - Fix: Path issue with git clone on macbook. Directory name for version 2 of Model component has been updated from `components/aws/sagemaker/Model` to `components/aws/sagemaker/Modelv2`.
-> Pull request : [#9331](https://github.com/kubeflow/pipelines/pull/9331) 
+  > Pull request : [#9331](https://github.com/kubeflow/pipelines/pull/9331)
 
 **Change log for version 2.2.0**
 
 - Introducing SageMaker Hosting components v2. This release includes [Model](./Model/), [EndpointConfig](./EndpointConfig/), [Endpoint](./Endpoint/).
-> Pull request : [#9243](https://github.com/kubeflow/pipelines/pull/9243)
+  > Pull request : [#9243](https://github.com/kubeflow/pipelines/pull/9243)
 
 **Change log for version 2.1.0**
+
 - Adds support for Managed Warm Pool clusters, Instance Groups, Retry Strategy in the Training Job component.
 
 > Pull request : [#8538](https://github.com/kubeflow/pipelines/pull/8538)
 
 **Change log for version 2.0.0**
-- Makes SageMaker TrainingJob component version 2 GA. This release only includes the [TrainingJob component](./TrainingJob/). Open sources version 2 component code. 
+
+- Makes SageMaker TrainingJob component version 2 GA. This release only includes the [TrainingJob component](./TrainingJob/). Open sources version 2 component code.
 - Errors out when component recieves Invalid Parameter error.
 
 > Pull requests : [#8258](https://github.com/kubeflow/pipelines/pull/8258), [#8264](https://github.com/kubeflow/pipelines/pull/8264)
 
 **Change log for version 2.0.0-alpha2**
+
 - Introducing SageMaker TrainingJob component v2 in Preview. This release only includes the [TrainingJob component](./TrainingJob/).
 
 > Pull requests : [#8158](https://github.com/kubeflow/pipelines/pull/8158)
 
 **Change log for version 1.1.2**
+
 - Fix: Made inputs.model_artifact_url optional in sagemaker model component.
 - Fix: Made TransformResources.VolumeKmsKeyId optional
 - Fix: Handles Stopped state for all version 1 components and fixes bug in robomaker simulation function.
-- Fix: Updated protobuf to 3.2. 
+- Fix: Updated protobuf to 3.2.
 
 > Pull requests : [#8336](https://github.com/kubeflow/pipelines/pull/8336)
 
 **Change log for version 1.1.1**
+
 - Print logs for Batch Transform and Processing jobs.
 
 > Pull requests : [#4879](https://github.com/kubeflow/pipelines/pull/4879)
 
 **Change log for version 1.1.0**
+
 - Add SageMaker RLEstimator component
 - Add RoboMaker create/delete simulation application, cerate simulation job components
 
 > Pull requests : [#4813](https://github.com/kubeflow/pipelines/pull/4813/)
 
 **Change log for version 1.0.0**
+
 - First release to guarantee backward compatibility within major version
 - Internally refactored components
 
 > Pull requests : [#4336](https://github.com/kubeflow/pipelines/pull/4336/)
 
 **Change log for version 0.9.0**
+
 - Add functionality to Update SageMaker Endpoint for Deploy component
 
 > Pull requests : [#4424](https://github.com/kubeflow/pipelines/pull/4424/)
 
 **Change log for version 0.8.0**
+
 - Add functionality to configure SageMaker Debugger for Training component
 
 > Pull requests : [#4283](https://github.com/kubeflow/pipelines/pull/4283/)
 
-
 **Change log for version 0.7.0**
+
 - Add functionality to assume role when sending SageMaker requests
 
->  Pull requests : [#4212](https://github.com/kubeflow/pipelines/pull/4212)
-
+> Pull requests : [#4212](https://github.com/kubeflow/pipelines/pull/4212)
 
 **Change log for version 0.6.0**
+
 - Add functionality to stop SageMaker jobs on run termination
 
->  Pull requests : [#4167](https://github.com/kubeflow/pipelines/pull/4167)
-
+> Pull requests : [#4167](https://github.com/kubeflow/pipelines/pull/4167)
 
 **Change log for version 0.5.3**
+
 - Add static error string in case of error fetching logs
 
->  Pull requests : [#4056](https://github.com/kubeflow/pipelines/pull/4056)
-
+> Pull requests : [#4056](https://github.com/kubeflow/pipelines/pull/4056)
 
 **Change log for version 0.5.2**
+
 - Modified outputs to use newer `outputPath` syntax
 
 > Pull requests : [#4119](https://github.com/kubeflow/pipelines/pull/4119)
 
-
 **Change log for version 0.5.1**
+
 - Update region support for GroundTruth component
 - Make `label_category_config` an optional parameter in Ground Truth component
 
 > Pull requests : [#3932](https://github.com/kubeflow/pipelines/pull/3932)
 
-
 **Change log for version 0.5.0**
+
 - Print SageMaker logs in KFP UI for Train, Transform and Process component
 
 > Pull requests : [#3954](https://github.com/kubeflow/pipelines/pull/3954)
 
-
 **Change log for version 0.4.1**
+
 - Fix breaking bug in HPO component
 
 > Pull requests : [#4010](https://github.com/kubeflow/pipelines/pull/4010)
 
-
 **Change log for version 0.4.0**
+
 - Add new component for SageMaker Processing Jobs
 
 > Pull requests : [#3944](https://github.com/kubeflow/pipelines/pull/3944)
 
-
 **Change log for version 0.3.1**
+
 - Explicitly specify component field types
 
 > Pull requests : [#3683](https://github.com/kubeflow/pipelines/pull/3683)
 
-
 **Change log for version 0.3.0**
+
 - Remove data_location parameters from all components
-	  (Use "channels" parameter instead)
+  (Use "channels" parameter instead)
 
 > Pull requests : [#3518](https://github.com/kubeflow/pipelines/pull/3518)
 
-
 **Change log for version 0.2.0 (Apr 14, 2020)**
+
 - Fix bug in Ground Truth component
 - Add user agent header to boto3 client
-  
+
 > Pull requests: [#3474](https://github.com/kubeflow/pipelines/pull/3474), [#3487](https://github.com/kubeflow/pipelines/pull/3487)
 
-
----------------------------------------------
+---
 
 ## Old
 
 These are the old images which were in https://hub.docker.com/r/redbackthomson/aws-kubeflow-sagemaker/tags
 
 **Change log 20200402**
-- Fix for vpc issue 
-- Add license files 
-- Use AmazonLinux instead of Ubuntu 
-- Pin the pip packages 
 
-	
+- Fix for vpc issue
+- Add license files
+- Use AmazonLinux instead of Ubuntu
+- Pin the pip packages
+
 > Pull requests: [#3374](https://github.com/kubeflow/pipelines/pull/3374), [#3397](https://github.com/kubeflow/pipelines/pull/3397)
 
-No change log available for older images 
-Please check git log 
-
-
+No change log available for older images
+Please check git log

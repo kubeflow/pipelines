@@ -1,7 +1,6 @@
-import * as jspb from 'google-protobuf'
+import * as jspb from 'google-protobuf';
 
 import * as google_protobuf_any_pb from 'google-protobuf/google/protobuf/any_pb';
-
 
 export class Status extends jspb.Message {
   getCode(): number;
@@ -25,9 +24,8 @@ export class Status extends jspb.Message {
 
 export namespace Status {
   export type AsObject = {
-    code: number,
-    message: string,
-    detailsList: Array<google_protobuf_any_pb.Any.AsObject>,
-  }
+    code: number;
+    message: string;
+    detailsList: Array<google_protobuf_any_pb.Any.AsObject>;
+  };
 }
-

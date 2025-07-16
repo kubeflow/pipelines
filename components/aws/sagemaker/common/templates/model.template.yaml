@@ -1,12 +1,12 @@
-ModelName: ''
+ModelName: ""
 PrimaryContainer:
-  ContainerHostname: ''
-  Image: ''
-  ModelDataUrl: ''
+  ContainerHostname: ""
+  Image: ""
+  ModelDataUrl: ""
   Environment: {}
-  ModelPackageName: ''
+  ModelPackageName: ""
 Containers: []
-ExecutionRoleArn: ''
+ExecutionRoleArn: ""
 Tags: []
 VpcConfig:
   SecurityGroupIds: []

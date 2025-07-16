@@ -77,7 +77,7 @@ export function getResourceName(typedResource: LineageTypedResource): string {
  * Promisified sleep operation
  * @param t Time to sleep for in ms
  */
-export const sleep = (t: number): Promise<void> => new Promise(res => setTimeout(res, t));
+export const sleep = (t: number): Promise<void> => new Promise((res) => setTimeout(res, t));
 
 export function getResourceDescription(typedResource: LineageTypedResource): string {
   return getResourcePropertyViaFallBack(

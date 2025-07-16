@@ -93,30 +93,30 @@ deploymentSpec:
     exec-downstream:
       container:
         args:
-        - '{{$.inputs.parameters[''input_a'']}}'
-        - '{{$.inputs.artifacts[''input_b''].uri}}'
-        - '{{$.inputs.artifacts[''input_c''].path}}'
-        - '{{$.inputs.artifacts[''input_d''].uri}}'
-        - '{{$.inputs.artifacts[''input_e''].uri}}'
-        - '{{$.inputs.artifacts[''input_f''].path}}'
-        - '{{$.inputs.artifacts[''input_g''].path}}'
-        - '{{$.inputs.artifacts[''input_h''].path}}'
+          - "{{$.inputs.parameters['input_a']}}"
+          - "{{$.inputs.artifacts['input_b'].uri}}"
+          - "{{$.inputs.artifacts['input_c'].path}}"
+          - "{{$.inputs.artifacts['input_d'].uri}}"
+          - "{{$.inputs.artifacts['input_e'].uri}}"
+          - "{{$.inputs.artifacts['input_f'].path}}"
+          - "{{$.inputs.artifacts['input_g'].path}}"
+          - "{{$.inputs.artifacts['input_h'].path}}"
         image: gcr.io/image
     exec-upstream:
       container:
         args:
-        - '{{$.inputs.parameters[''input_1'']}}'
-        - '{{$.inputs.parameters[''input_2'']}}'
-        - '{{$.inputs.parameters[''input_3'']}}'
-        - '{{$.inputs.parameters[''input_4'']}}'
-        - '{{$.outputs.parameters[''output_1''].output_file}}'
-        - '{{$.outputs.artifacts[''output_2''].uri}}'
-        - '{{$.outputs.artifacts[''output_3''].path}}'
-        - '{{$.outputs.artifacts[''output_4''].uri}}'
-        - '{{$.outputs.artifacts[''output_5''].uri}}'
-        - '{{$.outputs.artifacts[''output_6''].path}}'
-        - '{{$.outputs.artifacts[''output_7''].path}}'
-        - '{{$.outputs.artifacts[''output_8''].path}}'
+          - "{{$.inputs.parameters['input_1']}}"
+          - "{{$.inputs.parameters['input_2']}}"
+          - "{{$.inputs.parameters['input_3']}}"
+          - "{{$.inputs.parameters['input_4']}}"
+          - "{{$.outputs.parameters['output_1'].output_file}}"
+          - "{{$.outputs.artifacts['output_2'].uri}}"
+          - "{{$.outputs.artifacts['output_3'].path}}"
+          - "{{$.outputs.artifacts['output_4'].uri}}"
+          - "{{$.outputs.artifacts['output_5'].uri}}"
+          - "{{$.outputs.artifacts['output_6'].path}}"
+          - "{{$.outputs.artifacts['output_7'].path}}"
+          - "{{$.outputs.artifacts['output_8'].path}}"
         image: gcr.io/image
 pipelineInfo:
   name: pipeline-with-various-types
@@ -129,7 +129,7 @@ root:
         componentRef:
           name: comp-downstream
         dependentTasks:
-        - upstream
+          - upstream
         inputs:
           artifacts:
             input_b:

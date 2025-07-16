@@ -24,5 +24,3 @@ spec:
   type: tensorboard
   tensorboardSpec:
     logDir: "gs://ml-pipeline-playground/mnist/"
-
-

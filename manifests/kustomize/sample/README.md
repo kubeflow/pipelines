@@ -1,11 +1,12 @@
 # Sample installation
 
 1. Prepare a cluster and setup kubectl context
-Do whatever you want to customize your cluster. You can use existing cluster
-or create a new one.
+   Do whatever you want to customize your cluster. You can use existing cluster
+   or create a new one.
+
 - **ML Usage** GPU normally is required for deep learning task.
-You may consider create **zero-sized GPU node-pool with autoscaling**.
-Please reference [GPU Tutorial](/samples/tutorials/gpu/).
+  You may consider create **zero-sized GPU node-pool with autoscaling**.
+  Please reference [GPU Tutorial](/samples/tutorials/gpu/).
 - **Security** You may consider use **Workload Identity** in GCP cluster.
 
 Here for simplicity, we create a small cluster with **--scopes=cloud-platform**
@@ -50,15 +51,16 @@ gsutil mb -p myProjectId gs://myBucketName/
 ```
 
 4. Customize your values
+
 - Edit **params.env**, **params-db-secret.env** and **cluster-scoped-resources/params.env**
 - Edit kustomization.yaml to set your namespace, e.x. "kubeflow"
 
 5. (Optional.) If the cluster is on Workload Identity, please run **[gcp-workload-identity-setup.sh](../gcp-workload-identity-setup.sh)**
-  The script prints usage documentation when calling without argument. Note, you should
-  call it with `USE_GCP_MANAGED_STORAGE=true` env var.
+   The script prints usage documentation when calling without argument. Note, you should
+   call it with `USE_GCP_MANAGED_STORAGE=true` env var.
 
-  - make sure the Google Service Account (GSA) can access the CloudSQL instance and GCS bucket
-  - if your workload calls other GCP APIs, make sure the GSA can access them
+- make sure the Google Service Account (GSA) can access the CloudSQL instance and GCS bucket
+- if your workload calls other GCP APIs, make sure the GSA can access them
 
 6. Install
 

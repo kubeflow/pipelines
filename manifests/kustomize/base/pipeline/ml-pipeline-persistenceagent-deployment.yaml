@@ -19,35 +19,35 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-      - env:
-          - name: NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-          - name: TTL_SECONDS_AFTER_WORKFLOW_FINISH
-            value: "86400"
-          - name: NUM_WORKERS
-            value: "2"
-          - name: LOG_LEVEL
-            value: "info"
-        image: ghcr.io/kubeflow/kfp-persistence-agent:dummy
-        imagePullPolicy: IfNotPresent
-        name: ml-pipeline-persistenceagent
-        resources:
-          requests:
-            cpu: 120m
-            memory: 500Mi
-        volumeMounts:
-          - mountPath: /var/run/secrets/kubeflow/tokens
-            name: persistenceagent-sa-token
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          runAsUser: 1000
-          runAsGroup: 0
-          capabilities:
-            drop:
-            - ALL
+        - env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: TTL_SECONDS_AFTER_WORKFLOW_FINISH
+              value: "86400"
+            - name: NUM_WORKERS
+              value: "2"
+            - name: LOG_LEVEL
+              value: "info"
+          image: ghcr.io/kubeflow/kfp-persistence-agent:dummy
+          imagePullPolicy: IfNotPresent
+          name: ml-pipeline-persistenceagent
+          resources:
+            requests:
+              cpu: 120m
+              memory: 500Mi
+          volumeMounts:
+            - mountPath: /var/run/secrets/kubeflow/tokens
+              name: persistenceagent-sa-token
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            capabilities:
+              drop:
+                - ALL
       serviceAccountName: ml-pipeline-persistenceagent
       volumes:
         - name: persistenceagent-sa-token

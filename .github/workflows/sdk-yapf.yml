@@ -6,27 +6,27 @@ on:
 
   pull_request:
     paths:
-      - 'sdk/python/**'
-      - 'test/presubmit-yapf-sdk.sh'
-      - '.github/workflows/sdk-yapf.yml'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - "sdk/python/**"
+      - "test/presubmit-yapf-sdk.sh"
+      - ".github/workflows/sdk-yapf.yml"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   yapf-sdk:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
 
-    - name: Install dependencies
-      run: pip install yapf
+      - name: Install dependencies
+        run: pip install yapf
 
-    - name: Run YAPF SDK Tests
-      run: ./test/presubmit-yapf-sdk.sh
+      - name: Run YAPF SDK Tests
+        run: ./test/presubmit-yapf-sdk.sh

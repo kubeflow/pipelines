@@ -127,7 +127,7 @@ function wasNodeCached(node: NodeStatus): boolean {
   // (And now there are always some output artifacts since we've enabled log archiving).
   return !artifacts || !node.id || node.type !== 'Pod'
     ? false
-    : artifacts.some(artifact => artifact.s3 && !artifact.s3.key.includes(node.id));
+    : artifacts.some((artifact) => artifact.s3 && !artifact.s3.key.includes(node.id));
 }
 
 // separate these helper function for paritial v2 api integration

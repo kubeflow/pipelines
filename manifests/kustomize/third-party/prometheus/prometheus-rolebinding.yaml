@@ -9,5 +9,5 @@ roleRef:
   kind: Role
   name: prometheus
 subjects:
-- kind: ServiceAccount
-  name: prometheus
+  - kind: ServiceAccount
+    name: prometheus

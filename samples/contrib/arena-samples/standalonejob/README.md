@@ -8,7 +8,7 @@ The `standalone_pipeline.py` sample creates a pipeline runs preparing dataset, M
 
 - This sample requires to create distributed storage. In this sample, we use NFS as example.
 
-1.You need to create `/data` in the NFS Server
+  1.You need to create `/data` in the NFS Server
 
 ```
 # mkdir -p /nfs
@@ -37,7 +37,7 @@ spec:
   nfs:
     server: NFS_SERVER_IP
     path: "/data"
-    
+
  # kubectl create -f nfs-pv.yaml
 ```
 
@@ -71,6 +71,7 @@ spec:
 ### 1.With command line
 
 First, install the necessary Python Packages
+
 ```shell
 pip3 install http://kubeflow.oss-cn-beijing.aliyuncs.com/kfp/0.1.14/kfp.tar.gz --upgrade
 pip3 install http://kubeflow.oss-cn-beijing.aliyuncs.com/kfp-arena/kfp-arena-0.5.tar.gz --upgrade
@@ -87,12 +88,9 @@ python3 standalone_pipeline.py --learning_rate 0.0005 --dropout 0.8 --model_vers
 ```
 
 ### 2.With Jupyter Notebook
-Run `jupyter notebook` to start running your jupyter server and load the notebook `standalone_pipeline.ipynb`
 
+Run `jupyter notebook` to start running your jupyter server and load the notebook `standalone_pipeline.ipynb`
 
 ### 3.Compare the result in pipelines dashboard
 
-
 ![](demo.jpg)
-
-

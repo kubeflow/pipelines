@@ -10,7 +10,7 @@ x-google-marketplace:
   managedUpdates:
     kalmSupported: false
   images:
-    '':
+    "":
       properties:
         imageRepo:
           type: REPO_WITH_REGISTRY
@@ -90,9 +90,20 @@ x-google-marketplace:
       - type: ClusterRole # This is a cluster-wide ClusterRole
         rulesType: CUSTOM # We specify our own custom RBAC roles
         rules:
-          - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io', 'scheduling.k8s.io']
-            resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings', 'priorityclasses']
-            verbs: ['*']
+          - apiGroups:
+              [
+                "apiextensions.k8s.io",
+                "rbac.authorization.k8s.io",
+                "scheduling.k8s.io",
+              ]
+            resources:
+              [
+                "customresourcedefinitions",
+                "clusterroles",
+                "clusterrolebindings",
+                "priorityclasses",
+              ]
+            verbs: ["*"]
       # For CRs in the following deployer-applied Roles:
       # - kubeflow-pipelines-cache-role
       # - kubeflow-pipelines-metadata-writer-role
@@ -106,50 +117,60 @@ x-google-marketplace:
       - type: Role
         rulesType: CUSTOM
         rules:
-          - apiGroups: ['argoproj.io']
+          - apiGroups: ["argoproj.io"]
             resources:
-              - 'workflows'
-              - 'workflows/finalizers'
-              - 'workflowtemplates'
-              - 'workflowtemplates/finalizers'
-              - 'cronworkflows'
-              - 'cronworkflows/finalizers'
-              - 'workflowtaskresults'
-              - 'workflowtasksets'
-              - 'workflowtasksets/finalizers'
-            verbs: ['*']
-          - apiGroups: ['kubeflow.org']
-            resources: ['*']
-            verbs: ['*']
-          - apiGroups: ['pipelines.kubeflow.org']
-            resources: ['*']
-            verbs: ['*']
-          - apiGroups: ['']
-            resources: ['configmaps', 'events', 'pods/log', 'persistentvolumes', 'persistentvolumeclaims', 'persistentvolumeclaims/finalizers', 'pods', 'pods/exec']
-            verbs: ['*']
+              - "workflows"
+              - "workflows/finalizers"
+              - "workflowtemplates"
+              - "workflowtemplates/finalizers"
+              - "cronworkflows"
+              - "cronworkflows/finalizers"
+              - "workflowtaskresults"
+              - "workflowtasksets"
+              - "workflowtasksets/finalizers"
+            verbs: ["*"]
+          - apiGroups: ["kubeflow.org"]
+            resources: ["*"]
+            verbs: ["*"]
+          - apiGroups: ["pipelines.kubeflow.org"]
+            resources: ["*"]
+            verbs: ["*"]
+          - apiGroups: [""]
+            resources:
+              [
+                "configmaps",
+                "events",
+                "pods/log",
+                "persistentvolumes",
+                "persistentvolumeclaims",
+                "persistentvolumeclaims/finalizers",
+                "pods",
+                "pods/exec",
+              ]
+            verbs: ["*"]
           # Needed by argo v3.1.0+
-          - apiGroups: ['coordination.k8s.io']
-            resources: ['leases']
-            verbs: ['create', 'get', 'update']
-          - apiGroups: ['batch']
-            resources: ['jobs']
-            verbs: ['*']
-          - apiGroups: ['*']
-            resources: ['deployments', 'services', 'replicasets']
-            verbs: ['*']
+          - apiGroups: ["coordination.k8s.io"]
+            resources: ["leases"]
+            verbs: ["create", "get", "update"]
+          - apiGroups: ["batch"]
+            resources: ["jobs"]
+            verbs: ["*"]
+          - apiGroups: ["*"]
+            resources: ["deployments", "services", "replicasets"]
+            verbs: ["*"]
           # Not a CR, but an alpha resource so not present in
           # all clusters (and their `admin` Role definition)
-          - apiGroups: ['snapshot.storage.k8s.io']
-            resources: ['volumesnapshots']
-            verbs: ['*']
+          - apiGroups: ["snapshot.storage.k8s.io"]
+            resources: ["volumesnapshots"]
+            verbs: ["*"]
       # Marketplace does not provision default
       # Role/binding if custom Role is provided
       - type: Role
         rulesType: CUSTOM
         rules:
-          - apiGroups: ['app.k8s.io']
-            resources: ['applications']
-            verbs: ['*']
+          - apiGroups: ["app.k8s.io"]
+            resources: ["applications"]
+            verbs: ["*"]
       - type: Role
         rulesType: PREDEFINED
         rulesFromRoleName: admin

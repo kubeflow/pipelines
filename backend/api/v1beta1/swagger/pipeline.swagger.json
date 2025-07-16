@@ -4,16 +4,9 @@
     "title": "backend/api/v1beta1/pipeline.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}": {
       "get": {
@@ -49,9 +42,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipeline_versions": {
@@ -126,9 +117,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "post": {
         "summary": "Adds a pipeline version to the specified pipeline.",
@@ -158,9 +147,7 @@
             }
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipeline_versions/{version_id}": {
@@ -190,9 +177,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "delete": {
         "summary": "Deletes a pipeline version by pipeline version ID. If the deleted pipeline\nversion is the default pipeline version, the pipeline's default version\nchanges to the pipeline's most recent pipeline version. If there are no\nremaining pipeline versions, the pipeline will have no default version.\nExamines the run_service_api.ipynb notebook to learn more about creating a\nrun using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).",
@@ -220,9 +205,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipeline_versions/{version_id}/templates": {
@@ -252,9 +235,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipelines": {
@@ -329,9 +310,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "post": {
         "summary": "Creates a pipeline.",
@@ -360,9 +339,7 @@
             }
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipelines/{id}": {
@@ -392,9 +369,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       },
       "delete": {
         "summary": "Deletes a pipeline and its pipeline versions.",
@@ -422,9 +397,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipelines/{id}/templates": {
@@ -454,9 +427,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     },
     "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}": {
@@ -493,9 +464,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "PipelineService"
-        ]
+        "tags": ["PipelineService"]
       }
     }
   },
@@ -655,11 +624,7 @@
     },
     "apiRelationship": {
       "type": "string",
-      "enum": [
-        "UNKNOWN_RELATIONSHIP",
-        "OWNER",
-        "CREATOR"
-      ],
+      "enum": ["UNKNOWN_RELATIONSHIP", "OWNER", "CREATOR"],
       "default": "UNKNOWN_RELATIONSHIP"
     },
     "apiResourceKey": {

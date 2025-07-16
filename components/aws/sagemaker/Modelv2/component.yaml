@@ -7,11 +7,11 @@ inputs:
       description: "The region to use for the training job",
     }
   ###########################GENERATED SECTION BELOW############################
-  
+
   - {
       name: containers,
       type: JsonArray,
-      default: '[]',
+      default: "[]",
       description: "Specifies the containers in the inference pipeline.",
     }
   - {
@@ -23,44 +23,44 @@ inputs:
   - {
       name: execution_role_arn,
       type: String,
-      default: '',
+      default: "",
       description: "The Amazon Resource Name (ARN) of the IAM role that SageMaker can assume to access model artifacts and docker image for deployment on ML compute instances or for batch transform jobs.",
     }
   - {
       name: inference_execution_config,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "Specifies details of how containers in a multi-container endpoint are called.",
     }
   - {
       name: model_name,
       type: String,
-      default: '',
+      default: "",
       description: "The name of the new model.",
     }
   - {
       name: primary_container,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "The location of the primary docker image containing inference code, associated artifacts, and custom environment map that the inference code uses when the model is deployed for predictions.",
     }
   - {
       name: tags,
       type: JsonArray,
-      default: '[]',
+      default: "[]",
       description: "An array of key-value pairs.",
     }
   - {
       name: vpc_config,
       type: JsonObject,
-      default: '{}',
+      default: "{}",
       description: "A VpcConfig object that specifies the VPC that you want your model to connect to.",
     }
   ###########################GENERATED SECTION ABOVE############################
 
 outputs:
   ###########################GENERATED SECTION BELOW############################
-  
+
   - {
       name: ack_resource_metadata,
       type: JsonObject,
@@ -103,6 +103,5 @@ implementation:
       - { inputValue: tags }
       - --vpc_config
       - { inputValue: vpc_config }
-      
-      ###########################GENERATED SECTION ABOVE############################
 
+      ###########################GENERATED SECTION ABOVE############################

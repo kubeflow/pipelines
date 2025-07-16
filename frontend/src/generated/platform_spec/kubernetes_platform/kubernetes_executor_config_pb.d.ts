@@ -1,7 +1,6 @@
-import * as jspb from 'google-protobuf'
+import * as jspb from 'google-protobuf';
 
 import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
-
 
 export class KubernetesExecutorConfig extends jspb.Message {
   getSecretAsVolumeList(): Array<SecretAsVolume>;
@@ -26,19 +25,28 @@ export class KubernetesExecutorConfig extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): KubernetesExecutorConfig.AsObject;
-  static toObject(includeInstance: boolean, msg: KubernetesExecutorConfig): KubernetesExecutorConfig.AsObject;
-  static serializeBinaryToWriter(message: KubernetesExecutorConfig, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: KubernetesExecutorConfig,
+  ): KubernetesExecutorConfig.AsObject;
+  static serializeBinaryToWriter(
+    message: KubernetesExecutorConfig,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): KubernetesExecutorConfig;
-  static deserializeBinaryFromReader(message: KubernetesExecutorConfig, reader: jspb.BinaryReader): KubernetesExecutorConfig;
+  static deserializeBinaryFromReader(
+    message: KubernetesExecutorConfig,
+    reader: jspb.BinaryReader,
+  ): KubernetesExecutorConfig;
 }
 
 export namespace KubernetesExecutorConfig {
   export type AsObject = {
-    secretAsVolumeList: Array<SecretAsVolume.AsObject>,
-    secretAsEnvList: Array<SecretAsEnv.AsObject>,
-    pvcMountList: Array<PvcMount.AsObject>,
-    nodeSelector?: NodeSelector.AsObject,
-  }
+    secretAsVolumeList: Array<SecretAsVolume.AsObject>;
+    secretAsEnvList: Array<SecretAsEnv.AsObject>;
+    pvcMountList: Array<PvcMount.AsObject>;
+    nodeSelector?: NodeSelector.AsObject;
+  };
 }
 
 export class SecretAsVolume extends jspb.Message {
@@ -53,14 +61,17 @@ export class SecretAsVolume extends jspb.Message {
   static toObject(includeInstance: boolean, msg: SecretAsVolume): SecretAsVolume.AsObject;
   static serializeBinaryToWriter(message: SecretAsVolume, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): SecretAsVolume;
-  static deserializeBinaryFromReader(message: SecretAsVolume, reader: jspb.BinaryReader): SecretAsVolume;
+  static deserializeBinaryFromReader(
+    message: SecretAsVolume,
+    reader: jspb.BinaryReader,
+  ): SecretAsVolume;
 }
 
 export namespace SecretAsVolume {
   export type AsObject = {
-    secretName: string,
-    mountPath: string,
-  }
+    secretName: string;
+    mountPath: string;
+  };
 }
 
 export class SecretAsEnv extends jspb.Message {
@@ -82,9 +93,9 @@ export class SecretAsEnv extends jspb.Message {
 
 export namespace SecretAsEnv {
   export type AsObject = {
-    secretName: string,
-    keyToEnvList: Array<SecretAsEnv.SecretKeyToEnvMap.AsObject>,
-  }
+    secretName: string;
+    keyToEnvList: Array<SecretAsEnv.SecretKeyToEnvMap.AsObject>;
+  };
 
   export class SecretKeyToEnvMap extends jspb.Message {
     getSecretKey(): string;
@@ -98,16 +109,18 @@ export namespace SecretAsEnv {
     static toObject(includeInstance: boolean, msg: SecretKeyToEnvMap): SecretKeyToEnvMap.AsObject;
     static serializeBinaryToWriter(message: SecretKeyToEnvMap, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): SecretKeyToEnvMap;
-    static deserializeBinaryFromReader(message: SecretKeyToEnvMap, reader: jspb.BinaryReader): SecretKeyToEnvMap;
+    static deserializeBinaryFromReader(
+      message: SecretKeyToEnvMap,
+      reader: jspb.BinaryReader,
+    ): SecretKeyToEnvMap;
   }
 
   export namespace SecretKeyToEnvMap {
     export type AsObject = {
-      secretKey: string,
-      envVar: string,
-    }
+      secretKey: string;
+      envVar: string;
+    };
   }
-
 }
 
 export class TaskOutputParameterSpec extends jspb.Message {
@@ -119,17 +132,23 @@ export class TaskOutputParameterSpec extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): TaskOutputParameterSpec.AsObject;
-  static toObject(includeInstance: boolean, msg: TaskOutputParameterSpec): TaskOutputParameterSpec.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: TaskOutputParameterSpec,
+  ): TaskOutputParameterSpec.AsObject;
   static serializeBinaryToWriter(message: TaskOutputParameterSpec, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): TaskOutputParameterSpec;
-  static deserializeBinaryFromReader(message: TaskOutputParameterSpec, reader: jspb.BinaryReader): TaskOutputParameterSpec;
+  static deserializeBinaryFromReader(
+    message: TaskOutputParameterSpec,
+    reader: jspb.BinaryReader,
+  ): TaskOutputParameterSpec;
 }
 
 export namespace TaskOutputParameterSpec {
   export type AsObject = {
-    producerTask: string,
-    outputParameterKey: string,
-  }
+    producerTask: string;
+    outputParameterKey: string;
+  };
 }
 
 export class PvcMount extends jspb.Message {
@@ -159,13 +178,13 @@ export class PvcMount extends jspb.Message {
 
 export namespace PvcMount {
   export type AsObject = {
-    taskOutputParameter?: TaskOutputParameterSpec.AsObject,
-    constant: string,
-    componentInputParameter: string,
-    mountPath: string,
-  }
+    taskOutputParameter?: TaskOutputParameterSpec.AsObject;
+    constant: string;
+    componentInputParameter: string;
+    mountPath: string;
+  };
 
-  export enum PvcReferenceCase { 
+  export enum PvcReferenceCase {
     PVC_REFERENCE_NOT_SET = 0,
     TASK_OUTPUT_PARAMETER = 1,
     CONSTANT = 2,
@@ -214,17 +233,17 @@ export class CreatePvc extends jspb.Message {
 
 export namespace CreatePvc {
   export type AsObject = {
-    pvcName: string,
-    pvcNameSuffix: string,
-    accessModesList: Array<string>,
-    size: string,
-    defaultStorageClass: boolean,
-    storageClassName: string,
-    volumeName: string,
-    annotations?: google_protobuf_struct_pb.Struct.AsObject,
-  }
+    pvcName: string;
+    pvcNameSuffix: string;
+    accessModesList: Array<string>;
+    size: string;
+    defaultStorageClass: boolean;
+    storageClassName: string;
+    volumeName: string;
+    annotations?: google_protobuf_struct_pb.Struct.AsObject;
+  };
 
-  export enum NameCase { 
+  export enum NameCase {
     NAME_NOT_SET = 0,
     PVC_NAME = 1,
     PVC_NAME_SUFFIX = 2,
@@ -255,12 +274,12 @@ export class DeletePvc extends jspb.Message {
 
 export namespace DeletePvc {
   export type AsObject = {
-    taskOutputParameter?: TaskOutputParameterSpec.AsObject,
-    constant: string,
-    componentInputParameter: string,
-  }
+    taskOutputParameter?: TaskOutputParameterSpec.AsObject;
+    constant: string;
+    componentInputParameter: string;
+  };
 
-  export enum PvcReferenceCase { 
+  export enum PvcReferenceCase {
     PVC_REFERENCE_NOT_SET = 0,
     TASK_OUTPUT_PARAMETER = 1,
     CONSTANT = 2,
@@ -277,12 +296,14 @@ export class NodeSelector extends jspb.Message {
   static toObject(includeInstance: boolean, msg: NodeSelector): NodeSelector.AsObject;
   static serializeBinaryToWriter(message: NodeSelector, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): NodeSelector;
-  static deserializeBinaryFromReader(message: NodeSelector, reader: jspb.BinaryReader): NodeSelector;
+  static deserializeBinaryFromReader(
+    message: NodeSelector,
+    reader: jspb.BinaryReader,
+  ): NodeSelector;
 }
 
 export namespace NodeSelector {
   export type AsObject = {
-    labelsMap: Array<[string, string]>,
-  }
+    labelsMap: Array<[string, string]>;
+  };
 }
-

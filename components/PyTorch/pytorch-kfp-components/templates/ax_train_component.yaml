@@ -16,18 +16,31 @@ description: |
   Pytorch training
 
 inputs:
-  - {name: input_data, description: 'Input dataset path'}
-  - {name: script_args, description: 'Arguments to the cifar script'}
-  - {name: ptl_arguments, description: 'Arguments to pytorch lightning Trainer'}
-  - {name: trial_id, type: Integer, description: 'Trial Id'}
-  - {name: model_parameters, type: JsonObject, description: 'Model parameters for trainer'}
-  - {name: results, type: String, description: 'Path to write training results'}
+  - { name: input_data, description: "Input dataset path" }
+  - { name: script_args, description: "Arguments to the cifar script" }
+  - {
+      name: ptl_arguments,
+      description: "Arguments to pytorch lightning Trainer",
+    }
+  - { name: trial_id, type: Integer, description: "Trial Id" }
+  - {
+      name: model_parameters,
+      type: JsonObject,
+      description: "Model parameters for trainer",
+    }
+  - {
+      name: results,
+      type: String,
+      description: "Path to write training results",
+    }
 outputs:
-  - {name: tensorboard_root, description: 'Tensorboard output path'}
-  - {name: checkpoint_dir, description: 'Model checkpoint output'}
-  - {name: MLPipeline UI Metadata, description: 'MLPipeline UI Metadata output'}
-  - {name: MLPipeline Metrics, description: 'MLPipeline Metrics output'}
-
+  - { name: tensorboard_root, description: "Tensorboard output path" }
+  - { name: checkpoint_dir, description: "Model checkpoint output" }
+  - {
+      name: MLPipeline UI Metadata,
+      description: "MLPipeline UI Metadata output",
+    }
+  - { name: MLPipeline Metrics, description: "MLPipeline Metrics output" }
 
 implementation:
   container:
@@ -36,23 +49,23 @@ implementation:
     image: "docker image name" # Ex: public.ecr.aws/pytorch-samples/kfp_samples:latest
     command: ["command to execute"] # Ex: ['python3', 'cifar10/cifar10_pytorch.py']
     args:
-    - --dataset_path
-    - {inputPath: input_data}
-    - --tensorboard_root
-    - {outputPath: tensorboard_root}
-    - --checkpoint_dir
-    - {outputPath: checkpoint_dir}
-    - --mlpipeline_ui_metadata
-    - {outputPath: MLPipeline UI Metadata}
-    - --mlpipeline_metrics
-    - { outputPath: MLPipeline Metrics}
-    - --script_args
-    - { inputValue: script_args }
-    - --ptl_args
-    - { inputValue: ptl_arguments }
-    - --trial_id
-    - { inputValue: trial_id }
-    - --model_params
-    - { inputValue: model_parameters }
-    - --results
-    - { inputValue: results }
+      - --dataset_path
+      - { inputPath: input_data }
+      - --tensorboard_root
+      - { outputPath: tensorboard_root }
+      - --checkpoint_dir
+      - { outputPath: checkpoint_dir }
+      - --mlpipeline_ui_metadata
+      - { outputPath: MLPipeline UI Metadata }
+      - --mlpipeline_metrics
+      - { outputPath: MLPipeline Metrics }
+      - --script_args
+      - { inputValue: script_args }
+      - --ptl_args
+      - { inputValue: ptl_arguments }
+      - --trial_id
+      - { inputValue: trial_id }
+      - --model_params
+      - { inputValue: model_parameters }
+      - --results
+      - { inputValue: results }

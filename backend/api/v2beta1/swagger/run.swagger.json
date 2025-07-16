@@ -4,16 +4,9 @@
     "title": "backend/api/v2beta1/run.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v2beta1/runs": {
       "get": {
@@ -78,9 +71,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       },
       "post": {
         "summary": "Creates a new run in an experiment specified by experiment ID. \nIf experiment ID is not specified, the run is created in the default experiment.",
@@ -117,9 +108,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}": {
@@ -156,9 +145,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       },
       "delete": {
         "summary": "Deletes a run in an experiment given by run ID and experiment ID.",
@@ -193,9 +180,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
@@ -246,9 +231,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}:archive": {
@@ -278,9 +261,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}:retry": {
@@ -310,9 +291,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}:terminate": {
@@ -342,9 +321,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     },
     "/apis/v2beta1/runs/{run_id}:unarchive": {
@@ -374,9 +351,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RunService"
-        ]
+        "tags": ["RunService"]
       }
     }
   },
@@ -434,9 +409,7 @@
     },
     "protobufNullValue": {
       "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
+      "enum": ["NULL_VALUE"],
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     },
@@ -742,11 +715,7 @@
     },
     "v2beta1RunStorageState": {
       "type": "string",
-      "enum": [
-        "STORAGE_STATE_UNSPECIFIED",
-        "AVAILABLE",
-        "ARCHIVED"
-      ],
+      "enum": ["STORAGE_STATE_UNSPECIFIED", "AVAILABLE", "ARCHIVED"],
       "default": "STORAGE_STATE_UNSPECIFIED",
       "description": "Describes whether an entity is available or archived.\n\n - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
     },

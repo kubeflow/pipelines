@@ -3,4 +3,4 @@ kind: ServiceAccount
 metadata: # kpt-merge: /github.com
   name: github.com
   annotations:
-    internal.kpt.dev/upstream-identifier: '|ServiceAccount|default|github.com'
+    internal.kpt.dev/upstream-identifier: "|ServiceAccount|default|github.com"

@@ -60,10 +60,7 @@ describe('ConfusionMatrix', () => {
 
   it('activates row/column on cell hover', () => {
     const tree = shallow(<ConfusionMatrix configs={[config]} />);
-    tree
-      .find('td')
-      .at(2)
-      .simulate('mouseOver');
+    tree.find('td').at(2).simulate('mouseOver');
     expect(tree.state()).toHaveProperty('activeCell', [0, 0]);
   });
 

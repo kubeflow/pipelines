@@ -6,18 +6,18 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/kfp-sdk-runtime-tests.yml'
-      - 'sdk/python/**'
-      - 'test/presubmit-test-kfp-runtime-code.sh'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/kfp-sdk-runtime-tests.yml"
+      - "sdk/python/**"
+      - "test/presubmit-test-kfp-runtime-code.sh"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   kfp-runtime-tests:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        python: ['3.9', '3.13']
+        python: ["3.9", "3.13"]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

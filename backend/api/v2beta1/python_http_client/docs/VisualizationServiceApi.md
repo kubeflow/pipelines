@@ -1,20 +1,19 @@
 # kfp_server_api.VisualizationServiceApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to _http://localhost_
 
-Method | HTTP request | Description
-------------- | ------------- | -------------
-[**visualization_service_create_visualization_v1**](VisualizationServiceApi.md#visualization_service_create_visualization_v1) | **POST** /apis/v2beta1/visualizations/{namespace} | 
-
+| Method                                                                                                                        | HTTP request                                      | Description |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ----------- |
+| [**visualization_service_create_visualization_v1**](VisualizationServiceApi.md#visualization_service_create_visualization_v1) | **POST** /apis/v2beta1/visualizations/{namespace} |
 
 # **visualization_service_create_visualization_v1**
+
 > V2beta1Visualization visualization_service_create_visualization_v1(namespace, body)
-
-
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -46,8 +45,8 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.VisualizationServiceApi(api_client)
-    namespace = 'namespace_example' # str | 
-body = kfp_server_api.V2beta1Visualization() # V2beta1Visualization | 
+    namespace = 'namespace_example' # str |
+body = kfp_server_api.V2beta1Visualization() # V2beta1Visualization |
 
     try:
         api_response = api_instance.visualization_service_create_visualization_v1(namespace, body)
@@ -58,10 +57,10 @@ body = kfp_server_api.V2beta1Visualization() # V2beta1Visualization |
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **namespace** | **str**|  | 
- **body** | [**V2beta1Visualization**](V2beta1Visualization.md)|  | 
+| Name          | Type                                                | Description | Notes |
+| ------------- | --------------------------------------------------- | ----------- | ----- |
+| **namespace** | **str**                                             |             |
+| **body**      | [**V2beta1Visualization**](V2beta1Visualization.md) |             |
 
 ### Return type
 
@@ -73,14 +72,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
- - **Accept**: application/json
+- **Content-Type**: application/json
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

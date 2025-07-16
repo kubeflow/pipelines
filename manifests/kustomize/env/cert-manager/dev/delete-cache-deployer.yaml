@@ -1,4 +1,4 @@
-# Delete cache deployer related resources as we use the cert-manager instead 
+# Delete cache deployer related resources as we use the cert-manager instead
 apiVersion: apps/v1
 kind: Deployment
 metadata:

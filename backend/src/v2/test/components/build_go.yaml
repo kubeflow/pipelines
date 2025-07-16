@@ -14,15 +14,27 @@
 
 name: Build KFP v2 go images & binaries
 inputs:
-- name: context
-  type: Folder
-  description: |
-    Input context, it should be a folder.
-- {name: destination, type: URI, description: destination should not contain tag}
+  - name: context
+    type: Folder
+    description: |
+      Input context, it should be a folder.
+  - {
+      name: destination,
+      type: URI,
+      description: destination should not contain tag,
+    }
 outputs:
-- {name: digest_launcher_v2, type: URI, description: KFP launcher v2 image digest}
-- {name: digest_driver, type: URI, description: KFP driver image digest}
-- {name: backend_compiler, type: Binary, description: KFP v2 backend compiler}
+  - {
+      name: digest_launcher_v2,
+      type: URI,
+      description: KFP launcher v2 image digest,
+    }
+  - { name: digest_driver, type: URI, description: KFP driver image digest }
+  - {
+      name: backend_compiler,
+      type: Binary,
+      description: KFP v2 backend compiler,
+    }
 metadata:
   annotations:
     author: Yuan Gong <gongyuan94@gmail.com>
@@ -30,9 +42,9 @@ implementation:
   container:
     image: golang:1.20-alpine
     command:
-    - sh
-    - -exc
-    - |
+      - sh
+      - -exc
+      - |
         context_path="$0"
         destination="$1"
         digest_launcher_v2_output_path="$2"
@@ -63,8 +75,8 @@ implementation:
         # build backend compiler as a binary
         make build/compiler
         cp build/compiler "${backend_compiler_output_path}"
-    - inputPath: context
-    - inputValue: destination
-    - outputPath: digest_launcher_v2
-    - outputPath: digest_driver
-    - outputPath: backend_compiler
+      - inputPath: context
+      - inputValue: destination
+      - outputPath: digest_launcher_v2
+      - outputPath: digest_driver
+      - outputPath: backend_compiler

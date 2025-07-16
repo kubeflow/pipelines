@@ -5,108 +5,108 @@ on:
     branches: [master]
   pull_request:
     paths:
-      - '.github/resources/**'
-      - '.github/workflows/kfp-samples.yml'
-      - '.github/workflows/kubeflow-pipelines-integration-v2.yml'
-      - 'backend/**'
-      - 'samples/**'
-      - 'samples/core/dataflow/**'
-      - 'samples/core/parameterized_tfx_oss/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/resources/**"
+      - ".github/workflows/kfp-samples.yml"
+      - ".github/workflows/kubeflow-pipelines-integration-v2.yml"
+      - "backend/**"
+      - "samples/**"
+      - "samples/core/dataflow/**"
+      - "samples/core/parameterized_tfx_oss/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   samples:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: KFP Samples - K8s ${{ matrix.k8s_version }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
-    - name: Free up space in /dev/root
-      run: |
-        echo "Disk usage before clean up:"
-        df -h
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-        echo "Disk usage after clean up:"
-        df -h
+      - name: Free up space in /dev/root
+        run: |
+          echo "Disk usage before clean up:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "Disk usage after clean up:"
+          df -h
 
-    - name: Install protobuf-compiler
-      run: sudo apt update && sudo apt install -y protobuf-compiler
+      - name: Install protobuf-compiler
+        run: sudo apt update && sudo apt install -y protobuf-compiler
 
-    - name: Install setuptools
-      run: |
-        pip3 install setuptools
-        pip3 freeze
+      - name: Install setuptools
+        run: |
+          pip3 install setuptools
+          pip3 freeze
 
-    - name: Install Wheel
-      run: pip3 install wheel==0.42.0
+      - name: Install Wheel
+        run: pip3 install wheel==0.42.0
 
-    - name: Install protobuf
-      run: pip3 install protobuf==4.25.3
+      - name: Install protobuf
+        run: pip3 install protobuf==4.25.3
 
-    - name: Generate API proto files
-      working-directory: ./api
-      run: make python
+      - name: Generate API proto files
+        working-directory: ./api
+        run: make python
 
-    - name: Generate, Build, and Install Kubernetes API proto files & packages
-      working-directory: ./kubernetes_platform
-      run: make python && pip install python/dist/*.whl
+      - name: Generate, Build, and Install Kubernetes API proto files & packages
+        working-directory: ./kubernetes_platform
+        run: make python && pip install python/dist/*.whl
 
-    - name: Install kfp-pipeline-spec from source
-      run: |
-        python3 -m pip install -I api/v2alpha1/python
+      - name: Install kfp-pipeline-spec from source
+        run: |
+          python3 -m pip install -I api/v2alpha1/python
 
-    - name: Create KFP cluster
-      id: create-kfp-cluster
-      uses: ./.github/actions/kfp-cluster
-      with:
-        k8s_version: ${{ matrix.k8s_version }}
-      continue-on-error: true
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+        continue-on-error: true
 
-    - name: Build and upload the sample Modelcar image to Kind
-      id: build-sample-modelcar-image
-      if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-      run: |
-        docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
-        kind --name kfp load docker-image registry.domain.local/modelcar:test
-      continue-on-error: true
+      - name: Build and upload the sample Modelcar image to Kind
+        id: build-sample-modelcar-image
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          kind --name kfp load docker-image registry.domain.local/modelcar:test
+        continue-on-error: true
 
-    - name: Forward API port
-      id: forward-api-port
-      if: ${{ steps.build-sample-modelcar-image.outcome == 'success' }}
-      run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-      continue-on-error: true
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.build-sample-modelcar-image.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
 
-    - name: Run Samples Tests
-      id: tests
-      if: ${{ steps.forward-api-port.outcome == 'success' }}
-      env:
-        PULL_NUMBER: ${{ github.event.pull_request.number }}
-        REPO_NAME: ${{ github.repository }}
-      run: |
-        ./backend/src/v2/test/sample-test.sh
-      continue-on-error: true
+      - name: Run Samples Tests
+        id: tests
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          ./backend/src/v2/test/sample-test.sh
+        continue-on-error: true
 
-    - name: Collect failed logs
-      if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.tests.outcome != 'success' }}
-      run: | 
-        ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-        exit 1
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
 
-    - name: Collect test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}
-        path: /tmp/tmp*/*
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*

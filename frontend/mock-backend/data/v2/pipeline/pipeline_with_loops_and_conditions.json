@@ -38,9 +38,7 @@
             "componentRef": {
               "name": "comp-for-loop-2"
             },
-            "dependentTasks": [
-              "args-generator-op-2"
-            ],
+            "dependentTasks": ["args-generator-op-2"],
             "inputs": {
               "parameters": {
                 "pipelinechannel--args-generator-op-2-Output": {
@@ -106,7 +104,7 @@
               "parameters": {
                 "msg": {
                   "runtimeValue": {
-                    "constant": {"stringValue": "1"}
+                    "constant": { "stringValue": "1" }
                   }
                 }
               }
@@ -914,12 +912,7 @@
     "executors": {
       "exec-args-generator-op": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "args_generator_op"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "args_generator_op"],
           "command": [
             "sh",
             "-c",
@@ -934,12 +927,7 @@
       },
       "exec-args-generator-op-2": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "args_generator_op"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "args_generator_op"],
           "command": [
             "sh",
             "-c",
@@ -954,12 +942,7 @@
       },
       "exec-flip-coin-op": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "flip_coin_op"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "flip_coin_op"],
           "command": [
             "sh",
             "-c",
@@ -974,12 +957,7 @@
       },
       "exec-print-struct": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_struct"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_struct"],
           "command": [
             "sh",
             "-c",
@@ -994,12 +972,7 @@
       },
       "exec-print-text": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_text"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_text"],
           "command": [
             "sh",
             "-c",
@@ -1014,12 +987,7 @@
       },
       "exec-print-text-2": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_text"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_text"],
           "command": [
             "sh",
             "-c",
@@ -1034,12 +1002,7 @@
       },
       "exec-print-text-3": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_text"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_text"],
           "command": [
             "sh",
             "-c",
@@ -1054,12 +1017,7 @@
       },
       "exec-print-text-4": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_text"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_text"],
           "command": [
             "sh",
             "-c",
@@ -1074,12 +1032,7 @@
       },
       "exec-print-text-5": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_text"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_text"],
           "command": [
             "sh",
             "-c",
@@ -1094,12 +1047,7 @@
       },
       "exec-print-text-6": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_text"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_text"],
           "command": [
             "sh",
             "-c",
@@ -1114,12 +1062,7 @@
       },
       "exec-print-text-7": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_text"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_text"],
           "command": [
             "sh",
             "-c",
@@ -1134,12 +1077,7 @@
       },
       "exec-print-text-8": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_text"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_text"],
           "command": [
             "sh",
             "-c",
@@ -1154,12 +1092,7 @@
       },
       "exec-print-text-9": {
         "container": {
-          "args": [
-            "--executor_input",
-            "{{$}}",
-            "--function_to_execute",
-            "print_text"
-          ],
+          "args": ["--executor_input", "{{$}}", "--function_to_execute", "print_text"],
           "command": [
             "sh",
             "-c",
@@ -1195,10 +1128,7 @@
           "componentRef": {
             "name": "comp-condition-1"
           },
-          "dependentTasks": [
-            "args-generator-op",
-            "flip-coin-op"
-          ],
+          "dependentTasks": ["args-generator-op", "flip-coin-op"],
           "inputs": {
             "parameters": {
               "pipelinechannel--args-generator-op-Output": {
@@ -1268,18 +1198,11 @@
           "defaultValue": [
             {
               "A_a": "heads",
-              "B_b": [
-                "A",
-                "B"
-              ]
+              "B_b": ["A", "B"]
             },
             {
               "A_a": "tails",
-              "B_b": [
-                "X",
-                "Y",
-                "Z"
-              ]
+              "B_b": ["X", "Y", "Z"]
             }
           ],
           "parameterType": "LIST"

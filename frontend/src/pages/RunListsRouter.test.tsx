@@ -79,9 +79,9 @@ describe('RunListsRouter', () => {
   }
 
   beforeEach(() => {
-    getRunSpy.mockImplementation(id =>
+    getRunSpy.mockImplementation((id) =>
       Promise.resolve(
-        produce({} as Partial<V2beta1Run>, draft => {
+        produce({} as Partial<V2beta1Run>, (draft) => {
           draft = draft || {};
           draft.run_id = id;
           draft.display_name = 'run with id: ' + id;

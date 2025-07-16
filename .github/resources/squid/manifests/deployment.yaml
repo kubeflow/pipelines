@@ -25,6 +25,6 @@ spec:
               mountPath: /var/log/squid
       volumes:
         - name: squid-cache
-          emptyDir: { }
+          emptyDir: {}
         - name: squid-log
-          emptyDir: { }
+          emptyDir: {}

@@ -1,13 +1,13 @@
 extends:
-    - react-app
+  - react-app
 ignorePatterns:
-    - node_modules/
-    - src/apis # these are generated api clients
-    - src/apisv2beta1 # these are generated v2 api clients
-    - '*.test.ts'
-    - '*.test.tsx'
-    - src/generated # proto generated definition
-    - src/third_party/mlmd/generated # MLMD generated definition from source.
-    - src/stories # Storybook is for development only.
+  - node_modules/
+  - src/apis # these are generated api clients
+  - src/apisv2beta1 # these are generated v2 api clients
+  - '*.test.ts'
+  - '*.test.tsx'
+  - src/generated # proto generated definition
+  - src/third_party/mlmd/generated # MLMD generated definition from source.
+  - src/stories # Storybook is for development only.
 rules:
-    react/jsx-no-target-blank: ['error', { "allowReferrer": true }]
+  react/jsx-no-target-blank: ['error', { 'allowReferrer': true }]

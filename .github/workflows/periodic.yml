@@ -2,14 +2,14 @@ name: Periodic Functional Tests
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Run every day at midnight
+    - cron: "0 0 * * *" # Run every day at midnight
 
 jobs:
   run_tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: Periodic Functional Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout repository

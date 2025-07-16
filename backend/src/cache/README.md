@@ -1,4 +1,5 @@
 ## Build src image
+
 To build the Docker image of cache server, run the following Docker command from the pipelines directory:
 
 ```
@@ -6,6 +7,7 @@ docker build -t gcr.io/ml-pipeline/cache-server:latest -f backend/Dockerfile.cac
 ```
 
 ## Deploy cache service to an existing KFP deployment
+
 1. Configure kubectl to talk to your newly created cluster. Refer to [Configuring cluster access for kubectl](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl).
 2. Run deploy shell script to generate certificates and create MutatingWebhookConfiguration:
 

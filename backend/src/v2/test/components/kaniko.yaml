@@ -14,25 +14,39 @@
 
 name: Kaniko
 inputs:
-- {name: dockerfile, type: String}
-- name: context_uri
-  type: URI
-  default: ""
-  description: |
-    URI to download context, e.g. gs://mybucket/context.tar.gz.
-    At least one of context_uri and context_artifact should be specified.
-- name: context_artifact
-  type: Folder
-  default: ""
-  description: |
-    Input context artifact, it should be a folder.
-    At least one of context_uri and context_artifact should be specified.
-- {name: context_sub_path, type: Path, default: ""}
-- {name: destination, type: String, description: destination should not contain tag}
-- {name: cache, type: String, description: enable caching one of true/false, default: "true"}
-- {name: cache_ttl, type: String, description: 'cache TTL, format like XXh', default: 24h}
+  - { name: dockerfile, type: String }
+  - name: context_uri
+    type: URI
+    default: ""
+    description: |
+      URI to download context, e.g. gs://mybucket/context.tar.gz.
+      At least one of context_uri and context_artifact should be specified.
+  - name: context_artifact
+    type: Folder
+    default: ""
+    description: |
+      Input context artifact, it should be a folder.
+      At least one of context_uri and context_artifact should be specified.
+  - { name: context_sub_path, type: Path, default: "" }
+  - {
+      name: destination,
+      type: String,
+      description: destination should not contain tag,
+    }
+  - {
+      name: cache,
+      type: String,
+      description: enable caching one of true/false,
+      default: "true",
+    }
+  - {
+      name: cache_ttl,
+      type: String,
+      description: "cache TTL, format like XXh",
+      default: 24h,
+    }
 outputs:
-- {name: digest, type: URI, description: Image URI with full digest}
+  - { name: digest, type: URI, description: Image URI with full digest }
 metadata:
   annotations:
     author: Yuan Gong <gongyuan94@gmail.com>
@@ -45,9 +59,9 @@ implementation:
     # https://github.com/GoogleContainerTools/kaniko/issues/1680
     image: gcr.io/kaniko-project/executor:v1.3.0-debug
     command:
-    - sh
-    - -exc
-    - |
+      - sh
+      - -exc
+      - |
         dockerfile="$0"
         context_uri="$1"
         context_artifact_path="$2"
@@ -76,11 +90,11 @@ implementation:
         mkdir -p "$(dirname "${digest_output_path}")"
         digest="$(cat $digest_file)"
         echo "${destination}@${digest}" > "${digest_output_path}"
-    - inputValue: dockerfile
-    - inputValue: context_uri
-    - inputPath: context_artifact
-    - inputValue: context_sub_path
-    - inputValue: destination
-    - outputPath: digest
-    - inputValue: cache
-    - inputValue: cache_ttl
+      - inputValue: dockerfile
+      - inputValue: context_uri
+      - inputPath: context_artifact
+      - inputValue: context_sub_path
+      - inputValue: destination
+      - outputPath: digest
+      - inputValue: cache
+      - inputValue: cache_ttl

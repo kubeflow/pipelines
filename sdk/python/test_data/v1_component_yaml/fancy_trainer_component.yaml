@@ -18,9 +18,14 @@ outputs:
 implementation:
   container:
     image: gcr.io/my-project/my-fancy-trainer
-    args: [
-      --input-examples, {inputUri: examples},
-      --optimizer, {inputValue: optimizer},
-      --n_epochs, {inputValue: n_epochs},
-      --output-model, {outputUri: model},
-    ]
+    args:
+      [
+        --input-examples,
+        { inputUri: examples },
+        --optimizer,
+        { inputValue: optimizer },
+        --n_epochs,
+        { inputValue: n_epochs },
+        --output-model,
+        { outputUri: model },
+      ]

@@ -7,5 +7,5 @@ roleRef:
   kind: ClusterRole
   name: ml-pipeline-scheduledworkflow-role
 subjects:
-- kind: ServiceAccount
-  name: ml-pipeline-scheduledworkflow
+  - kind: ServiceAccount
+    name: ml-pipeline-scheduledworkflow

@@ -17,7 +17,7 @@ description: >-
   Submits a Cloud Dataproc job for running Apache PySpark applications on YARN.
 metadata:
   labels:
-    add-pod-env: 'true'
+    add-pod-env: "true"
 inputs:
   - name: project_id
     description: >-
@@ -29,7 +29,7 @@ inputs:
       Required. The Cloud Dataproc region in which to handle the request.
     type: GCPRegion
   - name: cluster_name
-    description: 'Required. The cluster to run the job.'
+    description: "Required. The cluster to run the job."
     type: String
   - name: main_python_file_uri
     description: >-
@@ -37,52 +37,64 @@ inputs:
       use as the driver. Must be a .py file.
     type: GCSPath
   - name: args
-    default: ''
+    default: ""
     description: >-
       Optional. The arguments to pass to the driver. Do not include
       arguments, such as --conf, that can be set as job properties, since a
       collision may occur that causes an incorrect job submission.
     type: List
   - name: pyspark_job
-    default: ''
+    default: ""
     description: >-
       Optional. The full payload of a
       [PySparkJob](https://cloud.google.com/dataproc/docs/reference/rest/v1/PySparkJob).
     type: Dict
   - name: job
-    default: ''
+    default: ""
     description: >-
       Optional. The full payload of a
       [Dataproc job](https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.jobs).
     type: Dict
   - name: wait_interval
-    default: '30'
+    default: "30"
     description: >-
       Optional. The wait seconds between polling the operation.
       Defaults to 30.
     type: Integer
 outputs:
   - name: job_id
-    description: 'The ID of the created job.'
+    description: "The ID of the created job."
     type: String
   - name: MLPipeline UI metadata
     type: UI metadata
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-gcp:1.7.0-rc.3
-    command: ['python', '-u', '-m', 'kfp_component.launcher']
-    args: [
-      --ui_metadata_path, {outputPath: MLPipeline UI metadata},
-      kfp_component.google.dataproc, submit_pyspark_job,
-      --project_id, {inputValue: project_id},
-      --region, {inputValue: region},
-      --cluster_name, {inputValue: cluster_name},
-      --main_python_file_uri, {inputValue: main_python_file_uri},
-      --args, {inputValue: args},
-      --pyspark_job, {inputValue: pyspark_job},
-      --job, {inputValue: job},
-      --wait_interval, {inputValue: wait_interval},
-      --job_id_output_path, {outputPath: job_id},
-    ]
+    command: ["python", "-u", "-m", "kfp_component.launcher"]
+    args:
+      [
+        --ui_metadata_path,
+        { outputPath: MLPipeline UI metadata },
+        kfp_component.google.dataproc,
+        submit_pyspark_job,
+        --project_id,
+        { inputValue: project_id },
+        --region,
+        { inputValue: region },
+        --cluster_name,
+        { inputValue: cluster_name },
+        --main_python_file_uri,
+        { inputValue: main_python_file_uri },
+        --args,
+        { inputValue: args },
+        --pyspark_job,
+        { inputValue: pyspark_job },
+        --job,
+        { inputValue: job },
+        --wait_interval,
+        { inputValue: wait_interval },
+        --job_id_output_path,
+        { outputPath: job_id },
+      ]
     env:
       KFP_POD_NAME: "{{pod.name}}"

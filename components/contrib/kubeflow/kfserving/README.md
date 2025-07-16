@@ -25,26 +25,24 @@ kfserving_op = components.load_component_from_url('https://raw.githubusercontent
 https://raw.githubusercontent.com/kubeflow/pipelines/65bed9b6d1d676ef2d541a970d3edc0aee12400d/components/kubeflow/kfserving/component.yaml
 ```
 
-
 ### Arguments
 
-| Argument | Default | Description |
-|----------|---------|-------------|
-| action   | `create` | Action to execute on KFServing. Available options are `create`, `update`, `apply`, and `delete`. Note: `apply` is equivalent to `update` if the resource exists and `create` if not. |
-| model_name |  | Name to give to the deployed model/InferenceService |
-| model_uri  |  | Path of the S3 or GCS compatible directory containing the  model. |
-| canary_traffic_percent | `100` | The traffic split percentage between the candidate model and the last ready model |
-| namespace |  | Kubernetes namespace where the KFServing service is deployed. If no namespace is provided, `anonymous` will be used unless a namespace is provided in the `inferenceservice_yaml` argument. |
-| framework |  | Machine learning framework for model serving. Currently the supported frameworks are  `tensorflow`, `pytorch`, `sklearn`, `xgboost`, `onnx`, `triton`, `pmml`, and `lightgbm`. |
-| custom_model_spec | `{}` | Custom model runtime container spec in JSON. Sample spec: `{"image": "codait/max-object-detector", "port":5000, "name": "test-container"}` |
-| inferenceservice_yaml | `{}` | Raw InferenceService serialized YAML for deployment. Use this if you need additional configurations for your InferenceService. |
-| autoscaling_target | `0` | Autoscaling Target Number. If not 0, sets the following annotation on the InferenceService: `autoscaling.knative.dev/target` |
-| service_account | | ServiceAccount to use to run the InferenceService pod. |
-| enable_istio_sidecar | `True` | Whether to enable istio sidecar injection. |
-| watch_timeouot | `300` | Timeout in seconds for watching until the InferenceService becomes ready. |
-| min_replicas | `-1` | Minimum number of InferenceService replicas. Default of -1 just delegates to pod default of 1. |
-| max_replicas | `-1` | Maximum number of InferenceService replicas. |
-
+| Argument               | Default  | Description                                                                                                                                                                                 |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| action                 | `create` | Action to execute on KFServing. Available options are `create`, `update`, `apply`, and `delete`. Note: `apply` is equivalent to `update` if the resource exists and `create` if not.        |
+| model_name             |          | Name to give to the deployed model/InferenceService                                                                                                                                         |
+| model_uri              |          | Path of the S3 or GCS compatible directory containing the model.                                                                                                                            |
+| canary_traffic_percent | `100`    | The traffic split percentage between the candidate model and the last ready model                                                                                                           |
+| namespace              |          | Kubernetes namespace where the KFServing service is deployed. If no namespace is provided, `anonymous` will be used unless a namespace is provided in the `inferenceservice_yaml` argument. |
+| framework              |          | Machine learning framework for model serving. Currently the supported frameworks are `tensorflow`, `pytorch`, `sklearn`, `xgboost`, `onnx`, `triton`, `pmml`, and `lightgbm`.               |
+| custom_model_spec      | `{}`     | Custom model runtime container spec in JSON. Sample spec: `{"image": "codait/max-object-detector", "port":5000, "name": "test-container"}`                                                  |
+| inferenceservice_yaml  | `{}`     | Raw InferenceService serialized YAML for deployment. Use this if you need additional configurations for your InferenceService.                                                              |
+| autoscaling_target     | `0`      | Autoscaling Target Number. If not 0, sets the following annotation on the InferenceService: `autoscaling.knative.dev/target`                                                                |
+| service_account        |          | ServiceAccount to use to run the InferenceService pod.                                                                                                                                      |
+| enable_istio_sidecar   | `True`   | Whether to enable istio sidecar injection.                                                                                                                                                  |
+| watch_timeouot         | `300`    | Timeout in seconds for watching until the InferenceService becomes ready.                                                                                                                   |
+| min_replicas           | `-1`     | Minimum number of InferenceService replicas. Default of -1 just delegates to pod default of 1.                                                                                              |
+| max_replicas           | `-1`     | Maximum number of InferenceService replicas.                                                                                                                                                |
 
 ### Basic InferenceService Creation
 
@@ -142,11 +140,11 @@ the expected format for `custom_model_spec` coincides with:
 
 ```json
 {
-    "image": "some_image",
-    "port": "port_number",
-    "name": "custom-container",
-    "env" : [{ "name": "some_name", "value": "some_value"}],
-    "resources": { "requests": {},  "limits": {}}
+  "image": "some_image",
+  "port": "port_number",
+  "name": "custom-container",
+  "env": [{ "name": "some_name", "value": "some_value" }],
+  "resources": { "requests": {}, "limits": {} }
 }
 ```
 
@@ -182,4 +180,3 @@ kfserving_op(
     inferenceservice_yaml=isvc_yaml
 )
 ```
-

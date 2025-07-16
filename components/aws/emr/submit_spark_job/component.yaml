@@ -14,29 +14,48 @@ name: emr_submit_spark_job
 description: >-
   Submits an Elastic Map Reduce (EMR) Spark applications.
 inputs:
-  - {name: region,      description: 'The EMR region in which to handle the request.'}
-  - {name: jobflow_id, description: 'The cluster id to run the job.'}
-  - {name: job_name,    description: The name of the spark job.}
-  - {name: jar_path,    description: 'A path to a JAR file run during the step.'}
-  - {name: main_class,  default: '', description: 'The name of the main class in the specified Java file. If not specified, the JAR file should specify a Main-Class in its manifest file.'}
-  - {name: input,       description: 'File path of the dataset.'}
-  - {name: output,      description: 'Output path of the result files.'}
+  - {
+      name: region,
+      description: "The EMR region in which to handle the request.",
+    }
+  - { name: jobflow_id, description: "The cluster id to run the job." }
+  - { name: job_name, description: The name of the spark job. }
+  - { name: jar_path, description: "A path to a JAR file run during the step." }
+  - {
+      name: main_class,
+      default: "",
+      description: "The name of the main class in the specified Java file. If not specified, the JAR file should specify a Main-Class in its manifest file.",
+    }
+  - { name: input, description: "File path of the dataset." }
+  - { name: output, description: "Output path of the result files." }
 outputs:
-  - {name: job_id,      description: 'The id of the created EMR step.'}
-  - {name: output_location,    description: 'S3 URI of the training job results.'}
+  - { name: job_id, description: "The id of the created EMR step." }
+  - {
+      name: output_location,
+      description: "S3 URI of the training job results.",
+    }
 implementation:
   container:
     image: seedjeffwan/kubeflow-pipeline-aws-emr:20190507
-    command: ['python', 'submit_spark_job.py']
-    args: [
-      --region, {inputValue: region},
-      --jobflow_id, {inputValue: jobflow_id},
-      --job_name, {inputValue: job_name},
-      --jar_path, {inputValue: jar_path},
-      --main_class, {inputValue: main_class},
-      --input, {inputValue: input},
-      --output, {inputValue: output},
-      --output_file, {outputPath: output_location},
-    ]
+    command: ["python", "submit_spark_job.py"]
+    args:
+      [
+        --region,
+        { inputValue: region },
+        --jobflow_id,
+        { inputValue: jobflow_id },
+        --job_name,
+        { inputValue: job_name },
+        --jar_path,
+        { inputValue: jar_path },
+        --main_class,
+        { inputValue: main_class },
+        --input,
+        { inputValue: input },
+        --output,
+        { inputValue: output },
+        --output_file,
+        { outputPath: output_location },
+      ]
     fileOutputs:
       job_id: /output.txt

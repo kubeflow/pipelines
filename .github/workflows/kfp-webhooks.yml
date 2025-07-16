@@ -6,48 +6,48 @@ on:
       - master
   pull_request:
     paths:
-      - '.github/resources/**'
-      - '.github/workflows/kfp-webhooks.yml'
-      - 'backend/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/resources/**"
+      - ".github/workflows/kfp-webhooks.yml"
+      - "backend/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   webhook-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: KFP Webhooks - K8s ${{ matrix.k8s_version }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Create KFP cluster
-      id: create-kfp-cluster
-      uses: ./.github/actions/kfp-cluster
-      with:
-        k8s_version: ${{ matrix.k8s_version }}
-        pipeline_store: kubernetes
-      continue-on-error: true
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          pipeline_store: kubernetes
+        continue-on-error: true
 
-    - name: Run Webhook Integration Tests
-      id: tests
-      if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-      run: |
-        make -C backend/test/integration test-webhook
-      continue-on-error: true
+      - name: Run Webhook Integration Tests
+        id: tests
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          make -C backend/test/integration test-webhook
+        continue-on-error: true
 
-    - name: Collect failed logs
-      if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.tests.outcome != 'success' }}
-      run: |
-        ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
-        exit 1
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
 
-    - name: Collect test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}
-        path: /tmp/tmp*/*
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*

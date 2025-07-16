@@ -3,27 +3,27 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-- ../../base/installs/generic
-- ../../base/metadata/base
-- ../../third-party/argo/installs/namespace
-- minio-azure-gateway
+  - ../../base/installs/generic
+  - ../../base/metadata/base
+  - ../../third-party/argo/installs/namespace
+  - minio-azure-gateway
 
 configMapGenerator:
-- behavior: merge
-  envs:
-  - params.env
-  name: pipeline-install-config
+  - behavior: merge
+    envs:
+      - params.env
+    name: pipeline-install-config
 
 secretGenerator:
-- behavior: merge
-  envs:
-  - mysql-secret.env
-  name: mysql-secret
+  - behavior: merge
+    envs:
+      - mysql-secret.env
+    name: mysql-secret
 
 # Identifier for application manager to apply ownerReference.
 # The ownerReference ensures the resources get garbage collected
 # when application is deleted.
 labels:
-- includeSelectors: true
-  pairs:
-    application-crd-id: kubeflow-pipelines
+  - includeSelectors: true
+    pairs:
+      application-crd-id: kubeflow-pipelines

@@ -81,7 +81,9 @@ export default {
   },
 } as ComponentMeta<typeof WrappedSubDagNode>;
 
-const Template: ComponentStory<typeof WrappedSubDagNode> = args => <WrappedSubDagNode {...args} />;
+const Template: ComponentStory<typeof WrappedSubDagNode> = (args) => (
+  <WrappedSubDagNode {...args} />
+);
 
 export const Primary = Template.bind({});
 Primary.args = {

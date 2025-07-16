@@ -3,8 +3,8 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-- pipelineversion-validating-webhook-config.yaml
-- pipelineversion-mutating-webhook-config.yaml
+  - pipelineversion-validating-webhook-config.yaml
+  - pipelineversion-mutating-webhook-config.yaml
 
 configurations:
-- params.yaml
+  - params.yaml

@@ -133,9 +133,9 @@
 - name: pipeline_with_volume
   path: samples.v2.pipeline_with_volume_test
 - name: pipeline_with_secret_as_volume
-  path: samples.v2.pipeline_with_secret_as_volume 
+  path: samples.v2.pipeline_with_secret_as_volume
 - name: pipeline_with_secret_as_env
-  path: samples.v2.pipeline_with_secret_as_env 
+  path: samples.v2.pipeline_with_secret_as_env
 # TODO(capri-xiyue): Re-enable after figuring out V2 Engine
 # and protobuf.Value support.
 # - name: cache_v2

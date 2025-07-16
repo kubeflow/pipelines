@@ -76,7 +76,10 @@ export class BaseAPI {
  */
 export class RequiredError extends Error {
   name: 'RequiredError';
-  constructor(public field: string, msg?: string) {
+  constructor(
+    public field: string,
+    msg?: string,
+  ) {
     super(msg);
   }
 }
@@ -182,7 +185,7 @@ export enum V2beta1VisualizationType {
  * VisualizationServiceApi - fetch parameter creator
  * @export
  */
-export const VisualizationServiceApiFetchParamCreator = function(configuration?: Configuration) {
+export const VisualizationServiceApiFetchParamCreator = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -256,7 +259,7 @@ export const VisualizationServiceApiFetchParamCreator = function(configuration?:
  * VisualizationServiceApi - functional programming interface
  * @export
  */
-export const VisualizationServiceApiFp = function(configuration?: Configuration) {
+export const VisualizationServiceApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -274,13 +277,15 @@ export const VisualizationServiceApiFp = function(configuration?: Configuration)
         configuration,
       ).createVisualizationV1(namespace, body, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
   };
@@ -290,7 +295,7 @@ export const VisualizationServiceApiFp = function(configuration?: Configuration)
  * VisualizationServiceApi - factory interface
  * @export
  */
-export const VisualizationServiceApiFactory = function(
+export const VisualizationServiceApiFactory = function (
   configuration?: Configuration,
   fetch?: FetchAPI,
   basePath?: string,

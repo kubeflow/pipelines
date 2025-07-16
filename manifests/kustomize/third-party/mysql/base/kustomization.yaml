@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-- mysql-deployment.yaml
-- mysql-pv-claim.yaml
-- mysql-service.yaml
-- mysql-serviceaccount.yaml
+  - mysql-deployment.yaml
+  - mysql-pv-claim.yaml
+  - mysql-service.yaml
+  - mysql-serviceaccount.yaml

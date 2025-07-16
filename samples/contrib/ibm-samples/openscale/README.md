@@ -3,6 +3,7 @@
 This simple OpenScale pipeline will demonstrate how to train a model using IBM Spark Service, store and deploy it with Watson Machine Learning, and then use Watson OpenScale for fairness and quality monitoring.
 
 ## Prerequisites
+
 This pipeline requires the user to have provisioned OpenScale, Spark, and Machine Learning Service on Watson, a cloud object store set up and the service credentials configured in the creds.ini file.
 
 To provision your own OpenScale, Spark, Watson Machine Learning services and cloud object store, following are the required steps.
@@ -71,11 +72,13 @@ kfp.Client().create_run_from_pipeline_func(secret_pipeline, arguments={})
 ## Instructions
 
 First, install the necessary Python Packages
+
 ```shell
 pip3 install ai_pipeline_params
 ```
 
 In this repository, run the following commands to create the argo files using the Kubeflow pipeline SDK.
+
 ```shell
 dsl-compile --py openscale.py --output openscale.tar.gz
 ```
@@ -83,6 +86,7 @@ dsl-compile --py openscale.py --output openscale.tar.gz
 Then, submit `openscale.tar.gz` to the kubeflow pipeline UI. From there you can create different experiments and runs with the OpenScale pipeline.
 
 ## Pipeline Parameters
+
 - **bucket-name**: Object Storage bucket that has Spark training files and OpenScale manifest
 - **training-data-link**: Link to a public data source if the data is not being preprocessed.
 - **postgres-schema-name**: PostgreSQL schema name for storing model payload metrics
@@ -96,6 +100,7 @@ Then, submit `openscale.tar.gz` to the kubeflow pipeline UI. From there you can 
 - **deployment-name**: Deployment name for deploying the stored model in Watson Machine Learning service.
 
 ## Credentials needed to be stored in the creds.ini
+
 - **aios_guid**: GUID of the OpenScale service
 - **cloud_api_key**: IBM Cloud API Key
 - **postgres_uri**: PostgreSQL URI for storing model payload. Leave it with the empty string `""` if you wish to use the default database that comes with the OpenScale service.

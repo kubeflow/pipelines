@@ -18,14 +18,13 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: WEBAPP_PORT
-    targetPort: "http-server"
+    - port: WEBAPP_PORT
+      targetPort: "http-server"
   selector:
     app: demo-client-ui
     role: frontend
 
 ---
-
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -39,18 +38,18 @@ spec:
         role: frontend
     spec:
       containers:
-      - name: webapp
-        image: <webapp-image>
-        imagePullPolicy: Always
-        env:
-        - name: TRTSERVER_HOST
-          value: TRTSERVER_NAME.KUBEFLOW_NAMESPACE
-        - name: MODEL_SERVE_NAME
-          value: MODEL_PASSIN_NAME
-        - name: MODEL_VERSION
-          value: "MODEL_PASSIN_VERSION"
-        - name: TRTSERVER_PORT
-          value: "8001"
-        ports:
-        - name: http-server
-          containerPort: 8080
+        - name: webapp
+          image: <webapp-image>
+          imagePullPolicy: Always
+          env:
+            - name: TRTSERVER_HOST
+              value: TRTSERVER_NAME.KUBEFLOW_NAMESPACE
+            - name: MODEL_SERVE_NAME
+              value: MODEL_PASSIN_NAME
+            - name: MODEL_VERSION
+              value: "MODEL_PASSIN_VERSION"
+            - name: TRTSERVER_PORT
+              value: "8001"
+          ports:
+            - name: http-server
+              containerPort: 8080

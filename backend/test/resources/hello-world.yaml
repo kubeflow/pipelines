@@ -20,8 +20,8 @@ spec:
   entrypoint: whalesay
   serviceAccountName: pipeline-runner
   templates:
-  - name: whalesay
-    container:
-      image: docker/whalesay:latest
-      command: [cowsay]
-      args: ["hello world"]
+    - name: whalesay
+      container:
+        image: docker/whalesay:latest
+        command: [cowsay]
+        args: ["hello world"]

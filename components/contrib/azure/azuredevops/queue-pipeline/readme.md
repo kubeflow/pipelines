@@ -4,16 +4,16 @@ This task enables you to queue an [Azure Pipelines](https://docs.microsoft.com/e
 
 ## Inputs
 
-|Name|Type|Required|Description|
-|---|---|---|---|
-|organization|string|Y|The Azure DevOps organization that contains the pipeline to be queued. https[]()://dev.azure.com/`organization`/project/_build?definitionId=id|
-|project|string|Y|The Azure DevOps project that contains the pipeline to be queued. https[]()://dev.azure.com/organization/`project`/_build?definitionId=id|
-|id|string|Y|The id of the pipeline definition to queue. Shown in the url as *pipelineId* or *definitionId*. https[]()://dev.azure.com/organization/project/_build?definitionId=`id`|
-|pat_env|string|one of pat_env or pat_path_env|The name of the environment variable containing the PAT for Azure Pipelines authentication|
-|pat_path_env|string|one of pat_env or pat_path_env|The name of the environment variable containing a path to the PAT for Azure Pipelines authentication|
-|sourch_branch|string||The branch of the source code for queuing the pipeline.|
-|source_version|string||The version (e.g. commit id) of the source code for queuing the pipeline.|
-|parameters|string||Json serialized string of key-values pairs e.g. `{ 'x': '1', 'y': '2' }`. These values can be accessed as `$(x)` and `$(y)` in the Azure Pipelines pipeline.|
+| Name           | Type   | Required                       | Description                                                                                                                                                              |
+| -------------- | ------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| organization   | string | Y                              | The Azure DevOps organization that contains the pipeline to be queued. https[]()://dev.azure.com/`organization`/project/\_build?definitionId=id                          |
+| project        | string | Y                              | The Azure DevOps project that contains the pipeline to be queued. https[]()://dev.azure.com/organization/`project`/\_build?definitionId=id                               |
+| id             | string | Y                              | The id of the pipeline definition to queue. Shown in the url as _pipelineId_ or _definitionId_. https[]()://dev.azure.com/organization/project/\_build?definitionId=`id` |
+| pat_env        | string | one of pat_env or pat_path_env | The name of the environment variable containing the PAT for Azure Pipelines authentication                                                                               |
+| pat_path_env   | string | one of pat_env or pat_path_env | The name of the environment variable containing a path to the PAT for Azure Pipelines authentication                                                                     |
+| sourch_branch  | string |                                | The branch of the source code for queuing the pipeline.                                                                                                                  |
+| source_version | string |                                | The version (e.g. commit id) of the source code for queuing the pipeline.                                                                                                |
+| parameters     | string |                                | Json serialized string of key-values pairs e.g. `{ 'x': '1', 'y': '2' }`. These values can be accessed as `$(x)` and `$(y)` in the Azure Pipelines pipeline.             |
 
 ## Outputs
 

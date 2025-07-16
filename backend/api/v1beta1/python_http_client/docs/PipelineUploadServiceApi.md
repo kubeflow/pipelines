@@ -1,21 +1,20 @@
 # kfp_server_api.PipelineUploadServiceApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to _http://localhost_
 
-Method | HTTP request | Description
-------------- | ------------- | -------------
-[**upload_pipeline**](PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v1beta1/pipelines/upload | 
-[**upload_pipeline_version**](PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v1beta1/pipelines/upload_version | 
-
+| Method                                                                             | HTTP request                                    | Description |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------- | ----------- |
+| [**upload_pipeline**](PipelineUploadServiceApi.md#upload_pipeline)                 | **POST** /apis/v1beta1/pipelines/upload         |
+| [**upload_pipeline_version**](PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v1beta1/pipelines/upload_version |
 
 # **upload_pipeline**
+
 > ApiPipeline upload_pipeline(uploadfile, name=name, description=description, namespace=namespace)
-
-
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -61,12 +60,12 @@ namespace = 'namespace_example' # str |  (optional)
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. | 
- **name** | **str**|  | [optional] 
- **description** | **str**|  | [optional] 
- **namespace** | **str**|  | [optional] 
+| Name            | Type     | Description                                                | Notes      |
+| --------------- | -------- | ---------------------------------------------------------- | ---------- |
+| **uploadfile**  | **file** | The pipeline to upload. Maximum size of 32MB is supported. |
+| **name**        | **str**  |                                                            | [optional] |
+| **description** | **str**  |                                                            | [optional] |
+| **namespace**   | **str**  |                                                            | [optional] |
 
 ### Return type
 
@@ -78,25 +77,26 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: multipart/form-data
- - **Accept**: application/json
+- **Content-Type**: multipart/form-data
+- **Accept**: application/json
 
 ### HTTP response details
+
 | Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** |  |  -  |
-**0** |  |  -  |
+| ----------- | ----------- | ---------------- |
+| **200**     |             | -                |
+| **0**       |             | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **upload_pipeline_version**
+
 > ApiPipelineVersion upload_pipeline_version(uploadfile, name=name, pipelineid=pipelineid, description=description, namespace=namespace)
-
-
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -143,13 +143,13 @@ namespace = 'namespace_example' # str |  (optional)
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. | 
- **name** | **str**|  | [optional] 
- **pipelineid** | **str**|  | [optional] 
- **description** | **str**|  | [optional] 
- **namespace** | **str**|  | [optional] 
+| Name            | Type     | Description                                                | Notes      |
+| --------------- | -------- | ---------------------------------------------------------- | ---------- |
+| **uploadfile**  | **file** | The pipeline to upload. Maximum size of 32MB is supported. |
+| **name**        | **str**  |                                                            | [optional] |
+| **pipelineid**  | **str**  |                                                            | [optional] |
+| **description** | **str**  |                                                            | [optional] |
+| **namespace**   | **str**  |                                                            | [optional] |
 
 ### Return type
 
@@ -161,14 +161,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: multipart/form-data
- - **Accept**: application/json
+- **Content-Type**: multipart/form-data
+- **Accept**: application/json
 
 ### HTTP response details
+
 | Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** |  |  -  |
-**0** |  |  -  |
+| ----------- | ----------- | ---------------- |
+| **200**     |             | -                |
+| **0**       |             | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

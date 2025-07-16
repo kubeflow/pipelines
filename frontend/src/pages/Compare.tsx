@@ -48,7 +48,7 @@ export default function Compare(props: PageProps) {
   // Retrieves run details, set page version on success.
   const { isLoading, isError, error, data } = useQuery<ApiRunDetail[], Error>(
     ['run_details', { ids: runIds }],
-    () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
+    () => Promise.all(runIds.map(async (id) => await Apis.runServiceApi.getRun(id))),
     {
       staleTime: Infinity,
     },
@@ -60,7 +60,7 @@ export default function Compare(props: PageProps) {
       if (data.length < 2 || data.length > 10) {
         setCompareVersion(CompareVersion.InvalidRunCount);
       } else {
-        const v2runs = data.filter(run =>
+        const v2runs = data.filter((run) =>
           run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'),
         );
         if (v2runs.length === 0) {
@@ -81,7 +81,7 @@ export default function Compare(props: PageProps) {
 
     // Update banner based on error, feature flag, run versions, and run count.
     if (isError) {
-      (async function() {
+      (async function () {
         const errorMessage = await errorToMessage(error);
         updateBanner({
           additionalInfo: errorMessage ? errorMessage : undefined,

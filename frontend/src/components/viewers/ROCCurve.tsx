@@ -115,10 +115,10 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     const width = this.props.maxDimension || 800;
     const height = width * 0.65;
     const isSmall = width < 600;
-    const datasets = this.props.configs.map(d => d.data);
+    const datasets = this.props.configs.map((d) => d.data);
     const numLines = datasets.length;
     const labels = this.props.configs.map((_, i) => `threshold (Series #${i + 1})`);
-    const baseLineData = Array.from(Array(100).keys()).map(x => ({ x: x / 100, y: x / 100 }));
+    const baseLineData = Array.from(Array(100).keys()).map((x) => ({ x: x / 100, y: x / 100 }));
 
     const { hoveredValues, lastDrawLocation, highlightIndex } = this.state;
 

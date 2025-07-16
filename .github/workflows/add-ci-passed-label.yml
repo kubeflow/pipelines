@@ -1,5 +1,5 @@
 # This workflow adds the 'ci-passed' label to a pull request once the 'CI Check' workflow completes successfully.
-# Resets the 'ci-passed' label status when a pull request is synchronized or reopened, 
+# Resets the 'ci-passed' label status when a pull request is synchronized or reopened,
 # indicating that changes have been pushed and CI needs to rerun.
 name: Add CI Passed Label
 
@@ -25,8 +25,8 @@ jobs:
       pr_number: ${{ steps.extract.outputs.pr_number }}
       event_action: ${{ steps.extract.outputs.event_action }}
     steps:
-      - name: 'Download artifact'
-        uses: actions/github-script@v3.1.0        
+      - name: "Download artifact"
+        uses: actions/github-script@v3.1.0
         with:
           script: |
             var artifacts = await github.actions.listWorkflowRunArtifacts({
@@ -45,7 +45,7 @@ jobs:
             });
             var fs = require('fs');
             fs.writeFileSync('${{github.workspace}}/pr.zip', Buffer.from(download.data));
-      
+
       - name: Unzip artifact
         run: unzip pr.zip
 
@@ -56,7 +56,7 @@ jobs:
           event_action=$(cat ./event_action)
           echo "pr_number=${pr_number}" >> $GITHUB_OUTPUT
           echo "event_action=${event_action}" >> $GITHUB_OUTPUT
-          
+
   reset_ci_passed_label:
     name: Reset 'ci-passed' label on PR Synchronization
     runs-on: ubuntu-latest
@@ -73,7 +73,7 @@ jobs:
 
   add_ci_passed_label:
     name: Add 'ci-passed' label
-    runs-on: ubuntu-latest    
+    runs-on: ubuntu-latest
     needs: [fetch_data, reset_ci_passed_label]
     steps:
       - name: Add 'ci-passed' label

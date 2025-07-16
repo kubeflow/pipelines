@@ -24,14 +24,14 @@ spec:
       - name: Kubeflow Pipelines
         url: https://github.com/kubeflow/pipelines
     links:
-      - description: 'Kubeflow Pipelines Documentation'
+      - description: "Kubeflow Pipelines Documentation"
         url: https://www.kubeflow.org/docs/pipelines/
     notes: |-
       Please go to [Hosted Kubeflow Pipelines Console](https://console.cloud.google.com/ai-platform/pipelines/clusters).
 
   info:
     - name: Console
-      value: 'https://console.cloud.google.com/ai-platform/pipelines/clusters'
+      value: "https://console.cloud.google.com/ai-platform/pipelines/clusters"
   componentKinds:
     - group: v1
       kind: ServiceAccount

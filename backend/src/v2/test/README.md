@@ -2,21 +2,21 @@
 
 The following tests are running on sample test infra v2:
 
-* kubeflow-pipelines-samples-v2
-* kubeflow-pipelines-integration-v2
+- kubeflow-pipelines-samples-v2
+- kubeflow-pipelines-integration-v2
 
 Note, the sample test only runs on Google Cloud at the moment. Welcome
 contribution if you want to adapt it to other platforms.
 
 Quick Links:
 
-* [prowjob config](https://github.com/GoogleCloudPlatform/oss-test-infra/blob/8e2b1e0b57d0bf7adf8e9f3cef6a98af25012412/prow/prowjobs/kubeflow/pipelines/kubeflow-pipelines-presubmits.yaml#L185-L203)
-* [past prow jobs](https://oss-prow.knative.dev/job-history/gs/oss-prow/pr-logs/directory/kubeflow-pipelines-samples-v2)
-* Sample test configs
-  * [kubeflow-pipelines-samples-v2 test config](/samples/test/config.yaml)
-  * [kubeflow-pipelines-integration-v2 test config](/samples/test/config-integration.yaml)
-* [KFP test cluster hostname](https://github.com/kubeflow/testing/blob/master/test-infra/kfp/endpoint)
-* [Infra as Code configuration for kfp-ci project](https://github.com/kubeflow/testing/tree/master/test-infra/kfp).
+- [prowjob config](https://github.com/GoogleCloudPlatform/oss-test-infra/blob/8e2b1e0b57d0bf7adf8e9f3cef6a98af25012412/prow/prowjobs/kubeflow/pipelines/kubeflow-pipelines-presubmits.yaml#L185-L203)
+- [past prow jobs](https://oss-prow.knative.dev/job-history/gs/oss-prow/pr-logs/directory/kubeflow-pipelines-samples-v2)
+- Sample test configs
+  - [kubeflow-pipelines-samples-v2 test config](/samples/test/config.yaml)
+  - [kubeflow-pipelines-integration-v2 test config](/samples/test/config-integration.yaml)
+- [KFP test cluster hostname](https://github.com/kubeflow/testing/blob/master/test-infra/kfp/endpoint)
+- [Infra as Code configuration for kfp-ci project](https://github.com/kubeflow/testing/tree/master/test-infra/kfp).
 
 ## How to access the KFP UI running these tests?
 
@@ -78,8 +78,8 @@ make integration-test
 
 However, integration tests are configured to run on kfp-ci project, so modify tests locally with your own configs:
 
-* [parameterized_tfx_oss_test.py](/samples/core/parameterized_tfx_oss/parameterized_tfx_oss_test.py)
-* [dataflow_test.py](/samples/core/dataflow/dataflow_test.py)
+- [parameterized_tfx_oss_test.py](/samples/core/parameterized_tfx_oss/parameterized_tfx_oss_test.py)
+- [dataflow_test.py](/samples/core/dataflow/dataflow_test.py)
 
 ## How to develop one single sample?
 
@@ -137,10 +137,10 @@ existing [sample tests](/samples/test) for how to implement the interface.
 
 Some samples can be used as examples for various cases:
 
-* Pipeline from a notebook, [multiple_outputs_test.py](/samples/core/multiple_outputs/multiple_outputs_test.py).
-* A sample that does not submit a pipeline, [dsl_static_type_checking_test.py](/samples/core/dsl_static_type_checking/dsl_static_type_checking_test.py).
-* V2 pipeline and verification, [hello_world_test.py](/samples/v2/hello_world_test.py).
-* V2 pipeline and control flow, [condition_test.py](/samples/core/condition/condition_test.py).
+- Pipeline from a notebook, [multiple_outputs_test.py](/samples/core/multiple_outputs/multiple_outputs_test.py).
+- A sample that does not submit a pipeline, [dsl_static_type_checking_test.py](/samples/core/dsl_static_type_checking/dsl_static_type_checking_test.py).
+- V2 pipeline and verification, [hello_world_test.py](/samples/v2/hello_world_test.py).
+- V2 pipeline and control flow, [condition_test.py](/samples/core/condition/condition_test.py).
 
 ## FAQs
 

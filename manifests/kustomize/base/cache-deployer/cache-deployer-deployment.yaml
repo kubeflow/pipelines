@@ -17,13 +17,13 @@ spec:
         app: cache-deployer
     spec:
       containers:
-      - name: main
-        image: ghcr.io/kubeflow/kfp-cache-deployer:dummy
-        imagePullPolicy: Always
-        env:
-        - name: NAMESPACE_TO_WATCH
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
+        - name: main
+          image: ghcr.io/kubeflow/kfp-cache-deployer:dummy
+          imagePullPolicy: Always
+          env:
+            - name: NAMESPACE_TO_WATCH
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
       serviceAccountName: kubeflow-pipelines-cache-deployer-sa
       restartPolicy: Always

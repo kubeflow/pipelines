@@ -3,7 +3,7 @@ kind: Service
 metadata: # kpt-merge: /prometheus
   name: prometheus
   annotations:
-    internal.kpt.dev/upstream-identifier: '|Service|default|prometheus'
+    internal.kpt.dev/upstream-identifier: "|Service|default|prometheus"
 spec:
   selector:
     app: prometheus

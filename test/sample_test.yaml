@@ -102,15 +102,20 @@ spec:
               path: /outputs/strict-image-name/file
       container:
         image: "{{workflow.parameters.image-builder-image}}"
-        imagePullPolicy: 'Always'
+        imagePullPolicy: "Always"
         command:
-        - /build.sh
-        args: [
-          "--image-build-context-gcs-uri", "{{inputs.parameters.image-build-context-gcs-uri}}",
-          "--docker_path", "{{inputs.parameters.docker-path}}",
-          "--docker_file", "{{inputs.parameters.docker-file}}",
-          "--image_name", "{{inputs.parameters.image-name}}",
-        ]
+          - /build.sh
+        args:
+          [
+            "--image-build-context-gcs-uri",
+            "{{inputs.parameters.image-build-context-gcs-uri}}",
+            "--docker_path",
+            "{{inputs.parameters.docker-path}}",
+            "--docker_file",
+            "{{inputs.parameters.docker-file}}",
+            "--image_name",
+            "{{inputs.parameters.image-name}}",
+          ]
         env:
           - name: DOCKER_HOST
             value: 127.0.0.1
@@ -118,7 +123,7 @@ spec:
         - name: dind
           image: docker:17.10-dind
           command:
-          - dockerd-entrypoint.sh
+            - dockerd-entrypoint.sh
           securityContext:
             privileged: true
           mirrorVolumeMounts: true
@@ -136,12 +141,18 @@ spec:
       container:
         image: "{{inputs.parameters.sample-tests-image}}"
         command:
-        - "python3"
-        - "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py"
-        args: [
-          "sample_test", "run_test",
-          "--namespace", "{{inputs.parameters.namespace}}",
-          "--results-gcs-dir", "{{inputs.parameters.test-results-gcs-dir}}",
-          "--target-image-prefix", "{{inputs.parameters.target-image-prefix}}",
-          "--test-name", "{{inputs.parameters.test-name}}",
-        ]
+          - "python3"
+          - "/python/src/github.com/kubeflow/pipelines/test/sample-test/sample_test_launcher.py"
+        args:
+          [
+            "sample_test",
+            "run_test",
+            "--namespace",
+            "{{inputs.parameters.namespace}}",
+            "--results-gcs-dir",
+            "{{inputs.parameters.test-results-gcs-dir}}",
+            "--target-image-prefix",
+            "{{inputs.parameters.target-image-prefix}}",
+            "--test-name",
+            "{{inputs.parameters.test-name}}",
+          ]

@@ -42,22 +42,22 @@ deploymentSpec:
     exec-ingestion:
       container:
         args:
-        - --input-location
-        - '{{$.inputs.parameters[''input_location'']}}'
-        - --output-examples
-        - '{{$.outputs.artifacts[''examples''].uri}}'
+          - --input-location
+          - "{{$.inputs.parameters['input_location']}}"
+          - --output-examples
+          - "{{$.outputs.artifacts['examples'].uri}}"
         image: gcr.io/my-project/my-ingestor
     exec-trainer:
       container:
         args:
-        - --input-examples
-        - '{{$.inputs.artifacts[''examples''].uri}}'
-        - --optimizer
-        - '{{$.inputs.parameters[''optimizer'']}}'
-        - --n_epochs
-        - '{{$.inputs.parameters[''n_epochs'']}}'
-        - --output-model
-        - '{{$.outputs.artifacts[''model''].uri}}'
+          - --input-examples
+          - "{{$.inputs.artifacts['examples'].uri}}"
+          - --optimizer
+          - "{{$.inputs.parameters['optimizer']}}"
+          - --n_epochs
+          - "{{$.inputs.parameters['n_epochs']}}"
+          - --output-model
+          - "{{$.outputs.artifacts['model'].uri}}"
         image: gcr.io/my-project/my-fancy-trainer
 pipelineInfo:
   description: A linear two-step pipeline with artifact ontology types.
@@ -83,7 +83,7 @@ root:
         componentRef:
           name: comp-trainer
         dependentTasks:
-        - ingestion
+          - ingestion
         inputs:
           artifacts:
             examples:

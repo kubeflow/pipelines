@@ -33,8 +33,8 @@ components:
         artifacts:
           pipelinechannel--make-artifact-Output:
             artifactSelectors:
-            - outputArtifactKey: Output
-              producerSubtask: make-artifact
+              - outputArtifactKey: Output
+                producerSubtask: make-artifact
       tasks:
         make-artifact:
           cachingOptions:
@@ -67,8 +67,8 @@ components:
         artifacts:
           pipelinechannel--make-dataset-Output:
             artifactSelectors:
-            - outputArtifactKey: Output
-              producerSubtask: make-dataset
+              - outputArtifactKey: Output
+                producerSubtask: make-dataset
       tasks:
         make-dataset:
           cachingOptions:
@@ -139,8 +139,8 @@ components:
         artifacts:
           Output:
             artifactSelectors:
-            - outputArtifactKey: pipelinechannel--make-artifact-Output
-              producerSubtask: for-loop-1
+              - outputArtifactKey: pipelinechannel--make-artifact-Output
+                producerSubtask: for-loop-1
       tasks:
         for-loop-1:
           componentRef:
@@ -159,10 +159,10 @@ components:
       parameters:
         texts:
           defaultValue:
-          - Hello
-          - ','
-          - ' '
-          - world!
+            - Hello
+            - ","
+            - " "
+            - world!
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -190,8 +190,8 @@ components:
         artifacts:
           Output:
             artifactSelectors:
-            - outputArtifactKey: pipelinechannel--make-dataset-Output
-              producerSubtask: for-loop-1
+              - outputArtifactKey: pipelinechannel--make-dataset-Output
+                producerSubtask: for-loop-1
       tasks:
         for-loop-1:
           componentRef:
@@ -210,10 +210,10 @@ components:
       parameters:
         texts:
           defaultValue:
-          - Hello
-          - ','
-          - ' '
-          - world!
+            - Hello
+            - ","
+            - " "
+            - world!
           isOptional: true
           parameterType: LIST
     outputDefinitions:
@@ -252,120 +252,120 @@ deploymentSpec:
     exec-make-artifact:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - make_artifact
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - make_artifact
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef make_artifact(data: str) -> Artifact:\n    artifact = Artifact(uri=dsl.get_uri(),\
-          \ metadata={'length': len(data)})\n    with open(artifact.path, 'w') as\
-          \ f:\n        f.write(data)\n    return artifact\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef make_artifact(data: str) -> Artifact:\n    artifact = Artifact(uri=dsl.get_uri(),\
+            \ metadata={'length': len(data)})\n    with open(artifact.path, 'w') as\
+            \ f:\n        f.write(data)\n    return artifact\n\n"
         image: python:3.9
     exec-make-dataset:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - make_dataset
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - make_dataset
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef make_dataset(data: str) -> Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),\
-          \ metadata={'length': len(data)})\n    with open(dataset.path, 'w') as f:\n\
-          \        f.write(data)\n    return dataset\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef make_dataset(data: str) -> Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),\
+            \ metadata={'length': len(data)})\n    with open(dataset.path, 'w') as f:\n\
+            \        f.write(data)\n    return dataset\n\n"
         image: python:3.9
     exec-print-artifact-name:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_artifact_name
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - print_artifact_name
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
-          \    return artifact.name\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
+            \    return artifact.name\n\n"
         image: python:3.9
     exec-print-artifact-name-2:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - print_artifact_name
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - print_artifact_name
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+            $0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
-          \    return artifact.name\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef print_artifact_name(artifact: Artifact) -> str:\n    print(artifact.name)\n\
+            \    return artifact.name\n\n"
         image: python:3.9
 pipelineInfo:
   name: pipeline-parallelfor-artifacts
@@ -380,7 +380,7 @@ root:
         componentRef:
           name: comp-for-loop-1
         dependentTasks:
-        - make-artifacts
+          - make-artifacts
         inputs:
           artifacts:
             pipelinechannel--make-artifacts-Output:
@@ -397,7 +397,7 @@ root:
         componentRef:
           name: comp-for-loop-2
         dependentTasks:
-        - make-datasets
+          - make-datasets
         inputs:
           artifacts:
             pipelinechannel--make-datasets-Output:

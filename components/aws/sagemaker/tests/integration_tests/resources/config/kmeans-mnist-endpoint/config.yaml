@@ -18,4 +18,3 @@ Arguments:
   initial_instance_count_1: 1
   network_isolation: "True"
   role: ((SAGEMAKER_ROLE_ARN))
-  

@@ -3,4 +3,4 @@ kind: ServiceAccount
 metadata: # kpt-merge: /dex
   name: dex
   annotations:
-    internal.kpt.dev/upstream-identifier: '|ServiceAccount|default|dex'
+    internal.kpt.dev/upstream-identifier: "|ServiceAccount|default|dex"

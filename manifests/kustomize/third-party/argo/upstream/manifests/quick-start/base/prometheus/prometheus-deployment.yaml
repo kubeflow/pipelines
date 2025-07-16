@@ -1,7 +1,7 @@
 # This manifests creates a minimal Prometheus server to scrape and display the metrics emitted by the workflow
 # controller. To open this server, create an external IP for the prometheus service or use kubectl port-forward,
 # then open:
-#   
+#
 #   localhost:9091/graph
 #
 # Note: this assumes the workflow-controller is emitting metrics in the default port (9090). This will need to
@@ -11,7 +11,7 @@ kind: Deployment
 metadata: # kpt-merge: /prometheus
   name: prometheus
   annotations:
-    internal.kpt.dev/upstream-identifier: 'apps|Deployment|default|prometheus'
+    internal.kpt.dev/upstream-identifier: "apps|Deployment|default|prometheus"
 spec:
   replicas: 1
   selector:

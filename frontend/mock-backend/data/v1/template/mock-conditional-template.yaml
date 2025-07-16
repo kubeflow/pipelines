@@ -22,116 +22,116 @@ spec:
   entrypoint: pipeline-flip-coin
   serviceAccountName: pipeline-runner
   templates:
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: flip-again-output
+                  value: '{{tasks.flip-again-task.outputs.parameters.flip-again-output}}'
+                - name: flip-output
+                  value: '{{inputs.parameters.flip-output}}'
+            name: condition-2-task
+            template: condition-2
+            dependencies:
+              - flip-again-task
+            when: '{{tasks.flip-again-task.outputs.parameters.flip-again-output}} == tails'
+          - arguments:
+              parameters:
+                - name: flip-output
+                  value: '{{inputs.parameters.flip-output}}'
+            name: flip-again-task
+            template: flip-again
+      inputs:
+        parameters:
+          - name: flip-output
+      name: condition-1
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: flip-again-output
+                  value: '{{inputs.parameters.flip-again-output}}'
+                - name: flip-output
+                  value: '{{inputs.parameters.flip-output}}'
+            name: print1-task
+            template: print1
+      inputs:
+        parameters:
           - name: flip-again-output
-            value: '{{tasks.flip-again-task.outputs.parameters.flip-again-output}}'
           - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        name: condition-2-task
-        template: condition-2
-        dependencies:
-        - flip-again-task
-        when: '{{tasks.flip-again-task.outputs.parameters.flip-again-output}} == tails'
-      - arguments:
-          parameters:
+      name: condition-2
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: flip-output
+                  value: '{{inputs.parameters.flip-output}}'
+            name: print2-task
+            template: print2
+      inputs:
+        parameters:
           - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        name: flip-again-task
-        template: flip-again
-    inputs:
-      parameters:
-      - name: flip-output
-    name: condition-1
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
+      name: condition-3
+    - container:
+        args:
+          - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
+            'tails'; print(result)" | tee /tmp/output
+        command:
+          - sh
+          - -c
+        image: python:alpine3.6
+      name: flip
+      outputs:
+        parameters:
+          - name: flip-output
+            valueFrom:
+              path: /tmp/output
+    - container:
+        args:
+          - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
+            'tails'; print(result)" | tee /tmp/output
+        command:
+          - sh
+          - -c
+        image: python:alpine3.6
+      name: flip-again
+      outputs:
+        parameters:
           - name: flip-again-output
-            value: '{{inputs.parameters.flip-again-output}}'
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        name: print1-task
-        template: print1
-    inputs:
-      parameters:
-      - name: flip-again-output
-      - name: flip-output
-    name: condition-2
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{inputs.parameters.flip-output}}'
-        name: print2-task
-        template: print2
-    inputs:
-      parameters:
-      - name: flip-output
-    name: condition-3
-  - container:
-      args:
-      - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
-        'tails'; print(result)" | tee /tmp/output
-      command:
-      - sh
-      - -c
-      image: python:alpine3.6
-    name: flip
-    outputs:
-      parameters:
-      - name: flip-output
-        valueFrom:
-          path: /tmp/output
-  - container:
-      args:
-      - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
-        'tails'; print(result)" | tee /tmp/output
-      command:
-      - sh
-      - -c
-      image: python:alpine3.6
-    name: flip-again
-    outputs:
-      parameters:
-      - name: flip-again-output
-        valueFrom:
-          path: /tmp/output
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{tasks.flip-task.outputs.parameters.flip-output}}'
-        name: condition-1-task
-        template: condition-1
-        dependencies:
-        - flip-task
-        when: '{{tasks.flip-task.outputs.parameters.flip-output}} == heads'
-      - arguments:
-          parameters:
-          - name: flip-output
-            value: '{{tasks.flip-task.outputs.parameters.flip-output}}'
-        name: condition-3-task
-        template: condition-3
-        dependencies:
-        - flip-task
-        when: '{{tasks.flip-task.outputs.parameters.flip-output}} == tails'
-      - name: flip-task
-        template: flip
-    name: pipeline-flip-coin
-  - container:
-      command:
-      - echo
-      - '"it was tail"'
-      image: alpine:3.6
-    name: print1
-  - container:
-      command:
-      - echo
-      - '"it was tail"'
-      image: alpine:3.6
-    name: print2
+            valueFrom:
+              path: /tmp/output
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: flip-output
+                  value: '{{tasks.flip-task.outputs.parameters.flip-output}}'
+            name: condition-1-task
+            template: condition-1
+            dependencies:
+              - flip-task
+            when: '{{tasks.flip-task.outputs.parameters.flip-output}} == heads'
+          - arguments:
+              parameters:
+                - name: flip-output
+                  value: '{{tasks.flip-task.outputs.parameters.flip-output}}'
+            name: condition-3-task
+            template: condition-3
+            dependencies:
+              - flip-task
+            when: '{{tasks.flip-task.outputs.parameters.flip-output}} == tails'
+          - name: flip-task
+            template: flip
+      name: pipeline-flip-coin
+    - container:
+        command:
+          - echo
+          - '"it was tail"'
+        image: alpine:3.6
+      name: print1
+    - container:
+        command:
+          - echo
+          - '"it was tail"'
+        image: alpine:3.6
+      name: print2

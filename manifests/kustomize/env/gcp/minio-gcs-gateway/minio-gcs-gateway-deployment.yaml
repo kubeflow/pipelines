@@ -23,7 +23,7 @@ spec:
             - gateway
             - gcs
             - $(GCP_PROJECT_ID)
-          env:            
+          env:
             - name: GCP_PROJECT_ID
               valueFrom:
                 configMapKeyRef:

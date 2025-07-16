@@ -1,9 +1,8 @@
-import * as jspb from 'google-protobuf'
+import * as jspb from 'google-protobuf';
 
 import * as google_protobuf_any_pb from 'google-protobuf/google/protobuf/any_pb';
 import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
 import * as google_protobuf_descriptor_pb from 'google-protobuf/google/protobuf/descriptor_pb';
-
 
 export class SystemTypeExtension extends jspb.Message {
   getTypeName(): string;
@@ -14,13 +13,16 @@ export class SystemTypeExtension extends jspb.Message {
   static toObject(includeInstance: boolean, msg: SystemTypeExtension): SystemTypeExtension.AsObject;
   static serializeBinaryToWriter(message: SystemTypeExtension, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): SystemTypeExtension;
-  static deserializeBinaryFromReader(message: SystemTypeExtension, reader: jspb.BinaryReader): SystemTypeExtension;
+  static deserializeBinaryFromReader(
+    message: SystemTypeExtension,
+    reader: jspb.BinaryReader,
+  ): SystemTypeExtension;
 }
 
 export namespace SystemTypeExtension {
   export type AsObject = {
-    typeName: string,
-  }
+    typeName: string;
+  };
 }
 
 export class Value extends jspb.Message {
@@ -58,15 +60,15 @@ export class Value extends jspb.Message {
 
 export namespace Value {
   export type AsObject = {
-    intValue: number,
-    doubleValue: number,
-    stringValue: string,
-    structValue?: google_protobuf_struct_pb.Struct.AsObject,
-    protoValue?: google_protobuf_any_pb.Any.AsObject,
-    boolValue: boolean,
-  }
+    intValue: number;
+    doubleValue: number;
+    stringValue: string;
+    structValue?: google_protobuf_struct_pb.Struct.AsObject;
+    protoValue?: google_protobuf_any_pb.Any.AsObject;
+    boolValue: boolean;
+  };
 
-  export enum ValueCase { 
+  export enum ValueCase {
     VALUE_NOT_SET = 0,
     INT_VALUE = 1,
     DOUBLE_VALUE = 2,
@@ -126,21 +128,21 @@ export class Artifact extends jspb.Message {
 
 export namespace Artifact {
   export type AsObject = {
-    id: number,
-    name: string,
-    typeId: number,
-    type: string,
-    uri: string,
-    externalId: string,
-    propertiesMap: Array<[string, Value.AsObject]>,
-    customPropertiesMap: Array<[string, Value.AsObject]>,
-    state: Artifact.State,
-    createTimeSinceEpoch: number,
-    lastUpdateTimeSinceEpoch: number,
-    systemMetadata?: google_protobuf_any_pb.Any.AsObject,
-  }
+    id: number;
+    name: string;
+    typeId: number;
+    type: string;
+    uri: string;
+    externalId: string;
+    propertiesMap: Array<[string, Value.AsObject]>;
+    customPropertiesMap: Array<[string, Value.AsObject]>;
+    state: Artifact.State;
+    createTimeSinceEpoch: number;
+    lastUpdateTimeSinceEpoch: number;
+    systemMetadata?: google_protobuf_any_pb.Any.AsObject;
+  };
 
-  export enum State { 
+  export enum State {
     UNKNOWN = 0,
     PENDING = 1,
     LIVE = 2,
@@ -178,21 +180,24 @@ export class ArtifactType extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ArtifactType): ArtifactType.AsObject;
   static serializeBinaryToWriter(message: ArtifactType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ArtifactType;
-  static deserializeBinaryFromReader(message: ArtifactType, reader: jspb.BinaryReader): ArtifactType;
+  static deserializeBinaryFromReader(
+    message: ArtifactType,
+    reader: jspb.BinaryReader,
+  ): ArtifactType;
 }
 
 export namespace ArtifactType {
   export type AsObject = {
-    id: number,
-    name: string,
-    version: string,
-    description: string,
-    externalId: string,
-    propertiesMap: Array<[string, PropertyType]>,
-    baseType: ArtifactType.SystemDefinedBaseType,
-  }
+    id: number;
+    name: string;
+    version: string;
+    description: string;
+    externalId: string;
+    propertiesMap: Array<[string, PropertyType]>;
+    baseType: ArtifactType.SystemDefinedBaseType;
+  };
 
-  export enum SystemDefinedBaseType { 
+  export enum SystemDefinedBaseType {
     UNSET = 0,
     DATASET = 1,
     MODEL = 2,
@@ -234,13 +239,13 @@ export class Event extends jspb.Message {
 
 export namespace Event {
   export type AsObject = {
-    artifactId: number,
-    executionId: number,
-    path?: Event.Path.AsObject,
-    type: Event.Type,
-    millisecondsSinceEpoch: number,
-    systemMetadata?: google_protobuf_any_pb.Any.AsObject,
-  }
+    artifactId: number;
+    executionId: number;
+    path?: Event.Path.AsObject;
+    type: Event.Type;
+    millisecondsSinceEpoch: number;
+    systemMetadata?: google_protobuf_any_pb.Any.AsObject;
+  };
 
   export class Path extends jspb.Message {
     getStepsList(): Array<Event.Path.Step>;
@@ -258,8 +263,8 @@ export namespace Event {
 
   export namespace Path {
     export type AsObject = {
-      stepsList: Array<Event.Path.Step.AsObject>,
-    }
+      stepsList: Array<Event.Path.Step.AsObject>;
+    };
 
     export class Step extends jspb.Message {
       getIndex(): number;
@@ -280,21 +285,19 @@ export namespace Event {
 
     export namespace Step {
       export type AsObject = {
-        index: number,
-        key: string,
-      }
+        index: number;
+        key: string;
+      };
 
-      export enum ValueCase { 
+      export enum ValueCase {
         VALUE_NOT_SET = 0,
         INDEX = 1,
         KEY = 2,
       }
     }
-
   }
 
-
-  export enum Type { 
+  export enum Type {
     UNKNOWN = 0,
     DECLARED_OUTPUT = 1,
     DECLARED_INPUT = 2,
@@ -352,20 +355,20 @@ export class Execution extends jspb.Message {
 
 export namespace Execution {
   export type AsObject = {
-    id: number,
-    name: string,
-    typeId: number,
-    type: string,
-    externalId: string,
-    lastKnownState: Execution.State,
-    propertiesMap: Array<[string, Value.AsObject]>,
-    customPropertiesMap: Array<[string, Value.AsObject]>,
-    createTimeSinceEpoch: number,
-    lastUpdateTimeSinceEpoch: number,
-    systemMetadata?: google_protobuf_any_pb.Any.AsObject,
-  }
+    id: number;
+    name: string;
+    typeId: number;
+    type: string;
+    externalId: string;
+    lastKnownState: Execution.State;
+    propertiesMap: Array<[string, Value.AsObject]>;
+    customPropertiesMap: Array<[string, Value.AsObject]>;
+    createTimeSinceEpoch: number;
+    lastUpdateTimeSinceEpoch: number;
+    systemMetadata?: google_protobuf_any_pb.Any.AsObject;
+  };
 
-  export enum State { 
+  export enum State {
     UNKNOWN = 0,
     NEW = 1,
     RUNNING = 2,
@@ -413,23 +416,26 @@ export class ExecutionType extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ExecutionType): ExecutionType.AsObject;
   static serializeBinaryToWriter(message: ExecutionType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ExecutionType;
-  static deserializeBinaryFromReader(message: ExecutionType, reader: jspb.BinaryReader): ExecutionType;
+  static deserializeBinaryFromReader(
+    message: ExecutionType,
+    reader: jspb.BinaryReader,
+  ): ExecutionType;
 }
 
 export namespace ExecutionType {
   export type AsObject = {
-    id: number,
-    name: string,
-    version: string,
-    description: string,
-    externalId: string,
-    propertiesMap: Array<[string, PropertyType]>,
-    inputType?: ArtifactStructType.AsObject,
-    outputType?: ArtifactStructType.AsObject,
-    baseType: ExecutionType.SystemDefinedBaseType,
-  }
+    id: number;
+    name: string;
+    version: string;
+    description: string;
+    externalId: string;
+    propertiesMap: Array<[string, PropertyType]>;
+    inputType?: ArtifactStructType.AsObject;
+    outputType?: ArtifactStructType.AsObject;
+    baseType: ExecutionType.SystemDefinedBaseType;
+  };
 
-  export enum SystemDefinedBaseType { 
+  export enum SystemDefinedBaseType {
     UNSET = 0,
     TRAIN = 1,
     TRANSFORM = 2,
@@ -471,16 +477,16 @@ export class ContextType extends jspb.Message {
 
 export namespace ContextType {
   export type AsObject = {
-    id: number,
-    name: string,
-    version: string,
-    description: string,
-    externalId: string,
-    propertiesMap: Array<[string, PropertyType]>,
-    baseType: ContextType.SystemDefinedBaseType,
-  }
+    id: number;
+    name: string;
+    version: string;
+    description: string;
+    externalId: string;
+    propertiesMap: Array<[string, PropertyType]>;
+    baseType: ContextType.SystemDefinedBaseType;
+  };
 
-  export enum SystemDefinedBaseType { 
+  export enum SystemDefinedBaseType {
     UNSET = 0,
   }
 }
@@ -528,17 +534,17 @@ export class Context extends jspb.Message {
 
 export namespace Context {
   export type AsObject = {
-    id: number,
-    name: string,
-    typeId: number,
-    type: string,
-    externalId: string,
-    propertiesMap: Array<[string, Value.AsObject]>,
-    customPropertiesMap: Array<[string, Value.AsObject]>,
-    createTimeSinceEpoch: number,
-    lastUpdateTimeSinceEpoch: number,
-    systemMetadata?: google_protobuf_any_pb.Any.AsObject,
-  }
+    id: number;
+    name: string;
+    typeId: number;
+    type: string;
+    externalId: string;
+    propertiesMap: Array<[string, Value.AsObject]>;
+    customPropertiesMap: Array<[string, Value.AsObject]>;
+    createTimeSinceEpoch: number;
+    lastUpdateTimeSinceEpoch: number;
+    systemMetadata?: google_protobuf_any_pb.Any.AsObject;
+  };
 }
 
 export class Attribution extends jspb.Message {
@@ -558,9 +564,9 @@ export class Attribution extends jspb.Message {
 
 export namespace Attribution {
   export type AsObject = {
-    artifactId: number,
-    contextId: number,
-  }
+    artifactId: number;
+    contextId: number;
+  };
 }
 
 export class Association extends jspb.Message {
@@ -580,9 +586,9 @@ export class Association extends jspb.Message {
 
 export namespace Association {
   export type AsObject = {
-    executionId: number,
-    contextId: number,
-  }
+    executionId: number;
+    contextId: number;
+  };
 }
 
 export class ParentContext extends jspb.Message {
@@ -597,14 +603,17 @@ export class ParentContext extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ParentContext): ParentContext.AsObject;
   static serializeBinaryToWriter(message: ParentContext, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ParentContext;
-  static deserializeBinaryFromReader(message: ParentContext, reader: jspb.BinaryReader): ParentContext;
+  static deserializeBinaryFromReader(
+    message: ParentContext,
+    reader: jspb.BinaryReader,
+  ): ParentContext;
 }
 
 export namespace ParentContext {
   export type AsObject = {
-    childId: number,
-    parentId: number,
-  }
+    childId: number;
+    parentId: number;
+  };
 }
 
 export class LineageGraph extends jspb.Message {
@@ -658,21 +667,24 @@ export class LineageGraph extends jspb.Message {
   static toObject(includeInstance: boolean, msg: LineageGraph): LineageGraph.AsObject;
   static serializeBinaryToWriter(message: LineageGraph, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): LineageGraph;
-  static deserializeBinaryFromReader(message: LineageGraph, reader: jspb.BinaryReader): LineageGraph;
+  static deserializeBinaryFromReader(
+    message: LineageGraph,
+    reader: jspb.BinaryReader,
+  ): LineageGraph;
 }
 
 export namespace LineageGraph {
   export type AsObject = {
-    artifactTypesList: Array<ArtifactType.AsObject>,
-    executionTypesList: Array<ExecutionType.AsObject>,
-    contextTypesList: Array<ContextType.AsObject>,
-    artifactsList: Array<Artifact.AsObject>,
-    executionsList: Array<Execution.AsObject>,
-    contextsList: Array<Context.AsObject>,
-    eventsList: Array<Event.AsObject>,
-    attributionsList: Array<Attribution.AsObject>,
-    associationsList: Array<Association.AsObject>,
-  }
+    artifactTypesList: Array<ArtifactType.AsObject>;
+    executionTypesList: Array<ExecutionType.AsObject>;
+    contextTypesList: Array<ContextType.AsObject>;
+    artifactsList: Array<Artifact.AsObject>;
+    executionsList: Array<Execution.AsObject>;
+    contextsList: Array<Context.AsObject>;
+    eventsList: Array<Event.AsObject>;
+    attributionsList: Array<Attribution.AsObject>;
+    associationsList: Array<Association.AsObject>;
+  };
 }
 
 export class ArtifactStructType extends jspb.Message {
@@ -723,22 +735,25 @@ export class ArtifactStructType extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ArtifactStructType): ArtifactStructType.AsObject;
   static serializeBinaryToWriter(message: ArtifactStructType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ArtifactStructType;
-  static deserializeBinaryFromReader(message: ArtifactStructType, reader: jspb.BinaryReader): ArtifactStructType;
+  static deserializeBinaryFromReader(
+    message: ArtifactStructType,
+    reader: jspb.BinaryReader,
+  ): ArtifactStructType;
 }
 
 export namespace ArtifactStructType {
   export type AsObject = {
-    simple?: ArtifactType.AsObject,
-    unionType?: UnionArtifactStructType.AsObject,
-    intersection?: IntersectionArtifactStructType.AsObject,
-    list?: ListArtifactStructType.AsObject,
-    none?: NoneArtifactStructType.AsObject,
-    any?: AnyArtifactStructType.AsObject,
-    tuple?: TupleArtifactStructType.AsObject,
-    dict?: DictArtifactStructType.AsObject,
-  }
+    simple?: ArtifactType.AsObject;
+    unionType?: UnionArtifactStructType.AsObject;
+    intersection?: IntersectionArtifactStructType.AsObject;
+    list?: ListArtifactStructType.AsObject;
+    none?: NoneArtifactStructType.AsObject;
+    any?: AnyArtifactStructType.AsObject;
+    tuple?: TupleArtifactStructType.AsObject;
+    dict?: DictArtifactStructType.AsObject;
+  };
 
-  export enum KindCase { 
+  export enum KindCase {
     KIND_NOT_SET = 0,
     SIMPLE = 1,
     UNION_TYPE = 2,
@@ -759,16 +774,22 @@ export class UnionArtifactStructType extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): UnionArtifactStructType.AsObject;
-  static toObject(includeInstance: boolean, msg: UnionArtifactStructType): UnionArtifactStructType.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: UnionArtifactStructType,
+  ): UnionArtifactStructType.AsObject;
   static serializeBinaryToWriter(message: UnionArtifactStructType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): UnionArtifactStructType;
-  static deserializeBinaryFromReader(message: UnionArtifactStructType, reader: jspb.BinaryReader): UnionArtifactStructType;
+  static deserializeBinaryFromReader(
+    message: UnionArtifactStructType,
+    reader: jspb.BinaryReader,
+  ): UnionArtifactStructType;
 }
 
 export namespace UnionArtifactStructType {
   export type AsObject = {
-    candidatesList: Array<ArtifactStructType.AsObject>,
-  }
+    candidatesList: Array<ArtifactStructType.AsObject>;
+  };
 }
 
 export class IntersectionArtifactStructType extends jspb.Message {
@@ -779,16 +800,25 @@ export class IntersectionArtifactStructType extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): IntersectionArtifactStructType.AsObject;
-  static toObject(includeInstance: boolean, msg: IntersectionArtifactStructType): IntersectionArtifactStructType.AsObject;
-  static serializeBinaryToWriter(message: IntersectionArtifactStructType, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: IntersectionArtifactStructType,
+  ): IntersectionArtifactStructType.AsObject;
+  static serializeBinaryToWriter(
+    message: IntersectionArtifactStructType,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): IntersectionArtifactStructType;
-  static deserializeBinaryFromReader(message: IntersectionArtifactStructType, reader: jspb.BinaryReader): IntersectionArtifactStructType;
+  static deserializeBinaryFromReader(
+    message: IntersectionArtifactStructType,
+    reader: jspb.BinaryReader,
+  ): IntersectionArtifactStructType;
 }
 
 export namespace IntersectionArtifactStructType {
   export type AsObject = {
-    constraintsList: Array<ArtifactStructType.AsObject>,
-  }
+    constraintsList: Array<ArtifactStructType.AsObject>;
+  };
 }
 
 export class ListArtifactStructType extends jspb.Message {
@@ -799,44 +829,60 @@ export class ListArtifactStructType extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ListArtifactStructType.AsObject;
-  static toObject(includeInstance: boolean, msg: ListArtifactStructType): ListArtifactStructType.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: ListArtifactStructType,
+  ): ListArtifactStructType.AsObject;
   static serializeBinaryToWriter(message: ListArtifactStructType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ListArtifactStructType;
-  static deserializeBinaryFromReader(message: ListArtifactStructType, reader: jspb.BinaryReader): ListArtifactStructType;
+  static deserializeBinaryFromReader(
+    message: ListArtifactStructType,
+    reader: jspb.BinaryReader,
+  ): ListArtifactStructType;
 }
 
 export namespace ListArtifactStructType {
   export type AsObject = {
-    element?: ArtifactStructType.AsObject,
-  }
+    element?: ArtifactStructType.AsObject;
+  };
 }
 
 export class NoneArtifactStructType extends jspb.Message {
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): NoneArtifactStructType.AsObject;
-  static toObject(includeInstance: boolean, msg: NoneArtifactStructType): NoneArtifactStructType.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: NoneArtifactStructType,
+  ): NoneArtifactStructType.AsObject;
   static serializeBinaryToWriter(message: NoneArtifactStructType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): NoneArtifactStructType;
-  static deserializeBinaryFromReader(message: NoneArtifactStructType, reader: jspb.BinaryReader): NoneArtifactStructType;
+  static deserializeBinaryFromReader(
+    message: NoneArtifactStructType,
+    reader: jspb.BinaryReader,
+  ): NoneArtifactStructType;
 }
 
 export namespace NoneArtifactStructType {
-  export type AsObject = {
-  }
+  export type AsObject = {};
 }
 
 export class AnyArtifactStructType extends jspb.Message {
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): AnyArtifactStructType.AsObject;
-  static toObject(includeInstance: boolean, msg: AnyArtifactStructType): AnyArtifactStructType.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: AnyArtifactStructType,
+  ): AnyArtifactStructType.AsObject;
   static serializeBinaryToWriter(message: AnyArtifactStructType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): AnyArtifactStructType;
-  static deserializeBinaryFromReader(message: AnyArtifactStructType, reader: jspb.BinaryReader): AnyArtifactStructType;
+  static deserializeBinaryFromReader(
+    message: AnyArtifactStructType,
+    reader: jspb.BinaryReader,
+  ): AnyArtifactStructType;
 }
 
 export namespace AnyArtifactStructType {
-  export type AsObject = {
-  }
+  export type AsObject = {};
 }
 
 export class TupleArtifactStructType extends jspb.Message {
@@ -847,16 +893,22 @@ export class TupleArtifactStructType extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): TupleArtifactStructType.AsObject;
-  static toObject(includeInstance: boolean, msg: TupleArtifactStructType): TupleArtifactStructType.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: TupleArtifactStructType,
+  ): TupleArtifactStructType.AsObject;
   static serializeBinaryToWriter(message: TupleArtifactStructType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): TupleArtifactStructType;
-  static deserializeBinaryFromReader(message: TupleArtifactStructType, reader: jspb.BinaryReader): TupleArtifactStructType;
+  static deserializeBinaryFromReader(
+    message: TupleArtifactStructType,
+    reader: jspb.BinaryReader,
+  ): TupleArtifactStructType;
 }
 
 export namespace TupleArtifactStructType {
   export type AsObject = {
-    elementsList: Array<ArtifactStructType.AsObject>,
-  }
+    elementsList: Array<ArtifactStructType.AsObject>;
+  };
 }
 
 export class DictArtifactStructType extends jspb.Message {
@@ -873,18 +925,24 @@ export class DictArtifactStructType extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): DictArtifactStructType.AsObject;
-  static toObject(includeInstance: boolean, msg: DictArtifactStructType): DictArtifactStructType.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: DictArtifactStructType,
+  ): DictArtifactStructType.AsObject;
   static serializeBinaryToWriter(message: DictArtifactStructType, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): DictArtifactStructType;
-  static deserializeBinaryFromReader(message: DictArtifactStructType, reader: jspb.BinaryReader): DictArtifactStructType;
+  static deserializeBinaryFromReader(
+    message: DictArtifactStructType,
+    reader: jspb.BinaryReader,
+  ): DictArtifactStructType;
 }
 
 export namespace DictArtifactStructType {
   export type AsObject = {
-    propertiesMap: Array<[string, ArtifactStructType.AsObject]>,
-    noneTypeNotRequired: boolean,
-    extraPropertiesType?: ArtifactStructType.AsObject,
-  }
+    propertiesMap: Array<[string, ArtifactStructType.AsObject]>;
+    noneTypeNotRequired: boolean;
+    extraPropertiesType?: ArtifactStructType.AsObject;
+  };
 }
 
 export class FakeDatabaseConfig extends jspb.Message {
@@ -893,12 +951,14 @@ export class FakeDatabaseConfig extends jspb.Message {
   static toObject(includeInstance: boolean, msg: FakeDatabaseConfig): FakeDatabaseConfig.AsObject;
   static serializeBinaryToWriter(message: FakeDatabaseConfig, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): FakeDatabaseConfig;
-  static deserializeBinaryFromReader(message: FakeDatabaseConfig, reader: jspb.BinaryReader): FakeDatabaseConfig;
+  static deserializeBinaryFromReader(
+    message: FakeDatabaseConfig,
+    reader: jspb.BinaryReader,
+  ): FakeDatabaseConfig;
 }
 
 export namespace FakeDatabaseConfig {
-  export type AsObject = {
-  }
+  export type AsObject = {};
 }
 
 export class MySQLDatabaseConfig extends jspb.Message {
@@ -933,20 +993,23 @@ export class MySQLDatabaseConfig extends jspb.Message {
   static toObject(includeInstance: boolean, msg: MySQLDatabaseConfig): MySQLDatabaseConfig.AsObject;
   static serializeBinaryToWriter(message: MySQLDatabaseConfig, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): MySQLDatabaseConfig;
-  static deserializeBinaryFromReader(message: MySQLDatabaseConfig, reader: jspb.BinaryReader): MySQLDatabaseConfig;
+  static deserializeBinaryFromReader(
+    message: MySQLDatabaseConfig,
+    reader: jspb.BinaryReader,
+  ): MySQLDatabaseConfig;
 }
 
 export namespace MySQLDatabaseConfig {
   export type AsObject = {
-    host: string,
-    port: number,
-    database: string,
-    user: string,
-    password: string,
-    socket: string,
-    sslOptions?: MySQLDatabaseConfig.SSLOptions.AsObject,
-    skipDbCreation: boolean,
-  }
+    host: string;
+    port: number;
+    database: string;
+    user: string;
+    password: string;
+    socket: string;
+    sslOptions?: MySQLDatabaseConfig.SSLOptions.AsObject;
+    skipDbCreation: boolean;
+  };
 
   export class SSLOptions extends jspb.Message {
     getKey(): string;
@@ -977,15 +1040,14 @@ export namespace MySQLDatabaseConfig {
 
   export namespace SSLOptions {
     export type AsObject = {
-      key: string,
-      cert: string,
-      ca: string,
-      capath: string,
-      cipher: string,
-      verifyServerCert: boolean,
-    }
+      key: string;
+      cert: string;
+      ca: string;
+      capath: string;
+      cipher: string;
+      verifyServerCert: boolean;
+    };
   }
-
 }
 
 export class SqliteMetadataSourceConfig extends jspb.Message {
@@ -997,19 +1059,28 @@ export class SqliteMetadataSourceConfig extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): SqliteMetadataSourceConfig.AsObject;
-  static toObject(includeInstance: boolean, msg: SqliteMetadataSourceConfig): SqliteMetadataSourceConfig.AsObject;
-  static serializeBinaryToWriter(message: SqliteMetadataSourceConfig, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: SqliteMetadataSourceConfig,
+  ): SqliteMetadataSourceConfig.AsObject;
+  static serializeBinaryToWriter(
+    message: SqliteMetadataSourceConfig,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): SqliteMetadataSourceConfig;
-  static deserializeBinaryFromReader(message: SqliteMetadataSourceConfig, reader: jspb.BinaryReader): SqliteMetadataSourceConfig;
+  static deserializeBinaryFromReader(
+    message: SqliteMetadataSourceConfig,
+    reader: jspb.BinaryReader,
+  ): SqliteMetadataSourceConfig;
 }
 
 export namespace SqliteMetadataSourceConfig {
   export type AsObject = {
-    filenameUri: string,
-    connectionMode: SqliteMetadataSourceConfig.ConnectionMode,
-  }
+    filenameUri: string;
+    connectionMode: SqliteMetadataSourceConfig.ConnectionMode;
+  };
 
-  export enum ConnectionMode { 
+  export enum ConnectionMode {
     UNKNOWN = 0,
     READONLY = 1,
     READWRITE = 2,
@@ -1049,24 +1120,33 @@ export class PostgreSQLDatabaseConfig extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): PostgreSQLDatabaseConfig.AsObject;
-  static toObject(includeInstance: boolean, msg: PostgreSQLDatabaseConfig): PostgreSQLDatabaseConfig.AsObject;
-  static serializeBinaryToWriter(message: PostgreSQLDatabaseConfig, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: PostgreSQLDatabaseConfig,
+  ): PostgreSQLDatabaseConfig.AsObject;
+  static serializeBinaryToWriter(
+    message: PostgreSQLDatabaseConfig,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): PostgreSQLDatabaseConfig;
-  static deserializeBinaryFromReader(message: PostgreSQLDatabaseConfig, reader: jspb.BinaryReader): PostgreSQLDatabaseConfig;
+  static deserializeBinaryFromReader(
+    message: PostgreSQLDatabaseConfig,
+    reader: jspb.BinaryReader,
+  ): PostgreSQLDatabaseConfig;
 }
 
 export namespace PostgreSQLDatabaseConfig {
   export type AsObject = {
-    host: string,
-    hostaddr: string,
-    port: string,
-    user: string,
-    password: string,
-    passfile: string,
-    dbname: string,
-    skipDbCreation: boolean,
-    ssloption?: PostgreSQLDatabaseConfig.SSLOptions.AsObject,
-  }
+    host: string;
+    hostaddr: string;
+    port: string;
+    user: string;
+    password: string;
+    passfile: string;
+    dbname: string;
+    skipDbCreation: boolean;
+    ssloption?: PostgreSQLDatabaseConfig.SSLOptions.AsObject;
+  };
 
   export class SSLOptions extends jspb.Message {
     getSslmode(): string;
@@ -1094,14 +1174,13 @@ export namespace PostgreSQLDatabaseConfig {
 
   export namespace SSLOptions {
     export type AsObject = {
-      sslmode: string,
-      sslcert: string,
-      sslkey: string,
-      sslpassword: string,
-      sslrootcert: string,
-    }
+      sslmode: string;
+      sslcert: string;
+      sslkey: string;
+      sslpassword: string;
+      sslrootcert: string;
+    };
   }
-
 }
 
 export class MigrationOptions extends jspb.Message {
@@ -1116,14 +1195,17 @@ export class MigrationOptions extends jspb.Message {
   static toObject(includeInstance: boolean, msg: MigrationOptions): MigrationOptions.AsObject;
   static serializeBinaryToWriter(message: MigrationOptions, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): MigrationOptions;
-  static deserializeBinaryFromReader(message: MigrationOptions, reader: jspb.BinaryReader): MigrationOptions;
+  static deserializeBinaryFromReader(
+    message: MigrationOptions,
+    reader: jspb.BinaryReader,
+  ): MigrationOptions;
 }
 
 export namespace MigrationOptions {
   export type AsObject = {
-    enableUpgradeMigration: boolean,
-    downgradeToSchemaVersion: number,
-  }
+    enableUpgradeMigration: boolean;
+    downgradeToSchemaVersion: number;
+  };
 }
 
 export class RetryOptions extends jspb.Message {
@@ -1135,13 +1217,16 @@ export class RetryOptions extends jspb.Message {
   static toObject(includeInstance: boolean, msg: RetryOptions): RetryOptions.AsObject;
   static serializeBinaryToWriter(message: RetryOptions, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): RetryOptions;
-  static deserializeBinaryFromReader(message: RetryOptions, reader: jspb.BinaryReader): RetryOptions;
+  static deserializeBinaryFromReader(
+    message: RetryOptions,
+    reader: jspb.BinaryReader,
+  ): RetryOptions;
 }
 
 export namespace RetryOptions {
   export type AsObject = {
-    maxNumRetries: number,
-  }
+    maxNumRetries: number;
+  };
 }
 
 export class ConnectionConfig extends jspb.Message {
@@ -1177,19 +1262,22 @@ export class ConnectionConfig extends jspb.Message {
   static toObject(includeInstance: boolean, msg: ConnectionConfig): ConnectionConfig.AsObject;
   static serializeBinaryToWriter(message: ConnectionConfig, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ConnectionConfig;
-  static deserializeBinaryFromReader(message: ConnectionConfig, reader: jspb.BinaryReader): ConnectionConfig;
+  static deserializeBinaryFromReader(
+    message: ConnectionConfig,
+    reader: jspb.BinaryReader,
+  ): ConnectionConfig;
 }
 
 export namespace ConnectionConfig {
   export type AsObject = {
-    fakeDatabase?: FakeDatabaseConfig.AsObject,
-    mysql?: MySQLDatabaseConfig.AsObject,
-    sqlite?: SqliteMetadataSourceConfig.AsObject,
-    postgresql?: PostgreSQLDatabaseConfig.AsObject,
-    retryOptions?: RetryOptions.AsObject,
-  }
+    fakeDatabase?: FakeDatabaseConfig.AsObject;
+    mysql?: MySQLDatabaseConfig.AsObject;
+    sqlite?: SqliteMetadataSourceConfig.AsObject;
+    postgresql?: PostgreSQLDatabaseConfig.AsObject;
+    retryOptions?: RetryOptions.AsObject;
+  };
 
-  export enum ConfigCase { 
+  export enum ConfigCase {
     CONFIG_NOT_SET = 0,
     FAKE_DATABASE = 1,
     MYSQL = 2,
@@ -1207,17 +1295,23 @@ export class GrpcChannelArguments extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): GrpcChannelArguments.AsObject;
-  static toObject(includeInstance: boolean, msg: GrpcChannelArguments): GrpcChannelArguments.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: GrpcChannelArguments,
+  ): GrpcChannelArguments.AsObject;
   static serializeBinaryToWriter(message: GrpcChannelArguments, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): GrpcChannelArguments;
-  static deserializeBinaryFromReader(message: GrpcChannelArguments, reader: jspb.BinaryReader): GrpcChannelArguments;
+  static deserializeBinaryFromReader(
+    message: GrpcChannelArguments,
+    reader: jspb.BinaryReader,
+  ): GrpcChannelArguments;
 }
 
 export namespace GrpcChannelArguments {
   export type AsObject = {
-    maxReceiveMessageLength: number,
-    http2MaxPingStrikes: number,
-  }
+    maxReceiveMessageLength: number;
+    http2MaxPingStrikes: number;
+  };
 }
 
 export class MetadataStoreClientConfig extends jspb.Message {
@@ -1242,20 +1336,29 @@ export class MetadataStoreClientConfig extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): MetadataStoreClientConfig.AsObject;
-  static toObject(includeInstance: boolean, msg: MetadataStoreClientConfig): MetadataStoreClientConfig.AsObject;
-  static serializeBinaryToWriter(message: MetadataStoreClientConfig, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: MetadataStoreClientConfig,
+  ): MetadataStoreClientConfig.AsObject;
+  static serializeBinaryToWriter(
+    message: MetadataStoreClientConfig,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): MetadataStoreClientConfig;
-  static deserializeBinaryFromReader(message: MetadataStoreClientConfig, reader: jspb.BinaryReader): MetadataStoreClientConfig;
+  static deserializeBinaryFromReader(
+    message: MetadataStoreClientConfig,
+    reader: jspb.BinaryReader,
+  ): MetadataStoreClientConfig;
 }
 
 export namespace MetadataStoreClientConfig {
   export type AsObject = {
-    host: string,
-    port: number,
-    sslConfig?: MetadataStoreClientConfig.SSLConfig.AsObject,
-    channelArguments?: GrpcChannelArguments.AsObject,
-    clientTimeoutSec: number,
-  }
+    host: string;
+    port: number;
+    sslConfig?: MetadataStoreClientConfig.SSLConfig.AsObject;
+    channelArguments?: GrpcChannelArguments.AsObject;
+    clientTimeoutSec: number;
+  };
 
   export class SSLConfig extends jspb.Message {
     getClientKey(): string;
@@ -1277,12 +1380,11 @@ export namespace MetadataStoreClientConfig {
 
   export namespace SSLConfig {
     export type AsObject = {
-      clientKey: string,
-      serverCert: string,
-      customCa: string,
-    }
+      clientKey: string;
+      serverCert: string;
+      customCa: string;
+    };
   }
-
 }
 
 export class MetadataStoreServerConfig extends jspb.Message {
@@ -1303,18 +1405,27 @@ export class MetadataStoreServerConfig extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): MetadataStoreServerConfig.AsObject;
-  static toObject(includeInstance: boolean, msg: MetadataStoreServerConfig): MetadataStoreServerConfig.AsObject;
-  static serializeBinaryToWriter(message: MetadataStoreServerConfig, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: MetadataStoreServerConfig,
+  ): MetadataStoreServerConfig.AsObject;
+  static serializeBinaryToWriter(
+    message: MetadataStoreServerConfig,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): MetadataStoreServerConfig;
-  static deserializeBinaryFromReader(message: MetadataStoreServerConfig, reader: jspb.BinaryReader): MetadataStoreServerConfig;
+  static deserializeBinaryFromReader(
+    message: MetadataStoreServerConfig,
+    reader: jspb.BinaryReader,
+  ): MetadataStoreServerConfig;
 }
 
 export namespace MetadataStoreServerConfig {
   export type AsObject = {
-    connectionConfig?: ConnectionConfig.AsObject,
-    migrationOptions?: MigrationOptions.AsObject,
-    sslConfig?: MetadataStoreServerConfig.SSLConfig.AsObject,
-  }
+    connectionConfig?: ConnectionConfig.AsObject;
+    migrationOptions?: MigrationOptions.AsObject;
+    sslConfig?: MetadataStoreServerConfig.SSLConfig.AsObject;
+  };
 
   export class SSLConfig extends jspb.Message {
     getServerKey(): string;
@@ -1339,13 +1450,12 @@ export namespace MetadataStoreServerConfig {
 
   export namespace SSLConfig {
     export type AsObject = {
-      serverKey: string,
-      serverCert: string,
-      customCa: string,
-      clientVerify: boolean,
-    }
+      serverKey: string;
+      serverCert: string;
+      customCa: string;
+      clientVerify: boolean;
+    };
   }
-
 }
 
 export class ListOperationOptions extends jspb.Message {
@@ -1365,19 +1475,25 @@ export class ListOperationOptions extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ListOperationOptions.AsObject;
-  static toObject(includeInstance: boolean, msg: ListOperationOptions): ListOperationOptions.AsObject;
+  static toObject(
+    includeInstance: boolean,
+    msg: ListOperationOptions,
+  ): ListOperationOptions.AsObject;
   static serializeBinaryToWriter(message: ListOperationOptions, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): ListOperationOptions;
-  static deserializeBinaryFromReader(message: ListOperationOptions, reader: jspb.BinaryReader): ListOperationOptions;
+  static deserializeBinaryFromReader(
+    message: ListOperationOptions,
+    reader: jspb.BinaryReader,
+  ): ListOperationOptions;
 }
 
 export namespace ListOperationOptions {
   export type AsObject = {
-    maxResultSize: number,
-    orderByField?: ListOperationOptions.OrderByField.AsObject,
-    nextPageToken: string,
-    filterQuery: string,
-  }
+    maxResultSize: number;
+    orderByField?: ListOperationOptions.OrderByField.AsObject;
+    nextPageToken: string;
+    filterQuery: string;
+  };
 
   export class OrderByField extends jspb.Message {
     getField(): ListOperationOptions.OrderByField.Field;
@@ -1391,23 +1507,25 @@ export namespace ListOperationOptions {
     static toObject(includeInstance: boolean, msg: OrderByField): OrderByField.AsObject;
     static serializeBinaryToWriter(message: OrderByField, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): OrderByField;
-    static deserializeBinaryFromReader(message: OrderByField, reader: jspb.BinaryReader): OrderByField;
+    static deserializeBinaryFromReader(
+      message: OrderByField,
+      reader: jspb.BinaryReader,
+    ): OrderByField;
   }
 
   export namespace OrderByField {
     export type AsObject = {
-      field: ListOperationOptions.OrderByField.Field,
-      isAsc: boolean,
-    }
+      field: ListOperationOptions.OrderByField.Field;
+      isAsc: boolean;
+    };
 
-    export enum Field { 
+    export enum Field {
       FIELD_UNSPECIFIED = 0,
       CREATE_TIME = 1,
       LAST_UPDATE_TIME = 2,
       ID = 3,
     }
   }
-
 }
 
 export class ListOperationNextPageToken extends jspb.Message {
@@ -1429,19 +1547,28 @@ export class ListOperationNextPageToken extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): ListOperationNextPageToken.AsObject;
-  static toObject(includeInstance: boolean, msg: ListOperationNextPageToken): ListOperationNextPageToken.AsObject;
-  static serializeBinaryToWriter(message: ListOperationNextPageToken, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: ListOperationNextPageToken,
+  ): ListOperationNextPageToken.AsObject;
+  static serializeBinaryToWriter(
+    message: ListOperationNextPageToken,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): ListOperationNextPageToken;
-  static deserializeBinaryFromReader(message: ListOperationNextPageToken, reader: jspb.BinaryReader): ListOperationNextPageToken;
+  static deserializeBinaryFromReader(
+    message: ListOperationNextPageToken,
+    reader: jspb.BinaryReader,
+  ): ListOperationNextPageToken;
 }
 
 export namespace ListOperationNextPageToken {
   export type AsObject = {
-    idOffset: number,
-    fieldOffset: number,
-    setOptions?: ListOperationOptions.AsObject,
-    listedIdsList: Array<number>,
-  }
+    idOffset: number;
+    fieldOffset: number;
+    setOptions?: ListOperationOptions.AsObject;
+    listedIdsList: Array<number>;
+  };
 }
 
 export class TransactionOptions extends jspb.Message {
@@ -1453,13 +1580,16 @@ export class TransactionOptions extends jspb.Message {
   static toObject(includeInstance: boolean, msg: TransactionOptions): TransactionOptions.AsObject;
   static serializeBinaryToWriter(message: TransactionOptions, writer: jspb.BinaryWriter): void;
   static deserializeBinary(bytes: Uint8Array): TransactionOptions;
-  static deserializeBinaryFromReader(message: TransactionOptions, reader: jspb.BinaryReader): TransactionOptions;
+  static deserializeBinaryFromReader(
+    message: TransactionOptions,
+    reader: jspb.BinaryReader,
+  ): TransactionOptions;
 }
 
 export namespace TransactionOptions {
   export type AsObject = {
-    tag: string,
-  }
+    tag: string;
+  };
 }
 
 export class LineageGraphQueryOptions extends jspb.Message {
@@ -1480,18 +1610,27 @@ export class LineageGraphQueryOptions extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): LineageGraphQueryOptions.AsObject;
-  static toObject(includeInstance: boolean, msg: LineageGraphQueryOptions): LineageGraphQueryOptions.AsObject;
-  static serializeBinaryToWriter(message: LineageGraphQueryOptions, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: LineageGraphQueryOptions,
+  ): LineageGraphQueryOptions.AsObject;
+  static serializeBinaryToWriter(
+    message: LineageGraphQueryOptions,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): LineageGraphQueryOptions;
-  static deserializeBinaryFromReader(message: LineageGraphQueryOptions, reader: jspb.BinaryReader): LineageGraphQueryOptions;
+  static deserializeBinaryFromReader(
+    message: LineageGraphQueryOptions,
+    reader: jspb.BinaryReader,
+  ): LineageGraphQueryOptions;
 }
 
 export namespace LineageGraphQueryOptions {
   export type AsObject = {
-    artifactsOptions?: ListOperationOptions.AsObject,
-    stopConditions?: LineageGraphQueryOptions.BoundaryConstraint.AsObject,
-    maxNodeSize: number,
-  }
+    artifactsOptions?: ListOperationOptions.AsObject;
+    stopConditions?: LineageGraphQueryOptions.BoundaryConstraint.AsObject;
+    maxNodeSize: number;
+  };
 
   export class BoundaryConstraint extends jspb.Message {
     getMaxNumHops(): number;
@@ -1508,19 +1647,21 @@ export namespace LineageGraphQueryOptions {
     static toObject(includeInstance: boolean, msg: BoundaryConstraint): BoundaryConstraint.AsObject;
     static serializeBinaryToWriter(message: BoundaryConstraint, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): BoundaryConstraint;
-    static deserializeBinaryFromReader(message: BoundaryConstraint, reader: jspb.BinaryReader): BoundaryConstraint;
+    static deserializeBinaryFromReader(
+      message: BoundaryConstraint,
+      reader: jspb.BinaryReader,
+    ): BoundaryConstraint;
   }
 
   export namespace BoundaryConstraint {
     export type AsObject = {
-      maxNumHops: number,
-      boundaryArtifacts: string,
-      boundaryExecutions: string,
-    }
+      maxNumHops: number;
+      boundaryArtifacts: string;
+      boundaryExecutions: string;
+    };
   }
 
-
-  export enum QueryNodesCase { 
+  export enum QueryNodesCase {
     QUERY_NODES_NOT_SET = 0,
     ARTIFACTS_OPTIONS = 1,
   }
@@ -1528,12 +1669,16 @@ export namespace LineageGraphQueryOptions {
 
 export class LineageSubgraphQueryOptions extends jspb.Message {
   getStartingArtifacts(): LineageSubgraphQueryOptions.StartingNodes | undefined;
-  setStartingArtifacts(value?: LineageSubgraphQueryOptions.StartingNodes): LineageSubgraphQueryOptions;
+  setStartingArtifacts(
+    value?: LineageSubgraphQueryOptions.StartingNodes,
+  ): LineageSubgraphQueryOptions;
   hasStartingArtifacts(): boolean;
   clearStartingArtifacts(): LineageSubgraphQueryOptions;
 
   getStartingExecutions(): LineageSubgraphQueryOptions.StartingNodes | undefined;
-  setStartingExecutions(value?: LineageSubgraphQueryOptions.StartingNodes): LineageSubgraphQueryOptions;
+  setStartingExecutions(
+    value?: LineageSubgraphQueryOptions.StartingNodes,
+  ): LineageSubgraphQueryOptions;
   hasStartingExecutions(): boolean;
   clearStartingExecutions(): LineageSubgraphQueryOptions;
 
@@ -1547,19 +1692,28 @@ export class LineageSubgraphQueryOptions extends jspb.Message {
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): LineageSubgraphQueryOptions.AsObject;
-  static toObject(includeInstance: boolean, msg: LineageSubgraphQueryOptions): LineageSubgraphQueryOptions.AsObject;
-  static serializeBinaryToWriter(message: LineageSubgraphQueryOptions, writer: jspb.BinaryWriter): void;
+  static toObject(
+    includeInstance: boolean,
+    msg: LineageSubgraphQueryOptions,
+  ): LineageSubgraphQueryOptions.AsObject;
+  static serializeBinaryToWriter(
+    message: LineageSubgraphQueryOptions,
+    writer: jspb.BinaryWriter,
+  ): void;
   static deserializeBinary(bytes: Uint8Array): LineageSubgraphQueryOptions;
-  static deserializeBinaryFromReader(message: LineageSubgraphQueryOptions, reader: jspb.BinaryReader): LineageSubgraphQueryOptions;
+  static deserializeBinaryFromReader(
+    message: LineageSubgraphQueryOptions,
+    reader: jspb.BinaryReader,
+  ): LineageSubgraphQueryOptions;
 }
 
 export namespace LineageSubgraphQueryOptions {
   export type AsObject = {
-    startingArtifacts?: LineageSubgraphQueryOptions.StartingNodes.AsObject,
-    startingExecutions?: LineageSubgraphQueryOptions.StartingNodes.AsObject,
-    maxNumHops: number,
-    direction: LineageSubgraphQueryOptions.Direction,
-  }
+    startingArtifacts?: LineageSubgraphQueryOptions.StartingNodes.AsObject;
+    startingExecutions?: LineageSubgraphQueryOptions.StartingNodes.AsObject;
+    maxNumHops: number;
+    direction: LineageSubgraphQueryOptions.Direction;
+  };
 
   export class StartingNodes extends jspb.Message {
     getFilterQuery(): string;
@@ -1570,31 +1724,33 @@ export namespace LineageSubgraphQueryOptions {
     static toObject(includeInstance: boolean, msg: StartingNodes): StartingNodes.AsObject;
     static serializeBinaryToWriter(message: StartingNodes, writer: jspb.BinaryWriter): void;
     static deserializeBinary(bytes: Uint8Array): StartingNodes;
-    static deserializeBinaryFromReader(message: StartingNodes, reader: jspb.BinaryReader): StartingNodes;
+    static deserializeBinaryFromReader(
+      message: StartingNodes,
+      reader: jspb.BinaryReader,
+    ): StartingNodes;
   }
 
   export namespace StartingNodes {
     export type AsObject = {
-      filterQuery: string,
-    }
+      filterQuery: string;
+    };
   }
 
-
-  export enum Direction { 
+  export enum Direction {
     DIRECTION_UNSPECIFIED = 0,
     UPSTREAM = 1,
     DOWNSTREAM = 2,
     BIDIRECTIONAL = 3,
   }
 
-  export enum StartingNodesCase { 
+  export enum StartingNodesCase {
     STARTING_NODES_NOT_SET = 0,
     STARTING_ARTIFACTS = 1,
     STARTING_EXECUTIONS = 2,
   }
 }
 
-export enum PropertyType { 
+export enum PropertyType {
   UNKNOWN = 0,
   INT = 1,
   DOUBLE = 2,

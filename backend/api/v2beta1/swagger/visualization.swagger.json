@@ -4,16 +4,9 @@
     "title": "backend/api/v2beta1/visualization.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v2beta1/visualizations/{namespace}": {
       "post": {
@@ -48,9 +41,7 @@
             }
           }
         ],
-        "tags": [
-          "VisualizationService"
-        ]
+        "tags": ["VisualizationService"]
       }
     }
   },
@@ -117,13 +108,7 @@
     },
     "v2beta1VisualizationType": {
       "type": "string",
-      "enum": [
-        "ROC_CURVE",
-        "TFDV",
-        "TFMA",
-        "TABLE",
-        "CUSTOM"
-      ],
+      "enum": ["ROC_CURVE", "TFDV", "TFMA", "TABLE", "CUSTOM"],
       "default": "ROC_CURVE",
       "description": "Type of visualization to be generated.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
     }

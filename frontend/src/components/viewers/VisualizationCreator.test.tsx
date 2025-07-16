@@ -112,12 +112,7 @@ describe('VisualizationCreator', () => {
     tree.setState({
       source: 'gs://ml-pipeline/data.csv',
     });
-    expect(
-      tree
-        .find('BusyButton')
-        .at(0)
-        .prop('disabled'),
-    ).toBe(true);
+    expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
   });
 
   it('has a disabled BusyButton if source is an empty string', () => {
@@ -131,12 +126,7 @@ describe('VisualizationCreator', () => {
       // source by default is set to ''
       selectedType: ApiVisualizationType.ROCCURVE,
     });
-    expect(
-      tree
-        .find('BusyButton')
-        .at(0)
-        .prop('disabled'),
-    ).toBe(true);
+    expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
   });
 
   it('has a disabled BusyButton if onGenerate is not provided as a prop', () => {
@@ -149,12 +139,7 @@ describe('VisualizationCreator', () => {
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
-    expect(
-      tree
-        .find('BusyButton')
-        .at(0)
-        .prop('disabled'),
-    ).toBe(true);
+    expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
   });
 
   it('has a disabled BusyButton if isBusy is true', () => {
@@ -168,12 +153,7 @@ describe('VisualizationCreator', () => {
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
-    expect(
-      tree
-        .find('BusyButton')
-        .at(0)
-        .prop('disabled'),
-    ).toBe(true);
+    expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(true);
   });
 
   it('has an enabled BusyButton if onGenerate is provided and source and selectedType are set', () => {
@@ -187,12 +167,7 @@ describe('VisualizationCreator', () => {
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
-    expect(
-      tree
-        .find('BusyButton')
-        .at(0)
-        .prop('disabled'),
-    ).toBe(false);
+    expect(tree.find('BusyButton').at(0).prop('disabled')).toBe(false);
   });
 
   it('calls onGenerate when BusyButton is clicked', () => {
@@ -208,10 +183,7 @@ describe('VisualizationCreator', () => {
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
-    tree
-      .find('BusyButton')
-      .at(0)
-      .simulate('click');
+    tree.find('BusyButton').at(0).simulate('click');
     expect(onGenerate).toBeCalled();
   });
 
@@ -228,10 +200,7 @@ describe('VisualizationCreator', () => {
       selectedType: ApiVisualizationType.ROCCURVE,
       source: 'gs://ml-pipeline/data.csv',
     });
-    tree
-      .find('BusyButton')
-      .at(0)
-      .simulate('click');
+    tree.find('BusyButton').at(0).simulate('click');
     expect(onGenerate).toBeCalledWith(
       '{}',
       'gs://ml-pipeline/data.csv',
@@ -262,12 +231,7 @@ describe('VisualizationCreator', () => {
     tree.setState({
       source,
     });
-    expect(
-      tree
-        .find('input')
-        .at(1)
-        .prop('value'),
-    ).toBe(source);
+    expect(tree.find('input').at(1).prop('value')).toBe(source);
   });
 
   it('renders the selected visualization type', () => {
@@ -321,12 +285,7 @@ describe('VisualizationCreator', () => {
         // source by default is set to ''
         selectedType: type,
       });
-      expect(
-        tree
-          .find('Editor')
-          .at(0)
-          .prop('placeholder'),
-      ).not.toBeNull();
+      expect(tree.find('Editor').at(0).prop('placeholder')).not.toBeNull();
     }
   });
 

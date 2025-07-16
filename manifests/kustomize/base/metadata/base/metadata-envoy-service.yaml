@@ -9,6 +9,6 @@ spec:
     component: metadata-envoy
   type: ClusterIP
   ports:
-  - port: 9090
-    protocol: TCP
-    name: md-envoy
+    - port: 9090
+      protocol: TCP
+      name: md-envoy

@@ -4,16 +4,9 @@
     "title": "backend/api/v2beta1/recurring_run.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v2beta1/recurringruns": {
       "get": {
@@ -78,9 +71,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       },
       "post": {
         "summary": "Creates a new recurring run in an experiment, given the experiment ID.",
@@ -110,9 +101,7 @@
             }
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       }
     },
     "/apis/v2beta1/recurringruns/{recurring_run_id}": {
@@ -142,9 +131,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       },
       "delete": {
         "summary": "Deletes a recurring run.",
@@ -172,9 +159,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       }
     },
     "/apis/v2beta1/recurringruns/{recurring_run_id}:disable": {
@@ -204,9 +189,7 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       }
     },
     "/apis/v2beta1/recurringruns/{recurring_run_id}:enable": {
@@ -236,20 +219,14 @@
             "type": "string"
           }
         ],
-        "tags": [
-          "RecurringRunService"
-        ]
+        "tags": ["RecurringRunService"]
       }
     }
   },
   "definitions": {
     "RecurringRunMode": {
       "type": "string",
-      "enum": [
-        "MODE_UNSPECIFIED",
-        "ENABLE",
-        "DISABLE"
-      ],
+      "enum": ["MODE_UNSPECIFIED", "ENABLE", "DISABLE"],
       "default": "MODE_UNSPECIFIED",
       "description": "Required input.\nUser setting to enable or disable the recurring run. \nOnly used for creation of recurring runs. Later updates use enable/disable API.\n\n - DISABLE: The recurring run won't schedule any run if disabled."
     },
@@ -292,9 +269,7 @@
     },
     "protobufNullValue": {
       "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
+      "enum": ["NULL_VALUE"],
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     },
@@ -476,11 +451,7 @@
     },
     "v2beta1RecurringRunStatus": {
       "type": "string",
-      "enum": [
-        "STATUS_UNSPECIFIED",
-        "ENABLED",
-        "DISABLED"
-      ],
+      "enum": ["STATUS_UNSPECIFIED", "ENABLED", "DISABLED"],
       "default": "STATUS_UNSPECIFIED",
       "description": "Output. The status of the recurring run."
     },

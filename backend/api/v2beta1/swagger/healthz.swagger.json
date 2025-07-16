@@ -4,16 +4,9 @@
     "title": "backend/api/v2beta1/healthz.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "paths": {
     "/apis/v2beta1/healthz": {
       "get": {
@@ -33,9 +26,7 @@
             }
           }
         },
-        "tags": [
-          "HealthzService"
-        ]
+        "tags": ["HealthzService"]
       }
     }
   },

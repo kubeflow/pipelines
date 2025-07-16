@@ -21,18 +21,18 @@ deploymentSpec:
     exec-echo:
       container:
         args:
-        - echo {{$.inputs.parameters['message']}}
+          - echo {{$.inputs.parameters['message']}}
         command:
-        - sh
-        - -c
+          - sh
+          - -c
         image: library/bash
     exec-echo-2:
       container:
         args:
-        - echo {{$.inputs.parameters['message']}}
+          - echo {{$.inputs.parameters['message']}}
         command:
-        - sh
-        - -c
+          - sh
+          - -c
         image: library/bash
 pipelineInfo:
   name: sequential

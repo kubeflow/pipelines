@@ -8,7 +8,7 @@ The `mpirun.py` sample creates a pipeline runs allreduce-style distributed train
 
 - This sample requires to create distributed storage. In this sample, we use NFS as example.
 
-1.You need to create `/data` in the NFS Server
+  1.You need to create `/data` in the NFS Server
 
 ```
 # mkdir -p /nfs
@@ -37,7 +37,7 @@ spec:
   nfs:
     server: NFS_SERVER_IP
     path: "/data"
-    
+
  # kubectl create -f nfs-pv.yaml
 ```
 
@@ -71,6 +71,7 @@ spec:
 ### 1.With command line to compile the python code to p
 
 First, install the necessary Python Packages
+
 ```shell
 pip3 install http://kubeflow.oss-cn-beijing.aliyuncs.com/kfp/0.1.16/kfp.tar.gz --upgrade
 pip3 install http://kubeflow.oss-cn-beijing.aliyuncs.com/kfp-arena/kfp-arena-0.6.tar.gz --upgrade
@@ -82,7 +83,7 @@ Then run [mpi_run.py](mpi_run.py) with different parameters.
 dsl-compile --py mpi_run.py --output mpi_run.py.tar.gz
 ```
 
-Then, submit `[mpi_run.py.tar.gz](mpi_run.py.tar.gz)` to the kubeflow pipeline UI. 
+Then, submit `[mpi_run.py.tar.gz](mpi_run.py.tar.gz)` to the kubeflow pipeline UI.
 
 ![](choose_pipelines.jpg)
 

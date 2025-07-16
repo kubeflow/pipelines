@@ -1,20 +1,39 @@
 name: Confusion matrix
 description: Calculates confusion matrix
 inputs:
-  - {name: Predictions,     type: GCSPath,        description: 'GCS path of prediction file pattern.'} # type: {GCSPath: {data_type: CSV}}
-  - {name: Target lambda,   type: String, default: '', description: 'Text of Python lambda function which computes target value. For example, "lambda x: x[''a''] + x[''b'']". If not set, the input must include a "target" column.'}
-  - {name: Output dir,      type: GCSPath,  description: 'GCS path of the output directory.'} # type: {GCSPath: {path_type: Directory}}
+  - {
+      name: Predictions,
+      type: GCSPath,
+      description: "GCS path of prediction file pattern.",
+    } # type: {GCSPath: {data_type: CSV}}
+  - {
+      name: Target lambda,
+      type: String,
+      default: "",
+      description: 'Text of Python lambda function which computes target value. For example, "lambda x: x[''a''] + x[''b'']". If not set, the input must include a "target" column.',
+    }
+  - {
+      name: Output dir,
+      type: GCSPath,
+      description: "GCS path of the output directory.",
+    } # type: {GCSPath: {path_type: Directory}}
 outputs:
-  - {name: MLPipeline UI metadata, type: UI metadata}
-  - {name: MLPipeline Metrics,     type: Metrics}
+  - { name: MLPipeline UI metadata, type: UI metadata }
+  - { name: MLPipeline Metrics, type: Metrics }
 implementation:
   container:
     image: gcr.io/ml-pipeline/ml-pipeline-local-confusion-matrix:1.8.0-alpha.0
     command: [python2, /ml/confusion_matrix.py]
-    args: [
-      --predictions, {inputValue: Predictions},
-      --target_lambda, {inputValue: Target lambda},
-      --output,      {inputValue: Output dir},
-      --ui-metadata-output-path, {outputPath: MLPipeline UI metadata},
-      --metrics-output-path, {outputPath: MLPipeline Metrics},
-    ]
+    args:
+      [
+        --predictions,
+        { inputValue: Predictions },
+        --target_lambda,
+        { inputValue: Target lambda },
+        --output,
+        { inputValue: Output dir },
+        --ui-metadata-output-path,
+        { outputPath: MLPipeline UI metadata },
+        --metrics-output-path,
+        { outputPath: MLPipeline Metrics },
+      ]

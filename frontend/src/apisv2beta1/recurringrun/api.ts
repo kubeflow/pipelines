@@ -76,7 +76,10 @@ export class BaseAPI {
  */
 export class RequiredError extends Error {
   name: 'RequiredError';
-  constructor(public field: string, msg?: string) {
+  constructor(
+    public field: string,
+    msg?: string,
+  ) {
     super(msg);
   }
 }
@@ -416,7 +419,7 @@ export interface V2beta1Trigger {
  * RecurringRunServiceApi - fetch parameter creator
  * @export
  */
-export const RecurringRunServiceApiFetchParamCreator = function(configuration?: Configuration) {
+export const RecurringRunServiceApiFetchParamCreator = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -689,7 +692,7 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
  * RecurringRunServiceApi - functional programming interface
  * @export
  */
-export const RecurringRunServiceApiFp = function(configuration?: Configuration) {
+export const RecurringRunServiceApiFp = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -706,13 +709,15 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
         configuration,
       ).createRecurringRun(body, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -730,13 +735,15 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
         configuration,
       ).deleteRecurringRun(recurring_run_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -754,13 +761,15 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
         configuration,
       ).disableRecurringRun(recurring_run_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -778,13 +787,15 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
         configuration,
       ).enableRecurringRun(recurring_run_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -802,13 +813,15 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
         configuration,
       ).getRecurringRun(recurring_run_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
     /**
@@ -844,13 +857,15 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
-          if (response.status >= 200 && response.status < 300) {
-            return response.json();
-          } else {
-            throw response;
-          }
-        });
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(
+          (response) => {
+            if (response.status >= 200 && response.status < 300) {
+              return response.json();
+            } else {
+              throw response;
+            }
+          },
+        );
       };
     },
   };
@@ -860,7 +875,7 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
  * RecurringRunServiceApi - factory interface
  * @export
  */
-export const RecurringRunServiceApiFactory = function(
+export const RecurringRunServiceApiFactory = function (
   configuration?: Configuration,
   fetch?: FetchAPI,
   basePath?: string,

@@ -1,6 +1,9 @@
 {
   "train_component.yaml": {
-    "implementation.container.command": ["python3", "bert/agnews_classification_pytorch.py"],
+    "implementation.container.command": [
+      "python3",
+      "bert/agnews_classification_pytorch.py"
+    ],
     "implementation.container.image": "public.ecr.aws/pytorch-samples/kfp_samples:latest"
   },
   "preprocess_component.yaml": {
@@ -8,4 +11,3 @@
     "implementation.container.image": "public.ecr.aws/pytorch-samples/kfp_samples:latest"
   }
 }
-

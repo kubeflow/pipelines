@@ -3,5 +3,5 @@ kind: PriorityClass
 metadata: # kpt-merge: /workflow-controller
   name: workflow-controller
   annotations:
-    internal.kpt.dev/upstream-identifier: 'scheduling.k8s.io|PriorityClass|default|workflow-controller'
+    internal.kpt.dev/upstream-identifier: "scheduling.k8s.io|PriorityClass|default|workflow-controller"
 value: 1000000

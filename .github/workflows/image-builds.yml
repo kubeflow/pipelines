@@ -5,65 +5,65 @@ on:
     inputs:
       src_branch:
         type: string
-        default: 'release-X.Y'
-        description: 'Source branch to build KFP from'
+        default: "release-X.Y"
+        description: "Source branch to build KFP from"
         required: true
       target_tag:
         type: string
-        default: 'X.Y.Z'
-        description: 'Target Image Tag'
+        default: "X.Y.Z"
+        description: "Target Image Tag"
         required: true
       fail_fast:
         type: string
-        default: 'true'
-        description: 'Stop running entire Workflow if a single build fails'
+        default: "true"
+        description: "Stop running entire Workflow if a single build fails"
         required: true
       overwrite_imgs:
         type: string
-        default: 'true'
-        description: 'Overwrite images in GHCR if they already exist for this tag.'
+        default: "true"
+        description: "Overwrite images in GHCR if they already exist for this tag."
         required: true
       set_latest:
         type: string
-        default: 'true'
-        description: 'Set latest tag on build images.'
+        default: "true"
+        description: "Set latest tag on build images."
         required: true
       add_sha_tag:
         type: string
-        default: 'true'
-        description: 'Add a sha image tag.'
+        default: "true"
+        description: "Add a sha image tag."
         required: false
   workflow_dispatch:
     inputs:
       src_branch:
         type: string
-        default: 'release-X.Y'
-        description: 'Source branch to build KFP from'
+        default: "release-X.Y"
+        description: "Source branch to build KFP from"
         required: true
       target_tag:
         type: string
-        default: 'X.Y.Z'
-        description: 'Target Image Tag'
+        default: "X.Y.Z"
+        description: "Target Image Tag"
         required: true
       fail_fast:
         type: string
-        default: 'true'
-        description: 'Stop running entire Workflow if a single build fails'
+        default: "true"
+        description: "Stop running entire Workflow if a single build fails"
         required: true
       overwrite_imgs:
         type: string
-        default: 'true'
-        description: 'Overwrite images in GHCR if they already exist for this tag.'
+        default: "true"
+        description: "Overwrite images in GHCR if they already exist for this tag."
         required: true
       set_latest:
         type: string
-        default: 'true'
-        description: 'Set latest tag on build images.'
+        default: "true"
+        description: "Set latest tag on build images."
         required: true
       add_sha_tag:
         type: string
-        default: 'true'
-        description: 'Add a sha image tag.'
+        default: "true"
+        description: "Add a sha image tag."
         required: false
 env:
   SOURCE_BRANCH: ${{ inputs.src_branch }}
@@ -195,4 +195,3 @@ jobs:
         with:
           subject-name: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ matrix.image }}
           subject-digest: ${{ steps.push.outputs.digest }}
-

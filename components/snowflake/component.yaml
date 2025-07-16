@@ -49,50 +49,50 @@ deploymentSpec:
     exec-snowflake-unload-op:
       container:
         args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - snowflake_unload_op
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - snowflake_unload_op
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
-          \  python3 -m pip install --quiet --no-warn-script-location 'snowflake-connector-python:3.12.3'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.7.0'\
+            \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+            \  python3 -m pip install --quiet --no-warn-script-location 'snowflake-connector-python:3.12.3'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
 
 
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
 
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+            _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
 
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef snowflake_unload_op(\n    output_gcs_path: str,\n    sf_storage_integration:\
-          \ str,\n    query: str,\n    sf_user: str,\n    sf_password: str,\n    sf_account:\
-          \ str,\n    sf_warehouse: str,\n    sf_database: str\n    ) -> str:\n  \
-          \  \"\"\"\n    Run COPY in snowflake to unload data to GCS bucket.\n\n \
-          \   output_gcs_path: the location to land the data\n    sf_storage_integration:\
-          \ the Snowflake Storage Integration name\n    query: the query to execute\
-          \ in the COPY command\n    sf_user: the snowflake username\n    sf_password:\
-          \ the snowflake password\n    sf_warehouse: the snowflake warehouse name\n\
-          \    sf_database: the database to use\n    \"\"\"\n    import snowflake.connector\n\
-          \    conn = snowflake.connector.connect(user=sf_user,\n                \
-          \                       password=sf_password,\n                        \
-          \               account=sf_account,\n                                  \
-          \     role=\"ACCOUNTADMIN\")\n\n    conn.cursor().execute(f\"USE WAREHOUSE\
-          \ {sf_warehouse};\")\n    conn.cursor().execute(f\"USE DATABASE {sf_database};\"\
-          )\n    result = conn.cursor().execute(f\"\"\"\n    COPY INTO 'gcs://{output_gcs_path}'\n\
-          \    FROM ({query})\n    FILE_FORMAT = (TYPE = CSV COMPRESSION=NONE)\n \
-          \   STORAGE_INTEGRATION = {sf_storage_integration}\n    HEADER = TRUE\n\
-          \    \"\"\")\n    _ = result.fetchall()\n    if output_gcs_path.endswith(\"\
-          /\"):\n        return output_gcs_path + \"data_0_0_0.csv\"\n    else:\n\
-          \        return output_gcs_path\n\n"
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef snowflake_unload_op(\n    output_gcs_path: str,\n    sf_storage_integration:\
+            \ str,\n    query: str,\n    sf_user: str,\n    sf_password: str,\n    sf_account:\
+            \ str,\n    sf_warehouse: str,\n    sf_database: str\n    ) -> str:\n  \
+            \  \"\"\"\n    Run COPY in snowflake to unload data to GCS bucket.\n\n \
+            \   output_gcs_path: the location to land the data\n    sf_storage_integration:\
+            \ the Snowflake Storage Integration name\n    query: the query to execute\
+            \ in the COPY command\n    sf_user: the snowflake username\n    sf_password:\
+            \ the snowflake password\n    sf_warehouse: the snowflake warehouse name\n\
+            \    sf_database: the database to use\n    \"\"\"\n    import snowflake.connector\n\
+            \    conn = snowflake.connector.connect(user=sf_user,\n                \
+            \                       password=sf_password,\n                        \
+            \               account=sf_account,\n                                  \
+            \     role=\"ACCOUNTADMIN\")\n\n    conn.cursor().execute(f\"USE WAREHOUSE\
+            \ {sf_warehouse};\")\n    conn.cursor().execute(f\"USE DATABASE {sf_database};\"\
+            )\n    result = conn.cursor().execute(f\"\"\"\n    COPY INTO 'gcs://{output_gcs_path}'\n\
+            \    FROM ({query})\n    FILE_FORMAT = (TYPE = CSV COMPRESSION=NONE)\n \
+            \   STORAGE_INTEGRATION = {sf_storage_integration}\n    HEADER = TRUE\n\
+            \    \"\"\")\n    _ = result.fetchall()\n    if output_gcs_path.endswith(\"\
+            /\"):\n        return output_gcs_path + \"data_0_0_0.csv\"\n    else:\n\
+            \        return output_gcs_path\n\n"
         image: python:3.11
 pipelineInfo:
   name: snowflake-unload-op

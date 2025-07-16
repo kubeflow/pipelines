@@ -8,6 +8,6 @@ roleRef:
   kind: ClusterRole
   name: ack-sagemaker-controller
 subjects:
-- kind: ServiceAccount
-  name: pipeline-runner
-  namespace: kubeflow
+  - kind: ServiceAccount
+    name: pipeline-runner
+    namespace: kubeflow

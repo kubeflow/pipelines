@@ -1,25 +1,26 @@
 # kfp_server_api.ExperimentServiceApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to _http://localhost_
 
-Method | HTTP request | Description
-------------- | ------------- | -------------
-[**experiment_service_archive_experiment**](ExperimentServiceApi.md#experiment_service_archive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:archive | Archives an experiment and the experiment&#39;s runs and recurring runs.
-[**experiment_service_create_experiment**](ExperimentServiceApi.md#experiment_service_create_experiment) | **POST** /apis/v2beta1/experiments | Creates a new experiment.
-[**experiment_service_delete_experiment**](ExperimentServiceApi.md#experiment_service_delete_experiment) | **DELETE** /apis/v2beta1/experiments/{experiment_id} | Deletes an experiment without deleting the experiment&#39;s runs and recurring  runs. To avoid unexpected behaviors, delete an experiment&#39;s runs and recurring  runs before deleting the experiment.
-[**experiment_service_get_experiment**](ExperimentServiceApi.md#experiment_service_get_experiment) | **GET** /apis/v2beta1/experiments/{experiment_id} | Finds a specific experiment by ID.
-[**experiment_service_list_experiments**](ExperimentServiceApi.md#experiment_service_list_experiments) | **GET** /apis/v2beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
-[**experiment_service_unarchive_experiment**](ExperimentServiceApi.md#experiment_service_unarchive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and recurring runs will stay archived.
-
+| Method                                                                                                         | HTTP request                                                 | Description                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [**experiment_service_archive_experiment**](ExperimentServiceApi.md#experiment_service_archive_experiment)     | **POST** /apis/v2beta1/experiments/{experiment_id}:archive   | Archives an experiment and the experiment&#39;s runs and recurring runs.                                                                                                                               |
+| [**experiment_service_create_experiment**](ExperimentServiceApi.md#experiment_service_create_experiment)       | **POST** /apis/v2beta1/experiments                           | Creates a new experiment.                                                                                                                                                                              |
+| [**experiment_service_delete_experiment**](ExperimentServiceApi.md#experiment_service_delete_experiment)       | **DELETE** /apis/v2beta1/experiments/{experiment_id}         | Deletes an experiment without deleting the experiment&#39;s runs and recurring runs. To avoid unexpected behaviors, delete an experiment&#39;s runs and recurring runs before deleting the experiment. |
+| [**experiment_service_get_experiment**](ExperimentServiceApi.md#experiment_service_get_experiment)             | **GET** /apis/v2beta1/experiments/{experiment_id}            | Finds a specific experiment by ID.                                                                                                                                                                     |
+| [**experiment_service_list_experiments**](ExperimentServiceApi.md#experiment_service_list_experiments)         | **GET** /apis/v2beta1/experiments                            | Finds all experiments. Supports pagination, and sorting on certain fields.                                                                                                                             |
+| [**experiment_service_unarchive_experiment**](ExperimentServiceApi.md#experiment_service_unarchive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and recurring runs will stay archived.                                                                                             |
 
 # **experiment_service_archive_experiment**
+
 > object experiment_service_archive_experiment(experiment_id)
 
 Archives an experiment and the experiment's runs and recurring runs.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -63,9 +64,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **experiment_id** | **str**| The ID of the experiment to be archived. | 
+| Name              | Type    | Description                              | Notes |
+| ----------------- | ------- | ---------------------------------------- | ----- |
+| **experiment_id** | **str** | The ID of the experiment to be archived. |
 
 ### Return type
 
@@ -77,25 +78,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **experiment_service_create_experiment**
+
 > V2beta1Experiment experiment_service_create_experiment(body)
 
 Creates a new experiment.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -139,9 +143,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **body** | [**V2beta1Experiment**](V2beta1Experiment.md)| The experiment to be created. | 
+| Name     | Type                                          | Description                   | Notes |
+| -------- | --------------------------------------------- | ----------------------------- | ----- |
+| **body** | [**V2beta1Experiment**](V2beta1Experiment.md) | The experiment to be created. |
 
 ### Return type
 
@@ -153,25 +157,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
- - **Accept**: application/json
+- **Content-Type**: application/json
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **experiment_service_delete_experiment**
+
 > object experiment_service_delete_experiment(experiment_id)
 
-Deletes an experiment without deleting the experiment's runs and recurring  runs. To avoid unexpected behaviors, delete an experiment's runs and recurring  runs before deleting the experiment.
+Deletes an experiment without deleting the experiment's runs and recurring runs. To avoid unexpected behaviors, delete an experiment's runs and recurring runs before deleting the experiment.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -215,9 +222,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **experiment_id** | **str**| The ID of the experiment to be deleted. | 
+| Name              | Type    | Description                             | Notes |
+| ----------------- | ------- | --------------------------------------- | ----- |
+| **experiment_id** | **str** | The ID of the experiment to be deleted. |
 
 ### Return type
 
@@ -229,25 +236,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **experiment_service_get_experiment**
+
 > V2beta1Experiment experiment_service_get_experiment(experiment_id)
 
 Finds a specific experiment by ID.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -291,9 +301,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **experiment_id** | **str**| The ID of the experiment to be retrieved. | 
+| Name              | Type    | Description                               | Notes |
+| ----------------- | ------- | ----------------------------------------- | ----- |
+| **experiment_id** | **str** | The ID of the experiment to be retrieved. |
 
 ### Return type
 
@@ -305,25 +315,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **experiment_service_list_experiments**
+
 > V2beta1ListExperimentsResponse experiment_service_list_experiments(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
 
 Finds all experiments. Supports pagination, and sorting on certain fields.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -371,13 +384,13 @@ namespace = 'namespace_example' # str | Which namespace to filter the experiment
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiments call or can be omitted when fetching the first page. | [optional] 
- **page_size** | **int**| The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
- **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default. | [optional] 
- **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/api/filter.proto)). | [optional] 
- **namespace** | **str**| Which namespace to filter the experiments on. | [optional] 
+| Name           | Type    | Description                                                                                                                                                                                                 | Notes      |
+| -------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| **page_token** | **str** | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiments call or can be omitted when fetching the first page. | [optional] |
+| **page_size**  | **int** | The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.                | [optional] |
+| **sort_by**    | **str** | Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default.                                                                              | [optional] |
+| **filter**     | **str** | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/api/filter.proto)).                                         | [optional] |
+| **namespace**  | **str** | Which namespace to filter the experiments on.                                                                                                                                                               | [optional] |
 
 ### Return type
 
@@ -389,25 +402,28 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **experiment_service_unarchive_experiment**
+
 > object experiment_service_unarchive_experiment(experiment_id)
 
 Restores an archived experiment. The experiment's archived runs and recurring runs will stay archived.
 
 ### Example
 
-* Api Key Authentication (Bearer):
+- Api Key Authentication (Bearer):
+
 ```python
 from __future__ import print_function
 import time
@@ -451,9 +467,9 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **experiment_id** | **str**| The ID of the experiment to be restored. | 
+| Name              | Type    | Description                              | Notes |
+| ----------------- | ------- | ---------------------------------------- | ----- |
+| **experiment_id** | **str** | The ID of the experiment to be restored. |
 
 ### Return type
 
@@ -465,14 +481,14 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
- - **Accept**: application/json
+- **Content-Type**: Not defined
+- **Accept**: application/json
 
 ### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**200** | A successful response. |  -  |
-**0** | An unexpected error response. |  -  |
+
+| Status code | Description                   | Response headers |
+| ----------- | ----------------------------- | ---------------- |
+| **200**     | A successful response.        | -                |
+| **0**       | An unexpected error response. | -                |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-

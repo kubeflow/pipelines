@@ -2,28 +2,27 @@
 
 An example pipeline with only one [training component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/train).
 
-
-## Prerequisites 
+## Prerequisites
 
 Make sure you have set up your EKS cluster as described in this [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/README.md).
 
 Use the following python script to copy `train_data`, `test_data`, and `valid_data.csv` to your bucket.  
-[Create a bucket](https://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html) in `us-east-1` region if you don't have one already. 
+[Create a bucket](https://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html) in `us-east-1` region if you don't have one already.
 For the purposes of this demonstration, all resources will be created in the `us-east-1` region.
 
-
 Create a new file named `s3_sample_data_creator.py` with the following content:
+
 ```
 import pickle, gzip, numpy, urllib.request, json
 from urllib.parse import urlparse
 
 ###################################################################
-# This is the only thing that you need to change to run this code 
-# Give the name of your S3 bucket 
-bucket = '<bucket-name>' 
+# This is the only thing that you need to change to run this code
+# Give the name of your S3 bucket
+bucket = '<bucket-name>'
 
-# If you are gonna use the default values of the pipeline then 
-# give a bucket name which is in us-east-1 region 
+# If you are gonna use the default values of the pipeline then
+# give a bucket name which is in us-east-1 region
 ###################################################################
 
 
@@ -68,16 +67,18 @@ s3_client = boto3.client('s3')
 input_key = "{}/valid_data.csv".format("mnist_kmeans_example/input")
 s3_client.upload_file('valid-data.csv', bucket, input_key)
 ```
+
 Run this file with the follow command: `python3 s3_sample_data_creator.py`
 
+## Steps
 
-## Steps 
 1. Compile the pipeline:  
    `dsl-compile --py training-pipeline.py --output training-pipeline.tar.gz`
 2. In the Kubeflow UI, upload this compiled pipeline specification (the .tar.gz file) and click on create run.
 3. Once the pipeline completes, you can see the outputs under 'Output parameters' in the Training component's Input/Output section.
 
 Example inputs to this pipeline :
+
 ```buildoutcfg
 region : us-east-1
 endpoint_url : <leave this empty>
@@ -107,7 +108,7 @@ instance_type : ml.m5.2xlarge
 instance_count : 1
 volume_size : 50
 max_run_time : 3600
-model_artifact_path : This is where the output model will be stored 
+model_artifact_path : This is where the output model will be stored
                       s3://<your_bucket_name>/mnist_kmeans_example/output
 output_encryption_key : <leave this empty>
 network_isolation : True
@@ -115,11 +116,11 @@ traffic_encryption : False
 spot_instance : False
 max_wait_time : 3600
 checkpoint_config : {}
-role : Paste the role ARN that you noted down  
+role : Paste the role ARN that you noted down
        (The IAM role with Full SageMaker permissions and S3 access)
        Example role input->  arn:aws:iam::999999999999:role/SageMakerExecutorKFP
 ```
 
-
 # Resources
-* [Using Amazon built-in algorithms](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html)
+
+- [Using Amazon built-in algorithms](https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html)

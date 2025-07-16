@@ -7,5 +7,5 @@ roleRef:
   kind: ClusterRole
   name: ml-pipeline-viewer-controller-role
 subjects:
-- kind: ServiceAccount
-  name: ml-pipeline-viewer-crd-service-account
+  - kind: ServiceAccount
+    name: ml-pipeline-viewer-crd-service-account
