@@ -78,7 +78,7 @@ class _MockPipelineJobsResource(object):
 
 
 class ClientTest(unittest.TestCase):
-
+    @unittest.skip("This tests a deprecated Vertex-specific client")
     def test_client_init_with_defaults(self):
         api_client = client.AIPlatformClient(
             project_id='test-project', region='us-central1')
@@ -88,6 +88,7 @@ class ClientTest(unittest.TestCase):
         self.assertEqual(api_client._endpoint,
                          'us-central1-aiplatform.googleapis.com')
 
+    @unittest.skip("This tests a deprecated Vertex-specific client")
     @mock.patch.object(client, '_get_current_time', autospec=True)
     @mock.patch.object(client_utils, 'load_json', autospec=True)
     def test_create_run_from_pipeline_job(self, mock_load_json,
@@ -106,6 +107,7 @@ class ClientTest(unittest.TestCase):
             mock_submit.assert_called_once_with(
                 job_spec=golden, job_id='sample-test-pipeline-20201028000000')
 
+    @unittest.skip("This tests a deprecated Vertex-specific client")
     @mock.patch.object(client, '_get_current_time', autospec=True)
     @mock.patch.object(client_utils, 'load_json', autospec=True)
     def test_job_id_parameters_override(self, mock_load_json,
@@ -141,6 +143,7 @@ class ClientTest(unittest.TestCase):
             mock_submit.assert_called_once_with(
                 job_spec=golden, job_id='my-new-id')
 
+    @unittest.skip("This tests a deprecated Vertex-specific client")
     @mock.patch.object(client, '_get_current_time', autospec=True)
     @mock.patch.object(client_utils, 'load_json', autospec=True)
     def test_advanced_settings(self, mock_load_json, mock_get_current_time):
@@ -184,6 +187,7 @@ class ClientTest(unittest.TestCase):
                          api_client.get_job(job_id='test-job'))
         mock_get_gcp_credential.assert_called_once()
 
+    @unittest.skip("This tests a deprecated Vertex-specific client")
     @mock.patch.object(client, '_get_current_time', autospec=True)
     @mock.patch.object(client_utils, 'load_json', autospec=True)
     def test_disable_caching(self, mock_load_json, mock_get_current_time):
@@ -204,6 +208,7 @@ class ClientTest(unittest.TestCase):
             mock_submit.assert_called_once_with(
                 job_spec=golden, job_id='sample-test-pipeline-20201028000000')
 
+    @unittest.skip("This tests a deprecated Vertex-specific client")
     @mock.patch.object(client, '_get_current_time', autospec=True)
     @mock.patch.object(client_utils, 'load_json', autospec=True)
     def test_setting_labels(self, mock_load_json, mock_get_current_time):

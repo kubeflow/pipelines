@@ -1,0 +1,46 @@
+name: KFP SDK Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - 'sdk/**'
+      - 'test/presubmit-tests-sdk.sh'
+      - '.github/workflows/kfp-sdk-tests.yml'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
+jobs:
+  sdk-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.13']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install protobuf-compiler
+      run: sudo apt update && sudo apt install -y protobuf-compiler
+
+    - name: Install Wheel & setuptools
+      run: pip3 install wheel==0.42.0 setuptools
+
+    - name: Generate API proto files
+      working-directory: ./api
+      run: make clean python
+
+    - name: Install kfp-pipeline-spec from source
+      run: |
+        python3 -m pip install -I api/v2alpha1/python
+
+    - name: Run SDK Tests
+      run: |
+        ./test/presubmit-tests-sdk.sh
