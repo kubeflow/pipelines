@@ -37,6 +37,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // Methods are organized into two types: "prepare" and "verify".
@@ -328,7 +329,13 @@ func (s *UpgradeTests) VerifyPipelines() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes, true)
+	defaultPVC := &corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteMany,
+		},
+		StorageClassName: util.StringPointer("my-storage"),
+	}
+	expected, err := pipelinetemplate.New(bytes, true, defaultPVC)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template)
 }

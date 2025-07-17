@@ -211,7 +211,7 @@ func (c *PipelineClient) GetTemplate(parameters *params.PipelineServiceGetTempla
 	}
 
 	// Unmarshal response
-	return template.New([]byte(response.Payload.Template), true)
+	return template.New([]byte(response.Payload.Template), true, nil)
 }
 
 func (c *PipelineClient) List(parameters *params.PipelineServiceListPipelinesV1Params) (
@@ -361,5 +361,5 @@ func (c *PipelineClient) GetPipelineVersionTemplate(parameters *params.PipelineS
 	}
 
 	// Unmarshal response
-	return template.New([]byte(response.Payload.Template), true)
+	return template.New([]byte(response.Payload.Template), true, nil)
 }

@@ -96,7 +96,7 @@ func (p *PipelineVersionsWebhook) ValidateCreate(
 	}
 
 	// cache enabled or not doesn't matter in this context
-	tmpl, err := template.NewV2SpecTemplate([]byte(modelPipelineVersion.PipelineSpec), false)
+	tmpl, err := template.NewV2SpecTemplate([]byte(modelPipelineVersion.PipelineSpec), false, nil)
 	if err != nil {
 		return nil, newBadRequestError(fmt.Sprintf("The pipeline spec is invalid: %v", err))
 	}

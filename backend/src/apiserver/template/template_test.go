@@ -33,6 +33,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	goyaml "gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -155,6 +156,13 @@ spec:
     container:
       image: docker/whalesay:latest`
 
+var defaultPVC = &corev1.PersistentVolumeClaimSpec{
+	AccessModes: []corev1.PersistentVolumeAccessMode{
+		corev1.ReadWriteMany,
+	},
+	StorageClassName: util.StringPointer("my-storage"),
+}
+
 func TestToSwfCRDResourceGeneratedName_SpecialCharsAndSpace(t *testing.T) {
 	name, err := toSWFCRDResourceGeneratedName("! HaVe ä £unky name")
 	assert.Nil(t, err)
@@ -177,7 +185,7 @@ func TestScheduledWorkflow(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 
 	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
-	v2Template, _ := New([]byte(v2SpecHelloWorldYAML), true)
+	v2Template, _ := New([]byte(v2SpecHelloWorldYAML), true, defaultPVC)
 
 	modelJob := &model.Job{
 		K8SName:        "name1",
@@ -285,9 +293,10 @@ func TestNewTemplate_V2(t *testing.T) {
 	err = protojson.Unmarshal(jsonData, &expectedSpec)
 	assert.Nil(t, err)
 	expectedTemplate := &V2Spec{
-		spec: &expectedSpec,
+		spec:             &expectedSpec,
+		defaultWorkspace: defaultPVC,
 	}
-	templateV2Spec, err := New([]byte(template), false)
+	templateV2Spec, err := New([]byte(template), false, defaultPVC)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTemplate, templateV2Spec)
 }
@@ -313,17 +322,18 @@ func TestNewTemplate_WithPlatformSpec(t *testing.T) {
 	protojson.Unmarshal(jsonData, &expectedPlatformSpec)
 
 	expectedTemplate := &V2Spec{
-		spec:         &expectedPipelineSpec,
-		platformSpec: &expectedPlatformSpec,
+		spec:             &expectedPipelineSpec,
+		platformSpec:     &expectedPlatformSpec,
+		defaultWorkspace: defaultPVC,
 	}
-	templateV2Spec, err := New([]byte(template), false)
+	templateV2Spec, err := New([]byte(template), false, defaultPVC)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTemplate, templateV2Spec)
 }
 
 func TestNewTemplate_V2_InvalidSchemaVersion(t *testing.T) {
 	template := loadYaml(t, "testdata/hello_world_schema_2_0_0.yaml")
-	_, err := New([]byte(template), true)
+	_, err := New([]byte(template), true, defaultPVC)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "KFP only supports schema version 2.1.0")
 }
@@ -333,9 +343,9 @@ func TestNewTemplate_V2_InvalidSchemaVersion(t *testing.T) {
 // so we verify the parsed object.
 func TestBytes_V2_WithExecutorConfig(t *testing.T) {
 	template := loadYaml(t, "testdata/pipeline_with_volume.yaml")
-	templateV2Spec, _ := New([]byte(template), true)
+	templateV2Spec, _ := New([]byte(template), true, defaultPVC)
 	templateBytes := templateV2Spec.Bytes()
-	newTemplateV2Spec, err := New(templateBytes, true)
+	newTemplateV2Spec, err := New(templateBytes, true, defaultPVC)
 	assert.Nil(t, err)
 	assert.Equal(t, templateV2Spec, newTemplateV2Spec)
 }
@@ -345,9 +355,9 @@ func TestBytes_V2_WithExecutorConfig(t *testing.T) {
 // so we verify the parsed object.
 func TestBytes_V2(t *testing.T) {
 	template := loadYaml(t, "testdata/hello_world.yaml")
-	templateV2Spec, _ := New([]byte(template), true)
+	templateV2Spec, _ := New([]byte(template), true, defaultPVC)
 	templateBytes := templateV2Spec.Bytes()
-	newTemplateV2Spec, err := New(templateBytes, true)
+	newTemplateV2Spec, err := New(templateBytes, true, defaultPVC)
 	assert.Nil(t, err)
 	assert.Equal(t, templateV2Spec, newTemplateV2Spec)
 }
