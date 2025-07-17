@@ -116,7 +116,7 @@ spec:
           - name: pod-metadata-label-val
             value: '{{inputs.parameters.pod-metadata-label-val}}'
         name: executor
-        template: metadata-system-container-impl
+        template: metadata-1-1-system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
     inputs:
       parameters:
@@ -128,7 +128,7 @@ spec:
       - name: pod-metadata-label-key
       - name: pod-metadata-label-val
     metadata: {}
-    name: metadata-system-container-executor
+    name: metadata-1-1-system-container-executor
     outputs: {}
   - container:
       command:
@@ -193,7 +193,7 @@ spec:
         '{{inputs.parameters.pod-metadata-annotation-key}}': '{{inputs.parameters.pod-metadata-annotation-val}}'
       labels:
         '{{inputs.parameters.pod-metadata-label-key}}': '{{inputs.parameters.pod-metadata-label-val}}'
-    name: metadata-system-container-impl
+    name: metadata-1-1-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     volumes:
@@ -244,7 +244,7 @@ spec:
             value: 'pipeline-node'
         depends: hello-world-driver.Succeeded
         name: hello-world
-        template: metadata-system-container-executor
+        template: metadata-1-1-system-container-executor
     inputs:
       parameters:
       - name: parent-dag-id
