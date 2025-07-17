@@ -74,9 +74,9 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/create_pod_metadata.yaml",
 		},
 		{
-			jobPath:          "../testdata/create_pod_metadata_two_component.json",
-			platformSpecPath: "../testdata/create_pod_metadata_two_component_platform.json",
-			argoYAMLPath:     "testdata/create_pod_metadata_two_component.yaml",
+			jobPath:          "../testdata/create_pod_metadata_complex.json",
+			platformSpecPath: "../testdata/create_pod_metadata_complex_platform.json",
+			argoYAMLPath:     "testdata/create_pod_metadata_complex.yaml",
 		},
 		{
 			jobPath:          "../testdata/exit_handler.json",

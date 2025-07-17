@@ -7,7 +7,7 @@ spec:
   arguments:
     parameters:
     - name: kubernetes-comp-hello-world
-      value: '{"podMetadata":{"annotations":{"run_id":"123456"},"labels":{"kubeflow.com/kfp":"pipeline-node"}}}'
+      value: '{"podMetadata":{"annotations":{"experiment_id":"234567","run_id":"123456"},"labels":{"kubeflow.com/common":"test","kubeflow.com/kfp":"pipeline-node"}}}'
     - name: components-203fce8adabe0cfa7da54b9d3ff79c772136c926974659b51c378727c7ccdfb7
       value: '{"executorLabel":"exec-hello-world","inputDefinitions":{"parameters":{"text":{"type":"STRING"}}}}'
     - name: implementations-203fce8adabe0cfa7da54b9d3ff79c772136c926974659b51c378727c7ccdfb7
@@ -110,28 +110,40 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
-          - name: pod-metadata-annotation-key
-            value: '{{inputs.parameters.pod-metadata-annotation-key}}'
-          - name: pod-metadata-annotation-val
-            value: '{{inputs.parameters.pod-metadata-annotation-val}}'
-          - name: pod-metadata-label-key
-            value: '{{inputs.parameters.pod-metadata-label-key}}'
-          - name: pod-metadata-label-val
-            value: '{{inputs.parameters.pod-metadata-label-val}}'
+          - name: pod-metadata-annotation-key-1
+            value: '{{inputs.parameters.pod-metadata-annotation-key-1}}'
+          - name: pod-metadata-annotation-val-1
+            value: '{{inputs.parameters.pod-metadata-annotation-val-1}}'
+          - name: pod-metadata-annotation-key-2
+            value: '{{inputs.parameters.pod-metadata-annotation-key-2}}'
+          - name: pod-metadata-annotation-val-2
+            value: '{{inputs.parameters.pod-metadata-annotation-val-2}}'
+          - name: pod-metadata-label-key-1
+            value: '{{inputs.parameters.pod-metadata-label-key-1}}'
+          - name: pod-metadata-label-val-1
+            value: '{{inputs.parameters.pod-metadata-label-val-1}}'
+          - name: pod-metadata-label-key-2
+            value: '{{inputs.parameters.pod-metadata-label-key-2}}'
+          - name: pod-metadata-label-val-2
+            value: '{{inputs.parameters.pod-metadata-label-val-2}}'
         name: executor
-        template: metadata-system-container-impl
+        template: metadata-2-2-system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
     inputs:
       parameters:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
-      - name: pod-metadata-annotation-key
-      - name: pod-metadata-annotation-val
-      - name: pod-metadata-label-key
-      - name: pod-metadata-label-val
+      - name: pod-metadata-annotation-key-1
+      - name: pod-metadata-annotation-val-1
+      - name: pod-metadata-annotation-key-2
+      - name: pod-metadata-annotation-val-2
+      - name: pod-metadata-label-key-1
+      - name: pod-metadata-label-val-1
+      - name: pod-metadata-label-key-2
+      - name: pod-metadata-label-val-2
     metadata: {}
-    name: metadata-system-container-executor
+    name: metadata-2-2-system-container-executor
     outputs: {}
   - container:
       command:
@@ -187,16 +199,22 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
-      - name: pod-metadata-annotation-key
-      - name: pod-metadata-annotation-val
-      - name: pod-metadata-label-key
-      - name: pod-metadata-label-val
+      - name: pod-metadata-annotation-key-1
+      - name: pod-metadata-annotation-val-1
+      - name: pod-metadata-annotation-key-2
+      - name: pod-metadata-annotation-val-2
+      - name: pod-metadata-label-key-1
+      - name: pod-metadata-label-val-1
+      - name: pod-metadata-label-key-2
+      - name: pod-metadata-label-val-2
     metadata:
       annotations:
-        '{{inputs.parameters.pod-metadata-annotation-key}}': '{{inputs.parameters.pod-metadata-annotation-val}}'
+        '{{inputs.parameters.pod-metadata-annotation-key-1}}': '{{inputs.parameters.pod-metadata-annotation-val-1}}'
+        '{{inputs.parameters.pod-metadata-annotation-key-2}}': '{{inputs.parameters.pod-metadata-annotation-val-2}}'
       labels:
-        '{{inputs.parameters.pod-metadata-label-key}}': '{{inputs.parameters.pod-metadata-label-val}}'
-    name: metadata-system-container-impl
+        '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
+        '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
+    name: metadata-2-2-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     volumes:
@@ -239,17 +257,25 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.hello-world-driver.outputs.parameters.cached-decision}}'
-          - name: pod-metadata-annotation-key
+          - name: pod-metadata-annotation-key-1
+            value: 'experiment_id'
+          - name: pod-metadata-annotation-val-1
+            value: '234567'
+          - name: pod-metadata-annotation-key-2
             value: 'run_id'
-          - name: pod-metadata-annotation-val
+          - name: pod-metadata-annotation-val-2
             value: '123456'
-          - name: pod-metadata-label-key
+          - name: pod-metadata-label-key-1
+            value: 'kubeflow.com/common'
+          - name: pod-metadata-label-val-1
+            value: 'test'
+          - name: pod-metadata-label-key-2
             value: 'kubeflow.com/kfp'
-          - name: pod-metadata-label-val
+          - name: pod-metadata-label-val-2
             value: 'pipeline-node'
         depends: hello-world-driver.Succeeded
         name: hello-world
-        template: metadata-system-container-executor
+        template: metadata-2-2-system-container-executor
     inputs:
       parameters:
       - name: parent-dag-id
