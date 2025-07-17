@@ -13,7 +13,7 @@ As a result, driver-plugin implementations should merely act as a proxy between 
 - According to the [configuration](https://argo-workflows.readthedocs.io/en/latest/executor_plugins/#configuration) ARGO_EXECUTOR_PLUGINS should be set to true 
 - Add additional [workflow RBAC](https://argo-workflows.readthedocs.io/en/latest/http-template/#argo-agent-rbac) for the agent
 
-1. Implement the driver plugin that simply proxies requests from the workflow controller to the kfp-driver-server and back. Check the mock [implementation](src/driver-plugin)
+1. Implement the driver plugin that simply proxies requests from the workflow controller to the kfp-driver-server and back. 
 2. Build the image for the driver plugin.
 3. Create the [yaml description](src/driver-plugin/plugin.yaml) of the plugin 
 4. [Create](https://argo-workflows.readthedocs.io/en/latest/cli/argo_executor-plugin_build/) the configmap by executing  ```argo executor-plugin build .``` in the yaml description folder from the step 3 
