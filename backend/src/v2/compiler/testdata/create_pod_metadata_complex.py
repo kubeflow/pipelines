@@ -1,5 +1,4 @@
-from kfp import dsl
-from kfp.compiler import compiler
+from kfp import dsl, compiler
 from kfp.kubernetes import add_pod_annotation
 from kfp.kubernetes import add_pod_label
 from kfp.kubernetes import use_field_path_as_env
@@ -98,8 +97,6 @@ def pipeline_with_pod_metadata():
 
     # task c is set with no metadata
     task_c = validate_no_pod_metadata(annotation_path="POD_TASK_ANNOTATION", label_path="POD_TASK_LABEL").set_caching_options(False)
-    use_field_path_as_env(task_c, "POD_TASK_ANNOTATION", "metadata.annotations['task-annotation']")
-    use_field_path_as_env(task_c, "POD_TASK_LABEL", "metadata.labels['task-label']")
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
