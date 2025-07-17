@@ -97,7 +97,7 @@ func createPipelineVersion(pipelineId string, name string, description string, u
 	}
 	paramsJSON := "[{\"name\":\"param1\"}]"
 	spec := pipelineSpec
-	tmpl, err := template.New([]byte(pipelineSpec), false)
+	tmpl, err := template.New([]byte(pipelineSpec), false, nil)
 	if err != nil {
 		spec = pipelineSpec
 	} else {
@@ -674,13 +674,13 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			require.Nil(t, err)
 			bytes, err := manager.GetPipelineVersionTemplate(version.UUID)
 			require.Nil(t, err)
-			tmpl, err := template.New(bytes, true)
+			tmpl, err := template.New(bytes, true, nil)
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 
 			bytes, err = manager.GetPipelineLatestTemplate(createdPipeline.UUID)
 			require.Nil(t, err)
-			tmpl, err = template.New(bytes, true)
+			tmpl, err = template.New(bytes, true, nil)
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 		})

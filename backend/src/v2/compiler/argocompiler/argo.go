@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -30,6 +31,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -43,8 +45,17 @@ type Options struct {
 	PipelineRoot string
 	// optional
 	CacheDisabled bool
+	// optional
+	DefaultWorkspace *k8score.PersistentVolumeClaimSpec
+	// optional, default workspace size from API server config
+	DefaultWorkspaceSize string
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 }
+
+const (
+	fallbackWorkspaceSize = "10Gi" // Used if no size is set in apiserver config but workspace is requested
+	workspaceVolumeName   = "kfp-workspace"
+)
 
 func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options) (*wfapi.Workflow, error) {
 	// clone jobArg, because we don't want to change it
@@ -93,6 +104,19 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			return nil, fmt.Errorf("bug: cloned Kubernetes spec message does not have expected type")
 		}
 	}
+	var volumeClaimTemplates []k8score.PersistentVolumeClaim
+	hasPipelineConfig := kubernetesSpec != nil && kubernetesSpec.GetPipelineConfig() != nil
+	hasWorkspace := hasPipelineConfig && kubernetesSpec.GetPipelineConfig().GetWorkspace() != nil
+	if hasWorkspace {
+		workspace := kubernetesSpec.GetPipelineConfig().GetWorkspace()
+		if k8sWorkspace := workspace.GetKubernetes(); k8sWorkspace != nil {
+			pvc, err := GetWorkspacePVC(workspace, opts)
+			if err != nil {
+				return nil, err
+			}
+			volumeClaimTemplates = append(volumeClaimTemplates, pvc)
+		}
+	}
 
 	// initialization
 	wf := &wfapi.Workflow{
@@ -123,8 +147,9 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			Arguments: wfapi.Arguments{
 				Parameters: []wfapi.Parameter{},
 			},
-			ServiceAccountName: common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
-			Entrypoint:         tmplEntrypoint,
+			ServiceAccountName:   common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount),
+			Entrypoint:           tmplEntrypoint,
+			VolumeClaimTemplates: volumeClaimTemplates,
 		},
 	}
 
@@ -147,6 +172,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 	}
 	if opts != nil {
 		c.cacheDisabled = opts.CacheDisabled
+		c.defaultWorkspace = opts.DefaultWorkspace
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -175,13 +201,14 @@ type workflowCompiler struct {
 	spec      *pipelinespec.PipelineSpec
 	executors map[string]*pipelinespec.PipelineDeploymentConfig_ExecutorSpec
 	// state
-	wf              *wfapi.Workflow
-	templates       map[string]*wfapi.Template
-	driverImage     string
-	driverCommand   []string
-	launcherImage   string
-	launcherCommand []string
-	cacheDisabled   bool
+	wf               *wfapi.Workflow
+	templates        map[string]*wfapi.Template
+	driverImage      string
+	driverCommand    []string
+	launcherImage    string
+	launcherCommand  []string
+	cacheDisabled    bool
+	defaultWorkspace *k8score.PersistentVolumeClaimSpec
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
@@ -433,4 +460,93 @@ const (
 var dummyImages = map[string]bool{
 	"argostub/createpvc": true,
 	"argostub/deletepvc": true,
+}
+
+// convertStructToPVCSpec converts a protobuf Struct to a PersistentVolumeClaimSpec using JSON marshaling/unmarshalling.
+func convertStructToPVCSpec(structVal *structpb.Struct) (*k8score.PersistentVolumeClaimSpec, error) {
+	if structVal == nil {
+		return nil, nil
+	}
+	jsonBytes, err := structVal.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+
+	// Strict validation: check for unknown fields
+	var patchMap map[string]interface{}
+	if err := json.Unmarshal(jsonBytes, &patchMap); err != nil {
+		return nil, err
+	}
+	// List of allowed fields in PersistentVolumeClaimSpec
+	allowed := map[string]struct{}{
+		"accessModes":      {},
+		"storageClassName": {},
+	}
+	var unknown []string
+	for k := range patchMap {
+		if _, ok := allowed[k]; !ok {
+			unknown = append(unknown, k)
+		}
+	}
+	if len(unknown) > 0 {
+		return nil, fmt.Errorf("unknown fields in PVC spec patch: %v", unknown)
+	}
+
+	var pvcSpec k8score.PersistentVolumeClaimSpec
+	if err := json.Unmarshal(jsonBytes, &pvcSpec); err != nil {
+		return nil, err
+	}
+	return &pvcSpec, nil
+}
+
+// GetWorkspacePVC constructs a PersistentVolumeClaim for the workspace.
+// It uses the default PVC spec (from API server config), and applies any user-specified
+// overrides from the pipeline spec, including the requested storage size.
+func GetWorkspacePVC(
+	workspace *pipelinespec.WorkspaceConfig,
+	opts *Options,
+) (k8score.PersistentVolumeClaim, error) {
+	sizeStr := workspace.GetSize()
+	if sizeStr == "" && opts != nil && opts.DefaultWorkspaceSize != "" {
+		sizeStr = opts.DefaultWorkspaceSize
+	}
+	if sizeStr == "" {
+		sizeStr = fallbackWorkspaceSize
+	}
+
+	k8sWorkspace := workspace.GetKubernetes()
+	var pvcSpec k8score.PersistentVolumeClaimSpec
+	// If no default workspace spec is configured, users can still use workspaces.
+	// This allows workspace usage without requiring default configuration.
+	if opts != nil && opts.DefaultWorkspace != nil {
+		pvcSpec = *opts.DefaultWorkspace.DeepCopy()
+	}
+	if k8sWorkspace != nil {
+		if k8sWorkspacePVCSpec := k8sWorkspace.GetPvcSpecPatch(); k8sWorkspacePVCSpec != nil {
+			userPatch, err := convertStructToPVCSpec(k8sWorkspacePVCSpec)
+			if err != nil {
+				return k8score.PersistentVolumeClaim{}, err
+			}
+			pvcSpec = *util.PatchPVCSpec(&pvcSpec, userPatch)
+		}
+	}
+
+	quantity, err := resource.ParseQuantity(sizeStr)
+	if err != nil {
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf("invalid size value for workspace PVC: %v", err)
+	}
+	if quantity.Sign() < 0 {
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf("negative size value for workspace PVC: %v", sizeStr)
+	}
+	if pvcSpec.Resources.Requests == nil {
+		pvcSpec.Resources.Requests = make(map[k8score.ResourceName]resource.Quantity)
+	}
+	pvcSpec.Resources.Requests[k8score.ResourceStorage] = quantity
+
+	return k8score.PersistentVolumeClaim{
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name: workspaceVolumeName,
+		},
+		Spec: pvcSpec,
+	}, nil
 }

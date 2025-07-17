@@ -48,6 +48,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	corev1 "k8s.io/api/core/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -57,6 +58,8 @@ import (
 const (
 	executionTypeEnv = "ExecutionType"
 	launcherEnv      = "Launcher"
+	workspaceConfig  = "workspace"
+	workspaceSize    = "size"
 )
 
 var (
@@ -157,11 +160,20 @@ func main() {
 
 	}
 
+	var pvcSpec *corev1.PersistentVolumeClaimSpec
+	var defaultWorkspaceSize string
+	pvcSpec, defaultWorkspaceSize, err = getPVCSpec()
+	if err != nil {
+		glog.Fatalf("Failed to get Workspace PVC Spec: %v", err)
+	}
+
 	resourceManager := resource.NewResourceManager(
 		clientManager,
 		&resource.ResourceManagerOptions{
-			CollectMetrics: *collectMetricsFlag,
-			CacheDisabled:  !common.GetBoolConfigWithDefault("CacheEnabled", true),
+			CollectMetrics:       *collectMetricsFlag,
+			CacheDisabled:        !common.GetBoolConfigWithDefault("CacheEnabled", true),
+			DefaultWorkspace:     pvcSpec,
+			DefaultWorkspaceSize: defaultWorkspaceSize,
 		},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
@@ -397,4 +409,23 @@ func initConfig() {
 	})
 
 	proxy.InitializeConfigWithEnv()
+}
+
+// getPVCSpec retrieves the default workspace PersistentVolumeClaimSpec and size from the config.
+// These defaults are used for workspace PVCs when users do not specify their own configuration.
+func getPVCSpec() (*corev1.PersistentVolumeClaimSpec, string, error) {
+	workspaceConfig := viper.Sub(workspaceConfig)
+	if workspaceConfig == nil {
+		glog.Info("No workspace config found; proceeding without a default PVC spec")
+		return nil, "", nil
+	}
+	var pvcSpec corev1.PersistentVolumeClaimSpec
+	if err := workspaceConfig.UnmarshalKey("volumeclaimtemplatespec", &pvcSpec); err != nil {
+		return nil, "", fmt.Errorf("failed to unmarshal workspace.volumeclaimtemplatespec: %w", err)
+	}
+	if len(pvcSpec.AccessModes) == 0 || pvcSpec.StorageClassName == nil || *pvcSpec.StorageClassName == "" {
+		return nil, "", fmt.Errorf("invalid workspace.volumeclaimtemplatespec: must specify accessModes and storageClassName")
+	}
+	defaultSize := workspaceConfig.GetString(workspaceSize)
+	return &pvcSpec, defaultSize, nil
 }

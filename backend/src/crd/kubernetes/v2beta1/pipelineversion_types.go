@@ -94,7 +94,7 @@ type PipelineVersionList struct {
 }
 
 func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.PipelineVersion) (*PipelineVersion, error) {
-	v2Spec, err := template.NewV2SpecTemplate([]byte(pipelineVersion.PipelineSpec), false)
+	v2Spec, err := template.NewV2SpecTemplate([]byte(pipelineVersion.PipelineSpec), false, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the pipeline spec: %w", err)
 	}
