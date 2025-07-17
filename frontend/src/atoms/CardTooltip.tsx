@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import { withStyles } from '@material-ui/core/styles';
-import Tooltip from '@material-ui/core/Tooltip';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import withStyles from '@mui/styles/withStyles';
+import Tooltip from '@mui/material/Tooltip';
 import React, { ReactNode } from 'react';
 import { color, fontsize } from '../Css';
 
@@ -43,7 +43,6 @@ export const CardTooltip: React.FC<CardTooltipProps> = props => {
           <CardContent>{props.helpText}</CardContent>
         </Card>
       }
-      interactive={true}
       leaveDelay={400}
       placement='top'
     >

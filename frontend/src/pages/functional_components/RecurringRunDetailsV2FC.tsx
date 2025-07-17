@@ -30,7 +30,9 @@ import { KeyValue } from 'src/lib/StaticGraphParser';
 import { formatDateString, enabledDisplayStringV2, errorToMessage } from 'src/lib/Utils';
 import { triggerDisplayString } from 'src/lib/TriggerUtils';
 
-export function RecurringRunDetailsV2FC(props: PageProps) {
+export function RecurringRunDetailsV2FC(
+  props: PageProps<{ [RouteParams.recurringRunId]: string }>,
+) {
   const { updateBanner, updateToolbar } = props;
   const [refresh, setRefresh] = useState(true);
   const [getRecurringRunErrMsg, setGetRecurringRunErrMsg] = useState<string>('');

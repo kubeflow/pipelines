@@ -28,7 +28,9 @@ import { RecurringRunDetailsV2FC } from 'src/pages/functional_components/Recurri
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 
 // This is a router to determine whether to show V1 or V2 recurring run details page.
-export default function RecurringRunDetailsRouter(props: PageProps) {
+export default function RecurringRunDetailsRouter(
+  props: PageProps<{ [RouteParams.recurringRunId]: string }>,
+) {
   const recurringRunId = props.match.params[RouteParams.recurringRunId];
   let pipelineManifest: string | undefined;
 

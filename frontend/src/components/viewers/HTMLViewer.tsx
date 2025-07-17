@@ -81,6 +81,7 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
         src='about:blank'
         className={this._css.iframe}
         sandbox='allow-scripts'
+        data-testid='html-viewer-iframe'
       />
     );
   }

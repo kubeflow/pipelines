@@ -18,9 +18,7 @@
 // Because this is test utils.
 
 import 'src/build/tailwind.output.css';
-import { mount, ReactWrapper } from 'enzyme';
 import { format } from 'prettier';
-import { object } from 'prop-types';
 import * as React from 'react';
 import { QueryClient } from 'react-query';
 import { match } from 'react-router';
@@ -31,19 +29,25 @@ import { ToolbarActionConfig } from './components/Toolbar';
 import { Feature } from './features';
 import { logger } from './lib/Utils';
 import { Page, PageProps } from './pages/Page';
+import { render, RenderResult } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 
 export default class TestUtils {
   /**
-   * Mounts the given component with a fake router and returns the mounted tree
+   * Mounts the given component with a fake router and returns the render result
+   * (RTL version)
    */
-  // tslint:disable-next-line:variable-name
-  public static mountWithRouter(component: React.ReactElement<any>): ReactWrapper {
-    const childContextTypes = {
-      router: object,
-    };
-    const context = createRouterContext();
-    const tree = mount(component, { context, childContextTypes });
-    return tree;
+  public static renderWithRouter(
+    component: React.ReactElement,
+    initialEntries: string[] = ['/']
+  ): RenderResult {
+    return render(
+      React.createElement(
+        MemoryRouter,
+        { initialEntries },
+        component
+      )
+    );
   }
 
   /**
@@ -87,7 +91,6 @@ export default class TestUtils {
    * Page components, taking care of setting ToolbarProps properly, which have
    * to be set after component initialization.
    */
-  // tslint:disable-next-line:variable-name
   public static generatePageProps(
     PageElement: new (_: PageProps) => Page<any, any>,
     location: Location,

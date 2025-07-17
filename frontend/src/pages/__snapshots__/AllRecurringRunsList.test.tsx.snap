@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`AllRunsList renders all runs 1`] = `
+exports[`AllRecurringRunsList renders all recurring runs 1`] = `
 <DocumentFragment>
   <div
     class="page"
@@ -21,7 +21,7 @@ exports[`AllRunsList renders all runs 1`] = `
               for="tableFilterBox"
               id="tableFilterBox-label"
             >
-              Filter runs
+              Filter recurring runs
             </label>
             <div
               class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
@@ -57,7 +57,7 @@ exports[`AllRunsList renders all runs 1`] = `
                   class="css-14lo706"
                 >
                   <span>
-                    Filter runs
+                    Filter recurring runs
                   </span>
                 </legend>
               </fieldset>
@@ -96,8 +96,8 @@ exports[`AllRunsList renders all runs 1`] = `
           </div>
           <div
             class="columnName"
-            style="width: 25%;"
-            title="Run name"
+            style="width: 30%;"
+            title="Recurring Run Name"
           >
             <span
               aria-label="Sort"
@@ -106,7 +106,7 @@ exports[`AllRunsList renders all runs 1`] = `
               role="button"
               tabindex="0"
             >
-              Run name
+              Recurring Run Name
               <svg
                 aria-hidden="true"
                 class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
@@ -122,7 +122,7 @@ exports[`AllRunsList renders all runs 1`] = `
           </div>
           <div
             class="columnName"
-            style="width: 8.333333333333332%;"
+            style="width: 10%;"
             title="Status"
           >
             <span
@@ -148,8 +148,8 @@ exports[`AllRunsList renders all runs 1`] = `
           </div>
           <div
             class="columnName"
-            style="width: 8.333333333333332%;"
-            title="Duration"
+            style="width: 20%;"
+            title="Trigger"
           >
             <span
               aria-label="Cannot sort by this column"
@@ -158,7 +158,7 @@ exports[`AllRunsList renders all runs 1`] = `
               role="button"
               tabindex="0"
             >
-              Duration
+              Trigger
               <svg
                 aria-hidden="true"
                 class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
@@ -174,7 +174,7 @@ exports[`AllRunsList renders all runs 1`] = `
           </div>
           <div
             class="columnName"
-            style="width: 16.666666666666664%;"
+            style="width: 20%;"
             title="Experiment"
           >
             <span
@@ -200,60 +200,8 @@ exports[`AllRunsList renders all runs 1`] = `
           </div>
           <div
             class="columnName"
-            style="width: 16.666666666666664%;"
-            title="Pipeline Version"
-          >
-            <span
-              aria-label="Cannot sort by this column"
-              class="MuiButtonBase-root MuiTableSortLabel-root ellipsis css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              Pipeline Version
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </div>
-          <div
-            class="columnName"
-            style="width: 8.333333333333332%;"
-            title="Recurring Run"
-          >
-            <span
-              aria-label="Cannot sort by this column"
-              class="MuiButtonBase-root MuiTableSortLabel-root ellipsis css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
-              data-mui-internal-clone-element="true"
-              role="button"
-              tabindex="0"
-            >
-              Recurring Run
-              <svg
-                aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
-                data-testid="ArrowDownwardIcon"
-                focusable="false"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
-                />
-              </svg>
-            </span>
-          </div>
-          <div
-            class="columnName"
-            style="width: 16.666666666666664%;"
-            title="Start time"
+            style="width: 20%;"
+            title="Created at"
           >
             <span
               aria-label="Sort"
@@ -262,7 +210,7 @@ exports[`AllRunsList renders all runs 1`] = `
               role="button"
               tabindex="0"
             >
-              Start time
+              Created at
               <svg
                 aria-hidden="true"
                 class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
@@ -319,12 +267,12 @@ exports[`AllRunsList renders all runs 1`] = `
               class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
             >
               <div
-                aria-controls="mui-8"
+                aria-controls="mui-6"
                 aria-expanded="false"
                 aria-haspopup="listbox"
-                aria-labelledby="mui-9"
+                aria-labelledby="mui-7"
                 class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                id="mui-9"
+                id="mui-7"
                 role="combobox"
                 tabindex="0"
               >

@@ -16,7 +16,7 @@
 
 import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './CustomTable';
 import * as React from 'react';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { RouteComponentProps } from 'react-router-dom';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,
@@ -30,7 +30,8 @@ import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import RunList from 'src/pages/RunList';
 import produce from 'immer';
-import Tooltip from '@material-ui/core/Tooltip';
+import Tooltip from '@mui/material/Tooltip';
+import { ForwardedLink } from 'src/atoms/ForwardedLink';
 
 export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;
@@ -109,14 +110,14 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
     props: CustomRendererProps<string>,
   ) => {
     return (
-      <Tooltip title={props.value} enterDelay={300} placement='top-start'>
-        <Link
+      <Tooltip title={props.value ?? ''} enterDelay={300} placement='top-start'>
+        <ForwardedLink
           className={commonCss.link}
           onClick={e => e.stopPropagation()}
           to={RoutePage.EXPERIMENT_DETAILS.replace(':' + RouteParams.experimentId, props.id)}
         >
           {props.value}
-        </Link>
+        </ForwardedLink>
       </Tooltip>
     );
   };

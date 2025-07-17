@@ -1,593 +1,1078 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`PagedTable does not break on empty data 1`] = `
-<div
-  className="page"
-  style={
-    Object {
-      "width": "100%",
-    }
-  }
->
-  <WithStyles(Table)
-    style={
-      Object {
-        "display": "block",
-        "overflow": "auto",
-      }
-    }
+<DocumentFragment>
+  <div
+    class="page"
+    style="width: 100%;"
   >
-    <WithStyles(TableHead)>
-      <WithStyles(TableRow) />
-    </WithStyles(TableHead)>
-    <WithStyles(TableBody)>
-      <WithStyles(TableRow)
-        style={
-          Object {
-            "height": 300,
-          }
-        }
+    <table
+      class="MuiTable-root css-rqglhn-MuiTable-root"
+      style="display: block; overflow: auto;"
+    >
+      <thead
+        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
       >
-        <WithStyles(TableCell)
-          colSpan={6}
+        <tr
+          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
         />
-      </WithStyles(TableRow)>
-    </WithStyles(TableBody)>
-  </WithStyles(Table)>
-  <WithStyles(TablePagination)
-    component="div"
-    count={0}
-    onChangePage={[Function]}
-    onChangeRowsPerPage={[Function]}
-    page={0}
-    rowsPerPage={10}
-  />
-</div>
+      </thead>
+      <tbody
+        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
+      >
+        <tr
+          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          style="height: 300px;"
+        >
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            colspan="6"
+          />
+        </tr>
+      </tbody>
+    </table>
+    <div
+      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+    >
+      <div
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+      >
+        <div
+          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
+        />
+        <p
+          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          id="mui-3"
+        >
+          Rows per page:
+        </p>
+        <div
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+        >
+          <div
+            aria-controls="mui-1"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-labelledby="mui-3 mui-2"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            id="mui-2"
+            role="combobox"
+            tabindex="0"
+          >
+            10
+          </div>
+          <input
+            aria-hidden="true"
+            aria-invalid="false"
+            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            tabindex="-1"
+            value="10"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            data-testid="ArrowDropDownIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+        <p
+          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        >
+          0–0 of 0
+        </p>
+        <div
+          class="MuiTablePagination-actions"
+        >
+          <button
+            aria-label="Go to previous page"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            disabled=""
+            tabindex="-1"
+            title="Go to previous page"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="KeyboardArrowLeftIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
+              />
+            </svg>
+          </button>
+          <button
+            aria-label="Go to next page"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            disabled=""
+            tabindex="-1"
+            title="Go to next page"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="KeyboardArrowRightIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
 `;
 
-exports[`PagedTable does not break on no config 1`] = `""`;
+exports[`PagedTable does not break on no config 1`] = `<DocumentFragment />`;
 
 exports[`PagedTable renders simple data 1`] = `
-<div
-  className="page"
-  style={
-    Object {
-      "width": "100%",
-    }
-  }
->
-  <WithStyles(Table)
-    style={
-      Object {
-        "display": "block",
-        "overflow": "auto",
-      }
-    }
+<DocumentFragment>
+  <div
+    class="page"
+    style="width: 100%;"
   >
-    <WithStyles(TableHead)>
-      <WithStyles(TableRow)>
-        <WithStyles(TableCell)
-          className="columnName"
-          key="0"
-          sortDirection="asc"
+    <table
+      class="MuiTable-root css-rqglhn-MuiTable-root"
+      style="display: block; overflow: auto;"
+    >
+      <thead
+        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
+      >
+        <tr
+          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
         >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            title="Sort"
+          <th
+            aria-sort="ascending"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName css-1ygcj2i-MuiTableCell-root"
+            scope="col"
           >
-            <WithStyles(TableSortLabel)
-              active={true}
-              direction="asc"
-              onClick={[Function]}
+            <span
+              aria-label="Sort"
+              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              data-mui-internal-clone-element="true"
+              data-testid="table-sort-label-0"
+              role="button"
+              tabindex="0"
             >
               field1
-            </WithStyles(TableSortLabel)>
-          </WithStyles(Tooltip)>
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="columnName"
-          key="1"
-          sortDirection={false}
-        >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            title="Sort"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                data-testid="ArrowDownwardIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+                />
+              </svg>
+            </span>
+          </th>
+          <th
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName css-1ygcj2i-MuiTableCell-root"
+            scope="col"
           >
-            <WithStyles(TableSortLabel)
-              active={false}
-              direction="asc"
-              onClick={[Function]}
+            <span
+              aria-label="Sort"
+              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              data-mui-internal-clone-element="true"
+              data-testid="table-sort-label-1"
+              role="button"
+              tabindex="0"
             >
               field2
-            </WithStyles(TableSortLabel)>
-          </WithStyles(Tooltip)>
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="columnName"
-          key="2"
-          sortDirection={false}
-        >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            title="Sort"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                data-testid="ArrowDownwardIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+                />
+              </svg>
+            </span>
+          </th>
+          <th
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName css-1ygcj2i-MuiTableCell-root"
+            scope="col"
           >
-            <WithStyles(TableSortLabel)
-              active={false}
-              direction="asc"
-              onClick={[Function]}
+            <span
+              aria-label="Sort"
+              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              data-mui-internal-clone-element="true"
+              data-testid="table-sort-label-2"
+              role="button"
+              tabindex="0"
             >
               field3
-            </WithStyles(TableSortLabel)>
-          </WithStyles(Tooltip)>
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-    </WithStyles(TableHead)>
-    <WithStyles(TableBody)>
-      <WithStyles(TableRow)
-        className="row"
-        hover={true}
-        key="0"
-        tabIndex={-1}
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                data-testid="ArrowDownwardIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+                />
+              </svg>
+            </span>
+          </th>
+        </tr>
+      </thead>
+      <tbody
+        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
       >
-        <WithStyles(TableCell)
-          className="cell"
-          key="0"
+        <tr
+          class="MuiTableRow-root MuiTableRow-hover row css-1q1u3t4-MuiTableRow-root"
+          tabindex="-1"
         >
-          col1
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="1"
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col1
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col2
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col3
+          </td>
+        </tr>
+        <tr
+          class="MuiTableRow-root MuiTableRow-hover row css-1q1u3t4-MuiTableRow-root"
+          tabindex="-1"
         >
-          col2
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="2"
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col4
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col5
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col6
+          </td>
+        </tr>
+        <tr
+          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          style="height: 240px;"
         >
-          col3
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-      <WithStyles(TableRow)
-        className="row"
-        hover={true}
-        key="1"
-        tabIndex={-1}
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            colspan="6"
+          />
+        </tr>
+      </tbody>
+    </table>
+    <div
+      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+    >
+      <div
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
       >
-        <WithStyles(TableCell)
-          className="cell"
-          key="0"
-        >
-          col4
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="1"
-        >
-          col5
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="2"
-        >
-          col6
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-      <WithStyles(TableRow)
-        style={
-          Object {
-            "height": 240,
-          }
-        }
-      >
-        <WithStyles(TableCell)
-          colSpan={6}
+        <div
+          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
         />
-      </WithStyles(TableRow)>
-    </WithStyles(TableBody)>
-  </WithStyles(Table)>
-  <WithStyles(TablePagination)
-    component="div"
-    count={2}
-    onChangePage={[Function]}
-    onChangeRowsPerPage={[Function]}
-    page={0}
-    rowsPerPage={10}
-  />
-</div>
+        <p
+          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          id="mui-9"
+        >
+          Rows per page:
+        </p>
+        <div
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+        >
+          <div
+            aria-controls="mui-7"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-labelledby="mui-9 mui-8"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            id="mui-8"
+            role="combobox"
+            tabindex="0"
+          >
+            10
+          </div>
+          <input
+            aria-hidden="true"
+            aria-invalid="false"
+            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            tabindex="-1"
+            value="10"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            data-testid="ArrowDropDownIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+        <p
+          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        >
+          1–2 of 2
+        </p>
+        <div
+          class="MuiTablePagination-actions"
+        >
+          <button
+            aria-label="Go to previous page"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            disabled=""
+            tabindex="-1"
+            title="Go to previous page"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="KeyboardArrowLeftIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
+              />
+            </svg>
+          </button>
+          <button
+            aria-label="Go to next page"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            disabled=""
+            tabindex="-1"
+            title="Go to next page"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="KeyboardArrowRightIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
 `;
 
 exports[`PagedTable renders simple data without labels 1`] = `
-<div
-  className="page"
-  style={
-    Object {
-      "width": "100%",
-    }
-  }
->
-  <WithStyles(Table)
-    style={
-      Object {
-        "display": "block",
-        "overflow": "auto",
-      }
-    }
+<DocumentFragment>
+  <div
+    class="page"
+    style="width: 100%;"
   >
-    <WithStyles(TableHead)>
-      <WithStyles(TableRow) />
-    </WithStyles(TableHead)>
-    <WithStyles(TableBody)>
-      <WithStyles(TableRow)
-        className="row"
-        hover={true}
-        key="0"
-        tabIndex={-1}
+    <table
+      class="MuiTable-root css-rqglhn-MuiTable-root"
+      style="display: block; overflow: auto;"
+    >
+      <thead
+        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
       >
-        <WithStyles(TableCell)
-          className="cell"
-          key="0"
-        >
-          col1
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="1"
-        >
-          col2
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="2"
-        >
-          col3
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-      <WithStyles(TableRow)
-        className="row"
-        hover={true}
-        key="1"
-        tabIndex={-1}
-      >
-        <WithStyles(TableCell)
-          className="cell"
-          key="0"
-        >
-          col4
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="1"
-        >
-          col5
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="2"
-        >
-          col6
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-      <WithStyles(TableRow)
-        style={
-          Object {
-            "height": 240,
-          }
-        }
-      >
-        <WithStyles(TableCell)
-          colSpan={6}
+        <tr
+          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
         />
-      </WithStyles(TableRow)>
-    </WithStyles(TableBody)>
-  </WithStyles(Table)>
-  <WithStyles(TablePagination)
-    component="div"
-    count={2}
-    onChangePage={[Function]}
-    onChangeRowsPerPage={[Function]}
-    page={0}
-    rowsPerPage={10}
-  />
-</div>
+      </thead>
+      <tbody
+        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
+      >
+        <tr
+          class="MuiTableRow-root MuiTableRow-hover row css-1q1u3t4-MuiTableRow-root"
+          tabindex="-1"
+        >
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col1
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col2
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col3
+          </td>
+        </tr>
+        <tr
+          class="MuiTableRow-root MuiTableRow-hover row css-1q1u3t4-MuiTableRow-root"
+          tabindex="-1"
+        >
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col4
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col5
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col6
+          </td>
+        </tr>
+        <tr
+          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          style="height: 240px;"
+        >
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            colspan="6"
+          />
+        </tr>
+      </tbody>
+    </table>
+    <div
+      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+    >
+      <div
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+      >
+        <div
+          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
+        />
+        <p
+          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          id="mui-12"
+        >
+          Rows per page:
+        </p>
+        <div
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+        >
+          <div
+            aria-controls="mui-10"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-labelledby="mui-12 mui-11"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            id="mui-11"
+            role="combobox"
+            tabindex="0"
+          >
+            10
+          </div>
+          <input
+            aria-hidden="true"
+            aria-invalid="false"
+            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            tabindex="-1"
+            value="10"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            data-testid="ArrowDropDownIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+        <p
+          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        >
+          1–2 of 2
+        </p>
+        <div
+          class="MuiTablePagination-actions"
+        >
+          <button
+            aria-label="Go to previous page"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            disabled=""
+            tabindex="-1"
+            title="Go to previous page"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="KeyboardArrowLeftIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
+              />
+            </svg>
+          </button>
+          <button
+            aria-label="Go to next page"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            disabled=""
+            tabindex="-1"
+            title="Go to next page"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="KeyboardArrowRightIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
 `;
 
 exports[`PagedTable sorts on first column ascending 1`] = `
-<div
-  className="page"
-  style={
-    Object {
-      "width": "100%",
-    }
-  }
->
-  <WithStyles(Table)
-    style={
-      Object {
-        "display": "block",
-        "overflow": "auto",
-      }
-    }
+<DocumentFragment>
+  <div
+    class="page"
+    style="width: 100%;"
   >
-    <WithStyles(TableHead)>
-      <WithStyles(TableRow)>
-        <WithStyles(TableCell)
-          className="columnName"
-          key="0"
-          sortDirection="asc"
+    <table
+      class="MuiTable-root css-rqglhn-MuiTable-root"
+      style="display: block; overflow: auto;"
+    >
+      <thead
+        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
+      >
+        <tr
+          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
         >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            title="Sort"
+          <th
+            aria-sort="ascending"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName css-1ygcj2i-MuiTableCell-root"
+            scope="col"
           >
-            <WithStyles(TableSortLabel)
-              active={true}
-              direction="asc"
-              onClick={[Function]}
+            <span
+              aria-label="Sort"
+              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              data-mui-internal-clone-element="true"
+              data-testid="table-sort-label-0"
+              role="button"
+              tabindex="0"
             >
               field1
-            </WithStyles(TableSortLabel)>
-          </WithStyles(Tooltip)>
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="columnName"
-          key="1"
-          sortDirection={false}
-        >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            title="Sort"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                data-testid="ArrowDownwardIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+                />
+              </svg>
+            </span>
+          </th>
+          <th
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName css-1ygcj2i-MuiTableCell-root"
+            scope="col"
           >
-            <WithStyles(TableSortLabel)
-              active={false}
-              direction="asc"
-              onClick={[Function]}
+            <span
+              aria-label="Sort"
+              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              data-mui-internal-clone-element="true"
+              data-testid="table-sort-label-1"
+              role="button"
+              tabindex="0"
             >
               field2
-            </WithStyles(TableSortLabel)>
-          </WithStyles(Tooltip)>
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="columnName"
-          key="2"
-          sortDirection={false}
-        >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            title="Sort"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                data-testid="ArrowDownwardIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+                />
+              </svg>
+            </span>
+          </th>
+          <th
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName css-1ygcj2i-MuiTableCell-root"
+            scope="col"
           >
-            <WithStyles(TableSortLabel)
-              active={false}
-              direction="asc"
-              onClick={[Function]}
+            <span
+              aria-label="Sort"
+              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              data-mui-internal-clone-element="true"
+              data-testid="table-sort-label-2"
+              role="button"
+              tabindex="0"
             >
               field3
-            </WithStyles(TableSortLabel)>
-          </WithStyles(Tooltip)>
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-    </WithStyles(TableHead)>
-    <WithStyles(TableBody)>
-      <WithStyles(TableRow)
-        className="row"
-        hover={true}
-        key="0"
-        tabIndex={-1}
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                data-testid="ArrowDownwardIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+                />
+              </svg>
+            </span>
+          </th>
+        </tr>
+      </thead>
+      <tbody
+        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
       >
-        <WithStyles(TableCell)
-          className="cell"
-          key="0"
+        <tr
+          class="MuiTableRow-root MuiTableRow-hover row css-1q1u3t4-MuiTableRow-root"
+          tabindex="-1"
         >
-          col1
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="1"
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col1
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col2
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col3
+          </td>
+        </tr>
+        <tr
+          class="MuiTableRow-root MuiTableRow-hover row css-1q1u3t4-MuiTableRow-root"
+          tabindex="-1"
         >
-          col2
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="2"
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col4
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col5
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col6
+          </td>
+        </tr>
+        <tr
+          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          style="height: 240px;"
         >
-          col3
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-      <WithStyles(TableRow)
-        className="row"
-        hover={true}
-        key="1"
-        tabIndex={-1}
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            colspan="6"
+          />
+        </tr>
+      </tbody>
+    </table>
+    <div
+      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+    >
+      <div
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
       >
-        <WithStyles(TableCell)
-          className="cell"
-          key="0"
-        >
-          col4
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="1"
-        >
-          col5
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="2"
-        >
-          col6
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-      <WithStyles(TableRow)
-        style={
-          Object {
-            "height": 240,
-          }
-        }
-      >
-        <WithStyles(TableCell)
-          colSpan={6}
+        <div
+          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
         />
-      </WithStyles(TableRow)>
-    </WithStyles(TableBody)>
-  </WithStyles(Table)>
-  <WithStyles(TablePagination)
-    component="div"
-    count={2}
-    onChangePage={[Function]}
-    onChangeRowsPerPage={[Function]}
-    page={0}
-    rowsPerPage={10}
-  />
-</div>
+        <p
+          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          id="mui-24"
+        >
+          Rows per page:
+        </p>
+        <div
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+        >
+          <div
+            aria-controls="mui-22"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-labelledby="mui-24 mui-23"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            id="mui-23"
+            role="combobox"
+            tabindex="0"
+          >
+            10
+          </div>
+          <input
+            aria-hidden="true"
+            aria-invalid="false"
+            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            tabindex="-1"
+            value="10"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            data-testid="ArrowDropDownIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+        <p
+          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        >
+          1–2 of 2
+        </p>
+        <div
+          class="MuiTablePagination-actions"
+        >
+          <button
+            aria-label="Go to previous page"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            disabled=""
+            tabindex="-1"
+            title="Go to previous page"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="KeyboardArrowLeftIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
+              />
+            </svg>
+          </button>
+          <button
+            aria-label="Go to next page"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            disabled=""
+            tabindex="-1"
+            title="Go to next page"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="KeyboardArrowRightIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
 `;
 
 exports[`PagedTable sorts on first column descending 1`] = `
-<div
-  className="page"
-  style={
-    Object {
-      "width": "100%",
-    }
-  }
->
-  <WithStyles(Table)
-    style={
-      Object {
-        "display": "block",
-        "overflow": "auto",
-      }
-    }
+<DocumentFragment>
+  <div
+    class="page"
+    style="width: 100%;"
   >
-    <WithStyles(TableHead)>
-      <WithStyles(TableRow)>
-        <WithStyles(TableCell)
-          className="columnName"
-          key="0"
-          sortDirection="desc"
+    <table
+      class="MuiTable-root css-rqglhn-MuiTable-root"
+      style="display: block; overflow: auto;"
+    >
+      <thead
+        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
+      >
+        <tr
+          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
         >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            title="Sort"
+          <th
+            aria-sort="descending"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName css-1ygcj2i-MuiTableCell-root"
+            scope="col"
           >
-            <WithStyles(TableSortLabel)
-              active={true}
-              direction="desc"
-              onClick={[Function]}
+            <span
+              aria-label="Sort"
+              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              data-mui-internal-clone-element="true"
+              data-testid="table-sort-label-0"
+              role="button"
+              tabindex="0"
             >
               field1
-            </WithStyles(TableSortLabel)>
-          </WithStyles(Tooltip)>
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="columnName"
-          key="1"
-          sortDirection={false}
-        >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            title="Sort"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                data-testid="ArrowDownwardIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+                />
+              </svg>
+            </span>
+          </th>
+          <th
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName css-1ygcj2i-MuiTableCell-root"
+            scope="col"
           >
-            <WithStyles(TableSortLabel)
-              active={false}
-              direction="desc"
-              onClick={[Function]}
+            <span
+              aria-label="Sort"
+              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              data-mui-internal-clone-element="true"
+              data-testid="table-sort-label-1"
+              role="button"
+              tabindex="0"
             >
               field2
-            </WithStyles(TableSortLabel)>
-          </WithStyles(Tooltip)>
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="columnName"
-          key="2"
-          sortDirection={false}
-        >
-          <WithStyles(Tooltip)
-            enterDelay={300}
-            title="Sort"
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                data-testid="ArrowDownwardIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+                />
+              </svg>
+            </span>
+          </th>
+          <th
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName css-1ygcj2i-MuiTableCell-root"
+            scope="col"
           >
-            <WithStyles(TableSortLabel)
-              active={false}
-              direction="desc"
-              onClick={[Function]}
+            <span
+              aria-label="Sort"
+              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              data-mui-internal-clone-element="true"
+              data-testid="table-sort-label-2"
+              role="button"
+              tabindex="0"
             >
               field3
-            </WithStyles(TableSortLabel)>
-          </WithStyles(Tooltip)>
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-    </WithStyles(TableHead)>
-    <WithStyles(TableBody)>
-      <WithStyles(TableRow)
-        className="row"
-        hover={true}
-        key="0"
-        tabIndex={-1}
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                data-testid="ArrowDownwardIcon"
+                focusable="false"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+                />
+              </svg>
+            </span>
+          </th>
+        </tr>
+      </thead>
+      <tbody
+        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
       >
-        <WithStyles(TableCell)
-          className="cell"
-          key="0"
+        <tr
+          class="MuiTableRow-root MuiTableRow-hover row css-1q1u3t4-MuiTableRow-root"
+          tabindex="-1"
         >
-          col4
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="1"
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col4
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col5
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col6
+          </td>
+        </tr>
+        <tr
+          class="MuiTableRow-root MuiTableRow-hover row css-1q1u3t4-MuiTableRow-root"
+          tabindex="-1"
         >
-          col5
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="2"
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col1
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col2
+          </td>
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell css-1ex1afd-MuiTableCell-root"
+          >
+            col3
+          </td>
+        </tr>
+        <tr
+          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          style="height: 240px;"
         >
-          col6
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-      <WithStyles(TableRow)
-        className="row"
-        hover={true}
-        key="1"
-        tabIndex={-1}
+          <td
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            colspan="6"
+          />
+        </tr>
+      </tbody>
+    </table>
+    <div
+      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+    >
+      <div
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
       >
-        <WithStyles(TableCell)
-          className="cell"
-          key="0"
-        >
-          col1
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="1"
-        >
-          col2
-        </WithStyles(TableCell)>
-        <WithStyles(TableCell)
-          className="cell"
-          key="2"
-        >
-          col3
-        </WithStyles(TableCell)>
-      </WithStyles(TableRow)>
-      <WithStyles(TableRow)
-        style={
-          Object {
-            "height": 240,
-          }
-        }
-      >
-        <WithStyles(TableCell)
-          colSpan={6}
+        <div
+          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
         />
-      </WithStyles(TableRow)>
-    </WithStyles(TableBody)>
-  </WithStyles(Table)>
-  <WithStyles(TablePagination)
-    component="div"
-    count={2}
-    onChangePage={[Function]}
-    onChangeRowsPerPage={[Function]}
-    page={0}
-    rowsPerPage={10}
-  />
-</div>
+        <p
+          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          id="mui-18"
+        >
+          Rows per page:
+        </p>
+        <div
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+        >
+          <div
+            aria-controls="mui-16"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-labelledby="mui-18 mui-17"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            id="mui-17"
+            role="combobox"
+            tabindex="0"
+          >
+            10
+          </div>
+          <input
+            aria-hidden="true"
+            aria-invalid="false"
+            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            tabindex="-1"
+            value="10"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            data-testid="ArrowDropDownIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+        </div>
+        <p
+          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+        >
+          1–2 of 2
+        </p>
+        <div
+          class="MuiTablePagination-actions"
+        >
+          <button
+            aria-label="Go to previous page"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            disabled=""
+            tabindex="-1"
+            title="Go to previous page"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="KeyboardArrowLeftIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M15.41 16.09l-4.58-4.59 4.58-4.59L14 5.5l-6 6 6 6z"
+              />
+            </svg>
+          </button>
+          <button
+            aria-label="Go to next page"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            disabled=""
+            tabindex="-1"
+            title="Go to next page"
+            type="button"
+          >
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="KeyboardArrowRightIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M8.59 16.34l4.58-4.59-4.58-4.59L10 5.75l6 6-6 6z"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
 `;

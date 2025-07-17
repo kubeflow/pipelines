@@ -1243,3 +1243,46 @@ exports[`Input renders with the right styles by default 1`] = `
   </WithStyles(Tooltip)>
 </div>
 `;
+
+exports[`MD2Tabs renders with the right styles by default 1`] = `
+<DocumentFragment>
+  <div
+    class="tabs"
+  >
+    <div
+      class="indicator"
+    />
+    <span
+      style="display: inline-block; min-width: 20px; width: 20px;"
+    />
+    <button
+      aria-label=""
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button active css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      data-mui-internal-clone-element="true"
+      tabindex="0"
+      type="button"
+    >
+      <span>
+        tab1
+      </span>
+      <span
+        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+      />
+    </button>
+    <button
+      aria-label=""
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      data-mui-internal-clone-element="true"
+      tabindex="0"
+      type="button"
+    >
+      <span>
+        tab2
+      </span>
+      <span
+        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+      />
+    </button>
+  </div>
+</DocumentFragment>
+`;

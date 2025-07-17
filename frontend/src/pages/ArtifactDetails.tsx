@@ -27,7 +27,7 @@ import {
   GetArtifactsByIDRequest,
   GetArtifactTypesByIDRequest,
 } from 'src/third_party/mlmd';
-import { CircularProgress } from '@material-ui/core';
+import { CircularProgress } from '@mui/material';
 import * as React from 'react';
 import { Route, Switch } from 'react-router-dom';
 import { classes } from 'typestyle';
@@ -36,7 +36,7 @@ import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
 import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { commonCss, padding } from '../Css';
-import { logger, serviceErrorToString, titleCase } from '../lib/Utils';
+import { ensureServiceError, logger, serviceErrorToString, titleCase } from '../lib/Utils';
 import { Page, PageProps } from './Page';
 import { ArtifactHelpers } from 'src/mlmd/MlmdUtils';
 
@@ -75,7 +75,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   private get id(): number {
-    return Number(this.props.match.params[RouteParams.ID]);
+    return Number((this.props.match.params as any)[RouteParams.ID]);
   }
 
   private static buildResourceDetailsPageRoute(
@@ -85,7 +85,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     // HACK: this distinguishes artifact from execution, only artifacts have
     // the getUri() method.
     // TODO: switch to use typedResource
-    if (typeof resource['getUri'] === 'function') {
+    if (typeof (resource as any)['getUri'] === 'function') {
       return RoutePageFactory.artifactDetails(resource.getId());
     } else {
       return RoutePageFactory.executionDetails(resource.getId());
@@ -195,7 +195,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       });
       this.setState({ artifact, artifactType });
     } catch (err) {
-      this.showPageError(serviceErrorToString(err));
+      this.showPageError(serviceErrorToString(ensureServiceError(err)));
     }
   };
 
@@ -213,7 +213,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
 
 // This guarantees that each artifact renders a different <ArtifactDetails /> instance.
 const EnhancedArtifactDetails = (props: PageProps) => {
-  return <ArtifactDetails {...props} key={props.match.params[RouteParams.ID]} />;
+  return <ArtifactDetails {...props} key={(props.match.params as any)[RouteParams.ID]} />;
 };
 
 export default EnhancedArtifactDetails;

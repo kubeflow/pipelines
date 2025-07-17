@@ -15,11 +15,12 @@
  */
 
 import * as React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { createBrowserHistory, createMemoryHistory } from 'history';
 import Toolbar, { ToolbarActionMap } from './Toolbar';
-import HelpIcon from '@material-ui/icons/Help';
-import InfoIcon from '@material-ui/icons/Info';
+import HelpIcon from '@mui/icons-material/Help';
+import InfoIcon from '@mui/icons-material/Info';
 
 const action1 = jest.fn();
 const action2 = jest.fn();
@@ -61,20 +62,26 @@ describe('Toolbar', () => {
     history.push('/pipelines');
   });
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('renders nothing when there are no breadcrumbs or actions', () => {
-    const tree = shallow(<Toolbar breadcrumbs={[]} actions={{}} history={history} pageTitle='' />);
-    expect(tree).toMatchSnapshot();
+    const { container } = render(<Toolbar breadcrumbs={[]} actions={{}} history={history} pageTitle='' />);
+    expect(container.firstChild).toBeEmptyDOMElement();
   });
 
   it('renders without breadcrumbs and a string page title', () => {
-    const tree = shallow(
+    render(
       <Toolbar breadcrumbs={[]} actions={actions} history={history} pageTitle='test page title' />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByText('test page title')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /test title/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /test title2/i })).toBeInTheDocument();
   });
 
   it('renders without breadcrumbs and a component page title', () => {
-    const tree = shallow(
+    render(
       <Toolbar
         breadcrumbs={[]}
         actions={actions}
@@ -82,7 +89,8 @@ describe('Toolbar', () => {
         pageTitle={<div id='myComponent'>test page title</div>}
       />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByText('test page title')).toBeInTheDocument();
+    expect(document.getElementById('myComponent')).toBeInTheDocument();
   });
 
   it('renders without breadcrumbs and one action', () => {
@@ -96,7 +104,7 @@ describe('Toolbar', () => {
         tooltip: 'test tooltip',
       },
     };
-    const tree = shallow(
+    render(
       <Toolbar
         breadcrumbs={[]}
         actions={singleAction}
@@ -104,11 +112,12 @@ describe('Toolbar', () => {
         pageTitle='test page title'
       />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByRole('button', { name: /test title/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /test title2/i })).not.toBeInTheDocument();
   });
 
   it('renders without actions and one breadcrumb', () => {
-    const tree = shallow(
+    render(
       <Toolbar
         breadcrumbs={[breadcrumbs[0]]}
         actions={{}}
@@ -116,11 +125,12 @@ describe('Toolbar', () => {
         pageTitle='test page title'
       />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByText('test display name')).toBeInTheDocument();
+    expect(screen.getByText('test page title')).toBeInTheDocument();
   });
 
   it('renders without actions, one breadcrumb, and a page name', () => {
-    const tree = shallow(
+    render(
       <Toolbar
         breadcrumbs={[breadcrumbs[0]]}
         actions={{}}
@@ -128,26 +138,25 @@ describe('Toolbar', () => {
         pageTitle='test page title'
       />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByText('test display name')).toBeInTheDocument();
+    expect(screen.getByText('test page title')).toBeInTheDocument();
   });
 
   it('renders without breadcrumbs and two actions', () => {
-    const tree = shallow(
+    render(
       <Toolbar breadcrumbs={[]} actions={actions} history={history} pageTitle='test page title' />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByRole('button', { name: /test title/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /test title2/i })).toBeInTheDocument();
   });
 
   it('fires the right action function when button is clicked', () => {
-    const tree = shallow(
+    render(
       <Toolbar breadcrumbs={[]} actions={actions} history={history} pageTitle='test page title' />,
     );
-    tree
-      .find('BusyButton')
-      .at(0)
-      .simulate('click');
+    const button = screen.getByRole('button', { name: /test title/i });
+    fireEvent.click(button);
     expect(action1).toHaveBeenCalled();
-    action1.mockClear();
   });
 
   it('renders outlined action buttons', () => {
@@ -161,7 +170,7 @@ describe('Toolbar', () => {
       },
     };
 
-    const tree = shallow(
+    render(
       <Toolbar
         breadcrumbs={breadcrumbs}
         actions={outlinedActions}
@@ -169,7 +178,7 @@ describe('Toolbar', () => {
         history={history}
       />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByRole('button', { name: /test outlined title/i })).toBeInTheDocument();
   });
 
   it('renders primary action buttons', () => {
@@ -183,10 +192,10 @@ describe('Toolbar', () => {
       },
     };
 
-    const tree = shallow(
+    render(
       <Toolbar breadcrumbs={breadcrumbs} actions={primaryActions} pageTitle='' history={history} />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByRole('button', { name: /test primary title/i })).toBeInTheDocument();
   });
 
   it('renders primary action buttons without outline, even if outline is true', () => {
@@ -201,7 +210,7 @@ describe('Toolbar', () => {
       },
     };
 
-    const tree = shallow(
+    render(
       <Toolbar
         breadcrumbs={breadcrumbs}
         actions={outlinedPrimaryActions}
@@ -209,23 +218,27 @@ describe('Toolbar', () => {
         history={history}
       />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByRole('button', { name: /test title/i })).toBeInTheDocument();
   });
 
   it('renders with two breadcrumbs and two actions', () => {
-    const tree = shallow(
+    render(
       <Toolbar breadcrumbs={breadcrumbs} actions={actions} pageTitle='' history={history} />,
     );
-    expect(tree).toMatchSnapshot();
+    expect(screen.getByText('test display name')).toBeInTheDocument();
+    expect(screen.getByText('test display name2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /test title/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /test title2/i })).toBeInTheDocument();
   });
 
   it('disables the back button when there is no browser history', () => {
     // This test uses createMemoryHistory because createBroweserHistory returns a singleton, and
     // there is no way to clear its entries which this test requires.
     const emptyHistory = createMemoryHistory();
-    const tree = shallow(
+    render(
       <Toolbar breadcrumbs={breadcrumbs} actions={actions} history={emptyHistory} pageTitle='' />,
     );
-    expect(tree).toMatchSnapshot();
+    const backButton = screen.getByLabelText(/go back/i);
+    expect(backButton).toBeDisabled();
   });
 });
