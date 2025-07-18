@@ -2,6 +2,8 @@
 
 ## Features
 
+* feat(sdk): Add support for compiling pipelines to Kubernetes native format in SDK (#12012)
+
 ## Breaking changes
 
 ## Deprecations
