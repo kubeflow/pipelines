@@ -22,12 +22,12 @@ grpcio==1.66.1
     # via ml-metadata
 idna==3.10
     # via requests
-kubernetes==31.0.0
-    # via -r -
+kubernetes==10.0.1
+    # via -r requirements.in
 lru-dict==1.3.0
-    # via -r -
+    # via -r requirements.in
 ml-metadata==1.14.0
-    # via -r -
+    # via -r requirements.in
 oauthlib==3.2.2
     # via requests-oauthlib
 protobuf==3.20.3
@@ -42,7 +42,7 @@ python-dateutil==2.9.0.post0
     # via kubernetes
 pyyaml==6.0.2
     # via
-    #   -r -
+    #   -r requirements.in
     #   kubernetes
 requests==2.32.3
     # via
@@ -57,7 +57,7 @@ six==1.16.0
     #   kubernetes
     #   ml-metadata
     #   python-dateutil
-urllib3==2.2.3
+urllib3==2.5.0
     # via
     #   kubernetes
     #   requests
