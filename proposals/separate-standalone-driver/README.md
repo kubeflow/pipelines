@@ -73,12 +73,12 @@ It creates a pod that launches the driver container using the kfp-driver image.
 ## Alternative
 
 Instead of launching a new driver's pod using a container template, configure the system to send requests to an already running server.
-Something like this:
+Something like this (showing both types of containers):
 ```yaml
   templates:
   - name: system-container-driver
     request:
-        args:
+      args:
         ...
       outputs:
         parameters:
@@ -87,6 +87,27 @@ Something like this:
           - name: cached-decision
             jsonPath: $.cached_decision
 ```
+```yaml
+    - name: system-dag-driver
+      request:
+        args:
+         ...
+      outputs:
+        parameters:
+          - name: execution-id
+            valueFrom:
+              jsonPath: $.execution-id
+          - name: iteration-count
+            valueFrom:
+              default: "0"
+              jsonPath: $.iteration-count
+          - name: condition
+            valueFrom:
+              default: "true"
+              jsonPath: $.condition
+```
+
+
 ### Requirements:
 - Execute a remote call with parameters
 - Read the response
