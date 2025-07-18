@@ -1,0 +1,142 @@
+{
+  "components": {
+    "comp-importer": {
+      "executorLabel": "exec-importer",
+      "inputDefinitions": {
+        "parameters": {
+          "uri": {
+            "parameterType": "STRING"
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "artifact": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      }
+    },
+    "comp-train": {
+      "executorLabel": "exec-train",
+      "inputDefinitions": {
+        "artifacts": {
+          "dataset": {
+            "artifactType": {
+              "schemaTitle": "system.Dataset",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        }
+      },
+      "outputDefinitions": {
+        "artifacts": {
+          "model": {
+            "artifactType": {
+              "schemaTitle": "system.Model",
+              "schemaVersion": "0.0.1"
+            }
+          }
+        },
+        "parameters": {
+          "scalar": {
+            "parameterType": "STRING"
+          }
+        }
+      }
+    }
+  },
+  "deploymentSpec": {
+    "executors": {
+      "exec-importer": {
+        "importer": {
+          "artifactUri": {
+            "constant": "gs://ml-pipeline-playground/shakespeare1.txt"
+          },
+          "typeSchema": {
+            "schemaTitle": "system.Dataset",
+            "schemaVersion": "0.0.1"
+          }
+        }
+      },
+      "exec-train": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "train"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('model', Model),\n]):\n    \"\"\"Dummy Training step.\"\"\"\n    with open(dataset.path, 'r') as f:\n        data = f.read()\n    print('Dataset:', data)\n\n    scalar = '123'\n    model = 'My model trained using data: {}'.format(data)\n\n    from collections import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar, model)\n\n"
+          ],
+          "image": "python:3.9"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "name": "pipeline-with-importer"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "importer": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-importer"
+          },
+          "inputs": {
+            "parameters": {
+              "uri": {
+                "runtimeValue": {
+                  "constant": "gs://ml-pipeline-playground/shakespeare1.txt"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "importer"
+          }
+        },
+        "train": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-train"
+          },
+          "dependentTasks": [
+            "importer"
+          ],
+          "inputs": {
+            "artifacts": {
+              "dataset": {
+                "taskOutputArtifact": {
+                  "outputArtifactKey": "artifact",
+                  "producerTask": "importer"
+                }
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "train"
+          }
+        }
+      }
+    }
+  },
+  "schemaVersion": "2.1.0",
+  "sdkVersion": "kfp-2.13.0"
+}

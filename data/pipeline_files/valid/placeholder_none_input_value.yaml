@@ -1,0 +1,54 @@
+# PIPELINE DEFINITION
+# Name: one-step-pipeline-with-if-placeholder-supply-none
+# Inputs:
+#    input0: str [Default: 'input0']
+components:
+  comp-component-with-optional-inputs:
+    executorLabel: exec-component-with-optional-inputs
+    inputDefinitions:
+      parameters:
+        optional_input_1:
+          isOptional: true
+          parameterType: STRING
+        optional_input_2:
+          isOptional: true
+          parameterType: STRING
+        required_input:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-component-with-optional-inputs:
+      container:
+        args:
+        - --arg0
+        - '{{$.inputs.parameters[''required_input'']}}'
+        - '{"IfPresent": {"InputName": "optional_input_1", "Then": ["--arg1", "{{$.inputs.parameters[''optional_input_1'']}}"]}}'
+        - '{"IfPresent": {"InputName": "optional_input_2", "Then": ["--arg2", "{{$.inputs.parameters[''optional_input_2'']}}"],
+          "Else": ["--arg2", "default value"]}}'
+        command:
+        - echo
+        image: registry.k8s.io/busybox
+pipelineInfo:
+  name: one-step-pipeline-with-if-placeholder-supply-none
+root:
+  dag:
+    tasks:
+      component-with-optional-inputs:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-with-optional-inputs
+        inputs:
+          parameters:
+            required_input:
+              componentInputParameter: input0
+        taskInfo:
+          name: component-with-optional-inputs
+  inputDefinitions:
+    parameters:
+      input0:
+        defaultValue: input0
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
