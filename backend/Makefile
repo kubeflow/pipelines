@@ -137,3 +137,11 @@ lint:
 .PHONY: format
 format:
 	golangci-lint fmt
+
+.PHONY: start-dev-db
+start-dev-db:
+	@./scripts/start-dev-db.sh
+
+.PHONY: stop-dev-db
+stop-dev-db:
+	@./scripts/stop-dev-db.sh
