@@ -66,6 +66,7 @@ Details about the KFP Architecture can be found at [Architecture.md](docs/Archit
 
 ## Blog posts
 
+* [From Raw Data to Model Serving: A Blueprint for the AI/ML Lifecycle with Kubeflow](https://blog.kubeflow.org/fraud-detection-e2e/) (By [Helber Belmiro](https://github.com/hbelmiro))
 * [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
 * How to create and deploy a Kubeflow Machine Learning Pipeline (By Lak Lakshmanan)
   * [Part 1: How to create and deploy a Kubeflow Machine Learning Pipeline](https://medium.com/data-science/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f)
