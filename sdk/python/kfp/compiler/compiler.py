@@ -19,6 +19,7 @@ https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 
 from typing import Any, Dict, Optional
 
+from kfp.compiler import compiler_utils
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.dsl import base_component
 from kfp.dsl.types import type_utils
@@ -53,6 +54,7 @@ class Compiler:
         pipeline_name: Optional[str] = None,
         pipeline_parameters: Optional[Dict[str, Any]] = None,
         type_check: bool = True,
+        validate: bool = False,
     ) -> None:
         """Compiles the pipeline or component function into IR YAML.
 
@@ -62,6 +64,7 @@ class Compiler:
             pipeline_name: Name of the pipeline.
             pipeline_parameters: Map of parameter names to argument values.
             type_check: Whether to enable type checking of component interfaces during compilation.
+            validate: Whether to run validation checks on components. Currently validates that all functions used within components are either defined or imported within the component.
         """
 
         with type_utils.TypeCheckManager(enable=type_check):
@@ -71,6 +74,10 @@ class Compiler:
                     'subclass of `base_component.BaseComponent` or '
                     '`Callable` constructed with @dsl.pipeline '
                     f'decorator. Got: {type(pipeline_func)}')
+
+            if validate:
+                # Recursively validate all components and subcomponents
+                compiler_utils.recursively_validate_components(pipeline_func)
 
             pipeline_spec = builder.modify_pipeline_spec_with_override(
                 pipeline_spec=pipeline_func.pipeline_spec,
