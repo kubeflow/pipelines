@@ -91,7 +91,7 @@ func (c *RunClient) Create(parameters *params.RunServiceCreateRunParams) (*model
 
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create run. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to create run '%v'", parameters.Body.DisplayName))
+			fmt.Sprintf("Failed to create run '%v'", parameters.Run.DisplayName))
 	}
 
 	return response.Payload, nil

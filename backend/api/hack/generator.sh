@@ -35,33 +35,45 @@ mkdir -p backend/api/${API_VERSION}/go_client
 mkdir -p backend/api/${API_VERSION}/swagger
 
 # Generate *.pb.go (grpc api client) from *.proto.
-${PROTOCCOMPILER} -I. -Ibackend/api/${API_VERSION} \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/ \
-    -I/usr/include/ \
-    --plugin=protoc-gen-go=/go/bin/protoc-gen-go  \
-    --go_out=plugins=grpc:${TMP_OUTPUT} \
-    backend/api/${API_VERSION}/*.proto
+# -I/  allows for absolute import paths
+# e.g. "import protoc-gen-openapiv2/options/annotations.proto"
+${PROTOCCOMPILER} \
+  -I. \
+  -Ibackend/api/${API_VERSION} \
+  -I/googleapis \
+  -I/protoc-gen-openapiv2 \
+  -I/usr/include \
+  -I/ \
+  --go_out=${TMP_OUTPUT} \
+  --go-grpc_out=${TMP_OUTPUT} \
+  --plugin=protoc-gen-go=/go/bin/protoc-gen-go \
+  --plugin=protoc-gen-go-grpc=/go/bin/protoc-gen-go-grpc \
+  backend/api/${API_VERSION}/*.proto
+
 # Generate *.pb.gw.go (grpc api rest client) from *.proto.
-${PROTOCCOMPILER} -I. -Ibackend/api/${API_VERSION} \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/ \
-    -I/usr/include/ \
+${PROTOCCOMPILER} \
+    -I. \
+    -Ibackend/api/${API_VERSION} \
+    -I/googleapis \
+    -I/protoc-gen-openapiv2 \
+    -I/usr/include \
+    -I/ \
     --plugin=protoc-gen-grpc-gateway=/go/bin/protoc-gen-grpc-gateway \
     --grpc-gateway_out=logtostderr=true:${TMP_OUTPUT} \
     backend/api/${API_VERSION}/*.proto
+
 # Move *.pb.go and *.gw.go to go_client folder.
 cp ${TMP_OUTPUT}/github.com/kubeflow/pipelines/backend/api/${API_VERSION}/go_client/* ./backend/api/${API_VERSION}/go_client
 # Generate *.swagger.json from *.proto into swagger folder.
-${PROTOCCOMPILER} -I. -Ibackend/api/${API_VERSION} \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/ \
-    -I/go/src/github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options/ \
-    -I//usr/include/ \
-    --plugin=protoc-gen-swagger=/go/bin/protoc-gen-swagger \
-    --swagger_out=logtostderr=true:${TMP_OUTPUT} \
+${PROTOCCOMPILER} \
+    -I. \
+    -Ibackend/api/${API_VERSION} \
+    -I/googleapis \
+    -I/protoc-gen-openapiv2 \
+    -I/usr/include \
+    -I/ \
+    --plugin=protoc-gen-openapiv2=/go/bin/protoc-gen-openapiv2 \
+    --openapiv2_out=logtostderr=true,json_names_for_fields=false:${TMP_OUTPUT} \
     backend/api/${API_VERSION}/*.proto
 # Move *.swagger.json files into swagger folder.
 cp -a ${TMP_OUTPUT}/backend/api/${API_VERSION}/*.swagger.json ./backend/api/${API_VERSION}/swagger

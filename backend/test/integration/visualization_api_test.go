@@ -77,10 +77,10 @@ func (s *VisualizationApiTest) TestVisualizationAPI() {
 	/* ---------- Generate custom visualization --------- */
 	visualization := &visualization_model.APIVisualization{
 		Arguments: `{"code": ["print(2)"]}`,
-		Type:      visualization_model.APIVisualizationTypeCUSTOM,
+		Type:      visualization_model.APIVisualizationTypeCUSTOM.Pointer(),
 	}
 	customVisualization, err := s.visualizationClient.Create(&params.VisualizationServiceCreateVisualizationV1Params{
-		Body: visualization,
+		Visualization: visualization,
 	})
 	assert.Nil(t, err)
 	assert.NotNil(t, customVisualization.HTML)

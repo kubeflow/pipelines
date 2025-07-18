@@ -25,7 +25,15 @@ python3 -m pip install -r sdk/python/requirements-dev.txt
 python3 -m pip install setuptools
 python3 -m pip install wheel==0.42.0
 python3 -m pip install coveralls==1.9.2
-python3 -m pip install --upgrade protobuf
+
+PROTOBUF_VERSION="${PROTOBUF_VERSION:-latest}"
+
+if [[ "$PROTOBUF_VERSION" == "latest" ]]; then
+  python3 -m pip install --upgrade protobuf
+else
+  python3 -m pip install "protobuf==$PROTOBUF_VERSION"
+fi
+python3 -c "import google.protobuf; print('✅ Protobuf version:', google.protobuf.__version__)"
 
 python3 -m pip install sdk/python
 # regenerate the kfp-pipeline-spec

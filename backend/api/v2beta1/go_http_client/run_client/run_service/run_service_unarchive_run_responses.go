@@ -6,14 +6,14 @@ package run_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	run_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 )
 
 // RunServiceUnarchiveRunReader is a Reader for the RunServiceUnarchiveRun structure.
@@ -24,14 +24,12 @@ type RunServiceUnarchiveRunReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *RunServiceUnarchiveRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewRunServiceUnarchiveRunOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewRunServiceUnarchiveRunDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -49,7 +47,8 @@ func NewRunServiceUnarchiveRunOK() *RunServiceUnarchiveRunOK {
 	return &RunServiceUnarchiveRunOK{}
 }
 
-/*RunServiceUnarchiveRunOK handles this case with default header values.
+/*
+RunServiceUnarchiveRunOK describes a response with status code 200, with default header values.
 
 A successful response.
 */
@@ -57,8 +56,48 @@ type RunServiceUnarchiveRunOK struct {
 	Payload interface{}
 }
 
+// IsSuccess returns true when this run service unarchive run o k response has a 2xx status code
+func (o *RunServiceUnarchiveRunOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this run service unarchive run o k response has a 3xx status code
+func (o *RunServiceUnarchiveRunOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this run service unarchive run o k response has a 4xx status code
+func (o *RunServiceUnarchiveRunOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this run service unarchive run o k response has a 5xx status code
+func (o *RunServiceUnarchiveRunOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this run service unarchive run o k response a status code equal to that given
+func (o *RunServiceUnarchiveRunOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the run service unarchive run o k response
+func (o *RunServiceUnarchiveRunOK) Code() int {
+	return 200
+}
+
 func (o *RunServiceUnarchiveRunOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}:unarchive][%d] runServiceUnarchiveRunOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}:unarchive][%d] runServiceUnarchiveRunOK %s", 200, payload)
+}
+
+func (o *RunServiceUnarchiveRunOK) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}:unarchive][%d] runServiceUnarchiveRunOK %s", 200, payload)
+}
+
+func (o *RunServiceUnarchiveRunOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *RunServiceUnarchiveRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -78,14 +117,40 @@ func NewRunServiceUnarchiveRunDefault(code int) *RunServiceUnarchiveRunDefault {
 	}
 }
 
-/*RunServiceUnarchiveRunDefault handles this case with default header values.
+/*
+RunServiceUnarchiveRunDefault describes a response with status code -1, with default header values.
 
 An unexpected error response.
 */
 type RunServiceUnarchiveRunDefault struct {
 	_statusCode int
 
-	Payload *run_model.RuntimeError
+	Payload *run_model.GooglerpcStatus
+}
+
+// IsSuccess returns true when this run service unarchive run default response has a 2xx status code
+func (o *RunServiceUnarchiveRunDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this run service unarchive run default response has a 3xx status code
+func (o *RunServiceUnarchiveRunDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this run service unarchive run default response has a 4xx status code
+func (o *RunServiceUnarchiveRunDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this run service unarchive run default response has a 5xx status code
+func (o *RunServiceUnarchiveRunDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this run service unarchive run default response a status code equal to that given
+func (o *RunServiceUnarchiveRunDefault) IsCode(code int) bool {
+	return o._statusCode == code
 }
 
 // Code gets the status code for the run service unarchive run default response
@@ -94,12 +159,22 @@ func (o *RunServiceUnarchiveRunDefault) Code() int {
 }
 
 func (o *RunServiceUnarchiveRunDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}:unarchive][%d] RunService_UnarchiveRun default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}:unarchive][%d] RunService_UnarchiveRun default %s", o._statusCode, payload)
+}
+
+func (o *RunServiceUnarchiveRunDefault) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/runs/{run_id}:unarchive][%d] RunService_UnarchiveRun default %s", o._statusCode, payload)
+}
+
+func (o *RunServiceUnarchiveRunDefault) GetPayload() *run_model.GooglerpcStatus {
+	return o.Payload
 }
 
 func (o *RunServiceUnarchiveRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.RuntimeError)
+	o.Payload = new(run_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

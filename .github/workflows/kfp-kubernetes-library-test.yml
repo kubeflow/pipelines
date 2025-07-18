@@ -21,6 +21,7 @@ jobs:
           { 'version': '3.9' },
           { 'version': '3.13' }
         ]
+        protobuf-version: ['5.26.0', '6.31.1']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,7 +43,9 @@ jobs:
         run: pip3 install wheel==0.42.0
 
       - name: Install protobuf
-        run: pip3 install protobuf==4.25.3
+        run: pip3 install protobuf==${PROTOBUF_VERSION}
+        env:
+          PROTOBUF_VERSION: ${{ matrix.protobuf-version }}
 
       - name: Install kfp-sdk from source
         run: |

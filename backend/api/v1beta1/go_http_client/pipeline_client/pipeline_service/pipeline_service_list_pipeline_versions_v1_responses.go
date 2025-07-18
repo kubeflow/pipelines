@@ -6,14 +6,14 @@ package pipeline_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	pipeline_model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 )
 
 // PipelineServiceListPipelineVersionsV1Reader is a Reader for the PipelineServiceListPipelineVersionsV1 structure.
@@ -24,14 +24,12 @@ type PipelineServiceListPipelineVersionsV1Reader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PipelineServiceListPipelineVersionsV1Reader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewPipelineServiceListPipelineVersionsV1OK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewPipelineServiceListPipelineVersionsV1Default(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -49,7 +47,8 @@ func NewPipelineServiceListPipelineVersionsV1OK() *PipelineServiceListPipelineVe
 	return &PipelineServiceListPipelineVersionsV1OK{}
 }
 
-/*PipelineServiceListPipelineVersionsV1OK handles this case with default header values.
+/*
+PipelineServiceListPipelineVersionsV1OK describes a response with status code 200, with default header values.
 
 A successful response.
 */
@@ -57,8 +56,48 @@ type PipelineServiceListPipelineVersionsV1OK struct {
 	Payload *pipeline_model.APIListPipelineVersionsResponse
 }
 
+// IsSuccess returns true when this pipeline service list pipeline versions v1 o k response has a 2xx status code
+func (o *PipelineServiceListPipelineVersionsV1OK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this pipeline service list pipeline versions v1 o k response has a 3xx status code
+func (o *PipelineServiceListPipelineVersionsV1OK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this pipeline service list pipeline versions v1 o k response has a 4xx status code
+func (o *PipelineServiceListPipelineVersionsV1OK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this pipeline service list pipeline versions v1 o k response has a 5xx status code
+func (o *PipelineServiceListPipelineVersionsV1OK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this pipeline service list pipeline versions v1 o k response a status code equal to that given
+func (o *PipelineServiceListPipelineVersionsV1OK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the pipeline service list pipeline versions v1 o k response
+func (o *PipelineServiceListPipelineVersionsV1OK) Code() int {
+	return 200
+}
+
 func (o *PipelineServiceListPipelineVersionsV1OK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions][%d] pipelineServiceListPipelineVersionsV1OK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions][%d] pipelineServiceListPipelineVersionsV1OK %s", 200, payload)
+}
+
+func (o *PipelineServiceListPipelineVersionsV1OK) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions][%d] pipelineServiceListPipelineVersionsV1OK %s", 200, payload)
+}
+
+func (o *PipelineServiceListPipelineVersionsV1OK) GetPayload() *pipeline_model.APIListPipelineVersionsResponse {
+	return o.Payload
 }
 
 func (o *PipelineServiceListPipelineVersionsV1OK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -80,14 +119,40 @@ func NewPipelineServiceListPipelineVersionsV1Default(code int) *PipelineServiceL
 	}
 }
 
-/*PipelineServiceListPipelineVersionsV1Default handles this case with default header values.
+/*
+PipelineServiceListPipelineVersionsV1Default describes a response with status code -1, with default header values.
 
 An unexpected error response.
 */
 type PipelineServiceListPipelineVersionsV1Default struct {
 	_statusCode int
 
-	Payload *pipeline_model.GatewayruntimeError
+	Payload *pipeline_model.GooglerpcStatus
+}
+
+// IsSuccess returns true when this pipeline service list pipeline versions v1 default response has a 2xx status code
+func (o *PipelineServiceListPipelineVersionsV1Default) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this pipeline service list pipeline versions v1 default response has a 3xx status code
+func (o *PipelineServiceListPipelineVersionsV1Default) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this pipeline service list pipeline versions v1 default response has a 4xx status code
+func (o *PipelineServiceListPipelineVersionsV1Default) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this pipeline service list pipeline versions v1 default response has a 5xx status code
+func (o *PipelineServiceListPipelineVersionsV1Default) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this pipeline service list pipeline versions v1 default response a status code equal to that given
+func (o *PipelineServiceListPipelineVersionsV1Default) IsCode(code int) bool {
+	return o._statusCode == code
 }
 
 // Code gets the status code for the pipeline service list pipeline versions v1 default response
@@ -96,12 +161,22 @@ func (o *PipelineServiceListPipelineVersionsV1Default) Code() int {
 }
 
 func (o *PipelineServiceListPipelineVersionsV1Default) Error() string {
-	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions][%d] PipelineService_ListPipelineVersionsV1 default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions][%d] PipelineService_ListPipelineVersionsV1 default %s", o._statusCode, payload)
+}
+
+func (o *PipelineServiceListPipelineVersionsV1Default) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions][%d] PipelineService_ListPipelineVersionsV1 default %s", o._statusCode, payload)
+}
+
+func (o *PipelineServiceListPipelineVersionsV1Default) GetPayload() *pipeline_model.GooglerpcStatus {
+	return o.Payload
 }
 
 func (o *PipelineServiceListPipelineVersionsV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.GatewayruntimeError)
+	o.Payload = new(pipeline_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

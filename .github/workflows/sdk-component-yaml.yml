@@ -38,7 +38,7 @@ jobs:
         run: pip3 install wheel==0.42.0
 
       - name: Install protobuf
-        run: pip3 install protobuf==4.25.3
+        run: pip3 install protobuf==6.31.1
 
       - name: Generate API proto files
         working-directory: ./api

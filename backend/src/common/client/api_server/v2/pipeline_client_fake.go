@@ -63,7 +63,7 @@ func NewPipelineClientFake() *PipelineClientFake {
 
 func (c *PipelineClientFake) Create(params *params.PipelineServiceCreatePipelineParams) (
 	*model.V2beta1Pipeline, error) {
-	return getDefaultPipeline(params.Body.PipelineID), nil
+	return getDefaultPipeline(params.Pipeline.PipelineID), nil
 }
 
 func (c *PipelineClientFake) CreatePipelineAndVersion(params *params.PipelineServiceCreatePipelineAndVersionParams) (*model.V2beta1Pipeline, error) {

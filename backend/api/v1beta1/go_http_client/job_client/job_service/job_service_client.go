@@ -7,13 +7,38 @@ package job_service
 
 import (
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 )
 
 // New creates a new job service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 	return &Client{transport: transport, formats: formats}
+}
+
+// New creates a new job service API client with basic auth credentials.
+// It takes the following parameters:
+// - host: http host (github.com).
+// - basePath: any base path for the API client ("/v1", "/v3").
+// - scheme: http scheme ("http", "https").
+// - user: user for basic authentication header.
+// - password: password for basic authentication header.
+func NewClientWithBasicAuth(host, basePath, scheme, user, password string) ClientService {
+	transport := httptransport.New(host, basePath, []string{scheme})
+	transport.DefaultAuthentication = httptransport.BasicAuth(user, password)
+	return &Client{transport: transport, formats: strfmt.Default}
+}
+
+// New creates a new job service API client with a bearer token for authentication.
+// It takes the following parameters:
+// - host: http host (github.com).
+// - basePath: any base path for the API client ("/v1", "/v3").
+// - scheme: http scheme ("http", "https").
+// - bearerToken: bearer token for Bearer authentication header.
+func NewClientWithBearerToken(host, basePath, scheme, bearerToken string) ClientService {
+	transport := httptransport.New(host, basePath, []string{scheme})
+	transport.DefaultAuthentication = httptransport.BearerToken(bearerToken)
+	return &Client{transport: transport, formats: strfmt.Default}
 }
 
 /*
@@ -24,16 +49,35 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientOption may be used to customize the behavior of Client methods.
+type ClientOption func(*runtime.ClientOperation)
+
+// ClientService is the interface for Client methods
+type ClientService interface {
+	JobServiceCreateJob(params *JobServiceCreateJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceCreateJobOK, error)
+
+	JobServiceDeleteJob(params *JobServiceDeleteJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceDeleteJobOK, error)
+
+	JobServiceDisableJob(params *JobServiceDisableJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceDisableJobOK, error)
+
+	JobServiceEnableJob(params *JobServiceEnableJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceEnableJobOK, error)
+
+	JobServiceGetJob(params *JobServiceGetJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceGetJobOK, error)
+
+	JobServiceListJobs(params *JobServiceListJobsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceListJobsOK, error)
+
+	SetTransport(transport runtime.ClientTransport)
+}
+
 /*
 JobServiceCreateJob creates a new job
 */
-func (a *Client) JobServiceCreateJob(params *JobServiceCreateJobParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceCreateJobOK, error) {
+func (a *Client) JobServiceCreateJob(params *JobServiceCreateJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceCreateJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewJobServiceCreateJobParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "JobService_CreateJob",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/jobs",
@@ -45,24 +89,33 @@ func (a *Client) JobServiceCreateJob(params *JobServiceCreateJobParams, authInfo
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*JobServiceCreateJobOK), nil
-
+	success, ok := result.(*JobServiceCreateJobOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*JobServiceCreateJobDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 JobServiceDeleteJob deletes a job
 */
-func (a *Client) JobServiceDeleteJob(params *JobServiceDeleteJobParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceDeleteJobOK, error) {
+func (a *Client) JobServiceDeleteJob(params *JobServiceDeleteJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceDeleteJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewJobServiceDeleteJobParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "JobService_DeleteJob",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v1beta1/jobs/{id}",
@@ -74,24 +127,33 @@ func (a *Client) JobServiceDeleteJob(params *JobServiceDeleteJobParams, authInfo
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*JobServiceDeleteJobOK), nil
-
+	success, ok := result.(*JobServiceDeleteJobOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*JobServiceDeleteJobDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 JobServiceDisableJob stops a job and all its associated runs the job is not deleted
 */
-func (a *Client) JobServiceDisableJob(params *JobServiceDisableJobParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceDisableJobOK, error) {
+func (a *Client) JobServiceDisableJob(params *JobServiceDisableJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceDisableJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewJobServiceDisableJobParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "JobService_DisableJob",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/jobs/{id}/disable",
@@ -103,24 +165,33 @@ func (a *Client) JobServiceDisableJob(params *JobServiceDisableJobParams, authIn
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*JobServiceDisableJobOK), nil
-
+	success, ok := result.(*JobServiceDisableJobOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*JobServiceDisableJobDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 JobServiceEnableJob restarts a job that was previously stopped all runs associated with the job will continue
 */
-func (a *Client) JobServiceEnableJob(params *JobServiceEnableJobParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceEnableJobOK, error) {
+func (a *Client) JobServiceEnableJob(params *JobServiceEnableJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceEnableJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewJobServiceEnableJobParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "JobService_EnableJob",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/jobs/{id}/enable",
@@ -132,24 +203,33 @@ func (a *Client) JobServiceEnableJob(params *JobServiceEnableJobParams, authInfo
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*JobServiceEnableJobOK), nil
-
+	success, ok := result.(*JobServiceEnableJobOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*JobServiceEnableJobDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 JobServiceGetJob finds a specific job by ID
 */
-func (a *Client) JobServiceGetJob(params *JobServiceGetJobParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceGetJobOK, error) {
+func (a *Client) JobServiceGetJob(params *JobServiceGetJobParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceGetJobOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewJobServiceGetJobParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "JobService_GetJob",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/jobs/{id}",
@@ -161,24 +241,33 @@ func (a *Client) JobServiceGetJob(params *JobServiceGetJobParams, authInfo runti
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*JobServiceGetJobOK), nil
-
+	success, ok := result.(*JobServiceGetJobOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*JobServiceGetJobDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 JobServiceListJobs finds all jobs
 */
-func (a *Client) JobServiceListJobs(params *JobServiceListJobsParams, authInfo runtime.ClientAuthInfoWriter) (*JobServiceListJobsOK, error) {
+func (a *Client) JobServiceListJobs(params *JobServiceListJobsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*JobServiceListJobsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewJobServiceListJobsParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "JobService_ListJobs",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/jobs",
@@ -190,12 +279,22 @@ func (a *Client) JobServiceListJobs(params *JobServiceListJobsParams, authInfo r
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*JobServiceListJobsOK), nil
-
+	success, ok := result.(*JobServiceListJobsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*JobServiceListJobsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 // SetTransport changes the transport on the client

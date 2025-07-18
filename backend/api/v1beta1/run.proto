@@ -17,15 +17,14 @@ syntax = "proto3";
 option go_package = "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client";
 package api;
 
-import "backend/api/v1beta1/error.proto";
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "backend/api/v1beta1/pipeline_spec.proto";
 import "backend/api/v1beta1/resource_reference.proto";
-import "protoc-gen-swagger/options/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
-option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   schemes: [1, 2], // http + https
   responses: {
     key: "default";
@@ -152,21 +151,21 @@ message ListRunsRequest {
   // A page token to request the next page of results. The token is acquried
   // from the nextPageToken field of the response from the previous
   // ListRuns call or can be omitted when fetching the first page.
-  string page_token = 1;
+  string page_token = 1 [json_name = "page_token"];
 
   // The number of runs to be listed per page. If there are more runs than this
   // number, the response message will contain a nextPageToken field you can use
   // to fetch the next page.
-  int32 page_size = 2;
+  int32 page_size = 2 [json_name = "page_size"];
 
   // Can be format of "field_name", "field_name asc" or "field_name desc"
   // (Example, "name asc" or "id desc"). Ascending by default.
-  string sort_by = 3;
+  string sort_by = 3 [json_name = "sort_by"];
 
   // What resource reference to filter on.
   // E.g. If listing run for an experiment, the query string would be
   // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
-  ResourceKey resource_reference_key = 4;
+  ResourceKey resource_reference_key = 4 [json_name = "resource_reference_key"];
 
   // A url-encoded, JSON-serialized Filter protocol buffer (see
   // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
@@ -187,10 +186,10 @@ message ListRunsResponse {
   repeated Run runs = 1;
 
   // The total number of runs for the given query.
-  int32 total_size = 3;
+  int32 total_size = 3 [json_name = "total_size"];
 
   // The token to list the next page of runs.
-  string next_page_token = 2;
+  string next_page_token = 2 [json_name = "next_page_token"];
 }
 
 message ArchiveRunRequest {
@@ -222,34 +221,34 @@ message Run {
   }
 
   // Output. Specify whether this run is in archived or available mode.
-  StorageState storage_state = 10;
+  StorageState storage_state = 10 [json_name = "storage_state"];
 
   // Optional input field. Describing the purpose of the run
   string description = 3;
 
   // Required input field.
   // Describing what the pipeline manifest and parameters to use for the run.
-  PipelineSpec pipeline_spec = 4;
+  PipelineSpec pipeline_spec = 4 [json_name = "pipeline_spec"];
 
   // Optional input field. Specify which resource this run belongs to.
   // When creating a run from a particular pipeline version, the pipeline
   // version can be specified here.
-  repeated ResourceReference resource_references = 5;
+  repeated ResourceReference resource_references = 5 [json_name = "resource_references"];
 
   // Optional input field. Specify which Kubernetes service account this run uses.
-  string service_account = 14;
+  string service_account = 14 [json_name = "service_account"];
 
   // Output. The time that the run created.
-  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp created_at = 6 [json_name = "created_at"];
 
   // Output. When this run is scheduled to run. This could be different from
   // created_at. For example, if a run is from a backfilling job that was
   // supposed to run 2 month ago, the scheduled_at is 2 month ago,
   // v.s. created_at is the current time.
-  google.protobuf.Timestamp scheduled_at = 7;
+  google.protobuf.Timestamp scheduled_at = 7 [json_name = "scheduled_at"];
 
   // Output. The time this run is finished.
-  google.protobuf.Timestamp finished_at = 13;
+  google.protobuf.Timestamp finished_at = 13 [json_name = "finished_at"];
 
   // Output. The status of the run.
   // One of [Pending, Running, Succeeded, Skipped, Failed, Error]
@@ -269,11 +268,11 @@ message Run {
 message PipelineRuntime {
   // Output. The runtime JSON manifest of the pipeline, including the status
   // of pipeline steps and fields need for UI visualization etc.
-  string pipeline_manifest = 10;
+  string pipeline_manifest = 10 [json_name = "pipeline_manifest"];
 
   // Output. The runtime JSON manifest of the argo workflow.
   // This is deprecated after pipeline_runtime_manifest is in use.
-  string workflow_manifest = 11;
+  string workflow_manifest = 11 [json_name = "workflow_manifest"];
 }
 
 message RunDetail {
@@ -291,11 +290,11 @@ message RunMetric {
   // found in the RunDetail.workflow.Status. Metric with same (node_id, name)
   // are considerd as duplicate. Only the first reporting will be recorded. Max
   // length is 128.
-  string node_id = 2;
+  string node_id = 2 [json_name = "node_id"];
 
   oneof value {
     // The number value of the metric.
-    double number_value = 3;
+    double number_value = 3 [json_name = "number_value"];
   }
 
   enum Format {
@@ -312,7 +311,7 @@ message RunMetric {
 
 message ReportRunMetricsRequest {
   // Required. The parent run ID of the metric.
-  string run_id = 1;
+  string run_id = 1 [json_name = "run_id"];
 
   // List of metrics to report.
   repeated RunMetric metrics = 2;
@@ -321,10 +320,10 @@ message ReportRunMetricsRequest {
 message ReportRunMetricsResponse {
   message ReportRunMetricResult {
     // Output. The name of the metric.
-    string metric_name = 1;
+    string metric_name = 1 [json_name = "metric_name"];
 
     // Output. The ID of the node which reports the metric.
-    string metric_node_id = 2;
+    string metric_node_id = 2 [json_name = "metric_node_id"];
 
     enum Status {
       // Default value if not present.
@@ -349,11 +348,11 @@ message ReportRunMetricsResponse {
 
 message ReadArtifactRequest {
   // The ID of the run.
-  string run_id = 1;
+  string run_id = 1 [json_name = "run_id"];
   // The ID of the running node.
-  string node_id = 2;
+  string node_id = 2 [json_name = "node_id"];
   // The name of the artifact.
-  string artifact_name = 3;
+  string artifact_name = 3 [json_name = "artifact_name"];
 }
 
 message ReadArtifactResponse {

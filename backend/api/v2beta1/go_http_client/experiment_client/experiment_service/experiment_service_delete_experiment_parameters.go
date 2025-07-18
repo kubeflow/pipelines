@@ -13,63 +13,78 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewExperimentServiceDeleteExperimentParams creates a new ExperimentServiceDeleteExperimentParams object
-// with the default values initialized.
+// NewExperimentServiceDeleteExperimentParams creates a new ExperimentServiceDeleteExperimentParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewExperimentServiceDeleteExperimentParams() *ExperimentServiceDeleteExperimentParams {
-	var ()
 	return &ExperimentServiceDeleteExperimentParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewExperimentServiceDeleteExperimentParamsWithTimeout creates a new ExperimentServiceDeleteExperimentParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewExperimentServiceDeleteExperimentParamsWithTimeout(timeout time.Duration) *ExperimentServiceDeleteExperimentParams {
-	var ()
 	return &ExperimentServiceDeleteExperimentParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewExperimentServiceDeleteExperimentParamsWithContext creates a new ExperimentServiceDeleteExperimentParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewExperimentServiceDeleteExperimentParamsWithContext(ctx context.Context) *ExperimentServiceDeleteExperimentParams {
-	var ()
 	return &ExperimentServiceDeleteExperimentParams{
-
 		Context: ctx,
 	}
 }
 
 // NewExperimentServiceDeleteExperimentParamsWithHTTPClient creates a new ExperimentServiceDeleteExperimentParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewExperimentServiceDeleteExperimentParamsWithHTTPClient(client *http.Client) *ExperimentServiceDeleteExperimentParams {
-	var ()
 	return &ExperimentServiceDeleteExperimentParams{
 		HTTPClient: client,
 	}
 }
 
-/*ExperimentServiceDeleteExperimentParams contains all the parameters to send to the API endpoint
-for the experiment service delete experiment operation typically these are written to a http.Request
+/*
+ExperimentServiceDeleteExperimentParams contains all the parameters to send to the API endpoint
+
+	for the experiment service delete experiment operation.
+
+	Typically these are written to a http.Request.
 */
 type ExperimentServiceDeleteExperimentParams struct {
 
-	/*ExperimentID
-	  The ID of the experiment to be deleted.
+	/* ExperimentID.
 
+	   The ID of the experiment to be deleted.
 	*/
 	ExperimentID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the experiment service delete experiment params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ExperimentServiceDeleteExperimentParams) WithDefaults() *ExperimentServiceDeleteExperimentParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the experiment service delete experiment params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ExperimentServiceDeleteExperimentParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the experiment service delete experiment params

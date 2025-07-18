@@ -14,25 +14,21 @@
 
 import os
 import re
+from typing import List
 
 import setuptools
 
 NAME = 'kfp-kubernetes'
-REQUIREMENTS = [
-    'protobuf>=4.21.1,<5',
-    'kfp>=2.6.0,<3',
-]
-DEV_REQUIREMENTS = [
-    'docformatter==1.4',
-    'isort==5.10.1',
-    'mypy==0.941',
-    'pre-commit==2.19.0',
-    'pycln==2.1.1',
-    'pytest==7.1.2',
-    'pytest-xdist==2.5.0',
-    'yapf==0.32.0',
-]
 
+def get_requirements(requirements_file: str) -> List[str]:
+    """Read requirements from requirements.in."""
+
+    file_path = os.path.join(os.path.dirname(__file__), requirements_file)
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+    lines = [line.strip() for line in lines]
+    lines = [line for line in lines if not line.startswith('#') and line]
+    return lines
 
 def find_version(*file_path_parts: str) -> str:
     """Get version from kfp.__init__.__version__."""
@@ -77,10 +73,10 @@ setuptools.setup(
     },
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
     python_requires='>=3.9.0',
-    install_requires=REQUIREMENTS,
+    install_requires=get_requirements('requirements.txt'),
     include_package_data=True,
     extras_require={
-        'dev': DEV_REQUIREMENTS,
+        'dev': get_requirements('requirements-dev.txt'),
     },
     license='Apache 2.0',
 )

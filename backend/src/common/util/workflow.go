@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
 	argoclientwf "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
@@ -29,7 +31,6 @@ import (
 	"github.com/argoproj/argo-workflows/v3/workflow/packer"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
@@ -517,7 +518,7 @@ func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, r
 	// ReportRunMetricsRequest as a workaround to hold user's metrics, which is a superset of what
 	// user can provide.
 	reportMetricsRequest := new(api.ReportRunMetricsRequest)
-	err = jsonpb.UnmarshalString(metricsJSON, reportMetricsRequest)
+	err = protojson.Unmarshal([]byte(metricsJSON), reportMetricsRequest)
 	if err != nil {
 		// User writes invalid metrics JSON.
 		// TODO(#1426): report the error back to api server to notify user

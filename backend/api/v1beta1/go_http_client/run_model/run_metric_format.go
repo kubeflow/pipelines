@@ -6,19 +6,29 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // RunMetricFormat  - UNSPECIFIED: Default value if not present.
-//  - RAW: Display value as its raw format.
-//  - PERCENTAGE: Display value in percentage format.
+//   - RAW: Display value as its raw format.
+//   - PERCENTAGE: Display value in percentage format.
+//
 // swagger:model RunMetricFormat
 type RunMetricFormat string
+
+func NewRunMetricFormat(value RunMetricFormat) *RunMetricFormat {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated RunMetricFormat.
+func (m RunMetricFormat) Pointer() *RunMetricFormat {
+	return &m
+}
 
 const (
 
@@ -46,7 +56,7 @@ func init() {
 }
 
 func (m RunMetricFormat) validateRunMetricFormatEnum(path, location string, value RunMetricFormat) error {
-	if err := validate.Enum(path, location, value, runMetricFormatEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, runMetricFormatEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -64,5 +74,10 @@ func (m RunMetricFormat) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this run metric format based on context it is used
+func (m RunMetricFormat) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

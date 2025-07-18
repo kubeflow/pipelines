@@ -166,13 +166,13 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineParams{
-		Body: &model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip"},
+		Pipeline: &model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip"},
 	})
 	require.Nil(t, err)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(
 		&params.PipelineServiceCreatePipelineVersionParams{
 			PipelineID: argumentUrlPipeline.PipelineID,
-			Body: &model.V2beta1PipelineVersion{
+			PipelineVersion: &model.V2beta1PipelineVersion{
 				DisplayName: "argumenturl-v1",
 				Description: "1st version of argument url pipeline",
 				PipelineID:  sequentialPipeline.PipelineID,

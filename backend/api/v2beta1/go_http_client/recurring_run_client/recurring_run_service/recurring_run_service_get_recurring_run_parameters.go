@@ -13,63 +13,78 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewRecurringRunServiceGetRecurringRunParams creates a new RecurringRunServiceGetRecurringRunParams object
-// with the default values initialized.
+// NewRecurringRunServiceGetRecurringRunParams creates a new RecurringRunServiceGetRecurringRunParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRecurringRunServiceGetRecurringRunParams() *RecurringRunServiceGetRecurringRunParams {
-	var ()
 	return &RecurringRunServiceGetRecurringRunParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRecurringRunServiceGetRecurringRunParamsWithTimeout creates a new RecurringRunServiceGetRecurringRunParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRecurringRunServiceGetRecurringRunParamsWithTimeout(timeout time.Duration) *RecurringRunServiceGetRecurringRunParams {
-	var ()
 	return &RecurringRunServiceGetRecurringRunParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewRecurringRunServiceGetRecurringRunParamsWithContext creates a new RecurringRunServiceGetRecurringRunParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRecurringRunServiceGetRecurringRunParamsWithContext(ctx context.Context) *RecurringRunServiceGetRecurringRunParams {
-	var ()
 	return &RecurringRunServiceGetRecurringRunParams{
-
 		Context: ctx,
 	}
 }
 
 // NewRecurringRunServiceGetRecurringRunParamsWithHTTPClient creates a new RecurringRunServiceGetRecurringRunParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRecurringRunServiceGetRecurringRunParamsWithHTTPClient(client *http.Client) *RecurringRunServiceGetRecurringRunParams {
-	var ()
 	return &RecurringRunServiceGetRecurringRunParams{
 		HTTPClient: client,
 	}
 }
 
-/*RecurringRunServiceGetRecurringRunParams contains all the parameters to send to the API endpoint
-for the recurring run service get recurring run operation typically these are written to a http.Request
+/*
+RecurringRunServiceGetRecurringRunParams contains all the parameters to send to the API endpoint
+
+	for the recurring run service get recurring run operation.
+
+	Typically these are written to a http.Request.
 */
 type RecurringRunServiceGetRecurringRunParams struct {
 
-	/*RecurringRunID
-	  The ID of the recurring run to be retrieved.
+	/* RecurringRunID.
 
+	   The ID of the recurring run to be retrieved.
 	*/
 	RecurringRunID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the recurring run service get recurring run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RecurringRunServiceGetRecurringRunParams) WithDefaults() *RecurringRunServiceGetRecurringRunParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the recurring run service get recurring run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RecurringRunServiceGetRecurringRunParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the recurring run service get recurring run params

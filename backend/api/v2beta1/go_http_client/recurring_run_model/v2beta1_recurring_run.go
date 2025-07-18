@@ -6,14 +6,16 @@ package recurring_run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1RecurringRun v2beta1 recurring run
+//
 // swagger:model v2beta1RecurringRun
 type V2beta1RecurringRun struct {
 
@@ -40,7 +42,7 @@ type V2beta1RecurringRun struct {
 	MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`
 
 	// mode
-	Mode RecurringRunMode `json:"mode,omitempty"`
+	Mode *RecurringRunMode `json:"mode,omitempty"`
 
 	// TODO (gkclat): consider removing this field if it can be obtained from the parent experiment.
 	// Output only. Namespace this recurring run belongs to. Derived from the parent experiment.
@@ -71,7 +73,7 @@ type V2beta1RecurringRun struct {
 	ServiceAccount string `json:"service_account,omitempty"`
 
 	// status
-	Status V2beta1RecurringRunStatus `json:"status,omitempty"`
+	Status *V2beta1RecurringRunStatus `json:"status,omitempty"`
 
 	// Required input field.
 	// Specifies how a run is triggered. Support cron mode or periodic mode.
@@ -125,7 +127,6 @@ func (m *V2beta1RecurringRun) Validate(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1RecurringRun) validateCreatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
 	}
@@ -138,7 +139,6 @@ func (m *V2beta1RecurringRun) validateCreatedAt(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1RecurringRun) validateError(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Error) { // not required
 		return nil
 	}
@@ -147,6 +147,8 @@ func (m *V2beta1RecurringRun) validateError(formats strfmt.Registry) error {
 		if err := m.Error.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("error")
 			}
 			return err
 		}
@@ -156,23 +158,25 @@ func (m *V2beta1RecurringRun) validateError(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1RecurringRun) validateMode(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Mode) { // not required
 		return nil
 	}
 
-	if err := m.Mode.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("mode")
+	if m.Mode != nil {
+		if err := m.Mode.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("mode")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("mode")
+			}
+			return err
 		}
-		return err
 	}
 
 	return nil
 }
 
 func (m *V2beta1RecurringRun) validatePipelineVersionReference(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.PipelineVersionReference) { // not required
 		return nil
 	}
@@ -181,6 +185,8 @@ func (m *V2beta1RecurringRun) validatePipelineVersionReference(formats strfmt.Re
 		if err := m.PipelineVersionReference.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("pipeline_version_reference")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline_version_reference")
 			}
 			return err
 		}
@@ -190,7 +196,6 @@ func (m *V2beta1RecurringRun) validatePipelineVersionReference(formats strfmt.Re
 }
 
 func (m *V2beta1RecurringRun) validateRuntimeConfig(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.RuntimeConfig) { // not required
 		return nil
 	}
@@ -199,6 +204,8 @@ func (m *V2beta1RecurringRun) validateRuntimeConfig(formats strfmt.Registry) err
 		if err := m.RuntimeConfig.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("runtime_config")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("runtime_config")
 			}
 			return err
 		}
@@ -208,23 +215,25 @@ func (m *V2beta1RecurringRun) validateRuntimeConfig(formats strfmt.Registry) err
 }
 
 func (m *V2beta1RecurringRun) validateStatus(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Status) { // not required
 		return nil
 	}
 
-	if err := m.Status.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("status")
+	if m.Status != nil {
+		if err := m.Status.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("status")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("status")
+			}
+			return err
 		}
-		return err
 	}
 
 	return nil
 }
 
 func (m *V2beta1RecurringRun) validateTrigger(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Trigger) { // not required
 		return nil
 	}
@@ -233,6 +242,8 @@ func (m *V2beta1RecurringRun) validateTrigger(formats strfmt.Registry) error {
 		if err := m.Trigger.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("trigger")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("trigger")
 			}
 			return err
 		}
@@ -242,13 +253,185 @@ func (m *V2beta1RecurringRun) validateTrigger(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1RecurringRun) validateUpdatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.UpdatedAt) { // not required
 		return nil
 	}
 
 	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 recurring run based on the context it is used
+func (m *V2beta1RecurringRun) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateError(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateMode(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateNamespace(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidatePipelineVersionReference(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateRuntimeConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateStatus(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateTrigger(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1RecurringRun) contextValidateError(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Error != nil {
+
+		if swag.IsZero(m.Error) { // not required
+			return nil
+		}
+
+		if err := m.Error.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("error")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1RecurringRun) contextValidateMode(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Mode != nil {
+
+		if swag.IsZero(m.Mode) { // not required
+			return nil
+		}
+
+		if err := m.Mode.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("mode")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("mode")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1RecurringRun) contextValidateNamespace(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := validate.ReadOnly(ctx, "namespace", "body", string(m.Namespace)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *V2beta1RecurringRun) contextValidatePipelineVersionReference(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.PipelineVersionReference != nil {
+
+		if swag.IsZero(m.PipelineVersionReference) { // not required
+			return nil
+		}
+
+		if err := m.PipelineVersionReference.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("pipeline_version_reference")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline_version_reference")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1RecurringRun) contextValidateRuntimeConfig(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.RuntimeConfig != nil {
+
+		if swag.IsZero(m.RuntimeConfig) { // not required
+			return nil
+		}
+
+		if err := m.RuntimeConfig.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("runtime_config")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("runtime_config")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1RecurringRun) contextValidateStatus(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Status != nil {
+
+		if swag.IsZero(m.Status) { // not required
+			return nil
+		}
+
+		if err := m.Status.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("status")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("status")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1RecurringRun) contextValidateTrigger(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Trigger != nil {
+
+		if swag.IsZero(m.Trigger) { // not required
+			return nil
+		}
+
+		if err := m.Trigger.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("trigger")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("trigger")
+			}
+			return err
+		}
 	}
 
 	return nil

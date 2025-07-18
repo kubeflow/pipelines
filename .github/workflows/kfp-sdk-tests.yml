@@ -5,6 +5,7 @@ on:
     branches: [master]
   pull_request:
     paths:
+      - 'api/**'
       - 'sdk/**'
       - 'test/presubmit-tests-sdk.sh'
       - '.github/workflows/kfp-sdk-tests.yml'
@@ -17,6 +18,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.9', '3.13']
+        protobuf-version: ['5.26.0', '6.31.1']
 
     steps:
     - name: Checkout code
@@ -41,6 +43,9 @@ jobs:
       run: |
         python3 -m pip install -I api/v2alpha1/python
 
-    - name: Run SDK Tests
+    - name: Run presubmit tests
+      env:
+        PROTOBUF_VERSION: ${{ matrix.protobuf-version }}
       run: |
+        echo "Testing with protobuf==$PROTOBUF_VERSION"
         ./test/presubmit-tests-sdk.sh

@@ -123,7 +123,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineV1Params{
-		Body: &model.APIPipeline{Name: "sequential", URL: &model.APIURL{
+		Pipeline: &model.APIPipeline{Name: "sequential", URL: &model.APIURL{
 			PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
 		}},
 	})
@@ -146,7 +146,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineV1Params{
-		Body: &model.APIPipeline{
+		Pipeline: &model.APIPipeline{
 			URL: &model.APIURL{
 				PipelineURL: pipelineURL,
 			},
@@ -281,8 +281,8 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 				{Name: "param2"},
 			},
 			ResourceReferences: []*model.APIResourceReference{{
-				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE},
-				Relationship: model.APIRelationshipOWNER,
+				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE.Pointer()},
+				Relationship: model.APIRelationshipOWNER.Pointer(),
 			}},
 		},
 	}

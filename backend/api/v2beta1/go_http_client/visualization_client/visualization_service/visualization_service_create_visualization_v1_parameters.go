@@ -13,64 +13,80 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	visualization_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/visualization_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/visualization_model"
 )
 
-// NewVisualizationServiceCreateVisualizationV1Params creates a new VisualizationServiceCreateVisualizationV1Params object
-// with the default values initialized.
+// NewVisualizationServiceCreateVisualizationV1Params creates a new VisualizationServiceCreateVisualizationV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewVisualizationServiceCreateVisualizationV1Params() *VisualizationServiceCreateVisualizationV1Params {
-	var ()
 	return &VisualizationServiceCreateVisualizationV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewVisualizationServiceCreateVisualizationV1ParamsWithTimeout creates a new VisualizationServiceCreateVisualizationV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewVisualizationServiceCreateVisualizationV1ParamsWithTimeout(timeout time.Duration) *VisualizationServiceCreateVisualizationV1Params {
-	var ()
 	return &VisualizationServiceCreateVisualizationV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewVisualizationServiceCreateVisualizationV1ParamsWithContext creates a new VisualizationServiceCreateVisualizationV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewVisualizationServiceCreateVisualizationV1ParamsWithContext(ctx context.Context) *VisualizationServiceCreateVisualizationV1Params {
-	var ()
 	return &VisualizationServiceCreateVisualizationV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewVisualizationServiceCreateVisualizationV1ParamsWithHTTPClient creates a new VisualizationServiceCreateVisualizationV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewVisualizationServiceCreateVisualizationV1ParamsWithHTTPClient(client *http.Client) *VisualizationServiceCreateVisualizationV1Params {
-	var ()
 	return &VisualizationServiceCreateVisualizationV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*VisualizationServiceCreateVisualizationV1Params contains all the parameters to send to the API endpoint
-for the visualization service create visualization v1 operation typically these are written to a http.Request
+/*
+VisualizationServiceCreateVisualizationV1Params contains all the parameters to send to the API endpoint
+
+	for the visualization service create visualization v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type VisualizationServiceCreateVisualizationV1Params struct {
 
-	/*Body*/
-	Body *visualization_model.V2beta1Visualization
-	/*Namespace*/
+	// Namespace.
 	Namespace string
+
+	// Visualization.
+	Visualization *visualization_model.V2beta1Visualization
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the visualization service create visualization v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *VisualizationServiceCreateVisualizationV1Params) WithDefaults() *VisualizationServiceCreateVisualizationV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the visualization service create visualization v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *VisualizationServiceCreateVisualizationV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the visualization service create visualization v1 params
@@ -106,17 +122,6 @@ func (o *VisualizationServiceCreateVisualizationV1Params) SetHTTPClient(client *
 	o.HTTPClient = client
 }
 
-// WithBody adds the body to the visualization service create visualization v1 params
-func (o *VisualizationServiceCreateVisualizationV1Params) WithBody(body *visualization_model.V2beta1Visualization) *VisualizationServiceCreateVisualizationV1Params {
-	o.SetBody(body)
-	return o
-}
-
-// SetBody adds the body to the visualization service create visualization v1 params
-func (o *VisualizationServiceCreateVisualizationV1Params) SetBody(body *visualization_model.V2beta1Visualization) {
-	o.Body = body
-}
-
 // WithNamespace adds the namespace to the visualization service create visualization v1 params
 func (o *VisualizationServiceCreateVisualizationV1Params) WithNamespace(namespace string) *VisualizationServiceCreateVisualizationV1Params {
 	o.SetNamespace(namespace)
@@ -128,6 +133,17 @@ func (o *VisualizationServiceCreateVisualizationV1Params) SetNamespace(namespace
 	o.Namespace = namespace
 }
 
+// WithVisualization adds the visualization to the visualization service create visualization v1 params
+func (o *VisualizationServiceCreateVisualizationV1Params) WithVisualization(visualization *visualization_model.V2beta1Visualization) *VisualizationServiceCreateVisualizationV1Params {
+	o.SetVisualization(visualization)
+	return o
+}
+
+// SetVisualization adds the visualization to the visualization service create visualization v1 params
+func (o *VisualizationServiceCreateVisualizationV1Params) SetVisualization(visualization *visualization_model.V2beta1Visualization) {
+	o.Visualization = visualization
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *VisualizationServiceCreateVisualizationV1Params) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -136,15 +152,14 @@ func (o *VisualizationServiceCreateVisualizationV1Params) WriteToRequest(r runti
 	}
 	var res []error
 
-	if o.Body != nil {
-		if err := r.SetBodyParam(o.Body); err != nil {
-			return err
-		}
-	}
-
 	// path param namespace
 	if err := r.SetPathParam("namespace", o.Namespace); err != nil {
 		return err
+	}
+	if o.Visualization != nil {
+		if err := r.SetBodyParam(o.Visualization); err != nil {
+			return err
+		}
 	}
 
 	if len(res) > 0 {

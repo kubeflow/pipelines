@@ -20,12 +20,13 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -477,7 +478,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 
 	if kubernetesConfigParam != nil {
 		k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := jsonpb.UnmarshalString(string(*kubernetesConfigParam.Value), k8sExecCfg); err == nil {
+		if err := protojson.Unmarshal([]byte(*kubernetesConfigParam.Value), k8sExecCfg); err == nil {
 			extendPodMetadata(&executor.Metadata, k8sExecCfg)
 		}
 	}

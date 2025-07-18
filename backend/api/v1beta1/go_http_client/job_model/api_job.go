@@ -6,16 +6,17 @@ package job_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // APIJob api job
+//
 // swagger:model apiJob
 type APIJob struct {
 
@@ -42,7 +43,7 @@ type APIJob struct {
 	MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`
 
 	// mode
-	Mode JobMode `json:"mode,omitempty"`
+	Mode *JobMode `json:"mode,omitempty"`
 
 	// Required input field. Job name provided by user. Not unique.
 	Name string `json:"name,omitempty"`
@@ -111,7 +112,6 @@ func (m *APIJob) Validate(formats strfmt.Registry) error {
 }
 
 func (m *APIJob) validateCreatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
 	}
@@ -124,23 +124,25 @@ func (m *APIJob) validateCreatedAt(formats strfmt.Registry) error {
 }
 
 func (m *APIJob) validateMode(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Mode) { // not required
 		return nil
 	}
 
-	if err := m.Mode.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("mode")
+	if m.Mode != nil {
+		if err := m.Mode.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("mode")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("mode")
+			}
+			return err
 		}
-		return err
 	}
 
 	return nil
 }
 
 func (m *APIJob) validatePipelineSpec(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.PipelineSpec) { // not required
 		return nil
 	}
@@ -149,6 +151,8 @@ func (m *APIJob) validatePipelineSpec(formats strfmt.Registry) error {
 		if err := m.PipelineSpec.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("pipeline_spec")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline_spec")
 			}
 			return err
 		}
@@ -158,7 +162,6 @@ func (m *APIJob) validatePipelineSpec(formats strfmt.Registry) error {
 }
 
 func (m *APIJob) validateResourceReferences(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ResourceReferences) { // not required
 		return nil
 	}
@@ -172,6 +175,8 @@ func (m *APIJob) validateResourceReferences(formats strfmt.Registry) error {
 			if err := m.ResourceReferences[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("resource_references" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("resource_references" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -183,7 +188,6 @@ func (m *APIJob) validateResourceReferences(formats strfmt.Registry) error {
 }
 
 func (m *APIJob) validateTrigger(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Trigger) { // not required
 		return nil
 	}
@@ -192,6 +196,8 @@ func (m *APIJob) validateTrigger(formats strfmt.Registry) error {
 		if err := m.Trigger.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("trigger")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("trigger")
 			}
 			return err
 		}
@@ -201,13 +207,126 @@ func (m *APIJob) validateTrigger(formats strfmt.Registry) error {
 }
 
 func (m *APIJob) validateUpdatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.UpdatedAt) { // not required
 		return nil
 	}
 
 	if err := validate.FormatOf("updated_at", "body", "date-time", m.UpdatedAt.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this api job based on the context it is used
+func (m *APIJob) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateMode(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidatePipelineSpec(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateResourceReferences(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateTrigger(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *APIJob) contextValidateMode(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Mode != nil {
+
+		if swag.IsZero(m.Mode) { // not required
+			return nil
+		}
+
+		if err := m.Mode.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("mode")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("mode")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *APIJob) contextValidatePipelineSpec(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.PipelineSpec != nil {
+
+		if swag.IsZero(m.PipelineSpec) { // not required
+			return nil
+		}
+
+		if err := m.PipelineSpec.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("pipeline_spec")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline_spec")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *APIJob) contextValidateResourceReferences(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.ResourceReferences); i++ {
+
+		if m.ResourceReferences[i] != nil {
+
+			if swag.IsZero(m.ResourceReferences[i]) { // not required
+				return nil
+			}
+
+			if err := m.ResourceReferences[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("resource_references" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("resource_references" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *APIJob) contextValidateTrigger(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Trigger != nil {
+
+		if swag.IsZero(m.Trigger) { // not required
+			return nil
+		}
+
+		if err := m.Trigger.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("trigger")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("trigger")
+			}
+			return err
+		}
 	}
 
 	return nil

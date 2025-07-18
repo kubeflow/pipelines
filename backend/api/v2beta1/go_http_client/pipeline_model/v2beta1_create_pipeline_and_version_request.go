@@ -6,13 +6,15 @@ package pipeline_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1CreatePipelineAndVersionRequest v2beta1 create pipeline and version request
+//
 // swagger:model v2beta1CreatePipelineAndVersionRequest
 type V2beta1CreatePipelineAndVersionRequest struct {
 
@@ -43,7 +45,6 @@ func (m *V2beta1CreatePipelineAndVersionRequest) Validate(formats strfmt.Registr
 }
 
 func (m *V2beta1CreatePipelineAndVersionRequest) validatePipeline(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Pipeline) { // not required
 		return nil
 	}
@@ -52,6 +53,8 @@ func (m *V2beta1CreatePipelineAndVersionRequest) validatePipeline(formats strfmt
 		if err := m.Pipeline.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("pipeline")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline")
 			}
 			return err
 		}
@@ -61,7 +64,6 @@ func (m *V2beta1CreatePipelineAndVersionRequest) validatePipeline(formats strfmt
 }
 
 func (m *V2beta1CreatePipelineAndVersionRequest) validatePipelineVersion(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.PipelineVersion) { // not required
 		return nil
 	}
@@ -70,6 +72,68 @@ func (m *V2beta1CreatePipelineAndVersionRequest) validatePipelineVersion(formats
 		if err := m.PipelineVersion.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("pipeline_version")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline_version")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 create pipeline and version request based on the context it is used
+func (m *V2beta1CreatePipelineAndVersionRequest) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidatePipeline(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidatePipelineVersion(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1CreatePipelineAndVersionRequest) contextValidatePipeline(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Pipeline != nil {
+
+		if swag.IsZero(m.Pipeline) { // not required
+			return nil
+		}
+
+		if err := m.Pipeline.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("pipeline")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1CreatePipelineAndVersionRequest) contextValidatePipelineVersion(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.PipelineVersion != nil {
+
+		if swag.IsZero(m.PipelineVersion) { // not required
+			return nil
+		}
+
+		if err := m.PipelineVersion.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("pipeline_version")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline_version")
 			}
 			return err
 		}

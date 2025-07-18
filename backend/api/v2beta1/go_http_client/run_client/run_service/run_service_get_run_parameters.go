@@ -13,68 +13,84 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewRunServiceGetRunParams creates a new RunServiceGetRunParams object
-// with the default values initialized.
+// NewRunServiceGetRunParams creates a new RunServiceGetRunParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRunServiceGetRunParams() *RunServiceGetRunParams {
-	var ()
 	return &RunServiceGetRunParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRunServiceGetRunParamsWithTimeout creates a new RunServiceGetRunParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRunServiceGetRunParamsWithTimeout(timeout time.Duration) *RunServiceGetRunParams {
-	var ()
 	return &RunServiceGetRunParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewRunServiceGetRunParamsWithContext creates a new RunServiceGetRunParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRunServiceGetRunParamsWithContext(ctx context.Context) *RunServiceGetRunParams {
-	var ()
 	return &RunServiceGetRunParams{
-
 		Context: ctx,
 	}
 }
 
 // NewRunServiceGetRunParamsWithHTTPClient creates a new RunServiceGetRunParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRunServiceGetRunParamsWithHTTPClient(client *http.Client) *RunServiceGetRunParams {
-	var ()
 	return &RunServiceGetRunParams{
 		HTTPClient: client,
 	}
 }
 
-/*RunServiceGetRunParams contains all the parameters to send to the API endpoint
-for the run service get run operation typically these are written to a http.Request
+/*
+RunServiceGetRunParams contains all the parameters to send to the API endpoint
+
+	for the run service get run operation.
+
+	Typically these are written to a http.Request.
 */
 type RunServiceGetRunParams struct {
 
-	/*ExperimentID
-	  The ID of the parent experiment.
+	/* ExperimentID.
 
+	   The ID of the parent experiment.
 	*/
 	ExperimentID *string
-	/*RunID
-	  The ID of the run to be retrieved.
 
+	/* RunID.
+
+	   The ID of the run to be retrieved.
 	*/
 	RunID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the run service get run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceGetRunParams) WithDefaults() *RunServiceGetRunParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the run service get run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceGetRunParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the run service get run params
@@ -144,16 +160,17 @@ func (o *RunServiceGetRunParams) WriteToRequest(r runtime.ClientRequest, reg str
 
 		// query param experiment_id
 		var qrExperimentID string
+
 		if o.ExperimentID != nil {
 			qrExperimentID = *o.ExperimentID
 		}
 		qExperimentID := qrExperimentID
 		if qExperimentID != "" {
+
 			if err := r.SetQueryParam("experiment_id", qExperimentID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	// path param run_id

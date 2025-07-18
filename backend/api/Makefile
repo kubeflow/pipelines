@@ -15,13 +15,13 @@
 # Makefile to generate KFP api clients from proto.
 
 IMAGE_TAG=kfp-api-generator
-# Contact chensun or zijianjoy if this remote image needs an update.
+# Contact chensun or HumairAK if this remote image needs an update.
 REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator
 # Assume the latest API version by default.
 API_VERSION ?= v2beta1
 
 # Keep in sync with the version used in test/release/Dockerfile.release
-PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:1.1
+PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:1.2
 
 CONTAINER_ENGINE ?= docker
 
@@ -38,7 +38,6 @@ generate: fetch-dependencies hack/generator.sh $(API_VERSION)/*.proto
 .PHONY: fetch-dependencies
 fetch-dependencies: v2beta1/google/rpc/status.proto
 
-# TODO(gkcalat): add this as a submodule?
 v2beta1/google/rpc/status.proto:
 	mkdir -p v2beta1/google/rpc
 	wget -O v2beta1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto

@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -90,7 +90,7 @@ func toApiExperimentV1(experiment *model.Experiment) *apiv1beta1.Experiment {
 		Id:                 experiment.UUID,
 		Name:               experiment.Name,
 		Description:        experiment.Description,
-		CreatedAt:          &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
+		CreatedAt:          timestamppb.New(time.Unix(experiment.CreatedAtInSec, 0)),
 		ResourceReferences: resourceReferences,
 		StorageState:       storageState,
 	}
@@ -116,8 +116,8 @@ func toApiExperiment(experiment *model.Experiment) *apiv2beta1.Experiment {
 		ExperimentId:     experiment.UUID,
 		DisplayName:      experiment.Name,
 		Description:      experiment.Description,
-		CreatedAt:        &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
-		LastRunCreatedAt: &timestamp.Timestamp{Seconds: experiment.LastRunCreatedAtInSec},
+		CreatedAt:        timestamppb.New(time.Unix(experiment.CreatedAtInSec, 0)),
+		LastRunCreatedAt: timestamppb.New(time.Unix(experiment.LastRunCreatedAtInSec, 0)),
 		Namespace:        experiment.Namespace,
 		StorageState:     storageState,
 	}
@@ -221,7 +221,7 @@ func toApiPipelineV1(pipeline *model.Pipeline, pipelineVersion *model.PipelineVe
 	}
 	apiPipeline := &apiv1beta1.Pipeline{
 		Id:                 pipeline.UUID,
-		CreatedAt:          &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
+		CreatedAt:          timestamppb.New(time.Unix(pipeline.CreatedAtInSec, 0)),
 		Name:               pipeline.Name,
 		Description:        pipeline.Description,
 		Parameters:         params,
@@ -294,7 +294,7 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 		Name:        pipeline.Name,
 		DisplayName: pipeline.DisplayName,
 		Description: pipeline.Description,
-		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
+		CreatedAt:   timestamppb.New(time.Unix(pipeline.CreatedAtInSec, 0)),
 		Namespace:   pipeline.Namespace,
 	}
 }
@@ -384,7 +384,7 @@ func toApiPipelineVersionV1(pv *model.PipelineVersion) *apiv1beta1.PipelineVersi
 	}
 	apiPipelineVersion.Id = pv.UUID
 	apiPipelineVersion.Name = pv.Name
-	apiPipelineVersion.CreatedAt = &timestamp.Timestamp{Seconds: pv.CreatedAtInSec}
+	apiPipelineVersion.CreatedAt = timestamppb.New(time.Unix(pv.CreatedAtInSec, 0))
 	if p := toApiParametersV1(pv.Parameters); p == nil {
 		return nil
 	} else if len(p) > 0 {
@@ -455,7 +455,7 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 		Name:              pv.Name,
 		DisplayName:       pv.DisplayName,
 		Description:       pv.Description,
-		CreatedAt:         &timestamp.Timestamp{Seconds: pv.CreatedAtInSec},
+		CreatedAt:         timestamppb.New(time.Unix(pv.CreatedAtInSec, 0)),
 	}
 
 	// Infer pipeline url
@@ -772,14 +772,10 @@ func toApiTriggerV1(trigger *model.Trigger) *apiv1beta1.Trigger {
 		var cronSchedule apiv1beta1.CronSchedule
 		cronSchedule.Cron = *trigger.Cron
 		if trigger.CronScheduleStartTimeInSec != nil {
-			cronSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleStartTimeInSec,
-			}
-		}
+			cronSchedule.StartTime = timestamppb.New(time.Unix(*trigger.CronScheduleStartTimeInSec, 0))
+		} // timestamppb.New(time.Unix(trigger.CronScheduleStartTimeInSec, 0))
 		if trigger.CronScheduleEndTimeInSec != nil {
-			cronSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleEndTimeInSec,
-			}
+			cronSchedule.EndTime = timestamppb.New(time.Unix(*trigger.CronScheduleEndTimeInSec, 0))
 		}
 		return &apiv1beta1.Trigger{Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
 	}
@@ -787,14 +783,10 @@ func toApiTriggerV1(trigger *model.Trigger) *apiv1beta1.Trigger {
 		var periodicSchedule apiv1beta1.PeriodicSchedule
 		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {
-			periodicSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleStartTimeInSec,
-			}
+			periodicSchedule.StartTime = timestamppb.New(time.Unix(*trigger.PeriodicScheduleStartTimeInSec, 0))
 		}
 		if trigger.PeriodicScheduleEndTimeInSec != nil {
-			periodicSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleEndTimeInSec,
-			}
+			periodicSchedule.EndTime = timestamppb.New(time.Unix(*trigger.PeriodicScheduleEndTimeInSec, 0))
 		}
 		return &apiv1beta1.Trigger{Trigger: &apiv1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
 	}
@@ -815,14 +807,10 @@ func toApiTrigger(trigger *model.Trigger) *apiv2beta1.Trigger {
 		var cronSchedule apiv2beta1.CronSchedule
 		cronSchedule.Cron = *trigger.Cron
 		if trigger.CronScheduleStartTimeInSec != nil {
-			cronSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleStartTimeInSec,
-			}
+			cronSchedule.StartTime = timestamppb.New(time.Unix(*trigger.CronScheduleStartTimeInSec, 0))
 		}
 		if trigger.CronScheduleEndTimeInSec != nil {
-			cronSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleEndTimeInSec,
-			}
+			cronSchedule.EndTime = timestamppb.New(time.Unix(*trigger.CronScheduleEndTimeInSec, 0))
 		}
 		return &apiv2beta1.Trigger{Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
 	}
@@ -830,14 +818,10 @@ func toApiTrigger(trigger *model.Trigger) *apiv2beta1.Trigger {
 		var periodicSchedule apiv2beta1.PeriodicSchedule
 		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {
-			periodicSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleStartTimeInSec,
-			}
+			periodicSchedule.StartTime = timestamppb.New(time.Unix(*trigger.PeriodicScheduleStartTimeInSec, 0))
 		}
 		if trigger.PeriodicScheduleEndTimeInSec != nil {
-			periodicSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleEndTimeInSec,
-			}
+			periodicSchedule.EndTime = timestamppb.New(time.Unix(*trigger.PeriodicScheduleEndTimeInSec, 0))
 		}
 		return &apiv2beta1.Trigger{Trigger: &apiv2beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
 	}
@@ -1446,15 +1430,15 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 	specManifest := r.PipelineSpec.PipelineSpecManifest
 	wfManifest := r.PipelineSpec.WorkflowSpecManifest
 	return &apiv1beta1.Run{
-		CreatedAt:      &timestamp.Timestamp{Seconds: r.RunDetails.CreatedAtInSec},
+		CreatedAt:      timestamppb.New(time.Unix(r.RunDetails.CreatedAtInSec, 0)),
 		Id:             r.UUID,
 		Metrics:        metrics,
 		Name:           r.DisplayName,
 		ServiceAccount: r.ServiceAccount,
 		StorageState:   apiv1beta1.Run_StorageState(apiv1beta1.Run_StorageState_value[string(r.StorageState.ToV1())]),
 		Description:    r.Description,
-		ScheduledAt:    &timestamp.Timestamp{Seconds: r.RunDetails.ScheduledAtInSec},
-		FinishedAt:     &timestamp.Timestamp{Seconds: r.RunDetails.FinishedAtInSec},
+		ScheduledAt:    timestamppb.New(time.Unix(r.RunDetails.ScheduledAtInSec, 0)),
+		FinishedAt:     timestamppb.New(time.Unix(r.RunDetails.FinishedAtInSec, 0)),
 		Status:         string(r.RunDetails.State.ToV1()),
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineId:       r.PipelineSpec.PipelineId,
@@ -1507,9 +1491,9 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		StorageState:   toApiRunStorageState(&r.StorageState),
 		State:          toApiRuntimeState(&r.RunDetails.State),
 		StateHistory:   toApiRuntimeStatuses(r.RunDetails.StateHistory),
-		CreatedAt:      &timestamp.Timestamp{Seconds: r.RunDetails.CreatedAtInSec},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: r.RunDetails.ScheduledAtInSec},
-		FinishedAt:     &timestamp.Timestamp{Seconds: r.RunDetails.FinishedAtInSec},
+		CreatedAt:      timestamppb.New(time.Unix(r.RunDetails.CreatedAtInSec, 0)),
+		ScheduledAt:    timestamppb.New(time.Unix(r.RunDetails.ScheduledAtInSec, 0)),
+		FinishedAt:     timestamppb.New(time.Unix(r.RunDetails.FinishedAtInSec, 0)),
 		RunDetails:     apiRd,
 	}
 	err := util.NewInvalidInputError("Failed to parse the pipeline source")
@@ -1741,8 +1725,8 @@ func toApiTaskV1(task *model.Task) *apiv1beta1.Task {
 		PipelineName:    task.PipelineName,
 		RunId:           task.RunId,
 		MlmdExecutionID: task.MLMDExecutionID,
-		CreatedAt:       &timestamp.Timestamp{Seconds: task.CreatedTimestamp},
-		FinishedAt:      &timestamp.Timestamp{Seconds: task.FinishedTimestamp},
+		CreatedAt:       timestamppb.New(time.Unix(task.CreatedTimestamp, 0)),
+		FinishedAt:      timestamppb.New(time.Unix(task.FinishedTimestamp, 0)),
 		Fingerprint:     task.Fingerprint,
 	}
 }
@@ -1787,9 +1771,9 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 		RunId:        t.RunId,
 		TaskId:       t.UUID,
 		DisplayName:  t.Name,
-		CreateTime:   &timestamp.Timestamp{Seconds: t.CreatedTimestamp},
-		StartTime:    &timestamp.Timestamp{Seconds: t.StartedTimestamp},
-		EndTime:      &timestamp.Timestamp{Seconds: t.FinishedTimestamp},
+		CreateTime:   timestamppb.New(time.Unix(t.CreatedTimestamp, 0)),
+		StartTime:    timestamppb.New(time.Unix(t.StartedTimestamp, 0)),
+		EndTime:      timestamppb.New(time.Unix(t.FinishedTimestamp, 0)),
 		State:        apiv2beta1.RuntimeState(apiv2beta1.RuntimeState_value[t.State.ToString()]),
 		ExecutionId:  execId,
 		Inputs:       inputArtifacts,
@@ -2171,9 +2155,9 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 		ServiceAccount: j.ServiceAccount,
 		Description:    j.Description,
 		Enabled:        j.Enabled,
-		CreatedAt:      &timestamp.Timestamp{Seconds: j.CreatedAtInSec},
+		CreatedAt:      timestamppb.New(time.Unix(j.CreatedAtInSec, 0)),
 		Status:         toApiJobStatus(j.Conditions),
-		UpdatedAt:      &timestamp.Timestamp{Seconds: j.UpdatedAtInSec},
+		UpdatedAt:      timestamppb.New(time.Unix(j.UpdatedAtInSec, 0)),
 		MaxConcurrency: j.MaxConcurrency,
 		NoCatchup:      j.NoCatchup,
 		Trigger:        trigger,
@@ -2214,8 +2198,8 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 		ServiceAccount: j.ServiceAccount,
 		Description:    j.Description,
 		Status:         toApiRecurringRunStatus(j.Conditions),
-		CreatedAt:      &timestamp.Timestamp{Seconds: j.CreatedAtInSec},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: j.UpdatedAtInSec},
+		CreatedAt:      timestamppb.New(time.Unix(j.CreatedAtInSec, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(j.UpdatedAtInSec, 0)),
 		MaxConcurrency: j.MaxConcurrency,
 		NoCatchup:      j.NoCatchup,
 		Trigger:        toApiTrigger(&j.Trigger),

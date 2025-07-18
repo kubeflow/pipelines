@@ -20,12 +20,11 @@ package api;
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
-import "backend/api/v1beta1/error.proto";
 import "backend/api/v1beta1/parameter.proto";
 import "backend/api/v1beta1/resource_reference.proto";
-import "protoc-gen-swagger/options/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
-option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   schemes: [1, 2], // http + https
   responses: {
     key: "default";
@@ -161,7 +160,7 @@ service PipelineService {
 
 message Url {
   // URL of the pipeline definition or the pipeline version definition.
-  string pipeline_url = 1;
+  string pipeline_url = 1 [json_name = "pipeline_url"];
 }
 
 // Create pipeline by providing an URL pointing to the pipeline file,
@@ -188,16 +187,16 @@ message ListPipelinesRequest {
   // A page token to request the next page of results. The token is acquried
   // from the nextPageToken field of the response from the previous
   // ListPipelines call.
-  string page_token = 1;
+  string page_token = 1 [json_name = "page_token"];
 
   // The number of pipelines to be listed per page. If there are more pipelines
   // than this number, the response message will contain a valid value in the
   // nextPageToken field.
-  int32 page_size = 2;
+  int32 page_size = 2 [json_name = "page_size"];
 
   // Can be format of "field_name", "field_name asc" or "field_name desc"
   // Ascending by default.
-  string sort_by = 3;
+  string sort_by = 3 [json_name = "sort_by"];
 
   // A url-encoded, JSON-serialized Filter protocol buffer (see
   // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
@@ -206,17 +205,17 @@ message ListPipelinesRequest {
   // What resource reference to filter on.
   // For Pipeline, the only valid resource type is Namespace. An sample query string could be
   // resource_reference_key.type=NAMESPACE&resource_reference_key.id=ns1
-  ResourceKey resource_reference_key = 5;
+  ResourceKey resource_reference_key = 5 [json_name = "resource_reference_key"];
 }
 
 message ListPipelinesResponse {
   repeated Pipeline pipelines = 1;
 
   // The total number of pipelines for the given query.
-  int32 total_size = 3;
+  int32 total_size = 3 [json_name = "total_size"];
 
   // The token to list the next page of pipelines.
-  string next_page_token = 2;
+  string next_page_token = 2 [json_name = "next_page_token"];
 }
 
 message GetPipelineByNameRequest {
@@ -263,21 +262,21 @@ message GetPipelineVersionRequest {
 
 message ListPipelineVersionsRequest {
   // ResourceKey specifies the pipeline whose versions are to be listed.
-  ResourceKey resource_key = 1;
+  ResourceKey resource_key = 1 [json_name = "resource_key"];
 
   // The number of pipeline versions to be listed per page. If there are more
   // pipeline versions than this number, the response message will contain a
   // nextPageToken field you can use to fetch the next page.
-  int32 page_size = 2;
+  int32 page_size = 2 [json_name = "page_size"];
 
   // A page token to request the next page of results. The token is acquried
   // from the nextPageToken field of the response from the previous
   // ListPipelineVersions call or can be omitted when fetching the first page.
-  string page_token = 3;
+  string page_token = 3 [json_name = "page_token"];
 
   // Can be format of "field_name", "field_name asc" or "field_name desc"
   // Ascending by default.
-  string sort_by = 4;
+  string sort_by = 4 [json_name = "sort_by"];
   // A base-64 encoded, JSON-serialized Filter protocol buffer (see
   // filter.proto).
   string filter = 5;
@@ -287,10 +286,10 @@ message ListPipelineVersionsResponse {
   repeated PipelineVersion versions = 1;
 
   // The token to list the next page of pipeline versions.
-  string next_page_token = 2;
+  string next_page_token = 2 [json_name = "next_page_token"];
 
   // The total number of pipeline versions for the given query.
-  int32 total_size = 3;
+  int32 total_size = 3 [json_name = "total_size"];
 }
 
 message DeletePipelineVersionRequest {
@@ -303,7 +302,7 @@ message Pipeline {
   string id = 1;
 
   // Output. The time this pipeline is created.
-  google.protobuf.Timestamp created_at = 2;
+  google.protobuf.Timestamp created_at = 2 [json_name = "created_at"];
 
   // Optional input field. Pipeline name provided by user. If not specified,
   // file name is used as pipeline name.
@@ -330,11 +329,11 @@ message Pipeline {
   // Output only. The default version of the pipeline. As of now, the latest
   // version is used as default. (In the future, if desired by customers, we
   // can allow them to set default version.)
-  PipelineVersion default_version = 8;
+  PipelineVersion default_version = 8 [json_name = "default_version"];
 
   // Input field. Specify which resource this pipeline belongs to.
   // For Pipeline, the only valid resource reference is a single Namespace.
-  repeated ResourceReference resource_references = 9;
+  repeated ResourceReference resource_references = 9 [json_name = "resource_references"];
 }
 
 message PipelineVersion {
@@ -345,7 +344,7 @@ message PipelineVersion {
   string name = 2;
 
   // Output. The time this pipeline version is created.
-  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp created_at = 3 [json_name = "created_at"];
 
   // Output. The input parameters for this pipeline.
   repeated Parameter parameters = 4;
@@ -354,16 +353,16 @@ message PipelineVersion {
   // The code is usually the Python definition of the pipeline and potentially
   // the related component definitions. This allows users to trace back to how
   // the pipeline YAML was created.
-  string code_source_url = 5;
+  string code_source_url = 5 [json_name = "code_source_url"];
 
   // Input. Required. The URL to the source of the pipeline version.
   // This is required when creating the pipeine version through
   // CreatePipelineVersion API.
-  Url package_url = 6;
+  Url package_url = 6 [json_name = "package_url"];
 
   // Input field. Specify which resource this pipeline version belongs to.
   // For Experiment, the only valid resource reference is a single Namespace.
-  repeated ResourceReference resource_references = 7;
+  repeated ResourceReference resource_references = 7 [json_name = "resource_references"];
 
   // Input. Optional. Description for the pipeline version.
   string description = 8;

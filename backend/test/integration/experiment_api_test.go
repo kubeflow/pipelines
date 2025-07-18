@@ -143,7 +143,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	expectedTrainingExperiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
 
 	trainingExperiment, err := s.experimentClient.Create(&params.ExperimentServiceCreateExperimentV1Params{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	assert.Nil(t, err)
 	assert.True(t, test.VerifyExperimentResourceReferences(trainingExperiment.ResourceReferences, expectedTrainingExperiment.ResourceReferences))
@@ -151,11 +151,11 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	expectedTrainingExperiment.ID = trainingExperiment.ID
 	expectedTrainingExperiment.CreatedAt = trainingExperiment.CreatedAt
-	expectedTrainingExperiment.StorageState = "STORAGESTATE_AVAILABLE"
+	expectedTrainingExperiment.StorageState = (*experiment_model.APIExperimentStorageState)(util.StringPointer("STORAGESTATE_AVAILABLE"))
 	assert.Equal(t, expectedTrainingExperiment, trainingExperiment)
 
 	/* ---------- Create an experiment with same name. Should fail due to name uniqueness ---------- */
-	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentV1Params{Body: experiment})
+	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentV1Params{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please specify a new name")
 
@@ -164,12 +164,12 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("prediction", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentV1Params{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("moonshot", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentV1Params{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	assert.Nil(t, err)
 
@@ -300,17 +300,17 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 			Pipelineid: util.StringPointer(pipeline.ID),
 		})
 	assert.Nil(t, err)
-	createRunRequest := &runParams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
+	createRunRequest := &runParams.RunServiceCreateRunV1Params{Run: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER,
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiment.ID},
+				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
-				Relationship: run_model.APIRelationshipCREATOR,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: pipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
 	}}
@@ -319,17 +319,17 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	run2, _, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createJobRequest := &jobParams.JobServiceCreateJobParams{Body: &job_model.APIJob{
+	createJobRequest := &jobParams.JobServiceCreateJobParams{Job: &job_model.APIJob{
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*job_model.APIResourceReference{
 			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Relationship: job_model.APIRelationshipOWNER,
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiment.ID},
+				Relationship: job_model.APIRelationshipOWNER.Pointer(),
 			},
 			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
-				Relationship: job_model.APIRelationshipCREATOR,
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: pipelineVersion.ID},
+				Relationship: job_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
 		MaxConcurrency: 10,

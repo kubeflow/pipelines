@@ -6,17 +6,27 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // APIRunStorageState api run storage state
+//
 // swagger:model apiRunStorageState
 type APIRunStorageState string
+
+func NewAPIRunStorageState(value APIRunStorageState) *APIRunStorageState {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated APIRunStorageState.
+func (m APIRunStorageState) Pointer() *APIRunStorageState {
+	return &m
+}
 
 const (
 
@@ -41,7 +51,7 @@ func init() {
 }
 
 func (m APIRunStorageState) validateAPIRunStorageStateEnum(path, location string, value APIRunStorageState) error {
-	if err := validate.Enum(path, location, value, apiRunStorageStateEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, apiRunStorageStateEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -59,5 +69,10 @@ func (m APIRunStorageState) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this api run storage state based on context it is used
+func (m APIRunStorageState) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

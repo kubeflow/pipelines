@@ -32,19 +32,19 @@ message Task {
   // Namespace will be encoded in the PipelineName.
   // "namespace/${namespace}/pipeline/${pipelineName}" for namespaced pipelines
   // "pipeline/${pipelineName}" for shared pipelines
-  string pipelineName = 3;
+  string pipelineName = 3 [json_name = "pipelineName"];
 
   // Required input field.The ID of the PipelineRun that the PipelineTask belongs to.
-  string runId = 4;
+  string runId = 4 [json_name = "runId"];
 
   // Required input field. The ID of the MLMD execution associated with the PipelineTask.
-  string mlmdExecutionID = 5;
+  string mlmdExecutionID = 5 [json_name = "mlmdExecutionID"];
 
   // Required input field. The time this task is created.
-  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp created_at = 6 [json_name = "created_at"];
 
   // Optional input field. The time this task is finished.
-  google.protobuf.Timestamp finished_at = 7;
+  google.protobuf.Timestamp finished_at = 7 [json_name = "finished_at"];
 
   // Required input field.
   string fingerprint = 8;
@@ -75,21 +75,21 @@ message ListTasksRequest {
   // A page token to request the next page of results. The token is acquried
   // from the nextPageToken field of the response from the previous
   // ListExperiment call or can be omitted when fetching the first page.
-  string page_token = 1;
+  string page_token = 1 [json_name = "page_token"];
 
   // The number of experiments to be listed per page. If there are more
   // experiments than this number, the response message will contain a
   // nextPageToken field you can use to fetch the next page.
-  int32 page_size = 2;
+  int32 page_size = 2 [json_name = "page_size"];
 
   // Can be format of "field_name", "field_name asc" or "field_name desc"
   // Ascending by default.
-  string sort_by = 3;
+  string sort_by = 3 [json_name = "sort_by"];
 
   // What resource reference to filter on.
   // E.g. If listing tasks for an pipeline run, the query string would be
   // resource_reference_key.type="PIPELINE"&resource_reference_key.id=123
-  ResourceKey resource_reference_key = 4;
+  ResourceKey resource_reference_key = 4 [json_name = "resource_reference_key"];
 
   // A url-encoded, JSON-serialized Filter protocol buffer (see
   // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
@@ -103,8 +103,8 @@ message ListTasksResponse {
   repeated Task tasks = 1;
 
   // The token to list the next page of experiments.
-  string next_page_token = 2;
+  string next_page_token = 2 [json_name = "next_page_token"];
 
   // The total number of experiments for the given query.
-  int32 total_size = 3;
+  int32 total_size = 3 [json_name = "total_size"];
 }

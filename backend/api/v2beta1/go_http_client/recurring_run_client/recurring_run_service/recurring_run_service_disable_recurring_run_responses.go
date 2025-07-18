@@ -6,14 +6,14 @@ package recurring_run_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	recurring_run_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
 )
 
 // RecurringRunServiceDisableRecurringRunReader is a Reader for the RecurringRunServiceDisableRecurringRun structure.
@@ -24,14 +24,12 @@ type RecurringRunServiceDisableRecurringRunReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *RecurringRunServiceDisableRecurringRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewRecurringRunServiceDisableRecurringRunOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewRecurringRunServiceDisableRecurringRunDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -49,7 +47,8 @@ func NewRecurringRunServiceDisableRecurringRunOK() *RecurringRunServiceDisableRe
 	return &RecurringRunServiceDisableRecurringRunOK{}
 }
 
-/*RecurringRunServiceDisableRecurringRunOK handles this case with default header values.
+/*
+RecurringRunServiceDisableRecurringRunOK describes a response with status code 200, with default header values.
 
 A successful response.
 */
@@ -57,8 +56,48 @@ type RecurringRunServiceDisableRecurringRunOK struct {
 	Payload interface{}
 }
 
+// IsSuccess returns true when this recurring run service disable recurring run o k response has a 2xx status code
+func (o *RecurringRunServiceDisableRecurringRunOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this recurring run service disable recurring run o k response has a 3xx status code
+func (o *RecurringRunServiceDisableRecurringRunOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this recurring run service disable recurring run o k response has a 4xx status code
+func (o *RecurringRunServiceDisableRecurringRunOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this recurring run service disable recurring run o k response has a 5xx status code
+func (o *RecurringRunServiceDisableRecurringRunOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this recurring run service disable recurring run o k response a status code equal to that given
+func (o *RecurringRunServiceDisableRecurringRunOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the recurring run service disable recurring run o k response
+func (o *RecurringRunServiceDisableRecurringRunOK) Code() int {
+	return 200
+}
+
 func (o *RecurringRunServiceDisableRecurringRunOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns/{recurring_run_id}:disable][%d] recurringRunServiceDisableRecurringRunOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns/{recurring_run_id}:disable][%d] recurringRunServiceDisableRecurringRunOK %s", 200, payload)
+}
+
+func (o *RecurringRunServiceDisableRecurringRunOK) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns/{recurring_run_id}:disable][%d] recurringRunServiceDisableRecurringRunOK %s", 200, payload)
+}
+
+func (o *RecurringRunServiceDisableRecurringRunOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *RecurringRunServiceDisableRecurringRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -78,14 +117,40 @@ func NewRecurringRunServiceDisableRecurringRunDefault(code int) *RecurringRunSer
 	}
 }
 
-/*RecurringRunServiceDisableRecurringRunDefault handles this case with default header values.
+/*
+RecurringRunServiceDisableRecurringRunDefault describes a response with status code -1, with default header values.
 
 An unexpected error response.
 */
 type RecurringRunServiceDisableRecurringRunDefault struct {
 	_statusCode int
 
-	Payload *recurring_run_model.RuntimeError
+	Payload *recurring_run_model.GooglerpcStatus
+}
+
+// IsSuccess returns true when this recurring run service disable recurring run default response has a 2xx status code
+func (o *RecurringRunServiceDisableRecurringRunDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this recurring run service disable recurring run default response has a 3xx status code
+func (o *RecurringRunServiceDisableRecurringRunDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this recurring run service disable recurring run default response has a 4xx status code
+func (o *RecurringRunServiceDisableRecurringRunDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this recurring run service disable recurring run default response has a 5xx status code
+func (o *RecurringRunServiceDisableRecurringRunDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this recurring run service disable recurring run default response a status code equal to that given
+func (o *RecurringRunServiceDisableRecurringRunDefault) IsCode(code int) bool {
+	return o._statusCode == code
 }
 
 // Code gets the status code for the recurring run service disable recurring run default response
@@ -94,12 +159,22 @@ func (o *RecurringRunServiceDisableRecurringRunDefault) Code() int {
 }
 
 func (o *RecurringRunServiceDisableRecurringRunDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns/{recurring_run_id}:disable][%d] RecurringRunService_DisableRecurringRun default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns/{recurring_run_id}:disable][%d] RecurringRunService_DisableRecurringRun default %s", o._statusCode, payload)
+}
+
+func (o *RecurringRunServiceDisableRecurringRunDefault) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns/{recurring_run_id}:disable][%d] RecurringRunService_DisableRecurringRun default %s", o._statusCode, payload)
+}
+
+func (o *RecurringRunServiceDisableRecurringRunDefault) GetPayload() *recurring_run_model.GooglerpcStatus {
+	return o.Payload
 }
 
 func (o *RecurringRunServiceDisableRecurringRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(recurring_run_model.RuntimeError)
+	o.Payload = new(recurring_run_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

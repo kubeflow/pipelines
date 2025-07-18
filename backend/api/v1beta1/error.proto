@@ -20,8 +20,8 @@ package api;
 import "google/protobuf/any.proto";
 
 message Error {
-  string error_message = 1;
-  string error_details = 2;
+  string error_message = 1 [json_name = "error_message"];
+  string error_details = 2 [json_name = "error_details"];
 }
 
 message Status {

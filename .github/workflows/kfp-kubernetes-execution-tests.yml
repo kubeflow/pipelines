@@ -75,7 +75,7 @@ jobs:
       - name: Install protobuf
         id: install-protobuf
         if: ${{ steps.install-wheel.outcome == 'success' }}
-        run: pip3 install protobuf==4.25.3
+        run: pip3 install protobuf==6.31.1
 
       - name: Generate API proto files
         id: generate-api-proto-files

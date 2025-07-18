@@ -6,14 +6,14 @@ package pipeline_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	pipeline_model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 )
 
 // PipelineServiceGetPipelineVersionTemplateReader is a Reader for the PipelineServiceGetPipelineVersionTemplate structure.
@@ -24,14 +24,12 @@ type PipelineServiceGetPipelineVersionTemplateReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *PipelineServiceGetPipelineVersionTemplateReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewPipelineServiceGetPipelineVersionTemplateOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewPipelineServiceGetPipelineVersionTemplateDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -49,7 +47,8 @@ func NewPipelineServiceGetPipelineVersionTemplateOK() *PipelineServiceGetPipelin
 	return &PipelineServiceGetPipelineVersionTemplateOK{}
 }
 
-/*PipelineServiceGetPipelineVersionTemplateOK handles this case with default header values.
+/*
+PipelineServiceGetPipelineVersionTemplateOK describes a response with status code 200, with default header values.
 
 A successful response.
 */
@@ -57,8 +56,48 @@ type PipelineServiceGetPipelineVersionTemplateOK struct {
 	Payload *pipeline_model.APIGetTemplateResponse
 }
 
+// IsSuccess returns true when this pipeline service get pipeline version template o k response has a 2xx status code
+func (o *PipelineServiceGetPipelineVersionTemplateOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this pipeline service get pipeline version template o k response has a 3xx status code
+func (o *PipelineServiceGetPipelineVersionTemplateOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this pipeline service get pipeline version template o k response has a 4xx status code
+func (o *PipelineServiceGetPipelineVersionTemplateOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this pipeline service get pipeline version template o k response has a 5xx status code
+func (o *PipelineServiceGetPipelineVersionTemplateOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this pipeline service get pipeline version template o k response a status code equal to that given
+func (o *PipelineServiceGetPipelineVersionTemplateOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the pipeline service get pipeline version template o k response
+func (o *PipelineServiceGetPipelineVersionTemplateOK) Code() int {
+	return 200
+}
+
 func (o *PipelineServiceGetPipelineVersionTemplateOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions/{version_id}/templates][%d] pipelineServiceGetPipelineVersionTemplateOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions/{version_id}/templates][%d] pipelineServiceGetPipelineVersionTemplateOK %s", 200, payload)
+}
+
+func (o *PipelineServiceGetPipelineVersionTemplateOK) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions/{version_id}/templates][%d] pipelineServiceGetPipelineVersionTemplateOK %s", 200, payload)
+}
+
+func (o *PipelineServiceGetPipelineVersionTemplateOK) GetPayload() *pipeline_model.APIGetTemplateResponse {
+	return o.Payload
 }
 
 func (o *PipelineServiceGetPipelineVersionTemplateOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -80,14 +119,40 @@ func NewPipelineServiceGetPipelineVersionTemplateDefault(code int) *PipelineServ
 	}
 }
 
-/*PipelineServiceGetPipelineVersionTemplateDefault handles this case with default header values.
+/*
+PipelineServiceGetPipelineVersionTemplateDefault describes a response with status code -1, with default header values.
 
 An unexpected error response.
 */
 type PipelineServiceGetPipelineVersionTemplateDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.GatewayruntimeError
+	Payload *pipeline_model.GooglerpcStatus
+}
+
+// IsSuccess returns true when this pipeline service get pipeline version template default response has a 2xx status code
+func (o *PipelineServiceGetPipelineVersionTemplateDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this pipeline service get pipeline version template default response has a 3xx status code
+func (o *PipelineServiceGetPipelineVersionTemplateDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this pipeline service get pipeline version template default response has a 4xx status code
+func (o *PipelineServiceGetPipelineVersionTemplateDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this pipeline service get pipeline version template default response has a 5xx status code
+func (o *PipelineServiceGetPipelineVersionTemplateDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this pipeline service get pipeline version template default response a status code equal to that given
+func (o *PipelineServiceGetPipelineVersionTemplateDefault) IsCode(code int) bool {
+	return o._statusCode == code
 }
 
 // Code gets the status code for the pipeline service get pipeline version template default response
@@ -96,12 +161,22 @@ func (o *PipelineServiceGetPipelineVersionTemplateDefault) Code() int {
 }
 
 func (o *PipelineServiceGetPipelineVersionTemplateDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions/{version_id}/templates][%d] PipelineService_GetPipelineVersionTemplate default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions/{version_id}/templates][%d] PipelineService_GetPipelineVersionTemplate default %s", o._statusCode, payload)
+}
+
+func (o *PipelineServiceGetPipelineVersionTemplateDefault) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v1beta1/pipeline_versions/{version_id}/templates][%d] PipelineService_GetPipelineVersionTemplate default %s", o._statusCode, payload)
+}
+
+func (o *PipelineServiceGetPipelineVersionTemplateDefault) GetPayload() *pipeline_model.GooglerpcStatus {
+	return o.Payload
 }
 
 func (o *PipelineServiceGetPipelineVersionTemplateDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.GatewayruntimeError)
+	o.Payload = new(pipeline_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

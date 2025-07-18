@@ -55,7 +55,7 @@ func (c *PipelineClient) UpdateDefaultVersion(parameters *params.PipelineService
 	_, err := c.apiClient.PipelineService.PipelineServiceUpdatePipelineDefaultVersionV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceGetPipelineV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -108,14 +108,14 @@ func (c *PipelineClient) Create(parameters *params.PipelineServiceCreatePipeline
 	response, err := c.apiClient.PipelineService.PipelineServiceCreatePipelineV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceCreatePipelineV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create pipeline. Params: '%v'", parameters),
-			fmt.Sprintf("Failed to create pipeline from URL '%v'", parameters.Body.URL.PipelineURL))
+			fmt.Sprintf("Failed to create pipeline from URL '%v'", parameters.Pipeline.URL.PipelineURL))
 	}
 
 	return response.Payload, nil
@@ -132,7 +132,7 @@ func (c *PipelineClient) Get(parameters *params.PipelineServiceGetPipelineV1Para
 	response, err := c.apiClient.PipelineService.PipelineServiceGetPipelineV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceGetPipelineV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -155,7 +155,7 @@ func (c *PipelineClient) Delete(parameters *params.PipelineServiceDeletePipeline
 	_, err := c.apiClient.PipelineService.PipelineServiceDeletePipelineV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceDeletePipelineV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -178,7 +178,7 @@ func (c *PipelineClient) DeletePipelineVersion(parameters *params.PipelineServic
 	_, err := c.apiClient.PipelineService.PipelineServiceDeletePipelineVersionV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceDeletePipelineVersionV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -200,7 +200,7 @@ func (c *PipelineClient) GetTemplate(parameters *params.PipelineServiceGetTempla
 	response, err := c.apiClient.PipelineService.PipelineServiceGetTemplate(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceGetTemplateDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -225,7 +225,7 @@ func (c *PipelineClient) List(parameters *params.PipelineServiceListPipelinesV1P
 	response, err := c.apiClient.PipelineService.PipelineServiceListPipelinesV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceListPipelinesV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -278,14 +278,14 @@ func (c *PipelineClient) CreatePipelineVersion(parameters *params.PipelineServic
 	response, err := c.apiClient.PipelineService.PipelineServiceCreatePipelineVersionV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceCreatePipelineVersionV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create pipeline version. Params: '%v'", parameters),
-			fmt.Sprintf("Failed to create pipeline version from URL '%v'", parameters.Body.PackageURL.PipelineURL))
+			fmt.Sprintf("Failed to create pipeline version from URL '%v'", parameters.Version.PackageURL.PipelineURL))
 	}
 
 	return response.Payload, nil
@@ -302,7 +302,7 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.PipelineService
 	response, err := c.apiClient.PipelineService.PipelineServiceListPipelineVersionsV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceListPipelineVersionsV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -326,7 +326,7 @@ func (c *PipelineClient) GetPipelineVersion(parameters *params.PipelineServiceGe
 	response, err := c.apiClient.PipelineService.PipelineServiceGetPipelineVersionV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceGetPipelineVersionV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -350,7 +350,7 @@ func (c *PipelineClient) GetPipelineVersionTemplate(parameters *params.PipelineS
 	response, err := c.apiClient.PipelineService.PipelineServiceGetPipelineVersionTemplate(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceGetPipelineVersionTemplateDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}

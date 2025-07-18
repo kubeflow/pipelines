@@ -20,6 +20,8 @@ import (
 	"flag"
 	"fmt"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
@@ -28,7 +30,6 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
@@ -294,11 +295,11 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 		}
 	}
 	if execution.ExecutorInput != nil {
-		marshaler := jsonpb.Marshaler{}
-		executorInputJSON, err := marshaler.MarshalToString(execution.ExecutorInput)
+		executorInputBytes, err := protojson.Marshal(execution.ExecutorInput)
 		if err != nil {
 			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
 		}
+		executorInputJSON := string(executorInputBytes)
 		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
 	}
 	return nil

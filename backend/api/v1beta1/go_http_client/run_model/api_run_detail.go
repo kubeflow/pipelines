@@ -6,13 +6,15 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIRunDetail api run detail
+//
 // swagger:model apiRunDetail
 type APIRunDetail struct {
 
@@ -42,7 +44,6 @@ func (m *APIRunDetail) Validate(formats strfmt.Registry) error {
 }
 
 func (m *APIRunDetail) validatePipelineRuntime(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.PipelineRuntime) { // not required
 		return nil
 	}
@@ -51,6 +52,8 @@ func (m *APIRunDetail) validatePipelineRuntime(formats strfmt.Registry) error {
 		if err := m.PipelineRuntime.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("pipeline_runtime")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline_runtime")
 			}
 			return err
 		}
@@ -60,7 +63,6 @@ func (m *APIRunDetail) validatePipelineRuntime(formats strfmt.Registry) error {
 }
 
 func (m *APIRunDetail) validateRun(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Run) { // not required
 		return nil
 	}
@@ -69,6 +71,68 @@ func (m *APIRunDetail) validateRun(formats strfmt.Registry) error {
 		if err := m.Run.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("run")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("run")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this api run detail based on the context it is used
+func (m *APIRunDetail) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidatePipelineRuntime(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateRun(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *APIRunDetail) contextValidatePipelineRuntime(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.PipelineRuntime != nil {
+
+		if swag.IsZero(m.PipelineRuntime) { // not required
+			return nil
+		}
+
+		if err := m.PipelineRuntime.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("pipeline_runtime")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline_runtime")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *APIRunDetail) contextValidateRun(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Run != nil {
+
+		if swag.IsZero(m.Run) { // not required
+			return nil
+		}
+
+		if err := m.Run.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("run")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("run")
 			}
 			return err
 		}

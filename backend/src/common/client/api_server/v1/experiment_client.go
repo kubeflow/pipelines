@@ -85,14 +85,14 @@ func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExpe
 	response, err := c.apiClient.ExperimentService.ExperimentServiceCreateExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceCreateExperimentV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create experiment. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
-			fmt.Sprintf("Failed to create experiment '%v'", parameters.Body.Name))
+			fmt.Sprintf("Failed to create experiment. Params: '%+v'. Body: '%+v'", parameters, parameters.Experiment),
+			fmt.Sprintf("Failed to create experiment '%v'", parameters.Experiment.Name))
 	}
 
 	return response.Payload, nil
@@ -109,7 +109,7 @@ func (c *ExperimentClient) Get(parameters *params.ExperimentServiceGetExperiment
 	response, err := c.apiClient.ExperimentService.ExperimentServiceGetExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceGetExperimentV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -133,7 +133,7 @@ func (c *ExperimentClient) List(parameters *params.ExperimentServiceListExperime
 	response, err := c.apiClient.ExperimentService.ExperimentServiceListExperimentsV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceListExperimentsV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -156,7 +156,7 @@ func (c *ExperimentClient) Delete(parameters *params.ExperimentServiceDeleteExpe
 	_, err := c.apiClient.ExperimentService.ExperimentServiceDeleteExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceDeleteExperimentV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -210,7 +210,7 @@ func (c *ExperimentClient) Archive(parameters *params.ExperimentServiceArchiveEx
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceArchiveExperimentV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -234,7 +234,7 @@ func (c *ExperimentClient) Unarchive(parameters *params.ExperimentServiceUnarchi
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceUnarchiveExperimentV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}

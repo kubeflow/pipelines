@@ -37,7 +37,7 @@ func NewRecurringRunClientFake() *RecurringRunClientFake {
 
 func (c *RecurringRunClientFake) Create(params *params.RecurringRunServiceCreateRecurringRunParams) (
 	*model.V2beta1RecurringRun, error) {
-	return getDefaultJob("500", params.Body.DisplayName), nil
+	return getDefaultJob("500", params.RecurringRun.DisplayName), nil
 }
 
 func (c *RecurringRunClientFake) Get(params *params.RecurringRunServiceGetRecurringRunParams) (

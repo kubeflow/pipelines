@@ -234,7 +234,7 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 	// the browser on the following JSON string:
 	//   {"predicates":[{"operation":"EQUALS","key":"testkey","stringValue":"testvalue"}]}
 
-	in := "%7B%22predicates%22%3A%5B%7B%22operation%22%3A%22EQUALS%22%2C%22key%22%3A%22testkey%22%2C%22stringValue%22%3A%22testvalue%22%7D%5D%7D"
+	in := "%7B%22predicates%22%3A%5B%7B%22operation%22%3A%22EQUALS%22%2C%22key%22%3A%22testkey%22%2C%22string_value%22%3A%22testvalue%22%7D%5D%7D"
 
 	// The above should correspond the following filter:
 	want := &apiv2beta1.Filter{

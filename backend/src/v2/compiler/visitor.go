@@ -26,7 +26,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -171,15 +172,17 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 }
 
 func GetDeploymentConfig(spec *pipelinespec.PipelineSpec) (*pipelinespec.PipelineDeploymentConfig, error) {
-	marshaler := jsonpb.Marshaler{}
-	buffer := new(bytes.Buffer)
-	if err := marshaler.Marshal(buffer, spec.GetDeploymentSpec()); err != nil {
+	jsonBytes, err := protojson.Marshal(spec.GetDeploymentSpec())
+	if err != nil {
 		return nil, err
 	}
+	buffer := bytes.NewBuffer(jsonBytes)
 	deploymentConfig := &pipelinespec.PipelineDeploymentConfig{}
 	// Allow unknown '@type' field in the json message.
-	unmarshaler := jsonpb.Unmarshaler{AllowUnknownFields: true}
-	if err := unmarshaler.Unmarshal(buffer, deploymentConfig); err != nil {
+	unmarshaler := protojson.UnmarshalOptions{
+		DiscardUnknown: true,
+	}
+	if err := unmarshaler.Unmarshal(buffer.Bytes(), deploymentConfig); err != nil {
 		return nil, err
 	}
 	return deploymentConfig, nil
@@ -187,13 +190,14 @@ func GetDeploymentConfig(spec *pipelinespec.PipelineSpec) (*pipelinespec.Pipelin
 
 func GetPipelineSpec(job *pipelinespec.PipelineJob) (*pipelinespec.PipelineSpec, error) {
 	// TODO(Bobgy): can we avoid this marshal to string step?
-	marshaler := jsonpb.Marshaler{}
-	json, err := marshaler.MarshalToString(job.GetPipelineSpec())
+	marshaler := &protojson.MarshalOptions{}
+	jsonBytes, err := marshaler.Marshal(job.GetPipelineSpec())
 	if err != nil {
 		return nil, fmt.Errorf("failed marshal pipeline spec to json: %w", err)
 	}
+	jsonStr := string(jsonBytes)
 	spec := &pipelinespec.PipelineSpec{}
-	if err := jsonpb.UnmarshalString(json, spec); err != nil {
+	if err := protojson.Unmarshal([]byte(jsonStr), spec); err != nil {
 		return nil, fmt.Errorf("failed to parse pipeline spec: %v", err)
 	}
 	return spec, nil

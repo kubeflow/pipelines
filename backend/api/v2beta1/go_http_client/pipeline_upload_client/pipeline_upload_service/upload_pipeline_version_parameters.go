@@ -13,71 +13,90 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewUploadPipelineVersionParams creates a new UploadPipelineVersionParams object
-// with the default values initialized.
+// NewUploadPipelineVersionParams creates a new UploadPipelineVersionParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUploadPipelineVersionParams() *UploadPipelineVersionParams {
-	var ()
 	return &UploadPipelineVersionParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUploadPipelineVersionParamsWithTimeout creates a new UploadPipelineVersionParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUploadPipelineVersionParamsWithTimeout(timeout time.Duration) *UploadPipelineVersionParams {
-	var ()
 	return &UploadPipelineVersionParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUploadPipelineVersionParamsWithContext creates a new UploadPipelineVersionParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUploadPipelineVersionParamsWithContext(ctx context.Context) *UploadPipelineVersionParams {
-	var ()
 	return &UploadPipelineVersionParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUploadPipelineVersionParamsWithHTTPClient creates a new UploadPipelineVersionParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUploadPipelineVersionParamsWithHTTPClient(client *http.Client) *UploadPipelineVersionParams {
-	var ()
 	return &UploadPipelineVersionParams{
 		HTTPClient: client,
 	}
 }
 
-/*UploadPipelineVersionParams contains all the parameters to send to the API endpoint
-for the upload pipeline version operation typically these are written to a http.Request
+/*
+UploadPipelineVersionParams contains all the parameters to send to the API endpoint
+
+	for the upload pipeline version operation.
+
+	Typically these are written to a http.Request.
 */
 type UploadPipelineVersionParams struct {
 
-	/*Description*/
+	// Description.
 	Description *string
-	/*DisplayName*/
-	DisplayName *string
-	/*Name*/
-	Name *string
-	/*Pipelineid*/
-	Pipelineid *string
-	/*Uploadfile
-	  The pipeline to upload. Maximum size of 32MB is supported.
 
+	// DisplayName.
+	DisplayName *string
+
+	// Name.
+	Name *string
+
+	// Pipelineid.
+	Pipelineid *string
+
+	/* Uploadfile.
+
+	   The pipeline to upload. Maximum size of 32MB is supported.
 	*/
 	Uploadfile runtime.NamedReadCloser
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the upload pipeline version params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UploadPipelineVersionParams) WithDefaults() *UploadPipelineVersionParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the upload pipeline version params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UploadPipelineVersionParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the upload pipeline version params
@@ -180,66 +199,69 @@ func (o *UploadPipelineVersionParams) WriteToRequest(r runtime.ClientRequest, re
 
 		// query param description
 		var qrDescription string
+
 		if o.Description != nil {
 			qrDescription = *o.Description
 		}
 		qDescription := qrDescription
 		if qDescription != "" {
+
 			if err := r.SetQueryParam("description", qDescription); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.DisplayName != nil {
 
 		// query param display_name
 		var qrDisplayName string
+
 		if o.DisplayName != nil {
 			qrDisplayName = *o.DisplayName
 		}
 		qDisplayName := qrDisplayName
 		if qDisplayName != "" {
+
 			if err := r.SetQueryParam("display_name", qDisplayName); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.Name != nil {
 
 		// query param name
 		var qrName string
+
 		if o.Name != nil {
 			qrName = *o.Name
 		}
 		qName := qrName
 		if qName != "" {
+
 			if err := r.SetQueryParam("name", qName); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.Pipelineid != nil {
 
 		// query param pipelineid
 		var qrPipelineid string
+
 		if o.Pipelineid != nil {
 			qrPipelineid = *o.Pipelineid
 		}
 		qPipelineid := qrPipelineid
 		if qPipelineid != "" {
+
 			if err := r.SetQueryParam("pipelineid", qPipelineid); err != nil {
 				return err
 			}
 		}
-
 	}
-
 	// form file param uploadfile
 	if err := r.SetFileParam("uploadfile", o.Uploadfile); err != nil {
 		return err

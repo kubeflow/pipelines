@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/e2e-test.yml'
       - '.github/resources/**'
+      - 'api/**'
       - 'go.mod'
       - 'go.sum'
       - 'backend/**'

@@ -6,13 +6,15 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // PipelineTaskDetailChildTask A dependent task that requires this one to succeed.
 // Represented by either task_id or pod_name.
+//
 // swagger:model PipelineTaskDetailChildTask
 type PipelineTaskDetailChildTask struct {
 
@@ -26,6 +28,11 @@ type PipelineTaskDetailChildTask struct {
 
 // Validate validates this pipeline task detail child task
 func (m *PipelineTaskDetailChildTask) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this pipeline task detail child task based on context it is used
+func (m *PipelineTaskDetailChildTask) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

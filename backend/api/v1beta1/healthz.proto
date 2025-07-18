@@ -19,10 +19,9 @@ package api;
 
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
-import "protoc-gen-swagger/options/annotations.proto";
-import "backend/api/v1beta1/error.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
-option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   schemes: [1, 2], // http + https
   responses: {
     key: "default";
@@ -68,5 +67,5 @@ service HealthzService {
 
 message GetHealthzResponse {
   // Returns if KFP in multi-user mode
-  bool multi_user = 3;
+  bool multi_user = 3 [json_name = "multi_user"];
 }
