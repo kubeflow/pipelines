@@ -279,6 +279,124 @@ def my_pipeline():
             caching_options = task['cachingOptions']
             self.assertEqual(caching_options, {})
 
+    def test_compile_with_kubernetes_manifest_format(self):
+        with tempfile.NamedTemporaryFile(suffix='.py', delete=True) as temp_pipeline, \
+             tempfile.NamedTemporaryFile(suffix='.yaml', delete=True) as output_file, \
+             tempfile.NamedTemporaryFile(suffix='.yaml', delete=True) as output_file2:
+            temp_pipeline.write(b"""
+from kfp import dsl
+
+@dsl.component
+def my_component():
+    pass
+
+@dsl.pipeline(name="iris-pipeline")
+def iris_pipeline():
+    my_component()
+""")
+            temp_pipeline.flush()
+            pipeline_name = 'iris-pipeline'
+            pipeline_display_name = 'IrisPipeline'
+            pipeline_version_name = 'iris-pipeline-v1'
+            pipeline_version_display_name = 'IrisPipelineVersion'
+            namespace = 'test-namespace'
+
+            # Test with --kubernetes-manifest-format flag
+            result = self.invoke([
+                '--py', temp_pipeline.name, '--output', output_file.name,
+                '--kubernetes-manifest-format', '--pipeline-display-name',
+                pipeline_display_name, '--pipeline-version-name',
+                pipeline_version_name, '--pipeline-version-display-name',
+                pipeline_version_display_name, '--namespace', namespace,
+                '--include-pipeline-manifest'
+            ])
+            self.assertEqual(result.exit_code, 0)
+
+            with open(output_file.name, 'r') as f:
+                docs = list(yaml.safe_load_all(f))
+            kinds = [doc['kind'] for doc in docs]
+            self.assertIn('Pipeline', kinds)
+            self.assertIn('PipelineVersion', kinds)
+            pipeline_doc = next(
+                doc for doc in docs if doc['kind'] == 'Pipeline')
+            pipeline_version_doc = next(
+                doc for doc in docs if doc['kind'] == 'PipelineVersion')
+            self.assertEqual(pipeline_doc['metadata']['name'], pipeline_name)
+            self.assertEqual(pipeline_doc['metadata']['namespace'], namespace)
+            self.assertEqual(pipeline_doc['spec']['displayName'],
+                             pipeline_display_name)
+            self.assertEqual(pipeline_version_doc['metadata']['name'],
+                             pipeline_version_name)
+            self.assertEqual(pipeline_version_doc['metadata']['namespace'],
+                             namespace)
+            self.assertEqual(pipeline_version_doc['spec']['displayName'],
+                             pipeline_version_display_name)
+            self.assertEqual(pipeline_version_doc['spec']['pipelineName'],
+                             pipeline_name)
+
+            # include_pipeline_manifest False
+            result = self.invoke([
+                '--py', temp_pipeline.name, '--output', output_file2.name,
+                '--kubernetes-manifest-format', '--pipeline-display-name',
+                pipeline_display_name, '--pipeline-version-name',
+                pipeline_version_name, '--pipeline-version-display-name',
+                pipeline_version_display_name, '--namespace', namespace
+            ])
+            self.assertEqual(result.exit_code, 0)
+
+            with open(output_file2.name, 'r') as f:
+                docs = list(yaml.safe_load_all(f))
+            kinds = [doc['kind'] for doc in docs]
+            self.assertNotIn('Pipeline', kinds)
+            self.assertIn('PipelineVersion', kinds)
+            self.assertEqual(len(kinds), 1)
+            pipeline_version_doc = docs[0]
+            self.assertEqual(pipeline_version_doc['metadata']['name'],
+                             pipeline_version_name)
+            self.assertEqual(pipeline_version_doc['metadata']['namespace'],
+                             namespace)
+            self.assertEqual(pipeline_version_doc['spec']['displayName'],
+                             pipeline_version_display_name)
+            self.assertEqual(pipeline_version_doc['spec']['pipelineName'],
+                             pipeline_name)
+
+    def test_compile_manifest_options_without_format_flag(self):
+        with tempfile.NamedTemporaryFile(suffix='.py', delete=True) as temp_pipeline, \
+             tempfile.NamedTemporaryFile(suffix='.yaml', delete=True) as output_file:
+            temp_pipeline.write(b"""
+from kfp import dsl
+
+@dsl.component
+def my_component():
+    pass
+
+@dsl.pipeline(name="iris-pipeline")
+def iris_pipeline():
+    my_component()
+""")
+            temp_pipeline.flush()
+            pipeline_display_name = 'IrisPipeline'
+            pipeline_version_name = 'iris-pipeline-v1'
+            pipeline_version_display_name = 'IrisPipelineVersion'
+            namespace = 'test-namespace'
+
+            result = self.invoke([
+                '--py', temp_pipeline.name, '--output', output_file.name,
+                '--pipeline-display-name', pipeline_display_name,
+                '--pipeline-version-name', pipeline_version_name,
+                '--pipeline-version-display-name',
+                pipeline_version_display_name, '--namespace', namespace,
+                '--include-pipeline-manifest'
+            ])
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn(
+                'Warning: Kubernetes manifest options were provided but --kubernetes-manifest-format was not set',
+                result.output)
+            # Should only output a regular pipeline spec, not Kubernetes manifests
+            with open(output_file.name, 'r') as f:
+                doc = yaml.safe_load(f)
+            self.assertIn('pipelineInfo', doc)
+
 
 if __name__ == '__main__':
     unittest.main()
