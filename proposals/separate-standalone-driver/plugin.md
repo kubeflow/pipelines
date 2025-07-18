@@ -25,3 +25,62 @@ plugin:
     driver-plugin:
     ...
 ```
+
+### Problem: Interaction With the Kubernetes API From a Sidecar Container
+The driver [requires](https://github.com/kubeflow/pipelines/blob/master/backend/src/v2/driver/k8s.go#L68) access to the k8s API.
+However, the required volume with the service account secret (/var/run/secrets/kubernetes.io/serviceaccount) is mounted only into the main (driver) container, but not into the sidecar container.
+Below is a sample YAML snippet showing the container definitions in the agent pod.
+```yaml
+Containers:
+  driver-plugin:
+    Image:          .../kfp-driver-agent:2.4.1-63
+    Port:           2948/TCP
+    Host Port:      0/TCP
+    Restart Count:  0
+    Limits:
+      cpu:     1
+      memory:  1Gi
+    Requests:
+      cpu:     250m
+      memory:  512Mi
+    Environment:
+      DRIVER_HOST:      http://ml-pipeline-kfp-driver.kubeflow.svc
+      DRIVER_PORT:      2948
+      SERVER_PORT:      2948
+      TIMEOUT_SECONDS:  120
+    Mounts:
+      /etc/gitconfig from gitconfig (ro,path="gitconfig")
+      /var/run/argo from var-run-argo (ro,path="driver-plugin")
+  main:
+    Image:           .../ml-platform/argoexec:v3.6.7
+    Command:
+      argoexec
+    Args:
+      agent
+      main
+      --loglevel
+      info
+      --log-format
+      text
+      --gloglevel
+      0
+    Ready:          True
+    Restart Count:  2
+    Limits:
+      cpu:     100m
+      memory:  256M
+    Requests:
+      cpu:     10m
+      memory:  64M
+    Environment:
+      ARGO_WORKFLOW_NAME:     debug-component-pipeline-7bgps
+      ARGO_WORKFLOW_UID:      03caea4e-70c1-4113-b700-b7183271f3b6
+      ARGO_AGENT_PATCH_RATE:  10s
+      ARGO_PLUGIN_ADDRESSES:  ["http://localhost:2948"]
+      ARGO_PLUGIN_NAMES:      ["driver-plugin"]
+    Mounts:
+      /etc/gitconfig from gitconfig (ro,path="gitconfig")
+      /var/run/argo from var-run-argo (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-z9nt6 (ro)
+```
+As a workaround, it makes sense to use the agent pod only as a proxy to the kfp-driver-server.

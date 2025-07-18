@@ -67,6 +67,7 @@ spec:
             run_id: '{{workflow.uid}}'
             task: '{{inputs.parameters.task}}'
             type: CONTAINER
+            namespace: '{{workflow.namespace}}'
     - dag:
         tasks:
           - arguments:
@@ -232,6 +233,7 @@ spec:
             runtime_config: '{{inputs.parameters.runtime-config}}'
             task: '{{inputs.parameters.task}}'
             type: '{{inputs.parameters.driver-type}}'
+            namespace: '{{workflow.namespace}}'
     - dag:
         tasks:
           - arguments:
