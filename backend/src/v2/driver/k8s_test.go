@@ -2197,6 +2197,319 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 	}
 }
 
+func Test_extendPodSpecPatch_NodeAffinity(t *testing.T) {
+	tests := []struct {
+		name        string
+		k8sExecCfg  *kubernetesplatform.KubernetesExecutorConfig
+		expected    *k8score.PodSpec
+		inputParams map[string]*structpb.Value
+	}{
+		{
+			"Valid - node affinity with matchExpressions",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{
+					{
+						MatchExpressions: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key:      "disktype",
+								Operator: "In",
+								Values:   []string{"ssd"},
+							},
+						},
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				Affinity: &k8score.Affinity{
+					NodeAffinity: &k8score.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &k8score.NodeSelector{
+							NodeSelectorTerms: []k8score.NodeSelectorTerm{
+								{
+									MatchExpressions: []k8score.NodeSelectorRequirement{
+										{
+											Key:      "disktype",
+											Operator: k8score.NodeSelectorOpIn,
+											Values:   []string{"ssd"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"Valid - node affinity with matchFields",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{
+					{
+						MatchFields: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key:      "metadata.name",
+								Operator: "In",
+								Values:   []string{"node-1", "node-2"},
+							},
+						},
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				Affinity: &k8score.Affinity{
+					NodeAffinity: &k8score.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &k8score.NodeSelector{
+							NodeSelectorTerms: []k8score.NodeSelectorTerm{
+								{
+									MatchFields: []k8score.NodeSelectorRequirement{
+										{
+											Key:      "metadata.name",
+											Operator: k8score.NodeSelectorOpIn,
+											Values:   []string{"node-1", "node-2"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"Valid - node affinity with weight (preferred scheduling)",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{
+					{
+						MatchExpressions: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key:      "zone",
+								Operator: "In",
+								Values:   []string{"us-west-1"},
+							},
+						},
+						Weight: int32Ptr(100),
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				Affinity: &k8score.Affinity{
+					NodeAffinity: &k8score.NodeAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: []k8score.PreferredSchedulingTerm{
+							{
+								Weight: 100,
+								Preference: k8score.NodeSelectorTerm{
+									MatchExpressions: []k8score.NodeSelectorRequirement{
+										{
+											Key:      "zone",
+											Operator: k8score.NodeSelectorOpIn,
+											Values:   []string{"us-west-1"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"Valid - node affinity with nodeAffinityJson",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{
+					{
+						NodeAffinityJson: structInputParamConstant(map[string]interface{}{
+							"requiredDuringSchedulingIgnoredDuringExecution": map[string]interface{}{
+								"nodeSelectorTerms": []interface{}{
+									map[string]interface{}{
+										"matchExpressions": []interface{}{
+											map[string]interface{}{
+												"key":      "disktype",
+												"operator": "In",
+												"values":   []interface{}{"ssd"},
+											},
+										},
+									},
+								},
+							},
+						}),
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				Affinity: &k8score.Affinity{
+					NodeAffinity: &k8score.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &k8score.NodeSelector{
+							NodeSelectorTerms: []k8score.NodeSelectorTerm{
+								{
+									MatchExpressions: []k8score.NodeSelectorRequirement{
+										{
+											Key:      "disktype",
+											Operator: k8score.NodeSelectorOpIn,
+											Values:   []string{"ssd"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"Valid - node affinity with nodeAffinityJson containing preferred scheduling",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{
+					{
+						NodeAffinityJson: structInputParamConstant(map[string]interface{}{
+							"preferredDuringSchedulingIgnoredDuringExecution": []interface{}{
+								map[string]interface{}{
+									"weight": 100,
+									"preference": map[string]interface{}{
+										"matchExpressions": []interface{}{
+											map[string]interface{}{
+												"key":      "zone",
+												"operator": "In",
+												"values":   []interface{}{"us-west-1"},
+											},
+										},
+									},
+								},
+							},
+						}),
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				Affinity: &k8score.Affinity{
+					NodeAffinity: &k8score.NodeAffinity{
+						PreferredDuringSchedulingIgnoredDuringExecution: []k8score.PreferredSchedulingTerm{
+							{
+								Weight: 100,
+								Preference: k8score.NodeSelectorTerm{
+									MatchExpressions: []k8score.NodeSelectorRequirement{
+										{
+											Key:      "zone",
+											Operator: k8score.NodeSelectorOpIn,
+											Values:   []string{"us-west-1"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"Valid - empty nodeAffinityJson",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{
+					{
+						NodeAffinityJson: structInputParamConstant(map[string]interface{}{}),
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				// No affinity should be set when JSON is empty
+			},
+			nil,
+		},
+		{
+			"Valid - node affinity with matchExpressions and matchFields combined",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{
+					{
+						MatchExpressions: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key:      "disktype",
+								Operator: "In",
+								Values:   []string{"ssd"},
+							},
+						},
+						MatchFields: []*kubernetesplatform.SelectorRequirement{
+							{
+								Key:      "metadata.name",
+								Operator: "In",
+								Values:   []string{"node-1"},
+							},
+						},
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{{Name: "main"}},
+				Affinity: &k8score.Affinity{
+					NodeAffinity: &k8score.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &k8score.NodeSelector{
+							NodeSelectorTerms: []k8score.NodeSelectorTerm{
+								{
+									MatchExpressions: []k8score.NodeSelectorRequirement{
+										{
+											Key:      "disktype",
+											Operator: k8score.NodeSelectorOpIn,
+											Values:   []string{"ssd"},
+										},
+									},
+									MatchFields: []k8score.NodeSelectorRequirement{
+										{
+											Key:      "metadata.name",
+											Operator: k8score.NodeSelectorOpIn,
+											Values:   []string{"node-1"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := &k8score.PodSpec{Containers: []k8score.Container{{Name: "main"}}}
+			err := extendPodSpecPatch(
+				context.Background(),
+				got,
+				Options{KubernetesExecutorConfig: tt.k8sExecCfg},
+				nil,
+				nil,
+				nil,
+				tt.inputParams,
+			)
+			assert.NoError(t, err)
+
+			if tt.expected.Affinity != nil {
+				assert.NotNil(t, got.Affinity)
+				assert.NotNil(t, got.Affinity.NodeAffinity)
+
+				if tt.expected.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+					assert.Equal(t, tt.expected.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution, got.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution)
+				}
+
+				if tt.expected.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution != nil {
+					assert.Equal(t, tt.expected.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution, got.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution)
+				}
+			} else {
+				// For empty JSON case, affinity should not be set
+				assert.Nil(t, got.Affinity)
+			}
+		})
+	}
+}
+
 func validListOfStructsOrPanic(data []map[string]interface{}) *structpb.Value {
 	var listValues []*structpb.Value
 	for _, item := range data {
@@ -2230,5 +2543,9 @@ func structInputParamConstant(value map[string]interface{}) *pipelinespec.TaskIn
 }
 
 func int64Ptr(val int64) *int64 {
+	return &val
+}
+
+func int32Ptr(val int32) *int32 {
 	return &val
 }
