@@ -265,16 +265,23 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 	if inputs.condition != "" {
 		when = inputs.condition + " != false"
 	}
+	refName := task.GetComponentRef().GetName()
+	// Retrieve pod metadata defined in the Kubernetes Spec, if any
+	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
+	k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
+	if kubernetesConfigParam != nil {
+		jsonpb.UnmarshalString(string(*kubernetesConfigParam.Value), k8sExecCfg)
+	}
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addContainerExecutorTemplate(task),
+		Template: c.addContainerExecutorTemplate(task, k8sExecCfg),
 		When:     when,
 		Arguments: wfapi.Arguments{
 			Parameters: append([]wfapi.Parameter{
 				{Name: paramPodSpecPatch, Value: wfapi.AnyStringPtr(inputs.podSpecPatch)},
 				{Name: paramCachedDecision, Value: wfapi.AnyStringPtr(inputs.cachedDecision), Default: wfapi.AnyStringPtr("false")},
 			},
-				c.getTaskRetryParametersWithValues(task)...,
+				append(c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), true), c.getTaskRetryParametersWithValues(task)...)...,
 			),
 		},
 	}
@@ -288,7 +295,7 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 // any container component task.
 // During runtime, it's expected that pod-spec-patch will specify command, args
 // and resources etc, that are different for different tasks.
-func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.PipelineTaskSpec) string {
+func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.PipelineTaskSpec, k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig) string {
 	// container template is parent of container implementation template
 	nameContainerExecutor := "system-container-executor"
 	nameContainerImpl := "system-container-impl"
@@ -302,6 +309,19 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 			nameContainerImpl = "retry-" + nameContainerImpl
 		}
 	}
+	podMetadata := k8sExecCfg.GetPodMetadata()
+	if podMetadata != nil {
+		numAnnotations := ""
+		numLabels := ""
+		if podMetadata.GetAnnotations() != nil {
+			numAnnotations = strconv.Itoa(len(k8sExecCfg.GetPodMetadata().GetAnnotations()))
+		}
+		if podMetadata.GetLabels() != nil {
+			numLabels = strconv.Itoa(len(k8sExecCfg.GetPodMetadata().GetLabels()))
+		}
+		nameContainerExecutor = "metadata-" + numAnnotations + "-" + numLabels + "-" + nameContainerExecutor
+		nameContainerImpl = "metadata-" + numAnnotations + "-" + numLabels + "-" + nameContainerImpl
+	}
 	_, ok := c.templates[nameContainerExecutor]
 	if ok {
 		return nameContainerExecutor
@@ -313,7 +333,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 				{Name: paramPodSpecPatch},
 				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false")},
 			},
-				c.addParameterDefault(c.getTaskRetryParameters(task), "0")...,
+				append(c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), false), c.addParameterDefault(c.getTaskRetryParameters(task), "0")...)...,
 			),
 		},
 		DAG: &wfapi.DAGTemplate{
@@ -325,7 +345,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 						Name:  paramPodSpecPatch,
 						Value: wfapi.AnyStringPtr(inputParameter(paramPodSpecPatch))},
 					},
-						c.addParameterInputPath(c.getTaskRetryParameters(task))...,
+						append(c.addParameterInputPath(c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), false)), c.addParameterInputPath(c.getTaskRetryParameters(task))...)...,
 					),
 				},
 				// When cached decision is true, the container
@@ -357,7 +377,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 			Parameters: append([]wfapi.Parameter{
 				{Name: paramPodSpecPatch},
 			},
-				c.getTaskRetryParameters(task)...),
+				append(c.getPodMetadataParameters(k8sExecCfg.GetPodMetadata(), false), c.getTaskRetryParameters(task)...)...),
 		},
 		// PodSpecPatch input param is where actual image, command and
 		// args come from. It is treated as a strategic merge patch on
@@ -473,13 +493,8 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 			inputParameter(paramRetryBackOffMaxDuration))
 	}
 	// Update pod metadata if it defined in the Kubernetes Spec
-	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
-
-	if kubernetesConfigParam != nil {
-		k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := jsonpb.UnmarshalString(string(*kubernetesConfigParam.Value), k8sExecCfg); err == nil {
-			extendPodMetadata(&executor.Metadata, k8sExecCfg)
-		}
+	if k8sExecCfg.GetPodMetadata() != nil {
+		extendPodMetadata(&executor.Metadata, k8sExecCfg)
 	}
 	caBundleCfgMapName := os.Getenv("EXECUTOR_CABUNDLE_CONFIGMAP_NAME")
 	caBundleCfgMapKey := os.Getenv("EXECUTOR_CABUNDLE_CONFIGMAP_KEY")
@@ -627,7 +642,71 @@ func (c *workflowCompiler) getTaskRetryStrategyFromInput(maxCount string, backOf
 	}
 }
 
-// Extends the PodMetadata to include Kubernetes-specific executor config.
+// Return pod metadata parameters for annotations and labels, with corresponding key/value vals, if applicable.
+// If no parameters found, returns empty list.
+func (c *workflowCompiler) getPodMetadataParameters(podMetadata *kubernetesplatform.PodMetadata, includeValue bool) []wfapi.Parameter {
+	parameters := []wfapi.Parameter{}
+
+	if podMetadata != nil {
+		annotations := podMetadata.GetAnnotations()
+		if annotations != nil {
+			count := 1
+			for annotationKey, annotationValue := range annotations {
+				key := paramPodAnnotationKey
+				val := paramPodAnnotationVal
+				if len(annotations) > 1 {
+					key = annotationKey + "-" + strconv.Itoa(count)
+					val = annotationValue + "-" + strconv.Itoa(count)
+				}
+				if includeValue {
+					parameters = append(parameters,
+						[]wfapi.Parameter{
+							{
+								Name:  key,
+								Value: wfapi.AnyStringPtr(annotationKey)},
+							{
+								Name:  val,
+								Value: wfapi.AnyStringPtr(annotationValue),
+							}}...)
+				} else {
+					parameters = append(parameters,
+						[]wfapi.Parameter{{Name: paramPodAnnotationKey}, {Name: paramPodAnnotationVal}}...)
+				}
+				count++
+			}
+		}
+		labels := podMetadata.GetLabels()
+		if labels != nil {
+			count := 1
+			for labelKey, labelValue := range labels {
+				key := paramPodLabelKey
+				val := paramPodLabelVal
+				if len(annotations) > 1 {
+					key = key + "-" + strconv.Itoa(count)
+					val = val + "-" + strconv.Itoa(count)
+				}
+				if includeValue {
+					parameters = append(parameters,
+						[]wfapi.Parameter{
+							{
+								Name:  key,
+								Value: wfapi.AnyStringPtr(labelKey),
+							},
+							{
+								Name:  val,
+								Value: wfapi.AnyStringPtr(labelValue),
+							}}...)
+				} else {
+					parameters = append(parameters, []wfapi.Parameter{{Name: key}, {Name: val}}...)
+				}
+				count++
+			}
+		}
+	}
+	return parameters
+}
+
+// Extends the PodMetadata to PodMetadata input parameters.
 // Although the current podMetadata object is always empty, this function
 // doesn't overwrite the existing podMetadata because for security reasons
 // the existing podMetadata should have higher privilege than the user definition.
@@ -639,18 +718,38 @@ func extendPodMetadata(
 	if kubernetesExecutorConfig.GetPodMetadata() != nil {
 		labels := kubernetesExecutorConfig.GetPodMetadata().GetLabels()
 		if labels != nil {
-			if podMetadata.Labels == nil {
-				podMetadata.Labels = labels
-			} else {
-				podMetadata.Labels = extendMetadataMap(podMetadata.Labels, labels)
+			count := 1
+			for range labels {
+				key := paramPodLabelKey
+				val := paramPodLabelVal
+				if len(labels) > 1 {
+					key = key + "-" + strconv.Itoa(count)
+					val = val + "-" + strconv.Itoa(count)
+				}
+				if podMetadata.Labels == nil {
+					podMetadata.Labels = map[string]string{inputParameter(key): inputParameter(val)}
+				} else {
+					podMetadata.Labels = extendMetadataMap(podMetadata.Labels, map[string]string{inputParameter(key): inputParameter(val)})
+				}
+				count++
 			}
 		}
 		annotations := kubernetesExecutorConfig.GetPodMetadata().GetAnnotations()
 		if annotations != nil {
-			if podMetadata.Annotations == nil {
-				podMetadata.Annotations = annotations
-			} else {
-				podMetadata.Annotations = extendMetadataMap(podMetadata.Annotations, annotations)
+			count := 1
+			for range annotations {
+				key := paramPodAnnotationKey
+				val := paramPodAnnotationVal
+				if len(annotations) > 1 {
+					key = key + "-" + strconv.Itoa(count)
+					val = val + "-" + strconv.Itoa(count)
+				}
+				if podMetadata.Annotations == nil {
+					podMetadata.Annotations = map[string]string{inputParameter(key): inputParameter(val)}
+				} else {
+					podMetadata.Annotations = extendMetadataMap(podMetadata.Annotations, map[string]string{inputParameter(key): inputParameter(val)})
+				}
+				count++
 			}
 		}
 	}
