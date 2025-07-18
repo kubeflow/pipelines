@@ -38,6 +38,8 @@ from kfp.dsl import tasks_group
 from kfp.dsl import utils
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp_server_api import __version__ as kfp_server_version
+from packaging import version
 import yaml
 
 # must be defined here to avoid circular imports
@@ -117,7 +119,11 @@ def build_task_spec_for_task(
     pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
     pipeline_task_spec.task_info.name = (
         task._task_spec.display_name or task.name)
-    pipeline_task_spec.task_info.task_name = task.name
+    # Help maintain backward compatibility with KFP server versions
+    # that do not support task_name.
+    if version.parse(kfp_server_version) > version.parse(
+            '2.5.0'):  # Adjust version as needed
+        pipeline_task_spec.task_info.task_name = task.name
     # Use task.name for component_ref.name because we may customize component
     # spec for individual tasks to work around the lack of optional inputs
     # support in IR.
