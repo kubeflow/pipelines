@@ -32,7 +32,6 @@ kustomization_yamls_with_images=(
   "base/metadata/base/kustomization.yaml"
   "base/pipeline/metadata-writer/kustomization.yaml"
   "base/pipeline/kustomization.yaml"
-  "env/gcp/inverse-proxy/kustomization.yaml"
 )
 for path in "${kustomization_yamls_with_images[@]}"
 do
