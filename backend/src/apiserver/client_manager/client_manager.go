@@ -321,22 +321,21 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-// isAllowedTable returns true only for tables we know we need to alter.
-func isAllowedTable(name string) bool {
-	allowed := map[string]bool{
-		"pipeline":          true,
-		"pipeline_versions": true,
+// AddDisplayNameColumn adds a DisplayName column to the given table with a default value of Name.
+func AddDisplayNameColumn(db *gorm.DB, quotedTableName string, driverName string) error {
+	// Only allow these tables to have DisplayName added to prevent accidental schema changes.
+	var allowedTables = map[string]bool{
+		model.Pipeline{}.TableName():        true,
+		model.PipelineVersion{}.TableName(): true,
 	}
-	return allowed[name]
-}
 
-// addDisplayNameColumn adds a DisplayName column to the given table with a default value of Name.
-// It returns an error if this fails.
-func addDisplayNameColumn(db *gorm.DB, quotedTableName string, driverName string) error {
-	if !isAllowedTable(quotedTableName) {
+	if !allowedTables[quotedTableName] {
 		return fmt.Errorf("table %q is not allowed for DisplayName migration", quotedTableName)
 	}
 
+	if db.Migrator().HasColumn(quotedTableName, "DisplayName") {
+		return nil
+	}
 	glog.Info("Adding DisplayName column to " + quotedTableName)
 
 	err := db.Transaction(func(tx *gorm.DB) error {
@@ -441,7 +440,7 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		quotedTableName := stmt.Quote(stmt.Table)
 		hasColumn := db.Migrator().HasColumn(&model.Pipeline{}, "DisplayName")
 		if !hasColumn {
-			if err := addDisplayNameColumn(db, quotedTableName, driverName); err != nil {
+			if err := AddDisplayNameColumn(db, quotedTableName, driverName); err != nil {
 				glog.Fatalf("Failed to add DisplayName column to the %s table. Error: %v", quotedTableName, err)
 			}
 		}
@@ -455,7 +454,7 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		quotedTableName := stmt.Quote(stmt.Table)
 		hasColumn := db.Migrator().HasColumn(&model.PipelineVersion{}, "DisplayName")
 		if !hasColumn {
-			if err := addDisplayNameColumn(db, quotedTableName, driverName); err != nil {
+			if err := AddDisplayNameColumn(db, quotedTableName, driverName); err != nil {
 				glog.Fatalf("Failed to add DisplayName column to the %s table. Error: %v", quotedTableName, err)
 			}
 		}

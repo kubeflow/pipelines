@@ -20,6 +20,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -29,12 +30,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
-// verifyCompositeIndex asserts that the given gorm.DB has created both the unique constraint and index named idx on model mdl.
-func verifyCompositeIndexAndConstraint(t *testing.T, gdb *gorm.DB, mdl interface{}, idx string) {
-	assert.True(t, gdb.Migrator().HasConstraint(mdl, idx), "constraint %s should exist", idx)
-	assert.True(t, gdb.Migrator().HasIndex(mdl, idx), "index %s should exist", idx)
-}
 
 type DBTestSuite struct {
 	suite.Suite
@@ -74,6 +69,9 @@ func (s *DBTestSuite) TestInitDBClient_MySQL() {
 	verifyCompositeIndexAndConstraint(t, gdb, &model.Pipeline{}, "namespace_name")
 	verifyCompositeIndexAndConstraint(t, gdb, &model.PipelineVersion{}, "idx_pipelineid_name")
 	verifyCompositeIndexAndConstraint(t, gdb, &model.Experiment{}, "idx_name_namespace")
+
+	verifyAddDisplayNameColumn(t, gdb, "mysql", model.Pipeline{}.TableName())
+	verifyAddDisplayNameColumn(t, gdb, "mysql", model.PipelineVersion{}.TableName())
 }
 
 // Test PostgreSQL initializes correctly
@@ -104,6 +102,33 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 	verifyCompositeIndexAndConstraint(s.T(), gdb, &model.Pipeline{}, "namespace_name")
 	verifyCompositeIndexAndConstraint(t, gdb, &model.PipelineVersion{}, "idx_pipelineid_name")
 	verifyCompositeIndexAndConstraint(t, gdb, &model.Experiment{}, "idx_name_namespace")
+
+	verifyAddDisplayNameColumn(t, gdb, "pgx", model.Pipeline{}.TableName())
+	verifyAddDisplayNameColumn(t, gdb, "pgx", model.PipelineVersion{}.TableName())
+}
+
+// verifyCompositeIndex asserts that the given gorm.DB has created both the unique constraint and index named idx on model mdl.
+func verifyCompositeIndexAndConstraint(t *testing.T, gdb *gorm.DB, mdl interface{}, idx string) {
+	assert.True(t, gdb.Migrator().HasConstraint(mdl, idx), "constraint %s should exist", idx)
+	assert.True(t, gdb.Migrator().HasIndex(mdl, idx), "index %s should exist", idx)
+}
+
+// verifyAddDisplayNameColumn tests that the DisplayName column exists in allowed tables
+// and is not added to unauthorized tables.
+func verifyAddDisplayNameColumn(t *testing.T, db *gorm.DB, driverName string, tableName string) {
+	// Use the table name passed in for testing.
+
+	// The column should already exist after InitDBClient runs migration.
+	hasCol := db.Migrator().HasColumn(tableName, "DisplayName")
+	require.True(t, hasCol, "DisplayName column should exist in %s table after initialization", tableName)
+
+	// Calling again should be idempotent: it should not return an error
+	err := cm.AddDisplayNameColumn(db, tableName, driverName)
+	require.NoError(t, err, "repeated call to AddDisplayNameColumn on allowed table should not error")
+
+	// It fails on a non-whitelisted table.
+	err = cm.AddDisplayNameColumn(db, "unauthorized_table", driverName)
+	require.Error(t, err)
 }
 
 func TestDB(t *testing.T) {
