@@ -1,3 +1,8 @@
+# When adding a new root level approver (i.e a maintainer), ensure that the following locations are also updated
+# https://github.com/kubeflow/internal-acls/blob/master/github-orgs/kubeflow/org.yaml#L1085
+# https://github.com/kubeflow/internal-acls/blob/master/github-orgs/kubeflow/org.yaml#L1213
+# https://github.com/kubeflow/community/blob/master/wgs.yaml#L354
+
 approvers:
   - chensun
   - droctothorpe
