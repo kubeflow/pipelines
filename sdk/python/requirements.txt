@@ -66,7 +66,7 @@ idna==3.3
     # via requests
 jsonschema==3.2.0
     # via -r requirements.in
-kfp-pipeline-spec==0.1.16
+kfp-pipeline-spec==0.7.0
     # via -r requirements.in
 kfp-server-api==1.8.1
     # via -r requirements.in
@@ -74,7 +74,7 @@ kubernetes==19.15.0
     # via -r requirements.in
 oauthlib==3.2.2
     # via requests-oauthlib
-protobuf==3.20.1
+protobuf==4.25.8
     # via
     #   google-api-core
     #   google-cloud-storage

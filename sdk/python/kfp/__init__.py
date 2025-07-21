@@ -18,8 +18,6 @@ __path__ = __import__("pkgutil").extend_path(__path__, __name__)
 
 __version__ = '1.8.22'
 
-TYPE_CHECK = True
-
 from . import components
 from . import containers
 from . import dsl
