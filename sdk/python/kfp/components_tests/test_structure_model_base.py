@@ -33,7 +33,7 @@ class TestModel1(ModelBase):
         prop_0: str,
         prop_1: Optional[str] = None,
         prop_2: Union[int, str, bool] = '',
-        prop_3: 'TestModel1' = None,
+        prop_3: Optional['TestModel1'] = None,
         prop_4: Optional[Dict[str, 'TestModel1']] = None,
         prop_5: Optional[Union['TestModel1', List['TestModel1'],
                                Dict[str, 'TestModel1']]] = None,
