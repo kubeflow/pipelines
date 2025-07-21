@@ -97,7 +97,6 @@ class CompilerCliTests(unittest.TestCase):
             self.assertEqual(golden, compiled)
         finally:
             shutil.rmtree(tmpdir)
-
     def test_two_step_pipeline(self):
         self._test_compile_py_to_json(
             'two_step_pipeline',
