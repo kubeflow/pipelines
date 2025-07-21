@@ -576,22 +576,22 @@ implementation:
     def test_command_if_is_present_then(self):
         component_text = '''\
 inputs:
-- {name: In, optional: true}
+- {name: Input, optional: true}
 implementation:
   container:
     image: busybox
     args:
       - if:
-          cond: {isPresent: In}
-          then: [--in, {inputValue: In}]
-          #else: --no-in
+          cond: {isPresent: Input}
+          then: [--input, {inputValue: Input}]
+          #else: --no-input
 '''
         task_factory1 = comp.load_component(text=component_text)
 
         task_then = task_factory1('data')
         resolved_cmd_then = _resolve_command_line_and_paths(
             task_then.component_ref.spec, task_then.arguments)
-        self.assertEqual(resolved_cmd_then.args, ['--in', 'data'])
+        self.assertEqual(resolved_cmd_then.args, ['--input', 'data'])
 
         task_else = task_factory1()
         resolved_cmd_else = _resolve_command_line_and_paths(
@@ -601,27 +601,27 @@ implementation:
     def test_command_if_is_present_then_else(self):
         component_text = '''\
 inputs:
-- {name: In, optional: true}
+- {name: Input, optional: true}
 implementation:
   container:
     image: busybox
     args:
       - if:
-          cond: {isPresent: In}
-          then: [--in, {inputValue: In}]
-          else: --no-in
+          cond: {isPresent: Input}
+          then: [--input, {inputValue: Input}]
+          else: --no-input
 '''
         task_factory1 = comp.load_component(text=component_text)
 
         task_then = task_factory1('data')
         resolved_cmd_then = _resolve_command_line_and_paths(
             task_then.component_ref.spec, task_then.arguments)
-        self.assertEqual(resolved_cmd_then.args, ['--in', 'data'])
+        self.assertEqual(resolved_cmd_then.args, ['--input', 'data'])
 
         task_else = task_factory1()
         resolved_cmd_else = _resolve_command_line_and_paths(
             task_else.component_ref.spec, task_else.arguments)
-        self.assertEqual(resolved_cmd_else.args, ['--no-in'])
+        self.assertEqual(resolved_cmd_else.args, ['--no-input'])
 
     def test_command_if_input_value_then(self):
         component_text = '''\

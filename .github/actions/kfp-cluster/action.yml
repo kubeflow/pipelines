@@ -1,0 +1,60 @@
+name: "Set up KFP on KinD"
+description: "Step to start and configure KFP on KinD"
+
+inputs:
+  k8s_version:
+    description: "The Kubernetes version to use for the Kind cluster"
+    required: true
+  pipeline_store:
+    description: "Flag to deploy KFP with K8s Native API"
+    default: 'database'
+    required: false
+  proxy:
+    description: "If KFP should be deployed with proxy configuration"
+    required: false
+    default: false
+  cache_enabled:
+    description: "If KFP should be deployed with cache enabled globally"
+    required: false
+    default: 'true'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create k8s Kind Cluster
+      uses: container-tools/kind-action@v2
+      with:
+        cluster_name: kfp
+        kubectl_version: ${{ inputs.k8s_version }}
+        version: v0.25.0
+        node_image: kindest/node:${{ inputs.k8s_version }}
+
+    - name: Deploy Squid
+      id: deploy-squid
+      if: ${{ inputs.proxy == 'true' }}
+      shell: bash
+      run: ./.github/resources/squid/deploy-squid.sh
+
+    - name: Build images
+      shell: bash
+      run: |
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ./.github/resources/scripts/build-images.sh --proxy
+        else
+          ./.github/resources/scripts/build-images.sh
+        fi
+
+    - name: Deploy KFP
+      shell: bash
+      run: |
+        ARGS=""
+
+        if [ "${{ inputs.proxy }}" = "true" ]; then
+          ARGS="${ARGS} --proxy"
+        elif [ "${{inputs.cache_enabled }}" = "false" ]; then
+          ARGS="${ARGS} --cache-disabled"
+        elif [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
+          ARGS="${ARGS}  --deploy-k8s-native"
+        fi
+        
+        ./.github/resources/scripts/deploy-kfp.sh $ARGS

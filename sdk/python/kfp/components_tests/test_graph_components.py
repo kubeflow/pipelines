@@ -146,6 +146,7 @@ implementation:
                         '==':
                             op1: {taskOutput: {taskId: task 1, outputName: out1 2}}
                             op2: 'head'
+    outputValues: {}
 '''
         struct = load_yaml(component_text)
         ComponentSpec.from_dict(struct)
@@ -160,6 +161,7 @@ implementation:
         executionOptions:
           cachingStrategy:
             maxCacheStaleness: P30D
+    outputValues: {}
 '''
         struct = load_yaml(component_text)
         component_spec = ComponentSpec.from_dict(struct)
