@@ -15,6 +15,7 @@
 package clientmanager
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -26,19 +27,25 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 )
 
-// getTestSQLite returns an in-memory sqlite DB.
+// getTestSQLite returns an isolated in-memory sqlite DB for each test.
+// We use a unique DSN per test to avoid "table already exists" collisions when tests reuse the same shared cache.
 func getTestSQLite(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	// sanitize test name to be a valid sqlite file identifier
+	name := strings.ReplaceAll(t.Name(), "/", "_")
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", name)
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	require.NoError(t, err)
 	return db
 }
 
-// createOldExperimentSchema creates a minimal experiments table (legacy-like) for sqlite.
 func createOldExperimentSchema(t *testing.T, db *gorm.DB) {
 	t.Helper()
+	// Ensure a clean slate if a previous test already created it in the shared cache.
+	require.NoError(t, db.Exec(`DROP TABLE IF EXISTS experiments`).Error)
+
 	stmt := `
-CREATE TABLE experiments (
+CREATE TABLE IF NOT EXISTS experiments (
   UUID TEXT NOT NULL,
   Name TEXT NOT NULL,
   Namespace TEXT NOT NULL,
