@@ -321,6 +321,142 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
+// ColLenSpec describes the logical max length we enforce during migration.
+// Model is the Go struct used by GORM; Field is the Go struct field name (NOT the DB column name).
+// Max is the allowed character length after upgrade.
+type ColLenSpec struct {
+	Model interface{}
+	Field string // Go struct field name
+	Max   int
+}
+
+var lengthSpecs = []ColLenSpec{
+	{Model: &model.DefaultExperiment{}, Field: "DefaultExperimentId", Max: 191},
+
+	{Model: &model.Experiment{}, Field: "UUID", Max: 191},
+	{Model: &model.Experiment{}, Field: "Name", Max: 128},
+	{Model: &model.Experiment{}, Field: "Namespace", Max: 63},
+
+	{Model: &model.Job{}, Field: "UUID", Max: 191},
+
+	{Model: &model.PipelineVersion{}, Field: "UUID", Max: 191},
+	{Model: &model.PipelineVersion{}, Field: "Name", Max: 127},
+	{Model: &model.PipelineVersion{}, Field: "PipelineId", Max: 64},
+
+	{Model: &model.Pipeline{}, Field: "UUID", Max: 64},
+	{Model: &model.Pipeline{}, Field: "Name", Max: 128},
+
+	{Model: &model.ResourceReference{}, Field: "ResourceUUID", Max: 191},
+	{Model: &model.ResourceReference{}, Field: "ReferenceUUID", Max: 191},
+
+	{Model: &model.Run{}, Field: "UUID", Max: 191},
+	{Model: &model.Run{}, Field: "Namespace", Max: 63},
+	{Model: &model.Run{}, Field: "ExperimentId", Max: 64},
+	{Model: &model.Run{}, Field: "Conditions", Max: 125},
+
+	{Model: &model.RunMetric{}, Field: "RunUUID", Max: 191},
+	{Model: &model.RunMetric{}, Field: "NodeID", Max: 191},
+	{Model: &model.RunMetric{}, Field: "Name", Max: 191},
+
+	{Model: &model.Task{}, Field: "UUID", Max: 191},
+	// Note: struct field is RunId, column is RunUUID.
+	{Model: &model.Task{}, Field: "RunId", Max: 191},
+}
+
+// getColumnLength returns the declared length for a column using GORM ColumnTypes.
+// If the dialect/type doesn't report a length (e.g., TEXT), ok=false.
+func getColumnLength(db *gorm.DB, mdl interface{}, column string) (length int64, ok bool, err error) {
+	colTypes, err := db.Migrator().ColumnTypes(mdl)
+	if err != nil {
+		return 0, false, err
+	}
+	for _, ct := range colTypes {
+		if strings.EqualFold(ct.Name(), column) {
+			l, okLen := ct.Length()
+			return l, okLen, nil
+		}
+	}
+	return 0, false, nil
+}
+
+// RunPreflightLengthChecks scans existing data and aborts upgrade if any row exceeds the new Max length.
+// It must be called BEFORE AutoMigrate/DDL that shrinks column definitions.
+func RunPreflightLengthChecks(db *gorm.DB, specs []ColLenSpec) error {
+	dialect := db.Name()
+	quote := func(id string) string {
+		if dialect == "mysql" {
+			return "`" + id + "`"
+		}
+		return `"` + id + `"`
+	}
+
+	for _, s := range specs {
+		if !db.Migrator().HasTable(s.Model) {
+			continue
+		}
+		tableName, dbCol, err := fieldMeta(db, s.Model, s.Field)
+		if err != nil {
+			return fmt.Errorf("failed to resolve meta for %T.%s: %w", s.Model, s.Field, err)
+		}
+
+		var cnt int64
+		lengthFn := "CHAR_LENGTH"
+		if dialect == "sqlite" {
+			lengthFn = "LENGTH"
+		}
+		where := fmt.Sprintf("%s(%s) > ?", lengthFn, quote(dbCol))
+		if err := db.Table(tableName).Where(where, s.Max).Count(&cnt).Error; err != nil {
+			return fmt.Errorf("preflight length check failed for %s.%s (count): %w", tableName, dbCol, err)
+		}
+		if cnt == 0 {
+			continue
+		}
+
+		type rowSample struct {
+			Val string
+		}
+		var samples []rowSample
+		if err := db.Table(tableName).
+			Select(dbCol+" as Val").
+			Where(where, s.Max).
+			Limit(5).
+			Scan(&samples).Error; err != nil {
+			return fmt.Errorf("preflight length check failed for %s.%s (sample): %w", tableName, dbCol, err)
+		}
+
+		var preview []string
+		for _, sm := range samples {
+			if len(sm.Val) > 50 {
+				preview = append(preview, sm.Val[:50]+"…")
+			} else {
+				preview = append(preview, sm.Val)
+			}
+		}
+
+		return fmt.Errorf(`[Preflight] %s.%s has %d rows with length > %d.
+		Reason: This column must stay indexable (e.g. MySQL utf8mb4 index key ≤ 767 bytes).Thus, KFP enforces a max of %d chars.
+		Action: Shorten these values before upgrading.
+		Find offenders with:
+		SELECT UUID, CHAR_LENGTH(%[2]s) AS L FROM %[1]s WHERE CHAR_LENGTH(%[2]s) > %[3]d;
+		Examples: %v`,
+			tableName, dbCol, cnt, s.Max, s.Max, preview)
+	}
+	return nil
+}
+
+// fieldMeta returns the table name and DB column name for the given model+field.
+func fieldMeta(db *gorm.DB, mdl interface{}, field string) (table string, dbCol string, err error) {
+	stmt := &gorm.Statement{DB: db}
+	if err = stmt.Parse(mdl); err != nil {
+		return "", "", err
+	}
+	f, ok := stmt.Schema.FieldsByName[field]
+	if !ok {
+		return stmt.Table, "", fmt.Errorf("field %s not found in %T", field, mdl)
+	}
+	return stmt.Table, f.DBName, nil
+}
+
 // AddDisplayNameColumn adds a DisplayName column to the given table with a default value of Name.
 func AddDisplayNameColumn(db *gorm.DB, quotedTableName string, driverName string) error {
 	// Only allow these tables to have DisplayName added to prevent accidental schema changes.
@@ -396,6 +532,53 @@ func EnsureUniqueCompositeIndexAndConstraint(db *gorm.DB, model interface{}, ind
 	}
 }
 
+func ShrinkColumns(db *gorm.DB, specs []ColLenSpec) error {
+	for _, s := range specs {
+		if !db.Migrator().HasTable(s.Model) {
+			continue
+		}
+		if err := EnsureColumnLength(db, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func EnsureColumnLength(db *gorm.DB, spec ColLenSpec) error {
+	if !db.Migrator().HasTable(spec.Model) {
+		return nil
+	}
+
+	tableName, dbCol, err := fieldMeta(db, spec.Model, spec.Field)
+	if err != nil {
+		return fmt.Errorf("failed to resolve meta for %T.%s: %w", spec.Model, spec.Field, err)
+	}
+
+	// Current length
+	curLen, haveLen, err := getColumnLength(db, spec.Model, dbCol)
+	if err != nil {
+		return fmt.Errorf("columnTypes read failed for %s.%s: %w", tableName, dbCol, err)
+	}
+	if haveLen && curLen <= int64(spec.Max) {
+		return nil
+	}
+
+	// Alter via GORM
+	if err := db.Migrator().AlterColumn(spec.Model, spec.Field); err != nil {
+		return fmt.Errorf("AlterColumn failed for %s.%s (field=%s): %w", tableName, dbCol, spec.Field, err)
+	}
+
+	// Verify after alter
+	newLen, haveLen2, err := getColumnLength(db, spec.Model, dbCol)
+	if err != nil {
+		return fmt.Errorf("post-AlterColumn columnTypes read failed for %s.%s: %w", tableName, dbCol, err)
+	}
+	if haveLen2 && newLen > int64(spec.Max) {
+		return fmt.Errorf("after AlterColumn, %s.%s length=%d (> %d)", tableName, dbCol, newLen, spec.Max)
+	}
+	return nil
+}
+
 func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
@@ -421,6 +604,11 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// and maintains its own pool of idle connections.
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
+
+	// Preflight: block upgrade if old data violates new length limits.
+	if err := RunPreflightLengthChecks(db, lengthSpecs); err != nil {
+		glog.Fatalf("Preflight length check failed: %v", err)
+	}
 
 	// If pipeline_versions table is introduced into DB for the first time,
 	// it needs initialization or data backfill.
@@ -504,6 +692,10 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		glog.Fatalf("Failed to update WorkflowSpecManifest column to nullable. Error: %v", err)
 	}
 
+	// Ensure the length modification in schema is enforced for legacy DBs
+	if err := ShrinkColumns(db, lengthSpecs); err != nil {
+		glog.Fatalf("Shrink columns failed: %v", err)
+	}
 	// In both GORM v1 and v2, AutoMigrate is a non-destructive operation and
 	// will *not* overwrite pre-existing index structures. For example, if a
 	// single-column index (e.g., on "Name") already exists, the creation of a

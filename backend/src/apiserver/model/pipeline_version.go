@@ -30,7 +30,7 @@ const (
 
 type PipelineVersion struct {
 	UUID           string `gorm:"column:UUID; not null; primaryKey;type:varchar(191);"`
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index:idx_pipeline_versions_CreatedAtInSec;"`
 	// Explicitly specify varchar(127)
 	// so that the combined index (PipelineId + Name) does not exceed 767 bytes in utf8mb4,
 	// For details on type lengths and index safety, refer to comments in the Pipeline struct.

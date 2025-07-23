@@ -26,8 +26,8 @@ type Task struct {
 	// RunId is limited to varchar(191) to make it indexable as a foreign key.
 	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-	RunId              string           `gorm:"column:RunUUID; type:varchar(191); not null; index;"`                            // Note: field name (RunId) ≠ column name (RunUUID). The former should be the foreign key instead of the letter.
-	Run                Run              `gorm:"foreignKey:RunId;references:UUID;constraint:OnDelete:CASCADE,OnUpdate:CASCADE;"` // A Task belongs to a Run.
+	RunId              string           `gorm:"column:RunUUID; type:varchar(191); not null; index;"`                                                                         // Note: field name (RunId) ≠ column name (RunUUID). The former should be the foreign key instead of the letter.
+	Run                Run              `gorm:"foreignKey:RunId;references:UUID;constraint:run_metrics_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE;"` // A Task belongs to a Run.
 	PodName            string           `gorm:"column:PodName; not null;"`
 	MLMDExecutionID    string           `gorm:"column:MLMDExecutionID; not null;"`
 	CreatedTimestamp   int64            `gorm:"column:CreatedTimestamp; not null;"`
