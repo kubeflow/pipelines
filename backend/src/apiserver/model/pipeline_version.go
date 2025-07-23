@@ -30,7 +30,7 @@ const (
 
 type PipelineVersion struct {
 	UUID           string `gorm:"column:UUID; not null; primaryKey;type:varchar(191);"`
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index;"`
+	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null; index:idx_pipeline_versions_CreatedAtInSec;"`
 	// Explicitly specify varchar(127)
 	// so that the combined index (PipelineId + Name) does not exceed 767 bytes in utf8mb4,
 	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
@@ -43,8 +43,8 @@ type PipelineVersion struct {
 	// deleted from PipelineVersion table.
 	// Explicitly specify varchar(64). Refer to Name field comments for details.
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-	PipelineId string                `gorm:"column:PipelineId; not null; index; uniqueIndex:idx_pipelineid_name; type:varchar(64)"`
-	Pipeline   Pipeline              `gorm:"foreignKey:PipelineId; references:UUID;constraint: OnDelete:CASCADE,OnUpdate:CASCADE"` // This 'belongs to' relation replaces the legacy AddForeignKey constraint previously defined in client_manager.go
+	PipelineId string                `gorm:"column:PipelineId; not null; index:idx_pipeline_versions_PipelineId; uniqueIndex:idx_pipelineid_name; type:varchar(64)"`
+	Pipeline   Pipeline              `gorm:"foreignKey:PipelineId; references:UUID;constraint:pipeline_versions_PipelineId_pipelines_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE"` // This 'belongs to' relation replaces the legacy AddForeignKey constraint previously defined in client_manager.go
 	Status     PipelineVersionStatus `gorm:"column:Status; not null;"`
 	// Code source url links to the pipeline version's definition in repo.
 	CodeSourceUrl   string `gorm:"column:CodeSourceUrl;"`
