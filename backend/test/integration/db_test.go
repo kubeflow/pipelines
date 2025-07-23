@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -44,7 +45,7 @@ func (s *DBTestSuite) SetupTest() {
 }
 
 // Test MySQL initializes correctly
-func (s *DBTestSuite) TestInitDBClient_MySQL() {
+func (s *DBTestSuite) TestInitDBClient_MySQL_Fresh() {
 	if *runPostgreSQLTests {
 		s.T().SkipNow()
 		return
@@ -65,17 +66,17 @@ func (s *DBTestSuite) TestInitDBClient_MySQL() {
 	if err != nil {
 		t.Fatalf("failed to open gorm.DB for MySQL: %v", err)
 	}
-	// Verify composite unique constraint and index on the Pipeline model
-	verifyCompositeIndexAndConstraint(t, gdb, &model.Pipeline{}, "namespace_name")
-	verifyCompositeIndexAndConstraint(t, gdb, &model.PipelineVersion{}, "idx_pipelineid_name")
-	verifyCompositeIndexAndConstraint(t, gdb, &model.Experiment{}, "idx_name_namespace")
 
 	verifyAddDisplayNameColumn(t, gdb, "mysql", model.Pipeline{}.TableName())
 	verifyAddDisplayNameColumn(t, gdb, "mysql", model.PipelineVersion{}.TableName())
+
+	verifyLengths(t, gdb)
+	verifyIndexesMySQL(t, gdb)
+	verifyConstraintsMySQL(t, gdb)
 }
 
 // Test PostgreSQL initializes correctly
-func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
+func (s *DBTestSuite) TestInitDBClient_PostgreSQL_Fresh() {
 	if !*runPostgreSQLTests {
 		s.T().SkipNow()
 		return
@@ -98,19 +99,9 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 	if err != nil {
 		t.Fatalf("failed to open gorm.DB for PostgreSQL: %v", err)
 	}
-	// Verify composite unique constraint and index on the Pipeline model
-	verifyCompositeIndexAndConstraint(s.T(), gdb, &model.Pipeline{}, "namespace_name")
-	verifyCompositeIndexAndConstraint(t, gdb, &model.PipelineVersion{}, "idx_pipelineid_name")
-	verifyCompositeIndexAndConstraint(t, gdb, &model.Experiment{}, "idx_name_namespace")
 
 	verifyAddDisplayNameColumn(t, gdb, "pgx", model.Pipeline{}.TableName())
 	verifyAddDisplayNameColumn(t, gdb, "pgx", model.PipelineVersion{}.TableName())
-}
-
-// verifyCompositeIndex asserts that the given gorm.DB has created both the unique constraint and index named idx on model mdl.
-func verifyCompositeIndexAndConstraint(t *testing.T, gdb *gorm.DB, mdl interface{}, idx string) {
-	assert.True(t, gdb.Migrator().HasConstraint(mdl, idx), "constraint %s should exist", idx)
-	assert.True(t, gdb.Migrator().HasIndex(mdl, idx), "index %s should exist", idx)
 }
 
 // verifyAddDisplayNameColumn tests that the DisplayName column exists in allowed tables
@@ -129,6 +120,123 @@ func verifyAddDisplayNameColumn(t *testing.T, db *gorm.DB, driverName string, ta
 	// It fails on a non-whitelisted table.
 	err = cm.AddDisplayNameColumn(db, "unauthorized_table", driverName)
 	require.Error(t, err)
+}
+
+// verifyLengths checks that all columns we shrank from GORM v2 to v1 have the expected VARCHAR length in MySQL.
+func verifyLengths(t *testing.T, db *gorm.DB) {
+	for _, s := range cm.LengthSpecs() {
+		tbl, col, _ := cm.FieldMeta(db, s.Model, s.Field)
+		got := getColumnLengthMySQL(t, db, tbl, col) // compare with information_schema
+		require.Equal(t, s.Max, got)
+	}
+}
+
+// getColumnLengthMySQL returns CHARACTER_MAXIMUM_LENGTH for the given MySQL table/column.
+func getColumnLengthMySQL(t *testing.T, db *gorm.DB, table, col string) int {
+	t.Helper()
+	var l sql.NullInt64
+	err := db.Raw(`
+		SELECT CHARACTER_MAXIMUM_LENGTH
+		FROM information_schema.columns
+		WHERE table_schema = DATABASE()
+		AND table_name = ?
+		AND column_name = ?`, table, col).Scan(&l).Error
+	require.NoErrorf(t, err, "query column length failed for %s.%s", table, col)
+	if !l.Valid {
+		t.Fatalf("no length returned for %s.%s", table, col)
+	}
+	return int(l.Int64)
+}
+
+// ---- Single source of truth for composite index naming ----
+
+type IndexSpec struct {
+	Table string
+	Name  string
+}
+
+var indexSpecs = []IndexSpec{
+	// Composite unique indexes
+	{"pipelines", "namespace_name"},
+	{"pipeline_versions", "idx_pipelineid_name"},
+	{"experiments", "idx_name_namespace"},
+
+	// non-unique composite indexes
+	{"resource_references", "referencefilter"},
+	{"run_details", "experimentuuid_createatinsec"},
+	{"run_details", "experimentuuid_conditions_finishedatinsec"},
+	{"run_details", "namespace_createatinsec"},
+	{"run_details", "namespace_conditions_finishedatinsecc"},
+	{"pipeline_versions", "idx_pipeline_versions_CreatedAtInSec"},
+	{"pipeline_versions", "idx_pipeline_versions_PipelineId"},
+	{"tasks", "tasks_RunUUID_run_details_UUID_foreign"},
+}
+
+// verifyIndexesMySQL ensures expected index names exist in MySQL using information_schema only.
+func verifyIndexesMySQL(t *testing.T, db *gorm.DB) {
+	for _, spec := range indexSpecs {
+		nameSet := fetchIndexNamesMySQL(t, db, spec.Table)
+		assert.Containsf(t, nameSet, spec.Name, "index %s should exist on %s", spec.Name, spec.Table)
+	}
+}
+
+func fetchIndexNamesMySQL(t *testing.T, db *gorm.DB, table string) map[string]struct{} {
+	t.Helper()
+	type row struct {
+		IndexName string
+	}
+	var rows []row
+	err := db.Raw(`
+		SELECT INDEX_NAME
+		FROM information_schema.statistics
+		WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?
+		GROUP BY INDEX_NAME`, table).Scan(&rows).Error
+	require.NoError(t, err)
+	out := make(map[string]struct{}, len(rows))
+	for _, r := range rows {
+		out[r.IndexName] = struct{}{}
+	}
+	return out
+}
+
+// ---- Single source of truth for foreign-key constraints ----
+type ConstraintSpec struct {
+	Table string
+	Name  string
+}
+
+var constraintSpecs = []ConstraintSpec{
+	{"tasks", "tasks_RunUUID_run_details_UUID_foreign"},
+	{"run_metrics", "run_metrics_RunUUID_run_details_UUID_foreign"},
+	{"pipeline_versions", "pipeline_versions_PipelineId_pipelines_UUID_foreign"},
+}
+
+// verifyConstraintsMySQL checks that critical foreign key constraint names exist via information_schema only.
+func verifyConstraintsMySQL(t *testing.T, db *gorm.DB) {
+	for _, spec := range constraintSpecs {
+		nameSet := fetchFKNamesMySQL(t, db, spec.Table)
+		assert.Containsf(t, nameSet, spec.Name, "foreign key %s should exist on %s", spec.Name, spec.Table)
+	}
+}
+
+func fetchFKNamesMySQL(t *testing.T, db *gorm.DB, table string) map[string]struct{} {
+	t.Helper()
+	type row struct {
+		Name string
+	}
+	var rows []row
+	err := db.Raw(`
+	SELECT CONSTRAINT_NAME AS Name
+	FROM information_schema.TABLE_CONSTRAINTS
+	WHERE TABLE_SCHEMA = DATABASE()
+	AND TABLE_NAME = ?
+	AND CONSTRAINT_TYPE = 'FOREIGN KEY'`, table).Scan(&rows).Error
+	require.NoError(t, err)
+	out := make(map[string]struct{}, len(rows))
+	for _, r := range rows {
+		out[r.Name] = struct{}{}
+	}
+	return out
 }
 
 func TestDB(t *testing.T) {

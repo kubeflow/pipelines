@@ -363,6 +363,12 @@ var lengthSpecs = []ColLenSpec{
 	{Model: &model.Task{}, Field: "RunId", Max: 191},
 }
 
+func LengthSpecs() []ColLenSpec {
+	out := make([]ColLenSpec, len(lengthSpecs))
+	copy(out, lengthSpecs)
+	return out
+}
+
 // getColumnLength returns the declared length for a column using GORM ColumnTypes.
 // If the dialect/type doesn't report a length (e.g., TEXT), ok=false.
 func getColumnLength(db *gorm.DB, mdl interface{}, column string) (length int64, ok bool, err error) {
@@ -394,7 +400,7 @@ func RunPreflightLengthChecks(db *gorm.DB, specs []ColLenSpec) error {
 		if !db.Migrator().HasTable(s.Model) {
 			continue
 		}
-		tableName, dbCol, err := fieldMeta(db, s.Model, s.Field)
+		tableName, dbCol, err := FieldMeta(db, s.Model, s.Field)
 		if err != nil {
 			return fmt.Errorf("failed to resolve meta for %T.%s: %w", s.Model, s.Field, err)
 		}
@@ -444,8 +450,8 @@ func RunPreflightLengthChecks(db *gorm.DB, specs []ColLenSpec) error {
 	return nil
 }
 
-// fieldMeta returns the table name and DB column name for the given model+field.
-func fieldMeta(db *gorm.DB, mdl interface{}, field string) (table string, dbCol string, err error) {
+// FieldMeta returns the table name and DB column name for the given model+field.
+func FieldMeta(db *gorm.DB, mdl interface{}, field string) (table string, dbCol string, err error) {
 	stmt := &gorm.Statement{DB: db}
 	if err = stmt.Parse(mdl); err != nil {
 		return "", "", err
@@ -549,7 +555,7 @@ func EnsureColumnLength(db *gorm.DB, spec ColLenSpec) error {
 		return nil
 	}
 
-	tableName, dbCol, err := fieldMeta(db, spec.Model, spec.Field)
+	tableName, dbCol, err := FieldMeta(db, spec.Model, spec.Field)
 	if err != nil {
 		return fmt.Errorf("failed to resolve meta for %T.%s: %w", spec.Model, spec.Field, err)
 	}
