@@ -210,7 +210,7 @@ func NewBadKubernetesNameError(objectType string) *UserError {
 		fmt.Errorf(
 			"%s names must consist of lower case alphanumeric characters, '-' or '.', and must start and end with "+
 				"an alphanumeric character", objectType),
-		fmt.Sprintf("Invalid %s name", objectType),
+		"Invalid %s name", objectType,
 	)
 }
 
