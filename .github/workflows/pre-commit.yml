@@ -20,7 +20,8 @@ jobs:
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v8
       with:
-        version: v2.1
+        version: v2.3
+        args: --new-from-rev HEAD
     #- uses: pre-commit/action@v3.0.1
     #  # This is set to only run the golangci-lint pre-commit hooks 
     #  # Remove in a later PR to run all hooks
