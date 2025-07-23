@@ -13,6 +13,6 @@
 # limitations under the License.
 """Python source file under test."""
 
-
+@pytest.fixture
 def test_func(a, b):
     return a + b

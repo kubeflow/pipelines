@@ -26,6 +26,7 @@ _TEST_TARGET_IMAGE = 'gcr.io/my-project/my-image'
 _TEST_STAGING_LOCATION = 'gs://my-project/tmp'
 
 
+@pytest.fixture
 def test_function(test_param: str,
                   test_artifact: components.InputArtifact('Dataset'),
                   test_output: components.OutputArtifact('Model')):
