@@ -89,7 +89,7 @@ class ClientTest(unittest.TestCase):
         self.assertEqual(api_client._endpoint,
                          'us-central1-aiplatform.googleapis.com')
 
-	@unittest.skip("This tests a deprecated Vertex-specific client")
+    @unittest.skip("This tests a deprecated Vertex-specific client")
     @mock.patch.object(client, '_get_current_time', autospec=True)
     @mock.patch.object(client_utils, 'load_json', autospec=True)
     def test_create_run_from_pipeline_job(self, mock_load_json,

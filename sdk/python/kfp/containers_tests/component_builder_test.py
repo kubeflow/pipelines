@@ -18,6 +18,8 @@ import tempfile
 import unittest
 from unittest import mock
 
+import pytest
+
 from kfp.containers import _component_builder
 from kfp.containers import _container_builder
 from kfp import components
