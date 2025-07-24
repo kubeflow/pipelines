@@ -1,0 +1,246 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "The fifth example of the
+      design doc.", "inputs": [{"name": "rok_url"}], "name": "VolumeSnapshotOp RokURL"}'
+  generateName: volumesnapshotop-rokurl-
+spec:
+  arguments:
+    parameters:
+    - name: rok_url
+  entrypoint: volumesnapshotop-rokurl
+  serviceAccountName: pipeline-runner
+  templates:
+  - inputs:
+      parameters:
+      - name: create-volume-1-name
+    name: create-snapshot-1
+    outputs:
+      parameters:
+      - name: create-snapshot-1-manifest
+        valueFrom:
+          jsonPath: '{}'
+      - name: create-snapshot-1-name
+        valueFrom:
+          jsonPath: '{.metadata.name}'
+      - name: create-snapshot-1-size
+        valueFrom:
+          jsonPath: '{.status.restoreSize}'
+    resource:
+      action: create
+      manifest: "apiVersion: snapshot.storage.k8s.io/v1alpha1\nkind: VolumeSnapshot\n\
+        metadata:\n  name: '{{workflow.name}}-snap1'\nspec:\n  source:\n    kind:\
+        \ PersistentVolumeClaim\n    name: '{{inputs.parameters.create-volume-1-name}}'\n"
+      successCondition: status.readyToUse == true
+  - inputs:
+      parameters:
+      - name: create-volume-2-name
+    name: create-snapshot-2
+    outputs:
+      parameters:
+      - name: create-snapshot-2-manifest
+        valueFrom:
+          jsonPath: '{}'
+      - name: create-snapshot-2-name
+        valueFrom:
+          jsonPath: '{.metadata.name}'
+      - name: create-snapshot-2-size
+        valueFrom:
+          jsonPath: '{.status.restoreSize}'
+    resource:
+      action: create
+      manifest: "apiVersion: snapshot.storage.k8s.io/v1alpha1\nkind: VolumeSnapshot\n\
+        metadata:\n  name: '{{workflow.name}}-snap2'\nspec:\n  source:\n    kind:\
+        \ PersistentVolumeClaim\n    name: '{{inputs.parameters.create-volume-2-name}}'\n"
+      successCondition: status.readyToUse == true
+  - inputs:
+      parameters:
+      - name: rok_url
+    name: create-volume-1
+    outputs:
+      parameters:
+      - name: create-volume-1-manifest
+        valueFrom:
+          jsonPath: '{}'
+      - name: create-volume-1-name
+        valueFrom:
+          jsonPath: '{.metadata.name}'
+      - name: create-volume-1-size
+        valueFrom:
+          jsonPath: '{.status.capacity.storage}'
+    resource:
+      action: create
+      manifest: "apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  annotations:\n\
+        \    rok/origin: '{{inputs.parameters.rok_url}}'\n  name: '{{workflow.name}}-vol1'\n\
+        spec:\n  accessModes:\n  - ReadWriteMany\n  resources:\n    requests:\n  \
+        \    storage: 1Gi\n"
+  - inputs:
+      parameters:
+      - name: create-snapshot-1-name
+      - name: create-snapshot-1-size
+    name: create-volume-2
+    outputs:
+      parameters:
+      - name: create-volume-2-manifest
+        valueFrom:
+          jsonPath: '{}'
+      - name: create-volume-2-name
+        valueFrom:
+          jsonPath: '{.metadata.name}'
+      - name: create-volume-2-size
+        valueFrom:
+          jsonPath: '{.status.capacity.storage}'
+    resource:
+      action: create
+      manifest: "apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: '{{workflow.name}}-vol2'\n\
+        spec:\n  accessModes:\n  - ReadWriteMany\n  dataSource:\n    apiGroup: snapshot.storage.k8s.io\n\
+        \    kind: VolumeSnapshot\n    name: '{{inputs.parameters.create-snapshot-1-name}}'\n\
+        \  resources:\n    requests:\n      storage: '{{inputs.parameters.create-snapshot-1-size}}'\n"
+  - inputs:
+      parameters:
+      - name: create-snapshot-2-name
+      - name: create-snapshot-2-size
+    name: create-volume-3
+    outputs:
+      parameters:
+      - name: create-volume-3-manifest
+        valueFrom:
+          jsonPath: '{}'
+      - name: create-volume-3-name
+        valueFrom:
+          jsonPath: '{.metadata.name}'
+      - name: create-volume-3-size
+        valueFrom:
+          jsonPath: '{.status.capacity.storage}'
+    resource:
+      action: create
+      manifest: "apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: '{{workflow.name}}-vol3'\n\
+        spec:\n  accessModes:\n  - ReadWriteMany\n  dataSource:\n    apiGroup: snapshot.storage.k8s.io\n\
+        \    kind: VolumeSnapshot\n    name: '{{inputs.parameters.create-snapshot-2-name}}'\n\
+        \  resources:\n    requests:\n      storage: '{{inputs.parameters.create-snapshot-2-size}}'\n"
+  - container:
+      args:
+      - cat /data/file*| gzip -c >/data/full.gz
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+      volumeMounts:
+      - mountPath: /data
+        name: create-volume-1
+    inputs:
+      parameters:
+      - name: create-volume-1-name
+    name: step1-concat
+    volumes:
+    - name: create-volume-1
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-1-name}}'
+  - container:
+      command:
+      - gunzip
+      - -k
+      - /data/full.gz
+      image: library/bash:4.4.23
+      volumeMounts:
+      - mountPath: /data
+        name: create-volume-2
+    inputs:
+      parameters:
+      - name: create-volume-2-name
+    name: step2-gunzip
+    volumes:
+    - name: create-volume-2
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-2-name}}'
+  - container:
+      command:
+      - cat
+      - /data/full
+      image: library/bash:4.4.23
+      volumeMounts:
+      - mountPath: /data
+        name: create-volume-3
+    inputs:
+      parameters:
+      - name: create-volume-3-name
+    name: step3-output
+    volumes:
+    - name: create-volume-3
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-3-name}}'
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: create-volume-1-name
+            value: '{{tasks.create-volume-1.outputs.parameters.create-volume-1-name}}'
+        dependencies:
+        - create-volume-1
+        - step1-concat
+        name: create-snapshot-1
+        template: create-snapshot-1
+      - arguments:
+          parameters:
+          - name: create-volume-2-name
+            value: '{{tasks.create-volume-2.outputs.parameters.create-volume-2-name}}'
+        dependencies:
+        - create-volume-2
+        - step2-gunzip
+        name: create-snapshot-2
+        template: create-snapshot-2
+      - arguments:
+          parameters:
+          - name: rok_url
+            value: '{{inputs.parameters.rok_url}}'
+        name: create-volume-1
+        template: create-volume-1
+      - arguments:
+          parameters:
+          - name: create-snapshot-1-name
+            value: '{{tasks.create-snapshot-1.outputs.parameters.create-snapshot-1-name}}'
+          - name: create-snapshot-1-size
+            value: '{{tasks.create-snapshot-1.outputs.parameters.create-snapshot-1-size}}'
+        dependencies:
+        - create-snapshot-1
+        name: create-volume-2
+        template: create-volume-2
+      - arguments:
+          parameters:
+          - name: create-snapshot-2-name
+            value: '{{tasks.create-snapshot-2.outputs.parameters.create-snapshot-2-name}}'
+          - name: create-snapshot-2-size
+            value: '{{tasks.create-snapshot-2.outputs.parameters.create-snapshot-2-size}}'
+        dependencies:
+        - create-snapshot-2
+        name: create-volume-3
+        template: create-volume-3
+      - arguments:
+          parameters:
+          - name: create-volume-1-name
+            value: '{{tasks.create-volume-1.outputs.parameters.create-volume-1-name}}'
+        dependencies:
+        - create-volume-1
+        name: step1-concat
+        template: step1-concat
+      - arguments:
+          parameters:
+          - name: create-volume-2-name
+            value: '{{tasks.create-volume-2.outputs.parameters.create-volume-2-name}}'
+        dependencies:
+        - create-volume-2
+        name: step2-gunzip
+        template: step2-gunzip
+      - arguments:
+          parameters:
+          - name: create-volume-3-name
+            value: '{{tasks.create-volume-3.outputs.parameters.create-volume-3-name}}'
+        dependencies:
+        - create-volume-3
+        name: step3-output
+        template: step3-output
+    inputs:
+      parameters:
+      - name: rok_url
+    name: volumesnapshotop-rokurl

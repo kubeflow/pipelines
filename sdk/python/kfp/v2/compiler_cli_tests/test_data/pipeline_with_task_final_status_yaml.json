@@ -1,0 +1,151 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-exit-handler-1": {
+        "dag": {
+          "tasks": {
+            "print-op": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-print-op"
+              },
+              "inputs": {
+                "parameters": {
+                  "message": {
+                    "componentInputParameter": "pipelineparam--message"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "print-op"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "pipelineparam--message": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-exit-op": {
+        "executorLabel": "exec-exit-op",
+        "inputDefinitions": {
+          "parameters": {
+            "status": {
+              "type": "STRING"
+            },
+            "user_input": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-print-op": {
+        "executorLabel": "exec-print-op",
+        "inputDefinitions": {
+          "parameters": {
+            "message": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-exit-op": {
+          "container": {
+            "command": [
+              "echo",
+              "user input:",
+              "{{$.inputs.parameters['user_input']}}",
+              "pipeline status:",
+              "{{$.inputs.parameters['status']}}"
+            ],
+            "image": "python:3.7"
+          }
+        },
+        "exec-print-op": {
+          "container": {
+            "command": [
+              "echo",
+              "{{$.inputs.parameters['message']}}"
+            ],
+            "image": "python:3.7"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "pipeline-with-task-final-status-yaml"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "exit-handler-1": {
+            "componentRef": {
+              "name": "comp-exit-handler-1"
+            },
+            "inputs": {
+              "parameters": {
+                "pipelineparam--message": {
+                  "componentInputParameter": "message"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "my-pipeline"
+            }
+          },
+          "exit-op": {
+            "componentRef": {
+              "name": "comp-exit-op"
+            },
+            "dependentTasks": [
+              "exit-handler-1"
+            ],
+            "inputs": {
+              "parameters": {
+                "status": {
+                  "taskFinalStatus": {
+                    "producerTask": "exit-handler-1"
+                  }
+                },
+                "user_input": {
+                  "componentInputParameter": "message"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "exit-op"
+            },
+            "triggerPolicy": {
+              "strategy": "ALL_UPSTREAM_TASKS_COMPLETED"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "message": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.11"
+  },
+  "runtimeConfig": {
+    "parameters": {
+      "message": {
+        "stringValue": "Hello World!"
+      }
+    }
+  }
+}

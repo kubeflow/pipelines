@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2019 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License,Version 2.0 (the "License");
@@ -32,7 +33,7 @@ class ExecutorResponse(object):
     def execute_command(self, command_list: List[Text]):
         """Executes the command in command_list.
 
-        sets values for _stdout, _stderr, and _returncode accordingly.
+        sets values for _stdout,_std_err, and returncode accordingly.
 
         TODO(): This method is kept in ExecutorResponse for simplicity, however this
         deviates from MVP design pattern. It should be factored out in future.
@@ -46,13 +47,15 @@ class ExecutorResponse(object):
         """
 
         try:
-            process = subprocess.run(
-                command_list, capture_output=True, check=False)
-            self._stdout = process.stdout.decode('utf-8')
-            self._stderr = process.stderr.decode('utf-8')
+            # TODO() switch to process.run to simplify the code.
+            process = subprocess.Popen(
+                command_list, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+            self._stdout = stdout.decode('utf-8')
+            self._stderr = stderr.decode('utf-8')
             self._returncode = process.returncode
         except OSError as e:
-            self._stderr = str(e)
+            self._stderr = e
             self._stdout = ''
             self._returncode = e.errno
         self._parse_raw_input()

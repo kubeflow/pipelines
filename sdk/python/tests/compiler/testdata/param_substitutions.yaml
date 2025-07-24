@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Test the same PipelineParam
+      getting substituted in multiple places", "name": "Param Substitutions"}'
+  generateName: param-substitutions-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: param-substitutions
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --param
+      - '{{inputs.parameters.create-volume-name}}'
+      image: image
+      volumeMounts:
+      - mountPath: /mnt
+        name: create-volume
+    inputs:
+      parameters:
+      - name: create-volume-name
+    name: cop
+    volumes:
+    - name: create-volume
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-volume-name}}'
+  - name: create-volume
+    outputs:
+      parameters:
+      - name: create-volume-manifest
+        valueFrom:
+          jsonPath: '{}'
+      - name: create-volume-name
+        valueFrom:
+          jsonPath: '{.metadata.name}'
+      - name: create-volume-size
+        valueFrom:
+          jsonPath: '{.status.capacity.storage}'
+    resource:
+      action: create
+      manifest: "apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: '{{workflow.name}}-data'\n\
+        spec:\n  accessModes:\n  - ReadWriteMany\n  resources:\n    requests:\n  \
+        \    storage: 1Gi\n"
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: create-volume-name
+            value: '{{tasks.create-volume.outputs.parameters.create-volume-name}}'
+        dependencies:
+        - create-volume
+        name: cop
+        template: cop
+      - name: create-volume
+        template: create-volume
+    name: param-substitutions

@@ -1,0 +1,108 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-add": {
+        "executorLabel": "exec-add",
+        "inputDefinitions": {
+          "parameters": {
+            "a": {
+              "type": "DOUBLE"
+            },
+            "b": {
+              "type": "DOUBLE"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "DOUBLE"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-add": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "add"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.12' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef add(a: float, b: float) -> float:\n    return a + b\n\n"
+            ],
+            "image": "python:3.7"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "test-pipeline"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "add": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-add"
+            },
+            "inputs": {
+              "parameters": {
+                "a": {
+                  "componentInputParameter": "a"
+                },
+                "b": {
+                  "componentInputParameter": "b"
+                }
+              }
+            },
+            "retryPolicy": {
+              "backoffDuration": "0s",
+              "backoffFactor": 2.0,
+              "backoffMaxDuration": "3600s",
+              "maxRetryCount": 3.0
+            },
+            "taskInfo": {
+              "name": "add"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "a": {
+            "type": "DOUBLE"
+          },
+          "b": {
+            "type": "DOUBLE"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.12"
+  },
+  "runtimeConfig": {
+    "parameters": {
+      "a": {
+        "doubleValue": 1.0
+      },
+      "b": {
+        "doubleValue": 7.0
+      }
+    }
+  }
+}

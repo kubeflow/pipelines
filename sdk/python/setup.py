@@ -1,4 +1,4 @@
-# Copyright 2018-2022 The Kubeflow Authors
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,28 +14,68 @@
 
 import os
 import re
-from typing import List
 
-import setuptools
+from setuptools import setup
+
+NAME = 'kfp'
+#VERSION = .... Change the version in kfp/__init__.py
+
+# NOTICE, after any updates to the following, ./requirements.in should be updated
+# accordingly.
+REQUIRES = [
+    'absl-py>=0.9,<2',
+    'PyYAML>=5.3,<7',
+    # Pin google-api-core version for the bug fixing in 1.31.5
+    # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
+    'google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0',
+    # `Blob.from_string` was introduced in google-cloud-storage 1.20.0
+    # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
+    'google-cloud-storage>=1.20.0,<3',
+    'kubernetes>=8.0.0,<26',
+    # google-api-python-client v2 doesn't work for private dicovery by default:
+    # https://github.com/googleapis/google-api-python-client/issues/1225#issuecomment-791058235
+    'google-api-python-client>=1.7.8,<2',
+    'google-auth>=1.6.1,<3',
+    'requests-toolbelt>=0.8.0,<1',
+    'cloudpickle>=2.0.0,<3',
+    # Update the upper version whenever a new major version of the
+    # kfp-server-api package is released.
+    # Update the lower version when kfp sdk depends on new apis/fields in
+    # kfp-server-api.
+    # Note, please also update ./requirements.in
+    'kfp-server-api>=1.1.2,<2.0.0',
+    'jsonschema>=3.0.1,<5',
+    'tabulate>=0.8.6,<1',
+    'click>=7.1.2,<9',
+    'Deprecated>=1.2.7,<2',
+    'strip-hints>=0.1.8,<1',
+    'docstring-parser>=0.7.3,<1',
+    'kfp-pipeline-spec>=0.1.16,<0.2.0',
+    'fire>=0.3.1,<1',
+    'protobuf>=3.13.0,<4',
+    'uritemplate>=3.0.1,<4',
+    # pin to avoid break in requests-toolbelt due to https://github.com/psf/requests/commit/2ad18e0e10e7d7ecd5384c378f25ec8821a10a29
+    'urllib3<2',
+    'pydantic>=1.8.2,<2',
+    'typer>=0.3.2,<1.0',
+    # Standard library backports
+    'dataclasses;python_version<"3.7"',
+    'typing-extensions>=3.7.4,<5;python_version<"3.9"',
+]
+
+TESTS_REQUIRE = [
+    'frozendict',
+]
+
+EXTRAS_REQUIRE = {
+    'all': ['docker'],
+}
 
 
-def get_requirements(requirements_file: str) -> List[str]:
-    """Read requirements from requirements.in."""
-
-    file_path = os.path.join(os.path.dirname(__file__), requirements_file)
-    with open(file_path, 'r') as f:
-        lines = f.readlines()
-    lines = [line.strip() for line in lines]
-    lines = [line for line in lines if not line.startswith('#') and line]
-    return lines
-
-
-def find_version(*file_path_parts: str) -> str:
-    """Get version from kfp.__init__.__version__."""
-
-    file_path = os.path.join(os.path.dirname(__file__), *file_path_parts)
-    with open(file_path, 'r') as f:
-        version_file_text = f.read()
+def find_version(*file_path_parts):
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, *file_path_parts), 'r') as fp:
+        version_file_text = fp.read()
 
     version_match = re.search(
         r"^__version__ = ['\"]([^'\"]*)['\"]",
@@ -45,64 +85,82 @@ def find_version(*file_path_parts: str) -> str:
     if version_match:
         return version_match.group(1)
 
-    raise RuntimeError(f'Unable to find version string in file: {file_path}.')
+    raise RuntimeError('Unable to find version string.')
 
 
-def read_readme() -> str:
+def read_readme():
     readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
     with open(readme_path) as f:
         return f.read()
 
 
-docker = ['docker']
-kubernetes = ['kfp-kubernetes<2']
-
-setuptools.setup(
-    name='kfp',
-    version=find_version('kfp', 'version.py'),
-    description='Kubeflow Pipelines SDK',
+setup(
+    name=NAME,
+    version=find_version('kfp', '__init__.py'),
+    description='KubeFlow Pipelines SDK',
     long_description=read_readme(),
     long_description_content_type='text/markdown',
     author='The Kubeflow Authors',
-    url='https://github.com/kubeflow/pipelines',
+    url="https://github.com/kubeflow/pipelines",
     project_urls={
-        'Documentation':
-            'https://kubeflow-pipelines.readthedocs.io/en/stable/',
-        'Bug Tracker':
-            'https://github.com/kubeflow/pipelines/issues',
-        'Source':
-            'https://github.com/kubeflow/pipelines/tree/master/sdk',
-        'Changelog':
-            'https://github.com/kubeflow/pipelines/blob/master/sdk/RELEASE.md',
+        "Documentation":
+            "https://kubeflow-pipelines.readthedocs.io/en/stable/",
+        "Bug Tracker":
+            "https://github.com/kubeflow/pipelines/issues",
+        "Source":
+            "https://github.com/kubeflow/pipelines/tree/master/sdk",
+        "Changelog":
+            "https://github.com/kubeflow/pipelines/blob/master/sdk/RELEASE.md",
     },
-    install_requires=get_requirements('requirements.in'),
-    extras_require={
-        'all': docker + kubernetes,
-        'kubernetes': kubernetes,
-    },
-    packages=setuptools.find_packages(exclude=['*test*']),
+    install_requires=REQUIRES,
+    tests_require=TESTS_REQUIRE,
+    extras_require=EXTRAS_REQUIRE,
+    packages=[
+        'kfp',
+        'kfp.auth',
+        'kfp.cli',
+        'kfp.cli.diagnose_me',
+        'kfp.compiler',
+        'kfp.components',
+        'kfp.components.structures',
+        'kfp.containers',
+        'kfp.dsl',
+        'kfp.dsl.extensions',
+        'kfp.notebook',
+        'kfp.v2',
+        'kfp.v2.compiler',
+        'kfp.v2.compiler.experimental',
+        'kfp.v2.components',
+        'kfp.v2.components.types',
+        'kfp.v2.components.types.experimental',
+        'kfp.v2.components.experimental',
+        'kfp.v2.dsl',
+        'kfp.v2.dsl.experimental',
+        'kfp.v2.google.client',
+        'kfp.v2.google.experimental',
+    ],
     classifiers=[
         'Intended Audience :: Developers',
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
-        'Programming Language :: Python :: 3.13',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development',
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.9.0',
+    python_requires='>=3.6.1',
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'dsl-compile = kfp.cli.compile_:main',
-            'kfp=kfp.cli.__main__:main',
+            'dsl-compile = kfp.compiler.main:main',
+            'dsl-compile-v2 = kfp.v2.compiler.main:main',
+            'kfp=kfp.__main__:main'
         ]
     })

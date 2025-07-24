@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2019 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License,Version 2.0 (the "License");
@@ -14,7 +15,6 @@
 """Functions for diagnostic data collection from development development."""
 
 import enum
-
 from kfp.cli.diagnose_me import utility
 
 

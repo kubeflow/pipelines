@@ -1,750 +1,175 @@
-# Current Version (in development)
+# Current Version (Still in Development)
+## Major Features and Improvements
 
-## Features
+## Breaking Changes
 
-* feat(sdk): Add support for compiling pipelines to Kubernetes native format in SDK (#12012)
+### For Pipeline Authors
 
-## Breaking changes
-
-## Deprecations
-* PipelineTaskFinalStatus field names pipelineJobResourceName and pipelineTaskName are deprecated. Support for these fields will be removed at a later date.
-
-## Bug fixes and other changes
-
-## Documentation updates
-
-# 2.13.0
-
-## Features
-
-* feat(sdk): add upload pipeline and upload pipeline version from pipeline function (#11804)
-* fix(sdk): Add SDK support for setting resource limits on older KFP versions (#11839)
-* docs: mention that set_container_image works with dynamic images (#11795)
-* fix(local): warn about oci:// not supported too (#11794)
-* bug(backend,sdk): Use a valid path separator for Modelcar imports (#11767)
-* fix(sdk): avoid conflicting component names in DAG when reusing pipelines (#11071)
-
-## Breaking changes
+### For Component Authors
 
 ## Deprecations
 
-## Bug fixes and other changes
+## Bug Fixes and Other Changes
 
-* Depends on `google-cloud-storage>=2.2.1,<4` [\#11735](https://github.com/kubeflow/pipelines/pull/11735)
-* Fixed missing `kfp.__version__` when installing SDK via `pip install -e`. [\#11997](https://github.com/kubeflow/pipelines/pull/11997)
+## Documentation Updates
+# 1.8.22
+## Major Features and Improvements
 
-# 2.12.2
+## Breaking Changes
 
-## Features
+### For Pipeline Authors
 
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-
-# 2.12.1
-
-## Features
-
-## Breaking changes
+### For Component Authors
 
 ## Deprecations
 
-## Bug fixes and other changes
+## Bug Fixes and Other Changes
+* Change `PyYAML` version requirement from `>=5.3,<6` to `>=5.3,<7`  [\#9437](https://github.com/kubeflow/pipelines/pull/9437)
 
-* Depends on `kfp-server-api>=2.1.0,<2.5.0` [\#11685](https://github.com/kubeflow/pipelines/pull/11685)
+## Documentation Updates
+# 1.8.21
+## Major Features and Improvements
 
-## Documentation updates
+## Breaking Changes
 
-# 2.12.0
+### For Pipeline Authors
 
-## Features
-
-* Add support for placeholders in resource limits [\#11501](https://github.com/kubeflow/pipelines/pull/11501)
-* Introduce cache_key to sdk [\#11466](https://github.com/kubeflow/pipelines/pull/11466)
-* Add support for importing models stored in the Modelcar format (sidecar) [\#11606](https://github.com/kubeflow/pipelines/pull/11606)
-
-## Breaking changes
+### For Component Authors
 
 ## Deprecations
 
-## Bug fixes and other changes
+## Bug Fixes and Other Changes
+* Fix appengine import error [\#9328](https://github.com/kubeflow/pipelines/pull/9328)
 
-* dsl.component docstring typo [\#11547](https://github.com/kubeflow/pipelines/pull/11547)
-* Update broken api-connect link [\#11521](https://github.com/kubeflow/pipelines/pull/11521)
-* Fix kfp-sdk-test for different python versions [\#11559](https://github.com/kubeflow/pipelines/pull/11559)
+## Documentation Updates
+# 1.8.20
+## Major Features and Improvements
 
-## Documentation updates
+## Breaking Changes
 
-# 2.11.0
+### For Pipeline Authors
 
-## Features
-* Expose `--existing-token` flag in `kfp` CLI to allow users to provide an existing token for authentication. [\#11400](https://github.com/kubeflow/pipelines/pull/11400)
-* Add the ability to parameterize container images for tasks within pipelines [\#11404](https://github.com/kubeflow/pipelines/pull/11404)
-
-## Breaking changes
+### For Component Authors
 
 ## Deprecations
 
-## Bug fixes and other changes
-* Add error handling for image build/push failures in KFP SDK. [\#11164](https://github.com/kubeflow/pipelines/pull/11356)
-* Backport fixes in kubeflow/pipelines#11075. [\#11392])(https://github.com/kubeflow/pipelines/pull/11392)
-* Depends on `kfp-pipeline-spec==0.6.0`. [\#11447](https://github.com/kubeflow/pipelines/pull/11447)
+## Bug Fixes and Other Changes
+* fix(sdk): bump permitted `kubernetes` Python SDK versions from 'kubernetes>=8.0.0,<20' to 'kubernetes>=8.0.0,<26' to resolve [CVE](https://github.com/advisories/GHSA-38h6-vxp4-qxvm) in `19.15.0` [#9033](https://github.com/kubeflow/pipelines/pull/9033)
 
-## Documentation updates
+## Documentation Updates
+# 1.8.19
+## Major Features and Improvements
 
-# 2.10.1
+## Breaking Changes
 
-## Features
+### For Pipeline Authors
 
-## Breaking changes
-
-## Deprecations
-* Remove `kfp.deprecated` module [\#11366](https://github.com/kubeflow/pipelines/pull/11366)
-
-## Bug fixes and other changes
-* Support Python 3.13. [\#11372](https://github.com/kubeflow/pipelines/pull/11372)
-* Fix accelerator type setting [\#11373](https://github.com/kubeflow/pipelines/pull/11373)
-* Depends on `kfp-pipeline-spec==0.5.0`.
-
-## Documentation updates
-
-# 2.10.0
-
-## Features
-* Support dynamic machine type parameters in pipeline task setters. [\#11097](https://github.com/kubeflow/pipelines/pull/11097)
-* Add a new `use_venv` field to the component decorator, enabling the component to run inside a virtual environment. [\#11326](https://github.com/kubeflow/pipelines/pull/11326)
-* Add PipelineConfig to DSL to re-implement pipeline-level config [\#11112](https://github.com/kubeflow/pipelines/pull/11112)
-* Allow disabling default caching via a CLI flag and env var [\#11222](https://github.com/kubeflow/pipelines/pull/11222)
-
-## Breaking changes
-* Deprecate the metrics artifact auto-populating feature. [\#11362](https://github.com/kubeflow/pipelines/pull/11362)
-
-## Deprecations
-* Set Python 3.9 as the Minimum Supported Version [\#11159](https://github.com/kubeflow/pipelines/pull/11159)
-
-## Bug fixes and other changes
-* Fix invalid escape sequences [\#11147](https://github.com/kubeflow/pipelines/pull/11147)
-* Fix nested pipeline returns. [\#11196](https://github.com/kubeflow/pipelines/pull/11196)
-
-## Documentation updates
-
-# 2.9.0
-
-## Features
-* Kfp support for pip trusted host [#11151](https://github.com/kubeflow/pipelines/pull/11151)
-
-## Breaking changes
-
-* Pin kfp-pipeline-spec==0.4.0, kfp-server-api>=2.1.0,<2.4.0 [#11192](https://github.com/kubeflow/pipelines/pull/11192)
+### For Component Authors
 
 ## Deprecations
 
-## Bug fixes and other changes
+## Bug Fixes and Other Changes
+* chore(sdk): bump JsonSchema pinned version to >=3.0.1,<5. Fixes [#8648](https://github.com/kubeflow/pipelines/issues/8648) [#8855](https://github.com/kubeflow/pipelines/pull/8855)
 
-* Loosening kubernetes dependency constraint [#11079](https://github.com/kubeflow/pipelines/pull/11079)
-* Throw 'exit_task cannot depend on any other tasks.' error when an ExitHandler has a parameter dependent on other task [#11005](https://github.com/kubeflow/pipelines/pull/11005)
+## Documentation Updates
+# 1.8.18
+## Major Features and Improvements
 
-## Documentation updates
+## Breaking Changes
 
-# 2.8.0
+### For Pipeline Authors
 
-## Features
-* Support dynamic machine type parameters in CustomTrainingJobOp. [\#10883](https://github.com/kubeflow/pipelines/pull/10883)
-
-## Breaking changes
-* Drop support for Python 3.7 since it has reached end-of-life. [\#10750](https://github.com/kubeflow/pipelines/pull/10750)
+### For Component Authors
 
 ## Deprecations
 
-## Bug fixes and other changes
-* Throw compilation error when trying to iterate over a single parameter with ParallelFor [\#10494](https://github.com/kubeflow/pipelines/pull/10494)
-* Add required auth scopes to RegistryClient for GCP service accounts credentials [#10819](https://github.com/kubeflow/pipelines/pull/10819)
+## Bug Fixes and Other Changes
+* Upgrade kubernetes library to v19 to get access to EphemeralVolume [#8526](https://github.com/kubeflow/pipelines/pull/8526)  [#8563](https://github.com/kubeflow/pipelines/pull/8563)
+* fix(sdk): make executor output writer more permissive [#8608](https://github.com/kubeflow/pipelines/pull/8608)
 
-## Documentation updates
-* Make full version dropdown visible on all KFP SDK docs versions [\#10577](https://github.com/kubeflow/pipelines/pull/10577)
+## Documentation Updates
+# 1.8.17
+## Major Features and Improvements
+## Breaking Changes
 
-# 2.7.0
+### For Pipeline Authors
 
-## Features
-* Support local execution of sequential pipelines [\#10423](https://github.com/kubeflow/pipelines/pull/10423)
-* Support local execution of `dsl.importer` components [\#10431](https://github.com/kubeflow/pipelines/pull/10431)
-* Support local execution of pipelines in pipelines [\#10440](https://github.com/kubeflow/pipelines/pull/10440)
-* Support `dsl.ParallelFor` over list of Artifacts [\#10441](https://github.com/kubeflow/pipelines/pull/10441)
-* Fix bug where `dsl.OneOf` with multiple consumers cannot be compiled [\#10452](https://github.com/kubeflow/pipelines/pull/10452)
-
-## Breaking changes
+### For Component Authors
 
 ## Deprecations
 
-## Bug fixes and other changes
-* Fix the compilation error when trying to iterate over a list of dictionaries with ParallelFor [\#10436](https://github.com/kubeflow/pipelines/pull/10436)
-## Documentation updates
+## Bug Fixes and Other Changes
+* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8543](https://github.com/kubeflow/pipelines/pull/8543) [alternative fix after [#8454](https://github.com/kubeflow/pipelines/pull/8454) in `kfp==1.8.15`]
+* Upgrade kubernetes library to v19 to get access to EphemeralVolume [#8526](https://github.com/kubeflow/pipelines/pull/8526)
+* Allow ephemeral storage to be set via component output parameter [#8428](https://github.com/kubeflow/pipelines/pull/8428)
 
-# 2.6.0
+## Documentation Updates
+# 1.8.16
+## Major Features and Improvements
 
-## Features
+## Breaking Changes
 
-## Breaking changes
-* Soft breaking change for [Protobuf 3 EOL](https://protobuf.dev/support/version-support/#python). Migrate to `protobuf==4`. Drop support for `protobuf==3`. [\#10307](https://github.com/kubeflow/pipelines/pull/10307)
+### For Pipeline Authors
 
-## Deprecations
-
-## Bug fixes and other changes
-
-## Documentation updates
-
-# 2.5.0
-
-## Features
-* Add support for `dsl.PIPELINE_TASK_EXECUTOR_OUTPUT_PATH_PLACEHOLDER` and `dsl.PIPELINE_TASK_EXECUTOR_INPUT_PLACEHOLDER` [\#10240](https://github.com/kubeflow/pipelines/pull/10240)
-* Add support for local component execution using `local.init()`, `DockerRunner`, and `SubprocessRunner`
-
-## Breaking changes
+### For Component Authors
 
 ## Deprecations
 
-## Bug fixes and other changes
-* Support `.after()` referencing task in a `dsl.ParallelFor` group  [\#10257](https://github.com/kubeflow/pipelines/pull/10257)
-* Support Python 3.12 [\#10271](https://github.com/kubeflow/pipelines/pull/10271)
+## Bug Fixes and Other Changes
+* Relax required google-auth version from `>=1.6.1,<2` to `>=1.6.1,<3` [#8470](https://github.com/kubeflow/pipelines/pull/8470), [#8473](https://github.com/kubeflow/pipelines/pull/8473)
 
-## Documentation updates
+## Documentation Updates
+# 1.8.15
+## Major Features and Improvements
+* Add ability to skip building image when using `kfp component build` [#8383](https://github.com/kubeflow/pipelines/pull/8383)
 
-# 2.4.0
+## Breaking Changes
 
-## Features
-* Add support for a Pythonic artifact authoring style [\#9932](https://github.com/kubeflow/pipelines/pull/9932)
-* Support collecting outputs from conditional branches using `dsl.OneOf` [\#10067](https://github.com/kubeflow/pipelines/pull/10067)
+### For Pipeline Authors
 
-## Breaking changes
-
-## Deprecations
-* Add notice of Python 3.7 support removal on April 23, 2024 [\#10139](https://github.com/kubeflow/pipelines/pull/10139)
-
-## Bug fixes and other changes
-* Fix type on `dsl.ParallelFor` sub-DAG output when a `dsl.Collected` is used. Non-functional fix. [\#10069](https://github.com/kubeflow/pipelines/pull/10069)
-* Fix bug when `dsl.importer` argument is provided by a `dsl.ParallelFor` loop variable. [\#10116](https://github.com/kubeflow/pipelines/pull/10116)
-* Fix client authentication in notebook and iPython environments [\#10094](https://github.com/kubeflow/pipelines/pull/10094)
-
-## Documentation updates
-
-# 2.3.0
-## Features
-* Support `PipelineTaskFinalStatus` in tasks that use `.ignore_upstream_failure()` [\#10010](https://github.com/kubeflow/pipelines/pull/10010)
-
-
-## Breaking changes
+### For Component Authors
 
 ## Deprecations
 
-## Bug fixes and other changes
+## Bug Fixes and Other Changes
+* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8454](https://github.com/kubeflow/pipelines/pull/8454)
 
-## Documentation updates
-# 2.2.0
+## Documentation Updates
+# 1.8.14
+## Major Features and Improvements
+* Support parallelism setting in ParallelFor [/#8112](https://github.com/kubeflow/pipelines/pull/8112)
 
-## Features
-* Add support for `dsl.If`, `dsl.Elif`, and `dsl.Else` control flow context managers; deprecate `dsl.Condition` in favor of `dsl.If` [\#9894](https://github.com/kubeflow/pipelines/pull/9894)
-* Create "dependency-free" runtime package (only `typing_extensions` required) for Lightweight Python Components to reduce runtime dependency resolution errors [\#9710](https://github.com/kubeflow/pipelines/pull/9710), [\#9886](https://github.com/kubeflow/pipelines/pull/9886)
+## Breaking Changes
 
-# 2.0.1
+### For Pipeline Authors
+* Support dynamic importer metadata [/#8226](https://github.com/kubeflow/pipelines/pull/8226)
 
-## Features
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-
-## Documentation updates
-* Fix PyPI/README description [\#9668](https://github.com/kubeflow/pipelines/pull/9668)
-# 2.0.0
-KFP SDK 2.0.0 release notes are distilled to emphasize high-level improvements in major version 2. See preceding 2.x.x pre-release notes for a more comprehensive list.
-
-Also see the KFP SDK v1 to v2 [migration guide](https://www.kubeflow.org/docs/components/pipelines/v2/migration/).
-## Features
-
-The KFP SDK 2.0.0 release contains features present in the KFP SDK v1's v2 namespace along with considerable additional functionality. A selection of these features include:
-* An improved and unified Python-based authoring experience for [components](https://www.kubeflow.org/docs/components/pipelines/v2/components/) and [pipelines](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/)
-* Support for using [pipelines as components](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/pipeline-basics/#pipelines-as-components) (pipeline in pipeline)
-* Various additional [configurations for tasks](https://www.kubeflow.org/docs/components/pipelines/v2/pipelines/pipeline-basics/#task-configurations)
-* Compilation to an Argo-independent [pipeline definition](https://www.kubeflow.org/docs/components/pipelines/v2/compile-a-pipeline/#ir-yaml) that enables pipelines to be compiled once and run anywhere
-* Additonal SDK client functionality
-* An improved [KFP CLI](https://www.kubeflow.org/docs/components/pipelines/v2/cli/)
-* Refreshed [user documentation](https://www.kubeflow.org/docs/components/pipelines/v2/) and [reference documentation](https://kubeflow-pipelines.readthedocs.io/en/sdk-2.0.0/)
-
-Selected contributions from pre-releases:
-* Support for `@component` decorator for Python components [\#6825](https://github.com/kubeflow/pipelines/pull/6825)
-* Support for loading v1 and v2 components using `load_component_from_*` [\#6822](https://github.com/kubeflow/pipelines/pull/6822)
-* Support importer in KFP v2 [\#6917](https://github.com/kubeflow/pipelines/pull/6917)
-* Add metadata field for `importer` [\#7112](https://github.com/kubeflow/pipelines/pull/7112)
-* Add in filter to `list_pipeline_versions` client method [\#7223](https://github.com/kubeflow/pipelines/pull/7223)
-* Support getting pipeline status in exit handler via `PipelineTaskFinalStatus` [\#7309](https://github.com/kubeflow/pipelines/pull/7309)
-* Support v2 KFP API in SDK client
-* Enable pip installation from custom PyPI repository [\#7453](https://github.com/kubeflow/pipelines/pull/7453), [\#8871](https://github.com/kubeflow/pipelines/pull/8871)
-* Add additional methods to `kfp.client.Client` [\#7239](https://github.com/kubeflow/pipelines/pull/7239), [\#7563](https://github.com/kubeflow/pipelines/pull/7563), [\#7562](https://github.com/kubeflow/pipelines/pull/7562), [\#7463](https://github.com/kubeflow/pipelines/pull/7463), [\#7835](https://github.com/kubeflow/pipelines/pull/7835)
-* CLI improvements [\#7547](https://github.com/kubeflow/pipelines/pull/7547), [\#7558](https://github.com/kubeflow/pipelines/pull/7558), [\#7559](https://github.com/kubeflow/pipelines/pull/7559), [\#7560](https://github.com/kubeflow/pipelines/pull/7560), , [\#7569](https://github.com/kubeflow/pipelines/pull/7569), [\#7567](https://github.com/kubeflow/pipelines/pull/7567), [\#7603](https://github.com/kubeflow/pipelines/pull/7603), [\#7606](https://github.com/kubeflow/pipelines/pull/7606), [\#7607](https://github.com/kubeflow/pipelines/pull/7607), [\#7628](https://github.com/kubeflow/pipelines/pull/7628), [\#7618](https://github.com/kubeflow/pipelines/pull/7618)
-* Add Registry Client [\#7597](https://github.com/kubeflow/pipelines/pull/7597), [\#7763](https://github.com/kubeflow/pipelines/pull/7763)
-* Add support for authoring Custom Container Components [\#8066](https://github.com/kubeflow/pipelines/pull/8066)
-* Support setting parallelism in `ParallelFor` [\#8146](https://github.com/kubeflow/pipelines/pull/8146)
-* Support using pipelines as components (pipeline in pipeline) [\#8179](https://github.com/kubeflow/pipelines/pull/8179), [\#8204](https://github.com/kubeflow/pipelines/pull/8204), [\#8209](https://github.com/kubeflow/pipelines/pull/8209)
-* Support using pipeline in exit handlers [\#8220](https://github.com/kubeflow/pipelines/pull/8220)
-* Support `google.`-namespaced artifact types [\#8191](https://github.com/kubeflow/pipelines/pull/8191), [\#8232](https://github.com/kubeflow/pipelines/pull/8232), [\#8233](https://github.com/kubeflow/pipelines/pull/8233), [\#8279](https://github.com/kubeflow/pipelines/pull/8279)
-* Support passing upstream outputs to `importer` metadata [\#7660](https://github.com/kubeflow/pipelines/pull/7660)
-* Add ability to skip building image when using `kfp component build` [\#8387](https://github.com/kubeflow/pipelines/pull/8387)
-* Support single element `then` and `else_` arguments to `IfPresentPlaceholder` [\#8414](https://github.com/kubeflow/pipelines/pull/8414)
-* Enable use of input and output placeholders in f-strings [\#8494](https://github.com/kubeflow/pipelines/pull/8494)
-* Add comments to IR YAML file [\#8467](https://github.com/kubeflow/pipelines/pull/8467)
-* Support fanning-in parameters [\#8631](https://github.com/kubeflow/pipelines/pull/8631) and artifacts [\#8808](https://github.com/kubeflow/pipelines/pull/8808) from tasks in a `dsl.ParellelFor` context using `dsl.Collected`
-* Support `.ignore_upstream_failure()` on `PipelineTask` [\#8838](https://github.com/kubeflow/pipelines/pull/8838)
-* Support setting cpu/memory requests [\#9121](https://github.com/kubeflow/pipelines/pull/9121)
-* Support additional pipeline placeholders
-* Support for platform-specific features via extension libraries [\#8940](https://github.com/kubeflow/pipelines/pull/8940), [\#9140](https://github.com/kubeflow/pipelines/pull/9140)
-* Support `display_name` and `description` in `@dsl.pipeline` decorator [\#9153](https://github.com/kubeflow/pipelines/pull/9153)
-* Extract component input and output descriptions from docstring [\#9156](https://github.com/kubeflow/pipelines/pull/9156)
-* Allow user to specify platform when building container components [\#9212](https://github.com/kubeflow/pipelines/pull/9212)
-
-## Breaking changes
-See the [KFP SDK v1 to v2 migration guide](https://www.kubeflow.org/docs/components/pipelines/v2/migration/).
-
-## Deprecations
-* Deprecate compiling pipelines to JSON in favor of compiling to YAML [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
-* Deprecate ability to select `--engine` when building components [\#7559](https://github.com/kubeflow/pipelines/pull/7559)
-* Deprecate `@dsl.component`'s `output_component_file` parameter in favor of compilation via the main `Compiler` [\#7554](https://github.com/kubeflow/pipelines/pull/7554)
-* Deprecate client's `*_job` methods in favor of `*_recurring_run` methods [\#9112](https://github.com/kubeflow/pipelines/pull/9112)
-* Deprecate pipeline task `.set_gpu_limit` in favor of `.set_accelerator_limit` [\#8836](https://github.com/kubeflow/pipelines/pull/8836)
-* Deprecate `.add_node_selector_constraint` in favor of `.set_accelerator_type` [\#8980](https://github.com/kubeflow/pipelines/pull/8980)
-
-
-## Bug fixes and other changes
-* Various changes to dependency versions relative to v1
-* Various dependencies removed relative to v1
-* Various bug fixes applied in KFP SDK 2.x.x pre-release versions
-* Various bug fixes associated with providing backward compatibility for KFP SDK v1
-* Use YAML as default serialization format for pipeline IR [\#7431](https://github.com/kubeflow/pipelines/pull/7431)
-* Support Python 3.10 [\#8186](https://github.com/kubeflow/pipelines/pull/8186) and 3.11 [\#8907](https://github.com/kubeflow/pipelines/pull/8907)
-* Enable overriding caching options at submission time [\#7912](https://github.com/kubeflow/pipelines/pull/7912)
-* Format file when compiling to JSON [\#7712](https://github.com/kubeflow/pipelines/pull/7712)
-* Allow artifact inputs in pipeline definition [\#8044](https://github.com/kubeflow/pipelines/pull/8044)
-* Support task-level retry policy [\#7867](https://github.com/kubeflow/pipelines/pull/7867)
-* Support multiple exit handlers per pipeline [\#8088](https://github.com/kubeflow/pipelines/pull/8088)
-* Migrate Out-Of-Band (OOB) authentication flow [\#8262](https://github.com/kubeflow/pipelines/pull/8262)
-* CLI `kfp component build` generates runtime-requirements.txt [\#8372](https://github.com/kubeflow/pipelines/pull/8372)
-* Throw exception for component parameter named Output [\#8367](https://github.com/kubeflow/pipelines/pull/8367)
-* Block illegal `IfPresentPlaceholder` and `ConcatPlaceholder` authoring [\#8414](https://github.com/kubeflow/pipelines/pull/8414)
-* Fix boolean default value compilation bug [\#8444](https://github.com/kubeflow/pipelines/pull/8444)
-* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8544](https://github.com/kubeflow/pipelines/pull/8544) [alternative fix after [#8455](https://github.com/kubeflow/pipelines/pull/8455) in `kfp==2.0.0b8`], [#8607](https://github.com/kubeflow/pipelines/pull/8607)
-* Pipeline compilation is now triggered from `@pipeline` decorator instead of `Compiler.compile()` method.
-Technically no breaking changes but compilation error could be exposed in a different (and earlier) stage [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
-* Fully support optional parameter inputs by writing `isOptional` field to IR [\#8612](https://github.com/kubeflow/pipelines/pull/8612)
-* Add support for optional artifact inputs (toward feature parity with KFP SDK v1) [\#8623](https://github.com/kubeflow/pipelines/pull/8623)
-* Fix upload_pipeline method on client when no name is provided [\#8695](https://github.com/kubeflow/pipelines/pull/8695)
-* Enables output definitions when compiling components as pipelines [\#8848](https://github.com/kubeflow/pipelines/pull/8848)
-* Add experiment_id parameter to create run methods [\#9004](https://github.com/kubeflow/pipelines/pull/9004)
-
-
-## Documentation updates
-* Refresh KFP SDK v2 [user documentation](https://www.kubeflow.org/docs/components/pipelines/v2/)
-* Refresh KFP SDK v2 [reference documentation](https://kubeflow-pipelines.readthedocs.io/en/sdk-2.0.0/)
-
-
-# 2.0.0-rc.2
-
-## Features
-
-## Breaking changes
+### For Component Authors
 
 ## Deprecations
 
-## Bug fixes and other changes
-* Fix integer value not allowed as float-typed return [\#9481](https://github.com/kubeflow/pipelines/pull/9481)
-* Change `kubernetes` version requirement from `kubernetes>=8.0.0,<24` to `kubernetes>=8.0.0,<27`  [\#9545](https://github.com/kubeflow/pipelines/pull/9545)
-* Fix bug when iterating over upstream task output in nested `dsl.ParallelFor` loop [\#9580](https://github.com/kubeflow/pipelines/pull/9580)
-
-## Documentation updates
-
-# 2.0.0-rc.1
-
-## Features
-* Support compiling primitive components with `dsl.PipelineTaskFinalStatus` input [\#9080](https://github.com/kubeflow/pipelines/pull/9080), [\#9082](https://github.com/kubeflow/pipelines/pull/9082)
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-* Fix compilation of boolean constant passed to component [\#9390](https://github.com/kubeflow/pipelines/pull/9390)
-
-
-## Documentation updates
-
-# 2.0.0-beta.17
-
-## Features
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-* Depends on `kfp-server-api==2.0.0b2` [\#9355](https://github.com/kubeflow/pipelines/pull/9355)
-
-## Documentation updates
-
-# 2.0.0-beta.16
-
-## Features
-* Allow user to specify platform when building container components [\#9212](https://github.com/kubeflow/pipelines/pull/9212)
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-* Fix appengine import error [\#9323](https://github.com/kubeflow/pipelines/pull/9323)
-
-## Documentation updates
-# 2.0.0-beta.15
-
-## Features
-* Support `display_name` and `description` in `@dsl.pipeline` decorator [\#9153](https://github.com/kubeflow/pipelines/pull/9153)
-* Extract component input and output descriptions from docstring [\#9156](https://github.com/kubeflow/pipelines/pull/9156)
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-* Fix module not found error for containerized python components [\#9157](https://github.com/kubeflow/pipelines/pull/9157)
-
-## Documentation updates
-
-# 2.0.0-beta.14
-
-## Features
-* `pip_index_urls` is now considered also for containerized python component - the urls will be used for Dockerfile generation [\#8871](https://github.com/kubeflow/pipelines/pull/8871)
-* Support direct indexing into top-level of artifact metadata struct in Container Components [\#9131](https://github.com/kubeflow/pipelines/pull/9131)
-* Support compiling platform specific features [\#8940](https://github.com/kubeflow/pipelines/pull/8940)
-* Support setting cpu/memory requests. [\#9121](https://github.com/kubeflow/pipelines/pull/9121)
-* Support PIPELINE_ROOT_PLACEHOLDER [\#9134](https://github.com/kubeflow/pipelines/pull/9134)
-* SDK client v2beta1 API integration [\#9112](https://github.com/kubeflow/pipelines/pull/9112)
-* Support submitting pipeline with platform config. [\#9140](https://github.com/kubeflow/pipelines/pull/9140)
-
-## Breaking changes
-* New SDK client only works with Kubeflow Pipeline v2.0.0-beta.1 and later version [\#9112](https://github.com/kubeflow/pipelines/pull/9112)
-
-## Deprecations
-* Deprecate .add_node_selector_constraint in favor of .set_accelerator_type [\#8980](https://github.com/kubeflow/pipelines/pull/8980)
-
-## Bug fixes and other changes
-* Support python 3.11 [\#8907](https://github.com/kubeflow/pipelines/pull/8907)
-* Fix loading non-canonical generic type strings from v1 component YAML (e.g., `List[str]`, `typing.List[str]`, `Dict[str]`, `typing.Dict[str, str]` [\#9041](https://github.com/kubeflow/pipelines/pull/9041)
-* Add experiment_id parameter to create run methods [\#9004](https://github.com/kubeflow/pipelines/pull/9004)
-* Support setting task dependencies via kfp.kubernetes.mount_pvc [\#8999](https://github.com/kubeflow/pipelines/pull/8999)
-* cpu_limit and memory_limit can be optional [\#8992](https://github.com/kubeflow/pipelines/pull/8992)
-
-## Documentation updates
-
-# 2.0.0-beta.13
-
-## Features
-* Support fanning-in artifact outputs from a task in a `dsl.ParellelFor` context using `dsl.Collected` [\#8808](https://github.com/kubeflow/pipelines/pull/8808)
-* Introduces a new syntax for pipeline tasks to consume outputs from the upstream task while at the same time ignoring if the upstream tasks succeeds or not. [\#8838](https://github.com/kubeflow/pipelines/pull/8838)
-
-## Breaking changes
-
-## Deprecations
-* Deprecate pipeline task `.set_gpu_limit` in favor of `.set_accelerator_limit` [\#8836](https://github.com/kubeflow/pipelines/pull/8836)
-
-## Bug fixes and other changes
-* Enables output definitions when compiling components as pipelines. [\#8848](https://github.com/kubeflow/pipelines/pull/8848)
-* Fix bug when passing data between tasks using f-strings [\#8879](https://github.com/kubeflow/pipelines/pull/8879)
-* Fix environment variable set in component yaml lost during compilation [\#8885](https://github.com/kubeflow/pipelines/pull/8885)
-* Fix attribute error when running Containerized Python Components [\#8887](https://github.com/kubeflow/pipelines/pull/8887)
-
-## Documentation updates
-
-# 2.0.0-beta.12
-
-## Features
-* Support fanning-in parameter outputs from a task in a `dsl.ParellelFor` context using `dsl.Collected` [\#8631](https://github.com/kubeflow/pipelines/pull/8631)
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-* Fix upload_pipeline method on client when no name is provided [\#8695](https://github.com/kubeflow/pipelines/pull/8695)
-
-## Documentation updates
-# 2.0.0-beta.11
-
-## Features
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-* Accepts `PyYAML<7` in addition to `PyYAML>=5.3,<6` [\#8665](https://github.com/kubeflow/pipelines/pull/8665)
-* Remove v1 dependencies from SDK v2 [\#8668](https://github.com/kubeflow/pipelines/pull/8668)
-
-## Documentation updates
-# 2.0.0-beta.10
-
-## Features
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-* Fully support optional parameter inputs by witing `isOptional` field to IR [\#8612](https://github.com/kubeflow/pipelines/pull/8612)
-* Add support for optional artifact inputs (toward feature parity with KFP SDK v1) [\#8623](https://github.com/kubeflow/pipelines/pull/8623)
-* Fix bug deserializing v1 component YAML with boolean defaults, struct defaults, and array defaults [\#8639](https://github.com/kubeflow/pipelines/pull/8639)
-
-## Documentation updates
-# 2.0.0-beta.9
-
-## Features
-* Add comments to IR YAML file [\#8467](https://github.com/kubeflow/pipelines/pull/8467)
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-* Unblock valid topologies [\#8416](https://github.com/kubeflow/pipelines/pull/8416)
-* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8544](https://github.com/kubeflow/pipelines/pull/8544) [alternative fix after [#8455](https://github.com/kubeflow/pipelines/pull/8455) in `kfp==2.0.0b8`], [#8607](https://github.com/kubeflow/pipelines/pull/8607)
-
-## Documentation updates
-# 2.0.0-beta.8
-
-## Features
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-* Fix client methods [\#8507](https://github.com/kubeflow/pipelines/pull/8507)
-
-
-## Documentation updates
-# 2.0.0-beta.7
-
-## Features
-* Add ability to skip building image when using `kfp component build` [\#8387](https://github.com/kubeflow/pipelines/pull/8387)
-* Support single element `then` and `else_` arguments to `IfPresentPlaceholder` [\#8414](https://github.com/kubeflow/pipelines/pull/8414)
-* Enable use of input and output placeholders in f-strings [\#8494](https://github.com/kubeflow/pipelines/pull/8494)
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-* Block illegal `IfPresentPlaceholder` and `ConcatPlaceholder` authoring [\#8414](https://github.com/kubeflow/pipelines/pull/8414)
-* Fix boolean default value compilation bug [\#8444](https://github.com/kubeflow/pipelines/pull/8444)
-* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [\#8455](https://github.com/kubeflow/pipelines/pull/8455)
-
-
-## Documentation updates
-* Clarify `PipelineTask.set_gpu_limit` reference docs [\#8477](https://github.com/kubeflow/pipelines/pull/8477)
-
-# 2.0.0-beta.6
-
-## Features
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
-
-* Fix NamedTuple output with Dict/List bug [\#8316](https://github.com/kubeflow/pipelines/pull/8316)
-* Fix PyPI typo in cli/component docstring [\#8361](https://github.com/kubeflow/pipelines/pull/8361)
-* Fix "No KFP components found in file" error [\#8359](https://github.com/kubeflow/pipelines/pull/8359)
-* CLI `kfp component build` generates runtime-requirements.txt [\#8372](https://github.com/kubeflow/pipelines/pull/8372)
-* Throw exception for component parameter named Output [\#8367](https://github.com/kubeflow/pipelines/pull/8367)
-
-## Documentation updates
-
-* Improve KFP SDK reference documentation [\#8337](https://github.com/kubeflow/pipelines/pull/8337)
-
-# 2.0.0-beta.5
-
-## Features
-* Support `google.`-namespaced artifact types [\#8191](https://github.com/kubeflow/pipelines/pull/8191), [\#8232](https://github.com/kubeflow/pipelines/pull/8232), [\#8233](https://github.com/kubeflow/pipelines/pull/8233), [\#8279](https://github.com/kubeflow/pipelines/pull/8279)
-* Support dynamic importer metadata [\#7660](https://github.com/kubeflow/pipelines/pull/7660)
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
+## Bug Fixes and Other Changes
 * Migrate Out-Of-Band (OOB) authentication flow [\#8262](https://github.com/kubeflow/pipelines/pull/8262)
 
-## Documentation updates
-* Release KFP SDK v2 [user documentation draft](https://www.kubeflow.org/docs/components/pipelines/v2/)
-
-# 2.0.0-beta.4
-
-## Major Features and Improvements
-* Support parallelism setting in ParallelFor [\#8146](https://github.com/kubeflow/pipelines/pull/8146)
-* Support for Python v3.10 [\#8186](https://github.com/kubeflow/pipelines/pull/8186)
-* Support pipeline as a component [\#8179](https://github.com/kubeflow/pipelines/pull/8179), [\#8204](https://github.com/kubeflow/pipelines/pull/8204), [\#8209](https://github.com/kubeflow/pipelines/pull/8209)
-* Support using pipeline in exit handlers [\#8220](https://github.com/kubeflow/pipelines/pull/8220)
-
-## Breaking Changes
-
-### For Pipeline Authors
-* Pipeline compilation is now triggered from `@pipeline` decorator instead of `Compiler.compile()` method.
-Technically no breaking changes but compilation error could be exposed in a different (and earlier) stage. [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
-
-### For Component Authors
-
-## Deprecations
-
-## Bug Fixes and Other Changes
-
-* Extend upper bound for Kubernetes to <24 in KFP SDK [\#8173](https://github.com/kubeflow/pipelines/pull/8173)
-
 ## Documentation Updates
+* Add importer documentation [\#3344](https://github.com/kubeflow/website/pull/3344)
 
-# 2.0.0-beta.3
-
-## Major Features and Improvements
-* Add support for ConcatPlaceholder and IfPresentPlaceholder in containerized component [\#8145](https://github.com/kubeflow/pipelines/pull/8145)
-
-## Breaking Changes
-
-### For Pipeline Authors
-
-### For Component Authors
-## Deprecations
-
-## Bug Fixes and Other Changes
-
-## Documentation Updates
-
-# 2.0.0-beta.2
-
+# 1.8.13
 ## Major Features and Improvements
 
 ## Breaking Changes
 
 ### For Pipeline Authors
-
-### For Component Authors
-* Add support for containerized component [\#8066](https://github.com/kubeflow/pipelines/pull/8066)
-
-## Deprecations
-
-## Bug Fixes and Other Changes
-* Enable overriding caching options at submission time [\#7912](https://github.com/kubeflow/pipelines/pull/7912)
-* Allow artifact inputs in pipeline definition. [\#8044](https://github.com/kubeflow/pipelines/pull/8044)
-* Support task-level retry policy [\#7867](https://github.com/kubeflow/pipelines/pull/7867)
-* Support multiple exit handlers per pipeline [\#8088](https://github.com/kubeflow/pipelines/pull/8088)
-
-## Documentation Updates
-
-# 2.0.0-beta.1
-
-## Major Features and Improvements
-
-## Breaking Changes
-
-### For Pipeline Authors
+* Add support for task-level retry policy when compiling pipeline to IR [\#7875](https://github.com/kubeflow/pipelines/pull/7875)
 
 ### For Component Authors
 
 ## Deprecations
 
 ## Bug Fixes and Other Changes
-* Include default registry context JSON in package distribution [\#7987](https://github.com/kubeflow/pipelines/pull/7987)
-
-## Documentation Updates
-
-# 2.0.0-beta.0
-
-## Major Features and Improvements
-
-## Breaking Changes
-
-### For Pipeline Authors
-
-### For Component Authors
-
-## Deprecations
-
-## Bug Fixes and Other Changes
-
-## Documentation Updates
-
-# 2.0.0-alpha.5
-
-## Major Features and Improvements
-* Implement Registry Client [\#7597](https://github.com/kubeflow/pipelines/pull/7597), [\#7763](https://github.com/kubeflow/pipelines/pull/7763)
-* Write compiled JSON with formatting (multiline with indentation) [\#7712](https://github.com/kubeflow/pipelines/pull/7712)
-* Add function to sdk client for terminating run [\#7835](https://github.com/kubeflow/pipelines/pull/7835)
-* Re-enable component compilation via @component decorator (deprecated) [\#7554](https://github.com/kubeflow/pipelines/pull/7554)
-
-## Breaking Changes
-* Make CLI output consistent, readable, and usable [\#7739](https://github.com/kubeflow/pipelines/pull/7739)
-
-### For Pipeline Authors
-
-### For Component Authors
-
-## Deprecations
-
-## Bug Fixes and Other Changes
-* Fix CLI upload pipeline version [\#7722](https://github.com/kubeflow/pipelines/pull/7722)
-
-## Documentation Updates
-# 2.0.0-alpha.3
-
-## Major Features and Improvements
-* feat(sdk): add `.list_pipeline_versions` and `.unarchive_experiment` methods to Client [\#7563](https://github.com/kubeflow/pipelines/pull/7563)
-* Add additional methods to `kfp.client.Client` [\#7562](https://github.com/kubeflow/pipelines/pull/7562), [\#7463](https://github.com/kubeflow/pipelines/pull/7463)
-* Migrate V1 CLI to V2, with improvements [\#7547](https://github.com/kubeflow/pipelines/pull/7547), [\#7558](https://github.com/kubeflow/pipelines/pull/7558), [\#7559](https://github.com/kubeflow/pipelines/pull/7559), [\#7560](https://github.com/kubeflow/pipelines/pull/7560), , [\#7569](https://github.com/kubeflow/pipelines/pull/7569), [\#7567](https://github.com/kubeflow/pipelines/pull/7567), [\#7603](https://github.com/kubeflow/pipelines/pull/7603), [\#7606](https://github.com/kubeflow/pipelines/pull/7606), [\#7607](https://github.com/kubeflow/pipelines/pull/7607), [\#7628](https://github.com/kubeflow/pipelines/pull/7628), [\#7618](https://github.com/kubeflow/pipelines/pull/7618)
-
-## Breaking Changes
-
-### For Pipeline Authors
-
-### For Component Authors
-
-## Deprecations
-
-## Bug Fixes and Other Changes
-* Accepts `typing-extensions>=4,<5` in addition to `typing-extensions>=3.7.4,<4` [\#7632](https://github.com/kubeflow/pipelines/pull/7632)
-* Remove dependency on `pydantic` [\#7639](https://github.com/kubeflow/pipelines/pull/7639)
-
-## Documentation Updates
-
-# 2.0.0-alpha.2
-
-## Major Features and Improvements
-
-* Enable pip installation from custom PyPI repository [\#7453](https://github.com/kubeflow/pipelines/pull/7453)
-
-## Breaking Changes
-
-### For Pipeline Authors
-
-### For Component Authors
-
-## Deprecations
-
-## Bug Fixes and Other Changes
-
-* Fix wrong kfp import causes wrong sdk_version being set in pipeline_spec. [\#7433](https://github.com/kubeflow/pipelines/pull/7433)
-* Use YAML as default serialization format for package IR [\#7431](https://github.com/kubeflow/pipelines/pull/7431)
-* Support submitting pipeline IR in yaml format via `kfp.client`. [\#7458](https://github.com/kubeflow/pipelines/pull/7458)
-* Add pipeline_task_name to PipelineTaskFinalStatus [\#7464](https://github.com/kubeflow/pipelines/pull/7464)
-* Depends on `kfp-pipeline-spec>=0.1.14,<0.2.0` [\#7464](https://github.com/kubeflow/pipelines/pull/7464)
-* Depends on `google-cloud-storage>=2.2.1,<3` [\#7493](https://github.com/kubeflow/pipelines/pull/7493)
+* Depends on `google-cloud-storage>=2.2.1,<3` [\#7502](https://github.com/kubeflow/pipelines/pull/7502)
+* Accepts `typing-extensions>=4,<5` in addition to `typing-extensions>=3.7.4,<4` [\#7801](https://github.com/kubeflow/pipelines/pull/7801)
+* Fixes 'ComponentStore' object has no attribute 'uri_search_template'. [\#8002](https://github.com/kubeflow/pipelines/pull/8002)
 
 ## Documentation Updates
 

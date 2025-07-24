@@ -1,9 +1,6 @@
 approvers:
   - chensun
   - connor-mccarthy
-  - mprahl
 reviewers:
   - chensun
-  - DharmitD
-  - droctothorpe
-  - zazulam
+  - connor-mccarthy

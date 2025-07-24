@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use ContainerOp
+      set_retry().", "name": "pipeline includes two steps which fail
+      randomly."}'
+  generateName: pipeline-includes-two-steps-which-fail-randomly-
+spec:
+  activeDeadlineSeconds: 50
+  arguments:
+    parameters: []
+  entrypoint: pipeline-includes-two-steps-which-fail-randomly
+  serviceAccountName: pipeline-runner
+  templates:
+  - dag:
+      tasks:
+      - name: random-failure
+        template: random-failure
+      - name: random-failure-2
+        template: random-failure-2
+    name: pipeline-includes-two-steps-which-fail-randomly
+  - activeDeadlineSeconds: 10
+    container:
+      args:
+      - import random; import sys; exit_code = random.choice([0,1,2,3]); print(exit_code);
+        sys.exit(exit_code)
+      command:
+      - python
+      - -c
+      image: python:alpine3.6
+    name: random-failure
+  - container:
+      args:
+      - import random; import sys; exit_code = random.choice([0,1]); print(exit_code);
+        sys.exit(exit_code)
+      command:
+      - python
+      - -c
+      image: python:alpine3.6
+    name: random-failure-2

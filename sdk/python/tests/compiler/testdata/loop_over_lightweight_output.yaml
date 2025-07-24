@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: loop-over-lightweight-output-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13, pipelines.kubeflow.org/pipeline_compilation_time: '2022-08-08T17:41:05.316287',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Test pipeline to verify
+      functions of par loop.", "name": "Loop over lightweight output"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13}
+spec:
+  entrypoint: loop-over-lightweight-output
+  templates:
+  - name: consume-data
+    container:
+      args: []
+      command: [echo, '{{inputs.parameters.produce-list-data_list-loop-item}}']
+      image: busybox
+    inputs:
+      parameters:
+      - {name: produce-list-data_list-loop-item}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"command": ["echo", {"inputValue": "data"}], "image": "busybox"}}, "inputs":
+          [{"name": "data"}], "name": "Consume data"}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "1740e880ff39db84553d67368136c38fb2b9ebed2a61e6edfbc50f3980bcab5d"}', pipelines.kubeflow.org/arguments.parameters: '{"data":
+          "{{inputs.parameters.produce-list-data_list-loop-item}}"}'}
+  - name: for-loop-1
+    parallelism: 0
+    inputs:
+      parameters:
+      - {name: produce-list-data_list-loop-item}
+    dag:
+      tasks:
+      - name: consume-data
+        template: consume-data
+        arguments:
+          parameters:
+          - {name: produce-list-data_list-loop-item, value: '{{inputs.parameters.produce-list-data_list-loop-item}}'}
+  - name: loop-over-lightweight-output
+    dag:
+      tasks:
+      - name: for-loop-1
+        template: for-loop-1
+        dependencies: [produce-list]
+        arguments:
+          parameters:
+          - {name: produce-list-data_list-loop-item, value: '{{item}}'}
+        withParam: '{{tasks.produce-list.outputs.parameters.produce-list-data_list}}'
+      - {name: produce-list, template: produce-list}
+  - name: produce-list
+    container:
+      args: []
+      command: [sh, -c, 'echo "[1, 2, 3]" > "$0"', /tmp/outputs/data_list/data]
+      image: busybox
+    outputs:
+      parameters:
+      - name: produce-list-data_list
+        valueFrom: {path: /tmp/outputs/data_list/data}
+      artifacts:
+      - {name: produce-list-data_list, path: /tmp/outputs/data_list/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"command": ["sh", "-c", "echo \"[1, 2, 3]\" > \"$0\"", {"outputPath": "data_list"}],
+          "image": "busybox"}}, "name": "Produce list", "outputs": [{"name": "data_list"}]}',
+        pipelines.kubeflow.org/component_ref: '{"digest": "3232c5d863606d224c078b7976e3758c45e8d24dc092903bfdf19f4bea5954cc"}'}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner

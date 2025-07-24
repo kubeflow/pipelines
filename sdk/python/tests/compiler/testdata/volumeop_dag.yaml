@@ -1,0 +1,115 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "The second example of
+      the design doc.", "name": "Volume Op DAG"}'
+  generateName: volume-op-dag-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: volume-op-dag
+  serviceAccountName: pipeline-runner
+  templates:
+  - name: create-pvc
+    outputs:
+      parameters:
+      - name: create-pvc-manifest
+        valueFrom:
+          jsonPath: '{}'
+      - name: create-pvc-name
+        valueFrom:
+          jsonPath: '{.metadata.name}'
+      - name: create-pvc-size
+        valueFrom:
+          jsonPath: '{.status.capacity.storage}'
+    resource:
+      action: create
+      manifest: "apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: '{{workflow.name}}-my-pvc'\n\
+        spec:\n  accessModes:\n  - ReadWriteMany\n  resources:\n    requests:\n  \
+        \    storage: 10Gi\n"
+  - container:
+      args:
+      - echo 1 | tee /mnt/file1
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+      volumeMounts:
+      - mountPath: /mnt
+        name: create-pvc
+    inputs:
+      parameters:
+      - name: create-pvc-name
+    name: step1
+    volumes:
+    - name: create-pvc
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-pvc-name}}'
+  - container:
+      args:
+      - echo 2 | tee /mnt2/file2
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+      volumeMounts:
+      - mountPath: /mnt2
+        name: create-pvc
+    inputs:
+      parameters:
+      - name: create-pvc-name
+    name: step2
+    volumes:
+    - name: create-pvc
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-pvc-name}}'
+  - container:
+      args:
+      - cat /mnt/file1 /mnt/file2
+      command:
+      - sh
+      - -c
+      image: library/bash:4.4.23
+      volumeMounts:
+      - mountPath: /mnt
+        name: create-pvc
+    inputs:
+      parameters:
+      - name: create-pvc-name
+    name: step3
+    volumes:
+    - name: create-pvc
+      persistentVolumeClaim:
+        claimName: '{{inputs.parameters.create-pvc-name}}'
+  - dag:
+      tasks:
+      - name: create-pvc
+        template: create-pvc
+      - arguments:
+          parameters:
+          - name: create-pvc-name
+            value: '{{tasks.create-pvc.outputs.parameters.create-pvc-name}}'
+        dependencies:
+        - create-pvc
+        name: step1
+        template: step1
+      - arguments:
+          parameters:
+          - name: create-pvc-name
+            value: '{{tasks.create-pvc.outputs.parameters.create-pvc-name}}'
+        dependencies:
+        - create-pvc
+        name: step2
+        template: step2
+      - arguments:
+          parameters:
+          - name: create-pvc-name
+            value: '{{tasks.create-pvc.outputs.parameters.create-pvc-name}}'
+        dependencies:
+        - create-pvc
+        - step1
+        - step2
+        name: step3
+        template: step3
+    name: volume-op-dag

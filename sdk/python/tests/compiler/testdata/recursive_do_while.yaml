@@ -1,0 +1,140 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "shows how to use graph_component.",
+      "name": "pipeline flip coin"}'
+  generateName: pipeline-flip-coin-
+spec:
+  arguments:
+    parameters: []
+  entrypoint: pipeline-flip-coin
+  serviceAccountName: pipeline-runner
+  templates:
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: flip-output
+            value: '{{inputs.parameters.flip-3-output}}'
+        name: graph-flip-component-1
+        template: graph-flip-component-1
+    inputs:
+      parameters:
+      - name: flip-3-output
+    name: condition-2
+  - container:
+      args:
+      - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
+        'tails'; print(result)" | tee /tmp/output
+      command:
+      - sh
+      - -c
+      image: python:alpine3.6
+    name: flip
+    outputs:
+      artifacts:
+      - name: flip-output
+        path: /tmp/output
+      parameters:
+      - name: flip-output
+        valueFrom:
+          path: /tmp/output
+  - container:
+      args:
+      - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
+        'tails'; print(result)" | tee /tmp/output
+      command:
+      - sh
+      - -c
+      image: python:alpine3.6
+    name: flip-2
+    outputs:
+      artifacts:
+      - name: flip-2-output
+        path: /tmp/output
+  - container:
+      args:
+      - python -c "import random; result = 'heads' if random.randint(0,1) == 0 else
+        'tails'; print(result)" | tee /tmp/output
+      command:
+      - sh
+      - -c
+      image: python:alpine3.6
+    name: flip-3
+    outputs:
+      artifacts:
+      - name: flip-3-output
+        path: /tmp/output
+      parameters:
+      - name: flip-3-output
+        valueFrom:
+          path: /tmp/output
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: flip-3-output
+            value: '{{tasks.flip-3.outputs.parameters.flip-3-output}}'
+        dependencies:
+        - flip-3
+        name: condition-2
+        template: condition-2
+        when: '"{{tasks.flip-3.outputs.parameters.flip-3-output}}" == "heads"'
+      - dependencies:
+        - print
+        name: flip-3
+        template: flip-3
+      - arguments:
+          parameters:
+          - name: flip-output
+            value: '{{inputs.parameters.flip-output}}'
+        name: print
+        template: print
+    inputs:
+      parameters:
+      - name: flip-output
+    name: graph-flip-component-1
+  - dag:
+      tasks:
+      - name: flip
+        template: flip
+      - name: flip-2
+        template: flip-2
+      - arguments:
+          parameters:
+          - name: flip-output
+            value: '{{tasks.flip.outputs.parameters.flip-output}}'
+        dependencies:
+        - flip
+        - flip-2
+        name: graph-flip-component-1
+        template: graph-flip-component-1
+      - arguments:
+          parameters:
+          - name: flip-output
+            value: '{{tasks.flip.outputs.parameters.flip-output}}'
+        dependencies:
+        - flip
+        - graph-flip-component-1
+        name: print-2
+        template: print-2
+    name: pipeline-flip-coin
+  - container:
+      command:
+      - echo
+      - '{{inputs.parameters.flip-output}}'
+      image: alpine:3.6
+    inputs:
+      parameters:
+      - name: flip-output
+    name: print
+  - container:
+      command:
+      - echo
+      - cool, it is over. {{inputs.parameters.flip-output}}
+      image: alpine:3.6
+    inputs:
+      parameters:
+      - name: flip-output
+    name: print-2

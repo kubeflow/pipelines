@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "Test that parameters used
+      in Op transformation functions as pod labels would be correcly identified and
+      set as arguments in he generated yaml", "inputs": [{"name": "param"}], "name": "Parameters in Op transformation
+      functions"}'
+  generateName: parameters-in-op-transformation-functions-
+spec:
+  arguments:
+    parameters:
+    - name: param
+  entrypoint: parameters-in-op-transformation-functions
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      image: image
+    inputs:
+      parameters:
+      - name: param
+    metadata:
+      labels:
+        param: '{{inputs.parameters.param}}'
+    name: cop
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: param
+            value: '{{inputs.parameters.param}}'
+        name: cop
+        template: cop
+    inputs:
+      parameters:
+      - name: param
+    name: parameters-in-op-transformation-functions

@@ -1,6 +1,4 @@
-"""The `kfp.components` module contains functions for loading components from
-compiled YAML."""
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2018 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,23 +12,8 @@ compiled YAML."""
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = [
-    'load_component_from_file',
-    'load_component_from_url',
-    'load_component_from_text',
-    'PythonComponent',
-    'BaseComponent',
-    'ContainerComponent',
-    'YamlComponent',
-]
-
-from kfp.components.load_yaml_utilities import load_component_from_file
-from kfp.components.load_yaml_utilities import load_component_from_text
-from kfp.components.load_yaml_utilities import load_component_from_url
-# keep this for backward compatibility with user code "from kfp.components import placholders" and similar
-from kfp.dsl import base_component  # noqa: keep unused import
-from kfp.dsl import placeholders  # noqa: keep unused import
-from kfp.dsl.base_component import BaseComponent
-from kfp.dsl.container_component_class import ContainerComponent
-from kfp.dsl.python_component import PythonComponent
-from kfp.dsl.yaml_component import YamlComponent
+from ._airflow_op import *
+from ._components import *
+from ._python_op import *
+from ._python_to_graph_component import *
+from ._component_store import *
