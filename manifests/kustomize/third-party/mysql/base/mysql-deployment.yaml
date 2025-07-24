@@ -22,7 +22,7 @@ spec:
         # Ext4, Btrfs etc. volumes root directories have a lost+found directory that should not be treated as a database.
         # ignore-db-dir option has been deprecated in mysql v5.7.16.
         #
-        # If upgrading MySQL to v8.0 fails, try removing /var/lib/mysql/lost+found folder in 
+        # If upgrading MySQL to v8.0 fails, try removing /var/lib/mysql/lost+found folder in
         # mysql-pv-claim (mysql-persistent-storage):
         #
         # kubectl exec -it <mysql-pod-name> -n kubeflow -- bash
@@ -34,7 +34,7 @@ spec:
         - --datadir
         - /var/lib/mysql
         # MLMD workloads (metadata-grpc-deployment and metadata-writer) depend on mysql_native_password authentication plugin.
-        # mysql_native_password plugin implements native authentication; that is, authentication based on the password 
+        # mysql_native_password plugin implements native authentication; that is, authentication based on the password
         # hashing method in use from before the introduction of pluggable authentication in MySQL 8.0.
         #
         # The mysql_native_password authentication plugin is deprecated as of MySQL 8.0.34, disabled by default

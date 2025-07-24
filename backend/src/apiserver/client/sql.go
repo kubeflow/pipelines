@@ -22,11 +22,9 @@ import (
 )
 
 const (
-	MYSQL_TEXT_FORMAT      string = "longtext not null"
-	MYSQL_TEXT_FORMAT_NULL string = "longtext"
-	MYSQL_EXIST_ERROR      string = "database exists"
+	//nolint:staticcheck // allow legacy ALL_CAPS constant name
+	MYSQL_EXIST_ERROR string = "database exists"
 
-	PGX_TEXT_FORMAT string = "text"
 	PGX_EXIST_ERROR string = "already exists"
 )
 

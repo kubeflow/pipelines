@@ -1,0 +1,4 @@
+apiVersion: v2
+name: postgresql
+version: 0.1.0
+description: A Helm chart for local dev PostgreSQL (GSoC testing)
