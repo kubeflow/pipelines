@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata: # kpt-merge: /github.com
-  name: github.com
-  annotations:
-    internal.kpt.dev/upstream-identifier: '|ServiceAccount|default|github.com'
