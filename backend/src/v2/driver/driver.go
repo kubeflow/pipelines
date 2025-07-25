@@ -67,6 +67,8 @@ type Options struct {
 	CacheDisabled bool
 
 	DriverType string
+
+	TaskName string // the original name of the task, used for input resolution
 }
 
 // Identifying information used for error messages
@@ -75,8 +77,8 @@ func (o Options) info() string {
 	if o.Task.GetTaskInfo().GetName() != "" {
 		msg = msg + fmt.Sprintf(", taskDisplayName=%q", o.Task.GetTaskInfo().GetName())
 	}
-	if o.Task.GetTaskInfo().GetTaskName() != "" {
-		msg = msg + fmt.Sprintf(", taskName=%q", o.Task.GetTaskInfo().GetTaskName())
+	if o.TaskName != "" {
+		msg = msg + fmt.Sprintf(", taskName=%q", o.TaskName)
 	}
 	if o.Task.GetComponentRef().GetName() != "" {
 		msg = msg + fmt.Sprintf(", component=%q", o.Task.GetComponentRef().GetName())

@@ -96,7 +96,7 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	// specialty tasks such as OneOfs and ParallelFors where there are not
 	// explicit dag tasks defined in the pipeline, but rather generated at
 	// compile time and assigned a display name.
-	taskName := opts.Task.GetTaskInfo().GetTaskName()
+	taskName := opts.TaskName
 	if taskName == "" {
 		taskName = opts.Task.GetTaskInfo().GetName()
 	}

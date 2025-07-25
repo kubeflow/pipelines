@@ -36,7 +36,7 @@ def print_input(input: list):
 def loop_consume_upstream():
     model_ids_split_op = split_input(input='component1,component2,component3')
     model_ids_split_op.set_caching_options(False)
-    model_ids_split_op.set_display_name('same display mame')
+    model_ids_split_op.set_display_name('same display name')
     with dsl.ParallelFor(model_ids_split_op.output) as model_id:
         create_file_op = create_file(content=model_id)
         create_file_op.set_caching_options(False)
