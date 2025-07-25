@@ -1,0 +1,54 @@
+{
+  "platforms": {
+    "kubernetes": {
+      "deploymentSpec": {
+        "executors": {
+          "exec-validate-pod-metadata": {
+            "fieldPathAsEnv": [
+              {
+                "fieldPath": "metadata.annotations['task-annotation']",
+                "name": "POD_TASK_ANNOTATION"
+              },
+              {
+                "fieldPath": "metadata.labels['task-label-1']",
+                "name": "POD_TASK_LABEL_1"
+              },
+              {
+                "fieldPath": "metadata.labels['task-label-2']",
+                "name": "POD_TASK_LABEL_2"
+              }
+            ],
+            "podMetadata": {
+              "annotations": {
+                "task-annotation": "annotation"
+              },
+              "labels": {
+                "task-label-1": "label-1",
+                "task-label-2": "label-2"
+              }
+            }
+          },
+          "exec-validate-pod-metadata-2": {
+            "fieldPathAsEnv": [
+              {
+                "fieldPath": "metadata.annotations['task-annotation-1']",
+                "name": "POD_TASK_ANNOTATION_1"
+              },
+              {
+                "fieldPath": "metadata.annotations['task-annotation-2']",
+                "name": "POD_TASK_ANNOTATION_2"
+              }
+            ],
+            "podMetadata": {
+              "annotations": {
+                "task-annotation-1": "annotation-1",
+                "task-annotation-2": "annotation-2"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
