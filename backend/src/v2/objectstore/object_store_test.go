@@ -358,7 +358,7 @@ func Test_createS3BucketSession(t *testing.T) {
 					test.sessionSecret,
 					metav1.CreateOptions{})
 				assert.Nil(t, err)
-				fmt.Printf(testersecret.Namespace)
+				fmt.Printf("%s", testersecret.Namespace)
 			}
 
 			actualSession, err := createS3BucketSession(ctx, test.ns, test.sessionInfo, fakeKubernetesClientset)
