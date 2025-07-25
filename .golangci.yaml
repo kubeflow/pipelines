@@ -2,22 +2,25 @@ version: "2"
 
 run:
   timeout: 30m
-  skip-files:
-  - "api\\*.go$"
-  - "backend\\api\\*.go"
 
 issues:
   max-same-issues: 0
 
 linters:
-  disable-all: true
-  enable: # please keep this alphabetized
+  default: none
+  enable:
     - gocritic
     - govet
     - ineffassign
     - misspell
     - staticcheck
     - unused
+  
+  exclusions:
+    paths:
+      - "api/*.go"
+      - "backend/api/*.go"
+  
   settings:
     misspell:
       locale: US
@@ -26,7 +29,6 @@ linters:
         - "all"
 
 formatters:
-  disable-all: true
   enable:
     - gofmt
     - goimports

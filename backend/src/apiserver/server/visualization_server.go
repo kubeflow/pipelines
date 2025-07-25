@@ -117,7 +117,7 @@ func (s *VisualizationServer) generateVisualizationFromRequest(request *go_clien
 		return nil, util.Wrap(err, "Unable to initialize visualization request")
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf(resp.Status)
+		return nil, fmt.Errorf("%s", resp.Status)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
