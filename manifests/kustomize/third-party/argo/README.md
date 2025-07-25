@@ -21,7 +21,7 @@ KFP uses remote Git references to Argo Workflows manifests instead of maintainin
 
 All kustomization files reference manifests directly from the [Argo Workflows repository](https://github.com/argoproj/argo-workflows) using versioned Git references.
 
-## Upgrade argo
+## Upgrade Argo Workflows
 
 Refer to [third_party/argo/README.md](../../../../third_party/argo/README.md).
 
