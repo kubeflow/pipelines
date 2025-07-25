@@ -16,7 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.13']
+        # python-version: ['3.9', '3.13']
+        # Only testing against 3.9 because our goal is just parity with 1.8.22, which did not test against 3.13.
+        python-version: ['3.9']
 
     steps:
     - name: Checkout code

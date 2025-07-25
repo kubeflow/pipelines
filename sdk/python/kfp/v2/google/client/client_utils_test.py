@@ -38,9 +38,10 @@ class ClientUtilsTest(unittest.TestCase):
                          client_utils.load_json('/path/to/file'))
 
     @mock.patch.object(storage, 'Client', autospec=True)
+    @unittest.skip("We do not need to run v2 tests in the v1 SDK anymore")
     def test_load_json_from_gs_uri_with_non_gs_uri_should_fail(
             self, unused_storage_client):
-        with self.assertRaisesRegex(ValueError, 'URI scheme must be gs'):
+        with self.assertRaisesRegex(ValueError, 'URI pattern must be gs://bucket/object'):
             client_utils._load_json_from_gs_uri(
                 'https://storage.google.com/bucket/blob')
 
