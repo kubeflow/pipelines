@@ -31,6 +31,12 @@ import (
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 )
 
+const (
+	WorkspaceVolumeName  = "kfp-workspace"
+	WorkspaceMountPath   = "/kfp-workspace"
+	WorkspacePlaceholder = "{{$.workspace_path}}"
+)
+
 // Driver options
 type Options struct {
 	// required, pipeline context name
@@ -336,7 +342,7 @@ func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
 	// Check if any input parameter is the workspace path placeholder
 	for _, param := range executorInput.GetInputs().GetParameterValues() {
 		if strVal, ok := param.GetKind().(*structpb.Value_StringValue); ok {
-			if strVal.StringValue == "{{$.workspace_path}}" {
+			if strVal.StringValue == WorkspacePlaceholder {
 				return true
 			}
 		}
@@ -345,7 +351,7 @@ func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
 	// Check if any input parameter is a component output path starting with /kfp-workspace
 	for _, param := range executorInput.GetInputs().GetParameterValues() {
 		if strVal, ok := param.GetKind().(*structpb.Value_StringValue); ok {
-			if strings.HasPrefix(strVal.StringValue, "/kfp-workspace") {
+			if strings.HasPrefix(strVal.StringValue, WorkspaceMountPath) {
 				return true
 			}
 		}
@@ -372,17 +378,17 @@ func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
 // addWorkspaceMount adds the workspace volume mount to the pod spec if needed.
 func addWorkspaceMount(podSpec *k8score.PodSpec) {
 	workspaceVolume := k8score.Volume{
-		Name: "kfp-workspace",
+		Name: WorkspaceVolumeName,
 		VolumeSource: k8score.VolumeSource{
 			PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
-				ClaimName: "kfp-workspace",
+				ClaimName: WorkspaceVolumeName,
 			},
 		},
 	}
 
 	workspaceVolumeMount := k8score.VolumeMount{
-		Name:      "kfp-workspace",
-		MountPath: "/kfp-workspace",
+		Name:      WorkspaceVolumeName,
+		MountPath: WorkspaceMountPath,
 	}
 
 	podSpec.Volumes = append(podSpec.Volumes, workspaceVolume)
@@ -595,8 +601,8 @@ func provisionOutputs(
 func validateVolumeMounts(podSpec *k8score.PodSpec) error {
 	for _, container := range podSpec.Containers {
 		for _, mount := range container.VolumeMounts {
-			if strings.HasPrefix(mount.MountPath, "/kfp-workspace") {
-				return fmt.Errorf("user volume mount at %s conflicts with workspace mount at /kfp-workspace", mount.MountPath)
+			if strings.HasPrefix(mount.MountPath, WorkspaceMountPath) {
+				return fmt.Errorf("user volume mount at %s conflicts with workspace mount at %s", mount.MountPath, WorkspaceMountPath)
 			}
 		}
 	}
