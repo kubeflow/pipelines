@@ -28,6 +28,8 @@ TEST_MANIFESTS=".github/resources/manifests/argo"
 PIPELINES_STORE="database"
 USE_PROXY=false
 CACHE_DISABLED=false
+MULTI_USER=false
+STORAGE_BACKEND="minio"
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -46,6 +48,14 @@ while [ "$#" -gt 0 ]; do
       CACHE_DISABLED=true
       shift
       ;;
+    --multi-user)
+      MULTI_USER=true
+      shift
+      ;;
+    --storage)
+      STORAGE_BACKEND="$2"
+      shift 2
+      ;;
   esac
 done
 
@@ -54,12 +64,70 @@ if [ "${USE_PROXY}" == "true" && "${PIPELINES_STORE}" == "kubernetes" ]; then
   exit 1
 fi
 
-kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
+if [ "${MULTI_USER}" == "true" ] && [ "${USE_PROXY}" == "true" ]; then
+  echo "ERROR: Multi-user mode cannot be deployed with proxy support."
+  exit 1
+fi
+
+if [ "${STORAGE_BACKEND}" != "minio" ] && [ "${STORAGE_BACKEND}" != "seaweedfs" ]; then
+  echo "ERROR: Storage backend must be either 'minio' or 'seaweedfs'."
+  exit 1
+fi
+
+# Deploy cluster-scoped resources (needed for both standalone and multi-user)
+kubectl apply -k "manifests/kustomize/cluster-scoped-resources/" || EXIT_CODE=$?
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
-if [[ $EXIT_CODE -ne 0 ]]
-then
+if [[ $EXIT_CODE -ne 0 ]]; then
   echo "Failed to deploy cluster-scoped resources."
   exit $EXIT_CODE
+fi
+
+# Deploy multi-user prerequisites if multi-user mode is enabled
+if [ "${MULTI_USER}" == "true" ]; then
+  echo "Installing Istio..."
+  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-crds/base?ref=master || EXIT_CODE=$?
+  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-namespace/base?ref=master || EXIT_CODE=$?
+  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-install/base?ref=master || EXIT_CODE=$?
+  
+  echo "Waiting for all Istio Pods to become ready..."
+  kubectl wait --for=condition=Ready pods --all -n istio-system --timeout=300s || EXIT_CODE=$?
+  if [[ $EXIT_CODE -ne 0 ]]; then
+    echo "Failed to deploy Istio."
+    exit $EXIT_CODE
+  fi
+
+  echo "Deploying Platform Agnostic Multi-User..."
+  kubectl apply -f manifests/kustomize/third-party/metacontroller/base/crd.yaml || EXIT_CODE=$?
+  kubectl apply --force -k manifests/kustomize/env/platform-agnostic-multi-user || EXIT_CODE=$?
+  
+  echo "Waiting for Pods to be ready..."
+  kubectl wait --for=condition=Ready pods --all --namespace kubeflow --timeout=300s --field-selector=status.phase!=Succeeded || true
+  
+  echo "Installing Profile Controller Resources..."
+  kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master || EXIT_CODE=$?
+  kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s || true
+  
+  if [[ $EXIT_CODE -ne 0 ]]; then
+    echo "Failed to deploy multi-user components."
+    exit $EXIT_CODE
+  fi
+  
+  # Storage backend specific configurations for multi-user
+  if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+    echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
+    kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml || EXIT_CODE=$?
+    
+    echo "Creating KF Profile..."
+    kubectl apply -f test/seaweedfs/test-profiles.yaml || EXIT_CODE=$?
+    
+    echo "Applying network policy to allow user namespace access to kubeflow services..."
+    kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml || EXIT_CODE=$?
+    
+    if [[ $EXIT_CODE -ne 0 ]]; then
+      echo "Failed to apply SeaweedFS multi-user configurations."
+      exit $EXIT_CODE
+    fi
+  fi
 fi
 
 # If pipelines store is set to 'kubernetes', cert-manager must be deployed
@@ -73,24 +141,27 @@ if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   fi
 fi
 
-# Manifests will be deployed according to the flag provided
-if $CACHE_DISABLED; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/cache-disabled"
-elif $USE_PROXY; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
-elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
-else
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
-fi
+# Skip KFP deployment for multi-user mode (already deployed above)
+if [ "${MULTI_USER}" == "false" ]; then
+  # Manifests will be deployed according to the flag provided
+  if $CACHE_DISABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/cache-disabled"
+  elif $USE_PROXY; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
+  elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
+  else
+    TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
+  fi
 
-echo "Deploying ${TEST_MANIFESTS}..."
+  echo "Deploying ${TEST_MANIFESTS}..."
 
-kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
-if [[ $EXIT_CODE -ne 0 ]]
-then
-  echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
-  exit 1
+  kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
+  if [[ $EXIT_CODE -ne 0 ]]
+  then
+    echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
+    exit 1
+  fi
 fi
 
 # Check if all pods are running - (10 minutes)
@@ -99,6 +170,16 @@ if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Not all pods running."
   exit 1
+fi
+
+# Verify pipeline integration for multi-user mode
+if [ "${MULTI_USER}" == "true" ]; then
+  echo "Verifying Pipeline Integration..."
+  KF_PROFILE=kubeflow-user-example-com
+  if ! kubectl get secret mlpipeline-minio-artifact -n $KF_PROFILE > /dev/null 2>&1; then
+    echo "Error: Secret mlpipeline-minio-artifact not found in namespace $KF_PROFILE"
+  fi
+  kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys[] as $k | "\($k): \(. | .[$k] | @base64d)"' | tr '\n' ' '
 fi
 
 collect_artifacts kubeflow

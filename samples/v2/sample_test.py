@@ -17,6 +17,7 @@ from dataclasses import dataclass
 import inspect
 import os
 from pprint import pprint
+import subprocess
 from typing import List
 import unittest
 
@@ -50,6 +51,7 @@ PRE_REQ_DIR = os.path.join(SAMPLES_DIR, 'v2', 'pre-requisites')
 PREREQS = [os.path.join(PRE_REQ_DIR, 'test-secrets.yaml')]
 
 _KFP_NAMESPACE = os.getenv('KFP_NAMESPACE', 'kubeflow')
+_KFP_MULTI_USER = os.getenv('KFP_MULTI_USER', 'false').lower() == 'true'
 
 
 @dataclass
@@ -111,12 +113,44 @@ def delete_k8s_yaml(namespace: str, yaml_file: str):
         print(f'Exception when deleting from YAML: {e}')
 
 
+def get_auth_token():
+    """Get authentication token for multi-user mode."""
+    if _KFP_MULTI_USER:
+        try:
+            namespace = 'kubeflow-user-example-com'
+            print(f'Creating authentication token for namespace {namespace}...')
+            result = subprocess.run([
+                'kubectl', '-n', namespace, 'create', 'token', 'default-editor',
+                '--audience=pipelines.kubeflow.org'
+            ], capture_output=True, text=True, check=True)
+            token = result.stdout.strip()
+            print('Successfully created authentication token.')
+            return token
+        except subprocess.CalledProcessError as e:
+            print(f'Failed to create authentication token: {e}')
+            print(f'stderr: {e.stderr}')
+            return None
+    return None
+
+
 class SampleTest(unittest.TestCase):
     _kfp_host_and_port = os.getenv('KFP_API_HOST_AND_PORT',
                                    'http://localhost:8888')
     _kfp_ui_and_port = os.getenv('KFP_UI_HOST_AND_PORT',
                                  'http://localhost:8080')
-    _client = kfp.Client(host=_kfp_host_and_port, ui_host=_kfp_ui_and_port)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize client with token if in multi-user mode
+        auth_token = get_auth_token()
+        if auth_token:
+            self._client = kfp.Client(
+                host=self._kfp_host_and_port, 
+                ui_host=self._kfp_ui_and_port,
+                existing_token=auth_token
+            )
+        else:
+            self._client = kfp.Client(host=self._kfp_host_and_port, ui_host=self._kfp_ui_and_port)
 
     @classmethod
     def setUpClass(cls):
