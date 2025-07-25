@@ -25,7 +25,7 @@ All kustomization files reference manifests directly from the [Argo Workflows re
 
 Refer to [third_party/argo/README.md](../../../../third_party/argo/README.md).
 
-### Upgrade argo manifests
+### Update Manifests
 
 To upgrade to a new Argo version:
 
