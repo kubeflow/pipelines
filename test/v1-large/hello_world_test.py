@@ -1,5 +1,4 @@
-#!/bin/bash -ex
-# Copyright 2020 Kubeflow Pipelines contributors
+# Copyright 2019 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-source_root=$(pwd)
+import kfp
+from kfp import dsl
+import kfp.components as comp
 
-python3 -m pip install --upgrade pip
-python3 -m pip install sdk/python
-apt-get update && apt-get install -y protobuf-compiler
-pushd api
-make clean python
-popd
-python3 -m pip install api/v2alpha1/python
+from conftest import runner 
 
-# Test loading all component.yaml definitions
-"$source_root/components/test_load_all_components.sh"
+
+@comp.create_component_from_func
+def echo_op():
+    print("Hello world")
+
+@dsl.pipeline(
+    name='my-first-pipeline',
+    description='A hello world pipeline.'
+)
+def hello_world_pipeline():
+    echo_task = echo_op()
+
+def test_hello_world_pipeline():
+    runner(hello_world_pipeline)
+
+
+if __name__ == '__main__':
+    kfp.compiler.Compiler().compile(hello_world_pipeline, __file__ + '.yaml')

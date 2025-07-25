@@ -1,4 +1,4 @@
-name: KFP Component YAML Test
+name: KFP SDK load component yamls
 
 on:
   push:
@@ -48,8 +48,8 @@ jobs:
         run: |
           python3 -m pip install api/v2alpha1/python
 
-      - name: Install requirements
-        run: pip install -r ./test/sdk-execution-tests/requirements.txt
+      - name: Install prerequisites
+        run: pip3 install -r ./test/sample-test/requirements.txt && pip install sdk/python
         
       - name: Run component YAML tests
-        run: ./test/presubmit-component-yaml.sh
+        run: $(pwd)/components/test_load_all_components.sh

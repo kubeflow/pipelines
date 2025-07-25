@@ -1,4 +1,4 @@
-name: KFP SDK Upgrade Test
+name: KFP SDK upgrade
 
 on:
   push:
