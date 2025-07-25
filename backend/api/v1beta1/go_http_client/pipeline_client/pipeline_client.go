@@ -8,8 +8,7 @@ package pipeline_client
 import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
 )
@@ -56,9 +55,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *Pipeline {
 
 	cli := new(Pipeline)
 	cli.Transport = transport
-
 	cli.PipelineService = pipeline_service.New(transport, formats)
-
 	return cli
 }
 
@@ -103,7 +100,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // Pipeline is a client for pipeline
 type Pipeline struct {
-	PipelineService *pipeline_service.Client
+	PipelineService pipeline_service.ClientService
 
 	Transport runtime.ClientTransport
 }
@@ -111,7 +108,5 @@ type Pipeline struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *Pipeline) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
-
 	c.PipelineService.SetTransport(transport)
-
 }

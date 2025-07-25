@@ -1,0 +1,53 @@
+name: "Install kfp & kfp-kubernetes"
+inputs:
+  build_version:
+    required: true
+    default: "1.2.2"
+    description: "build package version"
+  generate_golang_proto:
+    required: true
+    default: "false"
+    description: "optionally generate golang proto files"
+runs:
+  using: "composite"
+  steps:
+    - name: Install build tool
+      shell: bash
+      run: pip install build==${{inputs.build_version}}
+
+    - name: Build kfp dist
+      id: install-kfp
+      shell: bash
+      working-directory: sdk/python
+      run: |
+        python -m build .
+
+    - name: Generate kfp-kubernetes python proto files from source
+      id: generate-kfp-kubernetes-proto-files
+      shell: bash
+      if: ${{ steps.install-kfp.outcome == 'success' }}
+      working-directory: ./kubernetes_platform
+      run: make clean python USE_FIND_LINKS=true
+
+    - name: Generate kfp-kubernetes golang proto files from source
+      id: generate-kfp-kubernetes-go-proto-files
+      shell: bash
+      if: ${{ steps.install-kfp.outcome == 'success' && inputs.generate_golang_proto == 'true' }}
+      working-directory: ./kubernetes_platform
+      run: make golang
+
+    # kfp is installed transitively
+    # --find-links ensures pip first looks in the sdk/python/dist folder
+    # outputted from generate-kfp-kubernetes-proto-files step before looking at pypi
+    - name: Install kfp & kfp-kubernetes from source
+      id: install-kfp-kubernetes
+      shell: bash
+      if: ${{ steps.generate-kfp-kubernetes-proto-files.outcome == 'success' }}
+      run: |
+        pip install -e ./kubernetes_platform/python[dev] --find-links=sdk/python/dist
+
+    - name: Install test requirements
+      id: install-requirements
+      shell: bash
+      if: ${{ steps.install-kfp-kubernetes.outcome == 'success' }}
+      run: pip install -r ./test/kfp-kubernetes-execution-tests/requirements.txt

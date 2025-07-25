@@ -20,16 +20,12 @@ from kfp import compiler
 from kfp import dsl
 from kfp.dsl import component
 
-# In tests, we install a KFP package from the PR under test. Users should not
-# normally need to specify `kfp_package_path` in their component definitions.
-_KFP_PACKAGE_PATH = os.getenv("KFP_PACKAGE_PATH")
-
-@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
+@dsl.component()
 def build_model_car(model: dsl.Output[dsl.Model]):
     # Simulate pushing the Modelcar to an OCI registry
     model.uri = "oci://registry.domain.local/org/repo:v1.0"
 
-@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
+@dsl.component()
 def get_model_files_list(input_model: dsl.Input[dsl.Model]) -> str:
     import os
     import os.path

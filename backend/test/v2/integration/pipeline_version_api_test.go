@@ -137,7 +137,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	time.Sleep(1 * time.Second)
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: pipelineId,
-		Body: &pipeline_model.V2beta1PipelineVersion{
+		PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
 			Name:        "sequential-v2",
 			DisplayName: "sequential",
 			PackageURL: &pipeline_model.V2beta1URL{
@@ -170,7 +170,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	time.Sleep(1 * time.Second)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: pipelineId,
-		Body: &pipeline_model.V2beta1PipelineVersion{
+		PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
 			DisplayName: "arguments",
 			PackageURL: &pipeline_model.V2beta1URL{
 				PipelineURL: pipelineURL,

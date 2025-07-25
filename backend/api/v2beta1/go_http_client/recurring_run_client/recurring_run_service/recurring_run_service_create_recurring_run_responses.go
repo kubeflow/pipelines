@@ -6,14 +6,14 @@ package recurring_run_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	recurring_run_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
 )
 
 // RecurringRunServiceCreateRecurringRunReader is a Reader for the RecurringRunServiceCreateRecurringRun structure.
@@ -24,14 +24,12 @@ type RecurringRunServiceCreateRecurringRunReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *RecurringRunServiceCreateRecurringRunReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewRecurringRunServiceCreateRecurringRunOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewRecurringRunServiceCreateRecurringRunDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -49,7 +47,8 @@ func NewRecurringRunServiceCreateRecurringRunOK() *RecurringRunServiceCreateRecu
 	return &RecurringRunServiceCreateRecurringRunOK{}
 }
 
-/*RecurringRunServiceCreateRecurringRunOK handles this case with default header values.
+/*
+RecurringRunServiceCreateRecurringRunOK describes a response with status code 200, with default header values.
 
 A successful response.
 */
@@ -57,8 +56,48 @@ type RecurringRunServiceCreateRecurringRunOK struct {
 	Payload *recurring_run_model.V2beta1RecurringRun
 }
 
+// IsSuccess returns true when this recurring run service create recurring run o k response has a 2xx status code
+func (o *RecurringRunServiceCreateRecurringRunOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this recurring run service create recurring run o k response has a 3xx status code
+func (o *RecurringRunServiceCreateRecurringRunOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this recurring run service create recurring run o k response has a 4xx status code
+func (o *RecurringRunServiceCreateRecurringRunOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this recurring run service create recurring run o k response has a 5xx status code
+func (o *RecurringRunServiceCreateRecurringRunOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this recurring run service create recurring run o k response a status code equal to that given
+func (o *RecurringRunServiceCreateRecurringRunOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the recurring run service create recurring run o k response
+func (o *RecurringRunServiceCreateRecurringRunOK) Code() int {
+	return 200
+}
+
 func (o *RecurringRunServiceCreateRecurringRunOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns][%d] recurringRunServiceCreateRecurringRunOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns][%d] recurringRunServiceCreateRecurringRunOK %s", 200, payload)
+}
+
+func (o *RecurringRunServiceCreateRecurringRunOK) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns][%d] recurringRunServiceCreateRecurringRunOK %s", 200, payload)
+}
+
+func (o *RecurringRunServiceCreateRecurringRunOK) GetPayload() *recurring_run_model.V2beta1RecurringRun {
+	return o.Payload
 }
 
 func (o *RecurringRunServiceCreateRecurringRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -80,14 +119,40 @@ func NewRecurringRunServiceCreateRecurringRunDefault(code int) *RecurringRunServ
 	}
 }
 
-/*RecurringRunServiceCreateRecurringRunDefault handles this case with default header values.
+/*
+RecurringRunServiceCreateRecurringRunDefault describes a response with status code -1, with default header values.
 
 An unexpected error response.
 */
 type RecurringRunServiceCreateRecurringRunDefault struct {
 	_statusCode int
 
-	Payload *recurring_run_model.RuntimeError
+	Payload *recurring_run_model.GooglerpcStatus
+}
+
+// IsSuccess returns true when this recurring run service create recurring run default response has a 2xx status code
+func (o *RecurringRunServiceCreateRecurringRunDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this recurring run service create recurring run default response has a 3xx status code
+func (o *RecurringRunServiceCreateRecurringRunDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this recurring run service create recurring run default response has a 4xx status code
+func (o *RecurringRunServiceCreateRecurringRunDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this recurring run service create recurring run default response has a 5xx status code
+func (o *RecurringRunServiceCreateRecurringRunDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this recurring run service create recurring run default response a status code equal to that given
+func (o *RecurringRunServiceCreateRecurringRunDefault) IsCode(code int) bool {
+	return o._statusCode == code
 }
 
 // Code gets the status code for the recurring run service create recurring run default response
@@ -96,12 +161,22 @@ func (o *RecurringRunServiceCreateRecurringRunDefault) Code() int {
 }
 
 func (o *RecurringRunServiceCreateRecurringRunDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns][%d] RecurringRunService_CreateRecurringRun default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns][%d] RecurringRunService_CreateRecurringRun default %s", o._statusCode, payload)
+}
+
+func (o *RecurringRunServiceCreateRecurringRunDefault) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns][%d] RecurringRunService_CreateRecurringRun default %s", o._statusCode, payload)
+}
+
+func (o *RecurringRunServiceCreateRecurringRunDefault) GetPayload() *recurring_run_model.GooglerpcStatus {
+	return o.Payload
 }
 
 func (o *RecurringRunServiceCreateRecurringRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(recurring_run_model.RuntimeError)
+	o.Payload = new(recurring_run_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

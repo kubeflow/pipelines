@@ -18,7 +18,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
@@ -93,7 +94,7 @@ func load(t *testing.T, path string) *pipelinespec.PipelineJob {
 	}
 	json := string(content)
 	job := &pipelinespec.PipelineJob{}
-	if err := jsonpb.UnmarshalString(json, job); err != nil {
+	if err := protojson.Unmarshal([]byte(json), job); err != nil {
 		t.Errorf("Failed to parse pipeline job, error: %s, job: %v", err, json)
 	}
 	return job

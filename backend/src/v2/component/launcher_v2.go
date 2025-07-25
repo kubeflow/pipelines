@@ -27,11 +27,12 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -241,8 +242,8 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			Namespace:       l.options.Namespace,
 			RunId:           l.options.RunID,
 			MlmdExecutionID: strconv.FormatInt(id, 10),
-			CreatedAt:       &timestamp.Timestamp{Seconds: executedStartedTime},
-			FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
+			CreatedAt:       timestamppb.New(time.Unix(executedStartedTime, 0)),
+			FinishedAt:      timestamppb.New(time.Unix(time.Now().Unix(), 0)),
 			Fingerprint:     fingerPrint,
 		}
 		return l.clientManager.CacheClient().CreateExecutionCache(ctx, task)

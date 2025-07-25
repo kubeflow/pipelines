@@ -18,8 +18,10 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -44,7 +46,7 @@ var (
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
@@ -68,12 +70,12 @@ var (
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt: &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt: &timestamp.Timestamp{Seconds: 2},
+		CreatedAt: timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt: timestamppb.New(time.Unix(2, 0)),
 		Status:    "STATUS_UNSPECIFIED",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
@@ -93,7 +95,7 @@ var (
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
@@ -102,10 +104,32 @@ var (
 	}
 )
 
+func createJobServerV1(resourceManager *resource.ResourceManager) *JobServerV1 {
+	return &JobServerV1{
+		BaseJobServer: &BaseJobServer{
+			resourceManager: resourceManager,
+			options: &JobServerOptions{
+				CollectMetrics: false,
+			},
+		},
+	}
+}
+
+func createJobServer(resourceManager *resource.ResourceManager) *JobServer {
+	return &JobServer{
+		BaseJobServer: &BaseJobServer{
+			resourceManager: resourceManager,
+			options: &JobServerOptions{
+				CollectMetrics: false,
+			},
+		},
+	}
+}
+
 func TestCreateJob_WrongInput(t *testing.T) {
 	clients, manager, experiment, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	tests := []struct {
 		name   string
 		arg    *apiv1beta1.Job
@@ -119,7 +143,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 				MaxConcurrency: 1,
 				Trigger: &apiv1beta1.Trigger{
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: &timestamp.Timestamp{Seconds: 1},
+						StartTime: timestamppb.New(time.Unix(1, 0)),
 						Cron:      "1 * * * *",
 					}}},
 				ResourceReferences: []*api.ResourceReference{
@@ -146,7 +170,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 				MaxConcurrency: 1,
 				Trigger: &apiv1beta1.Trigger{
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: &timestamp.Timestamp{Seconds: 1},
+						StartTime: timestamppb.New(time.Unix(1, 0)),
 						Cron:      "1 * * * *",
 					}},
 				},
@@ -162,7 +186,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 				MaxConcurrency: 1,
 				Trigger: &apiv1beta1.Trigger{
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: &timestamp.Timestamp{Seconds: 1},
+						StartTime: timestamppb.New(time.Unix(1, 0)),
 						Cron:      "1 * * * *",
 					}}},
 				PipelineSpec: &apiv1beta1.PipelineSpec{
@@ -184,7 +208,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 				MaxConcurrency: 1,
 				Trigger: &apiv1beta1.Trigger{
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: &timestamp.Timestamp{Seconds: 1},
+						StartTime: timestamppb.New(time.Unix(1, 0)),
 						Cron:      "1 * * ",
 					}}},
 				PipelineSpec: &apiv1beta1.PipelineSpec{
@@ -205,7 +229,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 				MaxConcurrency: 0,
 				Trigger: &apiv1beta1.Trigger{
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: &timestamp.Timestamp{Seconds: 1},
+						StartTime: timestamppb.New(time.Unix(1, 0)),
 						Cron:      "1 * * * *",
 					}}},
 				PipelineSpec: &apiv1beta1.PipelineSpec{
@@ -254,7 +278,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 func TestCreateJob_pipelineVersion(t *testing.T) {
 	clients, manager, exp, pipelineVersion := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	rr := []*apiv1beta1.ResourceReference{
 		{
 			Key: &apiv1beta1.ResourceKey{
@@ -277,7 +301,7 @@ func TestCreateJob_pipelineVersion(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}}},
 		ResourceReferences: rr,
@@ -292,7 +316,7 @@ func TestCreateJob_pipelineVersion(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}}},
 		ResourceReferences: rr,
@@ -324,14 +348,14 @@ func TestCreateJob_NoResRefs(t *testing.T) {
 	defer clients.Close()
 	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(DefaultFakeIdTwo, nil))
 	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	apiJob := &apiv1beta1.Job{
 		Name:           "job1",
 		Enabled:        true,
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}}},
 		PipelineSpec: &apiv1beta1.PipelineSpec{
@@ -358,7 +382,7 @@ func TestCreateJob_NoResRefs(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}}},
 		ResourceReferences: rr,
@@ -387,7 +411,7 @@ func TestCreateJob_NoResRefs(t *testing.T) {
 func TestCreateJob(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	job, err := server.CreateJob(nil, &apiv1beta1.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 	matched := 0
@@ -412,7 +436,7 @@ func TestCreateJob(t *testing.T) {
 func TestCreateJob_V2(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 
 	listParams := []interface{}{1, 2, 3}
 	v2RuntimeListParams, _ := structpb.NewList(listParams)
@@ -434,7 +458,7 @@ func TestCreateJob_V2(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
@@ -461,12 +485,12 @@ func TestCreateJob_V2(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt: &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt: &timestamp.Timestamp{Seconds: 2},
+		CreatedAt: timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt: timestamppb.New(time.Unix(2, 0)),
 		Status:    "STATUS_UNSPECIFIED",
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineManifest: v2SpecHelloWorldParams,
@@ -515,7 +539,7 @@ func TestListRecurringRuns_MultiUser(t *testing.T) {
 
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServer(manager)
 
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
@@ -526,7 +550,7 @@ func TestListRecurringRuns_MultiUser(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
@@ -552,12 +576,12 @@ func TestListRecurringRuns_MultiUser(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
@@ -598,7 +622,7 @@ func TestCreateJob_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	_, err := server.CreateJob(ctx, &apiv1beta1.CreateJobRequest{Job: commonApiJob})
 	assert.NotNil(t, err)
 	assert.Contains(
@@ -619,13 +643,13 @@ func TestGetJob_Unauthorized(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	job, err := server.CreateJob(ctx, &apiv1beta1.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
-	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server = createJobServerV1(manager)
 
 	_, err = server.GetJob(ctx, &apiv1beta1.GetJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
@@ -645,7 +669,7 @@ func TestGetJob_Multiuser(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	createdJob, err := server.CreateJob(ctx, &apiv1beta1.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
@@ -681,7 +705,7 @@ func TestListJobs_Unauthorized(t *testing.T) {
 	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
 	defer clients.Close()
 
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	_, err := server.ListJobs(ctx, &apiv1beta1.ListJobsRequest{
 		ResourceReferenceKey: &apiv1beta1.ResourceKey{
 			Type: apiv1beta1.ResourceType_EXPERIMENT,
@@ -718,13 +742,13 @@ func TestListJobs_Multiuser(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	_, err := server.CreateJob(ctx, &apiv1beta1.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
 	var expectedJobs []*apiv1beta1.Job
-	commonExpectedJob.CreatedAt = &timestamp.Timestamp{Seconds: 2}
-	commonExpectedJob.UpdatedAt = &timestamp.Timestamp{Seconds: 2}
+	commonExpectedJob.CreatedAt = timestamppb.New(time.Unix(2, 0))
+	commonExpectedJob.UpdatedAt = timestamppb.New(time.Unix(2, 0))
 	commonExpectedJob.ResourceReferences = []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"}, Relationship: apiv1beta1.Relationship_OWNER},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakeIdOne}, Relationship: apiv1beta1.Relationship_OWNER},
@@ -826,13 +850,13 @@ func TestEnableJob_Unauthorized(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	job, err := server.CreateJob(ctx, &apiv1beta1.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
-	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server = createJobServerV1(manager)
 
 	_, err = server.EnableJob(ctx, &apiv1beta1.EnableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
@@ -852,7 +876,7 @@ func TestEnableJob_Multiuser(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 
 	job, err := server.CreateJob(ctx, &apiv1beta1.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
@@ -871,13 +895,13 @@ func TestDisableJob_Unauthorized(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	job, err := server.CreateJob(ctx, &apiv1beta1.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
 
 	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
 	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
-	server = NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server = createJobServerV1(manager)
 
 	_, err = server.DisableJob(ctx, &apiv1beta1.DisableJobRequest{Id: job.Id})
 	assert.NotNil(t, err)
@@ -897,7 +921,7 @@ func TestDisableJob_Multiuser(t *testing.T) {
 
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 
 	job, err := server.CreateJob(ctx, &apiv1beta1.CreateJobRequest{Job: commonApiJob})
 	assert.Nil(t, err)
@@ -916,7 +940,7 @@ func TestListJobs_Unauthenticated(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
 
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServerV1(manager)
 	_, err := server.ListJobs(ctx, &apiv1beta1.ListJobsRequest{
 		ResourceReferenceKey: &apiv1beta1.ResourceKey{
 			Type: apiv1beta1.ResourceType_EXPERIMENT,
@@ -947,7 +971,7 @@ func TestListJobs_Unauthenticated(t *testing.T) {
 func TestCreateRecurringRun(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServer(manager)
 
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
@@ -958,7 +982,7 @@ func TestCreateRecurringRun(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
@@ -984,12 +1008,12 @@ func TestCreateRecurringRun(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		Status:         apiv2beta1.RecurringRun_ENABLED,
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
@@ -1009,7 +1033,7 @@ func TestCreateRecurringRun(t *testing.T) {
 func TestGetRecurringRun(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServer(manager)
 
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
@@ -1020,7 +1044,7 @@ func TestGetRecurringRun(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
@@ -1046,12 +1070,12 @@ func TestGetRecurringRun(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		Status:         apiv2beta1.RecurringRun_ENABLED,
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
@@ -1074,7 +1098,7 @@ func TestGetRecurringRun(t *testing.T) {
 func TestListRecurringRuns(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServer(manager)
 
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
@@ -1085,7 +1109,7 @@ func TestListRecurringRuns(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
@@ -1111,12 +1135,12 @@ func TestListRecurringRuns(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
 		RuntimeConfig: &apiv2beta1.RuntimeConfig{
 			PipelineRoot: "model-pipeline-root",
@@ -1152,7 +1176,7 @@ func TestListRecurringRuns(t *testing.T) {
 func TestEnableRecurringRun(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServer(manager)
 
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
@@ -1163,7 +1187,7 @@ func TestEnableRecurringRun(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},
@@ -1187,7 +1211,7 @@ func TestEnableRecurringRun(t *testing.T) {
 func TestDisableRecurringRun(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
-	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	server := createJobServer(manager)
 
 	pipelineSpecStruct := &structpb.Struct{}
 	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
@@ -1198,7 +1222,7 @@ func TestDisableRecurringRun(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * * * *",
 			}},
 		},

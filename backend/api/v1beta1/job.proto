@@ -22,10 +22,9 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "backend/api/v1beta1/pipeline_spec.proto";
 import "backend/api/v1beta1/resource_reference.proto";
-import "protoc-gen-swagger/options/annotations.proto";
-import "backend/api/v1beta1/error.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
-option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   schemes: [1, 2], // http + https
   responses: {
     key: "default";
@@ -120,21 +119,21 @@ message ListJobsRequest {
   // A page token to request the next page of results. The token is acquried
   // from the nextPageToken field of the response from the previous
   // ListJobs call or can be omitted when fetching the first page.
-  string page_token = 1;
+  string page_token = 1 [json_name = "page_token"];
 
   // The number of jobs to be listed per page. If there are more jobs than this
   // number, the response message will contain a nextPageToken field you can use
   // to fetch the next page.
-  int32 page_size = 2;
+  int32 page_size = 2 [json_name = "page_size"];
 
   // Can be format of "field_name", "field_name asc" or "field_name desc".
   // Ascending by default.
-  string sort_by = 3;
+  string sort_by = 3 [json_name = "sort_by"];
 
   // What resource reference to filter on.
   // E.g. If listing job for an experiment, the query string would be
   // resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
-  ResourceKey resource_reference_key = 4;
+  ResourceKey resource_reference_key = 4 [json_name = "resource_reference_key"];
 
   // A url-encoded, JSON-serialized Filter protocol buffer (see
   // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
@@ -146,10 +145,10 @@ message ListJobsResponse {
   repeated Job jobs = 1;
 
   // The total number of jobs for the given query.
-  int32 total_size = 3;
+  int32 total_size = 3 [json_name = "total_size"];
 
   // The token to list the next page of jobs.
-  string next_page_token = 2;
+  string next_page_token = 2 [json_name = "next_page_token"];
 }
 
 message DeleteJobRequest {
@@ -170,10 +169,10 @@ message DisableJobRequest {
 // CronSchedule allow scheduling the job with unix-like cron
 message CronSchedule {
   // The start time of the cron job
-  google.protobuf.Timestamp start_time = 1;
+  google.protobuf.Timestamp start_time = 1 [json_name = "start_time"];
 
   // The end time of the cron job
-  google.protobuf.Timestamp end_time = 2;
+  google.protobuf.Timestamp end_time = 2 [json_name = "end_time"];
 
   // The cron string. For details how to compose a cron, visit
   // ttps://en.wikipedia.org/wiki/Cron
@@ -183,20 +182,20 @@ message CronSchedule {
 // PeriodicSchedule allow scheduling the job periodically with certain interval
 message PeriodicSchedule {
   // The start time of the periodic job
-  google.protobuf.Timestamp start_time = 1;
+  google.protobuf.Timestamp start_time = 1 [json_name = "start_time"];
 
   // The end time of the periodic job
-  google.protobuf.Timestamp end_time = 2;
+  google.protobuf.Timestamp end_time = 2 [json_name = "end_time"];
 
   // The time interval between the starting time of consecutive jobs
-  int64 interval_second = 3;
+  int64 interval_second = 3 [json_name = "interval_second"];
 }
 
 // Trigger defines what starts a pipeline run.
 message Trigger {
   oneof trigger {
-    CronSchedule cron_schedule = 1;
-    PeriodicSchedule periodic_schedule = 2;
+    CronSchedule cron_schedule = 1 [json_name = "cron_schedule"];
+    PeriodicSchedule periodic_schedule = 2 [json_name = "periodic_schedule"];
   }
 }
 
@@ -213,17 +212,17 @@ message Job {
   // Optional input field.
   // Describing what the pipeline manifest and parameters to use
   // for the scheduled job. If unset, fetch the pipline_spec at runtime.
-  PipelineSpec pipeline_spec = 4;
+  PipelineSpec pipeline_spec = 4 [json_name = "pipeline_spec"];
 
   // Optional input field. Specify which resource this job belongs to.
-  repeated ResourceReference resource_references = 5;
+  repeated ResourceReference resource_references = 5 [json_name = "resource_references"];
 
   // Optional input field. Specify which Kubernetes service account this job uses.
-  string service_account = 18;
+  string service_account = 18 [json_name = "service_account"];
 
   // Required input field.
   // Specify how many runs can be executed concurrently. Rage [1-10]
-  int64 max_concurrency = 6;
+  int64 max_concurrency = 6 [json_name = "max_concurrency"];
 
   // Required input field.
   // Specify how a run is triggered. Support cron mode or periodic mode.
@@ -239,10 +238,10 @@ message Job {
   Mode mode = 8;
 
   // Output. The time this job is created.
-  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp created_at = 9 [json_name = "created_at"];
 
   // Output. The last time this job is updated.
-  google.protobuf.Timestamp updated_at = 10;
+  google.protobuf.Timestamp updated_at = 10 [json_name = "updated_at"];
 
   // Output. The status of the job.
   // One of [Enable, Disable, Error]
@@ -259,6 +258,6 @@ message Job {
   // Optional input field. Whether the job should catch up if behind schedule.
   // If true, the job will only schedule the latest interval if behind schedule.
   // If false, the job will catch up on each past interval.
-  bool no_catchup = 17;
+  bool no_catchup = 17 [json_name = "no_catchup"];
 }
 // Next field number of Job will be 19

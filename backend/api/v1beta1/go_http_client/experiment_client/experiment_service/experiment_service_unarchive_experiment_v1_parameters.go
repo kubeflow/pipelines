@@ -13,63 +13,78 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewExperimentServiceUnarchiveExperimentV1Params creates a new ExperimentServiceUnarchiveExperimentV1Params object
-// with the default values initialized.
+// NewExperimentServiceUnarchiveExperimentV1Params creates a new ExperimentServiceUnarchiveExperimentV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewExperimentServiceUnarchiveExperimentV1Params() *ExperimentServiceUnarchiveExperimentV1Params {
-	var ()
 	return &ExperimentServiceUnarchiveExperimentV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewExperimentServiceUnarchiveExperimentV1ParamsWithTimeout creates a new ExperimentServiceUnarchiveExperimentV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewExperimentServiceUnarchiveExperimentV1ParamsWithTimeout(timeout time.Duration) *ExperimentServiceUnarchiveExperimentV1Params {
-	var ()
 	return &ExperimentServiceUnarchiveExperimentV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewExperimentServiceUnarchiveExperimentV1ParamsWithContext creates a new ExperimentServiceUnarchiveExperimentV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewExperimentServiceUnarchiveExperimentV1ParamsWithContext(ctx context.Context) *ExperimentServiceUnarchiveExperimentV1Params {
-	var ()
 	return &ExperimentServiceUnarchiveExperimentV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewExperimentServiceUnarchiveExperimentV1ParamsWithHTTPClient creates a new ExperimentServiceUnarchiveExperimentV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewExperimentServiceUnarchiveExperimentV1ParamsWithHTTPClient(client *http.Client) *ExperimentServiceUnarchiveExperimentV1Params {
-	var ()
 	return &ExperimentServiceUnarchiveExperimentV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*ExperimentServiceUnarchiveExperimentV1Params contains all the parameters to send to the API endpoint
-for the experiment service unarchive experiment v1 operation typically these are written to a http.Request
+/*
+ExperimentServiceUnarchiveExperimentV1Params contains all the parameters to send to the API endpoint
+
+	for the experiment service unarchive experiment v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type ExperimentServiceUnarchiveExperimentV1Params struct {
 
-	/*ID
-	  The ID of the experiment to be restored.
+	/* ID.
 
+	   The ID of the experiment to be restored.
 	*/
 	ID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the experiment service unarchive experiment v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ExperimentServiceUnarchiveExperimentV1Params) WithDefaults() *ExperimentServiceUnarchiveExperimentV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the experiment service unarchive experiment v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *ExperimentServiceUnarchiveExperimentV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the experiment service unarchive experiment v1 params

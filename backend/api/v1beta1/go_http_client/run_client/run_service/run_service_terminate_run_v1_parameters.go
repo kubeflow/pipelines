@@ -13,63 +13,78 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewRunServiceTerminateRunV1Params creates a new RunServiceTerminateRunV1Params object
-// with the default values initialized.
+// NewRunServiceTerminateRunV1Params creates a new RunServiceTerminateRunV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRunServiceTerminateRunV1Params() *RunServiceTerminateRunV1Params {
-	var ()
 	return &RunServiceTerminateRunV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRunServiceTerminateRunV1ParamsWithTimeout creates a new RunServiceTerminateRunV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRunServiceTerminateRunV1ParamsWithTimeout(timeout time.Duration) *RunServiceTerminateRunV1Params {
-	var ()
 	return &RunServiceTerminateRunV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewRunServiceTerminateRunV1ParamsWithContext creates a new RunServiceTerminateRunV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRunServiceTerminateRunV1ParamsWithContext(ctx context.Context) *RunServiceTerminateRunV1Params {
-	var ()
 	return &RunServiceTerminateRunV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewRunServiceTerminateRunV1ParamsWithHTTPClient creates a new RunServiceTerminateRunV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRunServiceTerminateRunV1ParamsWithHTTPClient(client *http.Client) *RunServiceTerminateRunV1Params {
-	var ()
 	return &RunServiceTerminateRunV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*RunServiceTerminateRunV1Params contains all the parameters to send to the API endpoint
-for the run service terminate run v1 operation typically these are written to a http.Request
+/*
+RunServiceTerminateRunV1Params contains all the parameters to send to the API endpoint
+
+	for the run service terminate run v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type RunServiceTerminateRunV1Params struct {
 
-	/*RunID
-	  The ID of the run to be terminated.
+	/* RunID.
 
+	   The ID of the run to be terminated.
 	*/
 	RunID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the run service terminate run v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceTerminateRunV1Params) WithDefaults() *RunServiceTerminateRunV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the run service terminate run v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceTerminateRunV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the run service terminate run v1 params

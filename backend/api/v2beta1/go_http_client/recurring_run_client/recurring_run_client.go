@@ -8,8 +8,7 @@ package recurring_run_client
 import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
 )
@@ -56,9 +55,7 @@ func New(transport runtime.ClientTransport, formats strfmt.Registry) *RecurringR
 
 	cli := new(RecurringRun)
 	cli.Transport = transport
-
 	cli.RecurringRunService = recurring_run_service.New(transport, formats)
-
 	return cli
 }
 
@@ -103,7 +100,7 @@ func (cfg *TransportConfig) WithSchemes(schemes []string) *TransportConfig {
 
 // RecurringRun is a client for recurring run
 type RecurringRun struct {
-	RecurringRunService *recurring_run_service.Client
+	RecurringRunService recurring_run_service.ClientService
 
 	Transport runtime.ClientTransport
 }
@@ -111,7 +108,5 @@ type RecurringRun struct {
 // SetTransport changes the transport on the client and all its subresources
 func (c *RecurringRun) SetTransport(transport runtime.ClientTransport) {
 	c.Transport = transport
-
 	c.RecurringRunService.SetTransport(transport)
-
 }

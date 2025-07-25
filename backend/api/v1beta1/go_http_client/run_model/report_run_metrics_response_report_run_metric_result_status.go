@@ -6,21 +6,31 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // ReportRunMetricsResponseReportRunMetricResultStatus  - UNSPECIFIED: Default value if not present.
-//  - OK: Indicates successful reporting.
-//  - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.
-//  - DUPLICATE_REPORTING: Indicates that the metric has been reported before.
-//  - INTERNAL_ERROR: Indicates that something went wrong in the server.
+//   - OK: Indicates successful reporting.
+//   - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.
+//   - DUPLICATE_REPORTING: Indicates that the metric has been reported before.
+//   - INTERNAL_ERROR: Indicates that something went wrong in the server.
+//
 // swagger:model ReportRunMetricsResponseReportRunMetricResultStatus
 type ReportRunMetricsResponseReportRunMetricResultStatus string
+
+func NewReportRunMetricsResponseReportRunMetricResultStatus(value ReportRunMetricsResponseReportRunMetricResultStatus) *ReportRunMetricsResponseReportRunMetricResultStatus {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated ReportRunMetricsResponseReportRunMetricResultStatus.
+func (m ReportRunMetricsResponseReportRunMetricResultStatus) Pointer() *ReportRunMetricsResponseReportRunMetricResultStatus {
+	return &m
+}
 
 const (
 
@@ -54,7 +64,7 @@ func init() {
 }
 
 func (m ReportRunMetricsResponseReportRunMetricResultStatus) validateReportRunMetricsResponseReportRunMetricResultStatusEnum(path, location string, value ReportRunMetricsResponseReportRunMetricResultStatus) error {
-	if err := validate.Enum(path, location, value, reportRunMetricsResponseReportRunMetricResultStatusEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, reportRunMetricsResponseReportRunMetricResultStatusEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -72,5 +82,10 @@ func (m ReportRunMetricsResponseReportRunMetricResultStatus) Validate(formats st
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this report run metrics response report run metric result status based on context it is used
+func (m ReportRunMetricsResponseReportRunMetricResultStatus) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

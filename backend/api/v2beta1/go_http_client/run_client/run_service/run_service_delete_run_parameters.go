@@ -13,68 +13,84 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewRunServiceDeleteRunParams creates a new RunServiceDeleteRunParams object
-// with the default values initialized.
+// NewRunServiceDeleteRunParams creates a new RunServiceDeleteRunParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRunServiceDeleteRunParams() *RunServiceDeleteRunParams {
-	var ()
 	return &RunServiceDeleteRunParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRunServiceDeleteRunParamsWithTimeout creates a new RunServiceDeleteRunParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRunServiceDeleteRunParamsWithTimeout(timeout time.Duration) *RunServiceDeleteRunParams {
-	var ()
 	return &RunServiceDeleteRunParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewRunServiceDeleteRunParamsWithContext creates a new RunServiceDeleteRunParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRunServiceDeleteRunParamsWithContext(ctx context.Context) *RunServiceDeleteRunParams {
-	var ()
 	return &RunServiceDeleteRunParams{
-
 		Context: ctx,
 	}
 }
 
 // NewRunServiceDeleteRunParamsWithHTTPClient creates a new RunServiceDeleteRunParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRunServiceDeleteRunParamsWithHTTPClient(client *http.Client) *RunServiceDeleteRunParams {
-	var ()
 	return &RunServiceDeleteRunParams{
 		HTTPClient: client,
 	}
 }
 
-/*RunServiceDeleteRunParams contains all the parameters to send to the API endpoint
-for the run service delete run operation typically these are written to a http.Request
+/*
+RunServiceDeleteRunParams contains all the parameters to send to the API endpoint
+
+	for the run service delete run operation.
+
+	Typically these are written to a http.Request.
 */
 type RunServiceDeleteRunParams struct {
 
-	/*ExperimentID
-	  The ID of the parent experiment.
+	/* ExperimentID.
 
+	   The ID of the parent experiment.
 	*/
 	ExperimentID *string
-	/*RunID
-	  The ID of the run to be deleted.
 
+	/* RunID.
+
+	   The ID of the run to be deleted.
 	*/
 	RunID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the run service delete run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceDeleteRunParams) WithDefaults() *RunServiceDeleteRunParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the run service delete run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceDeleteRunParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the run service delete run params
@@ -144,16 +160,17 @@ func (o *RunServiceDeleteRunParams) WriteToRequest(r runtime.ClientRequest, reg 
 
 		// query param experiment_id
 		var qrExperimentID string
+
 		if o.ExperimentID != nil {
 			qrExperimentID = *o.ExperimentID
 		}
 		qExperimentID := qrExperimentID
 		if qExperimentID != "" {
+
 			if err := r.SetQueryParam("experiment_id", qExperimentID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	// path param run_id

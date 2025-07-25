@@ -13,68 +13,84 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewPipelineServiceUpdatePipelineDefaultVersionV1Params creates a new PipelineServiceUpdatePipelineDefaultVersionV1Params object
-// with the default values initialized.
+// NewPipelineServiceUpdatePipelineDefaultVersionV1Params creates a new PipelineServiceUpdatePipelineDefaultVersionV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewPipelineServiceUpdatePipelineDefaultVersionV1Params() *PipelineServiceUpdatePipelineDefaultVersionV1Params {
-	var ()
 	return &PipelineServiceUpdatePipelineDefaultVersionV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewPipelineServiceUpdatePipelineDefaultVersionV1ParamsWithTimeout creates a new PipelineServiceUpdatePipelineDefaultVersionV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewPipelineServiceUpdatePipelineDefaultVersionV1ParamsWithTimeout(timeout time.Duration) *PipelineServiceUpdatePipelineDefaultVersionV1Params {
-	var ()
 	return &PipelineServiceUpdatePipelineDefaultVersionV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewPipelineServiceUpdatePipelineDefaultVersionV1ParamsWithContext creates a new PipelineServiceUpdatePipelineDefaultVersionV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewPipelineServiceUpdatePipelineDefaultVersionV1ParamsWithContext(ctx context.Context) *PipelineServiceUpdatePipelineDefaultVersionV1Params {
-	var ()
 	return &PipelineServiceUpdatePipelineDefaultVersionV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewPipelineServiceUpdatePipelineDefaultVersionV1ParamsWithHTTPClient creates a new PipelineServiceUpdatePipelineDefaultVersionV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewPipelineServiceUpdatePipelineDefaultVersionV1ParamsWithHTTPClient(client *http.Client) *PipelineServiceUpdatePipelineDefaultVersionV1Params {
-	var ()
 	return &PipelineServiceUpdatePipelineDefaultVersionV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*PipelineServiceUpdatePipelineDefaultVersionV1Params contains all the parameters to send to the API endpoint
-for the pipeline service update pipeline default version v1 operation typically these are written to a http.Request
+/*
+PipelineServiceUpdatePipelineDefaultVersionV1Params contains all the parameters to send to the API endpoint
+
+	for the pipeline service update pipeline default version v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type PipelineServiceUpdatePipelineDefaultVersionV1Params struct {
 
-	/*PipelineID
-	  The ID of the pipeline to be updated.
+	/* PipelineID.
 
+	   The ID of the pipeline to be updated.
 	*/
 	PipelineID string
-	/*VersionID
-	  The ID of the default version.
 
+	/* VersionID.
+
+	   The ID of the default version.
 	*/
 	VersionID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the pipeline service update pipeline default version v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceUpdatePipelineDefaultVersionV1Params) WithDefaults() *PipelineServiceUpdatePipelineDefaultVersionV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the pipeline service update pipeline default version v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceUpdatePipelineDefaultVersionV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the pipeline service update pipeline default version v1 params

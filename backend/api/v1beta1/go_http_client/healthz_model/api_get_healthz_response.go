@@ -6,12 +6,14 @@ package healthz_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIGetHealthzResponse api get healthz response
+//
 // swagger:model apiGetHealthzResponse
 type APIGetHealthzResponse struct {
 
@@ -21,6 +23,11 @@ type APIGetHealthzResponse struct {
 
 // Validate validates this api get healthz response
 func (m *APIGetHealthzResponse) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this api get healthz response based on context it is used
+func (m *APIGetHealthzResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

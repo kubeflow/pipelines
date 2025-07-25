@@ -128,7 +128,59 @@ func TestDeserializePageToken(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, token, *actualToken)
 }
+func TestTransformJSONForBackwardCompatibility(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		expected  string
+		expectErr bool
+	}{
+		{
+			name:      "Standard case with multiple replacements",
+			input:     `{"intValue": 1, "stringValue": "test", "longValue": 1234567890}`,
+			expected:  `{"int_value": 1, "string_value": "test", "long_value": 1234567890}`,
+			expectErr: false,
+		},
+		{
+			name:      "No replacements needed",
+			input:     `{"int_value": 1, "string_value": "test", "long_value": 1234567890}`,
+			expected:  `{"int_value": 1, "string_value": "test", "long_value": 1234567890}`,
+			expectErr: false,
+		},
+		{
+			name:      "Empty input",
+			input:     ``,
+			expected:  ``,
+			expectErr: false,
+		},
+		{
+			name:      "Nested JSON structure",
+			input:     `{"data": {"intValue": 5, "stringValue": "nested"}}`,
+			expected:  `{"data": {"int_value": 5, "string_value": "nested"}}`,
+			expectErr: false,
+		},
+		{
+			name:      "Input with no recognized fields",
+			input:     `{"otherValue": "value"}`,
+			expected:  `{"otherValue": "value"}`,
+			expectErr: false,
+		},
+	}
 
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := transformJSONForBackwardCompatibility(test.input)
+
+			if test.expectErr {
+				assert.NotNil(t, err, "Expected an error but got none")
+				return
+			}
+
+			assert.Nil(t, err, "Expected no error but got: %+v", err)
+			assert.Equal(t, test.expected, result, "Unexpected result for input: %v", test.input)
+		})
+	}
+}
 func TestDeserializePageToken_InvalidEncodingStringError(t *testing.T) {
 	_, err := deserializePageToken("this is a invalid token")
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())

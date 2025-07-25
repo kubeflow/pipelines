@@ -38,19 +38,18 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.9
-      
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update && sudo apt-get install -y protobuf-compiler jq default-jdk
-          python3 -m pip install setuptools wheel
 
-      - name: Generate API proto files
-        working-directory: ./api
-        run: make clean all
-  
-      - name: Generate kfp-kubernetes proto files from source
-        working-directory: ./kubernetes_platform
-        run: make clean all
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
+        with:
+          generate_golang_proto: "true"
+
+      - name: Install kfp & kfp-kubernetes from source
+        id: install-kfp-k8s-deps
+        uses: ./.github/actions/kfp-k8s
+        with:
+          generate_golang_proto: "true"
 
       - name: Generate K8s Native API CRDs
         working-directory: ./backend/src/crd/kubernetes

@@ -69,7 +69,7 @@ func (c *HealthzClient) GetHealthz() (*model.APIGetHealthzResponse, error) {
 	response, err := c.apiClient.HealthzService.HealthzServiceGetHealthz(parameters, api_server.PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.HealthzServiceGetHealthzDefault); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}

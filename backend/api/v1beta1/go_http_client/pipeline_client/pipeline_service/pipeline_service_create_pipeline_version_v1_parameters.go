@@ -13,66 +13,81 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	pipeline_model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 )
 
-// NewPipelineServiceCreatePipelineVersionV1Params creates a new PipelineServiceCreatePipelineVersionV1Params object
-// with the default values initialized.
+// NewPipelineServiceCreatePipelineVersionV1Params creates a new PipelineServiceCreatePipelineVersionV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewPipelineServiceCreatePipelineVersionV1Params() *PipelineServiceCreatePipelineVersionV1Params {
-	var ()
 	return &PipelineServiceCreatePipelineVersionV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewPipelineServiceCreatePipelineVersionV1ParamsWithTimeout creates a new PipelineServiceCreatePipelineVersionV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewPipelineServiceCreatePipelineVersionV1ParamsWithTimeout(timeout time.Duration) *PipelineServiceCreatePipelineVersionV1Params {
-	var ()
 	return &PipelineServiceCreatePipelineVersionV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewPipelineServiceCreatePipelineVersionV1ParamsWithContext creates a new PipelineServiceCreatePipelineVersionV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewPipelineServiceCreatePipelineVersionV1ParamsWithContext(ctx context.Context) *PipelineServiceCreatePipelineVersionV1Params {
-	var ()
 	return &PipelineServiceCreatePipelineVersionV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewPipelineServiceCreatePipelineVersionV1ParamsWithHTTPClient creates a new PipelineServiceCreatePipelineVersionV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewPipelineServiceCreatePipelineVersionV1ParamsWithHTTPClient(client *http.Client) *PipelineServiceCreatePipelineVersionV1Params {
-	var ()
 	return &PipelineServiceCreatePipelineVersionV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*PipelineServiceCreatePipelineVersionV1Params contains all the parameters to send to the API endpoint
-for the pipeline service create pipeline version v1 operation typically these are written to a http.Request
+/*
+PipelineServiceCreatePipelineVersionV1Params contains all the parameters to send to the API endpoint
+
+	for the pipeline service create pipeline version v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type PipelineServiceCreatePipelineVersionV1Params struct {
 
-	/*Body
-	  ResourceReference inside PipelineVersion specifies the pipeline that this
-	version belongs to.
+	/* Version.
 
+	     ResourceReference inside PipelineVersion specifies the pipeline that this
+	version belongs to.
 	*/
-	Body *pipeline_model.APIPipelineVersion
+	Version *pipeline_model.APIPipelineVersion
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the pipeline service create pipeline version v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceCreatePipelineVersionV1Params) WithDefaults() *PipelineServiceCreatePipelineVersionV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the pipeline service create pipeline version v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceCreatePipelineVersionV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the pipeline service create pipeline version v1 params
@@ -108,15 +123,15 @@ func (o *PipelineServiceCreatePipelineVersionV1Params) SetHTTPClient(client *htt
 	o.HTTPClient = client
 }
 
-// WithBody adds the body to the pipeline service create pipeline version v1 params
-func (o *PipelineServiceCreatePipelineVersionV1Params) WithBody(body *pipeline_model.APIPipelineVersion) *PipelineServiceCreatePipelineVersionV1Params {
-	o.SetBody(body)
+// WithVersion adds the version to the pipeline service create pipeline version v1 params
+func (o *PipelineServiceCreatePipelineVersionV1Params) WithVersion(version *pipeline_model.APIPipelineVersion) *PipelineServiceCreatePipelineVersionV1Params {
+	o.SetVersion(version)
 	return o
 }
 
-// SetBody adds the body to the pipeline service create pipeline version v1 params
-func (o *PipelineServiceCreatePipelineVersionV1Params) SetBody(body *pipeline_model.APIPipelineVersion) {
-	o.Body = body
+// SetVersion adds the version to the pipeline service create pipeline version v1 params
+func (o *PipelineServiceCreatePipelineVersionV1Params) SetVersion(version *pipeline_model.APIPipelineVersion) {
+	o.Version = version
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -126,9 +141,8 @@ func (o *PipelineServiceCreatePipelineVersionV1Params) WriteToRequest(r runtime.
 		return err
 	}
 	var res []error
-
-	if o.Body != nil {
-		if err := r.SetBodyParam(o.Body); err != nil {
+	if o.Version != nil {
+		if err := r.SetBodyParam(o.Version); err != nil {
 			return err
 		}
 	}

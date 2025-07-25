@@ -6,15 +6,16 @@ package job_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIListJobsResponse api list jobs response
+//
 // swagger:model apiListJobsResponse
 type APIListJobsResponse struct {
 
@@ -43,7 +44,6 @@ func (m *APIListJobsResponse) Validate(formats strfmt.Registry) error {
 }
 
 func (m *APIListJobsResponse) validateJobs(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Jobs) { // not required
 		return nil
 	}
@@ -57,6 +57,47 @@ func (m *APIListJobsResponse) validateJobs(formats strfmt.Registry) error {
 			if err := m.Jobs[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("jobs" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("jobs" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this api list jobs response based on the context it is used
+func (m *APIListJobsResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateJobs(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *APIListJobsResponse) contextValidateJobs(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Jobs); i++ {
+
+		if m.Jobs[i] != nil {
+
+			if swag.IsZero(m.Jobs[i]) { // not required
+				return nil
+			}
+
+			if err := m.Jobs[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("jobs" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("jobs" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

@@ -22,18 +22,18 @@ import "google/protobuf/struct.proto";
 
 message PipelineSpec {
   // Optional input field. The ID of the pipeline user uploaded before.
-  string pipeline_id = 1;
+  string pipeline_id = 1 [json_name = "pipeline_id"];
 
   // Optional output field. The name of the pipeline.
   // Not empty if the pipeline id is not empty.
-  string pipeline_name = 5;
+  string pipeline_name = 5 [json_name = "pipeline_name"];
 
   // Optional input field. The marshalled raw argo JSON workflow.
   // This will be deprecated when pipeline_manifest is in use.
-  string workflow_manifest = 2;
+  string workflow_manifest = 2 [json_name = "workflow_manifest"];
 
   // Optional input field. The raw pipeline JSON spec.
-  string pipeline_manifest = 3;
+  string pipeline_manifest = 3 [json_name = "pipeline_manifest"];
 
   // The parameter user provide to inject to the pipeline JSON.
   // If a default value of a parameter exist in the JSON,
@@ -50,10 +50,10 @@ message PipelineSpec {
     // A path in a object store bucket which will be treated as the root
     // output directory of the pipeline. It is used by the system to
     // generate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
-    string pipeline_root = 2;
+    string pipeline_root = 2 [json_name = "pipeline_root"];
 
   }
 
   // Runtime config of the pipeline. V2 only
-  RuntimeConfig runtime_config = 6;
+  RuntimeConfig runtime_config = 6 [json_name = "runtime_config"];
 }

@@ -19,16 +19,42 @@ import os
 from pprint import pprint
 from typing import List
 import unittest
-
-import collected_parameters
-import component_with_optional_inputs
-import hello_world
 import kfp
 from kfp.dsl.graph_component import GraphComponent
 from kubernetes import client
 from kubernetes import config
 from kubernetes import utils
-from modelcar import modelcar
+import yaml
+import functools
+from kfp import dsl
+
+def get_kfp_package_path() -> str:
+    path = get_package_path("sdk/python")
+    print(f'Using the following KFP package path for tests: {path}')
+    return path
+
+def get_kfp_pipeline_spec_path() -> str:
+    path = get_package_path("api/v2alpha1/python")
+    print(f'Using the following KFP pipeline spec path for tests: {path}')
+    return path
+
+def get_package_path(subdir: str) -> str:
+    repo_name = os.environ.get('REPO_NAME', 'kubeflow/pipelines')
+    if os.environ.get('PULL_NUMBER'):
+        path = f'git+https://github.com/{repo_name}.git@refs/pull/{os.environ["PULL_NUMBER"]}/merge#subdirectory={subdir}'
+    else:
+        path = f'git+https://github.com/{repo_name}.git@master#subdirectory={subdir}'
+    return path
+
+# Set the component configuration BEFORE importing any pipeline modules
+dsl.component = functools.partial(
+    dsl.component, kfp_package_path=get_kfp_package_path(), packages_to_install=[get_kfp_pipeline_spec_path()])
+
+# Now import the pipeline modules, this way we can leverage the kfp_package and pipeline
+# spec defined above
+import component_with_optional_inputs
+import collected_parameters
+import hello_world
 import parallel_after_dependency
 import parallel_consume_upstream
 import pipeline_container_no_input
@@ -37,17 +63,18 @@ import pipeline_with_placeholders
 import pipeline_with_secret_as_env
 import pipeline_with_secret_as_volume
 import producer_consumer_param
-import subdagio
-import two_step_pipeline_containerized
-import yaml
 import pipeline_with_retry
 import pipeline_with_input_status_state
+import subdagio
+import two_step_pipeline_containerized
 import nested_pipeline_opt_inputs_parent_level
 import nested_pipeline_opt_inputs_nil
 import nested_pipeline_opt_input_child_level
+from modelcar import modelcar
+
 
 _MINUTE = 60  # seconds
-_DEFAULT_TIMEOUT = 10 * _MINUTE
+_DEFAULT_TIMEOUT = 20 * _MINUTE
 SAMPLES_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
 PRE_REQ_DIR = os.path.join(SAMPLES_DIR, 'v2', 'pre-requisites')
 PREREQS = [os.path.join(PRE_REQ_DIR, 'test-secrets.yaml')]
@@ -120,6 +147,7 @@ class SampleTest(unittest.TestCase):
     _kfp_ui_and_port = os.getenv('KFP_UI_HOST_AND_PORT',
                                  'http://localhost:8080')
     _client = kfp.Client(host=_kfp_host_and_port, ui_host=_kfp_ui_and_port)
+
 
     @classmethod
     def setUpClass(cls):

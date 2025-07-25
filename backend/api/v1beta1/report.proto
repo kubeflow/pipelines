@@ -43,5 +43,5 @@ message ReportWorkflowRequest{
 
 message ReportScheduledWorkflowRequest{
   // ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string.
-  string scheduled_workflow = 1;
+  string scheduled_workflow = 1 [json_name = "scheduled_workflow"];
 }

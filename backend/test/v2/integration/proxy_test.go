@@ -131,11 +131,11 @@ func (s *ProxyTestSuite) TestEnvVar() {
 
 	/* ---------- Create a new env var experiment ---------- */
 	experiment := test.MakeExperiment("env var experiment", "", s.resourceNamespace)
-	envVarExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentParams{Body: experiment})
+	envVarExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	require.Nil(t, err)
 
 	/* ---------- Create a new env var run by specifying pipeline version ID ---------- */
-	createRunRequest := &runparams.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &runparams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "env var",
 		Description:  "this is env var",
 		ExperimentID: envVarExperiment.ExperimentID,
@@ -160,7 +160,7 @@ func (s *ProxyTestSuite) TestEnvVar() {
 	assert.Eventually(t, func() bool {
 		envVarRunDetail, err = s.runClient.Get(&runparams.RunServiceGetRunParams{RunID: envVarRunDetail.RunID})
 		t.Logf("Pipeline state: %v", envVarRunDetail.State)
-		return err == nil && envVarRunDetail.State == expectedState
+		return err == nil && *envVarRunDetail.State == expectedState
 	}, 2*time.Minute, 10*time.Second)
 }
 

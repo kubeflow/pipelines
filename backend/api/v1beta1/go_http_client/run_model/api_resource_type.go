@@ -6,17 +6,27 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // APIResourceType api resource type
+//
 // swagger:model apiResourceType
 type APIResourceType string
+
+func NewAPIResourceType(value APIResourceType) *APIResourceType {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated APIResourceType.
+func (m APIResourceType) Pointer() *APIResourceType {
+	return &m
+}
 
 const (
 
@@ -53,7 +63,7 @@ func init() {
 }
 
 func (m APIResourceType) validateAPIResourceTypeEnum(path, location string, value APIResourceType) error {
-	if err := validate.Enum(path, location, value, apiResourceTypeEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, apiResourceTypeEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -71,5 +81,10 @@ func (m APIResourceType) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this api resource type based on context it is used
+func (m APIResourceType) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

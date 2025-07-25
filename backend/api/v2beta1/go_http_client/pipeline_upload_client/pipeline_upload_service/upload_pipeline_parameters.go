@@ -13,71 +13,90 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewUploadPipelineParams creates a new UploadPipelineParams object
-// with the default values initialized.
+// NewUploadPipelineParams creates a new UploadPipelineParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewUploadPipelineParams() *UploadPipelineParams {
-	var ()
 	return &UploadPipelineParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewUploadPipelineParamsWithTimeout creates a new UploadPipelineParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewUploadPipelineParamsWithTimeout(timeout time.Duration) *UploadPipelineParams {
-	var ()
 	return &UploadPipelineParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewUploadPipelineParamsWithContext creates a new UploadPipelineParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewUploadPipelineParamsWithContext(ctx context.Context) *UploadPipelineParams {
-	var ()
 	return &UploadPipelineParams{
-
 		Context: ctx,
 	}
 }
 
 // NewUploadPipelineParamsWithHTTPClient creates a new UploadPipelineParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewUploadPipelineParamsWithHTTPClient(client *http.Client) *UploadPipelineParams {
-	var ()
 	return &UploadPipelineParams{
 		HTTPClient: client,
 	}
 }
 
-/*UploadPipelineParams contains all the parameters to send to the API endpoint
-for the upload pipeline operation typically these are written to a http.Request
+/*
+UploadPipelineParams contains all the parameters to send to the API endpoint
+
+	for the upload pipeline operation.
+
+	Typically these are written to a http.Request.
 */
 type UploadPipelineParams struct {
 
-	/*Description*/
+	// Description.
 	Description *string
-	/*DisplayName*/
-	DisplayName *string
-	/*Name*/
-	Name *string
-	/*Namespace*/
-	Namespace *string
-	/*Uploadfile
-	  The pipeline to upload. Maximum size of 32MB is supported.
 
+	// DisplayName.
+	DisplayName *string
+
+	// Name.
+	Name *string
+
+	// Namespace.
+	Namespace *string
+
+	/* Uploadfile.
+
+	   The pipeline to upload. Maximum size of 32MB is supported.
 	*/
 	Uploadfile runtime.NamedReadCloser
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the upload pipeline params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UploadPipelineParams) WithDefaults() *UploadPipelineParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the upload pipeline params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *UploadPipelineParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the upload pipeline params
@@ -180,66 +199,69 @@ func (o *UploadPipelineParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 
 		// query param description
 		var qrDescription string
+
 		if o.Description != nil {
 			qrDescription = *o.Description
 		}
 		qDescription := qrDescription
 		if qDescription != "" {
+
 			if err := r.SetQueryParam("description", qDescription); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.DisplayName != nil {
 
 		// query param display_name
 		var qrDisplayName string
+
 		if o.DisplayName != nil {
 			qrDisplayName = *o.DisplayName
 		}
 		qDisplayName := qrDisplayName
 		if qDisplayName != "" {
+
 			if err := r.SetQueryParam("display_name", qDisplayName); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.Name != nil {
 
 		// query param name
 		var qrName string
+
 		if o.Name != nil {
 			qrName = *o.Name
 		}
 		qName := qrName
 		if qName != "" {
+
 			if err := r.SetQueryParam("name", qName); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.Namespace != nil {
 
 		// query param namespace
 		var qrNamespace string
+
 		if o.Namespace != nil {
 			qrNamespace = *o.Namespace
 		}
 		qNamespace := qrNamespace
 		if qNamespace != "" {
+
 			if err := r.SetQueryParam("namespace", qNamespace); err != nil {
 				return err
 			}
 		}
-
 	}
-
 	// form file param uploadfile
 	if err := r.SetFileParam("uploadfile", o.Uploadfile); err != nil {
 		return err

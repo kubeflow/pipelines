@@ -13,63 +13,78 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewPipelineServiceGetTemplateParams creates a new PipelineServiceGetTemplateParams object
-// with the default values initialized.
+// NewPipelineServiceGetTemplateParams creates a new PipelineServiceGetTemplateParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewPipelineServiceGetTemplateParams() *PipelineServiceGetTemplateParams {
-	var ()
 	return &PipelineServiceGetTemplateParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewPipelineServiceGetTemplateParamsWithTimeout creates a new PipelineServiceGetTemplateParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewPipelineServiceGetTemplateParamsWithTimeout(timeout time.Duration) *PipelineServiceGetTemplateParams {
-	var ()
 	return &PipelineServiceGetTemplateParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewPipelineServiceGetTemplateParamsWithContext creates a new PipelineServiceGetTemplateParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewPipelineServiceGetTemplateParamsWithContext(ctx context.Context) *PipelineServiceGetTemplateParams {
-	var ()
 	return &PipelineServiceGetTemplateParams{
-
 		Context: ctx,
 	}
 }
 
 // NewPipelineServiceGetTemplateParamsWithHTTPClient creates a new PipelineServiceGetTemplateParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewPipelineServiceGetTemplateParamsWithHTTPClient(client *http.Client) *PipelineServiceGetTemplateParams {
-	var ()
 	return &PipelineServiceGetTemplateParams{
 		HTTPClient: client,
 	}
 }
 
-/*PipelineServiceGetTemplateParams contains all the parameters to send to the API endpoint
-for the pipeline service get template operation typically these are written to a http.Request
+/*
+PipelineServiceGetTemplateParams contains all the parameters to send to the API endpoint
+
+	for the pipeline service get template operation.
+
+	Typically these are written to a http.Request.
 */
 type PipelineServiceGetTemplateParams struct {
 
-	/*ID
-	  The ID of the pipeline whose template is to be retrieved.
+	/* ID.
 
+	   The ID of the pipeline whose template is to be retrieved.
 	*/
 	ID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the pipeline service get template params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceGetTemplateParams) WithDefaults() *PipelineServiceGetTemplateParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the pipeline service get template params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceGetTemplateParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the pipeline service get template params

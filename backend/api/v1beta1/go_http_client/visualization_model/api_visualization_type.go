@@ -6,19 +6,29 @@ package visualization_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // APIVisualizationType Type of visualization to be generated.
 // This is required when creating the pipeline through CreateVisualization
 // API.
+//
 // swagger:model apiVisualizationType
 type APIVisualizationType string
+
+func NewAPIVisualizationType(value APIVisualizationType) *APIVisualizationType {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated APIVisualizationType.
+func (m APIVisualizationType) Pointer() *APIVisualizationType {
+	return &m
+}
 
 const (
 
@@ -52,7 +62,7 @@ func init() {
 }
 
 func (m APIVisualizationType) validateAPIVisualizationTypeEnum(path, location string, value APIVisualizationType) error {
-	if err := validate.Enum(path, location, value, apiVisualizationTypeEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, apiVisualizationTypeEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -70,5 +80,10 @@ func (m APIVisualizationType) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this api visualization type based on context it is used
+func (m APIVisualizationType) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

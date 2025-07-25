@@ -69,43 +69,15 @@ jobs:
         run: kubectl -n kubeflow port-forward service/minio-service 9000:9000 &
         continue-on-error: true
 
-      - name: Install protobuf-compiler
-        id: install-protobuf-compiler
-        run: sudo apt update && sudo apt install -y protobuf-compiler
-
-      - name: Install setuptools
-        id: install-setuptools
-        if: ${{ steps.install-protobuf-compiler.outcome == 'success' }}
-        run: |
-          pip3 install setuptools
-          pip3 freeze
-
-      - name: Install Wheel
-        id: install-wheel
-        if: ${{ steps.install-setuptools.outcome == 'success' }}
-        run: pip3 install wheel==0.42.0
-
-      - name: Install protobuf
-        id: install-protobuf
-        if: ${{ steps.install-wheel.outcome == 'success' }}
-        run: pip3 install protobuf==4.25.3
-
-      - name: Generate API proto files
-        id: generate-api-proto-files
-        if: ${{ steps.install-protobuf.outcome == 'success' }}
-        working-directory: ./api
-        run: make clean python
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
 
       - name: Install requirements
         id: install-requirements
         run: pip install -r ./test/sdk-execution-tests/requirements.txt
 
-      - name: Install kfp-pipeline-spec from source
-        id: install-kfp-pipeline-spec
-        if: ${{ steps.generate-api-proto-files.outcome == 'success' }}
-        run: |
-          python3 -m pip install -I api/v2alpha1/python
-          
       - name: Run tests
         id: tests
         env:

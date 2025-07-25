@@ -57,7 +57,7 @@ wait_for_namespace () {
 
 wait_for_pods () {
     C_DIR="${BASH_SOURCE%/*}"
-    pip install -r "${C_DIR}"/../../../sdk/python/requirements.txt
+    pip install -r "${C_DIR}"/kfp-readiness/requirements.txt
     python "${C_DIR}"/kfp-readiness/wait_for_pods.py
 }
 

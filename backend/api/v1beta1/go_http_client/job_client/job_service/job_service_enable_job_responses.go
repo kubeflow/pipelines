@@ -6,14 +6,14 @@ package job_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	job_model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_model"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_model"
 )
 
 // JobServiceEnableJobReader is a Reader for the JobServiceEnableJob structure.
@@ -24,14 +24,12 @@ type JobServiceEnableJobReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *JobServiceEnableJobReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewJobServiceEnableJobOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewJobServiceEnableJobDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -49,7 +47,8 @@ func NewJobServiceEnableJobOK() *JobServiceEnableJobOK {
 	return &JobServiceEnableJobOK{}
 }
 
-/*JobServiceEnableJobOK handles this case with default header values.
+/*
+JobServiceEnableJobOK describes a response with status code 200, with default header values.
 
 A successful response.
 */
@@ -57,8 +56,48 @@ type JobServiceEnableJobOK struct {
 	Payload interface{}
 }
 
+// IsSuccess returns true when this job service enable job o k response has a 2xx status code
+func (o *JobServiceEnableJobOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this job service enable job o k response has a 3xx status code
+func (o *JobServiceEnableJobOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this job service enable job o k response has a 4xx status code
+func (o *JobServiceEnableJobOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this job service enable job o k response has a 5xx status code
+func (o *JobServiceEnableJobOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this job service enable job o k response a status code equal to that given
+func (o *JobServiceEnableJobOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the job service enable job o k response
+func (o *JobServiceEnableJobOK) Code() int {
+	return 200
+}
+
 func (o *JobServiceEnableJobOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v1beta1/jobs/{id}/enable][%d] jobServiceEnableJobOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/jobs/{id}/enable][%d] jobServiceEnableJobOK %s", 200, payload)
+}
+
+func (o *JobServiceEnableJobOK) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/jobs/{id}/enable][%d] jobServiceEnableJobOK %s", 200, payload)
+}
+
+func (o *JobServiceEnableJobOK) GetPayload() interface{} {
+	return o.Payload
 }
 
 func (o *JobServiceEnableJobOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -78,14 +117,40 @@ func NewJobServiceEnableJobDefault(code int) *JobServiceEnableJobDefault {
 	}
 }
 
-/*JobServiceEnableJobDefault handles this case with default header values.
+/*
+JobServiceEnableJobDefault describes a response with status code -1, with default header values.
 
 An unexpected error response.
 */
 type JobServiceEnableJobDefault struct {
 	_statusCode int
 
-	Payload *job_model.GatewayruntimeError
+	Payload *job_model.GooglerpcStatus
+}
+
+// IsSuccess returns true when this job service enable job default response has a 2xx status code
+func (o *JobServiceEnableJobDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this job service enable job default response has a 3xx status code
+func (o *JobServiceEnableJobDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this job service enable job default response has a 4xx status code
+func (o *JobServiceEnableJobDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this job service enable job default response has a 5xx status code
+func (o *JobServiceEnableJobDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this job service enable job default response a status code equal to that given
+func (o *JobServiceEnableJobDefault) IsCode(code int) bool {
+	return o._statusCode == code
 }
 
 // Code gets the status code for the job service enable job default response
@@ -94,12 +159,22 @@ func (o *JobServiceEnableJobDefault) Code() int {
 }
 
 func (o *JobServiceEnableJobDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v1beta1/jobs/{id}/enable][%d] JobService_EnableJob default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/jobs/{id}/enable][%d] JobService_EnableJob default %s", o._statusCode, payload)
+}
+
+func (o *JobServiceEnableJobDefault) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/jobs/{id}/enable][%d] JobService_EnableJob default %s", o._statusCode, payload)
+}
+
+func (o *JobServiceEnableJobDefault) GetPayload() *job_model.GooglerpcStatus {
+	return o.Payload
 }
 
 func (o *JobServiceEnableJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(job_model.GatewayruntimeError)
+	o.Payload = new(job_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

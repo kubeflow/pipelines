@@ -15,7 +15,6 @@
 import dataclasses
 import functools
 import os
-import subprocess
 import sys
 import kfp_server_api
 import kubernetes.client
@@ -24,10 +23,6 @@ import kubernetes.config
 import pytest
 import yaml
 from typing import Any, Dict, List, Tuple
-from minio import S3Error
-from ml_metadata import metadata_store
-from ml_metadata.proto import metadata_store_pb2
-from ml_metadata.metadata_store.metadata_store import ListOptions
 from minio import Minio
 from kfp import client
 from kfp import dsl
@@ -110,6 +105,10 @@ def import_obj_from_file(python_path: str, obj_name: str) -> Any:
 
 
 def run(test_case: TestCase) -> Tuple[str, client.client.RunPipelineResult]:
+    # Ensure that we are installing pipeline-spec from source during pipeline execution.
+    if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' not in os.environ:
+        os.environ['KFP_PIPELINE_SPEC_PACKAGE_PATH'] = get_kfp_pipeline_spec_path()
+
     full_path = os.path.join(PROJECT_ROOT, test_case.module_path)
     pipeline_func = import_obj_from_file(full_path, test_case.function_name)
     run_result = kfp_client.create_run_from_pipeline_func(
@@ -125,34 +124,8 @@ def run(test_case: TestCase) -> Tuple[str, client.client.RunPipelineResult]:
     return run_url, run_result
 
 
-def get_run_artifacts(run_id: str):
-    mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
-        host=METADATA_HOST,
-        port=METADATA_PORT,
-    )
-    mlmd_store = metadata_store.MetadataStore(mlmd_connection_config)
-    contexts = mlmd_store.get_contexts(list_options=ListOptions(filter_query=f"name = '{run_id}'"))
-    if len(contexts) != 1:
-        print("ERROR: Unable to find pipelinerun context in MLMD", file=sys.stderr)
-        return []
-
-    context = contexts[0]
-    return [a for a in mlmd_store.get_artifacts_by_context(context.id)]
-
-
 def cleanup_run_resources(run_id: str):
     print(f"Cleaning up resources for run {run_id}")
-
-    artifacts = get_run_artifacts(run_id)
-    print(f"Found {len(artifacts)} artifacts for run {run_id}")
-    # Clean up any Artifacts from object store
-    for artifact in artifacts:
-        try:
-            object_key = artifact.uri.removeprefix(f"minio://{BUCKET_NAME}")
-            print(f"Deleting artifact {object_key} for run {run_id}")
-            minio_client.remove_object(BUCKET_NAME, object_key)
-        except S3Error as err:
-            print(f"MinIO error: {err} for run {run_id}")
 
     # Clean up Argo Workflow
     try:
@@ -171,17 +144,26 @@ def cleanup_run_resources(run_id: str):
 
 
 def get_kfp_package_path() -> str:
+    path = get_package_path("sdk/python")
+    print(f'Using the following KFP package path for tests: {path}')
+    return path
+
+def get_kfp_pipeline_spec_path() -> str:
+    path = get_package_path("api/v2alpha1/python")
+    print(f'Using the following KFP pipeline spec path for tests: {path}')
+    return path
+
+def get_package_path(subdir: str) -> str:
     repo_name = os.environ.get('REPO_NAME', 'kubeflow/pipelines')
     if os.environ.get('PULL_NUMBER'):
-        path = f'git+https://github.com/{repo_name}.git@refs/pull/{os.environ["PULL_NUMBER"]}/merge#subdirectory=sdk/python'
+        path = f'git+https://github.com/{repo_name}.git@refs/pull/{os.environ["PULL_NUMBER"]}/merge#subdirectory={subdir}'
     else:
-        path = f'git+https://github.com/{repo_name}.git@master#subdirectory=sdk/python'
-    print(f'Using the following KFP package path for tests: {path}')
+        path = f'git+https://github.com/{repo_name}.git@master#subdirectory={subdir}'
     return path
 
 
 dsl.component = functools.partial(
-    dsl.component, kfp_package_path=get_kfp_package_path())
+    dsl.component, kfp_package_path=get_kfp_package_path(),  packages_to_install=[get_kfp_pipeline_spec_path()])
 
 
 @pytest.mark.parametrize('test_case', create_test_case_parameters())

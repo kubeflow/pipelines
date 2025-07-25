@@ -13,63 +13,84 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewRunServiceRetryRunParams creates a new RunServiceRetryRunParams object
-// with the default values initialized.
+// NewRunServiceRetryRunParams creates a new RunServiceRetryRunParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRunServiceRetryRunParams() *RunServiceRetryRunParams {
-	var ()
 	return &RunServiceRetryRunParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRunServiceRetryRunParamsWithTimeout creates a new RunServiceRetryRunParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRunServiceRetryRunParamsWithTimeout(timeout time.Duration) *RunServiceRetryRunParams {
-	var ()
 	return &RunServiceRetryRunParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewRunServiceRetryRunParamsWithContext creates a new RunServiceRetryRunParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRunServiceRetryRunParamsWithContext(ctx context.Context) *RunServiceRetryRunParams {
-	var ()
 	return &RunServiceRetryRunParams{
-
 		Context: ctx,
 	}
 }
 
 // NewRunServiceRetryRunParamsWithHTTPClient creates a new RunServiceRetryRunParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRunServiceRetryRunParamsWithHTTPClient(client *http.Client) *RunServiceRetryRunParams {
-	var ()
 	return &RunServiceRetryRunParams{
 		HTTPClient: client,
 	}
 }
 
-/*RunServiceRetryRunParams contains all the parameters to send to the API endpoint
-for the run service retry run operation typically these are written to a http.Request
+/*
+RunServiceRetryRunParams contains all the parameters to send to the API endpoint
+
+	for the run service retry run operation.
+
+	Typically these are written to a http.Request.
 */
 type RunServiceRetryRunParams struct {
 
-	/*RunID
-	  The ID of the run to be retried.
+	/* ExperimentID.
 
+	   The ID of the parent experiment.
+	*/
+	ExperimentID *string
+
+	/* RunID.
+
+	   The ID of the run to be retried.
 	*/
 	RunID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the run service retry run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceRetryRunParams) WithDefaults() *RunServiceRetryRunParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the run service retry run params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceRetryRunParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the run service retry run params
@@ -105,6 +126,17 @@ func (o *RunServiceRetryRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithExperimentID adds the experimentID to the run service retry run params
+func (o *RunServiceRetryRunParams) WithExperimentID(experimentID *string) *RunServiceRetryRunParams {
+	o.SetExperimentID(experimentID)
+	return o
+}
+
+// SetExperimentID adds the experimentId to the run service retry run params
+func (o *RunServiceRetryRunParams) SetExperimentID(experimentID *string) {
+	o.ExperimentID = experimentID
+}
+
 // WithRunID adds the runID to the run service retry run params
 func (o *RunServiceRetryRunParams) WithRunID(runID string) *RunServiceRetryRunParams {
 	o.SetRunID(runID)
@@ -123,6 +155,23 @@ func (o *RunServiceRetryRunParams) WriteToRequest(r runtime.ClientRequest, reg s
 		return err
 	}
 	var res []error
+
+	if o.ExperimentID != nil {
+
+		// query param experiment_id
+		var qrExperimentID string
+
+		if o.ExperimentID != nil {
+			qrExperimentID = *o.ExperimentID
+		}
+		qExperimentID := qrExperimentID
+		if qExperimentID != "" {
+
+			if err := r.SetQueryParam("experiment_id", qExperimentID); err != nil {
+				return err
+			}
+		}
+	}
 
 	// path param run_id
 	if err := r.SetPathParam("run_id", o.RunID); err != nil {

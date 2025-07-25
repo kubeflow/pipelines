@@ -6,22 +6,32 @@ package job_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // ProtobufNullValue `NullValue` is a singleton enumeration to represent the null value for the
 // `Value` type union.
 //
-//  The JSON representation for `NullValue` is JSON `null`.
+// The JSON representation for `NullValue` is JSON `null`.
 //
-//  - NULL_VALUE: Null value.
+//   - NULL_VALUE: Null value.
+//
 // swagger:model protobufNullValue
 type ProtobufNullValue string
+
+func NewProtobufNullValue(value ProtobufNullValue) *ProtobufNullValue {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated ProtobufNullValue.
+func (m ProtobufNullValue) Pointer() *ProtobufNullValue {
+	return &m
+}
 
 const (
 
@@ -43,7 +53,7 @@ func init() {
 }
 
 func (m ProtobufNullValue) validateProtobufNullValueEnum(path, location string, value ProtobufNullValue) error {
-	if err := validate.Enum(path, location, value, protobufNullValueEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, protobufNullValueEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -61,5 +71,10 @@ func (m ProtobufNullValue) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this protobuf null value based on context it is used
+func (m ProtobufNullValue) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

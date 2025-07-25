@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 import sys
 import tempfile
 
@@ -76,6 +77,8 @@ try:
     from kfp.dsl import Output
 
     PACKAGES_TO_INSTALL = ['aiplatform']
+    if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' in os.environ:
+        PACKAGES_TO_INSTALL.append(os.environ['KFP_PIPELINE_SPEC_PACKAGE_PATH'])
 
     @dsl.component(packages_to_install=PACKAGES_TO_INSTALL)
     def model_producer(model: Output[aiplatform.VertexModel]):

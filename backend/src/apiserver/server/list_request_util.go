@@ -17,11 +17,11 @@ package server
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
 
-	"github.com/golang/protobuf/jsonpb"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -29,6 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (
@@ -145,16 +146,23 @@ func parseAPIFilter(encoded string, apiVersion string) (interface{}, error) {
 	if err != nil {
 		return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
 	}
+
+	transformedJSON, err := transformJSONForBackwardCompatibility(decoded)
+	if err != nil {
+		fmt.Printf("Failed to transform JSON: %v\n", err)
+		return nil, err
+	}
+
 	switch apiVersion {
 	case "v2beta1":
 		f := &apiv2beta1.Filter{}
-		if err := jsonpb.UnmarshalString(decoded, f); err != nil {
+		if err := protojson.Unmarshal([]byte(transformedJSON), f); err != nil {
 			return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
 		}
 		return f, nil
 	case "v1beta1":
 		f := &apiv1beta1.Filter{}
-		if err := jsonpb.UnmarshalString(decoded, f); err != nil {
+		if err := protojson.Unmarshal([]byte(transformedJSON), f); err != nil {
 			return nil, util.NewInvalidInputError("failed to parse valid filter from %q: %v", encoded, err)
 		}
 		return f, nil
@@ -205,4 +213,24 @@ func validatedListOptions(listable list.Listable, pageToken string, pageSize int
 	}
 
 	return opts, nil
+}
+
+// transformJSONForBackwardCompatibility replaces specific JSON key names to maintain
+// backward compatibility with older APIs. Previously, KFP deviated from the typical
+// snake_case naming convention for protobuf field names for Filter predicate values.
+// This function replaces specific JSON key names to maintain backward compatibility
+// with older APIs.
+// See Predicate.value in backend/api/v2beta1/filter.proto for these values.
+// Previously
+func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
+	replacer := strings.NewReplacer(
+		`"intValue":`, `"int_value":`,
+		`"longValue":`, `"long_value":`,
+		`"stringValue":`, `"string_value":`,
+		`"timestampValue":`, `"timestamp_value":`,
+		`"intValues":`, `"int_values":`,
+		`"longValues":`, `"long_values":`,
+		`"stringValues":`, `"string_values":`,
+	)
+	return replacer.Replace(jsonStr), nil
 }

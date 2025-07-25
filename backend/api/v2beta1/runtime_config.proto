@@ -29,5 +29,5 @@ message RuntimeConfig {
   // output directory of the pipeline. It is used by the system to
   // generate the paths of output artifacts. 
   // Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
-  string pipeline_root = 2;
+  string pipeline_root = 2 [json_name = "pipeline_root"];
 }

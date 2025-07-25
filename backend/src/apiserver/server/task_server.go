@@ -18,6 +18,8 @@ import (
 	"context"
 	"strings"
 
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -26,6 +28,7 @@ import (
 
 type TaskServer struct {
 	resourceManager *resource.ResourceManager
+	apiv1beta1.UnimplementedTaskServiceServer
 }
 
 // Creates a task.

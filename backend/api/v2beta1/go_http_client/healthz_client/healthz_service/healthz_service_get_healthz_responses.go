@@ -6,14 +6,14 @@ package healthz_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	healthz_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/healthz_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/healthz_model"
 )
 
 // HealthzServiceGetHealthzReader is a Reader for the HealthzServiceGetHealthz structure.
@@ -24,14 +24,12 @@ type HealthzServiceGetHealthzReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *HealthzServiceGetHealthzReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewHealthzServiceGetHealthzOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewHealthzServiceGetHealthzDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -49,7 +47,8 @@ func NewHealthzServiceGetHealthzOK() *HealthzServiceGetHealthzOK {
 	return &HealthzServiceGetHealthzOK{}
 }
 
-/*HealthzServiceGetHealthzOK handles this case with default header values.
+/*
+HealthzServiceGetHealthzOK describes a response with status code 200, with default header values.
 
 A successful response.
 */
@@ -57,8 +56,48 @@ type HealthzServiceGetHealthzOK struct {
 	Payload *healthz_model.V2beta1GetHealthzResponse
 }
 
+// IsSuccess returns true when this healthz service get healthz o k response has a 2xx status code
+func (o *HealthzServiceGetHealthzOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this healthz service get healthz o k response has a 3xx status code
+func (o *HealthzServiceGetHealthzOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this healthz service get healthz o k response has a 4xx status code
+func (o *HealthzServiceGetHealthzOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this healthz service get healthz o k response has a 5xx status code
+func (o *HealthzServiceGetHealthzOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this healthz service get healthz o k response a status code equal to that given
+func (o *HealthzServiceGetHealthzOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the healthz service get healthz o k response
+func (o *HealthzServiceGetHealthzOK) Code() int {
+	return 200
+}
+
 func (o *HealthzServiceGetHealthzOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v2beta1/healthz][%d] healthzServiceGetHealthzOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/healthz][%d] healthzServiceGetHealthzOK %s", 200, payload)
+}
+
+func (o *HealthzServiceGetHealthzOK) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/healthz][%d] healthzServiceGetHealthzOK %s", 200, payload)
+}
+
+func (o *HealthzServiceGetHealthzOK) GetPayload() *healthz_model.V2beta1GetHealthzResponse {
+	return o.Payload
 }
 
 func (o *HealthzServiceGetHealthzOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -80,14 +119,40 @@ func NewHealthzServiceGetHealthzDefault(code int) *HealthzServiceGetHealthzDefau
 	}
 }
 
-/*HealthzServiceGetHealthzDefault handles this case with default header values.
+/*
+HealthzServiceGetHealthzDefault describes a response with status code -1, with default header values.
 
 An unexpected error response.
 */
 type HealthzServiceGetHealthzDefault struct {
 	_statusCode int
 
-	Payload *healthz_model.RuntimeError
+	Payload *healthz_model.GooglerpcStatus
+}
+
+// IsSuccess returns true when this healthz service get healthz default response has a 2xx status code
+func (o *HealthzServiceGetHealthzDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this healthz service get healthz default response has a 3xx status code
+func (o *HealthzServiceGetHealthzDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this healthz service get healthz default response has a 4xx status code
+func (o *HealthzServiceGetHealthzDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this healthz service get healthz default response has a 5xx status code
+func (o *HealthzServiceGetHealthzDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this healthz service get healthz default response a status code equal to that given
+func (o *HealthzServiceGetHealthzDefault) IsCode(code int) bool {
+	return o._statusCode == code
 }
 
 // Code gets the status code for the healthz service get healthz default response
@@ -96,12 +161,22 @@ func (o *HealthzServiceGetHealthzDefault) Code() int {
 }
 
 func (o *HealthzServiceGetHealthzDefault) Error() string {
-	return fmt.Sprintf("[GET /apis/v2beta1/healthz][%d] HealthzService_GetHealthz default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/healthz][%d] HealthzService_GetHealthz default %s", o._statusCode, payload)
+}
+
+func (o *HealthzServiceGetHealthzDefault) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/healthz][%d] HealthzService_GetHealthz default %s", o._statusCode, payload)
+}
+
+func (o *HealthzServiceGetHealthzDefault) GetPayload() *healthz_model.GooglerpcStatus {
+	return o.Payload
 }
 
 func (o *HealthzServiceGetHealthzDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(healthz_model.RuntimeError)
+	o.Payload = new(healthz_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

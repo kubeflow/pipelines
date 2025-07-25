@@ -13,73 +13,90 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewRunServiceReadArtifactV1Params creates a new RunServiceReadArtifactV1Params object
-// with the default values initialized.
+// NewRunServiceReadArtifactV1Params creates a new RunServiceReadArtifactV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRunServiceReadArtifactV1Params() *RunServiceReadArtifactV1Params {
-	var ()
 	return &RunServiceReadArtifactV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRunServiceReadArtifactV1ParamsWithTimeout creates a new RunServiceReadArtifactV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRunServiceReadArtifactV1ParamsWithTimeout(timeout time.Duration) *RunServiceReadArtifactV1Params {
-	var ()
 	return &RunServiceReadArtifactV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewRunServiceReadArtifactV1ParamsWithContext creates a new RunServiceReadArtifactV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRunServiceReadArtifactV1ParamsWithContext(ctx context.Context) *RunServiceReadArtifactV1Params {
-	var ()
 	return &RunServiceReadArtifactV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewRunServiceReadArtifactV1ParamsWithHTTPClient creates a new RunServiceReadArtifactV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRunServiceReadArtifactV1ParamsWithHTTPClient(client *http.Client) *RunServiceReadArtifactV1Params {
-	var ()
 	return &RunServiceReadArtifactV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*RunServiceReadArtifactV1Params contains all the parameters to send to the API endpoint
-for the run service read artifact v1 operation typically these are written to a http.Request
+/*
+RunServiceReadArtifactV1Params contains all the parameters to send to the API endpoint
+
+	for the run service read artifact v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type RunServiceReadArtifactV1Params struct {
 
-	/*ArtifactName
-	  The name of the artifact.
+	/* ArtifactName.
 
+	   The name of the artifact.
 	*/
 	ArtifactName string
-	/*NodeID
-	  The ID of the running node.
 
+	/* NodeID.
+
+	   The ID of the running node.
 	*/
 	NodeID string
-	/*RunID
-	  The ID of the run.
 
+	/* RunID.
+
+	   The ID of the run.
 	*/
 	RunID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the run service read artifact v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceReadArtifactV1Params) WithDefaults() *RunServiceReadArtifactV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the run service read artifact v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceReadArtifactV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the run service read artifact v1 params

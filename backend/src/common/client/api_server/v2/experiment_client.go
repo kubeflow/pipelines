@@ -81,8 +81,8 @@ func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExpe
 	response, err := c.apiClient.ExperimentService.ExperimentServiceCreateExperiment(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create experiment. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
-			fmt.Sprintf("Failed to create experiment '%v'", parameters.Body.DisplayName))
+			fmt.Sprintf("Failed to create experiment. Params: '%+v'. Body: '%+v'", parameters, parameters.Experiment),
+			fmt.Sprintf("Failed to create experiment '%v'", parameters.Experiment.DisplayName))
 	}
 
 	return response.Payload, nil
