@@ -43,6 +43,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const (
+	WorkspacePlaceholder = "{{$.workspace_path}}"
+	WorkspaceMountPath   = "/kfp-workspace"
+)
+
 type LauncherV2Options struct {
 	Namespace,
 	PodName,
@@ -818,6 +823,9 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		key := fmt.Sprintf(`{{$.outputs.parameters['%s'].output_file}}`, name)
 		placeholders[key] = parameter.OutputFile
 	}
+
+	// Add workspace path placeholder
+	placeholders[WorkspacePlaceholder] = WorkspaceMountPath
 
 	return placeholders, nil
 }
