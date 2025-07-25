@@ -4,13 +4,6 @@ Kubeflow Pipelines uses [Argo Workflows](https://argoproj.github.io/argo-workflo
 
 This folder contains preconfigured Argo Workflows installations used in Kubeflow Pipelines distributions that use **remote references** to the upstream Argo Workflows repository instead of local copies.
 
-Major differences from upstream argo manifests:
-
-* Argo server is not included.
-* Argo workflow controller configmap is preconfigured to integrate with KFP.
-* Images are configured to use KFP redistributed ones which comply with open source licenses.
-* A default artifact repository config is added for in-cluster minio service.
-
 ## Remote References Implementation
 
 KFP uses remote Git references to Argo Workflows manifests instead of maintaining local copies. This approach:
