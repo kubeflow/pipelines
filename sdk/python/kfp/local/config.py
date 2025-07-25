@@ -15,7 +15,8 @@
 import abc
 import dataclasses
 import os
-from typing import Union
+import tempfile
+from typing import Optional, Union
 
 from kfp import local
 
@@ -191,6 +192,7 @@ class LocalExecutionConfig:
         cls,
         runner: SubprocessRunner,
         pipeline_root: str,
+        workspace_root: str,
         raise_on_error: bool,
     ) -> 'LocalExecutionConfig':
         # singleton pattern
@@ -201,6 +203,7 @@ class LocalExecutionConfig:
         self,
         runner: SubprocessRunner,
         pipeline_root: str,
+        workspace_root: str,
         raise_on_error: bool,
     ) -> None:
         permitted_runners = (SubprocessRunner, DockerRunner)
@@ -210,6 +213,7 @@ class LocalExecutionConfig:
             )
         self.runner = runner
         self.pipeline_root = pipeline_root
+        self.workspace_root = workspace_root
         self.raise_on_error = raise_on_error
 
     @classmethod
@@ -224,6 +228,7 @@ def init(
     # annotate with subclasses, not parent class, for more helpful ref docs
     runner: Union[SubprocessRunner, DockerRunner],
     pipeline_root: str = './local_outputs',
+    workspace_root: Optional[str] = None,
     raise_on_error: bool = True,
 ) -> None:
     """Initializes a local execution session.
@@ -233,12 +238,17 @@ def init(
     Args:
         runner: The runner to use. Supported runners: kfp.local.SubprocessRunner and kfp.local.DockerRunner.
         pipeline_root: Destination for task outputs.
+        workspace_root: Directory to use as workspace. If None, a temporary directory will be created.
         raise_on_error: If True, raises an exception when a local task execution fails. If False, fails gracefully and does not terminate the current program.
     """
     # updates a global config
     pipeline_root = os.path.abspath(pipeline_root)
+    if workspace_root is None:
+        workspace_root = tempfile.mkdtemp(prefix='kfp-workspace-')
+
     LocalExecutionConfig(
         runner=runner,
         pipeline_root=pipeline_root,
+        workspace_root=workspace_root,
         raise_on_error=raise_on_error,
     )

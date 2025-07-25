@@ -19,9 +19,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/genproto/googleapis/rpc/status"
@@ -389,8 +391,15 @@ func resolveInputParameter(
 		switch t := runtimeValue.Value.(type) {
 		case *pipelinespec.ValueOrRuntimeParameter_Constant:
 			val := runtimeValue.GetConstant()
+			valStr := val.GetStringValue()
 			var v *structpb.Value
-			switch val.GetStringValue() {
+
+			if strings.Contains(valStr, "{{$.workspace_path}}") {
+				v = structpb.NewStringValue(strings.ReplaceAll(valStr, "{{$.workspace_path}}", component.WorkspaceMountPath))
+				return v, nil
+			}
+
+			switch valStr {
 			case "{{$.pipeline_job_name}}":
 				v = structpb.NewStringValue(opts.RunDisplayName)
 			case "{{$.pipeline_job_resource_name}}":
