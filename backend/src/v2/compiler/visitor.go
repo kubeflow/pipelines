@@ -111,11 +111,13 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 
 		// Add kubernetes spec to annotation
 		if state.kubernetesSpec != nil && state.kubernetesSpec.DeploymentSpec != nil {
-			kubernetesExecSpec, ok := state.kubernetesSpec.DeploymentSpec.Executors[executorLabel]
-			if ok {
-				err := state.visitor.AddKubernetesSpec(name, kubernetesExecSpec)
-				if err != nil {
-					return componentError(fmt.Errorf("failed to add Kubernetes spec for %s: %w", name, err))
+			if state.kubernetesSpec.DeploymentSpec.Executors != nil {
+				kubernetesExecSpec, ok := state.kubernetesSpec.DeploymentSpec.Executors[executorLabel]
+				if ok {
+					err := state.visitor.AddKubernetesSpec(name, kubernetesExecSpec)
+					if err != nil {
+						return componentError(fmt.Errorf("failed to add Kubernetes spec for %s: %w", name, err))
+					}
 				}
 			}
 		}

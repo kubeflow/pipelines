@@ -13,6 +13,9 @@
 # limitations under the License.
 """Constants."""
 
+# Workspace-related constants
+WORKSPACE_MOUNT_PATH = '/kfp-workspace'
+
 # Unit constants for k8s size string.
 _E = 10**18  # Exa
 _EI = 1 << 60  # Exa: power-of-two approximate

@@ -19,6 +19,7 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from kfp import dsl
+from kfp.local import config
 
 
 def make_random_id() -> str:
@@ -319,6 +320,14 @@ def resolve_struct_placeholders(
         return placeholder
 
 
+def _raise_workspace_not_configured() -> None:
+    """Raises an exception when workspace_root is not configured."""
+    raise RuntimeError(
+        'Workspace not configured. Initialize with workspace_root parameter:\n'
+        'local.init(runner=local.SubprocessRunner(), workspace_root=\'/path/to/workspace\')'
+    )
+
+
 def resolve_individual_placeholder(
     element: str,
     executor_input_dict: Dict[str, Any],
@@ -347,6 +356,11 @@ def resolve_individual_placeholder(
             pipeline_task_id,
         dsl.PIPELINE_ROOT_PLACEHOLDER:
             pipeline_root,
+        dsl.WORKSPACE_PATH_PLACEHOLDER:
+            config.LocalExecutionConfig.instance.workspace_root
+            if config.LocalExecutionConfig.instance and
+            config.LocalExecutionConfig.instance.workspace_root else
+            _raise_workspace_not_configured(),
     }
     for placeholder, value in PLACEHOLDERS.items():
         element = element.replace(placeholder, value)

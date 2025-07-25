@@ -24,6 +24,13 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 
 class TestRunImporter(testing_utilities.LocalRunnerEnvironmentTestCase):
 
+    def setUp(self):
+        """Set up test environment with workspace configured."""
+        super().setUp()
+        # Initialize local environment with workspace for importer tests
+        from kfp import local
+        local.init(runner=local.SubprocessRunner())
+
     def test_uri_from_upstream(self):
         component_spec_dict = {
             'inputDefinitions': {
