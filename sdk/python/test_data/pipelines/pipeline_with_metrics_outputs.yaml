@@ -11,7 +11,6 @@ components:
             name: comp-output-metrics-2
           taskInfo:
             name: output-metrics-2
-            taskName: output-metrics-2
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-1:
@@ -117,6 +116,5 @@ root:
           name: comp-output-metrics
         taskInfo:
           name: output-metrics
-          taskName: output-metrics
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

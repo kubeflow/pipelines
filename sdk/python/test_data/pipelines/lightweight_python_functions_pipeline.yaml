@@ -195,7 +195,6 @@ root:
               componentInputParameter: message
         taskInfo:
           name: preprocess
-          taskName: preprocess
       train:
         cachingOptions:
           enableCache: true
@@ -232,7 +231,6 @@ root:
                 producerTask: preprocess
         taskInfo:
           name: train
-          taskName: train
   inputDefinitions:
     parameters:
       input_dict:

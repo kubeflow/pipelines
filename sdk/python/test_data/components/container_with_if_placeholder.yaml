@@ -65,7 +65,6 @@ root:
               componentInputParameter: optional_input
         taskInfo:
           name: container-with-if-placeholder
-          taskName: container-with-if-placeholder
   inputDefinitions:
     parameters:
       optional_input:

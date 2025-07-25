@@ -74,7 +74,6 @@ components:
                 componentInputArtifact: in_datasets1
           taskInfo:
             name: add
-            taskName: add
         add-2:
           cachingOptions:
             enableCache: true
@@ -86,7 +85,6 @@ components:
                 componentInputArtifact: in_datasets2
           taskInfo:
             name: add-2
-            taskName: add-2
         add-two-ints:
           cachingOptions:
             enableCache: true
@@ -107,7 +105,6 @@ components:
                   producerTask: add-2
           taskInfo:
             name: add-two-ints
-            taskName: add-two-ints
     inputDefinitions:
       artifacts:
         in_datasets1:
@@ -146,7 +143,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-3
           taskInfo:
             name: double-2
-            taskName: double-2
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-3:
@@ -208,7 +204,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-1
           taskInfo:
             name: double
-            taskName: double
         for-loop-4:
           componentRef:
             name: comp-for-loop-4
@@ -468,7 +463,6 @@ root:
                 producerTask: for-loop-2
         taskInfo:
           name: add-two-lists-of-datasets
-          taskName: add-two-lists-of-datasets
       for-loop-2:
         componentRef:
           name: comp-for-loop-2

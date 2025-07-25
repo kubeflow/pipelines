@@ -18,7 +18,6 @@ components:
                   constant: Task failed.
           taskInfo:
             name: fail-op
-            taskName: fail-op
         print-op-2:
           cachingOptions:
             enableCache: true
@@ -30,7 +29,6 @@ components:
                 componentInputParameter: pipelinechannel--message
           taskInfo:
             name: print-op-2
-            taskName: print-op-2
     inputDefinitions:
       parameters:
         pipelinechannel--message:
@@ -170,7 +168,6 @@ root:
                 constant: Exit handler has worked!
         taskInfo:
           name: print-op
-          taskName: print-op
         triggerPolicy:
           strategy: ALL_UPSTREAM_TASKS_COMPLETED
   inputDefinitions:

@@ -90,7 +90,6 @@ root:
               componentInputParameter: input_location
         taskInfo:
           name: ingestion
-          taskName: ingestion
       trainer:
         cachingOptions:
           enableCache: true
@@ -111,7 +110,6 @@ root:
               componentInputParameter: optimizer
         taskInfo:
           name: trainer
-          taskName: trainer
   inputDefinitions:
     parameters:
       input_location:

@@ -63,7 +63,6 @@ root:
           name: comp-output-metrics
         taskInfo:
           name: output-metrics
-          taskName: output-metrics
   outputDefinitions:
     artifacts:
       metrics:

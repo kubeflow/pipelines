@@ -35,7 +35,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-1
           taskInfo:
             name: double
-            taskName: double
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-1:
@@ -66,7 +65,6 @@ components:
                 componentInputParameter: pipelinechannel--for-loop-2-pipelinechannel--double-Output
           taskInfo:
             name: add
-            taskName: add
     inputDefinitions:
       parameters:
         pipelinechannel--for-loop-2-pipelinechannel--double-Output:

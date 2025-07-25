@@ -145,7 +145,6 @@ root:
               componentInputParameter: message
         taskInfo:
           name: preprocess
-          taskName: preprocess
   inputDefinitions:
     parameters:
       input_dict_parameter:

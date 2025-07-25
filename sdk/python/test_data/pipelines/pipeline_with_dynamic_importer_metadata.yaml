@@ -130,7 +130,6 @@ root:
               componentInputParameter: pipeline_input_artifact_uri
         taskInfo:
           name: importer
-          taskName: importer
       importer-2:
         cachingOptions:
           enableCache: true
@@ -153,7 +152,6 @@ root:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
         taskInfo:
           name: importer-2
-          taskName: importer-2
       make-name:
         cachingOptions:
           enableCache: true
@@ -166,7 +164,6 @@ root:
                 constant: a-different-name
         taskInfo:
           name: make-name
-          taskName: make-name
   inputDefinitions:
     parameters:
       int_input:

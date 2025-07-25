@@ -47,7 +47,6 @@ components:
                 componentInputArtifact: dataset
           taskInfo:
             name: python-artifact-printer
-            taskName: python-artifact-printer
     inputDefinitions:
       artifacts:
         dataset:
@@ -69,7 +68,6 @@ components:
                 componentInputArtifact: dataset
           taskInfo:
             name: python-artifact-printer
-            taskName: python-artifact-printer
     inputDefinitions:
       artifacts:
         dataset:
@@ -194,7 +192,6 @@ root:
               componentInputArtifact: dataset1
         taskInfo:
           name: custom-artifact-printer
-          taskName: custom-artifact-printer
       custom-artifact-printer-2:
         cachingOptions:
           enableCache: true
@@ -202,7 +199,6 @@ root:
           name: comp-custom-artifact-printer-2
         taskInfo:
           name: custom-artifact-printer-2
-          taskName: custom-artifact-printer-2
       importer:
         cachingOptions:
           enableCache: true
@@ -215,7 +211,6 @@ root:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
         taskInfo:
           name: importer
-          taskName: importer
       inner-pipeline:
         cachingOptions:
           enableCache: true
@@ -231,7 +226,6 @@ root:
                 producerTask: importer
         taskInfo:
           name: inner-pipeline
-          taskName: inner-pipeline
       inner-pipeline-2:
         cachingOptions:
           enableCache: true
@@ -239,7 +233,6 @@ root:
           name: comp-inner-pipeline-2
         taskInfo:
           name: inner-pipeline-2
-          taskName: inner-pipeline-2
   inputDefinitions:
     artifacts:
       dataset1:

@@ -103,7 +103,6 @@ root:
               componentInputParameter: a
         taskInfo:
           name: add
-          taskName: add
       add-2:
         cachingOptions:
           enableCache: true
@@ -121,7 +120,6 @@ root:
                 producerTask: add
         taskInfo:
           name: add-2
-          taskName: add-2
       add-3:
         cachingOptions:
           enableCache: true
@@ -140,7 +138,6 @@ root:
                 producerTask: add-2
         taskInfo:
           name: add-3
-          taskName: add-3
   inputDefinitions:
     parameters:
       a:

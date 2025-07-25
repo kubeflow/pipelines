@@ -18,7 +18,6 @@ components:
                   constant: world
           taskInfo:
             name: print-op2
-            taskName: print-op2
     inputDefinitions:
       parameters:
         pipelinechannel--print-op1-Output:
@@ -38,7 +37,6 @@ components:
                   constant: Bye!
           taskInfo:
             name: print-op
-            taskName: print-op
     inputDefinitions:
       parameters:
         pipelinechannel--print-op1-Output:
@@ -57,7 +55,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-1
           taskInfo:
             name: inner-pipeline
-            taskName: inner-pipeline
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-1:
@@ -108,7 +105,6 @@ components:
                 componentInputParameter: msg
           taskInfo:
             name: print-op1
-            taskName: print-op1
     inputDefinitions:
       parameters:
         msg:
@@ -242,7 +238,6 @@ root:
               componentInputParameter: msg
         taskInfo:
           name: print-op1
-          taskName: print-op1
   inputDefinitions:
     parameters:
       msg:

@@ -24,7 +24,6 @@ components:
                   constant: Got heads!
           taskInfo:
             name: print-and-return
-            taskName: print-and-return
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-Output:
@@ -54,7 +53,6 @@ components:
                   constant: Got tails!
           taskInfo:
             name: print-and-return-2
-            taskName: print-and-return-2
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-Output:
@@ -292,7 +290,6 @@ root:
           name: comp-flip-coin
         taskInfo:
           name: flip-coin
-          taskName: flip-coin
       print-and-return-3:
         cachingOptions:
           enableCache: true
@@ -308,7 +305,6 @@ root:
                 producerTask: condition-branches-1
         taskInfo:
           name: print-and-return-3
-          taskName: print-and-return-3
   outputDefinitions:
     parameters:
       Output:

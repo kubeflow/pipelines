@@ -208,7 +208,6 @@ root:
               componentInputParameter: second_number
         taskInfo:
           name: add-numbers
-          taskName: add-numbers
       concat-message:
         cachingOptions:
           enableCache: true
@@ -222,7 +221,6 @@ root:
               componentInputParameter: second_message
         taskInfo:
           name: concat-message
-          taskName: concat-message
       output-artifact:
         cachingOptions:
           enableCache: true
@@ -243,7 +241,6 @@ root:
                 producerTask: add-numbers
         taskInfo:
           name: output-artifact
-          taskName: output-artifact
       output-named-tuple:
         cachingOptions:
           enableCache: true
@@ -259,7 +256,6 @@ root:
                 producerTask: output-artifact
         taskInfo:
           name: output-named-tuple
-          taskName: output-named-tuple
   inputDefinitions:
     parameters:
       first_message:

@@ -32,6 +32,5 @@ root:
                 constant: 'some prefix:'
         taskInfo:
           name: component-with-concat-placeholder
-          taskName: component-with-concat-placeholder
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

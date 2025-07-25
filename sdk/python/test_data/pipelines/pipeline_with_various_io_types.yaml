@@ -179,7 +179,6 @@ root:
                 producerTask: upstream
         taskInfo:
           name: downstream
-          taskName: downstream
       upstream:
         cachingOptions:
           enableCache: true
@@ -199,7 +198,6 @@ root:
               componentInputParameter: input4
         taskInfo:
           name: upstream
-          taskName: upstream
   inputDefinitions:
     artifacts:
       input3:
