@@ -347,6 +347,8 @@ def resolve_individual_placeholder(
             pipeline_task_id,
         dsl.PIPELINE_ROOT_PLACEHOLDER:
             pipeline_root,
+        dsl.WORKSPACE_PATH_PLACEHOLDER:
+            '/kfp-workspace',
     }
     for placeholder, value in PLACEHOLDERS.items():
         element = element.replace(placeholder, value)

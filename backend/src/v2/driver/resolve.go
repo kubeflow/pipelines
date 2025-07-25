@@ -401,6 +401,8 @@ func resolveInputParameter(
 				v = structpb.NewStringValue(opts.Task.GetTaskInfo().GetTaskName())
 			case "{{$.pipeline_task_uuid}}":
 				v = structpb.NewStringValue(fmt.Sprintf("%d", opts.DAGExecutionID))
+			case "{{$.workspace_path}}":
+				v = structpb.NewStringValue("/kfp-workspace")
 			default:
 				v = val
 			}

@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 )
@@ -318,7 +319,74 @@ func initPodSpecPatch(
 
 	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), userEnvVar, podSpec)
 
+	if needsWorkspaceMount(executorInput) {
+		addWorkspaceMount(podSpec)
+
+		// Validate that no user volume mounts conflict with the workspace
+		if err := validateVolumeMounts(podSpec); err != nil {
+			return nil, fmt.Errorf("failed to validate volume mounts: %w", err)
+		}
+	}
+
 	return podSpec, nil
+}
+
+// needsWorkspaceMount checks if the component needs workspace mounting based on input parameters and artifacts.
+func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
+	// Check if any input parameter is the workspace path placeholder
+	for _, param := range executorInput.GetInputs().GetParameterValues() {
+		if strVal, ok := param.GetKind().(*structpb.Value_StringValue); ok {
+			if strVal.StringValue == "{{$.workspace_path}}" {
+				return true
+			}
+		}
+	}
+
+	// Check if any input parameter is a component output path starting with /kfp-workspace
+	for _, param := range executorInput.GetInputs().GetParameterValues() {
+		if strVal, ok := param.GetKind().(*structpb.Value_StringValue); ok {
+			if strings.HasPrefix(strVal.StringValue, "/kfp-workspace") {
+				return true
+			}
+		}
+	}
+
+	// Check if any input artifact has workspace metadata
+	for _, artifactList := range executorInput.GetInputs().GetArtifacts() {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+		artifact := artifactList.Artifacts[0]
+		if artifact.Metadata != nil {
+			if workspaceVal, ok := artifact.Metadata.Fields["_kfp_workspace"]; ok {
+				if boolVal, ok := workspaceVal.GetKind().(*structpb.Value_BoolValue); ok && boolVal.BoolValue {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+// addWorkspaceMount adds the workspace volume mount to the pod spec if needed.
+func addWorkspaceMount(podSpec *k8score.PodSpec) {
+	workspaceVolume := k8score.Volume{
+		Name: "kfp-workspace",
+		VolumeSource: k8score.VolumeSource{
+			PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
+				ClaimName: "kfp-workspace",
+			},
+		},
+	}
+
+	workspaceVolumeMount := k8score.VolumeMount{
+		Name:      "kfp-workspace",
+		MountPath: "/kfp-workspace",
+	}
+
+	podSpec.Volumes = append(podSpec.Volumes, workspaceVolume)
+	podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, workspaceVolumeMount)
 }
 
 // addModelcarsToPodSpec will patch the pod spec if there are any input artifacts in the Modelcar format.
@@ -522,4 +590,15 @@ func provisionOutputs(
 	}
 
 	return outputs
+}
+
+func validateVolumeMounts(podSpec *k8score.PodSpec) error {
+	for _, container := range podSpec.Containers {
+		for _, mount := range container.VolumeMounts {
+			if strings.HasPrefix(mount.MountPath, "/kfp-workspace") {
+				return fmt.Errorf("user volume mount at %s conflicts with workspace mount at /kfp-workspace", mount.MountPath)
+			}
+		}
+	}
+	return nil
 }

@@ -819,6 +819,9 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		placeholders[key] = parameter.OutputFile
 	}
 
+	// Add workspace path placeholder
+	placeholders["{{$.workspace_path}}"] = "/kfp-workspace"
+
 	return placeholders, nil
 }
 
