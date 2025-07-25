@@ -569,7 +569,7 @@ class PlaceholdersTest(parameterized.TestCase):
     def test_workspace_path_placeholder(self):
         """Test that WORKSPACE_PATH_PLACEHOLDER is properly defined."""
         self.assertEqual(dsl.WORKSPACE_PATH_PLACEHOLDER, '{{$.workspace_path}}')
-        
+
         # Test that it can be used in a string
         workspace_path = dsl.WORKSPACE_PATH_PLACEHOLDER
         self.assertIn('workspace_path', workspace_path)
