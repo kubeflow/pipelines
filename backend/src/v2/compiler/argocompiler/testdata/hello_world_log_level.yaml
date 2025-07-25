@@ -43,6 +43,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -56,11 +58,11 @@ spec:
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
       - --http_proxy
-      - ''
+      - ""
       - --https_proxy
-      - ''
+      - ""
       - --no_proxy
-      - ''
+      - ""
       - --log_level
       - "3"
       command:
@@ -79,6 +81,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -203,6 +206,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"hello-world"}}'
           - name: container
             value: '{{workflow.parameters.implementations-203fce8adabe0cfa7da54b9d3ff79c772136c926974659b51c378727c7ccdfb7}}'
+          - name: task-name
+            value: hello-world
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: hello-world-driver
@@ -241,6 +246,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -252,11 +259,11 @@ spec:
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
       - --http_proxy
-      - ''
+      - ""
       - --https_proxy
-      - ''
+      - ""
       - --no_proxy
-      - ''
+      - ""
       - --log_level
       - "3"
       command:
@@ -277,6 +284,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

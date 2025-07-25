@@ -55,13 +55,15 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -75,11 +77,11 @@ spec:
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
       - --http_proxy
-      - ''
+      - ""
       - --https_proxy
-      - ''
+      - ""
       - --no_proxy
-      - ''
+      - ""
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -96,6 +98,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -219,6 +222,8 @@ spec:
               failed."}}}}},"taskInfo":{"name":"fail-op"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8444a6bac7a3d81cc54291a13166a74231d98f9a98861815f15a055edde30ed8}}'
+          - name: task-name
+            value: fail-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: fail-op-driver
@@ -241,6 +246,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelineparam--message"}}},"taskInfo":{"name":"print-op-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-f192dae3a3c4616f7637be7d0414bcffbff11a78dc03bf428f05490caa678f8a}}'
+          - name: task-name
+            value: print-op-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op-2-driver
@@ -272,6 +279,8 @@ spec:
               handler has worked!"}}}}},"taskInfo":{"name":"print-op"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}'
           - name: container
             value: '{{workflow.parameters.implementations-f192dae3a3c4616f7637be7d0414bcffbff11a78dc03bf428f05490caa678f8a}}'
+          - name: task-name
+            value: print-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op-driver
@@ -303,13 +312,15 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -321,11 +332,11 @@ spec:
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
       - --http_proxy
-      - ''
+      - ""
       - --https_proxy
-      - ''
+      - ""
       - --no_proxy
-      - ''
+      - ""
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -344,6 +355,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -375,6 +388,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-exit-handler-1"},"inputs":{"parameters":{"pipelineparam--message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"exit-handler-1"}}'
+          - name: task-name
+            value: exit-handler-1
         name: exit-handler-1-driver
         template: system-dag-driver
       - arguments:

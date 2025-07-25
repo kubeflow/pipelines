@@ -50,13 +50,15 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -70,11 +72,11 @@ spec:
       - --kubernetes_config
       - '{{inputs.parameters.kubernetes-config}}'
       - --http_proxy
-      - ''
+      - ""
       - --https_proxy
-      - ''
+      - ""
       - --no_proxy
-      - ''
+      - ""
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -91,6 +93,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -213,6 +216,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp"},"dependentTasks":["createpvc"],"taskInfo":{"name":"comp"}}'
           - name: container
             value: '{{workflow.parameters.implementations-b34273359995b3746ecf1bb58ac4bd6c54d47b6fdc35b013bb7962946f322a19}}'
+          - name: task-name
+            value: comp
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
@@ -238,6 +243,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp-2"},"dependentTasks":["comp","createpvc"],"taskInfo":{"name":"comp-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-b34273359995b3746ecf1bb58ac4bd6c54d47b6fdc35b013bb7962946f322a19}}'
+          - name: task-name
+            value: comp-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
@@ -263,6 +270,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Gi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}}'
           - name: container
             value: '{{workflow.parameters.implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767}}'
+          - name: task-name
+            value: createpvc
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: createpvc
@@ -275,6 +284,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["comp-2","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}}'
           - name: container
             value: '{{workflow.parameters.implementations-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725}}'
+          - name: task-name
+            value: deletepvc
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: comp-2.Succeeded && createpvc.Succeeded
@@ -297,13 +308,15 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -315,11 +328,11 @@ spec:
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
       - --http_proxy
-      - ''
+      - ""
       - --https_proxy
-      - ''
+      - ""
       - --no_proxy
-      - ''
+      - ""
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -338,6 +351,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
