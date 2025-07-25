@@ -20,22 +20,18 @@ python3 -m venv venv
 source venv/bin/activate
 
 python3 -m pip install --upgrade pip
-python3 -m pip install -r sdk/python/requirements.txt
 python3 -m pip install -r sdk/python/requirements-dev.txt
 python3 -m pip install setuptools
 python3 -m pip install wheel==0.42.0
 python3 -m pip install coveralls==1.9.2
 python3 -m pip install --upgrade protobuf
 
-python3 -m pip install sdk/python
-# regenerate the kfp-pipeline-spec
-cd api/
-make clean python
-cd ..
-# install the local kfp-pipeline-spec
-python3 -m pip install -I api/v2alpha1/python 
-pytest sdk/python/kfp --cov=kfp
+cd sdk/python
+python3 -m pip install -e .
+pytest kfp --cov=kfp
 
+# Pretty sure these are throwbacks to when we used prow. I'll clean them up (if
+# necessary) at a later time.
 set +x
 # export COVERALLS_REPO_TOKEN=$(gsutil cat gs://ml-pipeline-test-keys/coveralls_repo_token)
 set -x
