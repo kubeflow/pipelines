@@ -81,7 +81,18 @@ if [[ $EXIT_CODE -ne 0 ]]; then
   exit $EXIT_CODE
 fi
 
-# Apply KFP manifests with image overrides (for both standalone and multi-user)
+# If pipelines store is set to 'kubernetes', cert-manager must be deployed
+if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+  #Install cert-manager
+  make -C ./backend install-cert-manager || EXIT_CODE=$?
+  if [[ $EXIT_CODE -ne 0 ]]
+  then
+    echo "Failed to deploy cert-manager."
+    exit $EXIT_CODE
+  fi
+fi
+
+# Manifests will be deployed according to the flag provided
 if $CACHE_DISABLED; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/cache-disabled"
 elif $USE_PROXY; then
@@ -119,17 +130,8 @@ if [ "${MULTI_USER}" == "true" ]; then
   kubectl apply -f manifests/kustomize/third-party/metacontroller/base/crd.yaml || EXIT_CODE=$?
   kubectl apply --force -k manifests/kustomize/env/platform-agnostic-multi-user || EXIT_CODE=$?
   
-  echo "Waiting for Pods to be ready..."
-  kubectl wait --for=condition=Ready pods --all --namespace kubeflow --timeout=300s --field-selector=status.phase!=Succeeded || true
-  
   echo "Installing Profile Controller Resources..."
   kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master || EXIT_CODE=$?
-  kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s || true
-  
-  if [[ $EXIT_CODE -ne 0 ]]; then
-    echo "Failed to deploy multi-user components."
-    exit $EXIT_CODE
-  fi
   
   # Storage backend specific configurations for multi-user
   if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
@@ -146,17 +148,6 @@ if [ "${MULTI_USER}" == "true" ]; then
       echo "Failed to apply SeaweedFS multi-user configurations."
       exit $EXIT_CODE
     fi
-  fi
-fi
-
-# If pipelines store is set to 'kubernetes', cert-manager must be deployed
-if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
-  #Install cert-manager
-  make -C ./backend install-cert-manager || EXIT_CODE=$?
-  if [[ $EXIT_CODE -ne 0 ]]
-  then
-    echo "Failed to deploy cert-manager."
-    exit $EXIT_CODE
   fi
 fi
 
