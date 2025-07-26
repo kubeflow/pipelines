@@ -26,6 +26,7 @@ import (
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -52,6 +53,10 @@ func toModelExperiment(e interface{}) (*model.Experiment, error) {
 	}
 	if name == "" {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Experiment must have a non-empty name"), "Failed to convert API experiment to model experiment")
+	}
+	// Namespace validation is handled in the server layer as it depends on multi-user mode.
+	if err := validation.ValidateFieldLength("Experiment", "Name", name); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to convert API experiment to model experiment")
 	}
 	return &model.Experiment{
 		Name:         name,
@@ -147,6 +152,7 @@ func toApiExperiments(experiments []*model.Experiment) []*apiv2beta1.Experiment 
 // Supports both v1beta1 abd v2beta1 API.
 func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 	var name, displayName, namespace, description string
+
 	switch apiPipeline := p.(type) {
 	case *apiv1beta1.Pipeline:
 		namespace = getNamespaceFromResourceReferenceV1(apiPipeline.GetResourceReferences())
@@ -170,6 +176,19 @@ func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 	// If display_name is not provided, we use the name as the display_name for backward compatibility and convenience.
 	if displayName == "" {
 		displayName = name
+	}
+
+	if err := validation.ValidateFieldLength("Pipeline", "Name", name); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API pipeline to model pipeline",
+		)
+	}
+	if err := validation.ValidateFieldLength("Pipeline", "Namespace", namespace); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API pipeline to model pipeline",
+		)
 	}
 
 	return &model.Pipeline{
@@ -362,7 +381,12 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 	if displayName == "" {
 		displayName = name
 	}
-
+	if err := validation.ValidateFieldLength("PipelineVersion", "Name", name); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API pipeline version to model pipeline version",
+		)
+	}
 	return &model.PipelineVersion{
 		Name:            name,
 		DisplayName:     displayName,
@@ -1024,7 +1048,12 @@ func toModelRunMetric(m interface{}, runId string) (*model.RunMetric, error) {
 	default:
 		return nil, util.NewUnknownApiVersionError("RunMetric", m)
 	}
-
+	if err := validation.ValidateFieldLength("RunMetric", "Name", name); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to convert API run metric to internal representation")
+	}
+	if err := validation.ValidateFieldLength("RunMetric", "NodeID", nodeId); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to convert API run metric to internal representation")
+	}
 	modelMetric := &model.RunMetric{
 		RunUUID:     runId,
 		Name:        name,
@@ -1320,6 +1349,19 @@ func toModelRun(r interface{}) (*model.Run, error) {
 			WorkflowRuntimeManifest: runtimeWorkflowSpec,
 			TaskDetails:             tasks,
 		},
+	}
+
+	if err := validation.ValidateFieldLength("Run", "ExperimentId", experimentId); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API run to its internal representation",
+		)
+	}
+	if err := validation.ValidateFieldLength("Run", "Namespace", namespace); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API run to its internal representation",
+		)
 	}
 	return &modelRun, nil
 }

@@ -28,6 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -109,6 +110,10 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	}
 
 	pipelineNamespace := r.URL.Query().Get(NamespaceStringQuery)
+	if err := validation.ValidateFieldLength("Pipeline", "Namespace", pipelineNamespace); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	pipelineNamespace = s.resourceManager.ReplaceNamespace(pipelineNamespace)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: pipelineNamespace,
@@ -140,6 +145,11 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		DisplayName:  pipeline.DisplayName,
 		Description:  pipeline.Description,
 		PipelineSpec: string(pipelineFile),
+	}
+
+	if err := validation.ValidateFieldLength("Pipeline", "Name", pipeline.Name); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -223,6 +233,22 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version due to error reading pipeline id"))
 		return
 	}
+
+	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
+	versionDisplayNameQueryString := r.URL.Query().Get(DisplayNameQueryStringKey)
+	pipelineVersionName := buildPipelineName(versionNameQueryString, versionDisplayNameQueryString, header.Filename)
+
+	displayName := versionDisplayNameQueryString
+	if displayName == "" {
+		displayName = pipelineVersionName
+	}
+
+	// Validate PipelineVersion name length
+	if err := validation.ValidateFieldLength("PipelineVersion", "Name", pipelineVersionName); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline version due to error reading namespace"))
@@ -240,16 +266,6 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-
-	// If new version's name is not included in query string, use file name.
-	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
-	versionDisplayNameQueryString := r.URL.Query().Get(DisplayNameQueryStringKey)
-	pipelineVersionName := buildPipelineName(versionNameQueryString, versionDisplayNameQueryString, header.Filename)
-
-	displayName := versionDisplayNameQueryString
-	if displayName == "" {
-		displayName = pipelineVersionName
-	}
 
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{

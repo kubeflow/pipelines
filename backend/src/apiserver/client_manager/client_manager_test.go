@@ -25,6 +25,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 )
 
 // getTestSQLite returns an isolated in-memory sqlite DB for each test.
@@ -73,7 +74,7 @@ func TestRunPreflightLengthChecks_FailOnTooLong(t *testing.T) {
 	createOldExperimentSchema(t, db)
 	insertTooLongExperimentName(t, db)
 
-	specs := []ColLenSpec{
+	specs := []validation.ColLenSpec{
 		{Model: &model.Experiment{}, Field: "Name", Max: 128},
 	}
 
@@ -89,7 +90,7 @@ func TestRunPreflightLengthChecks_PassWhenOK(t *testing.T) {
 	createOldExperimentSchema(t, db)
 	// no long rows
 
-	err := RunPreflightLengthChecks(db, []ColLenSpec{
+	err := RunPreflightLengthChecks(db, []validation.ColLenSpec{
 		{Model: &model.Experiment{}, Field: "Name", Max: 128},
 	})
 	require.NoError(t, err)

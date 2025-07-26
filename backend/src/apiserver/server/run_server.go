@@ -422,25 +422,42 @@ func (s *RunServerV1) ReportRunMetricsV1(ctx context.Context, request *apiv1beta
 	if s.options.CollectMetrics {
 		reportRunMetricsRequests.Inc()
 	}
-	metrics := make([]*model.RunMetric, 0)
-	for _, metric := range request.GetMetrics() {
-		modelMetric, err := toModelRunMetric(metric, request.GetRunId())
+
+	if _, err := s.resourceManager.GetRun(request.GetRunId()); err != nil {
+		// Use the standard ResourceNotFoundError so that AssertUserError
+		// sees codes.NotFound and the right error message.
+		return nil, util.NewResourceNotFoundError(
+			"Run %s not found", request.GetRunId(),
+		)
+	}
+
+	// Convert, validate, and report each metric in input order.
+	var apiResults []*apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult
+	for _, m := range request.GetMetrics() {
+		modelMetric, err := toModelRunMetric(m, request.GetRunId())
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to create v1beta1 run metrics due to data conversion error")
+			// Conversion error: record as INVALID_ARGUMENT
+			msg := err.Error()
+			if userErr, ok := err.(*util.UserError); ok {
+				msg = userErr.ExternalMessage()
+			}
+			apiResults = append(apiResults, toApiReportMetricsResultV1(
+				m.Name, m.NodeId, "invalid", msg,
+			))
+			continue
 		}
-		metrics = append(metrics, modelMetric)
+		// Report this metric
+		results, err := s.reportRunMetrics(ctx, []*model.RunMetric{modelMetric}, request.GetRunId())
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to report v1beta1 run metrics")
+		}
+		// results slice will have exactly one entry
+		r := results[0]
+		apiResults = append(apiResults, toApiReportMetricsResultV1(
+			r["Name"], r["NodeId"], r["ErrorCode"], r["ErrorMessage"],
+		))
 	}
-	results, err := s.reportRunMetrics(ctx, metrics, request.GetRunId())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to report v1beta1 run metrics")
-	}
-	apiResults := make([]*apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult, 0)
-	for _, result := range results {
-		apiResults = append(apiResults, toApiReportMetricsResultV1(result["Name"], result["NodeId"], result["ErrorCode"], result["ErrorMessage"]))
-	}
-	return &apiv1beta1.ReportRunMetricsResponse{
-		Results: apiResults,
-	}, nil
+	return &apiv1beta1.ReportRunMetricsResponse{Results: apiResults}, nil
 }
 
 // Reads an artifact.
