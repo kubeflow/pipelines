@@ -48,7 +48,6 @@ root:
               componentInputParameter: text
         taskInfo:
           name: container-io
-          taskName: container-io
   inputDefinitions:
     parameters:
       text:

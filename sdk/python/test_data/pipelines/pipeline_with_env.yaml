@@ -73,7 +73,6 @@ root:
           name: comp-print-env
         taskInfo:
           name: print-env
-          taskName: print-env
       print-env-op:
         cachingOptions:
           enableCache: true
@@ -81,6 +80,5 @@ root:
           name: comp-print-env-op
         taskInfo:
           name: print-env-op
-          taskName: print-env-op
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

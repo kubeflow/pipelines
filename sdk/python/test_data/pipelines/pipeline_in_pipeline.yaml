@@ -15,7 +15,6 @@ components:
                 componentInputParameter: msg
           taskInfo:
             name: print-op1
-            taskName: print-op1
         print-op2:
           cachingOptions:
             enableCache: true
@@ -31,7 +30,6 @@ components:
                   producerTask: print-op1
           taskInfo:
             name: print-op2
-            taskName: print-op2
     inputDefinitions:
       parameters:
         msg:
@@ -145,7 +143,6 @@ root:
                 constant: world
         taskInfo:
           name: inner-pipeline
-          taskName: inner-pipeline
       print-op1:
         cachingOptions:
           enableCache: true
@@ -158,6 +155,5 @@ root:
                 constant: Hello
         taskInfo:
           name: print-op1
-          taskName: print-op1
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

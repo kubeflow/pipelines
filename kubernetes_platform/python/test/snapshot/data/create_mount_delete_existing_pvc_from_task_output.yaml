@@ -157,7 +157,6 @@ root:
         - createpvc
         taskInfo:
           name: comp
-          taskName: comp
       createpvc:
         cachingOptions:
           enableCache: true
@@ -183,7 +182,6 @@ root:
                 constant: standard
         taskInfo:
           name: createpvc
-          taskName: createpvc
       deletepvc:
         cachingOptions:
           enableCache: true
@@ -200,7 +198,6 @@ root:
                 producerTask: get-pvc-name
         taskInfo:
           name: deletepvc
-          taskName: deletepvc
       get-pvc-name:
         cachingOptions:
           enableCache: true
@@ -208,7 +205,6 @@ root:
           name: comp-get-pvc-name
         taskInfo:
           name: get-pvc-name
-          taskName: get-pvc-name
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0
 ---

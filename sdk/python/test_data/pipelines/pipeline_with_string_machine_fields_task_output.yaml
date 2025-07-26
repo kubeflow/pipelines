@@ -197,7 +197,6 @@ root:
           name: comp-accelerator-limit
         taskInfo:
           name: accelerator-limit
-          taskName: accelerator-limit
       accelerator-type:
         cachingOptions:
           enableCache: true
@@ -205,7 +204,6 @@ root:
           name: comp-accelerator-type
         taskInfo:
           name: accelerator-type
-          taskName: accelerator-type
       cpu-limit:
         cachingOptions:
           enableCache: true
@@ -213,7 +211,6 @@ root:
           name: comp-cpu-limit
         taskInfo:
           name: cpu-limit
-          taskName: cpu-limit
       memory-limit:
         cachingOptions:
           enableCache: true
@@ -221,7 +218,6 @@ root:
           name: comp-memory-limit
         taskInfo:
           name: memory-limit
-          taskName: memory-limit
       sum-numbers:
         cachingOptions:
           enableCache: true
@@ -265,6 +261,5 @@ root:
                 producerTask: memory-limit
         taskInfo:
           name: sum-numbers
-          taskName: sum-numbers
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

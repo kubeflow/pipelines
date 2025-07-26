@@ -53,7 +53,6 @@ components:
                 componentInputArtifact: in_dataset
           taskInfo:
             name: dataset-splitter
-            taskName: dataset-splitter
     inputDefinitions:
       artifacts:
         in_dataset:
@@ -160,7 +159,6 @@ root:
           name: comp-make-dataset
         taskInfo:
           name: make-dataset
-          taskName: make-dataset
       splitter-pipeline:
         cachingOptions:
           enableCache: true
@@ -176,7 +174,6 @@ root:
                 producerTask: make-dataset
         taskInfo:
           name: splitter-pipeline
-          taskName: splitter-pipeline
   outputDefinitions:
     artifacts:
       Output:

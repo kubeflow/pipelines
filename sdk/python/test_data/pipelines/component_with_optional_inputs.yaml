@@ -69,6 +69,5 @@ root:
                 constant: World
         taskInfo:
           name: component-op
-          taskName: component-op
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

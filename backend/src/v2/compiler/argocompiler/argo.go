@@ -367,6 +367,7 @@ func hashValue(value interface{}) (string, error) {
 const (
 	paramComponent               = "component"      // component spec
 	paramTask                    = "task"           // task spec
+	paramTaskName                = "task-name"      // task name
 	paramContainer               = "container"      // container spec
 	paramImporter                = "importer"       // importer spec
 	paramRuntimeConfig           = "runtime-config" // job runtime config, pipeline level inputs

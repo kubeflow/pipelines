@@ -108,13 +108,15 @@ spec:
       - --run_name
       - '{{workflow.name}}'
       - --run_display_name
-      - ''
+      - ""
       - --dag_execution_id
       - '{{inputs.parameters.parent-dag-id}}'
       - --component
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -126,11 +128,11 @@ spec:
       - --condition_path
       - '{{outputs.parameters.condition.path}}'
       - --http_proxy
-      - ''
+      - ""
       - --https_proxy
-      - ''
+      - ""
       - --no_proxy
-      - ''
+      - ""
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -149,6 +151,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

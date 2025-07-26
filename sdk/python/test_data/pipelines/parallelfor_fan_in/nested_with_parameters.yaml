@@ -104,7 +104,6 @@ components:
                   producerTask: double-2
           taskInfo:
             name: add-two-nums
-            taskName: add-two-nums
         double:
           cachingOptions:
             enableCache: true
@@ -116,7 +115,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-1
           taskInfo:
             name: double
-            taskName: double
         double-2:
           cachingOptions:
             enableCache: true
@@ -128,7 +126,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-3
           taskInfo:
             name: double-2
-            taskName: double-2
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-1:
@@ -280,7 +277,6 @@ root:
                 producerTask: for-loop-2
         taskInfo:
           name: add
-          taskName: add
       for-loop-2:
         componentRef:
           name: comp-for-loop-2

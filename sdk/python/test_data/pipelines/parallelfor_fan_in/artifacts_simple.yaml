@@ -65,7 +65,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-1
           taskInfo:
             name: double
-            taskName: double
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-1:
@@ -182,7 +181,6 @@ root:
                 producerTask: for-loop-2
         taskInfo:
           name: add
-          taskName: add
       add-container:
         cachingOptions:
           enableCache: true
@@ -198,7 +196,6 @@ root:
                 producerTask: for-loop-2
         taskInfo:
           name: add-container
-          taskName: add-container
       for-loop-2:
         componentRef:
           name: comp-for-loop-2

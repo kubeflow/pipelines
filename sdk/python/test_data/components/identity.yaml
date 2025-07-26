@@ -67,7 +67,6 @@ root:
               componentInputParameter: value
         taskInfo:
           name: identity
-          taskName: identity
   inputDefinitions:
     parameters:
       value:

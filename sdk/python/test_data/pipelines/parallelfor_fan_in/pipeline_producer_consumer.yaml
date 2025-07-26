@@ -37,7 +37,6 @@ components:
                 componentInputParameter: nums
           taskInfo:
             name: add
-            taskName: add
         for-loop-2:
           componentRef:
             name: comp-for-loop-2-2
@@ -87,7 +86,6 @@ components:
                 componentInputParameter: num
           taskInfo:
             name: double
-            taskName: double
     inputDefinitions:
       parameters:
         num:
@@ -152,7 +150,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-1
           taskInfo:
             name: echo-and-return
-            taskName: echo-and-return
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-1:
@@ -181,7 +178,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-3
           taskInfo:
             name: double-pipeline
-            taskName: double-pipeline
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-3:
@@ -339,7 +335,6 @@ root:
                 producerTask: for-loop-2
         taskInfo:
           name: add-pipeline
-          taskName: add-pipeline
       for-loop-2:
         componentRef:
           name: comp-for-loop-2
@@ -364,7 +359,6 @@ root:
                 producerTask: add-pipeline
         taskInfo:
           name: join-and-print
-          taskName: join-and-print
   outputDefinitions:
     parameters:
       Output:

@@ -50,7 +50,6 @@ root:
               componentInputParameter: text1
         taskInfo:
           name: container-with-placeholder-in-fstring
-          taskName: container-with-placeholder-in-fstring
   inputDefinitions:
     parameters:
       text1:

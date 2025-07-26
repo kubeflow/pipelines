@@ -112,7 +112,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if execution.WillTrigger() {
 		executorInput.Outputs = provisionOutputs(
 			pipeline.GetPipelineRoot(),
-			opts.Task.GetTaskInfo().GetTaskName(),
+			opts.TaskName,
 			opts.Component.GetOutputDefinitions(),
 			uuid.NewString(),
 			opts.PublishLogs,
@@ -123,7 +123,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 	if err != nil {
 		return execution, err
 	}
-	ecfg.TaskName = opts.Task.GetTaskInfo().GetTaskName()
+	ecfg.TaskName = opts.TaskName
 	ecfg.DisplayName = opts.Task.GetTaskInfo().GetName()
 	ecfg.ExecutionType = metadata.ContainerExecutionTypeName
 	ecfg.ParentDagID = dag.Execution.GetID()
