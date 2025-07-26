@@ -59,10 +59,14 @@ runs:
 
         if [ "${{ inputs.proxy }}" = "true" ]; then
           ARGS="${ARGS} --proxy"
-        elif [ "${{inputs.cache_enabled }}" = "false" ]; then
+        fi
+        
+        if [ "${{inputs.cache_enabled }}" = "false" ]; then
           ARGS="${ARGS} --cache-disabled"
-        elif [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
-          ARGS="${ARGS}  --deploy-k8s-native"
+        fi
+        
+        if [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
+          ARGS="${ARGS} --deploy-k8s-native"
         fi
         
         if [ "${{ inputs.multi_user }}" = "true" ]; then
