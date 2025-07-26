@@ -20,6 +20,7 @@ from pprint import pprint
 import subprocess
 from typing import List
 import unittest
+import uuid
 
 import collected_parameters
 import component_with_optional_inputs
@@ -52,6 +53,7 @@ PREREQS = [os.path.join(PRE_REQ_DIR, 'test-secrets.yaml')]
 
 _KFP_NAMESPACE = os.getenv('KFP_NAMESPACE', 'kubeflow')
 _KFP_MULTI_USER = os.getenv('KFP_MULTI_USER', 'false').lower() == 'true'
+_USER_NAMESPACE = os.getenv('_USER_NAMESPACE', 'kubeflow-user-example-com')
 
 
 @dataclass
@@ -117,7 +119,7 @@ def get_auth_token():
     """Get authentication token for multi-user mode."""
     if _KFP_MULTI_USER:
         try:
-            namespace = 'kubeflow-user-example-com'
+            namespace = _USER_NAMESPACE
             print(f'Creating authentication token for namespace {namespace}...')
             result = subprocess.run([
                 'kubectl', '-n', namespace, 'create', 'token', 'default-editor',
@@ -223,8 +225,11 @@ class SampleTest(unittest.TestCase):
             print(
                 f'Running pipeline: {inspect.getmodule(pipeline_func.pipeline_func).__name__}/{pipeline_func.name}.'
             )
+            experiment_name = f"test-{pipeline_func.name}-{uuid.uuid4().hex[:8]}"
             run_result = self._client.create_run_from_pipeline_func(
-                pipeline_func=pipeline_func)
+                pipeline_func=pipeline_func,
+                namespace=_USER_NAMESPACE,
+                experiment_name=experiment_name)
 
             run_response = run_result.wait_for_run_completion(timeout)
 
