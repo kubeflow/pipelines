@@ -15,46 +15,57 @@
  */
 
 import * as React from 'react';
-import { ArchivedRuns } from './ArchivedRuns';
+import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import TestUtils from 'src/TestUtils';
 import { PageProps } from './Page';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { render } from '@testing-library/react';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { Apis } from 'src/lib/Apis';
+
+// Mock React Router hooks
+const mockNavigate = jest.fn();
+const mockLocation = { pathname: '', search: '', hash: '', state: null, key: 'default' };
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+  useLocation: () => mockLocation,
+}));
+
+import { ArchivedRuns } from './ArchivedRuns';
 
 describe('ArchivedRuns', () => {
   const updateBannerSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
-  const historyPushSpy = jest.fn();
   const deleteRunSpy = jest.spyOn(Apis.runServiceApi, 'deleteRun');
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
 
   function generateProps(): PageProps {
-    return TestUtils.generatePageProps(
-      ArchivedRuns,
-      {} as any,
-      {} as any,
-      historyPushSpy,
-      updateBannerSpy,
-      updateDialogSpy,
-      updateToolbarSpy,
-      updateSnackbarSpy,
-    );
+    return {
+      navigate: jest.fn(),
+      location: { pathname: '', search: '', hash: '', state: null, key: 'default' },
+      match: { params: {}, isExact: true, path: '', url: '' },
+      toolbarProps: {} as any,
+      updateBanner: updateBannerSpy,
+      updateDialog: updateDialogSpy,
+      updateSnackbar: updateSnackbarSpy,
+      updateToolbar: updateToolbarSpy,
+    };
   }
 
   beforeEach(() => {
-    updateBannerSpy.mockClear();
-    updateToolbarSpy.mockClear();
-    historyPushSpy.mockClear();
-    deleteRunSpy.mockClear();
-    updateDialogSpy.mockClear();
-    updateSnackbarSpy.mockClear();
+    jest.clearAllMocks();
+    mockNavigate.mockClear();
   });
 
-  it('renders archived runs', () => {
-    const { asFragment } = render(<ArchivedRuns {...generateProps()} />);
+  it('renders archived runs', async () => {
+    const { asFragment } = render(
+      <MemoryRouter initialEntries={['/does-not-matter']}>
+        <ArchivedRuns {...generateProps()} />
+      </MemoryRouter>,
+    );
+    await TestUtils.flushPromises();
     expect(asFragment()).toMatchSnapshot();
   });
 

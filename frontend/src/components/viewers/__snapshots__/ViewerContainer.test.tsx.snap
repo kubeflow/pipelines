@@ -415,7 +415,7 @@ exports[`ViewerContainer renders a viewer of type tensorboard 1`] = `
             class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select css-1eed5fa-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="mui-1"
+              aria-controls=":r0:"
               aria-expanded="false"
               aria-haspopup="listbox"
               class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiInput-input css-1ar2bnf-MuiSelect-select-MuiInputBase-input-MuiInput-input"
@@ -503,7 +503,7 @@ exports[`ViewerContainer renders a viewer of type visualization-creator 1`] = `
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="mui-2"
+          aria-controls=":r1:"
           aria-expanded="false"
           aria-haspopup="listbox"
           aria-labelledby="mui-component-select-Visualization Type"
@@ -540,10 +540,10 @@ exports[`ViewerContainer renders a viewer of type visualization-creator 1`] = `
         </svg>
         <fieldset
           aria-hidden="true"
-          class="MuiOutlinedInput-notchedOutline css-1d3z3hw-MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="css-ihdtdm"
+            class="css-1whs34k-MuiNotchedOutlined-root"
           >
             <span
               class="notranslate"
@@ -562,8 +562,8 @@ exports[`ViewerContainer renders a viewer of type visualization-creator 1`] = `
       <label
         class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="mui-3"
-        id="mui-3-label"
+        for=":r2:"
+        id=":r2:-label"
       >
         Source
       </label>
@@ -573,17 +573,17 @@ exports[`ViewerContainer renders a viewer of type visualization-creator 1`] = `
         <input
           aria-invalid="false"
           class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
-          id="mui-3"
+          id=":r2:"
           placeholder="File path or path pattern of data within GCS."
           type="text"
           value=""
         />
         <fieldset
           aria-hidden="true"
-          class="MuiOutlinedInput-notchedOutline css-1d3z3hw-MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="css-yjsfm1"
+            class="css-njhac4-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -614,6 +614,7 @@ exports[`ViewerContainer renders a viewer of type web-app 1`] = `
     sandbox="allow-scripts"
     src="about:blank"
     srcdoc="undefined"
+    title="HTML Content Viewer"
   />
 </DocumentFragment>
 `;

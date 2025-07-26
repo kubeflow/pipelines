@@ -201,7 +201,7 @@ class RecurringRunDetails extends Page<
       const previousPage = breadcrumbs.length
         ? breadcrumbs[breadcrumbs.length - 1].href
         : RoutePage.EXPERIMENTS;
-      this.props.history.push(previousPage);
+      this.props.navigate(previousPage);
     }
   }
 }

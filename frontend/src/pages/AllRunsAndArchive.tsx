@@ -62,7 +62,7 @@ class AllRunsAndArchive extends Page<AllRunsAndArchiveProps, AllRunsAndArchiveSt
   }
 
   private _tabSwitched(newTab: AllRunsAndArchiveTab): void {
-    this.props.history.push(
+    this.props.navigate(
       newTab === AllRunsAndArchiveTab.RUNS ? RoutePage.RUNS : RoutePage.ARCHIVED_RUNS,
     );
   }

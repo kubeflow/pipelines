@@ -25,7 +25,6 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ExecutionsIcon from '@mui/icons-material/PlayArrow';
 import DirectionsRun from '@mui/icons-material/DirectionsRun';
 import * as React from 'react';
-import { RouterProps } from 'react-router';
 import { classes, stylesheet } from 'typestyle';
 import { ExternalLinks, RoutePage, RoutePrefix } from '../components/Router';
 import { commonCss, fontsize } from '../Css';
@@ -188,7 +187,7 @@ interface DisplayBuildInfo {
   tagName: string;
 }
 
-interface SideNavProps extends RouterProps {
+interface SideNavProps {
   page: string;
 }
 

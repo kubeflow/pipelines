@@ -18,7 +18,7 @@ import * as React from 'react';
 import CustomTable, { Column, Row, CustomRendererProps } from 'src/components/CustomTable';
 import { ExperimentInfo } from 'src/lib/RunUtils';
 import { Apis, JobSortKeys, ListRequest } from 'src/lib/Apis';
-import { Link, RouteComponentProps } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss, color } from 'src/Css';
 import { formatDateString, errorToMessage } from 'src/lib/Utils';
@@ -42,19 +42,18 @@ type MaskProps = Exclude<
   { experimentIdMask: string; namespaceMask: string }
 >;
 
-export type RecurringRunListProps = MaskProps &
-  RouteComponentProps & {
-    disablePaging?: boolean;
-    disableSelection?: boolean;
-    disableSorting?: boolean;
-    hideExperimentColumn?: boolean;
-    noFilterBox?: boolean;
-    onError: (message: string, error: Error) => void;
-    onSelectionChange?: (selectedRunIds: string[]) => void;
-    recurringRunIdListMask?: string[];
-    selectedIds?: string[];
-    refreshCount: number;
-  };
+export type RecurringRunListProps = MaskProps & {
+  disablePaging?: boolean;
+  disableSelection?: boolean;
+  disableSorting?: boolean;
+  hideExperimentColumn?: boolean;
+  noFilterBox?: boolean;
+  onError: (message: string, error: Error) => void;
+  onSelectionChange?: (selectedRunIds: string[]) => void;
+  recurringRunIdListMask?: string[];
+  selectedIds?: string[];
+  refreshCount: number;
+};
 
 interface RecurringRunListState {
   recurringRuns: DisplayRecurringRun[];

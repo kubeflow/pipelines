@@ -20,11 +20,11 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
     "noEmit": true,
     "strictPropertyInitialization": false,
     "strict": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "types": []
   },
   "exclude": [
     "__mocks__",
@@ -43,6 +43,8 @@
     "src/generated",
     "src/setupTests.ts",
     "webpack"
+    // "**/*.test.ts",
+    // "**/*.test.tsx"
   ],
   "include": ["src", "stories"]
 }

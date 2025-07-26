@@ -20,7 +20,7 @@ import { render, screen } from '@testing-library/react';
 
 // tslint:disable-next-line:no-console
 const consoleErrorBackup = console.error;
-let consoleSpy: jest.Mock;
+let consoleSpy: jest.SpyInstance;
 
 const rows = [
   ['1', '2', '3'],

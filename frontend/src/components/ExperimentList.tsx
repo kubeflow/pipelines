@@ -16,7 +16,6 @@
 
 import CustomTable, { Column, CustomRendererProps, Row, ExpandState } from './CustomTable';
 import * as React from 'react';
-import { RouteComponentProps } from 'react-router-dom';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,
@@ -33,7 +32,7 @@ import produce from 'immer';
 import Tooltip from '@mui/material/Tooltip';
 import { ForwardedLink } from 'src/atoms/ForwardedLink';
 
-export interface ExperimentListProps extends RouteComponentProps {
+export interface ExperimentListProps {
   namespace?: string;
   storageState?: V2beta1ExperimentStorageState;
   onError: (message: string, error: Error) => void;
@@ -166,6 +165,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       this.setState({ displayExperiments });
     } catch (err) {
+      console.log('Error: failed to list experiments: ', err);
       const error = new Error(await errorToMessage(err));
       this.props.onError('Error: failed to list experiments: ', error);
       return '';

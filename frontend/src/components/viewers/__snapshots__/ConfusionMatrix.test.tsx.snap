@@ -73,7 +73,7 @@ exports[`ConfusionMatrix does not break on asymetric data 1`] = `
           </td>
         </tr>
         <tr>
-          <th
+          <td
             class="xlabel"
           />
           <th>
@@ -242,7 +242,7 @@ exports[`ConfusionMatrix renders a basic confusion matrix 1`] = `
           </td>
         </tr>
         <tr>
-          <th
+          <td
             class="xlabel"
           />
           <th>
@@ -466,7 +466,7 @@ exports[`ConfusionMatrix renders only one of the given list of configs 1`] = `
           </td>
         </tr>
         <tr>
-          <th
+          <td
             class="xlabel"
           />
           <th>

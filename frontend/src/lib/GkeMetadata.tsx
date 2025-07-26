@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { FC, useState, useEffect } from 'react';
+import React, { FC, useState, useEffect, ReactNode } from 'react';
 import { logger, extendError } from './Utils';
 import { Apis } from './Apis';
 
@@ -23,7 +23,7 @@ export interface GkeMetadata {
   clusterName?: string;
 }
 export const GkeMetadataContext = React.createContext<GkeMetadata>({});
-export const GkeMetadataProvider: FC<{}> = props => {
+export const GkeMetadataProvider: FC<{ children?: ReactNode }> = props => {
   const [metadata, setMetadata] = useState({});
   useEffect(() => {
     let isMounted = true;

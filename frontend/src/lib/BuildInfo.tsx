@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Apis, BuildInfo } from '../lib/Apis';
 import { logger } from './Utils';
 
@@ -23,7 +23,10 @@ interface BuildInfoProviderState {
 }
 
 export const BuildInfoContext = React.createContext<BuildInfo | undefined>(undefined);
-export class BuildInfoProvider extends React.Component<{}, BuildInfoProviderState> {
+export class BuildInfoProvider extends React.Component<
+  { children?: ReactNode },
+  BuildInfoProviderState
+> {
   state = {
     buildInfo: undefined,
   };

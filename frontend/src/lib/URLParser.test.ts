@@ -14,108 +14,236 @@
  * limitations under the License.
  */
 
-import { createHashHistory, createLocation } from 'history';
-import { URLParser } from './URLParser';
+import { URLParser, useURLParser } from './URLParser';
+import { renderHook, act } from '@testing-library/react';
 
-const history = createHashHistory();
-const location = createLocation('/');
+// Mock React Router for hook tests
+const mockNavigate = jest.fn();
+const mockLocation = { search: '?testkey=testvalue' };
 
-describe('URLParser', () => {
-  const routerProps = { location, history } as any;
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useLocation: () => mockLocation,
+  useNavigate: () => mockNavigate,
+}));
+
+describe('useURLParser hook', () => {
+  beforeEach(() => {
+    mockNavigate.mockClear();
+    mockLocation.search = '?testkey=testvalue';
+  });
 
   it('gets query string param by name', () => {
-    location.pathname = '/test';
-    location.search = '?searchkey=searchvalue';
+    const { result } = renderHook(() => useURLParser());
+    const value = result.current.get('testkey' as any);
+    expect(value).toEqual('testvalue');
+  });
+
+  it('returns null when getting a nonexistent query string param', () => {
+    const { result } = renderHook(() => useURLParser());
+    expect(result.current.get('nonexistent' as any)).toBeNull();
+  });
+
+  it('gets query string param by name where multiple keys defined', () => {
+    mockLocation.search = '?testkey=testvalue&k2=v2';
+    const { result } = renderHook(() => useURLParser());
+    const value = result.current.get('testkey' as any);
+    expect(value).toEqual('testvalue');
+  });
+
+  it('sets query string param by name', () => {
+    const { result } = renderHook(() => useURLParser());
+    act(() => {
+      result.current.set('testkey' as any, 'newvalue');
+    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: 'testkey=newvalue' },
+      { replace: true }
+    );
+  });
+
+  it('creates new query string param when using set if not exists', () => {
+    const { result } = renderHook(() => useURLParser());
+    act(() => {
+      result.current.set('newkey' as any, 'newvalue');
+    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({ search: expect.stringContaining('newkey=newvalue') }),
+      { replace: true }
+    );
+  });
+
+  it('removes the query string param when setting it to empty value', () => {
+    mockLocation.search = '?testkey=testvalue&otherkey=othervalue';
+    const { result } = renderHook(() => useURLParser());
+    act(() => {
+      result.current.set('testkey' as any, '');
+    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: 'otherkey=othervalue' },
+      { replace: true }
+    );
+  });
+
+  it('navigates with replace:false when using push', () => {
+    const { result } = renderHook(() => useURLParser());
+    act(() => {
+      result.current.push('testkey' as any, 'newvalue');
+    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: 'testkey=newvalue' },
+      { replace: false }
+    );
+  });
+
+  it('can build a search string', () => {
+    const { result } = renderHook(() => useURLParser());
+    expect(result.current.build({ key1: 'value1', key2: 'value2' })).toEqual(
+      '?key1=value1&key2=value2',
+    );
+  });
+
+  it('returns empty query string when given an empty object or no object', () => {
+    const { result } = renderHook(() => useURLParser());
+    expect(result.current.build()).toEqual('?');
+    expect(result.current.build({})).toEqual('?');
+  });
+
+  it('clears query string param', () => {
+    mockLocation.search = '?testkey=testvalue&otherkey=othervalue';
+    const { result } = renderHook(() => useURLParser());
+    act(() => {
+      result.current.clear('testkey' as any);
+    });
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: 'otherkey=othervalue' },
+      { replace: true }
+    );
+  });
+});
+
+// Legacy URLParser class tests - maintained for backward compatibility
+describe('URLParser (Legacy Class)', () => {
+  const mockNavigate = jest.fn();
+  let mockLocation: { pathname: string; search: string };
+  let routerProps: any;
+
+  beforeEach(() => {
+    mockNavigate.mockClear();
+    mockLocation = { pathname: '/test', search: '' };
+    routerProps = { location: mockLocation, navigate: mockNavigate };
+  });
+
+  it('gets query string param by name', () => {
+    mockLocation.search = '?searchkey=searchvalue';
+    routerProps = { location: mockLocation, navigate: mockNavigate };
 
     const params = new URLParser(routerProps).get('searchkey' as any);
     expect(params).toEqual('searchvalue');
   });
 
-  it('returns empty string when getting a nonexistent query string param', () => {
-    expect(new URLParser(routerProps).get('nonexistent' as any)).toBeNull();
+  it('returns null when getting a nonexistent query string param', () => {
+    const urlParser = new URLParser(routerProps);
+    expect(urlParser.get('nonexistent' as any)).toBeNull();
   });
 
   it('gets query string param by name where multiple keys defined', () => {
-    location.search = '?searchkey=searchvalue&k2=v2';
+    mockLocation.search = '?searchkey=searchvalue&k2=v2';
+    routerProps = { location: mockLocation, navigate: mockNavigate };
 
     const params = new URLParser(routerProps).get('searchkey' as any);
     expect(params).toEqual('searchvalue');
   });
 
   it('sets query string param by name', () => {
-    location.search = '?searchkey=searchvalue';
+    mockLocation.search = '?searchkey=searchvalue';
+    routerProps = { location: mockLocation, navigate: mockNavigate };
 
     new URLParser(routerProps).set('searchkey' as any, 'newvalue');
-    expect(history.location.search).toEqual('?searchkey=newvalue');
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: 'searchkey=newvalue' },
+      { replace: true }
+    );
   });
 
   it('creates new query string param when using set if not exists', () => {
-    location.search = '?searchkey=searchvalue';
+    mockLocation.search = '?searchkey=searchvalue';
+    routerProps = { location: mockLocation, navigate: mockNavigate };
 
     new URLParser(routerProps).set('searchkey2' as any, 'searchvalue2');
-    expect(history.location.search).toEqual('?searchkey=searchvalue&searchkey2=searchvalue2');
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: 'searchkey=searchvalue&searchkey2=searchvalue2' },
+      { replace: true }
+    );
   });
 
   it('removes the query string param when setting it to empty value', () => {
-    location.search = '?searchkey=searchvalue';
+    mockLocation.search = '?searchkey=searchvalue';
+    routerProps = { location: mockLocation, navigate: mockNavigate };
 
     new URLParser(routerProps).set('searchkey' as any, '');
-    expect(history.location.search).toEqual('');
-  });
-
-  it('does not create new state when setting query param in-place', () => {
-    location.search = '?searchkey=searchvalue';
-
-    const historyLength = history.length;
-    new URLParser(routerProps).set('searchkey' as any, 'newvalue');
-    expect(history.length).toEqual(historyLength);
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: '' },
+      { replace: true }
+    );
   });
 
   it('does not touch other query string params when setting one', () => {
-    location.search = '?searchkey=searchvalue&k2=v2';
+    mockLocation.search = '?searchkey=searchvalue&k2=v2';
+    routerProps = { location: mockLocation, navigate: mockNavigate };
 
     new URLParser(routerProps).set('searchkey' as any, 'newvalue');
-    expect(history.location.search).toEqual('?searchkey=newvalue&k2=v2');
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: 'searchkey=newvalue&k2=v2' },
+      { replace: true }
+    );
   });
 
   it('does not touch other query string params when clearing one', () => {
-    location.search = '?searchkey=searchvalue&k2=v2';
+    mockLocation.search = '?searchkey=searchvalue&k2=v2';
+    routerProps = { location: mockLocation, navigate: mockNavigate };
 
     new URLParser(routerProps).clear('searchkey' as any);
-    expect(history.location.search).toEqual('?k2=v2');
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: 'k2=v2' },
+      { replace: true }
+    );
   });
 
   it('sets query string param when using push', () => {
-    location.search = '?searchkey=searchvalue&k2=v2';
+    mockLocation.search = '?searchkey=searchvalue&k2=v2';
+    routerProps = { location: mockLocation, navigate: mockNavigate };
 
     new URLParser(routerProps).push('searchkey' as any, 'newvalue');
-    expect(history.location.search).toEqual('?searchkey=newvalue&k2=v2');
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: 'searchkey=newvalue&k2=v2' },
+      { replace: false }
+    );
   });
 
   it('removes query string param when push an empty value', () => {
-    location.search = '?searchkey=searchvalue&k2=v2';
+    mockLocation.search = '?searchkey=searchvalue&k2=v2';
+    routerProps = { location: mockLocation, navigate: mockNavigate };
 
     new URLParser(routerProps).push('searchkey' as any, '');
-    expect(history.location.search).toEqual('?k2=v2');
-  });
-
-  it('creates a new history entry when using push', () => {
-    location.search = '?searchkey=searchvalue&k2=v2';
-
-    const historyLength = history.length;
-    new URLParser(routerProps).push('searchkey' as any, 'newvalue');
-    expect(history.location.search).toEqual('?searchkey=newvalue&k2=v2');
-    expect(history.length).toEqual(historyLength + 1);
+    expect(mockNavigate).toHaveBeenCalledWith(
+      { search: 'k2=v2' },
+      { replace: false }
+    );
   });
 
   it('can build a search string', () => {
-    expect(new URLParser(routerProps).build({ key1: 'value1', key2: 'value2' })).toEqual(
+    const urlParser = new URLParser(routerProps);
+    expect(urlParser.build({ key1: 'value1', key2: 'value2' })).toEqual(
       '?key1=value1&key2=value2',
     );
   });
 
   it('returns empty query string when given an empty object or no object', () => {
-    expect(new URLParser(routerProps).build()).toEqual('?');
-    expect(new URLParser(routerProps).build({})).toEqual('?');
+    const urlParser = new URLParser(routerProps);
+    expect(urlParser.build()).toEqual('?');
+    expect(urlParser.build({})).toEqual('?');
   });
 });
+
+

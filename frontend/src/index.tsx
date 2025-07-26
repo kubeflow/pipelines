@@ -16,8 +16,10 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
+// React Flow CSS (required for v11+)
+import 'reactflow/dist/style.css';
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import * as ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { HashRouter } from 'react-router-dom';
 import { cssRule } from 'typestyle';
@@ -76,7 +78,9 @@ const app = (
     {/* <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>
 );
-ReactDOM.render(
+const container = document.getElementById('root');
+const root = ReactDOM.createRoot(container!);
+root.render(
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
@@ -84,5 +88,4 @@ ReactDOM.render(
       {app}
     </NamespaceContext.Provider>
   ),
-  document.getElementById('root'),
 );

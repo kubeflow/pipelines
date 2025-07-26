@@ -14,20 +14,22 @@
 
 import dagre from 'dagre';
 import {
-  ArrowHeadType,
+  MarkerType,
   Edge,
-  Elements,
-  FlowElement,
   isNode,
   Node,
   Position,
-} from 'react-flow-renderer';
+} from 'reactflow';
 import ArtifactNode from 'src/components/graph/ArtifactNode';
 import { ArtifactFlowElementData, FlowElementDataBase } from 'src/components/graph/Constants';
 import ExecutionNode from 'src/components/graph/ExecutionNode';
 import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
 import { ComponentInputsSpec_ArtifactSpec } from 'src/generated/pipeline_spec/pipeline_spec';
+
+// Type aliases for backward compatibility with React Flow v10 API
+type FlowElement<T = any> = Node<T> | Edge<T>;
+type Elements = FlowElement[];
 
 const nodeWidth = 224;
 const nodeHeight = 48;
@@ -82,8 +84,8 @@ export function convertSubDagToFlowElements(spec: PipelineSpec, layers: string[]
   for (let index = 1; index < layers.length; index++) {
     const tasksMap:
       | {
-          [key: string]: PipelineTaskSpec;
-        }
+        [key: string]: PipelineTaskSpec;
+      }
       | undefined = componentSpec.dag?.tasks;
     if (!tasksMap) {
       throw new Error("Unable to get task maps from Pipeline Spec's dag.");
@@ -94,7 +96,7 @@ export function convertSubDagToFlowElements(spec: PipelineSpec, layers: string[]
     if (!componentName) {
       throw new Error(
         'Unable to find the component reference for task name: ' +
-          pipelineTaskSpec.taskInfo?.name || 'Task name unknown',
+        pipelineTaskSpec.taskInfo?.name || 'Task name unknown',
       );
     }
     componentSpec = componentsMap[componentName];
@@ -234,8 +236,8 @@ function addArtifactNodes(
 function addInputArtifactNodes(
   artifactMap:
     | {
-        [key: string]: ComponentInputsSpec_ArtifactSpec;
-      }
+      [key: string]: ComponentInputsSpec_ArtifactSpec;
+    }
     | undefined,
   flowGraph: PipelineFlowElement[],
 ) {
@@ -280,7 +282,7 @@ function addTaskToArtifactEdges(
         id: getTaskToArtifactEdgeKey(taskKey, artifactKey),
         source: getTaskNodeKey(taskKey),
         target: getArtifactNodeKey(taskKey, artifactKey),
-        arrowHeadType: ArrowHeadType.ArrowClosed,
+        markerEnd: { type: MarkerType.ArrowClosed },
       };
       flowGraph.push(edge);
     }
@@ -313,7 +315,9 @@ function addArtifactToTaskEdges(
           id: getArtifactToTaskEdgeKey(outputArtifactKey, inputTaskKey),
           source: getArtifactNodeKey(producerTask, outputArtifactKey),
           target: getTaskNodeKey(inputTaskKey),
-          arrowHeadType: ArrowHeadType.ArrowClosed,
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+          },
         };
         flowGraph.push(edge);
       } else if (componentInputArtifact) {
@@ -321,7 +325,9 @@ function addArtifactToTaskEdges(
           id: getArtifactToTaskEdgeKey(componentInputArtifact, inputTaskKey),
           source: getArtifactNodeKey('', componentInputArtifact),
           target: getTaskNodeKey(inputTaskKey),
-          arrowHeadType: ArrowHeadType.ArrowClosed,
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+          },
         };
         flowGraph.push(edge);
       }
@@ -362,7 +368,9 @@ function addTaskToTaskEdges(
           source: getTaskNodeKey(producerTask),
           target: getTaskNodeKey(inputTaskKey),
           // TODO(zijianjoy): This node styling is temporarily.
-          arrowHeadType: ArrowHeadType.ArrowClosed,
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+          },
         };
         flowGraph.push(edge);
         edgeKeys.set(edgeId, edge);
@@ -390,7 +398,7 @@ function addTaskToTaskEdges(
         source: getTaskNodeKey(upStreamTaskName),
         target: getTaskNodeKey(inputTaskKey),
         // TODO(zijianjoy): This node styling is temporarily.
-        arrowHeadType: ArrowHeadType.ArrowClosed,
+        markerEnd: { type: MarkerType.ArrowClosed },
       };
       flowGraph.push(edge);
       edgeKeys.set(edgeId, edge);

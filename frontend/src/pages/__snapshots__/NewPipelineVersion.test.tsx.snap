@@ -21,21 +21,21 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           id="createNewPipelineBtn"
         >
           <span
-            class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary Mui-checked MuiRadio-root MuiRadio-colorPrimary css-vqmohf-MuiButtonBase-root-MuiRadio-root"
+            class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary Mui-checked MuiRadio-root MuiRadio-colorPrimary css-1p3cwfz-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
             data-testid="createNewPipelineBtn"
           >
             <input
               checked=""
-              class="PrivateSwitchBase-input css-1m9pwf3"
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
               type="radio"
               value=""
             />
             <span
-              class="css-hyxlzm"
+              class="css-19y5vkv-MuiRadioButtonIcon-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1hbvpl3-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1nih4k0-MuiSvgIcon-root-MuiRadioButtonIcon-root"
                 data-testid="RadioButtonUncheckedIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -46,7 +46,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
               </svg>
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-11zohuh-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1jq7105-MuiSvgIcon-root-MuiRadioButtonIcon-root"
                 data-testid="RadioButtonCheckedIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -71,19 +71,19 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           id="createPipelineVersionUnderExistingPipelineBtn"
         >
           <span
-            class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-root MuiRadio-colorPrimary css-vqmohf-MuiButtonBase-root-MuiRadio-root"
+            class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-root MuiRadio-colorPrimary css-1p3cwfz-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
           >
             <input
-              class="PrivateSwitchBase-input css-1m9pwf3"
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
               type="radio"
               value=""
             />
             <span
-              class="css-hyxlzm"
+              class="css-19y5vkv-MuiRadioButtonIcon-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1hbvpl3-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1nih4k0-MuiSvgIcon-root-MuiRadioButtonIcon-root"
                 data-testid="RadioButtonUncheckedIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -94,7 +94,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
               </svg>
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1hhw7if-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-yve00p-MuiSvgIcon-root-MuiRadioButtonIcon-root"
                 data-testid="RadioButtonCheckedIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -150,10 +150,10 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           />
           <fieldset
             aria-hidden="true"
-            class="MuiOutlinedInput-notchedOutline css-1d3z3hw-MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="css-yjsfm1"
+              class="css-njhac4-MuiNotchedOutlined-root"
             >
               <span>
                 Pipeline Name (Kubernetes object name) *
@@ -187,10 +187,10 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           />
           <fieldset
             aria-hidden="true"
-            class="MuiOutlinedInput-notchedOutline css-1d3z3hw-MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="css-yjsfm1"
+              class="css-njhac4-MuiNotchedOutlined-root"
             >
               <span>
                 Pipeline Display Name
@@ -224,10 +224,10 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           />
           <fieldset
             aria-hidden="true"
-            class="MuiOutlinedInput-notchedOutline css-1d3z3hw-MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="css-14lo706"
+              class="css-sl37lx-MuiNotchedOutlined-root"
             >
               <span>
                 Pipeline Description
@@ -263,19 +263,19 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           id="localPackageBtn"
         >
           <span
-            class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-root MuiRadio-colorPrimary css-vqmohf-MuiButtonBase-root-MuiRadio-root"
+            class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary MuiRadio-root MuiRadio-colorPrimary css-1p3cwfz-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
           >
             <input
-              class="PrivateSwitchBase-input css-1m9pwf3"
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
               type="radio"
               value=""
             />
             <span
-              class="css-hyxlzm"
+              class="css-19y5vkv-MuiRadioButtonIcon-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1hbvpl3-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1nih4k0-MuiSvgIcon-root-MuiRadioButtonIcon-root"
                 data-testid="RadioButtonUncheckedIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -286,7 +286,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
               </svg>
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1hhw7if-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-yve00p-MuiSvgIcon-root-MuiRadioButtonIcon-root"
                 data-testid="RadioButtonCheckedIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -307,12 +307,17 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           </span>
         </label>
         <div
-          aria-disabled="true"
-          class=""
           data-testid="uploadFileInput"
-          id="dropZone"
+          role="presentation"
           style="position: relative;"
         >
+          <input
+            accept="application/x-yaml,.yaml,.yml,application/zip,.zip,application/gzip,.tar.gz"
+            multiple=""
+            style="border: 0px; clip: rect(0px, 0px, 0px, 0px); clip-path: inset(50%); height: 1px; margin: 0px -1px -1px 0px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;"
+            tabindex="-1"
+            type="file"
+          />
           <div
             class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
             spellcheck="false"
@@ -321,8 +326,8 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
             <label
               class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary Mui-disabled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
               data-shrink="false"
-              for="mui-27"
-              id="mui-27-label"
+              for=":r2h:"
+              id=":r2h:-label"
             >
               File
               <span
@@ -340,7 +345,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
                 aria-invalid="false"
                 class="MuiInputBase-input MuiOutlinedInput-input Mui-disabled MuiInputBase-inputAdornedEnd Mui-readOnly MuiInputBase-readOnly css-nxo287-MuiInputBase-input-MuiOutlinedInput-input"
                 disabled=""
-                id="mui-27"
+                id=":r2h:"
                 readonly=""
                 required=""
                 type="text"
@@ -361,10 +366,10 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
               </div>
               <fieldset
                 aria-hidden="true"
-                class="MuiOutlinedInput-notchedOutline css-1d3z3hw-MuiOutlinedInput-notchedOutline"
+                class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
               >
                 <legend
-                  class="css-yjsfm1"
+                  class="css-njhac4-MuiNotchedOutlined-root"
                 >
                   <span>
                     File *
@@ -373,15 +378,6 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
               </fieldset>
             </div>
           </div>
-          <input
-            accept=".yaml,.yml,.zip,.tar.gz"
-            autocomplete="off"
-            disabled=""
-            multiple=""
-            style="position: absolute; top: 0px; right: 0px; bottom: 0px; left: 0px; opacity: 0.00001; pointer-events: none;"
-            tabindex="-1"
-            type="file"
-          />
         </div>
       </div>
       <div
@@ -392,20 +388,20 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           id="remotePackageBtn"
         >
           <span
-            class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary Mui-checked MuiRadio-root MuiRadio-colorPrimary css-vqmohf-MuiButtonBase-root-MuiRadio-root"
+            class="MuiButtonBase-root MuiRadio-root MuiRadio-colorPrimary PrivateSwitchBase-root MuiRadio-root MuiRadio-colorPrimary Mui-checked MuiRadio-root MuiRadio-colorPrimary css-1p3cwfz-MuiButtonBase-root-MuiSwitchBase-root-MuiRadio-root"
           >
             <input
               checked=""
-              class="PrivateSwitchBase-input css-1m9pwf3"
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
               type="radio"
               value=""
             />
             <span
-              class="css-hyxlzm"
+              class="css-19y5vkv-MuiRadioButtonIcon-root"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1hbvpl3-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1nih4k0-MuiSvgIcon-root-MuiRadioButtonIcon-root"
                 data-testid="RadioButtonUncheckedIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -416,7 +412,7 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
               </svg>
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-11zohuh-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1jq7105-MuiSvgIcon-root-MuiRadioButtonIcon-root"
                 data-testid="RadioButtonCheckedIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -467,10 +463,10 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
             />
             <fieldset
               aria-hidden="true"
-              class="MuiOutlinedInput-notchedOutline css-1d3z3hw-MuiOutlinedInput-notchedOutline"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
             >
               <legend
-                class="css-yjsfm1"
+                class="css-njhac4-MuiNotchedOutlined-root"
               >
                 <span>
                   Package Url
@@ -511,10 +507,10 @@ exports[`NewPipelineVersion creating new pipeline renders the new pipeline page 
           />
           <fieldset
             aria-hidden="true"
-            class="MuiOutlinedInput-notchedOutline css-1d3z3hw-MuiOutlinedInput-notchedOutline"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
           >
             <legend
-              class="css-yjsfm1"
+              class="css-njhac4-MuiNotchedOutlined-root"
             >
               <span>
                 Code Source

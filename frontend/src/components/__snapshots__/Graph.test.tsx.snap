@@ -7,7 +7,7 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
   >
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node1"
@@ -36,7 +36,7 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
     </div>
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 146px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node2"
@@ -66,19 +66,15 @@ exports[`Graph gracefully renders a graph with a selected node id that does not 
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -15.87487218800544px; top: 65px; transform: rotate(-166.75948008481282deg); transition: left 0.5s, top 0.5s; width: 122.74974437601087px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 171.75px; top: 119px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 28.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -14.292526819072776px; top: 76.75px; transform: rotate(2.165615252902859deg); transition: left 0.5s, top 0.5s; width: 119.58505363814554px;"
-      />
-      <div
-        class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -19px; top: 78.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 176.75px; top: 142px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 18.5px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: -20px; top: 67px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 180px; top: 148px; transform: rotate(0deg);"
       />
     </div>
   </div>
@@ -94,7 +90,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
   >
     <div
       class="node graphNode"
-      style="left: 75px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 277.5px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="flipcoin1"
@@ -123,7 +119,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="left: 45px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 126px; max-height: 64px; min-height: 64px; top: 146px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="tails1"
@@ -152,7 +148,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="left: 105px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 348px; max-height: 64px; min-height: 64px; top: 146px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="heads1"
@@ -181,7 +177,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="left: 45px; max-height: 10px; min-height: 10px; top: 125px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 166.5px; max-height: 64px; min-height: 64px; top: 260px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="flipcoin2"
@@ -210,7 +206,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 185px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 374px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="heads2"
@@ -239,7 +235,7 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="left: 85px; max-height: 10px; min-height: 10px; top: 185px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 328px; max-height: 64px; min-height: 64px; top: 374px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="tails2"
@@ -269,143 +265,131 @@ exports[`Graph renders a complex graph with six nodes and seven edges 1`] = `
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 53.599705252806814px; top: 65px; transform: rotate(-162.53607310815718deg); transition: left 0.5s, top 0.5s; width: 93.80058949438637px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 223.3847151833993px; top: 119px; transform: rotate(-19.179008025810724deg); transition: left 0.5s, top 0.5s; width: 85.73056963320144px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 25.707473180927224px; top: 76.75px; transform: rotate(2.165615252902859deg); transition: left 0.5s, top 0.5s; width: 119.58505363814554px;"
-      />
-      <div
-        class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 21px; top: 78.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 216.75px; top: 142px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 18.5px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: 20px; top: 67px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 220px; top: 148px; transform: rotate(0deg);"
       />
     </div>
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 54.44597636009023px; top: 65px; transform: rotate(-169.35712925529643deg); transition: left 0.5s, top 0.5s; width: 152.10804727981954px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 411.4321518532271px; top: 119px; transform: rotate(-137.83815493661623deg); transition: left 0.5s, top 0.5s; width: 42.21464366196691px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 85.70747318092722px; top: 76.75px; transform: rotate(2.165615252902859deg); transition: left 0.5s, top 0.5s; width: 119.58505363814554px;"
-      />
-      <div
-        class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 81px; top: 78.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 438.75px; top: 142px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 18.5px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: 80px; top: 67px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 442px; top: 148px; transform: rotate(0deg);"
       />
     </div>
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 24.12512781199456px; top: 125px; transform: rotate(-166.75948008481282deg); transition: left 0.5s, top 0.5s; width: 122.74974437601087px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 240.78884190844525px; top: 233px; transform: rotate(-122.3909803444195deg); transition: left 0.5s, top 0.5s; width: 33.65915828837264px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 25.707473180927224px; top: 136.75px; transform: rotate(2.165615252902859deg); transition: left 0.5s, top 0.5s; width: 119.58505363814554px;"
-      />
-      <div
-        class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 21px; top: 138.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 257.25px; top: 256px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 18.5px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: 20px; top: 127px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 260.5px; top: 262px; transform: rotate(0deg);"
       />
     </div>
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 23.342363464399483px; top: 125px; transform: rotate(-160.48412699041728deg); transition: left 0.5s, top 0.5s; width: 84.31527307120105px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 140.372499652039px; top: 233px; transform: rotate(-38.41594601302922deg); transition: left 0.5s, top 0.5s; width: 45.56201823978164px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 89.75px; top: 154px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 30.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 116.75px; top: 275.5px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 57.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 89.75px; top: 184px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 30.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 116.75px; top: 332.5px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 57.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -14.292526819072776px; top: 196.75px; transform: rotate(2.165615252902859deg); transition: left 0.5s, top 0.5s; width: 119.58505363814554px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 144.17505120932952px; top: 365.5px; transform: rotate(-153.13018691250096deg); transition: left 0.5s, top 0.5s; width: 20.413055476077794px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -19px; top: 198.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 158.26315789473685px; top: 374px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: 9px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: -20px; top: 187px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 157.26315789473685px; top: 376px; transform: rotate(360deg);"
       />
     </div>
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 24.52670720293925px; top: 125px; transform: rotate(-170.01257842498643deg); transition: left 0.5s, top 0.5s; width: 161.9465855941215px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 267.1184551772871px; top: 233px; transform: rotate(-166.70559269932568deg); transition: left 0.5s, top 0.5s; width: 122.26308964542581px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 169.75px; top: 154px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 30.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 358.75px; top: 275.5px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 57.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 169.75px; top: 184px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 30.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 358.75px; top: 332.5px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 57.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 65.70747318092722px; top: 196.75px; transform: rotate(2.165615252902859deg); transition: left 0.5s, top 0.5s; width: 119.58505363814554px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 386.1750512093295px; top: 365.5px; transform: rotate(-153.13018691250093deg); transition: left 0.5s, top 0.5s; width: 20.413055476077776px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 61px; top: 198.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 400.2631578947368px; top: 374px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: 9px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: 60px; top: 187px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 399.2631578947368px; top: 376px; transform: rotate(360deg);"
       />
     </div>
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 24.12512781199456px; top: 185px; transform: rotate(-166.75948008481282deg); transition: left 0.5s, top 0.5s; width: 122.74974437601087px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 252.25px; top: 347px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 28.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -14.281833249334824px; top: 196.75px; transform: rotate(1.6211459136534117deg); transition: left 0.5s, top 0.5s; width: 159.56366649866965px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 228.21755980172634px; top: 365.5px; transform: rotate(-13.495733280795813deg); transition: left 0.5s, top 0.5s; width: 39.06488039654732px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -19px; top: 198.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 224px; top: 374px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: 9px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: -20px; top: 187px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 223px; top: 376px; transform: rotate(360deg);"
       />
     </div>
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 24.661645340032806px; top: 185px; transform: rotate(-171.10957674263614deg); transition: left 0.5s, top 0.5s; width: 181.6767093199344px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 307.8490092072305px; top: 347px; transform: rotate(-168.57078432667006deg); transition: left 0.5s, top 0.5s; width: 141.80198158553898px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 65.71358867470941px; top: 196.75px; transform: rotate(1.8542517148477853deg); transition: left 0.5s, top 0.5s; width: 139.57282265058117px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 437.08019166098137px; top: 365.5px; transform: rotate(-45.735246049496496deg); transition: left 0.5s, top 0.5s; width: 13.067686853475871px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: 61px; top: 198.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 434.2280701754386px; top: 374px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: 9px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: 60px; top: 187px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 433.2280701754386px; top: 376px; transform: rotate(360deg);"
       />
     </div>
   </div>
@@ -419,7 +403,7 @@ exports[`Graph renders a graph with a placeholder node and edge 1`] = `
   >
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node1"
@@ -448,7 +432,7 @@ exports[`Graph renders a graph with a placeholder node and edge 1`] = `
     </div>
     <div
       class="placeholderNode graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 146px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         class="icon"
@@ -471,11 +455,11 @@ exports[`Graph renders a graph with a placeholder node and edge 1`] = `
     <div>
       <div
         class="line"
-        style="background-color: rgb(154, 160, 166); height: 2px; left: -15.87487218800544px; top: 65px; transform: rotate(-166.75948008481282deg); transition: left 0.5s, top 0.5s; width: 122.74974437601087px;"
+        style="background-color: rgb(154, 160, 166); height: 2px; left: 171.75px; top: 119px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 28.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(154, 160, 166); height: 2px; left: 92.25px; top: 91.5px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 25.5px;"
+        style="background-color: rgb(154, 160, 166); height: 2px; left: 173.25px; top: 145.5px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 25.5px;"
       />
     </div>
   </div>
@@ -489,7 +473,7 @@ exports[`Graph renders a graph with a selected node 1`] = `
   >
     <div
       class="node graphNode nodeSelected"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node1"
@@ -518,7 +502,7 @@ exports[`Graph renders a graph with a selected node 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 146px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node2"
@@ -548,19 +532,15 @@ exports[`Graph renders a graph with a selected node 1`] = `
     <div>
       <div
         class="line"
-        style="background-color: rgb(26, 115, 232); height: 2px; left: -15.87487218800544px; top: 65px; transform: rotate(-166.75948008481282deg); transition: left 0.5s, top 0.5s; width: 122.74974437601087px;"
+        style="background-color: rgb(26, 115, 232); height: 2px; left: 171.75px; top: 119px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 28.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(26, 115, 232); height: 2px; left: -14.292526819072776px; top: 76.75px; transform: rotate(2.165615252902859deg); transition: left 0.5s, top 0.5s; width: 119.58505363814554px;"
-      />
-      <div
-        class="line"
-        style="background-color: rgb(26, 115, 232); height: 2px; left: -19px; top: 78.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(26, 115, 232); height: 2px; left: 176.75px; top: 142px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 18.5px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #1a73e8; left: -20px; top: 67px; transform: rotate(360deg);"
+        style="border-top-color: #1a73e8; left: 180px; top: 148px; transform: rotate(0deg);"
       />
     </div>
   </div>
@@ -574,7 +554,7 @@ exports[`Graph renders a graph with colored edges 1`] = `
   >
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node1"
@@ -603,7 +583,7 @@ exports[`Graph renders a graph with colored edges 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 146px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node2"
@@ -633,19 +613,15 @@ exports[`Graph renders a graph with colored edges 1`] = `
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -15.87487218800544px; top: 65px; transform: rotate(-166.75948008481282deg); transition: left 0.5s, top 0.5s; width: 122.74974437601087px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 171.75px; top: 119px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 28.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -14.292526819072776px; top: 76.75px; transform: rotate(2.165615252902859deg); transition: left 0.5s, top 0.5s; width: 119.58505363814554px;"
-      />
-      <div
-        class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -19px; top: 78.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 176.75px; top: 142px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 18.5px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: -20px; top: 67px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 180px; top: 148px; transform: rotate(0deg);"
       />
     </div>
   </div>
@@ -659,7 +635,7 @@ exports[`Graph renders a graph with colored nodes 1`] = `
   >
     <div
       class="node graphNode"
-      style="background-color: red; left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="background-color: red; left: 86px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node1"
@@ -688,7 +664,7 @@ exports[`Graph renders a graph with colored nodes 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="background-color: green; left: 65px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="background-color: green; left: 308px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node2"
@@ -726,7 +702,7 @@ exports[`Graph renders a graph with one node 1`] = `
   >
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node1"
@@ -764,7 +740,7 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
   >
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node1"
@@ -793,7 +769,7 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 146px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node2"
@@ -823,19 +799,15 @@ exports[`Graph renders a graph with two connectd nodes 1`] = `
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -15.87487218800544px; top: 65px; transform: rotate(-166.75948008481282deg); transition: left 0.5s, top 0.5s; width: 122.74974437601087px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 171.75px; top: 119px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 28.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -14.292526819072776px; top: 76.75px; transform: rotate(2.165615252902859deg); transition: left 0.5s, top 0.5s; width: 119.58505363814554px;"
-      />
-      <div
-        class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -19px; top: 78.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 176.75px; top: 142px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 18.5px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: -20px; top: 67px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 180px; top: 148px; transform: rotate(0deg);"
       />
     </div>
   </div>
@@ -849,7 +821,7 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
   >
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 65px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 146px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node1"
@@ -878,7 +850,7 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node2"
@@ -908,19 +880,15 @@ exports[`Graph renders a graph with two connectd nodes in reverse order 1`] = `
     <div>
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -15.87487218800544px; top: 65px; transform: rotate(-166.75948008481282deg); transition: left 0.5s, top 0.5s; width: 122.74974437601087px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 171.75px; top: 119px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 28.5px;"
       />
       <div
         class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -14.292526819072776px; top: 76.75px; transform: rotate(2.165615252902859deg); transition: left 0.5s, top 0.5s; width: 119.58505363814554px;"
-      />
-      <div
-        class="line"
-        style="background-color: rgb(95, 99, 104); height: 2px; left: -19px; top: 78.5px; transform: rotate(270deg); transition: left 0.5s, top 0.5s; width: -4.5px;"
+        style="background-color: rgb(95, 99, 104); height: 2px; left: 176.75px; top: 142px; transform: rotate(-90deg); transition: left 0.5s, top 0.5s; width: 18.5px;"
       />
       <div
         class="arrowHead"
-        style="border-top-color: #5f6368; left: -20px; top: 67px; transform: rotate(360deg);"
+        style="border-top-color: #5f6368; left: 180px; top: 148px; transform: rotate(0deg);"
       />
     </div>
   </div>
@@ -934,7 +902,7 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
   >
     <div
       class="node graphNode"
-      style="left: 5px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 86px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node1"
@@ -963,7 +931,7 @@ exports[`Graph renders a graph with two disparate nodes 1`] = `
     </div>
     <div
       class="node graphNode"
-      style="left: 65px; max-height: 10px; min-height: 10px; top: 5px; transition: left 0.5s, top 0.5s; width: 10px;"
+      style="left: 308px; max-height: 64px; min-height: 64px; top: 32px; transition: left 0.5s, top 0.5s; width: 172px;"
     >
       <div
         aria-label="node2"

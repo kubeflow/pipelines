@@ -186,10 +186,12 @@ class RecurringRunDetailsV2 extends Page<
     const pageTitle = run ? run.display_name! : recurringRunId;
 
     const toolbarActions = this.props.toolbarProps.actions;
-    toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
-      run.status === V2beta1RecurringRunStatus.ENABLED;
-    toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
-      run.status !== V2beta1RecurringRunStatus.ENABLED;
+    if (toolbarActions) {
+      toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
+        run.status === V2beta1RecurringRunStatus.ENABLED;
+      toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
+        run.status !== V2beta1RecurringRunStatus.ENABLED;
+    }
 
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 
@@ -202,7 +204,7 @@ class RecurringRunDetailsV2 extends Page<
       const previousPage = breadcrumbs.length
         ? breadcrumbs[breadcrumbs.length - 1].href
         : RoutePage.EXPERIMENTS;
-      this.props.history.push(previousPage);
+      this.props.navigate(previousPage);
     }
   }
 }

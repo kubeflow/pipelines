@@ -21,7 +21,9 @@ import 'src/build/tailwind.output.css';
 import { format } from 'prettier';
 import * as React from 'react';
 import { QueryClient } from 'react-query';
-import { match } from 'react-router';
+// Note: match type is deprecated in v6, keeping as any for compatibility
+// @ts-ignore
+import type { match } from 'react-router-test-context';
 // @ts-ignore
 import createRouterContext from 'react-router-test-context';
 import snapshotDiff from 'snapshot-diff';
@@ -105,6 +107,7 @@ export default class TestUtils {
       history: { push: historyPushSpy } as any,
       location: location as any,
       match: matchValue,
+      navigate: historyPushSpy || jest.fn() as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy as any,
       updateDialog: updateDialogSpy as any,

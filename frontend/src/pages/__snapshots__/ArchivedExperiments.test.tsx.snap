@@ -8,6 +8,7 @@ exports[`ArchivedExperiemnts renders archived experiments 1`] = `
     <div>
       <div
         class="pageOverflowHidden"
+        data-testid="custom-table"
       >
         <div>
           <div
@@ -51,10 +52,10 @@ exports[`ArchivedExperiemnts renders archived experiments 1`] = `
               />
               <fieldset
                 aria-hidden="true"
-                class="MuiOutlinedInput-notchedOutline filterBorderRadius css-1d3z3hw-MuiOutlinedInput-notchedOutline"
+                class="MuiOutlinedInput-notchedOutline filterBorderRadius css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
               >
                 <legend
-                  class="css-14lo706"
+                  class="css-sl37lx-MuiNotchedOutlined-root"
                 >
                   <span>
                     Filter experiments
@@ -164,17 +165,18 @@ exports[`ArchivedExperiemnts renders archived experiments 1`] = `
           </span>
           <div
             class="MuiFormControl-root MuiTextField-root verticalAlignInitial rowsPerPage css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+            data-testid="rows-per-page"
           >
             <div
               class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
             >
               <div
-                aria-controls="mui-3"
+                aria-controls=":r4:"
                 aria-expanded="false"
                 aria-haspopup="listbox"
-                aria-labelledby="mui-4"
+                aria-labelledby=":r3:"
                 class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                id="mui-4"
+                id=":r3:"
                 role="combobox"
                 tabindex="0"
               >
@@ -202,6 +204,7 @@ exports[`ArchivedExperiemnts renders archived experiments 1`] = `
           </div>
           <button
             class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+            data-testid="previous-page-button"
             disabled=""
             tabindex="-1"
             type="button"
@@ -220,6 +223,7 @@ exports[`ArchivedExperiemnts renders archived experiments 1`] = `
           </button>
           <button
             class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+            data-testid="next-page-button"
             tabindex="0"
             type="button"
           >
@@ -238,7 +242,21 @@ exports[`ArchivedExperiemnts renders archived experiments 1`] = `
               class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
             />
           </button>
+          <span
+            data-testid="current-page"
+            style="position: absolute; left: -9999px;"
+          >
+            0
+          </span>
+          <span
+            data-testid="token-list"
+            style="position: absolute; left: -9999px;"
+          />
         </div>
+        <span
+          data-testid="filter-string-encoded"
+          style="position: absolute; left: -9999px;"
+        />
       </div>
     </div>
   </div>

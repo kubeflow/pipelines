@@ -300,7 +300,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     const widths = this.props.columns.map(c => ((c.flex || 1) / totalFlex) * 100);
 
     return (
-      <div className={commonCss.pageOverflowHidden}>
+      <div className={commonCss.pageOverflowHidden} data-testid='custom-table'>
         {/* Filter/Search bar */}
         {!this.props.noFilterBox && (
           <div>
@@ -405,6 +405,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   row.expandState === ExpandState.EXPANDED && css.expandedContainer,
                 )}
                 key={i}
+                data-testid={`row-${i}`}
               >
                 <div
                   role='checkbox'
@@ -419,8 +420,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   )}
                   onClick={e => this.handleClick(e, row.id)}
                 >
-                  {// Called as function to avoid breaking shallow rendering tests.
-                  BodyRowSelectionSection({
+                  {BodyRowSelectionSection({
                     disableSelection: this.props.disableSelection,
                     expandState: row.expandState,
                     isSelected: selected,
@@ -428,6 +428,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                     showExpandButton: !!this.props.getExpandComponent,
                     useRadioButtons: this.props.useRadioButtons,
                     disableAdditionalSelection: this.props.disableAdditionalSelection,
+                    testIdPrefix: i + 1,
                   })}
                   <CustomTableRow row={row} columns={this.props.columns} />
                 </div>
@@ -450,6 +451,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               InputProps={{ disableUnderline: true }}
               onChange={this._requestRowsPerPage.bind(this)}
               value={pageSize}
+              data-testid='rows-per-page'
             >
               {[10, 20, 50, 100].map((size, i) => (
                 <MenuItem key={i} value={size}>
@@ -462,6 +464,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               onClick={() => this._pageChanged(-1)}
               disabled={!this.state.currentPage}
               size='large'
+              data-testid='previous-page-button'
             >
               <ChevronLeft />
             </IconButton>
@@ -469,11 +472,21 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               onClick={() => this._pageChanged(1)}
               disabled={this.state.currentPage >= this.state.maxPageIndex}
               size='large'
+              data-testid='next-page-button'
             >
               <ChevronRight />
             </IconButton>
+            <span data-testid='current-page' style={{ position: 'absolute', left: '-9999px' }}>
+              {this.state.currentPage}
+            </span>
+            <span data-testid='token-list' style={{ position: 'absolute', left: '-9999px' }}>
+              {this.state.tokenList.join(',')}
+            </span>
           </div>
         )}
+        <span data-testid='filter-string-encoded' style={{ position: 'absolute', left: '-9999px' }}>
+          {this.state.filterStringEncoded}
+        </span>
       </div>
     );
   }
@@ -674,6 +687,7 @@ const HeaderRowSelectionSection: React.FC<HeaderRowSelectionSectionProps> = ({
           checked={isSelected}
           onChange={onSelectAll}
           disabled={indeterminate && disableAdditionalSelection}
+          data-testid='checkbox-0'
         />
       )}
       {/* If using radio buttons */}
@@ -690,6 +704,7 @@ interface BodyRowSelectionSectionProps extends SelectionSectionCommonProps {
   expandState?: ExpandState;
   onExpand: React.MouseEventHandler;
   disableAdditionalSelection?: boolean;
+  testIdPrefix?: number;
 }
 const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
   disableSelection,
@@ -699,6 +714,7 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
   showExpandButton,
   useRadioButtons,
   disableAdditionalSelection,
+  testIdPrefix,
 }) => (
   <>
     {/* Expansion toggle button */}
@@ -710,6 +726,7 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
             color='primary'
             checked={isSelected}
             disabled={!isSelected && disableAdditionalSelection}
+            data-testid={`checkbox-${testIdPrefix}`}
           />
         )}
         {/* If using radio buttons */}
@@ -725,6 +742,9 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
             onClick={onExpand}
             aria-label='Expand'
             size='large'
+            data-testid={`expand-button-${
+              typeof testIdPrefix === 'number' ? testIdPrefix - 1 : ''
+            }`}
           >
             <ArrowRight />
           </IconButton>

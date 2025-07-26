@@ -28,7 +28,7 @@ describe('Status', () => {
   const endDate = new Date('Thu Jan 3 2019 10:11:12 GMT-0800');
 
   beforeEach(() => {
-    formatDateStringSpy.mockImplementation((date: Date) => {
+    formatDateStringSpy.mockImplementation((date: string | Date | undefined) => {
       return date === startDate ? '1/2/2019, 9:10:11 AM' : '1/3/2019, 10:11:12 AM';
     });
   });
@@ -194,7 +194,9 @@ describe('Status', () => {
 
     Object.keys(V2beta1RuntimeState).map(status =>
       it('renders an icon with tooltip for phase: ' + status, () => {
-        const { asFragment } = render(statusToIcon(V2beta1RuntimeState[status]));
+        const { asFragment } = render(
+          statusToIcon(V2beta1RuntimeState[status as keyof typeof V2beta1RuntimeState]),
+        );
         expect(asFragment()).toMatchSnapshot();
       }),
     );

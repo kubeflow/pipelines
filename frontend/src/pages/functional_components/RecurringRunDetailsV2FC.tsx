@@ -156,7 +156,7 @@ export function RecurringRunDetailsV2FC(
       const previousPage = breadcrumbs.length
         ? breadcrumbs[breadcrumbs.length - 1].href
         : RoutePage.EXPERIMENTS;
-      props.history.push(previousPage);
+      props.navigate(previousPage);
     }
   };
 

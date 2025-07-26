@@ -16,22 +16,16 @@
 
 import * as React from 'react';
 import PipelineVersionList, { PipelineVersionListProps } from './PipelineVersionList';
+import { Apis } from 'src/lib/Apis';
 import TestUtils from 'src/TestUtils';
-import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
-import { Apis, ListRequest } from 'src/lib/Apis';
-import { render } from '@testing-library/react';
-import { range } from 'lodash';
+import { V2beta1ListPipelineVersionsResponse } from 'src/apisv2beta1/pipeline';
 
 describe('PipelineVersionList', () => {
-
   const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
   const onErrorSpy = jest.fn();
 
   function generateProps(): PipelineVersionListProps {
     return {
-      history: {} as any,
-      location: { search: '' } as any,
-      match: '' as any,
       onError: onErrorSpy,
       pipelineId: 'pipeline',
     };
@@ -39,18 +33,24 @@ describe('PipelineVersionList', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock the API call to return an empty response by default
+    listPipelineVersionsSpy.mockImplementation(() =>
+      Promise.resolve({
+        pipeline_versions: [],
+        next_page_token: '',
+      } as V2beta1ListPipelineVersionsResponse),
+    );
   });
 
   afterEach(() => {
     jest.resetAllMocks();
   });
 
-  it('renders an empty list with empty state message', () => {
-    const { asFragment } = render(<PipelineVersionList {...generateProps()} />);
+  it('renders an empty list with empty state message', async () => {
+    const { asFragment } = TestUtils.renderWithRouter(<PipelineVersionList {...generateProps()} />);
+    await TestUtils.flushPromises();
     expect(asFragment()).toMatchSnapshot();
   });
-
-  // TODO: Skip tests that require component state manipulation and complex enzyme patterns
 
   it.skip('renders a list of one pipeline version', () => {});
   it.skip('renders a list of one pipeline version with description', () => {});

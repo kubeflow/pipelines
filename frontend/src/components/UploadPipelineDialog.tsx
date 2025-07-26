@@ -85,7 +85,7 @@ class UploadPipelineDialog extends React.Component<
   UploadPipelineDialogState
 > {
   static contextType = BuildInfoContext;
-  private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
+  context!: React.ContextType<typeof BuildInfoContext>;
 
   constructor(props: any) {
     super(props);
@@ -155,40 +155,43 @@ class UploadPipelineDialog extends React.Component<
           {importMethod === ImportMethod.LOCAL && (
             <React.Fragment>
               <Dropzone
-                id='dropZone'
-                disableClick={true}
                 onDrop={this._onDrop.bind(this)}
                 onDragEnter={this._onDropzoneDragEnter.bind(this)}
                 onDragLeave={this._onDropzoneDragLeave.bind(this)}
-                style={{ position: 'relative' }}
-                ref={this._dropzoneRef}
-                inputProps={{ tabIndex: -1 }}
+                noClick={true}
               >
-                {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
+                {({ getRootProps, getInputProps, open }) => (
+                  <div {...getRootProps()} style={{ position: 'relative' }}>
+                    <input {...getInputProps()} tabIndex={-1} />
+                    {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
 
-                <div className={padding(10, 'b')}>You can also drag and drop the file here.</div>
-                <DocumentationCompilePipeline />
-                <Input
-                  onChange={this.handleChange('fileName')}
-                  value={fileName}
-                  required={true}
-                  label='File'
-                  variant='outlined'
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position='end'>
-                        <Button
-                          color='secondary'
-                          onClick={() => this._dropzoneRef.current!.open()}
-                          style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
-                        >
-                          Choose file
-                        </Button>
-                      </InputAdornment>
-                    ),
-                    readOnly: true,
-                  }}
-                />
+                    <div className={padding(10, 'b')}>
+                      You can also drag and drop the file here.
+                    </div>
+                    <DocumentationCompilePipeline />
+                    <Input
+                      onChange={this.handleChange('fileName')}
+                      value={fileName}
+                      required={true}
+                      label='File'
+                      variant='outlined'
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position='end'>
+                            <Button
+                              color='secondary'
+                              onClick={open}
+                              style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
+                            >
+                              Choose file
+                            </Button>
+                          </InputAdornment>
+                        ),
+                        readOnly: true,
+                      }}
+                    />
+                  </div>
+                )}
               </Dropzone>
             </React.Fragment>
           )}

@@ -54,6 +54,7 @@ interface SidePanelProps {
   onClose: () => void;
   title: string;
   defaultWidth?: string | number;
+  children?: React.ReactNode;
 }
 
 class SidePanel extends React.Component<SidePanelProps> {

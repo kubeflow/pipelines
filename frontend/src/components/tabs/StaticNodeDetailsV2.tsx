@@ -16,7 +16,7 @@
 
 import { Button } from '@mui/material';
 import * as React from 'react';
-import { FlowElement } from 'react-flow-renderer';
+import { Node, Edge } from 'reactflow';
 import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { ParameterType } from 'src/generated/pipeline_spec/pipeline_spec_pb';
 import { KeyValue } from 'src/lib/StaticGraphParser';
@@ -31,6 +31,8 @@ import {
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import DetailsTable from '../DetailsTable';
 import { FlowElementDataBase } from '../graph/Constants';
+
+type FlowElement<T = any> = Node<T> | Edge<T>;
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>

@@ -119,6 +119,7 @@ interface GraphState {
 }
 
 interface GraphErrorBoundaryProps {
+  children?: React.ReactNode;
   onError?: (message: string, additionalInfo: string) => void;
 }
 class GraphErrorBoundary extends React.Component<GraphErrorBoundaryProps> {

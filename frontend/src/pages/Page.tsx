@@ -15,20 +15,27 @@
  */
 
 import * as React from 'react';
-import { RouteComponentProps } from 'react-router';
+import { NavigateFunction, Location } from 'react-router-dom';
 import { ToolbarProps } from '../components/Toolbar';
 import { BannerProps } from '../components/Banner';
 import { SnackbarProps } from '@mui/material/Snackbar';
 import { DialogProps } from '../components/Router';
 import { errorToMessage } from '../lib/Utils';
 
-export interface PageProps<T extends { [K in keyof T]?: string | undefined } = {}>
-  extends RouteComponentProps<T> {
+export interface PageProps<T extends { [K in keyof T]?: string | undefined } = {}> {
   toolbarProps: ToolbarProps;
   updateBanner: (bannerProps: BannerProps) => void;
   updateDialog: (dialogProps: DialogProps) => void;
   updateSnackbar: (snackbarProps: SnackbarProps) => void;
   updateToolbar: (toolbarProps: Partial<ToolbarProps>) => void;
+  navigate: NavigateFunction;
+  location: Location;
+  match: {
+    params: T;
+    isExact: boolean;
+    path: string;
+    url: string;
+  };
 }
 
 export type PageErrorHandler = (

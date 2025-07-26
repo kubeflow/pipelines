@@ -16,9 +16,18 @@
 
 import { render } from '@testing-library/react';
 import * as React from 'react';
-import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
-import { RoutePage } from 'src/components/Router';
-import { ButtonKeys } from 'src/lib/Buttons';
+import { MemoryRouter } from 'react-router-dom';
+import TestUtils from 'src/TestUtils';
+
+// Mock useNavigate and useLocation hooks
+const mockNavigate = jest.fn();
+const mockLocation = { pathname: '', search: '', hash: '', state: null, key: 'default' };
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+  useLocation: () => mockLocation,
+}));
+
 import { AllRunsList } from './AllRunsList';
 import { PageProps } from './Page';
 
@@ -26,11 +35,11 @@ describe('AllRunsList', () => {
   const updateBannerSpy = jest.fn();
   let _toolbarProps: any = {};
   const updateToolbarSpy = jest.fn(toolbarProps => (_toolbarProps = toolbarProps));
-  const historyPushSpy = jest.fn();
+  const navigateSpy = jest.fn();
   const props: PageProps = {
-    history: { push: historyPushSpy } as any,
-    location: '' as any,
-    match: '' as any,
+    navigate: navigateSpy,
+    location: { pathname: '', search: '', hash: '', state: null, key: 'default' },
+    match: { params: {}, isExact: true, path: '', url: '' },
     toolbarProps: _toolbarProps,
     updateBanner: updateBannerSpy,
     updateDialog: jest.fn(),
@@ -39,13 +48,17 @@ describe('AllRunsList', () => {
   };
 
   beforeEach(() => {
-    updateBannerSpy.mockClear();
-    updateToolbarSpy.mockClear();
-    historyPushSpy.mockClear();
+    jest.clearAllMocks();
+    mockNavigate.mockClear();
   });
 
-  it('renders all runs', () => {
-    const { asFragment } = render(<AllRunsList {...props} />);
+  it('renders all runs', async () => {
+    const { asFragment } = render(
+      <MemoryRouter initialEntries={['/does-not-matter']}>
+        <AllRunsList {...props} />
+      </MemoryRouter>,
+    );
+    await TestUtils.flushPromises();
     expect(asFragment()).toMatchSnapshot();
   });
 

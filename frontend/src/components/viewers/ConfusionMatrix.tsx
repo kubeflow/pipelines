@@ -266,7 +266,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
             {/* Footer */}
             {!small && (
               <tr>
-                <th className={this._css.xlabel} />
+                <td className={this._css.xlabel} />
                 {this._config.labels.map((label, i) => (
                   <th key={i}>
                     <div

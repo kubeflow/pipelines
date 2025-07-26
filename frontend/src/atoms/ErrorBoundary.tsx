@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import React, { ReactNode } from 'react';
 
 interface ErrorBoundaryState {
   error: any;
   errorInfo: any;
 }
 
-export class ErrorBoundary extends React.Component<Readonly<{}>, ErrorBoundaryState> {
-  constructor(props: Readonly<Readonly<{}>>) {
+export class ErrorBoundary extends React.Component<{ children?: ReactNode }, ErrorBoundaryState> {
+  constructor(props: Readonly<{ children?: ReactNode }>) {
     super(props);
     this.state = { error: null, errorInfo: null };
   }

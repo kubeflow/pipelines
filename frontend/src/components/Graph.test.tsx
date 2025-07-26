@@ -17,12 +17,14 @@
 import * as dagre from 'dagre';
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import EnhancedGraph, { Graph } from './Graph';
+import EnhancedGraph, { AdditionalNodeData, Graph } from './Graph';
 import SuccessIcon from '@mui/icons-material/CheckCircle';
 import Tooltip from '@mui/material/Tooltip';
+import { SelectedNodeInfo } from '../lib/StaticGraphParser';
+import { Constants } from '../lib/Constants';
 
-function newGraph(): dagre.graphlib.Graph {
-  const graph = new dagre.graphlib.Graph();
+function newGraph(): dagre.graphlib.Graph<AdditionalNodeData> {
+  const graph = new dagre.graphlib.Graph<AdditionalNodeData>();
   graph.setGraph({});
   graph.setDefaultEdgeLabel(() => ({}));
   return graph;
@@ -36,11 +38,12 @@ const testIcon = (
 
 const newNode = (label: string, isPlaceHolder?: boolean, color?: string, icon?: JSX.Element) => ({
   bgColor: color,
-  height: 10,
+  height: Constants.NODE_HEIGHT,
   icon: icon || testIcon,
+  info: new SelectedNodeInfo(),
   isPlaceholder: isPlaceHolder || false,
   label,
-  width: 10,
+  width: Constants.NODE_WIDTH,
 });
 
 beforeEach(() => {
