@@ -59,7 +59,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ "${USE_PROXY}" == "true" && "${PIPELINES_STORE}" == "kubernetes" ]; then
+if [ "${USE_PROXY}" == "true" ] && [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   echo "ERROR: Kubernetes Pipeline store cannot be deployed with proxy support."
   exit 1
 fi
@@ -74,12 +74,31 @@ if [ "${STORAGE_BACKEND}" != "minio" ] && [ "${STORAGE_BACKEND}" != "seaweedfs" 
   exit 1
 fi
 
-# Deploy cluster-scoped resources (needed for both standalone and multi-user)
 kubectl apply -k "manifests/kustomize/cluster-scoped-resources/" || EXIT_CODE=$?
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]; then
   echo "Failed to deploy cluster-scoped resources."
   exit $EXIT_CODE
+fi
+
+# Apply KFP manifests with image overrides (for both standalone and multi-user)
+if $CACHE_DISABLED; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/cache-disabled"
+elif $USE_PROXY; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
+elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
+else
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
+fi
+
+echo "Deploying ${TEST_MANIFESTS}..."
+
+kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
+  exit 1
 fi
 
 # Deploy multi-user prerequisites if multi-user mode is enabled
@@ -138,29 +157,6 @@ if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   then
     echo "Failed to deploy cert-manager."
     exit $EXIT_CODE
-  fi
-fi
-
-# Skip KFP deployment for multi-user mode (already deployed above)
-if [ "${MULTI_USER}" == "false" ]; then
-  # Manifests will be deployed according to the flag provided
-  if $CACHE_DISABLED; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/cache-disabled"
-  elif $USE_PROXY; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
-  elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
-  else
-    TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
-  fi
-
-  echo "Deploying ${TEST_MANIFESTS}..."
-
-  kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
-  if [[ $EXIT_CODE -ne 0 ]]
-  then
-    echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
-    exit 1
   fi
 fi
 
