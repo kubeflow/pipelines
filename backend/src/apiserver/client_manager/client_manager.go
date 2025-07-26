@@ -32,6 +32,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/minio/minio-go/v7"
@@ -321,54 +322,6 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-// ColLenSpec describes the logical max length we enforce during migration.
-// Model is the Go struct used by GORM; Field is the Go struct field name (NOT the DB column name).
-// Max is the allowed character length after upgrade.
-type ColLenSpec struct {
-	Model interface{}
-	Field string // Go struct field name
-	Max   int
-}
-
-var lengthSpecs = []ColLenSpec{
-	{Model: &model.DefaultExperiment{}, Field: "DefaultExperimentId", Max: 191},
-
-	{Model: &model.Experiment{}, Field: "UUID", Max: 191},
-	{Model: &model.Experiment{}, Field: "Name", Max: 128},
-	{Model: &model.Experiment{}, Field: "Namespace", Max: 63},
-
-	{Model: &model.Job{}, Field: "UUID", Max: 191},
-
-	{Model: &model.PipelineVersion{}, Field: "UUID", Max: 191},
-	{Model: &model.PipelineVersion{}, Field: "Name", Max: 127},
-	{Model: &model.PipelineVersion{}, Field: "PipelineId", Max: 64},
-
-	{Model: &model.Pipeline{}, Field: "UUID", Max: 64},
-	{Model: &model.Pipeline{}, Field: "Name", Max: 128},
-
-	{Model: &model.ResourceReference{}, Field: "ResourceUUID", Max: 191},
-	{Model: &model.ResourceReference{}, Field: "ReferenceUUID", Max: 191},
-
-	{Model: &model.Run{}, Field: "UUID", Max: 191},
-	{Model: &model.Run{}, Field: "Namespace", Max: 63},
-	{Model: &model.Run{}, Field: "ExperimentId", Max: 64},
-	{Model: &model.Run{}, Field: "Conditions", Max: 125},
-
-	{Model: &model.RunMetric{}, Field: "RunUUID", Max: 191},
-	{Model: &model.RunMetric{}, Field: "NodeID", Max: 191},
-	{Model: &model.RunMetric{}, Field: "Name", Max: 191},
-
-	{Model: &model.Task{}, Field: "UUID", Max: 191},
-	// Note: struct field is RunId, column is RunUUID.
-	{Model: &model.Task{}, Field: "RunId", Max: 191},
-}
-
-func LengthSpecs() []ColLenSpec {
-	out := make([]ColLenSpec, len(lengthSpecs))
-	copy(out, lengthSpecs)
-	return out
-}
-
 // getColumnLength returns the declared length for a column using GORM ColumnTypes.
 // If the dialect/type doesn't report a length (e.g., TEXT), ok=false.
 func getColumnLength(db *gorm.DB, mdl interface{}, column string) (length int64, ok bool, err error) {
@@ -387,7 +340,7 @@ func getColumnLength(db *gorm.DB, mdl interface{}, column string) (length int64,
 
 // RunPreflightLengthChecks scans existing data and aborts upgrade if any row exceeds the new Max length.
 // It must be called BEFORE AutoMigrate/DDL that shrinks column definitions.
-func RunPreflightLengthChecks(db *gorm.DB, specs []ColLenSpec) error {
+func RunPreflightLengthChecks(db *gorm.DB, specs []validation.ColLenSpec) error {
 	dialect := db.Name()
 	quote := func(id string) string {
 		if dialect == "mysql" {
@@ -538,7 +491,7 @@ func EnsureUniqueCompositeIndexAndConstraint(db *gorm.DB, model interface{}, ind
 	}
 }
 
-func ShrinkColumns(db *gorm.DB, specs []ColLenSpec) error {
+func ShrinkColumns(db *gorm.DB, specs []validation.ColLenSpec) error {
 	for _, s := range specs {
 		if !db.Migrator().HasTable(s.Model) {
 			continue
@@ -550,7 +503,7 @@ func ShrinkColumns(db *gorm.DB, specs []ColLenSpec) error {
 	return nil
 }
 
-func EnsureColumnLength(db *gorm.DB, spec ColLenSpec) error {
+func EnsureColumnLength(db *gorm.DB, spec validation.ColLenSpec) error {
 	if !db.Migrator().HasTable(spec.Model) {
 		return nil
 	}
@@ -612,7 +565,7 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	util.TerminateIfError(err)
 
 	// Preflight: block upgrade if old data violates new length limits.
-	if err := RunPreflightLengthChecks(db, lengthSpecs); err != nil {
+	if err := RunPreflightLengthChecks(db, validation.LengthSpecs); err != nil {
 		glog.Fatalf("Preflight length check failed: %v", err)
 	}
 
@@ -699,7 +652,7 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	}
 
 	// Ensure the length modification in schema is enforced for legacy DBs
-	if err := ShrinkColumns(db, lengthSpecs); err != nil {
+	if err := ShrinkColumns(db, validation.LengthSpecs); err != nil {
 		glog.Fatalf("Shrink columns failed: %v", err)
 	}
 	// In both GORM v1 and v2, AutoMigrate is a non-destructive operation and
