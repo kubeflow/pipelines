@@ -92,25 +92,6 @@ if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   fi
 fi
 
-# Manifests will be deployed according to the flag provided
-if $CACHE_DISABLED; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/cache-disabled"
-elif $USE_PROXY; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
-elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
-else
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
-fi
-
-echo "Deploying ${TEST_MANIFESTS}..."
-
-kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
-if [[ $EXIT_CODE -ne 0 ]]
-then
-  echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
-  exit 1
-fi
 
 # Deploy multi-user prerequisites if multi-user mode is enabled
 if [ "${MULTI_USER}" == "true" ]; then
@@ -149,6 +130,26 @@ if [ "${MULTI_USER}" == "true" ]; then
       exit $EXIT_CODE
     fi
   fi
+fi
+
+# Manifests will be deployed according to the flag provided
+if $CACHE_DISABLED; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/cache-disabled"
+elif $USE_PROXY; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
+elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
+else
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
+fi
+
+echo "Deploying ${TEST_MANIFESTS}..."
+
+kubectl apply -k "${TEST_MANIFESTS}" || EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]
+then
+  echo "Deploy unsuccessful. Failure applying ${TEST_MANIFESTS}."
+  exit 1
 fi
 
 # Check if all pods are running - (10 minutes)
