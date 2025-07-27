@@ -29,7 +29,7 @@ PIPELINES_STORE="database"
 USE_PROXY=false
 CACHE_DISABLED=false
 MULTI_USER=false
-STORAGE_BACKEND="minio"
+STORAGE_BACKEND="seaweedfs"
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -82,7 +82,7 @@ if [[ $EXIT_CODE -ne 0 ]]; then
 fi
 
 # If pipelines store is set to 'kubernetes', cert-manager must be deployed
-if [ "${PIPELINES_STORE}" == "kubernetes" ] || [ "${MULTI_USER}" == "true" ]; then
+if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   #Install cert-manager
   make -C ./backend install-cert-manager || EXIT_CODE=$?
   if [[ $EXIT_CODE -ne 0 ]]
@@ -108,8 +108,6 @@ if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Profile Controller Resources..."
   kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master || EXIT_CODE=$?
   
-  # Storage backend specific configurations for multi-user
-  if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
     echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
     kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml
     
@@ -119,7 +117,6 @@ if [ "${MULTI_USER}" == "true" ]; then
     echo "Applying network policy to allow user namespace access to kubeflow services..."
     kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml
     
-  fi
 fi
 
 # Manifests will be deployed according to the flag provided
@@ -129,8 +126,10 @@ elif $USE_PROXY; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
 elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
-elif [ "${MULTI_USER}" == "true" ]; then
+elif [ "${MULTI_USER}" == "true" ] && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user"
+elif [ "${MULTI_USER}" == "true" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user-minio"
 else
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
 fi
