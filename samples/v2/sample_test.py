@@ -158,8 +158,6 @@ class SampleTest(unittest.TestCase):
     def setUpClass(cls):
         """Runs once before all tests."""
         print('Deploying pre-requisites....')
-        # In multi-user mode, deploy secrets to user namespace
-        # In single-user mode, deploy secrets to kubeflow namespace
         target_namespace = _USER_NAMESPACE if _KFP_MULTI_USER else _KFP_NAMESPACE
         for p in PREREQS:
             deploy_k8s_yaml(target_namespace, p)
@@ -169,8 +167,6 @@ class SampleTest(unittest.TestCase):
     def tearDownClass(cls):
         """Runs once after all tests in this class."""
         print('Cleaning up resources....')
-        # In multi-user mode, delete secrets from user namespace
-        # In single-user mode, delete secrets from kubeflow namespace
         target_namespace = _USER_NAMESPACE if _KFP_MULTI_USER else _KFP_NAMESPACE
         for p in PREREQS:
             delete_k8s_yaml(target_namespace, p)
