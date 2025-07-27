@@ -17,4 +17,4 @@ images:
 
 patches:
 - path: apiserver-env.yaml
-- path: workflow-disable-logs-patch.yaml 
+- path: workflow-disable-logs-patch.yaml

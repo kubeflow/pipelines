@@ -130,9 +130,7 @@ elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
 elif [ "${MULTI_USER}" == "true" ] && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user"
-elif [ "${MULTI_USER}" == "true" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user-minio"
-elif [ "${MULTI_USER}" == "false" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
+elif [ "${STORAGE_BACKEND}" == "minio" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy-minio"
 else
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"

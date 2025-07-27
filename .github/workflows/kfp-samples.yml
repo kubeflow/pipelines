@@ -30,9 +30,6 @@ jobs:
 
           - k8s_version: "v1.31.0"
             mode: "multi-user"
-            storage: "minio"
-          - k8s_version: "v1.31.0"
-            mode: "multi-user"
             storage: "seaweedfs"
           - k8s_version: "v1.31.0"
             mode: "standalone"
