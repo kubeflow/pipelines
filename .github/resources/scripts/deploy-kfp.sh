@@ -106,10 +106,6 @@ if [ "${MULTI_USER}" == "true" ]; then
     echo "Failed to deploy Istio."
     exit $EXIT_CODE
   fi
-
-  echo "Deploying Platform Agnostic Multi-User..."
-  kubectl apply -f manifests/kustomize/third-party/metacontroller/base/crd.yaml || EXIT_CODE=$?
-  kubectl apply --force -k manifests/kustomize/env/platform-agnostic-multi-user || EXIT_CODE=$?
   
   echo "Installing Profile Controller Resources..."
   kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master || EXIT_CODE=$?
@@ -139,6 +135,8 @@ elif $USE_PROXY; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
 elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
+elif [ "${MULTI_USER}" == "true" ]; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user"
 else
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
 fi
