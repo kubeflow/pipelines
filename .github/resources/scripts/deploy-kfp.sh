@@ -82,7 +82,7 @@ if [[ $EXIT_CODE -ne 0 ]]; then
 fi
 
 # If pipelines store is set to 'kubernetes', cert-manager must be deployed
-if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+if [ "${PIPELINES_STORE}" == "kubernetes" ] || [ "${MULTI_USER}" == "true" ]; then
   #Install cert-manager
   make -C ./backend install-cert-manager || EXIT_CODE=$?
   if [[ $EXIT_CODE -ne 0 ]]
@@ -96,35 +96,29 @@ fi
 # Deploy multi-user prerequisites if multi-user mode is enabled
 if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Istio..."
-  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-crds/base?ref=master || EXIT_CODE=$?
-  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-namespace/base?ref=master || EXIT_CODE=$?
-  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-install/base?ref=master || EXIT_CODE=$?
-  
+  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-crds/base?ref=master
+  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-namespace/base?ref=master
+  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-install/base?ref=master
   echo "Waiting for all Istio Pods to become ready..."
-  kubectl wait --for=condition=Ready pods --all -n istio-system --timeout=300s || EXIT_CODE=$?
-  if [[ $EXIT_CODE -ne 0 ]]; then
-    echo "Failed to deploy Istio."
-    exit $EXIT_CODE
-  fi
-  
+  kubectl wait --for=condition=Ready pods --all -n istio-system --timeout=300s
+
+  echo "Deploying Metacontroller CRD..."
+  kubectl apply -f manifests/kustomize/third-party/metacontroller/base/crd.yaml
+
   echo "Installing Profile Controller Resources..."
   kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master || EXIT_CODE=$?
   
   # Storage backend specific configurations for multi-user
   if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
     echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
-    kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml || EXIT_CODE=$?
+    kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml
     
     echo "Creating KF Profile..."
-    kubectl apply -f test/seaweedfs/test-profiles.yaml || EXIT_CODE=$?
+    kubectl apply -f test/seaweedfs/test-profiles.yaml
     
     echo "Applying network policy to allow user namespace access to kubeflow services..."
-    kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml || EXIT_CODE=$?
+    kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml
     
-    if [[ $EXIT_CODE -ne 0 ]]; then
-      echo "Failed to apply SeaweedFS multi-user configurations."
-      exit $EXIT_CODE
-    fi
   fi
 fi
 
