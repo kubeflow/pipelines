@@ -24,7 +24,7 @@ inputs:
   storage_backend:
     description: "Storage backend to use (minio or seaweedfs)"
     required: false
-    default: 'minio'
+    default: 'seaweedfs'
 
 runs:
   using: "composite"
@@ -73,7 +73,7 @@ runs:
           ARGS="${ARGS} --multi-user"
         fi
         
-        if [ "${{ inputs.storage_backend }}" != "minio" ]; then
+        if [ "${{ inputs.storage_backend }}" != "seaweedfs" ]; then
           ARGS="${ARGS} --storage ${{ inputs.storage_backend }}"
         fi
         
