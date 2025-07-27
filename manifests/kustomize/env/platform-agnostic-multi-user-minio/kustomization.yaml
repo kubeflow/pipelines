@@ -22,4 +22,4 @@ namespace: kubeflow
 labels:
 - includeSelectors: true
   pairs:
-    application-crd-id: kubeflow-pipelines 
+    application-crd-id: kubeflow-pipelines

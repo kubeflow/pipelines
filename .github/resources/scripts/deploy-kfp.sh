@@ -104,18 +104,20 @@ if [ "${MULTI_USER}" == "true" ]; then
 
   echo "Deploying Metacontroller CRD..."
   kubectl apply -f manifests/kustomize/third-party/metacontroller/base/crd.yaml
+  kubectl wait --for condition=established --timeout=30s crd/compositecontrollers.metacontroller.k8s.io
 
   echo "Installing Profile Controller Resources..."
-  kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master || EXIT_CODE=$?
+  kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master
+  kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s
+
+  echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
+  kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml
   
-    echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
-    kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml
-    
-    echo "Creating KF Profile..."
-    kubectl apply -f test/seaweedfs/test-profiles.yaml
-    
-    echo "Applying network policy to allow user namespace access to kubeflow services..."
-    kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml
+  echo "Creating KF Profile..."
+  kubectl apply -f test/seaweedfs/test-profiles.yaml
+  
+  echo "Applying network policy to allow user namespace access to kubeflow services..."
+  kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml
     
 fi
 
@@ -130,6 +132,8 @@ elif [ "${MULTI_USER}" == "true" ] && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; t
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user"
 elif [ "${MULTI_USER}" == "true" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user-minio"
+elif [ "${MULTI_USER}" == "false" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy-minio"
 else
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
 fi

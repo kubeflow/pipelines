@@ -155,7 +155,7 @@ spec:
             httpGet:
               path: /apis/v1beta1/healthz
               port: 8888
-            failureThreshold: 24
+            failureThreshold: 12
             periodSeconds: 5
             timeoutSeconds: 2
           securityContext:
