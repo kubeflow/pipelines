@@ -205,9 +205,13 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
+		"--ml_pipeline_service_tls_enabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
+	}
+	if c.mlPipelineServiceTLSEnabled {
+		args = append(args, "--ml_pipeline_service_tls_enabled")
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
@@ -241,9 +245,12 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
+			Env:       MLPipelineServiceEnv,
 		},
 	}
+
+	ConfigureCABundle(t)
+
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name
@@ -401,6 +408,9 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	if c.mlPipelineServiceTLSEnabled {
+		args = append(args, "--ml_pipeline_service_tls_enabled")
+	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -523,7 +533,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 				},
 			},
 			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     commonEnvs,
+			Env:     append(commonEnvs, MLPipelineServiceEnv...),
 		},
 	}
 	// If retry policy is set, add retryStrategy to executor
@@ -590,6 +600,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		executor.Container.VolumeMounts = append(executor.Container.VolumeMounts, volumeMount)
 
 	}
+	ConfigureCABundle(executor)
 	c.templates[nameContainerImpl] = executor
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)
 	return nameContainerExecutor
