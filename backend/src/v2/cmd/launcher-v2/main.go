@@ -19,7 +19,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
@@ -28,23 +27,26 @@ import (
 
 // TODO: use https://github.com/spf13/cobra as a framework to create more complex CLI tools with subcommands.
 var (
-	copy              = flag.String("copy", "", "copy this binary to specified destination path")
-	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
-	runID             = flag.String("run_id", "", "pipeline run uid")
-	parentDagID       = flag.Int64("parent_dag_id", 0, "parent DAG execution ID")
-	executorType      = flag.String("executor_type", "container", "The type of the ExecutorSpec")
-	executionID       = flag.Int64("execution_id", 0, "Execution ID of this task.")
-	executorInputJSON = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
-	componentSpecJSON = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
-	importerSpecJSON  = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
-	taskSpecJSON      = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
-	podName           = flag.String("pod_name", "", "Kubernetes Pod name.")
-	podUID            = flag.String("pod_uid", "", "Kubernetes Pod UID.")
-	mlmdServerAddress = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
-	mlmdServerPort    = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
-	logLevel          = flag.String("log_level", "1", "The verbosity level to log.")
-	publishLogs       = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
-	cacheDisabledFlag = flag.Bool("cache_disabled", false, "Disable cache globally.")
+	copy                        = flag.String("copy", "", "copy this binary to specified destination path")
+	pipelineName                = flag.String("pipeline_name", "", "pipeline context name")
+	runID                       = flag.String("run_id", "", "pipeline run uid")
+	parentDagID                 = flag.Int64("parent_dag_id", 0, "parent DAG execution ID")
+	executorType                = flag.String("executor_type", "container", "The type of the ExecutorSpec")
+	executionID                 = flag.Int64("execution_id", 0, "Execution ID of this task.")
+	executorInputJSON           = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
+	componentSpecJSON           = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
+	importerSpecJSON            = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
+	taskSpecJSON                = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
+	podName                     = flag.String("pod_name", "", "Kubernetes Pod name.")
+	podUID                      = flag.String("pod_uid", "", "Kubernetes Pod UID.")
+	mlmdServerAddress           = flag.String("mlmd_server_address", "", "The MLMD gRPC server address.")
+	mlmdServerPort              = flag.String("mlmd_server_port", "8080", "The MLMD gRPC server port.")
+	logLevel                    = flag.String("log_level", "1", "The verbosity level to log.")
+	publishLogs                 = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+	cacheDisabledFlag           = flag.Bool("cache_disabled", false, "Disable cache globally.")
+	mlPipelineServiceTLSEnabled = flag.Bool("ml_pipeline_service_tls_enabled", false, "Set to true if ML pipeline API server serves over TLS.")
+	metadataServiceTLSEnabled   = flag.Bool("metadata_tls_enabled", false, "Set to true if metadata server serves over TLS.")
+	caCertPath                  = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 )
 
 func main() {
@@ -74,16 +76,20 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
 	launcherV2Opts := &component.LauncherV2Options{
-		Namespace:         namespace,
-		PodName:           *podName,
-		PodUID:            *podUID,
-		MLMDServerAddress: *mlmdServerAddress,
-		MLMDServerPort:    *mlmdServerPort,
-		PipelineName:      *pipelineName,
-		RunID:             *runID,
-		PublishLogs:       *publishLogs,
-		CacheDisabled:     *cacheDisabledFlag,
+		Namespace:            namespace,
+		PodName:              *podName,
+		PodUID:               *podUID,
+		MLMDServerAddress:    *mlmdServerAddress,
+		MLMDServerPort:       *mlmdServerPort,
+		PipelineName:         *pipelineName,
+		RunID:                *runID,
+		PublishLogs:          *publishLogs,
+		CacheDisabled:        *cacheDisabledFlag,
+		MLPipelineTLSEnabled: *mlPipelineServiceTLSEnabled,
+		MetadataTLSEnabled:   *metadataServiceTLSEnabled,
+		CaCertPath:           *caCertPath,
 	}
 
 	switch *executorType {
@@ -103,9 +109,11 @@ func run() error {
 		return nil
 	case "container":
 		clientOptions := &client_manager.Options{
-			MLMDServerAddress: launcherV2Opts.MLMDServerAddress,
-			MLMDServerPort:    launcherV2Opts.MLMDServerPort,
-			CacheDisabled:     launcherV2Opts.CacheDisabled,
+			MLMDServerAddress:    launcherV2Opts.MLMDServerAddress,
+			MLMDServerPort:       launcherV2Opts.MLMDServerPort,
+			CacheDisabled:        launcherV2Opts.CacheDisabled,
+			MLPipelineTLSEnabled: launcherV2Opts.MLPipelineTLSEnabled,
+			CaCertPath:           launcherV2Opts.CaCertPath,
 		}
 		clientManager, err := client_manager.NewClientManager(clientOptions)
 		if err != nil {

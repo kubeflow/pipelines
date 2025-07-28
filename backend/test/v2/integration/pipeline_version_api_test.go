@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -66,16 +67,19 @@ func (s *PipelineVersionApiTest) SetupTest() {
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 
 	s.namespace = *config.Namespace
-
+	var tlsCfg *tls.Config
+	if *tlsEnabled {
+		tlsCfg = test.GetTLSConfig(*caCertPath)
+	}
 	if *isKubeflowMode {
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
@@ -85,6 +89,7 @@ func (s *PipelineVersionApiTest) SetupTest() {
 		*isKubeflowMode,
 		*config.DebugMode,
 		s.namespace,
+		tlsCfg,
 		test.GetClientConfig(s.namespace),
 	)
 	if err != nil {

@@ -38,6 +38,10 @@ inputs:
     required: false
     default: 'true'
     description: "If you want to forward API server port to localhost:8888"
+  pod_to_pod_tls_enabled:
+    description: "If KFP should be deployed with TLS pod-to-pod communication."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -98,6 +102,9 @@ runs:
         if [ -n "${{ inputs.argo_version }}" ]; then
           echo "Deploying with argo version ${{ inputs.argo_version }}"
           ARGS="${ARGS} --argo-version ${{ inputs.argo_version }}"
+        fi
+        if [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
+          ARGS="${ARGS} --tls-enabled"
         fi
         echo "ARGS=$ARGS" >> $GITHUB_OUTPUT
 

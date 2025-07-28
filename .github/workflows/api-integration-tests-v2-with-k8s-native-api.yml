@@ -27,7 +27,9 @@ jobs:
     strategy:
       matrix:
         pipeline_store: [ "database", "kubernetes" ]
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: [ "v1.31.0" ]
+        pod_to_pod_tls_enabled: [ true, false ]
+
     name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code

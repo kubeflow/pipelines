@@ -54,6 +54,11 @@ type LauncherV2Options struct {
 	RunID string
 	PublishLogs   string
 	CacheDisabled bool
+	// Set to true if ml pipeline server is serving over TLS
+	MLPipelineTLSEnabled bool
+	// Set to true if metadata server is serving over TLS
+	MetadataTLSEnabled bool
+	CaCertPath         string
 }
 
 type LauncherV2 struct {
@@ -230,6 +235,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		l.options.Namespace,
 		l.clientManager.K8sClient(),
 		l.options.PublishLogs,
+		l.options.MLPipelineTLSEnabled,
 	)
 	if err != nil {
 		return err
@@ -352,6 +358,7 @@ func executeV2(
 	namespace string,
 	k8sClient kubernetes.Interface,
 	publishLogs string,
+	tlsEnabled bool,
 ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 
 	// Add parameter default values to executorInput, if there is not already a user input.
@@ -378,6 +385,7 @@ func executeV2(
 		namespace,
 		k8sClient,
 		publishLogs,
+		tlsEnabled,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -491,6 +499,7 @@ func execute(
 	namespace string,
 	k8sClient kubernetes.Interface,
 	publishLogs string,
+	tlsEnabled bool,
 ) (*pipelinespec.ExecutorOutput, error) {
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
@@ -507,6 +516,17 @@ func execute(
 		writer = os.Stdout
 	}
 
+	// If TLS enabled, save system CA (with mounted custom CA appended, if applicable) to temp file for executor access.
+	if tlsEnabled {
+		if caBundleTmpPath, err := compileTempCABundle(); err != nil {
+			return nil, err
+		} else {
+			os.Setenv("REQUESTS_CA_BUNDLE", caBundleTmpPath)
+			os.Setenv("AWS_CA_BUNDLE", caBundleTmpPath)
+			os.Setenv("SSL_CERT_FILE", caBundleTmpPath)
+		}
+	}
+
 	// Prepare command that will execute end user code.
 	command := exec.Command(cmd, args...)
 	command.Stdin = os.Stdin
@@ -521,6 +541,55 @@ func execute(
 	}
 
 	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
+}
+
+// Create temp file that stores system CA bundle (and custom CA if exists).
+func compileTempCABundle() (string, error) {
+	// Possible certificate files; stop after finding one. List from https://go.dev/src/crypto/x509/root_linux.go
+	var systemCAs = []string{
+		"/etc/ssl/certs/ca-certificates.crt",
+		"/etc/pki/tls/certs/ca-bundle.crt",
+		"/etc/ssl/ca-bundle.pem",
+		"/etc/pki/tls/cacert.pem",
+		"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+		"/etc/ssl/cert.pem",
+	}
+	sslCertFilePath := os.Getenv("SSL_CERT_FILE")
+	if sslCertFilePath != "" {
+		systemCAs = append(systemCAs, sslCertFilePath)
+	}
+	tmpCaBundle, err := os.CreateTemp("", "ca-bundle-*.crt")
+	if err != nil {
+		return "", err
+	}
+	var systemCaBundle []byte
+	for _, file := range systemCAs {
+		systemCaBundle, err = os.ReadFile(file)
+		if err != nil {
+			return "", err
+		}
+		// Once a non-nil system CA file is found, break.
+		if systemCaBundle != nil {
+			break
+		}
+	}
+	// Append mounted custom CA cert to System CA bundle.
+	customCa, err := os.ReadFile("etc/pki/tls/cert/ca.crt")
+	if err != nil {
+		return "", err
+	}
+	systemCaBundle = append(systemCaBundle, customCa...)
+	_, err = tmpCaBundle.Write(systemCaBundle)
+	if err != nil {
+		return "", err
+	}
+	// Update temp file permissions to 444 (read-only).
+	err = tmpCaBundle.Chmod(0444)
+	if err != nil {
+		return "", err
+	}
+	// Return filepath for tmpCaBundle
+	return tmpCaBundle.Name(), nil
 }
 
 type uploadOutputArtifactsOptions struct {

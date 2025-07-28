@@ -1,6 +1,7 @@
 BUILD=build
 MOD_ROOT=..
 KIND_NAME ?= dev-pipelines-api
+TLS_ENABLED ?= "false"
 
 CERT_MANAGER_VERSION ?= v1.16.2
 
@@ -86,16 +87,28 @@ kind-cluster-agnostic:
 	kind create cluster --name $(KIND_NAME)
 	kubectl config use-context kind-$(KIND_NAME)
 	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
+	@if [ "${TLS_ENABLED}" = "true" ]; then \
+    		$(MAKE) install-cert-manager; \
+    fi
 	# Deploy cluster resources required by KFP
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
 	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
 	# Deploy KFP
-	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic
+	@if [ "${TLS_ENABLED}" = "true" ]; then \
+    		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls; \
+    	else \
+    		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic; \
+     fi
 	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/ml-pipeline
 	# Switch to Kubeflow namespace context
 	kubectl config set-context --current --namespace=kubeflow
+
+# Creates a Kind cluster and deploys a standalone KFP instance in the Kubeflow namespace with pod-to-pod TLS enabled.
+.PHONY: kind-cluster-agnostic-tls
+kind-cluster-agnostic-tls:
+	$(MAKE) TLS_ENABLED="true" kind-cluster-agnostic
 
 .PHONY: dev-kind-cluster
 dev-kind-cluster:

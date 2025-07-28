@@ -16,6 +16,7 @@ package integration
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"google.golang.org/protobuf/types/known/structpb"
 	"os"
@@ -82,36 +83,39 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var newRunClient func() (*api_server.RunClient, error)
 	var newRecurringRunClient func() (*api_server.RecurringRunClient, error)
-
+	var tlsCfg *tls.Config
+	if *tlsEnabled {
+		tlsCfg = test.GetTLSConfig(*caCertPath)
+	}
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newRecurringRunClient = func() (*api_server.RecurringRunClient, error) {
-			return api_server.NewKubeflowInClusterRecurringRunClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterRecurringRunClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *config.DebugMode)
+			return api_server.NewExperimentClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *config.DebugMode)
+			return api_server.NewRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newRecurringRunClient = func() (*api_server.RecurringRunClient, error) {
-			return api_server.NewRecurringRunClient(clientConfig, *config.DebugMode)
+			return api_server.NewRecurringRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
@@ -125,6 +129,7 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 		*isKubeflowMode,
 		*config.DebugMode,
 		s.namespace,
+		tlsCfg,
 		test.GetClientConfig(s.namespace),
 	)
 	if err != nil {

@@ -32,6 +32,10 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
+	// CaBundlePath                            string = "CABUNDLE_PATH"
+	//todo: how do we feel about secret name being configurable? check with Matt, seems good to me
+	CaBundleSecretName string = "CABUNDLE_SECRET_NAME"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -126,4 +130,8 @@ func GetKubeflowUserIDPrefix() string {
 
 func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
+}
+
+func GetMetadataTLSEnabled() bool {
+	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
 }
