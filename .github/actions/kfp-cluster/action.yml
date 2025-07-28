@@ -39,6 +39,11 @@ inputs:
     required: false
     default: 'seaweedfs'
 
+  pod_to_pod_tls_enabled:
+    description: "If KFP should be deployed with TLS pod-to-pod communication."
+    required: false
+    default: 'false'
+
 runs:
   using: "composite"
   steps:
@@ -85,6 +90,10 @@ runs:
         
         if [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
           ARGS="${ARGS} --deploy-k8s-native"
+        elif [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
+          ARGS="${ARGS}  --deploy-k8s-native"
+        elif [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
+          ARGS="${ARGS} --tls-enabled"
         fi
         
         if [ "${{ inputs.multi_user }}" = "true" ]; then

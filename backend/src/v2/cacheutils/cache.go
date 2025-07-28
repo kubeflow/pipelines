@@ -3,12 +3,16 @@ package cacheutils
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc/credentials"
+	"os"
+
+	"google.golang.org/grpc/credentials/insecure"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -67,15 +71,22 @@ type client struct {
 var _ Client = &client{}
 
 // NewClient creates a Client.
-func NewClient(cacheDisabled bool) (Client, error) {
+func NewClient(cacheDisabled bool, mlPipelineServiceTLSEnabled bool) (Client, error) {
 	if cacheDisabled {
 		return &disabledCacheClient{}, nil
 	}
-
+	creds := insecure.NewCredentials()
+	if mlPipelineServiceTLSEnabled {
+		config := &tls.Config{
+			InsecureSkipVerify: false,
+		}
+		creds = credentials.NewTLS(config)
+	}
 	glog.Infof("Connecting to cache endpoint %s", defaultKfpApiEndpoint)
 	conn, err := grpc.Dial(defaultKfpApiEndpoint,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
-		grpc.WithTransportCredentials(insecure.NewCredentials()))
+		grpc.WithTransportCredentials(creds),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("metadata.NewClient() failed: %w", err)
 	}

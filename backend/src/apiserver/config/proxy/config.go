@@ -24,6 +24,7 @@ const (
 	HttpsProxyEnv       = "HTTPS_PROXY"
 	NoProxyEnv          = "NO_PROXY"
 	defaultNoProxyValue = "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,minio-service.kubeflow,metadata-grpc-service,metadata-grpc-service.kubeflow,ml-pipeline.kubeflow"
+	tlsEnabled          = "TLS_ENABLED"
 )
 
 type Config interface {
