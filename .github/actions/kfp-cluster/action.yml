@@ -30,6 +30,11 @@ inputs:
   image_registry:
     required: true
     description: "Image Registry address of the images"
+  pod_to_pod_tls_enabled:
+    description: "If KFP should be deployed with TLS pod-to-pod communication."
+    required: false
+    default: 'false'
+
 runs:
   using: "composite"
   steps:
@@ -72,6 +77,8 @@ runs:
           ARGS="${ARGS} --cache-disabled"
         elif [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
           ARGS="${ARGS}  --deploy-k8s-native"
+        elif [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
+          ARGS="${ARGS} --tls-enabled"
         fi
         
         ./.github/resources/scripts/deploy-kfp.sh $ARGS

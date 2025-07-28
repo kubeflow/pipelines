@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    spec:
+      containers:
+        - name: ml-pipeline-api-server
+          image: domain.local/apiserver:local
+          command:
+            - "/bin/apiserver"
+          args:
+            - "--config=/config"
+            - "--sampleconfig=/config/sample_config.json"
+            - "-logtostderr=true"
+            - "--tlsCertPath=/etc/pki/tls/certs/tls.crt"
+            - "--tlsCertKeyPath=/etc/pki/tls/certs/tls.key"
+            - "--pipelinesStoreKubernetes=true"
+          volumeMounts:
+            - name: tls-certs
+              mountPath: "/etc/pki/tls/certs"
+              readOnly: true
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: kfp-api-tls-cert
