@@ -436,7 +436,7 @@ jobs:
 
       - name: Install prerequisites
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-        run: pip3 install -r ./test/sample-test/requirements.txt
+        run: pip3 install -r ./test/sample-test/requirements.txt && pip install sdk/python
 
       - name: Install protobuf-compiler
         id: install-protobuf-compiler
