@@ -51,8 +51,10 @@ const (
 	SCHEMA_VERSION_2_1_0 = "2.1.0"
 )
 
-var ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
-var ErrorInvalidPlatformSpec = fmt.Errorf("Platform spec is invalid")
+var (
+	ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
+	ErrorInvalidPlatformSpec = fmt.Errorf("platform spec is invalid")
+)
 
 // inferTemplateFormat infers format from pipeline template.
 // There is no guarantee that the template is valid in inferred format, so validation
@@ -135,19 +137,23 @@ type Template interface {
 }
 
 type RunWorkflowOptions struct {
-	RunId            string
-	RunAt            int64
-	CacheDisabled    bool
-	DefaultWorkspace *corev1.PersistentVolumeClaimSpec
+	RunID string
+	RunAt int64
 }
 
-func New(bytes []byte, cacheDisabled bool, defaultWorkspace *corev1.PersistentVolumeClaimSpec) (Template, error) {
+type TemplateOptions struct {
+	CacheDisabled        bool
+	DefaultWorkspace     *corev1.PersistentVolumeClaimSpec
+	MLPipelineTLSEnabled bool
+}
+
+func New(bytes []byte, opts TemplateOptions) (Template, error) {
 	format := inferTemplateFormat(bytes)
 	switch format {
 	case V1:
 		return NewArgoTemplate(bytes)
 	case V2:
-		return NewV2SpecTemplate(bytes, cacheDisabled, defaultWorkspace)
+		return NewV2SpecTemplate(bytes, opts)
 	default:
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "unknown template format")
 	}

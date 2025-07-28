@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-config
+data:
+  envoy-config.yaml: |-
+    admin:
+      access_log:
+        name: admin_access
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
+          path: /tmp/admin_access.log
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 9901 }
+
+    static_resources:
+      listeners:
+        - name: listener_0
+          address:
+            socket_address: { address: 0.0.0.0, port_value: 9090 }
+          filter_chains:
+            - transport_socket:
+                name: envoy.transport_sockets.tls
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+                  common_tls_context:
+                    tls_certificates:
+                      - certificate_chain:
+                          filename: /etc/envoy/tls/tls.crt
+                        private_key:
+                          filename: /etc/envoy/tls/tls.key
+                    alpn_protocols: [ "h2", "http/1.1" ]
+                  require_client_certificate: false 
+              filters:
+                - name: envoy.filters.network.http_connection_manager
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                    codec_type: auto
+                    stat_prefix: ingress_http
+                    route_config:
+                      name: local_route
+                      virtual_hosts:
+                        - name: local_service
+                          domains: [ "*" ]
+                          routes:
+                            - match: { prefix: "/" }
+                              route:
+                                cluster: metadata-cluster
+                                max_stream_duration:
+                                  grpc_timeout_header_max: '0s'
+                              typed_per_filter_config:
+                                envoy.filter.http.cors:
+                                  "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.CorsPolicy
+                                  allow_origin_string_match:
+                                    - safe_regex: { regex: ".*" }
+                                  allow_methods: GET, PUT, DELETE, POST, OPTIONS
+                                  allow_headers: keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout
+                                  max_age: "1728000"
+                                  expose_headers: custom-header-1,grpc-status,grpc-message
+                    http_filters:
+                      - name: envoy.filters.http.grpc_web
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
+                      - name: envoy.filters.http.cors
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+                      - name: envoy.filters.http.router
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+      clusters:
+        - name: metadata-cluster
+          connect_timeout: 30.0s
+          type: logical_dns
+          lb_policy: round_robin
+          load_assignment:
+            cluster_name: metadata-grpc
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: metadata-grpc-service
+                          port_value: 8080
+          typed_extension_protocol_options:
+            envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+              "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+              explicit_http_config:
+                http2_protocol_options: { }
+          transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+              sni: metadata-grpc-service.kubeflow.svc
+              common_tls_context:
+                validation_context:
+                  trusted_ca:
+                    filename: /etc/envoy/tls/ca.crt

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-pipeline
+spec:
+  ports:
+    - name: tls
+      port: 8888
+      protocol: TCP
+      targetPort: 8888
+      appProtocol: https
