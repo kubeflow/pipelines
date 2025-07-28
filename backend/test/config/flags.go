@@ -32,6 +32,8 @@ var (
 	ApiUrl                        = flag.String("apiUrl", fmt.Sprintf("%s:%s", *ApiHost, *ApiPort), "The URL of the API server (without the scheme)")
 	DisableTlsCheck               = flag.Bool("disableTlsCheck", false, "Whether to use server certificate chain and hostname.")
 	InClusterRun                  = flag.Bool("runInCluster", false, "Whether to run your tests from within the K8s cluster")
+	TlsEnabled                    = flag.Bool("tlsEnabled", false, "Whether TLS is enabled tests")
+	CaCertPath                    = flag.String("caCertPath", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 )
 
 var DebugMode = flag.Bool("debugMode", false, "Whether to enable debug mode. Debug mode will log more diagnostics messages.")

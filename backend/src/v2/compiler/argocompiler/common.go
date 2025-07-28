@@ -16,7 +16,14 @@ package argocompiler
 
 import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	k8score "k8s.io/api/core/v1"
+)
+
+const (
+	MLPipelineTLSEnabledEnvVar  = "ML_PIPELINE_TLS_ENABLED"
+	DefaultMLPipelineTLSEnabled = false
 )
 
 // env vars in metadata-grpc-configmap is defined in component package
@@ -45,6 +52,46 @@ var commonEnvs = []k8score.EnvVar{{
 		},
 	},
 }}
+
+// ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.
+func ConfigureCustomCABundle(tmpl *wfapi.Template) {
+	caBundleDir := common.CABundleDir
+	caBundleSecretName := common.GetCaBundleSecretName()
+	if caBundleSecretName == "" {
+		glog.Error("Env var CABUNDLE_SECRET_NAME is blank or empty. Failed to configure custom CA bundle.")
+		return
+	}
+	// OpenSSL default cert file env variable.
+	// Similar to AWS_CA_BUNDLE, the SSL_CERT_DIR equivalent for paths had unyielding
+	// results, even after rehashing.
+	// https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
+	tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{
+		Name:  "SSL_CERT_FILE",
+		Value: common.TLSCertCAPath,
+	})
+	tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{
+		Name:  "SSL_CERT_DIR",
+		Value: common.TLSCertCAPath,
+	})
+	volume := k8score.Volume{
+		Name: "ca-secret",
+		VolumeSource: k8score.VolumeSource{
+			Secret: &k8score.SecretVolumeSource{
+				SecretName: caBundleSecretName,
+			},
+		},
+	}
+
+	tmpl.Volumes = append(tmpl.Volumes, volume)
+
+	volumeMount := k8score.VolumeMount{
+		Name:      "ca-secret",
+		MountPath: caBundleDir,
+	}
+
+	tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, volumeMount)
+
+}
 
 // addExitTask adds an exit lifecycle hook to a task if exitTemplate is not empty.
 func addExitTask(task *wfapi.DAGTask, exitTemplate string, parentDagID string) {

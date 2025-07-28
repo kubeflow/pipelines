@@ -277,6 +277,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.publishLogs,
 				"false",
 				taskConfig,
+				"",
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -393,6 +394,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"false",
 		"false",
 		taskConfig,
+		"",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -440,6 +442,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"false",
 		"false",
 		taskConfig,
+		"",
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -489,6 +492,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"false",
 		"false",
 		taskConfig,
+		"",
 	)
 	assert.Nil(t, err)
 
@@ -533,6 +537,7 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"true",
 		"false",
 		nil,
+		"",
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -657,6 +662,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.publishLogs,
 				"false",
 				taskConfig,
+				"",
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
@@ -712,6 +718,7 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 		"false",
 		"false",
 		taskCfg,
+		"",
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, podSpec)
@@ -773,6 +780,7 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 		"false",
 		"false",
 		nil,
+		"",
 	)
 	require.Nil(t, err)
 
@@ -970,6 +978,7 @@ func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
 		"false",
 		"false",
 		taskCfg,
+		"",
 	)
 	require.NotNil(t, err)
 }
@@ -1083,7 +1092,7 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg,
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, "",
 	)
 	assert.Nil(t, err)
 
@@ -1126,7 +1135,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg,
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, "",
 	)
 	assert.Nil(t, err)
 	// Should mount workspace to pod and also capture to TaskConfig
@@ -1190,6 +1199,7 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 		"false",
 		"false",
 		taskCfg,
+		"",
 	)
 	assert.Nil(t, err)
 
@@ -1234,6 +1244,7 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 		"false",
 		"false",
 		taskCfg,
+		"",
 	)
 	assert.Nil(t, err)
 	// Resources should be both on pod and in TaskConfig
@@ -1309,6 +1320,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 		"false",
 		"false",
 		taskCfg,
+		"",
 	)
 	assert.Nil(t, err)
 
@@ -1405,6 +1417,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 		"false",
 		"false",
 		taskCfg,
+		"",
 	)
 	assert.Nil(t, err)
 

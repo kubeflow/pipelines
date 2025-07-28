@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -58,26 +57,25 @@ func TokenToAuthInfo(userToken string) runtime.ClientAuthInfoWriter {
 		})
 }
 
-func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*httptransport.Runtime, error,
 ) {
+	//os.Getenv("LOCAL_API_SERVER") == "true"
 	if !*testconfig.InClusterRun {
-		httpClient := http.DefaultClient
-		var scheme []string
-		if strings.Contains(*testconfig.ApiUrl, "://") {
-			schemeFromUrl := strings.Replace(strings.Split(*testconfig.ApiUrl, "://")[0], "://", "", -1)
-			scheme = append(scheme, schemeFromUrl)
-		}
-		if testconfig.ApiScheme != nil {
-			scheme = append(scheme, *testconfig.ApiScheme)
-		}
-		if *testconfig.DisableTlsCheck {
+		var schemes []string
+		var httpClient *http.Client
+		var runtimeClient *httptransport.Runtime
+		if tlsCfg != nil {
+			schemes = []string{"https"}
 			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				TLSClientConfig: tlsCfg,
 			}
 			httpClient = &http.Client{Transport: tr}
+		} else {
+			schemes = []string{"http"}
+			httpClient = &http.Client{}
 		}
-		runtimeClient := httptransport.NewWithClient(*testconfig.ApiUrl, "", scheme, httpClient)
+		runtimeClient = httptransport.NewWithClient("localhost:8888", "", schemes, httpClient)
 		if debug {
 			runtimeClient.SetDebug(true)
 		}
@@ -103,10 +101,18 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	return runtimeClient, err
 }
 
-func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool) *httptransport.Runtime {
-	schemes := []string{"http"}
-	httpClient := http.Client{}
-	runtimeClient := httptransport.NewWithClient(fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, &httpClient)
+func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool, tlsCfg *tls.Config) *httptransport.Runtime {
+	var schemes []string
+	var httpClient *http.Client
+	if tlsCfg != nil {
+		tr := &http.Transport{TLSClientConfig: tlsCfg}
+		httpClient = &http.Client{Transport: tr}
+	} else {
+		schemes = []string{"http"}
+		httpClient = &http.Client{}
+	}
+	runtimeClient := httptransport.NewWithClient(
+		fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, httpClient)
 	runtimeClient.SetDebug(debug)
 	return runtimeClient
 }

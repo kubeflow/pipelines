@@ -27,7 +27,7 @@ type VisualizationClient struct {
 func NewVisualizationClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*VisualizationClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating visualization client: %w", err)
 	}
@@ -43,7 +43,7 @@ func NewVisualizationClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterVisualizationClient(namespace string, debug bool) (
 	*VisualizationClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, nil)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

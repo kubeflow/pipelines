@@ -72,36 +72,36 @@ var _ = BeforeSuite(func() {
 	if *config.KubeflowMode {
 		logger.Log("Creating API Clients for Kubeflow Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewKubeflowInClusterPipelineClient(*config.Namespace, *config.DebugMode)
+			return apiserver.NewKubeflowInClusterPipelineClient(*config.Namespace, *config.DebugMode, nil)
 		}
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewKubeflowInClusterExperimentClient(*config.Namespace, *config.DebugMode)
+			return apiserver.NewKubeflowInClusterExperimentClient(*config.Namespace, *config.DebugMode, nil)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.DebugMode)
+			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.DebugMode, nil)
 		}
 	} else if *config.MultiUserMode {
 		logger.Log("Creating API Clients for Multi User Mode")
 		userToken = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.DebugMode)
+			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.DebugMode, nil)
 		}
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewMultiUserExperimentClient(clientConfig, userToken, *config.DebugMode)
+			return apiserver.NewMultiUserExperimentClient(clientConfig, userToken, *config.DebugMode, nil)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewMultiUserRunClient(clientConfig, userToken, *config.DebugMode)
+			return apiserver.NewMultiUserRunClient(clientConfig, userToken, *config.DebugMode, nil)
 		}
 	} else {
 		logger.Log("Creating API Clients for Single User Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewPipelineClient(clientConfig, *config.DebugMode)
+			return apiserver.NewPipelineClient(clientConfig, *config.DebugMode, nil)
 		}
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewExperimentClient(clientConfig, *config.DebugMode)
+			return apiserver.NewExperimentClient(clientConfig, *config.DebugMode, nil)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewRunClient(clientConfig, *config.DebugMode)
+			return apiserver.NewRunClient(clientConfig, *config.DebugMode, nil)
 		}
 	}
 
@@ -110,6 +110,7 @@ var _ = BeforeSuite(func() {
 		*config.KubeflowMode,
 		*config.DebugMode,
 		*config.Namespace,
+		nil,
 		clientConfig,
 	)
 
