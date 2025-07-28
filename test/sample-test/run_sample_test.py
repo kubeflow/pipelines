@@ -87,7 +87,7 @@ class PySampleChecker(object):
 
         ###### Create Experiment ######
         response = self._client.create_experiment(self._experiment_name)
-        self._experiment_id = response.experiment_id
+        self._experiment_id = response.id
         utils.add_junit_test(self._test_cases, 'create experiment', True)
 
         ###### Create Job ######
@@ -148,7 +148,7 @@ class PySampleChecker(object):
             response = self._client.run_pipeline(self._experiment_id,
                                                  self._job_name, self._input,
                                                  self._test_args)
-            self._run_id = response.run_id
+            self._run_id = response.id
             utils.add_junit_test(self._test_cases, 'create pipeline run', True)
 
     def check(self):
@@ -157,7 +157,7 @@ class PySampleChecker(object):
             ###### Monitor Job ######
             start_time = datetime.now()
             response = self._client.wait_for_run_completion(self._run_id, self._test_timeout)
-            succ = (response.state.lower() == self._expected_result)
+            succ = (response.run.status.lower() == self._expected_result)
             end_time = datetime.now()
             elapsed_time = (end_time - start_time).seconds
             utils.add_junit_test(self._test_cases, 'job completion', succ,
