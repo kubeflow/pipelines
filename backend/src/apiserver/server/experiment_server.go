@@ -17,7 +17,8 @@ package server
 import (
 	"context"
 
-	"github.com/golang/protobuf/ptypes/empty"
+	"google.golang.org/protobuf/types/known/emptypb"
+
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -76,12 +77,25 @@ type ExperimentServerOptions struct {
 	CollectMetrics bool
 }
 
-type ExperimentServer struct {
+// BaseExperimentServer wraps ExperimentServer and ExperimentServerV1
+// to enable method sharing. It can be removed once ExperimentServerV1
+// is removed.
+type BaseExperimentServer struct {
 	resourceManager *resource.ResourceManager
 	options         *ExperimentServerOptions
 }
 
-func (s *ExperimentServer) createExperiment(ctx context.Context, experiment *model.Experiment) (*model.Experiment, error) {
+type ExperimentServer struct {
+	*BaseExperimentServer
+	apiv2beta1.UnimplementedExperimentServiceServer
+}
+
+type ExperimentServerV1 struct {
+	*BaseExperimentServer
+	apiv1beta1.UnimplementedExperimentServiceServer
+}
+
+func (s *BaseExperimentServer) createExperiment(ctx context.Context, experiment *model.Experiment) (*model.Experiment, error) {
 	experiment.Namespace = s.resourceManager.ReplaceNamespace(experiment.Namespace)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: experiment.Namespace,
@@ -95,7 +109,7 @@ func (s *ExperimentServer) createExperiment(ctx context.Context, experiment *mod
 	return s.resourceManager.CreateExperiment(experiment)
 }
 
-func (s *ExperimentServer) CreateExperimentV1(ctx context.Context, request *apiv1beta1.CreateExperimentRequest) (
+func (s *ExperimentServerV1) CreateExperimentV1(ctx context.Context, request *apiv1beta1.CreateExperimentRequest) (
 	*apiv1beta1.Experiment, error,
 ) {
 	if s.options.CollectMetrics {
@@ -151,7 +165,7 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2b
 	return apiExperiment, nil
 }
 
-func (s *ExperimentServer) getExperiment(ctx context.Context, experimentId string) (*model.Experiment, error) {
+func (s *BaseExperimentServer) getExperiment(ctx context.Context, experimentId string) (*model.Experiment, error) {
 	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
@@ -159,7 +173,7 @@ func (s *ExperimentServer) getExperiment(ctx context.Context, experimentId strin
 	return s.resourceManager.GetExperiment(experimentId)
 }
 
-func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *apiv1beta1.GetExperimentRequest) (
+func (s *ExperimentServerV1) GetExperimentV1(ctx context.Context, request *apiv1beta1.GetExperimentRequest) (
 	*apiv1beta1.Experiment, error,
 ) {
 	if s.options.CollectMetrics {
@@ -197,7 +211,7 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2beta
 	return apiExperiment, nil
 }
 
-func (s *ExperimentServer) listExperiments(ctx context.Context, pageToken string, pageSize int32, sortBy string, opts *list.Options, namespace string) ([]*model.Experiment, int32, string, error) {
+func (s *BaseExperimentServer) listExperiments(ctx context.Context, pageToken string, pageSize int32, sortBy string, opts *list.Options, namespace string) ([]*model.Experiment, int32, string, error) {
 	namespace = s.resourceManager.ReplaceNamespace(namespace)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
@@ -218,7 +232,7 @@ func (s *ExperimentServer) listExperiments(ctx context.Context, pageToken string
 	return experiments, int32(totalSize), nextPageToken, nil
 }
 
-func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1beta1.ListExperimentsRequest) (
+func (s *ExperimentServerV1) ListExperimentsV1(ctx context.Context, request *apiv1beta1.ListExperimentsRequest) (
 	*apiv1beta1.ListExperimentsResponse, error,
 ) {
 	if s.options.CollectMetrics {
@@ -284,7 +298,7 @@ func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2be
 	}, nil
 }
 
-func (s *ExperimentServer) deleteExperiment(ctx context.Context, experimentId string) error {
+func (s *BaseExperimentServer) deleteExperiment(ctx context.Context, experimentId string) error {
 	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
@@ -292,7 +306,7 @@ func (s *ExperimentServer) deleteExperiment(ctx context.Context, experimentId st
 	return s.resourceManager.DeleteExperiment(experimentId)
 }
 
-func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *apiv1beta1.DeleteExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServerV1) DeleteExperimentV1(ctx context.Context, request *apiv1beta1.DeleteExperimentRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteExperimentRequests.Inc()
 	}
@@ -304,10 +318,10 @@ func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *apiv
 	if s.options.CollectMetrics {
 		experimentCount.Dec()
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2beta1.DeleteExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2beta1.DeleteExperimentRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteExperimentRequests.Inc()
 	}
@@ -319,11 +333,11 @@ func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2b
 	if s.options.CollectMetrics {
 		experimentCount.Dec()
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 // TODO(chensun): consider refactoring the code to get rid of double-query of experiment.
-func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+func (s *BaseExperimentServer) canAccessExperiment(ctx context.Context, experimentID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	if !common.IsMultiUserMode() {
 		// Skip authorization if not multi-user mode.
 		return nil
@@ -352,7 +366,7 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 	return nil
 }
 
-func (s *ExperimentServer) archiveExperiment(ctx context.Context, experimentId string) error {
+func (s *BaseExperimentServer) archiveExperiment(ctx context.Context, experimentId string) error {
 	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
@@ -360,17 +374,17 @@ func (s *ExperimentServer) archiveExperiment(ctx context.Context, experimentId s
 	return s.resourceManager.ArchiveExperiment(ctx, experimentId)
 }
 
-func (s *ExperimentServer) ArchiveExperimentV1(ctx context.Context, request *apiv1beta1.ArchiveExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServerV1) ArchiveExperimentV1(ctx context.Context, request *apiv1beta1.ArchiveExperimentRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		archiveExperimentRequests.Inc()
 	}
 	if err := s.archiveExperiment(ctx, request.GetId()); err != nil {
 		return nil, util.Wrap(err, "Failed to archive v1beta1 experiment")
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2beta1.ArchiveExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2beta1.ArchiveExperimentRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		archiveExperimentRequests.Inc()
 	}
@@ -378,10 +392,10 @@ func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2
 	if err := s.archiveExperiment(ctx, request.GetExperimentId()); err != nil {
 		return nil, util.Wrap(err, "Failed to archive experiment")
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s *ExperimentServer) unarchiveExperiment(ctx context.Context, experimentId string) error {
+func (s *BaseExperimentServer) unarchiveExperiment(ctx context.Context, experimentId string) error {
 	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
@@ -389,7 +403,7 @@ func (s *ExperimentServer) unarchiveExperiment(ctx context.Context, experimentId
 	return s.resourceManager.UnarchiveExperiment(experimentId)
 }
 
-func (s *ExperimentServer) UnarchiveExperimentV1(ctx context.Context, request *apiv1beta1.UnarchiveExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServerV1) UnarchiveExperimentV1(ctx context.Context, request *apiv1beta1.UnarchiveExperimentRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		unarchiveExperimentRequests.Inc()
 	}
@@ -397,10 +411,10 @@ func (s *ExperimentServer) UnarchiveExperimentV1(ctx context.Context, request *a
 	if err := s.unarchiveExperiment(ctx, request.GetId()); err != nil {
 		return nil, util.Wrap(err, "Failed to unarchive v1beta1 experiment")
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *apiv2beta1.UnarchiveExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *apiv2beta1.UnarchiveExperimentRequest) (*emptypb.Empty, error) {
 	if s.options.CollectMetrics {
 		unarchiveExperimentRequests.Inc()
 	}
@@ -408,9 +422,23 @@ func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *api
 	if err := s.unarchiveExperiment(ctx, request.GetExperimentId()); err != nil {
 		return nil, util.Wrap(err, "Failed to unarchive experiment")
 	}
-	return &empty.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 func NewExperimentServer(resourceManager *resource.ResourceManager, options *ExperimentServerOptions) *ExperimentServer {
-	return &ExperimentServer{resourceManager: resourceManager, options: options}
+	return &ExperimentServer{
+		BaseExperimentServer: &BaseExperimentServer{
+			resourceManager: resourceManager,
+			options:         options,
+		},
+	}
+}
+
+func NewExperimentServerV1(resourceManager *resource.ResourceManager, options *ExperimentServerOptions) *ExperimentServerV1 {
+	return &ExperimentServerV1{
+		BaseExperimentServer: &BaseExperimentServer{
+			resourceManager: resourceManager,
+			options:         options,
+		},
+	}
 }

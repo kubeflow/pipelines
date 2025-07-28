@@ -13,9 +13,21 @@
 # limitations under the License.
 
 import setuptools
+import os
+from typing import List
 
 NAME = 'kfp-pipeline-spec'
-VERSION = '0.7.0'
+VERSION = '0.8.0'
+
+def get_requirements(requirements_file: str) -> List[str]:
+    """Read requirements from requirements.in."""
+
+    file_path = os.path.join(os.path.dirname(__file__), requirements_file)
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+    lines = [line.strip() for line in lines]
+    lines = [line for line in lines if not line.startswith('#') and line]
+    return lines
 
 setuptools.setup(
     name=NAME,
@@ -26,7 +38,7 @@ setuptools.setup(
     url='https://github.com/kubeflow/pipelines',
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
     python_requires='>=3.9.0',
-    install_requires=['protobuf>=4.21.1,<5'],
+    install_requires=get_requirements('requirements.txt'),
     include_package_data=True,
     license='Apache 2.0',
 )

@@ -13,78 +13,96 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewRunServiceReadArtifactParams creates a new RunServiceReadArtifactParams object
-// with the default values initialized.
+// NewRunServiceReadArtifactParams creates a new RunServiceReadArtifactParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRunServiceReadArtifactParams() *RunServiceReadArtifactParams {
-	var ()
 	return &RunServiceReadArtifactParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRunServiceReadArtifactParamsWithTimeout creates a new RunServiceReadArtifactParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRunServiceReadArtifactParamsWithTimeout(timeout time.Duration) *RunServiceReadArtifactParams {
-	var ()
 	return &RunServiceReadArtifactParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewRunServiceReadArtifactParamsWithContext creates a new RunServiceReadArtifactParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRunServiceReadArtifactParamsWithContext(ctx context.Context) *RunServiceReadArtifactParams {
-	var ()
 	return &RunServiceReadArtifactParams{
-
 		Context: ctx,
 	}
 }
 
 // NewRunServiceReadArtifactParamsWithHTTPClient creates a new RunServiceReadArtifactParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRunServiceReadArtifactParamsWithHTTPClient(client *http.Client) *RunServiceReadArtifactParams {
-	var ()
 	return &RunServiceReadArtifactParams{
 		HTTPClient: client,
 	}
 }
 
-/*RunServiceReadArtifactParams contains all the parameters to send to the API endpoint
-for the run service read artifact operation typically these are written to a http.Request
+/*
+RunServiceReadArtifactParams contains all the parameters to send to the API endpoint
+
+	for the run service read artifact operation.
+
+	Typically these are written to a http.Request.
 */
 type RunServiceReadArtifactParams struct {
 
-	/*ArtifactName
-	  Name of the artifact.
+	/* ArtifactName.
 
+	   Name of the artifact.
 	*/
 	ArtifactName string
-	/*ExperimentID
-	  The ID of the parent experiment.
 
+	/* ExperimentID.
+
+	   The ID of the parent experiment.
 	*/
 	ExperimentID *string
-	/*NodeID
-	  ID of the running node.
 
+	/* NodeID.
+
+	   ID of the running node.
 	*/
 	NodeID string
-	/*RunID
-	  ID of the run.
 
+	/* RunID.
+
+	   ID of the run.
 	*/
 	RunID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the run service read artifact params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceReadArtifactParams) WithDefaults() *RunServiceReadArtifactParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the run service read artifact params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceReadArtifactParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the run service read artifact params
@@ -181,16 +199,17 @@ func (o *RunServiceReadArtifactParams) WriteToRequest(r runtime.ClientRequest, r
 
 		// query param experiment_id
 		var qrExperimentID string
+
 		if o.ExperimentID != nil {
 			qrExperimentID = *o.ExperimentID
 		}
 		qExperimentID := qrExperimentID
 		if qExperimentID != "" {
+
 			if err := r.SetQueryParam("experiment_id", qExperimentID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	// path param node_id

@@ -6,21 +6,31 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1RunStorageState Describes whether an entity is available or archived.
 //
-//  - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used
-//  - AVAILABLE: Entity is available.
-//  - ARCHIVED: Entity is archived.
+//   - STORAGE_STATE_UNSPECIFIED: Default state. This state in not used
+//   - AVAILABLE: Entity is available.
+//   - ARCHIVED: Entity is archived.
+//
 // swagger:model v2beta1RunStorageState
 type V2beta1RunStorageState string
+
+func NewV2beta1RunStorageState(value V2beta1RunStorageState) *V2beta1RunStorageState {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated V2beta1RunStorageState.
+func (m V2beta1RunStorageState) Pointer() *V2beta1RunStorageState {
+	return &m
+}
 
 const (
 
@@ -48,7 +58,7 @@ func init() {
 }
 
 func (m V2beta1RunStorageState) validateV2beta1RunStorageStateEnum(path, location string, value V2beta1RunStorageState) error {
-	if err := validate.Enum(path, location, value, v2beta1RunStorageStateEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, v2beta1RunStorageStateEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -66,5 +76,10 @@ func (m V2beta1RunStorageState) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this v2beta1 run storage state based on context it is used
+func (m V2beta1RunStorageState) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

@@ -86,14 +86,14 @@ func (c *RunClient) Create(parameters *params.RunServiceCreateRunV1Params) (*mod
 	response, err := c.apiClient.RunService.RunServiceCreateRunV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.RunServiceGetRunV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
 
 		return nil, nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create run. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to create run '%v'", parameters.Body.Name))
+			fmt.Sprintf("Failed to create run '%v'", parameters.Run.Name))
 	}
 
 	// Unmarshal response
@@ -120,7 +120,7 @@ func (c *RunClient) Get(parameters *params.RunServiceGetRunV1Params) (*model.API
 	response, err := c.apiClient.RunService.RunServiceGetRunV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.RunServiceGetRunV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -154,7 +154,7 @@ func (c *RunClient) Archive(parameters *params.RunServiceArchiveRunV1Params) err
 
 	if err != nil {
 		if defaultError, ok := err.(*params.RunServiceListRunsV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -178,7 +178,7 @@ func (c *RunClient) Unarchive(parameters *params.RunServiceUnarchiveRunV1Params)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.RunServiceListRunsV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -202,7 +202,7 @@ func (c *RunClient) Delete(parameters *params.RunServiceDeleteRunV1Params) error
 
 	if err != nil {
 		if defaultError, ok := err.(*params.RunServiceListRunsV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}
@@ -227,7 +227,7 @@ func (c *RunClient) List(parameters *params.RunServiceListRunsV1Params) (
 
 	if err != nil {
 		if defaultError, ok := err.(*params.RunServiceListRunsV1Default); ok {
-			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
+			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
 		} else {
 			err = api_server.CreateErrorCouldNotRecoverAPIStatus(err)
 		}

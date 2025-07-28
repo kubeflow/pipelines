@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/e2e-test.yml'
       - '.github/resources/**'
+      - 'api/**'
       - 'go.mod'
       - 'go.sum'
       - 'backend/**'
@@ -434,28 +435,19 @@ jobs:
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
         continue-on-error: true
 
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
+
+      - name: Install kfp & kfp-kubernetes from source
+        if: ${{ steps.install-protobuf-deps.outcome == 'success' }}
+        id: install-kfp-k8s-deps
+        uses: ./.github/actions/kfp-k8s
+
       - name: Install prerequisites
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         run: pip3 install -r ./test/sample-test/requirements.txt
-
-      - name: Install protobuf-compiler
-        id: install-protobuf-compiler
-        run: sudo apt update && sudo apt install -y protobuf-compiler
-
-      - name: Install Wheel
-        id: install-wheel
-        run: pip3 install wheel==0.42.0 setuptools
-
-      - name: Generate API proto files
-        working-directory: ./api
-        run: make python
-      
-      - name: Install local kfp from source
-        run: python3 -m pip install -I sdk/python
-
-      - name: Install kfp-pipeline-spec from source
-        run: |
-          python3 -m pip install -I api/v2alpha1/python
 
       - name: Basic sample tests - sequential
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}

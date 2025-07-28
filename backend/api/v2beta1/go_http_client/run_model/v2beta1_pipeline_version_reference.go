@@ -6,12 +6,14 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1PipelineVersionReference Reference to an existing pipeline version.
+//
 // swagger:model v2beta1PipelineVersionReference
 type V2beta1PipelineVersionReference struct {
 
@@ -24,6 +26,11 @@ type V2beta1PipelineVersionReference struct {
 
 // Validate validates this v2beta1 pipeline version reference
 func (m *V2beta1PipelineVersionReference) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// ContextValidate validates this v2beta1 pipeline version reference based on context it is used
+func (m *V2beta1PipelineVersionReference) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

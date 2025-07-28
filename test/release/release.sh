@@ -52,7 +52,7 @@ fi
 echo "Running the bump version script in cloned repo"
 echo -n "$TAG" > ./VERSION
 
-PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-release:1.1
+PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-release:1.2
 pushd ./test/release
 make release-in-place
 popd

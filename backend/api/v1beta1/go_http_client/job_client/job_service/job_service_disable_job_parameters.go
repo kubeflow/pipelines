@@ -13,63 +13,78 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewJobServiceDisableJobParams creates a new JobServiceDisableJobParams object
-// with the default values initialized.
+// NewJobServiceDisableJobParams creates a new JobServiceDisableJobParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewJobServiceDisableJobParams() *JobServiceDisableJobParams {
-	var ()
 	return &JobServiceDisableJobParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewJobServiceDisableJobParamsWithTimeout creates a new JobServiceDisableJobParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewJobServiceDisableJobParamsWithTimeout(timeout time.Duration) *JobServiceDisableJobParams {
-	var ()
 	return &JobServiceDisableJobParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewJobServiceDisableJobParamsWithContext creates a new JobServiceDisableJobParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewJobServiceDisableJobParamsWithContext(ctx context.Context) *JobServiceDisableJobParams {
-	var ()
 	return &JobServiceDisableJobParams{
-
 		Context: ctx,
 	}
 }
 
 // NewJobServiceDisableJobParamsWithHTTPClient creates a new JobServiceDisableJobParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewJobServiceDisableJobParamsWithHTTPClient(client *http.Client) *JobServiceDisableJobParams {
-	var ()
 	return &JobServiceDisableJobParams{
 		HTTPClient: client,
 	}
 }
 
-/*JobServiceDisableJobParams contains all the parameters to send to the API endpoint
-for the job service disable job operation typically these are written to a http.Request
+/*
+JobServiceDisableJobParams contains all the parameters to send to the API endpoint
+
+	for the job service disable job operation.
+
+	Typically these are written to a http.Request.
 */
 type JobServiceDisableJobParams struct {
 
-	/*ID
-	  The ID of the job to be disabled
+	/* ID.
 
+	   The ID of the job to be disabled
 	*/
 	ID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the job service disable job params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *JobServiceDisableJobParams) WithDefaults() *JobServiceDisableJobParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the job service disable job params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *JobServiceDisableJobParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the job service disable job params

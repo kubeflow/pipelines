@@ -116,17 +116,17 @@ message Predicate {
   message IntValues {
     repeated int32 values = 1;
   }
-  
+
   // List of strings.
   message StringValues {
     repeated string values = 2;
   }
-  
+
   // List of long integers.
   message LongValues {
     repeated int64 values = 3;
   }
-  
+
   // Value for the operation (second argument).
   oneof value {
     // Integer.

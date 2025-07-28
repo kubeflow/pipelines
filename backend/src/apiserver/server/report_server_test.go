@@ -33,7 +33,11 @@ import (
 func TestReportWorkflowV1(t *testing.T) {
 	clientManager, resourceManager, run := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	reportServer := NewReportServer(resourceManager)
+	reportServer := &ReportServerV1{
+		BaseReportServer: &BaseReportServer{
+			resourceManager: resourceManager,
+		},
+	}
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta: metav1.TypeMeta{
@@ -140,7 +144,7 @@ func TestReportWorkflow(t *testing.T) {
 func TestReportWorkflow_ValidationFailed(t *testing.T) {
 	clientManager, resourceManager, run := initWithOneTimeRun(t)
 	defer clientManager.Close()
-	reportServer := NewReportServer(resourceManager)
+	reportServer := NewReportServerV1(resourceManager)
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta: metav1.TypeMeta{

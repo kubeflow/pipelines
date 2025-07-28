@@ -6,15 +6,16 @@ package pipeline_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIListPipelinesResponse api list pipelines response
+//
 // swagger:model apiListPipelinesResponse
 type APIListPipelinesResponse struct {
 
@@ -43,7 +44,6 @@ func (m *APIListPipelinesResponse) Validate(formats strfmt.Registry) error {
 }
 
 func (m *APIListPipelinesResponse) validatePipelines(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Pipelines) { // not required
 		return nil
 	}
@@ -57,6 +57,47 @@ func (m *APIListPipelinesResponse) validatePipelines(formats strfmt.Registry) er
 			if err := m.Pipelines[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("pipelines" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("pipelines" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this api list pipelines response based on the context it is used
+func (m *APIListPipelinesResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidatePipelines(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *APIListPipelinesResponse) contextValidatePipelines(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Pipelines); i++ {
+
+		if m.Pipelines[i] != nil {
+
+			if swag.IsZero(m.Pipelines[i]) { // not required
+				return nil
+			}
+
+			if err := m.Pipelines[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("pipelines" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("pipelines" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

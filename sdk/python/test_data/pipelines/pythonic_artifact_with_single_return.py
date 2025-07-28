@@ -11,13 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 from kfp import dsl
 from kfp.dsl import Dataset
 from kfp.dsl import Model
 
+PACKAGES_TO_INSTALL = ['dill==0.3.7']
+if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' in os.environ:
+    PACKAGES_TO_INSTALL.append(os.environ['KFP_PIPELINE_SPEC_PACKAGE_PATH'])
 
-@dsl.component(packages_to_install=['dill==0.3.7'])
+@dsl.component(packages_to_install=PACKAGES_TO_INSTALL)
 def make_language_model(text_dataset: Dataset) -> Model:
     # dill allows pickling objects belonging to a function's local namespace
     import dill

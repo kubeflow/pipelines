@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
 	argoclientwf "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
@@ -29,7 +31,6 @@ import (
 	"github.com/argoproj/argo-workflows/v3/workflow/packer"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
@@ -517,7 +518,13 @@ func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, r
 	// ReportRunMetricsRequest as a workaround to hold user's metrics, which is a superset of what
 	// user can provide.
 	reportMetricsRequest := new(api.ReportRunMetricsRequest)
-	err = jsonpb.UnmarshalString(metricsJSON, reportMetricsRequest)
+	transformedJSON, err := transformJSONForBackwardCompatibility(metricsJSON)
+	if err != nil {
+		fmt.Printf("Failed to transform JSON: %v\n", err)
+		return nil, err
+	}
+
+	err = protojson.Unmarshal([]byte(transformedJSON), reportMetricsRequest)
 	if err != nil {
 		// User writes invalid metrics JSON.
 		// TODO(#1426): report the error back to api server to notify user
@@ -538,6 +545,19 @@ func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, r
 		metric.NodeId = retrievedNodeID
 	}
 	return reportMetricsRequest.GetMetrics(), nil
+}
+
+// Previously number_value for RunMetrics in backend/api/v1beta1/run.proto
+// allowed camelCase field values in JSON, to be consistent with the
+// rest of the API (as well as with KFP api docs); this value was switched
+// to support snake case. This function will convert old values to the
+// newer snakecase so we can continue to support camelcase Metric Values for
+// backwards compatibility for the end user.
+func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
+	replacer := strings.NewReplacer(
+		`"numberValue":`, `"number_value":`,
+	)
+	return replacer.Replace(jsonStr), nil
 }
 
 func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,

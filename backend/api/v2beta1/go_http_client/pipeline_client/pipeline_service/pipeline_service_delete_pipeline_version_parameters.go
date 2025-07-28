@@ -13,68 +13,84 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewPipelineServiceDeletePipelineVersionParams creates a new PipelineServiceDeletePipelineVersionParams object
-// with the default values initialized.
+// NewPipelineServiceDeletePipelineVersionParams creates a new PipelineServiceDeletePipelineVersionParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewPipelineServiceDeletePipelineVersionParams() *PipelineServiceDeletePipelineVersionParams {
-	var ()
 	return &PipelineServiceDeletePipelineVersionParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewPipelineServiceDeletePipelineVersionParamsWithTimeout creates a new PipelineServiceDeletePipelineVersionParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewPipelineServiceDeletePipelineVersionParamsWithTimeout(timeout time.Duration) *PipelineServiceDeletePipelineVersionParams {
-	var ()
 	return &PipelineServiceDeletePipelineVersionParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewPipelineServiceDeletePipelineVersionParamsWithContext creates a new PipelineServiceDeletePipelineVersionParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewPipelineServiceDeletePipelineVersionParamsWithContext(ctx context.Context) *PipelineServiceDeletePipelineVersionParams {
-	var ()
 	return &PipelineServiceDeletePipelineVersionParams{
-
 		Context: ctx,
 	}
 }
 
 // NewPipelineServiceDeletePipelineVersionParamsWithHTTPClient creates a new PipelineServiceDeletePipelineVersionParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewPipelineServiceDeletePipelineVersionParamsWithHTTPClient(client *http.Client) *PipelineServiceDeletePipelineVersionParams {
-	var ()
 	return &PipelineServiceDeletePipelineVersionParams{
 		HTTPClient: client,
 	}
 }
 
-/*PipelineServiceDeletePipelineVersionParams contains all the parameters to send to the API endpoint
-for the pipeline service delete pipeline version operation typically these are written to a http.Request
+/*
+PipelineServiceDeletePipelineVersionParams contains all the parameters to send to the API endpoint
+
+	for the pipeline service delete pipeline version operation.
+
+	Typically these are written to a http.Request.
 */
 type PipelineServiceDeletePipelineVersionParams struct {
 
-	/*PipelineID
-	  Required input. ID of the parent pipeline.
+	/* PipelineID.
 
+	   Required input. ID of the parent pipeline.
 	*/
 	PipelineID string
-	/*PipelineVersionID
-	  Required input. The ID of the pipeline version to be deleted.
 
+	/* PipelineVersionID.
+
+	   Required input. The ID of the pipeline version to be deleted.
 	*/
 	PipelineVersionID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the pipeline service delete pipeline version params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceDeletePipelineVersionParams) WithDefaults() *PipelineServiceDeletePipelineVersionParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the pipeline service delete pipeline version params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceDeletePipelineVersionParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the pipeline service delete pipeline version params

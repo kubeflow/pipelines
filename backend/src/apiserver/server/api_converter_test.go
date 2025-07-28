@@ -17,9 +17,9 @@ package server
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -489,7 +489,7 @@ func TestToModelJob(t *testing.T) {
 				NoCatchup:      true,
 				Trigger: &apiv1beta1.Trigger{
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: &timestamp.Timestamp{Seconds: 1},
+						StartTime: timestamppb.New(time.Unix(1, 0)),
 						Cron:      "1 * * * *",
 					}},
 				},
@@ -530,7 +530,7 @@ func TestToModelJob(t *testing.T) {
 				NoCatchup:      true,
 				Trigger: &apiv1beta1.Trigger{
 					Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-						StartTime: &timestamp.Timestamp{Seconds: 1},
+						StartTime: timestamppb.New(time.Unix(1, 0)),
 						Cron:      "1 * * * *",
 					}},
 				},
@@ -800,11 +800,11 @@ func TestToApiPipelineV1(t *testing.T) {
 	apiPipeline := toApiPipelineV1(modelPipeline, modelVersion)
 	expectedApiPipeline := &apiv1beta1.Pipeline{
 		Id:        "pipeline1",
-		CreatedAt: &timestamp.Timestamp{Seconds: 1},
+		CreatedAt: timestamppb.New(time.Unix(1, 0)),
 		Url:       &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
 		DefaultVersion: &apiv1beta1.PipelineVersion{
 			Id:            "pipelineversion1",
-			CreatedAt:     &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:     timestamppb.New(time.Unix(1, 0)),
 			Description:   "desc1",
 			CodeSourceUrl: "http://repo/22222",
 			PackageUrl:    &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
@@ -872,11 +872,11 @@ func TestToApiPipelinesV1(t *testing.T) {
 	expectedPipelines := []*apiv1beta1.Pipeline{
 		{
 			Id:        "pipeline1",
-			CreatedAt: &timestamp.Timestamp{Seconds: 1},
+			CreatedAt: timestamppb.New(time.Unix(1, 0)),
 			Url:       &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
 			DefaultVersion: &apiv1beta1.PipelineVersion{
 				Id:            "pipelineversion1",
-				CreatedAt:     &timestamp.Timestamp{Seconds: 1},
+				CreatedAt:     timestamppb.New(time.Unix(1, 0)),
 				Description:   "desc1",
 				CodeSourceUrl: "http://repo/22222",
 				PackageUrl:    &apiv1beta1.Url{PipelineUrl: "http://repo/22222"},
@@ -1172,9 +1172,9 @@ func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
 			Id:           "run123",
 			Name:         "displayName123",
 			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
-			FinishedAt:   &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
+			ScheduledAt:  timestamppb.New(time.Unix(1, 0)),
+			FinishedAt:   timestamppb.New(time.Unix(1, 0)),
 			Status:       "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
@@ -1235,9 +1235,9 @@ func TestToApiRunDetailV1_V1Params(t *testing.T) {
 			Id:           "run123",
 			Name:         "displayName123",
 			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
-			FinishedAt:   &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
+			ScheduledAt:  timestamppb.New(time.Unix(1, 0)),
+			FinishedAt:   timestamppb.New(time.Unix(1, 0)),
 			Status:       "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
@@ -1326,9 +1326,9 @@ func TestToApiRunsV1(t *testing.T) {
 			Id:           "run1",
 			Name:         "displayName1",
 			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
-			FinishedAt:   &timestamp.Timestamp{},
+			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
+			ScheduledAt:  timestamppb.New(time.Unix(1, 0)),
+			FinishedAt:   &timestamppb.Timestamp{Seconds: 0, Nanos: 0},
 			Status:       "Running",
 			PipelineSpec: &apiv1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
@@ -1349,9 +1349,9 @@ func TestToApiRunsV1(t *testing.T) {
 			Id:           "run2",
 			Name:         "displayName2",
 			StorageState: apiv1beta1.Run_STORAGESTATE_AVAILABLE,
-			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
-			ScheduledAt:  &timestamp.Timestamp{Seconds: 2},
-			FinishedAt:   &timestamp.Timestamp{},
+			CreatedAt:    timestamppb.New(time.Unix(2, 0)),
+			ScheduledAt:  timestamppb.New(time.Unix(2, 0)),
+			FinishedAt:   &timestamppb.Timestamp{Seconds: 0, Nanos: 0},
 			Status:       "Succeeded",
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1390,8 +1390,8 @@ func TestToApiTask(t *testing.T) {
 		PipelineName:    "pipeline/my-pipeline",
 		RunId:           NonDefaultFakeUUID,
 		MlmdExecutionID: "1",
-		CreatedAt:       &timestamp.Timestamp{Seconds: 1},
-		FinishedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:       timestamppb.New(time.Unix(1, 0)),
+		FinishedAt:      timestamppb.New(time.Unix(2, 0)),
 		Fingerprint:     "123",
 	}
 
@@ -1428,8 +1428,8 @@ func TestToApiTasks(t *testing.T) {
 			PipelineName:    "namespace/ns1/pipeline/my-pipeline-1",
 			RunId:           "123e4567-e89b-12d3-a456-426655440001",
 			MlmdExecutionID: "1",
-			CreatedAt:       &timestamp.Timestamp{Seconds: 1},
-			FinishedAt:      &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:       timestamppb.New(time.Unix(1, 0)),
+			FinishedAt:      timestamppb.New(time.Unix(2, 0)),
 			Fingerprint:     "123",
 		},
 		{
@@ -1438,8 +1438,8 @@ func TestToApiTasks(t *testing.T) {
 			PipelineName:    "namespace/ns1/pipeline/my-pipeline-2",
 			RunId:           "123e4567-e89b-12d3-a456-426655440003",
 			MlmdExecutionID: "2",
-			CreatedAt:       &timestamp.Timestamp{Seconds: 3},
-			FinishedAt:      &timestamp.Timestamp{Seconds: 4},
+			CreatedAt:       &timestamppb.Timestamp{Seconds: 3, Nanos: 0},
+			FinishedAt:      &timestamppb.Timestamp{Seconds: 4, Nanos: 0},
 			Fingerprint:     "124",
 		},
 	}
@@ -1478,12 +1478,12 @@ func TestCronScheduledJobtoApiJob(t *testing.T) {
 		Id:             "job1",
 		Name:           "name 1",
 		Enabled:        true,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
+		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
+				StartTime: timestamppb.New(time.Unix(1, 0)),
 				Cron:      "1 * *",
 			}},
 		},
@@ -1533,12 +1533,12 @@ func TestPeriodicScheduledJobtoApiJob(t *testing.T) {
 		Id:             "job1",
 		Name:           "name 1",
 		Enabled:        true,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
+		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &apiv1beta1.PeriodicSchedule{
-				StartTime:      &timestamp.Timestamp{Seconds: 1},
+				StartTime:      timestamppb.New(time.Unix(1, 0)),
 				IntervalSecond: 3,
 			}},
 		},
@@ -1578,8 +1578,8 @@ func TestNonScheduledJobtoApiJob(t *testing.T) {
 		Id:             "job1",
 		Name:           "name1",
 		Enabled:        true,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
+		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
@@ -1667,8 +1667,8 @@ func TestToApiJob_V2(t *testing.T) {
 		Id:             "job1",
 		Name:           "name 1",
 		Enabled:        true,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		MaxConcurrency: 2,
 		NoCatchup:      true,
 		Status:         "STATUS_UNSPECIFIED",
@@ -1680,7 +1680,7 @@ func TestToApiJob_V2(t *testing.T) {
 		},
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 2},
+				StartTime: timestamppb.New(time.Unix(2, 0)),
 				Cron:      "2 * *",
 			}},
 		},
@@ -1751,13 +1751,13 @@ func TestToApiJobs(t *testing.T) {
 			Id:             "job1",
 			Name:           "name 1",
 			Enabled:        true,
-			CreatedAt:      &timestamp.Timestamp{Seconds: 1},
-			UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:      timestamppb.New(time.Unix(1, 0)),
+			UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 			MaxConcurrency: 1,
 			Status:         "STATUS_UNSPECIFIED",
 			Trigger: &apiv1beta1.Trigger{
 				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-					StartTime: &timestamp.Timestamp{Seconds: 1},
+					StartTime: timestamppb.New(time.Unix(1, 0)),
 					Cron:      "1 * *",
 				}},
 			},
@@ -1777,14 +1777,14 @@ func TestToApiJobs(t *testing.T) {
 			Id:             "job2",
 			Name:           "name 2",
 			Enabled:        true,
-			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-			UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+			UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 			MaxConcurrency: 2,
 			NoCatchup:      true,
 			Status:         "STATUS_UNSPECIFIED",
 			Trigger: &apiv1beta1.Trigger{
 				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-					StartTime: &timestamp.Timestamp{Seconds: 2},
+					StartTime: timestamppb.New(time.Unix(2, 0)),
 					Cron:      "2 * *",
 				}},
 			},
@@ -1927,7 +1927,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Id:           "exp1",
 			Name:         "experiment1",
 			Description:  "experiment1 was created using V2 APIV1BETA1",
-			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1940,7 +1940,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Id:           "exp2",
 			Name:         "experiment2",
 			Description:  "experiment2 was created using V2 APIV1BETA1",
-			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:    timestamppb.New(time.Unix(2, 0)),
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1953,7 +1953,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Id:           "exp3",
 			Name:         "experiment3",
 			Description:  "experiment3 was created using V1 APIV1BETA1",
-			CreatedAt:    &timestamp.Timestamp{Seconds: 3},
+			CreatedAt:    &timestamppb.Timestamp{Seconds: 3, Nanos: 0},
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1966,7 +1966,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Id:           "exp4",
 			Name:         "experiment4",
 			Description:  "experiment4 was created using V1 APIV1BETA1",
-			CreatedAt:    &timestamp.Timestamp{Seconds: 4},
+			CreatedAt:    &timestamppb.Timestamp{Seconds: 4, Nanos: 0},
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -1980,7 +1980,7 @@ func TestToApiExperimentsV1(t *testing.T) {
 			Id:           "exp5",
 			Name:         "experiment5",
 			Description:  "experiment5 was created using V2 APIV1BETA1",
-			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:    timestamppb.New(time.Unix(1, 0)),
 			StorageState: apiv1beta1.Experiment_StorageState(apiv1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"]),
 			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
@@ -2040,32 +2040,32 @@ func TestToApiExperiments(t *testing.T) {
 			ExperimentId:     "exp1",
 			DisplayName:      "experiment1",
 			Description:      "My name is experiment1",
-			CreatedAt:        &timestamp.Timestamp{Seconds: 1},
-			LastRunCreatedAt: &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:        timestamppb.New(time.Unix(1, 0)),
+			LastRunCreatedAt: timestamppb.New(time.Unix(1, 0)),
 			StorageState:     apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["AVAILABLE"]),
 		},
 		{
 			ExperimentId:     "exp2",
 			DisplayName:      "experiment2",
 			Description:      "My name is experiment2",
-			CreatedAt:        &timestamp.Timestamp{Seconds: 2},
-			LastRunCreatedAt: &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:        timestamppb.New(time.Unix(2, 0)),
+			LastRunCreatedAt: timestamppb.New(time.Unix(2, 0)),
 			StorageState:     apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["ARCHIVED"]),
 		},
 		{
 			ExperimentId:     "exp3",
 			DisplayName:      "experiment3",
 			Description:      "experiment3 was created using V1 APIV1BETA1",
-			CreatedAt:        &timestamp.Timestamp{Seconds: 1},
-			LastRunCreatedAt: &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:        timestamppb.New(time.Unix(1, 0)),
+			LastRunCreatedAt: timestamppb.New(time.Unix(1, 0)),
 			StorageState:     apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["AVAILABLE"]),
 		},
 		{
 			ExperimentId:     "exp4",
 			DisplayName:      "experiment4",
 			Description:      "experiment4 was created using V1 APIV1BETA1",
-			CreatedAt:        &timestamp.Timestamp{Seconds: 2},
-			LastRunCreatedAt: &timestamp.Timestamp{Seconds: 2},
+			CreatedAt:        timestamppb.New(time.Unix(2, 0)),
+			LastRunCreatedAt: timestamppb.New(time.Unix(2, 0)),
 			StorageState:     apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["ARCHIVED"]),
 		},
 		{},
@@ -2073,8 +2073,8 @@ func TestToApiExperiments(t *testing.T) {
 			ExperimentId:     "exp5",
 			DisplayName:      "experiment5",
 			Description:      "My name is experiment5",
-			CreatedAt:        &timestamp.Timestamp{Seconds: 1},
-			LastRunCreatedAt: &timestamp.Timestamp{Seconds: 1},
+			CreatedAt:        timestamppb.New(time.Unix(1, 0)),
+			LastRunCreatedAt: timestamppb.New(time.Unix(1, 0)),
 			StorageState:     apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"]),
 		},
 	}
@@ -2181,8 +2181,8 @@ func TestToApiRecurringRun(t *testing.T) {
 		RecurringRunId: "job1",
 		DisplayName:    "name 1",
 		Mode:           apiv2beta1.RecurringRun_ENABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		MaxConcurrency: 2,
 		NoCatchup:      true,
 		PipelineSource: &apiv2beta1.RecurringRun_PipelineVersionReference{
@@ -2192,7 +2192,7 @@ func TestToApiRecurringRun(t *testing.T) {
 		},
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 2},
+				StartTime: timestamppb.New(time.Unix(2, 0)),
 				Cron:      "2 * *",
 			}},
 		},
@@ -2233,13 +2233,13 @@ func TestToApiRecurringRun(t *testing.T) {
 		RecurringRunId: "job1",
 		DisplayName:    "name 1",
 		Mode:           apiv2beta1.RecurringRun_DISABLE,
-		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		CreatedAt:      timestamppb.New(time.Unix(2, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		MaxConcurrency: 2,
 		NoCatchup:      true,
 		Trigger: &apiv2beta1.Trigger{
 			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 2},
+				StartTime: timestamppb.New(time.Unix(2, 0)),
 				Cron:      "2 * *",
 			}},
 		},
@@ -3708,9 +3708,9 @@ func TestToModelRun(t *testing.T) {
 							RunId:          "run1",
 							TaskId:         "task1",
 							DisplayName:    "this is task",
-							CreateTime:     &timestamp.Timestamp{Seconds: 11},
-							StartTime:      &timestamp.Timestamp{Seconds: 12},
-							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
 							ExecutorDetail: nil,
 							State:          apiv2beta1.RuntimeState_FAILED,
 							ExecutionId:    14,
@@ -3737,9 +3737,9 @@ func TestToModelRun(t *testing.T) {
 							RunId:          "run1",
 							TaskId:         "task2",
 							DisplayName:    "this is task 2",
-							CreateTime:     &timestamp.Timestamp{Seconds: 11},
-							StartTime:      &timestamp.Timestamp{Seconds: 12},
-							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
 							ExecutorDetail: nil,
 							State:          apiv2beta1.RuntimeState_CANCELED,
 							ExecutionId:    14,
@@ -3904,9 +3904,9 @@ func TestToModelRun(t *testing.T) {
 							RunId:          "run2",
 							TaskId:         "task1",
 							DisplayName:    "this is task",
-							CreateTime:     &timestamp.Timestamp{Seconds: 11},
-							StartTime:      &timestamp.Timestamp{Seconds: 12},
-							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
 							ExecutorDetail: nil,
 							State:          apiv2beta1.RuntimeState_RUNNING,
 							ExecutionId:    14,
@@ -4246,9 +4246,9 @@ func Test_toApiRun(t *testing.T) {
 							RunId:          "run2",
 							TaskId:         "task1",
 							DisplayName:    "this is task",
-							CreateTime:     &timestamp.Timestamp{Seconds: 11},
-							StartTime:      &timestamp.Timestamp{Seconds: 12},
-							EndTime:        &timestamp.Timestamp{Seconds: 13},
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
 							ExecutorDetail: nil,
 							State:          apiv2beta1.RuntimeState_FAILED,
 							ExecutionId:    14,

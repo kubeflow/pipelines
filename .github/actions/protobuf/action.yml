@@ -1,0 +1,81 @@
+name: "Install Proto dependencies & Pipeline Spec"
+description: |
+  This action pins various Proto generation packages to default versions and
+  installs these dependencies in the workflow environment. It will also 
+  install the kfp-pipeline-spec. Whenever KFP project updates generation 
+  packages, the defaults here must be updated.
+inputs:
+  protoc_version:
+    required: true
+    default: "31.1"
+    description: "protoc version"
+  protobuf_python_version:
+    required: true
+    default: "6.31.1"
+    description: "protobuf python package version"
+  setuptools_version:
+    required: true
+    default: "80.9.0"
+    description: "setuptools python package version"
+  wheels_version:
+    required: true
+    default: "0.42.0"
+    description: "wheels python package version"
+  generate_golang_proto:
+    required: true
+    default: "false"
+    description: "optionally generate golang proto files"
+runs:
+  using: "composite"
+  steps:
+    - name: Install protoc
+      shell: bash
+      run: |
+        PROTOC_ZIP=protoc-${{inputs.protoc_version}}-linux-x86_64.zip
+        curl -sSL -O https://github.com/protocolbuffers/protobuf/releases/download/v${{inputs.protoc_version}}/$PROTOC_ZIP
+        sudo unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
+        sudo unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
+        rm $PROTOC_ZIP
+        protoc --version
+
+    - name: Install setuptools
+      shell: bash
+      run: |
+        pip3 install setuptools==${{inputs.setuptools_version}}
+        pip3 freeze
+
+    - name: Install Wheel
+      shell: bash
+      run: pip3 install wheel==${{inputs.wheels_version}}
+    - name: Install protobuf
+      shell: bash
+      run: pip3 install protobuf==${{inputs.protobuf_python_version}}
+    - name: Generate API proto files
+      working-directory: ./api
+      shell: bash
+      run: make clean python
+    - name: Install kfp-pipeline-spec from source
+      shell: bash
+      run: |
+        pip install api/v2alpha1/python/dist/*.whl
+
+    - name: Generate kfp-pipeline-spec golang files
+      if: ${{ inputs.generate_golang_proto == 'true' }}
+      working-directory: ./api
+      shell: bash
+      run: |
+        make golang
+
+    - name: Summary
+      shell: bash
+      run: |
+        cat <<EOF
+        Installed the following dependencies:
+        Binaries:
+          protoc: ${{ inputs.protoc_version }}
+        Python Packages:
+          setuptools: ${{ inputs.setuptools_version }}
+          wheels: ${{ inputs.wheels_version }}
+          protobuf: ${{ inputs.protobuf_python_version }}
+        EOF
+        

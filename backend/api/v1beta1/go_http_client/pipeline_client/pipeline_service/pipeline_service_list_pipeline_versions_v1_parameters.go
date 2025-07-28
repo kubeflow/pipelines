@@ -13,107 +13,130 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-
-	strfmt "github.com/go-openapi/strfmt"
 )
 
-// NewPipelineServiceListPipelineVersionsV1Params creates a new PipelineServiceListPipelineVersionsV1Params object
-// with the default values initialized.
+// NewPipelineServiceListPipelineVersionsV1Params creates a new PipelineServiceListPipelineVersionsV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewPipelineServiceListPipelineVersionsV1Params() *PipelineServiceListPipelineVersionsV1Params {
-	var (
-		resourceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
 	return &PipelineServiceListPipelineVersionsV1Params{
-		ResourceKeyType: &resourceKeyTypeDefault,
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewPipelineServiceListPipelineVersionsV1ParamsWithTimeout creates a new PipelineServiceListPipelineVersionsV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewPipelineServiceListPipelineVersionsV1ParamsWithTimeout(timeout time.Duration) *PipelineServiceListPipelineVersionsV1Params {
-	var (
-		resourceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
 	return &PipelineServiceListPipelineVersionsV1Params{
-		ResourceKeyType: &resourceKeyTypeDefault,
-
 		timeout: timeout,
 	}
 }
 
 // NewPipelineServiceListPipelineVersionsV1ParamsWithContext creates a new PipelineServiceListPipelineVersionsV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewPipelineServiceListPipelineVersionsV1ParamsWithContext(ctx context.Context) *PipelineServiceListPipelineVersionsV1Params {
-	var (
-		resourceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
 	return &PipelineServiceListPipelineVersionsV1Params{
-		ResourceKeyType: &resourceKeyTypeDefault,
-
 		Context: ctx,
 	}
 }
 
 // NewPipelineServiceListPipelineVersionsV1ParamsWithHTTPClient creates a new PipelineServiceListPipelineVersionsV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewPipelineServiceListPipelineVersionsV1ParamsWithHTTPClient(client *http.Client) *PipelineServiceListPipelineVersionsV1Params {
-	var (
-		resourceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
-	)
 	return &PipelineServiceListPipelineVersionsV1Params{
-		ResourceKeyType: &resourceKeyTypeDefault,
-		HTTPClient:      client,
+		HTTPClient: client,
 	}
 }
 
-/*PipelineServiceListPipelineVersionsV1Params contains all the parameters to send to the API endpoint
-for the pipeline service list pipeline versions v1 operation typically these are written to a http.Request
+/*
+PipelineServiceListPipelineVersionsV1Params contains all the parameters to send to the API endpoint
+
+	for the pipeline service list pipeline versions v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type PipelineServiceListPipelineVersionsV1Params struct {
 
-	/*Filter
-	  A base-64 encoded, JSON-serialized Filter protocol buffer (see
-	filter.proto).
+	/* Filter.
 
+	     A base-64 encoded, JSON-serialized Filter protocol buffer (see
+	filter.proto).
 	*/
 	Filter *string
-	/*PageSize
-	  The number of pipeline versions to be listed per page. If there are more
+
+	/* PageSize.
+
+	     The number of pipeline versions to be listed per page. If there are more
 	pipeline versions than this number, the response message will contain a
 	nextPageToken field you can use to fetch the next page.
 
+	     Format: int32
 	*/
 	PageSize *int32
-	/*PageToken
-	  A page token to request the next page of results. The token is acquried
+
+	/* PageToken.
+
+	     A page token to request the next page of results. The token is acquried
 	from the nextPageToken field of the response from the previous
 	ListPipelineVersions call or can be omitted when fetching the first page.
-
 	*/
 	PageToken *string
-	/*ResourceKeyID
-	  The ID of the resource that referred to.
 
+	/* ResourceKeyID.
+
+	   The ID of the resource that referred to.
 	*/
 	ResourceKeyID *string
-	/*ResourceKeyType
-	  The type of the resource that referred to.
 
+	/* ResourceKeyType.
+
+	   The type of the resource that referred to.
+
+	   Default: "UNKNOWN_RESOURCE_TYPE"
 	*/
 	ResourceKeyType *string
-	/*SortBy
-	  Can be format of "field_name", "field_name asc" or "field_name desc"
-	Ascending by default.
 
+	/* SortBy.
+
+	     Can be format of "field_name", "field_name asc" or "field_name desc"
+	Ascending by default.
 	*/
 	SortBy *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the pipeline service list pipeline versions v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceListPipelineVersionsV1Params) WithDefaults() *PipelineServiceListPipelineVersionsV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the pipeline service list pipeline versions v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceListPipelineVersionsV1Params) SetDefaults() {
+	var (
+		resourceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
+	)
+
+	val := PipelineServiceListPipelineVersionsV1Params{
+		ResourceKeyType: &resourceKeyTypeDefault,
+	}
+
+	val.timeout = o.timeout
+	val.Context = o.Context
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the pipeline service list pipeline versions v1 params
@@ -227,96 +250,102 @@ func (o *PipelineServiceListPipelineVersionsV1Params) WriteToRequest(r runtime.C
 
 		// query param filter
 		var qrFilter string
+
 		if o.Filter != nil {
 			qrFilter = *o.Filter
 		}
 		qFilter := qrFilter
 		if qFilter != "" {
+
 			if err := r.SetQueryParam("filter", qFilter); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.PageSize != nil {
 
 		// query param page_size
 		var qrPageSize int32
+
 		if o.PageSize != nil {
 			qrPageSize = *o.PageSize
 		}
 		qPageSize := swag.FormatInt32(qrPageSize)
 		if qPageSize != "" {
+
 			if err := r.SetQueryParam("page_size", qPageSize); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.PageToken != nil {
 
 		// query param page_token
 		var qrPageToken string
+
 		if o.PageToken != nil {
 			qrPageToken = *o.PageToken
 		}
 		qPageToken := qrPageToken
 		if qPageToken != "" {
+
 			if err := r.SetQueryParam("page_token", qPageToken); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.ResourceKeyID != nil {
 
 		// query param resource_key.id
 		var qrResourceKeyID string
+
 		if o.ResourceKeyID != nil {
 			qrResourceKeyID = *o.ResourceKeyID
 		}
 		qResourceKeyID := qrResourceKeyID
 		if qResourceKeyID != "" {
+
 			if err := r.SetQueryParam("resource_key.id", qResourceKeyID); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.ResourceKeyType != nil {
 
 		// query param resource_key.type
 		var qrResourceKeyType string
+
 		if o.ResourceKeyType != nil {
 			qrResourceKeyType = *o.ResourceKeyType
 		}
 		qResourceKeyType := qrResourceKeyType
 		if qResourceKeyType != "" {
+
 			if err := r.SetQueryParam("resource_key.type", qResourceKeyType); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.SortBy != nil {
 
 		// query param sort_by
 		var qrSortBy string
+
 		if o.SortBy != nil {
 			qrSortBy = *o.SortBy
 		}
 		qSortBy := qrSortBy
 		if qSortBy != "" {
+
 			if err := r.SetQueryParam("sort_by", qSortBy); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {
