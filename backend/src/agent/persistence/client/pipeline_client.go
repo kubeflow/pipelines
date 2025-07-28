@@ -55,15 +55,20 @@ func NewPipelineClient(
 	basePath string,
 	mlPipelineServiceName string,
 	mlPipelineServiceHttpPort string,
-	mlPipelineServiceGRPCPort string) (*PipelineClient, error) {
+	mlPipelineServiceGRPCPort string,
+	mlPipelineServiceTLSEnabled bool) (*PipelineClient, error) {
 	httpAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, mlPipelineServiceHttpPort)
 	grpcAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, mlPipelineServiceGRPCPort)
-	err := util.WaitForAPIAvailable(initializeTimeout, basePath, httpAddress)
+	scheme := "http"
+	if mlPipelineServiceTLSEnabled {
+		scheme = "https"
+	}
+	err := util.WaitForAPIAvailable(initializeTimeout, basePath, httpAddress, scheme)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"Failed to initialize pipeline client. Error: %s", err.Error())
 	}
-	connection, err := util.GetRpcConnection(grpcAddress)
+	connection, err := util.GetRpcConnection(grpcAddress, mlPipelineServiceTLSEnabled)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"Failed to get RPC connection. Error: %s", err.Error())
