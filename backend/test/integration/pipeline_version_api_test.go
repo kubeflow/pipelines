@@ -143,15 +143,15 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	/* ---------- Import pipeline version YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionV1Params{
-		Body: &pipeline_model.APIPipelineVersion{
+		Version: &pipeline_model.APIPipelineVersion{
 			Name: "sequential",
 			PackageURL: &pipeline_model.APIURL{
 				PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
 			},
 			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
-					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE, ID: pipelineId},
-					Relationship: pipeline_model.APIRelationshipOWNER,
+					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE.Pointer(), ID: pipelineId},
+					Relationship: pipeline_model.APIRelationshipOWNER.Pointer(),
 				},
 			},
 		},
@@ -178,15 +178,15 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	}
 
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionV1Params{
-		Body: &pipeline_model.APIPipelineVersion{
+		Version: &pipeline_model.APIPipelineVersion{
 			Name: "arguments",
 			PackageURL: &pipeline_model.APIURL{
 				PipelineURL: pipelineURL,
 			},
 			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
-					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE, ID: pipelineId},
-					Relationship: pipeline_model.APIRelationshipOWNER,
+					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE.Pointer(), ID: pipelineId},
+					Relationship: pipeline_model.APIRelationshipOWNER.Pointer(),
 				},
 			},
 		},

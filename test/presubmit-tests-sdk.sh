@@ -14,37 +14,33 @@
 # limitations under the License.
 
 source_root=$(pwd)
+SETUP_ENV="${SETUP_ENV:-true}"
 
-# Create a virtual environment and activate it
-python3 -m venv venv
-source venv/bin/activate
+if [ "${SETUP_ENV}" = "true" ]; then
+  # Create a virtual environment and activate it
+  python3 -m venv venv
+  source venv/bin/activate
 
-python3 -m pip install --upgrade pip
-python3 -m pip install -r sdk/python/requirements.txt
-python3 -m pip install -r sdk/python/requirements-dev.txt
-python3 -m pip install setuptools
-python3 -m pip install wheel==0.42.0
-python3 -m pip install coveralls==1.9.2
-python3 -m pip install --upgrade protobuf
+  python3 -m pip install --upgrade pip
+  python3 -m pip install -r sdk/python/requirements.txt 
+  python3 -m pip install -r sdk/python/requirements-dev.txt
+  python3 -m pip install setuptools
+  python3 -m pip install wheel==0.42.0
+  python3 -m pip install coveralls==4.0.1
+  python3 -m pip install --upgrade protobuf
+  python3 -m pip install sdk/python
 
-python3 -m pip install sdk/python
-# regenerate the kfp-pipeline-spec
-cd api/
-make clean python
-cd ..
-# install the local kfp-pipeline-spec
-python3 -m pip install -I api/v2alpha1/python 
+  # regenerate the kfp-pipeline-spec
+  cd api/
+  make clean python
+  cd ..
+  # install the local kfp-pipeline-spec
+  python3 -m pip install -I api/v2alpha1/python
+fi
+
 pytest sdk/python/kfp --cov=kfp
 
-set +x
-# export COVERALLS_REPO_TOKEN=$(gsutil cat gs://ml-pipeline-test-keys/coveralls_repo_token)
-set -x
-REPO_NAME="${REPO_NAME:-kubeflow/pipelines}"
-REPO_BASE="https://github.com/${REPO_NAME}"
-export COVERALLS_SERVICE_NAME="prow"
-export COVERALLS_SERVICE_JOB_ID=$PROW_JOB_ID
-export CI_PULL_REQUEST="$REPO_BASE/pull/$PULL_NUMBER"
-# coveralls
-
-# Deactivate the virtual environment
-deactivate
+if [ "${SETUP_ENV}" = "true" ]; then
+  # Deactivate the virtual environment
+  deactivate
+fi

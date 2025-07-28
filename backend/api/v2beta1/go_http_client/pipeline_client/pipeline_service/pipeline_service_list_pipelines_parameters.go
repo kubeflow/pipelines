@@ -13,88 +13,109 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-
-	strfmt "github.com/go-openapi/strfmt"
 )
 
-// NewPipelineServiceListPipelinesParams creates a new PipelineServiceListPipelinesParams object
-// with the default values initialized.
+// NewPipelineServiceListPipelinesParams creates a new PipelineServiceListPipelinesParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewPipelineServiceListPipelinesParams() *PipelineServiceListPipelinesParams {
-	var ()
 	return &PipelineServiceListPipelinesParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewPipelineServiceListPipelinesParamsWithTimeout creates a new PipelineServiceListPipelinesParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewPipelineServiceListPipelinesParamsWithTimeout(timeout time.Duration) *PipelineServiceListPipelinesParams {
-	var ()
 	return &PipelineServiceListPipelinesParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewPipelineServiceListPipelinesParamsWithContext creates a new PipelineServiceListPipelinesParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewPipelineServiceListPipelinesParamsWithContext(ctx context.Context) *PipelineServiceListPipelinesParams {
-	var ()
 	return &PipelineServiceListPipelinesParams{
-
 		Context: ctx,
 	}
 }
 
 // NewPipelineServiceListPipelinesParamsWithHTTPClient creates a new PipelineServiceListPipelinesParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewPipelineServiceListPipelinesParamsWithHTTPClient(client *http.Client) *PipelineServiceListPipelinesParams {
-	var ()
 	return &PipelineServiceListPipelinesParams{
 		HTTPClient: client,
 	}
 }
 
-/*PipelineServiceListPipelinesParams contains all the parameters to send to the API endpoint
-for the pipeline service list pipelines operation typically these are written to a http.Request
+/*
+PipelineServiceListPipelinesParams contains all the parameters to send to the API endpoint
+
+	for the pipeline service list pipelines operation.
+
+	Typically these are written to a http.Request.
 */
 type PipelineServiceListPipelinesParams struct {
 
-	/*Filter
-	  A url-encoded, JSON-serialized filter protocol buffer (see
-	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+	/* Filter.
 
+	     A url-encoded, JSON-serialized filter protocol buffer (see
+	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
 	*/
 	Filter *string
-	/*Namespace
-	  Optional input. Namespace for the pipelines.
 
+	/* Namespace.
+
+	   Optional input. Namespace for the pipelines.
 	*/
 	Namespace *string
-	/*PageSize
-	  The number of pipelines to be listed per page. If there are more pipelines
+
+	/* PageSize.
+
+	     The number of pipelines to be listed per page. If there are more pipelines
 	than this number, the response message will contain a valid value in the
 	nextPageToken field.
 
+	     Format: int32
 	*/
 	PageSize *int32
-	/*PageToken
-	  A page token to request the results page.
 
+	/* PageToken.
+
+	   A page token to request the results page.
 	*/
 	PageToken *string
-	/*SortBy
-	  Sorting order in form of "field_name", "field_name asc" or "field_name desc".
-	Ascending by default.
 
+	/* SortBy.
+
+	     Sorting order in form of "field_name", "field_name asc" or "field_name desc".
+	Ascending by default.
 	*/
 	SortBy *string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the pipeline service list pipelines params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceListPipelinesParams) WithDefaults() *PipelineServiceListPipelinesParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the pipeline service list pipelines params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *PipelineServiceListPipelinesParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the pipeline service list pipelines params
@@ -197,80 +218,85 @@ func (o *PipelineServiceListPipelinesParams) WriteToRequest(r runtime.ClientRequ
 
 		// query param filter
 		var qrFilter string
+
 		if o.Filter != nil {
 			qrFilter = *o.Filter
 		}
 		qFilter := qrFilter
 		if qFilter != "" {
+
 			if err := r.SetQueryParam("filter", qFilter); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.Namespace != nil {
 
 		// query param namespace
 		var qrNamespace string
+
 		if o.Namespace != nil {
 			qrNamespace = *o.Namespace
 		}
 		qNamespace := qrNamespace
 		if qNamespace != "" {
+
 			if err := r.SetQueryParam("namespace", qNamespace); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.PageSize != nil {
 
 		// query param page_size
 		var qrPageSize int32
+
 		if o.PageSize != nil {
 			qrPageSize = *o.PageSize
 		}
 		qPageSize := swag.FormatInt32(qrPageSize)
 		if qPageSize != "" {
+
 			if err := r.SetQueryParam("page_size", qPageSize); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.PageToken != nil {
 
 		// query param page_token
 		var qrPageToken string
+
 		if o.PageToken != nil {
 			qrPageToken = *o.PageToken
 		}
 		qPageToken := qrPageToken
 		if qPageToken != "" {
+
 			if err := r.SetQueryParam("page_token", qPageToken); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if o.SortBy != nil {
 
 		// query param sort_by
 		var qrSortBy string
+
 		if o.SortBy != nil {
 			qrSortBy = *o.SortBy
 		}
 		qSortBy := qrSortBy
 		if qSortBy != "" {
+
 			if err := r.SetQueryParam("sort_by", qSortBy); err != nil {
 				return err
 			}
 		}
-
 	}
 
 	if len(res) > 0 {

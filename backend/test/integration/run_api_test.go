@@ -20,6 +20,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
@@ -141,21 +144,21 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.GetExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentV1Params{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentV1Params{Experiment: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world run by specifying pipeline version ID ---------- */
-	createRunRequest := &runparams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
+	createRunRequest := &runparams.RunServiceCreateRunV1Params{Run: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER,
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: helloWorldExperiment.ID},
+				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: helloWorldPipelineVersion.ID},
-				Relationship: run_model.APIRelationshipCREATOR,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: helloWorldPipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
 	}}
@@ -170,7 +173,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest := &experimentparams.ExperimentServiceCreateExperimentV1Params{
-		Body: test.GetExperiment("argument parameter experiment", "", s.resourceNamespace),
+		Experiment: test.GetExperiment("argument parameter experiment", "", s.resourceNamespace),
 	}
 	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
 	assert.Nil(t, err)
@@ -180,7 +183,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)
-	createRunRequest = &runparams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
+	createRunRequest = &runparams.RunServiceCreateRunV1Params{Run: &run_model.APIRun{
 		Name:        "argument parameter",
 		Description: "this is argument parameter",
 		PipelineSpec: &run_model.APIPipelineSpec{
@@ -192,8 +195,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: argParamsExperiment.ID},
-				Relationship: run_model.APIRelationshipOWNER,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: argParamsExperiment.ID},
+				Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 		},
 	}}
@@ -280,7 +283,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
 	// Create a new run
-	createRunRequest.Body.Name = "argument parameter 2"
+	createRunRequest.Run.Name = "argument parameter 2"
 	_, _, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	// Check total number of runs is 3
@@ -314,7 +317,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", runs[0].Name)
-	assert.Equal(t, string(runs[0].StorageState), api.Run_STORAGESTATE_ARCHIVED.String())
+	assert.Equal(t, string(*runs[0].StorageState), api.Run_STORAGESTATE_ARCHIVED.String())
 
 	/* ---------- Upload long-running pipeline YAML ---------- */
 	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", uploadParams.NewUploadPipelineParamsWithTimeout(10*time.Second))
@@ -329,17 +332,17 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new long-running run by specifying pipeline ID ---------- */
-	createLongRunningRunRequest := &runparams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
+	createLongRunningRunRequest := &runparams.RunServiceCreateRunV1Params{Run: &run_model.APIRun{
 		Name:        "long running",
 		Description: "this pipeline will run long enough for us to manually terminate it before it finishes",
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Relationship: run_model.APIRelationshipOWNER,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: helloWorldExperiment.ID},
+				Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: longRunningPipelineVersion.ID},
-				Relationship: run_model.APIRelationshipCREATOR,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: longRunningPipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
 	}}
@@ -374,25 +377,39 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+			Parameters:       []*run_model.APIParameter{},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
-				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experimentId},
+				Name: experimentName, Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR,
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
-		CreatedAt:   runDetail.Run.CreatedAt,
-		ScheduledAt: runDetail.Run.ScheduledAt,
-		FinishedAt:  runDetail.Run.FinishedAt,
+		CreatedAt:    runDetail.Run.CreatedAt,
+		ScheduledAt:  runDetail.Run.ScheduledAt,
+		FinishedAt:   runDetail.Run.FinishedAt,
+		Metrics:      []*run_model.APIRunMetric{},
+		StorageState: run_model.APIRunStorageStateSTORAGESTATEAVAILABLE.Pointer(),
 	}
 
+	verifyRunDetails(t, runDetail, expectedRun)
+}
+
+func verifyRunDetails(t *testing.T, runDetail *run_model.APIRunDetail, expectedRun *run_model.APIRun) {
 	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
 	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
-	assert.Equal(t, expectedRun, runDetail.Run)
+
+	opts := []cmp.Option{
+		cmp.Comparer(func(x, y strfmt.DateTime) bool {
+			return x.String() == y.String()
+		}),
+	}
+	diff := cmp.Diff(expectedRun, runDetail.Run, opts...)
+	assert.Empty(t, diff, "APIRuns differ: %s", diff)
 }
 
 func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
@@ -411,25 +428,26 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+			Parameters:       []*run_model.APIParameter{},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
-				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experimentId},
+				Name: experimentName, Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR,
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
-		CreatedAt:   runDetail.Run.CreatedAt,
-		ScheduledAt: runDetail.Run.ScheduledAt,
-		FinishedAt:  runDetail.Run.FinishedAt,
+		CreatedAt:    runDetail.Run.CreatedAt,
+		ScheduledAt:  runDetail.Run.ScheduledAt,
+		FinishedAt:   runDetail.Run.FinishedAt,
+		Metrics:      []*run_model.APIRunMetric{},
+		StorageState: run_model.APIRunStorageStateSTORAGESTATEAVAILABLE.Pointer(),
 	}
 
-	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
-	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
-	assert.Equal(t, expectedRun, runDetail.Run)
+	verifyRunDetails(t, runDetail, expectedRun)
 }
 
 func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string) {
@@ -456,18 +474,18 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
-				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experimentId},
+				Name: experimentName, Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 		},
-		CreatedAt:   runDetail.Run.CreatedAt,
-		ScheduledAt: runDetail.Run.ScheduledAt,
-		FinishedAt:  runDetail.Run.FinishedAt,
+		CreatedAt:    runDetail.Run.CreatedAt,
+		ScheduledAt:  runDetail.Run.ScheduledAt,
+		FinishedAt:   runDetail.Run.FinishedAt,
+		Metrics:      []*run_model.APIRunMetric{},
+		StorageState: run_model.APIRunStorageStateSTORAGESTATEAVAILABLE.Pointer(),
 	}
 
-	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences))
-	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
-	assert.Equal(t, expectedRun, runDetail.Run)
+	verifyRunDetails(t, runDetail, expectedRun)
 }
 
 func TestRunApi(t *testing.T) {

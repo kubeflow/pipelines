@@ -7,13 +7,38 @@ package pipeline_service
 
 import (
 	"github.com/go-openapi/runtime"
-
-	strfmt "github.com/go-openapi/strfmt"
+	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 )
 
 // New creates a new pipeline service API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *Client {
+func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
 	return &Client{transport: transport, formats: formats}
+}
+
+// New creates a new pipeline service API client with basic auth credentials.
+// It takes the following parameters:
+// - host: http host (github.com).
+// - basePath: any base path for the API client ("/v1", "/v3").
+// - scheme: http scheme ("http", "https").
+// - user: user for basic authentication header.
+// - password: password for basic authentication header.
+func NewClientWithBasicAuth(host, basePath, scheme, user, password string) ClientService {
+	transport := httptransport.New(host, basePath, []string{scheme})
+	transport.DefaultAuthentication = httptransport.BasicAuth(user, password)
+	return &Client{transport: transport, formats: strfmt.Default}
+}
+
+// New creates a new pipeline service API client with a bearer token for authentication.
+// It takes the following parameters:
+// - host: http host (github.com).
+// - basePath: any base path for the API client ("/v1", "/v3").
+// - scheme: http scheme ("http", "https").
+// - bearerToken: bearer token for Bearer authentication header.
+func NewClientWithBearerToken(host, basePath, scheme, bearerToken string) ClientService {
+	transport := httptransport.New(host, basePath, []string{scheme})
+	transport.DefaultAuthentication = httptransport.BearerToken(bearerToken)
+	return &Client{transport: transport, formats: strfmt.Default}
 }
 
 /*
@@ -24,16 +49,43 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
+// ClientOption may be used to customize the behavior of Client methods.
+type ClientOption func(*runtime.ClientOperation)
+
+// ClientService is the interface for Client methods
+type ClientService interface {
+	PipelineServiceCreatePipeline(params *PipelineServiceCreatePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineOK, error)
+
+	PipelineServiceCreatePipelineAndVersion(params *PipelineServiceCreatePipelineAndVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineAndVersionOK, error)
+
+	PipelineServiceCreatePipelineVersion(params *PipelineServiceCreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineVersionOK, error)
+
+	PipelineServiceDeletePipeline(params *PipelineServiceDeletePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineOK, error)
+
+	PipelineServiceDeletePipelineVersion(params *PipelineServiceDeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineVersionOK, error)
+
+	PipelineServiceGetPipeline(params *PipelineServiceGetPipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineOK, error)
+
+	PipelineServiceGetPipelineByName(params *PipelineServiceGetPipelineByNameParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineByNameOK, error)
+
+	PipelineServiceGetPipelineVersion(params *PipelineServiceGetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineVersionOK, error)
+
+	PipelineServiceListPipelineVersions(params *PipelineServiceListPipelineVersionsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceListPipelineVersionsOK, error)
+
+	PipelineServiceListPipelines(params *PipelineServiceListPipelinesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceListPipelinesOK, error)
+
+	SetTransport(transport runtime.ClientTransport)
+}
+
 /*
 PipelineServiceCreatePipeline creates a pipeline
 */
-func (a *Client) PipelineServiceCreatePipeline(params *PipelineServiceCreatePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceCreatePipelineOK, error) {
+func (a *Client) PipelineServiceCreatePipeline(params *PipelineServiceCreatePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPipelineServiceCreatePipelineParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PipelineService_CreatePipeline",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/pipelines",
@@ -45,24 +97,33 @@ func (a *Client) PipelineServiceCreatePipeline(params *PipelineServiceCreatePipe
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceCreatePipelineOK), nil
-
+	success, ok := result.(*PipelineServiceCreatePipelineOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceCreatePipelineDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 PipelineServiceCreatePipelineAndVersion creates a new pipeline and a new pipeline version in a single transaction
 */
-func (a *Client) PipelineServiceCreatePipelineAndVersion(params *PipelineServiceCreatePipelineAndVersionParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceCreatePipelineAndVersionOK, error) {
+func (a *Client) PipelineServiceCreatePipelineAndVersion(params *PipelineServiceCreatePipelineAndVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineAndVersionOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPipelineServiceCreatePipelineAndVersionParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PipelineService_CreatePipelineAndVersion",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/pipelines/create",
@@ -74,24 +135,33 @@ func (a *Client) PipelineServiceCreatePipelineAndVersion(params *PipelineService
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceCreatePipelineAndVersionOK), nil
-
+	success, ok := result.(*PipelineServiceCreatePipelineAndVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceCreatePipelineAndVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 PipelineServiceCreatePipelineVersion adds a pipeline version to the specified pipeline ID
 */
-func (a *Client) PipelineServiceCreatePipelineVersion(params *PipelineServiceCreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceCreatePipelineVersionOK, error) {
+func (a *Client) PipelineServiceCreatePipelineVersion(params *PipelineServiceCreatePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceCreatePipelineVersionOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPipelineServiceCreatePipelineVersionParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PipelineService_CreatePipelineVersion",
 		Method:             "POST",
 		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}/versions",
@@ -103,24 +173,33 @@ func (a *Client) PipelineServiceCreatePipelineVersion(params *PipelineServiceCre
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceCreatePipelineVersionOK), nil
-
+	success, ok := result.(*PipelineServiceCreatePipelineVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceCreatePipelineVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 PipelineServiceDeletePipeline deletes a pipeline by ID if cascade is false default it returns an error if the pipeline has any versions if cascade is true it will also delete all pipeline versions
 */
-func (a *Client) PipelineServiceDeletePipeline(params *PipelineServiceDeletePipelineParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceDeletePipelineOK, error) {
+func (a *Client) PipelineServiceDeletePipeline(params *PipelineServiceDeletePipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPipelineServiceDeletePipelineParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PipelineService_DeletePipeline",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}",
@@ -132,24 +211,33 @@ func (a *Client) PipelineServiceDeletePipeline(params *PipelineServiceDeletePipe
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceDeletePipelineOK), nil
-
+	success, ok := result.(*PipelineServiceDeletePipelineOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceDeletePipelineDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 PipelineServiceDeletePipelineVersion deletes a specific pipeline version by pipeline version ID and pipeline ID
 */
-func (a *Client) PipelineServiceDeletePipelineVersion(params *PipelineServiceDeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceDeletePipelineVersionOK, error) {
+func (a *Client) PipelineServiceDeletePipelineVersion(params *PipelineServiceDeletePipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceDeletePipelineVersionOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPipelineServiceDeletePipelineVersionParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PipelineService_DeletePipelineVersion",
 		Method:             "DELETE",
 		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}",
@@ -161,24 +249,33 @@ func (a *Client) PipelineServiceDeletePipelineVersion(params *PipelineServiceDel
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceDeletePipelineVersionOK), nil
-
+	success, ok := result.(*PipelineServiceDeletePipelineVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceDeletePipelineVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 PipelineServiceGetPipeline finds a specific pipeline by ID
 */
-func (a *Client) PipelineServiceGetPipeline(params *PipelineServiceGetPipelineParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceGetPipelineOK, error) {
+func (a *Client) PipelineServiceGetPipeline(params *PipelineServiceGetPipelineParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPipelineServiceGetPipelineParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PipelineService_GetPipeline",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}",
@@ -190,24 +287,33 @@ func (a *Client) PipelineServiceGetPipeline(params *PipelineServiceGetPipelinePa
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceGetPipelineOK), nil
-
+	success, ok := result.(*PipelineServiceGetPipelineOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceGetPipelineDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 PipelineServiceGetPipelineByName finds a specific pipeline by name and namespace
 */
-func (a *Client) PipelineServiceGetPipelineByName(params *PipelineServiceGetPipelineByNameParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceGetPipelineByNameOK, error) {
+func (a *Client) PipelineServiceGetPipelineByName(params *PipelineServiceGetPipelineByNameParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineByNameOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPipelineServiceGetPipelineByNameParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PipelineService_GetPipelineByName",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/pipelines/names/{name}",
@@ -219,24 +325,33 @@ func (a *Client) PipelineServiceGetPipelineByName(params *PipelineServiceGetPipe
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceGetPipelineByNameOK), nil
-
+	success, ok := result.(*PipelineServiceGetPipelineByNameOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceGetPipelineByNameDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 PipelineServiceGetPipelineVersion gets a pipeline version by pipeline version ID and pipeline ID
 */
-func (a *Client) PipelineServiceGetPipelineVersion(params *PipelineServiceGetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceGetPipelineVersionOK, error) {
+func (a *Client) PipelineServiceGetPipelineVersion(params *PipelineServiceGetPipelineVersionParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceGetPipelineVersionOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPipelineServiceGetPipelineVersionParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PipelineService_GetPipelineVersion",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}",
@@ -248,24 +363,33 @@ func (a *Client) PipelineServiceGetPipelineVersion(params *PipelineServiceGetPip
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceGetPipelineVersionOK), nil
-
+	success, ok := result.(*PipelineServiceGetPipelineVersionOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceGetPipelineVersionDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 PipelineServiceListPipelineVersions lists all pipeline versions of a given pipeline ID
 */
-func (a *Client) PipelineServiceListPipelineVersions(params *PipelineServiceListPipelineVersionsParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceListPipelineVersionsOK, error) {
+func (a *Client) PipelineServiceListPipelineVersions(params *PipelineServiceListPipelineVersionsParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceListPipelineVersionsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPipelineServiceListPipelineVersionsParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PipelineService_ListPipelineVersions",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/pipelines/{pipeline_id}/versions",
@@ -277,24 +401,33 @@ func (a *Client) PipelineServiceListPipelineVersions(params *PipelineServiceList
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceListPipelineVersionsOK), nil
-
+	success, ok := result.(*PipelineServiceListPipelineVersionsOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceListPipelineVersionsDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 /*
 PipelineServiceListPipelines finds all pipelines within a namespace
 */
-func (a *Client) PipelineServiceListPipelines(params *PipelineServiceListPipelinesParams, authInfo runtime.ClientAuthInfoWriter) (*PipelineServiceListPipelinesOK, error) {
+func (a *Client) PipelineServiceListPipelines(params *PipelineServiceListPipelinesParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*PipelineServiceListPipelinesOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewPipelineServiceListPipelinesParams()
 	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
+	op := &runtime.ClientOperation{
 		ID:                 "PipelineService_ListPipelines",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/pipelines",
@@ -306,12 +439,22 @@ func (a *Client) PipelineServiceListPipelines(params *PipelineServiceListPipelin
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	})
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*PipelineServiceListPipelinesOK), nil
-
+	success, ok := result.(*PipelineServiceListPipelinesOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*PipelineServiceListPipelinesDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
 // SetTransport changes the transport on the client

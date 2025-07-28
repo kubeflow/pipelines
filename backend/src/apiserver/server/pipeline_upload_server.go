@@ -20,8 +20,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -156,18 +158,29 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		pipelineVersionCount.Inc()
 	}
 
-	marshaler := &jsonpb.Marshaler{EnumsAsInts: false, OrigName: true}
-
+	var messageToMarshal proto.Message
 	if api_version == "v1beta1" {
-		err = marshaler.Marshal(w, toApiPipelineV1(newPipeline, newPipelineVersion))
+		messageToMarshal = toApiPipelineV1(newPipeline, newPipelineVersion)
 	} else if api_version == "v2beta1" {
-		err = marshaler.Marshal(w, toApiPipeline(newPipeline))
+		messageToMarshal = toApiPipeline(newPipeline)
 	} else {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Invalid API version"))
 		return
 	}
+
+	// Marshal the message to bytes
+	marshaler := &protojson.MarshalOptions{
+		UseProtoNames: true,
+		// Note: Default behavior in protojson is to output enum names (strings).
+	}
+	data, err := marshaler.Marshal(messageToMarshal)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline due to error marshalling the pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Marshaling error"))
+		return
+	}
+	_, err = w.Write(data)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Write error."))
 		return
 	}
 }
@@ -256,18 +269,28 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 		return
 	}
 
-	marshaler := &jsonpb.Marshaler{EnumsAsInts: false, OrigName: true}
+	var messageToMarshal proto.Message
 	if api_version == "v1beta1" {
-		err = marshaler.Marshal(w, toApiPipelineVersionV1(newPipelineVersion))
+		messageToMarshal = toApiPipelineVersionV1(newPipelineVersion)
 	} else if api_version == "v2beta1" {
-		err = marshaler.Marshal(w, toApiPipelineVersion(newPipelineVersion))
+		messageToMarshal = toApiPipelineVersion(newPipelineVersion)
 	} else {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Invalid API version"))
 		return
 	}
-
+	// Marshal the message to bytes
+	marshaler := &protojson.MarshalOptions{
+		UseProtoNames: true,
+		// Note: Default behavior in protojson is to output enum names (strings).
+	}
+	data, err := marshaler.Marshal(messageToMarshal)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version due to marshalling error"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Marshaling error"))
+		return
+	}
+	_, err = w.Write(data)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Write error."))
 		return
 	}
 

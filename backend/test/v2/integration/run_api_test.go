@@ -136,11 +136,11 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world run by specifying pipeline version ID ---------- */
-	createRunRequest := &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -160,7 +160,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest := &experiment_params.ExperimentServiceCreateExperimentParams{
-		Body: test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace),
+		Experiment: test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace),
 	}
 	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
 	assert.Nil(t, err)
@@ -172,7 +172,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
 	assert.Nil(t, err)
 
-	createRunRequest = &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest = &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "argument parameter",
 		Description:  "this is argument parameter",
 		PipelineSpec: pipeline_spec,
@@ -266,7 +266,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
 	// Create a new run
-	createRunRequest.Body.DisplayName = "argument parameter 2"
+	createRunRequest.Run.DisplayName = "argument parameter 2"
 	_, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	// Check total number of runs is 3
@@ -299,7 +299,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", runs[0].DisplayName)
-	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, runs[0].StorageState)
+	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, *runs[0].StorageState)
 
 	/* ---------- Upload long-running pipeline YAML ---------- */
 	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", upload_params.NewUploadPipelineParamsWithTimeout(10*time.Second))
@@ -314,7 +314,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new long-running run by specifying pipeline ID ---------- */
-	createLongRunningRunRequest := &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createLongRunningRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "long running",
 		Description:  "this pipeline will run long enough for us to manually terminate it before it finishes",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -344,7 +344,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.
 		RunID:          run.RunID,
 		DisplayName:    "long running",
 		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
-		State:          run_model.V2beta1RuntimeStateCANCELING,
+		State:          run_model.V2beta1RuntimeStateCANCELING.Pointer(),
 		StateHistory:   run.StateHistory,
 		StorageState:   run.StorageState,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),

@@ -1,0 +1,21 @@
+{
+  "experiment_id": "exp-789",
+  "run_id": "failed-run-456",
+  "display_name": "Data Processing Pipeline",
+  "storage_state": "AVAILABLE",
+  "description": "Failed attempt to process customer data",
+  "runtime_config": null,
+  "service_account": "sa2",
+  "created_at": "2024-01-01T12:00:00Z",
+  "scheduled_at": "2024-01-01T12:00:00Z",
+  "finished_at": "2024-01-01T12:00:00Z",
+  "state": "FAILED",
+  "error": {
+    "code": 1,
+    "message": "This was a Failed Run.",
+    "details": []
+  },
+  "run_details": null,
+  "recurring_run_id": "",
+  "state_history": []
+}

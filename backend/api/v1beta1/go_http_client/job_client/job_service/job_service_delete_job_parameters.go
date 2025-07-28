@@ -13,63 +13,78 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewJobServiceDeleteJobParams creates a new JobServiceDeleteJobParams object
-// with the default values initialized.
+// NewJobServiceDeleteJobParams creates a new JobServiceDeleteJobParams object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewJobServiceDeleteJobParams() *JobServiceDeleteJobParams {
-	var ()
 	return &JobServiceDeleteJobParams{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewJobServiceDeleteJobParamsWithTimeout creates a new JobServiceDeleteJobParams object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewJobServiceDeleteJobParamsWithTimeout(timeout time.Duration) *JobServiceDeleteJobParams {
-	var ()
 	return &JobServiceDeleteJobParams{
-
 		timeout: timeout,
 	}
 }
 
 // NewJobServiceDeleteJobParamsWithContext creates a new JobServiceDeleteJobParams object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewJobServiceDeleteJobParamsWithContext(ctx context.Context) *JobServiceDeleteJobParams {
-	var ()
 	return &JobServiceDeleteJobParams{
-
 		Context: ctx,
 	}
 }
 
 // NewJobServiceDeleteJobParamsWithHTTPClient creates a new JobServiceDeleteJobParams object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewJobServiceDeleteJobParamsWithHTTPClient(client *http.Client) *JobServiceDeleteJobParams {
-	var ()
 	return &JobServiceDeleteJobParams{
 		HTTPClient: client,
 	}
 }
 
-/*JobServiceDeleteJobParams contains all the parameters to send to the API endpoint
-for the job service delete job operation typically these are written to a http.Request
+/*
+JobServiceDeleteJobParams contains all the parameters to send to the API endpoint
+
+	for the job service delete job operation.
+
+	Typically these are written to a http.Request.
 */
 type JobServiceDeleteJobParams struct {
 
-	/*ID
-	  The ID of the job to be deleted
+	/* ID.
 
+	   The ID of the job to be deleted
 	*/
 	ID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the job service delete job params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *JobServiceDeleteJobParams) WithDefaults() *JobServiceDeleteJobParams {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the job service delete job params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *JobServiceDeleteJobParams) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the job service delete job params

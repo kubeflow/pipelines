@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/Masterminds/squirrel"
-	"github.com/golang/protobuf/ptypes"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -518,11 +517,7 @@ func toValue(v interface{}) (interface{}, error) {
 	case *apiv2beta1.Predicate_StringValue:
 		return v.StringValue, nil
 	case *apiv2beta1.Predicate_TimestampValue:
-		ts, err := ptypes.Timestamp(v.TimestampValue)
-		if err != nil {
-			return nil, util.NewInvalidInputError("invalid timestamp: %v", err)
-		}
-		return ts.Unix(), nil
+		return v.TimestampValue.AsTime().Unix(), nil
 	case *apiv2beta1.Predicate_IntValues_:
 		return v.IntValues.GetValues(), nil
 	case *apiv2beta1.Predicate_StringValues_:
@@ -537,11 +532,7 @@ func toValue(v interface{}) (interface{}, error) {
 	case *apiv1beta1.Predicate_StringValue:
 		return v.StringValue, nil
 	case *apiv1beta1.Predicate_TimestampValue:
-		ts, err := ptypes.Timestamp(v.TimestampValue)
-		if err != nil {
-			return nil, util.NewInvalidInputError("invalid timestamp: %v", err)
-		}
-		return ts.Unix(), nil
+		return v.TimestampValue.AsTime().Unix(), nil
 	case *apiv1beta1.Predicate_IntValues:
 		return v.IntValues.GetValues(), nil
 	case *apiv1beta1.Predicate_StringValues:

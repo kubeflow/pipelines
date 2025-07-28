@@ -11,14 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 from kfp import compiler
 from kfp import dsl
 from kfp.dsl import component
 
+PACKAGES_TO_INSTALL=['yapf']
+if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' in os.environ:
+    PACKAGES_TO_INSTALL.append(os.environ['KFP_PIPELINE_SPEC_PACKAGE_PATH'])
 
 @component(
-    pip_index_urls=['https://pypi.org/simple'], packages_to_install=['yapf'])
+    pip_index_urls=['https://pypi.org/simple'], packages_to_install=PACKAGES_TO_INSTALL)
 def component_op():
     import yapf
     print(dir(yapf))

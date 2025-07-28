@@ -1,0 +1,68 @@
+{
+  "pipeline_id": "9b187b86-7c0a-42ae-a0bc-2a746b6eb7a3",
+  "pipeline_version_id": "e15dc3ec-b45e-4cc7-bb07-e76b5dbce99a",
+  "display_name": "v1.0.0 Production Data Processing Pipeline",
+  "name": "pipelineversion1",
+  "description": "First stable version of the production data processing pipeline",
+  "created_at": "2024-01-01T12:00:00Z",
+  "package_url": {
+    "pipeline_url": "gs://my-bucket/pipelines/pipeline1-v1.0.0.yaml"
+  },
+  "code_source_url": "https://github.com/org/repo/pipeline1/tree/v1.0.0",
+  "pipeline_spec": {
+    "components": {
+      "comp-hello-world": {
+        "executorLabel": "exec-hello-world"
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-hello-world": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "hello_world"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef hello_world():\n    print(\"hello world\")\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "pipeline-hello-world"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "hello-world": {
+            "cachingOptions": {},
+            "componentRef": {
+              "name": "comp-hello-world"
+            },
+            "taskInfo": {
+              "name": "hello-world"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-2.14.0"
+  },
+  "error": {
+    "code": 0,
+    "message": "This is a successful pipeline version.",
+    "details": []
+  }
+}

@@ -6,14 +6,16 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // V2beta1RuntimeStatus Timestamped representation of a runtime state with an optional error.
+//
 // swagger:model v2beta1RuntimeStatus
 type V2beta1RuntimeStatus struct {
 
@@ -25,7 +27,7 @@ type V2beta1RuntimeStatus struct {
 	Error *GooglerpcStatus `json:"error,omitempty"`
 
 	// The state of a runtime instance.
-	State V2beta1RuntimeState `json:"state,omitempty"`
+	State *V2beta1RuntimeState `json:"state,omitempty"`
 
 	// Update time of this state.
 	// Format: date-time
@@ -55,7 +57,6 @@ func (m *V2beta1RuntimeStatus) Validate(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1RuntimeStatus) validateError(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Error) { // not required
 		return nil
 	}
@@ -64,6 +65,8 @@ func (m *V2beta1RuntimeStatus) validateError(formats strfmt.Registry) error {
 		if err := m.Error.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("error")
 			}
 			return err
 		}
@@ -73,29 +76,91 @@ func (m *V2beta1RuntimeStatus) validateError(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1RuntimeStatus) validateState(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.State) { // not required
 		return nil
 	}
 
-	if err := m.State.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("state")
+	if m.State != nil {
+		if err := m.State.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("state")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("state")
+			}
+			return err
 		}
-		return err
 	}
 
 	return nil
 }
 
 func (m *V2beta1RuntimeStatus) validateUpdateTime(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.UpdateTime) { // not required
 		return nil
 	}
 
 	if err := validate.FormatOf("update_time", "body", "date-time", m.UpdateTime.String(), formats); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 runtime status based on the context it is used
+func (m *V2beta1RuntimeStatus) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateError(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateState(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1RuntimeStatus) contextValidateError(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Error != nil {
+
+		if swag.IsZero(m.Error) { // not required
+			return nil
+		}
+
+		if err := m.Error.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("error")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("error")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *V2beta1RuntimeStatus) contextValidateState(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.State != nil {
+
+		if swag.IsZero(m.State) { // not required
+			return nil
+		}
+
+		if err := m.State.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("state")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("state")
+			}
+			return err
+		}
 	}
 
 	return nil

@@ -1,7 +1,6 @@
 import logging
 import time
 import urllib3
-import sys
 from kubernetes import client, config
 import subprocess
 

@@ -1,0 +1,9 @@
+{
+  "experiment_id": "exp-456",
+  "display_name": "Production Data Processing Experiment",
+  "description": "Experiment for testing production data processing pipeline",
+  "created_at": "2024-01-01T12:00:00Z",
+  "namespace": "namespace1",
+  "storage_state": "AVAILABLE",
+  "last_run_created_at": "2024-01-01T12:00:00Z"
+}
