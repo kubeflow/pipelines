@@ -2,6 +2,7 @@ package client_manager
 
 import (
 	"fmt"
+	"github.com/golang/glog"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -26,9 +27,11 @@ type ClientManager struct {
 }
 
 type Options struct {
-	MLMDServerAddress string
-	MLMDServerPort    string
-	CacheDisabled     bool
+	MLMDServerAddress    string
+	MLMDServerPort       string
+	CacheDisabled        bool
+	MLPipelineTLSEnabled bool
+	CaCertPath           string
 }
 
 // NewClientManager creates and Init a new instance of ClientManager.
@@ -59,11 +62,11 @@ func (cm *ClientManager) init(opts *Options) error {
 	if err != nil {
 		return err
 	}
-	metadataClient, err := initMetadataClient(opts.MLMDServerAddress, opts.MLMDServerPort)
+	metadataClient, err := initMetadataClient(opts.MLMDServerAddress, opts.MLMDServerPort, opts.MLPipelineTLSEnabled, opts.CaCertPath)
 	if err != nil {
 		return err
 	}
-	cacheClient, err := initCacheClient(opts.CacheDisabled)
+	cacheClient, err := initCacheClient(opts.CacheDisabled, opts.MLPipelineTLSEnabled)
 	if err != nil {
 		return err
 	}
@@ -85,10 +88,11 @@ func initK8sClient() (kubernetes.Interface, error) {
 	return k8sClient, nil
 }
 
-func initMetadataClient(address string, port string) (metadata.ClientInterface, error) {
-	return metadata.NewClient(address, port)
+func initMetadataClient(address string, port string, mlPipelineTLSEnabled bool, caCertPath string) (metadata.ClientInterface, error) {
+	glog.Info("Calling metadata.NewClient() from client_manager.initMetadataClient()")
+	return metadata.NewClient(address, port, mlPipelineTLSEnabled, caCertPath)
 }
 
-func initCacheClient(cacheDisabled bool) (cacheutils.Client, error) {
-	return cacheutils.NewClient(cacheDisabled)
+func initCacheClient(cacheDisabled bool, mlPipelineServiceTLSEnabled bool) (cacheutils.Client, error) {
+	return cacheutils.NewClient(cacheDisabled, mlPipelineServiceTLSEnabled)
 }

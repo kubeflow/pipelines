@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-grpc-deployment
+  labels:
+    component: metadata-grpc-server
+spec:
+  template:
+    spec:
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: kfp-api-tls-cert
+        - name: grpc-tls-config
+          emptyDir: { }
+        - name: config-writer
+          configMap:
+            name: metadata-grpc-config-writer
+        - name: mysql-secret
+          secret:
+            secretName: mysql-secret
+
+      initContainers:
+        - name: generate-config
+          image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "/config-writer/generate-config.sh"]
+          env:
+            - name: DBCONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: username
+            - name: DBCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: mlmdDb
+            - name: MYSQL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbHost
+            - name: MYSQL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: dbPort
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /etc/pki/tls/certs
+            - name: grpc-tls-config
+              mountPath: /etc/grpc
+            - name: config-writer
+              mountPath: /config-writer
+            - name: mysql-secret
+              mountPath: /etc/mysql-secret
+
+      containers:
+        - name: container
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /etc/pki/tls/certs
+              readOnly: true
+            - name: grpc-tls-config
+              mountPath: /etc/grpc
