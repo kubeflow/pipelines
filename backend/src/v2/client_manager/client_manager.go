@@ -89,6 +89,7 @@ func initMetadataClient(address string, port string) (metadata.ClientInterface, 
 	return metadata.NewClient(address, port)
 }
 
+// todo: should this be auto-set to false
 func initCacheClient(cacheDisabled bool) (cacheutils.Client, error) {
-	return cacheutils.NewClient(cacheDisabled)
+	return cacheutils.NewClient(cacheDisabled, false)
 }

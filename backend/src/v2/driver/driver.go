@@ -69,6 +69,9 @@ type Options struct {
 	DriverType string
 
 	TaskName string // the original name of the task, used for input resolution
+
+	// set to true if ml pipeline server is serving over tls
+	MLPipelineTLSEnabled bool
 }
 
 // Identifying information used for error messages
@@ -162,6 +165,7 @@ func initPodSpecPatch(
 	pipelineLogLevel string,
 	publishLogs string,
 	cacheDisabled string,
+	mlPipelineTLSEnabled bool,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -201,8 +205,14 @@ func initPodSpecPatch(
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 		"--publish_logs", publishLogs,
 	}
+	/*	if mlPipelineTLSEnabled == "true" {
+		launcherCmd = append(launcherCmd, "--mlPipelineServiceTLSEnabled")
+	}*/
 	if cacheDisabled == "true" {
-		launcherCmd = append(launcherCmd, "--cache_disabled")
+		launcherCmd = append(launcherCmd, "--cache_disabled",
+			//todo: add check before this executes, look at original commit
+			fmt.Sprintf("%v", mlPipelineTLSEnabled),
+			"--") // separater before user command and args
 	}
 	if pipelineLogLevel != "1" {
 		// Add log level to user code launcher if not default (set to 1)
