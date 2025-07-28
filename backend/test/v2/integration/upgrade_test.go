@@ -109,31 +109,31 @@ func (s *UpgradeTests) SetupSuite() {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newRecurringRunClient = func() (*api_server.RecurringRunClient, error) {
-			return api_server.NewKubeflowInClusterRecurringRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRecurringRunClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
+			return api_server.NewExperimentClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRunClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newRecurringRunClient = func() (*api_server.RecurringRunClient, error) {
-			return api_server.NewRecurringRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRecurringRunClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	}
 
@@ -147,6 +147,8 @@ func (s *UpgradeTests) SetupSuite() {
 		*isKubeflowMode,
 		*isDebugMode,
 		s.namespace,
+		*tlsEnabled,
+		*caCertPath,
 		test.GetClientConfig(s.namespace),
 	)
 	if err != nil {

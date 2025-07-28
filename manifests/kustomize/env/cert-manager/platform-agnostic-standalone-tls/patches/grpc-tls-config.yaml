@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grpc-tls-config
+  namespace: kubeflow
+data:
+  config.proto: |-
+    connection_config {
+    mysql {
+    host: "$(MYSQL_HOST)"
+        port: "$(MYSQL_PORT)"
+        database: "$(MYSQL_DATABASE)"
+        user: "$(DBCONFIG_USER)"
+        password: "$(DBCONFIG_PASSWORD)"
+        }
+        }
+    ssl_config {
+        server_cert:""
+        server_key: ""
+        custom_ca: ""
+        client_verify: false
+        }
+    grpc_config {
+    port: 8080
+        }

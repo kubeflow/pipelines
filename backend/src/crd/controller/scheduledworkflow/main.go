@@ -36,15 +36,17 @@ import (
 )
 
 var (
-	logLevel                  string
-	masterURL                 string
-	kubeconfig                string
-	namespace                 string
-	location                  *time.Location
-	clientQPS                 float64
-	clientBurst               int
-	mlPipelineAPIServerName   string
-	mlPipelineServiceGRPCPort string
+	logLevel                    string
+	masterURL                   string
+	kubeconfig                  string
+	namespace                   string
+	location                    *time.Location
+	clientQPS                   float64
+	clientBurst                 int
+	mlPipelineAPIServerName     string
+	mlPipelineServiceGRPCPort   string
+	mlPipelineServiceTLSEnabled bool
+	mlPipelineServiceTLSCert    string
 )
 
 const (
@@ -52,6 +54,8 @@ const (
 	mlPipelineAPIServerBasePathFlagName = "mlPipelineAPIServerBasePath"
 	mlPipelineAPIServerNameFlagName     = "mlPipelineAPIServerName"
 	mlPipelineAPIServerGRPCPortFlagName = "mlPipelineServiceGRPCPort"
+	mlPipelineServiceTLSEnabledFlagName = "mlPipelineServiceTLSEnabled"
+	mlPipelineServiceTLSCertFlagName    = "mlPipelineServiceTLSCert"
 	apiTokenFile                        = "/var/run/secrets/kubeflow/tokens/scheduledworkflow-sa-token"
 )
 
@@ -102,7 +106,7 @@ func main() {
 	grpcAddress := fmt.Sprintf("%s:%s", mlPipelineAPIServerName, mlPipelineServiceGRPCPort)
 
 	log.Infof("Connecting the API server over GRPC at: %s", grpcAddress)
-	apiConnection, err := commonutil.GetRpcConnectionWithTimeout(grpcAddress, time.Now().Add(time.Minute))
+	apiConnection, err := commonutil.GetRpcConnectionWithTimeout(grpcAddress, mlPipelineServiceTLSEnabled, mlPipelineServiceTLSCert, time.Now().Add(time.Minute))
 	if err != nil {
 		log.Fatalf("Error connecting to the API server after trying for one minute: %v", err)
 	}
@@ -160,6 +164,8 @@ func init() {
 	flag.Float64Var(&clientQPS, "clientQPS", 5, "The maximum QPS to the master from this client.")
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
+	flag.BoolVar(&mlPipelineServiceTLSEnabled, mlPipelineServiceTLSEnabledFlagName, false, "TLS enabled in the ML pipeline API server.")
+	flag.StringVar(&mlPipelineServiceTLSCert, mlPipelineServiceTLSCertFlagName, "", "CA cert to connect to the ML pipeline API server.")
 	flag.IntVar(&clientBurst, "clientBurst", 10, "Maximum burst for throttle from this client.")
 	var err error
 	location, err = util.GetLocation()

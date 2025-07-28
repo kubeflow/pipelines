@@ -224,6 +224,8 @@ func GetPipelineUploadClient(
 	isKubeflowMode bool,
 	isDebugMode bool,
 	namespace string,
+	tlsEnabled bool,
+	caCertPath string,
 	clientConfig clientcmd.ClientConfig,
 ) (api_server.PipelineUploadInterface, error) {
 	if uploadPipelinesWithKubernetes {
@@ -231,8 +233,8 @@ func GetPipelineUploadClient(
 	}
 
 	if isKubeflowMode {
-		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode)
+		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode, tlsEnabled, caCertPath)
 	}
 
-	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode)
+	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode, tlsEnabled, caCertPath)
 }
