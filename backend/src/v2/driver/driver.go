@@ -176,6 +176,19 @@ func initPodSpecPatch(
 
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
 
+	// Override Kubernetes-provided service environment variables with DNS names
+	// to avoid cluster IPs going through the proxy
+	userEnvVar = append(userEnvVar, []k8score.EnvVar{
+		{
+			Name:  "ML_PIPELINE_SERVICE_HOST",
+			Value: "ml-pipeline.kubeflow.svc.cluster.local",
+		},
+		{
+			Name:  "ML_PIPELINE_SERVICE_PORT_GRPC",
+			Value: "8887",
+		},
+	}...)
+
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)
 	userCmdArgs = append(userCmdArgs, container.Args...)
