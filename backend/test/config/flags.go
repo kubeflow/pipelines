@@ -33,6 +33,8 @@ var (
 	DisableTlsCheck               = flag.Bool("disableTlsCheck", false, "Whether to use server certificate chain and hostname.")
 	InClusterRun                  = flag.Bool("runInCluster", false, "Whether to run your tests from within the K8s cluster")
 	AuthToken                     = flag.String("authToken", "", "The default auth token that will be injected to all your API request")
+	TlsEnabled                    = flag.Bool("tlsEnabled", false, "Whether TLS is enabled tests")
+	CaCertPath                    = flag.String("caCertPath", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 )
 
 var (

@@ -29,6 +29,7 @@ import (
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	runParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -259,7 +260,6 @@ func (s *UpgradeTests) VerifyExperiments() {
 	assert.Equal(t, "", experiments[4].Description)
 	assert.NotEmpty(t, experiments[4].ID)
 	assert.NotEmpty(t, experiments[4].CreatedAt)
-
 }
 
 // TODO(jingzhang36): prepare pipeline versions.
@@ -329,7 +329,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	verifyPipeline(t, pipelines[0])
 
 	/* ---------- Verify get template works ---------- */
-	template, err := s.pipelineClient.GetTemplate(&pipelineParams.PipelineServiceGetTemplateParams{ID: pipelines[0].ID})
+	tmpl, err := s.pipelineClient.GetTemplate(&pipelineParams.PipelineServiceGetTemplateParams{ID: pipelines[0].ID})
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
@@ -339,9 +339,9 @@ func (s *UpgradeTests) VerifyPipelines() {
 		},
 		StorageClassName: util.StringPointer("my-storage"),
 	}
-	expected, err := pipelinetemplate.New(bytes, true, defaultPVC)
+	expected, err := pipelinetemplate.New(bytes, template.TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
 	require.Nil(t, err)
-	assert.Equal(t, expected, template)
+	assert.Equal(t, expected, tmpl)
 }
 
 func (s *UpgradeTests) PrepareRuns() {

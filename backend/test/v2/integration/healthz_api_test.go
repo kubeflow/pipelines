@@ -49,7 +49,11 @@ func (s *HealthzApiTest) SetupTest() {
 	s.namespace = *config.Namespace
 	clientConfig := test.GetClientConfig(*config.Namespace)
 	var err error
-	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false)
+	tlsCfg, err := test.GetTLSConfig(*config.CaCertPath)
+	if err != nil {
+		glog.Exitf("Failed to get TLS config. Error: %s", err.Error())
+	}
+	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false, tlsCfg)
 	if err != nil {
 		glog.Exitf("Failed to get healthz client. Error: %v", err)
 	}
