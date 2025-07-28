@@ -17,21 +17,24 @@
 from kfp import dsl, compiler
 
 
-@dsl.container_component
-def gcs_download_op(url: str, output: dsl.OutputPath(str)):
-    return dsl.ContainerSpec(
+def gcs_download_op(url: str):
+    """Download a file from GCS and return its contents."""
+    return dsl.ContainerOp(
+        name='gcs-download',
         image='google/cloud-sdk:279.0.0',
         command=['sh', '-c'],
-        args=['gsutil cat $0 | tee $1', url, output],
+        arguments=['gsutil cat $0 | tee $1', url, '/tmp/output.txt'],
+        file_outputs={'output': '/tmp/output.txt'}
     )
 
 
-@dsl.container_component
 def echo_op(text: str):
-    return dsl.ContainerSpec(
+    """Echo the provided text."""
+    return dsl.ContainerOp(
+        name='echo',
         image='library/bash:4.4.23',
         command=['sh', '-c'],
-        args=['echo "$0"', text]
+        arguments=['echo "$0"', text]
     )
 
 
@@ -43,7 +46,10 @@ def sequential_pipeline(url: str = 'gs://ml-pipeline/sample-data/shakespeare/sha
     """A pipeline with two sequential steps."""
 
     download_task = gcs_download_op(url=url)
-    echo_task = echo_op(text=download_task.output)
+    echo_task = echo_op(text=download_task.outputs['output'])
+    
+    # Ensure sequential execution
+    echo_task.after(download_task)
 
 
 if __name__ == '__main__':
