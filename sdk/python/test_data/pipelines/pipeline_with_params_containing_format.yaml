@@ -22,7 +22,6 @@ components:
                   constant: ' and {{$.inputs.parameters[''pipelinechannel--name'']}}.'
           taskInfo:
             name: print-op2
-            taskName: print-op2
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-1:
@@ -182,7 +181,6 @@ root:
                 constant: Hello {{$.inputs.parameters['pipelinechannel--name']}}
         taskInfo:
           name: print-op
-          taskName: print-op
       print-op-2:
         cachingOptions:
           enableCache: true
@@ -202,7 +200,6 @@ root:
                   again.'
         taskInfo:
           name: print-op-2
-          taskName: print-op-2
   inputDefinitions:
     parameters:
       name:

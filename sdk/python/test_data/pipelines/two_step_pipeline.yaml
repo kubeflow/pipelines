@@ -70,7 +70,6 @@ root:
                 producerTask: write-to-gcs
         taskInfo:
           name: Consumer
-          taskName: read-from-gcs
       write-to-gcs:
         cachingOptions:
           enableCache: true
@@ -82,7 +81,6 @@ root:
               componentInputParameter: text
         taskInfo:
           name: Producer
-          taskName: write-to-gcs
   inputDefinitions:
     parameters:
       text:

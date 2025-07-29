@@ -12,7 +12,6 @@ components:
             name: comp-flip-coin-op-2
           taskInfo:
             name: flip-coin-op-2
-            taskName: flip-coin-op-2
         print-op-2:
           cachingOptions:
             enableCache: true
@@ -28,7 +27,6 @@ components:
                   producerTask: flip-coin-op-2
           taskInfo:
             name: print-op-2
-            taskName: print-op-2
         print-op-3:
           cachingOptions:
             enableCache: true
@@ -40,7 +38,6 @@ components:
                 componentInputParameter: pipelinechannel--text
           taskInfo:
             name: print-op-3
-            taskName: print-op-3
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-op-Output:
@@ -255,7 +252,6 @@ root:
           name: comp-flip-coin-op
         taskInfo:
           name: flip-coin-op
-          taskName: flip-coin-op
       print-op:
         cachingOptions:
           enableCache: true
@@ -271,7 +267,6 @@ root:
                 producerTask: flip-coin-op
         taskInfo:
           name: print-op
-          taskName: print-op
   inputDefinitions:
     parameters:
       text:

@@ -43,7 +43,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["q_a"]
           taskInfo:
             name: print-op
-            taskName: print-op
     inputDefinitions:
       parameters:
         pipelinechannel--loop_parameter-loop-item:
@@ -79,7 +78,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-3
           taskInfo:
             name: print-op-2
-            taskName: print-op-2
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-3:
@@ -100,7 +98,6 @@ components:
                 componentInputParameter: pipelinechannel--loop-item-param-5
           taskInfo:
             name: print-op-3
-            taskName: print-op-3
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-3:

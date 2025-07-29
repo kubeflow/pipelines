@@ -31,7 +31,6 @@ components:
             name: comp-flip-coin-op-3
           taskInfo:
             name: flip-coin-op-3
-            taskName: flip-coin-op-3
         print-op-3:
           cachingOptions:
             enableCache: true
@@ -47,7 +46,6 @@ components:
                   producerTask: flip-coin-op-3
           taskInfo:
             name: print-op-3
-            taskName: print-op-3
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-op-2-Output:
@@ -64,7 +62,6 @@ components:
             name: comp-flip-coin-op-4
           taskInfo:
             name: flip-coin-op-4
-            taskName: flip-coin-op-4
         print-op-4:
           cachingOptions:
             enableCache: true
@@ -80,7 +77,6 @@ components:
                   producerTask: flip-coin-op-4
           taskInfo:
             name: print-op-4
-            taskName: print-op-4
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-op-2-Output:
@@ -408,7 +404,6 @@ root:
           name: comp-flip-coin-op
         taskInfo:
           name: flip-coin-op
-          taskName: flip-coin-op
       flip-coin-op-2:
         cachingOptions:
           enableCache: true
@@ -416,7 +411,6 @@ root:
           name: comp-flip-coin-op-2
         taskInfo:
           name: flip-coin-op-2
-          taskName: flip-coin-op-2
       print-op:
         cachingOptions:
           enableCache: true
@@ -432,7 +426,6 @@ root:
                 producerTask: flip-coin-op
         taskInfo:
           name: print-op
-          taskName: print-op
       print-op-2:
         cachingOptions:
           enableCache: true
@@ -448,6 +441,5 @@ root:
                 producerTask: flip-coin-op-2
         taskInfo:
           name: print-op-2
-          taskName: print-op-2
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

@@ -48,6 +48,5 @@ root:
           name: comp-component-with-pip-install
         taskInfo:
           name: component-with-pip-install
-          taskName: component-with-pip-install
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.14.0

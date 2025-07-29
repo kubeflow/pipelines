@@ -56,7 +56,6 @@ root:
               componentInputParameter: message2
         taskInfo:
           name: concat-message
-          taskName: concat-message
   inputDefinitions:
     parameters:
       message1:

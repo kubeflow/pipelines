@@ -17,6 +17,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -51,6 +52,21 @@ func createPipelineServer(resourceManager *resource.ResourceManager, httpClient 
 	}
 }
 
+func setupLargePipelineURL() string {
+	// Set up the environment variables for the pipeline URL.
+	// The URL points to a sample pipeline YAML file in the Kubeflow Pipelines repository.
+	// The branch and repo can be overridden by environment variables for testing purposes.
+	branch := os.Getenv("GIT_BRANCH")
+	repo := os.Getenv("GIT_REPO")
+	if repo == "" {
+		repo = "kubeflow/pipelines"
+	}
+	if branch == "" {
+		branch = "master"
+	}
+	largePipelineURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml", repo, branch)
+	return largePipelineURL
+}
 func TestBuildPipelineName_QueryStringNotEmpty(t *testing.T) {
 	pipelineName := buildPipelineName("pipeline one", "", "file one")
 	assert.Equal(t, "pipeline one", pipelineName)
@@ -111,7 +127,7 @@ func TestCreatePipelineV1_LargeFile(t *testing.T) {
 	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
-			Url:         &api.Url{PipelineUrl: "https://raw.githubusercontent.com/kubeflow/pipelines/master/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml"},
+			Url:         &api.Url{PipelineUrl: setupLargePipelineURL()},
 			Name:        "xgboost-url",
 			Description: "pipeline description",
 		},
@@ -796,7 +812,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 				},
 				PipelineVersion: &apiv2.PipelineVersion{
 					PackageUrl: &apiv2.Url{
-						PipelineUrl: "https://raw.githubusercontent.com/kubeflow/pipelines/master/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml",
+						PipelineUrl: setupLargePipelineURL(),
 					},
 				},
 			},
