@@ -17,17 +17,17 @@
 import os
 
 from kfp import compiler
+from kfp import components
 from kfp import dsl
-from kfp.dsl import component
 
 
-@component
+@components.create_component_from_func
 def print_op(message: str):
     """Prints a message."""
     print(message)
 
 
-@component
+@components.create_component_from_func
 def fail_op(message: str):
     """Fails."""
     import sys
