@@ -47,6 +47,5 @@ root:
           name: comp-component-op
         taskInfo:
           name: component-op
-          taskName: component-op
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.14.0

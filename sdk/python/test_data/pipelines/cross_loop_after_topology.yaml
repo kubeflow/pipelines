@@ -16,7 +16,6 @@ components:
                   constant: five
           taskInfo:
             name: print-op-5
-            taskName: print-op-5
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-9:
@@ -47,7 +46,6 @@ components:
                   constant: eight
           taskInfo:
             name: print-op-8
-            taskName: print-op-8
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-11:
@@ -67,7 +65,6 @@ components:
                   constant: seven
           taskInfo:
             name: print-op-7
-            taskName: print-op-7
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-13:
@@ -87,7 +84,6 @@ components:
                   constant: one
           taskInfo:
             name: print-op
-            taskName: print-op
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-1:
@@ -107,7 +103,6 @@ components:
                   constant: two
           taskInfo:
             name: print-op-2
-            taskName: print-op-2
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-3:
@@ -138,7 +133,6 @@ components:
                   constant: three
           taskInfo:
             name: print-op-3
-            taskName: print-op-3
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-5:
@@ -158,7 +152,6 @@ components:
                   constant: four
           taskInfo:
             name: print-op-4
-            taskName: print-op-4
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-7:
@@ -503,6 +496,5 @@ root:
                 constant: six
         taskInfo:
           name: print-op-6
-          taskName: print-op-6
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

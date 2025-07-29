@@ -58,7 +58,6 @@ root:
           name: comp-nested-return
         taskInfo:
           name: nested-return
-          taskName: nested-return
   outputDefinitions:
     parameters:
       Output:

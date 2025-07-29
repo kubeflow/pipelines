@@ -128,7 +128,6 @@ root:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
         taskInfo:
           name: importer
-          taskName: importer
       model-consumer:
         cachingOptions:
           enableCache: true
@@ -149,7 +148,6 @@ root:
                 producerTask: model-producer
         taskInfo:
           name: model-consumer
-          taskName: model-consumer
       model-producer:
         cachingOptions:
           enableCache: true
@@ -157,6 +155,5 @@ root:
           name: comp-model-producer
         taskInfo:
           name: model-producer
-          taskName: model-producer
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.14.0

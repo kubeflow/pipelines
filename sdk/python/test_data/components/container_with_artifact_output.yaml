@@ -65,7 +65,6 @@ root:
               componentInputParameter: num_epochs
         taskInfo:
           name: container-with-artifact-output
-          taskName: container-with-artifact-output
   inputDefinitions:
     parameters:
       num_epochs:

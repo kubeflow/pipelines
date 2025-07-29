@@ -15,13 +15,14 @@ import os
 
 from kfp.dsl import component
 
-
-PACKAGES_TO_INSTALL=['yapf']
+PACKAGES_TO_INSTALL = ['yapf']
 if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' in os.environ:
     PACKAGES_TO_INSTALL.append(os.environ['KFP_PIPELINE_SPEC_PACKAGE_PATH'])
 
+
 @component(
-    pip_index_urls=['https://pypi.org/simple'], packages_to_install=PACKAGES_TO_INSTALL)
+    pip_index_urls=['https://pypi.org/simple'],
+    packages_to_install=PACKAGES_TO_INSTALL)
 def component_with_pip_install():
     import yapf
     print(dir(yapf))

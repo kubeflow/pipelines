@@ -72,7 +72,6 @@ root:
               componentInputParameter: b
         taskInfo:
           name: add-numbers
-          taskName: add-numbers
   inputDefinitions:
     parameters:
       a:

@@ -86,6 +86,7 @@ type containerDriverOutputs struct {
 type containerDriverInputs struct {
 	component        string
 	task             string
+	taskName         string // preserve the original task name for input resolving
 	container        string
 	parentDagID      string
 	iterationIndex   string // optional, when this is an iteration task
@@ -152,6 +153,7 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
 				{Name: paramTask, Value: wfapi.AnyStringPtr(inputs.task)},
 				{Name: paramContainer, Value: wfapi.AnyStringPtr(inputs.container)},
+				{Name: paramTaskName, Value: wfapi.AnyStringPtr(inputs.taskName)},
 				{Name: paramParentDagID, Value: wfapi.AnyStringPtr(inputs.parentDagID)},
 			},
 		},
@@ -192,6 +194,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--dag_execution_id", inputValue(paramParentDagID),
 		"--component", inputValue(paramComponent),
 		"--task", inputValue(paramTask),
+		"--task_name", inputValue(paramTaskName),
 		"--container", inputValue(paramContainer),
 		"--iteration_index", inputValue(paramIterationIndex),
 		"--cached_decision_path", outputPath(paramCachedDecision),
@@ -219,6 +222,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 				{Name: paramComponent},
 				{Name: paramTask},
 				{Name: paramContainer},
+				{Name: paramTaskName},
 				{Name: paramParentDagID},
 				{Name: paramIterationIndex, Default: wfapi.AnyStringPtr("-1")},
 				{Name: paramKubernetesConfig, Default: wfapi.AnyStringPtr("")},

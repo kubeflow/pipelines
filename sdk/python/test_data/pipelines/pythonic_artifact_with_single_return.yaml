@@ -98,7 +98,6 @@ root:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
         taskInfo:
           name: importer
-          taskName: importer
       make-language-model:
         cachingOptions:
           enableCache: true
@@ -114,7 +113,6 @@ root:
                 producerTask: importer
         taskInfo:
           name: make-language-model
-          taskName: make-language-model
   outputDefinitions:
     artifacts:
       Output:

@@ -94,7 +94,6 @@ root:
               componentInputParameter: memory_limit
         taskInfo:
           name: sum-numbers
-          taskName: sum-numbers
   inputDefinitions:
     parameters:
       accelerator_limit:

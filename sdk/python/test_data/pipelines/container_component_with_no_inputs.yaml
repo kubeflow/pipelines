@@ -23,6 +23,5 @@ root:
           name: comp-hello-world-container
         taskInfo:
           name: hello-world-container
-          taskName: hello-world-container
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

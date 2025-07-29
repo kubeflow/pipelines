@@ -18,7 +18,6 @@ components:
                   constant: notify task failure.
           taskInfo:
             name: print-op
-            taskName: print-op
     inputDefinitions:
       parameters:
         pipelinechannel--get-run-state-Output:
@@ -53,7 +52,6 @@ components:
                 componentInputParameter: status
           taskInfo:
             name: get-run-state
-            taskName: get-run-state
     inputDefinitions:
       parameters:
         status:
@@ -74,7 +72,6 @@ components:
                   constant: Task failed.
           taskInfo:
             name: fail-op
-            taskName: fail-op
         print-op:
           cachingOptions:
             enableCache: true
@@ -86,7 +83,6 @@ components:
                 componentInputParameter: pipelinechannel--message
           taskInfo:
             name: print-op
-            taskName: print-op
     inputDefinitions:
       parameters:
         pipelinechannel--message:
@@ -256,7 +252,6 @@ root:
                 producerTask: exit-handler-1
         taskInfo:
           name: conditional-notification
-          taskName: conditional-notification
         triggerPolicy:
           strategy: ALL_UPSTREAM_TASKS_COMPLETED
       exit-handler-1:

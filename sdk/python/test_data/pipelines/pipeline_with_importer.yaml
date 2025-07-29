@@ -17,7 +17,6 @@ components:
                 componentInputParameter: pipelinechannel--dataset2
           taskInfo:
             name: importer-2
-            taskName: importer-2
         train-2:
           cachingOptions:
             enableCache: true
@@ -33,7 +32,6 @@ components:
                   producerTask: importer-2
           taskInfo:
             name: train-2
-            taskName: train-2
     inputDefinitions:
       parameters:
         pipelinechannel--dataset2:
@@ -219,7 +217,6 @@ root:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
         taskInfo:
           name: importer
-          taskName: importer
       train:
         cachingOptions:
           enableCache: true
@@ -235,7 +232,6 @@ root:
                 producerTask: importer
         taskInfo:
           name: train
-          taskName: train
   inputDefinitions:
     parameters:
       dataset2:

@@ -21,7 +21,6 @@ components:
                 componentInputParameter: pipelinechannel--flip-coin-Output
           taskInfo:
             name: param-to-artifact
-            taskName: param-to-artifact
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-Output:
@@ -52,7 +51,6 @@ components:
                 componentInputParameter: pipelinechannel--flip-coin-Output
           taskInfo:
             name: param-to-artifact-2
-            taskName: param-to-artifact-2
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-Output:
@@ -143,7 +141,6 @@ components:
             name: comp-flip-coin
           taskInfo:
             name: flip-coin
-            taskName: flip-coin
         print-artifact:
           cachingOptions:
             enableCache: true
@@ -159,7 +156,6 @@ components:
                   producerTask: condition-branches-1
           taskInfo:
             name: print-artifact
-            taskName: print-artifact
     outputDefinitions:
       artifacts:
         Output:
@@ -365,7 +361,6 @@ root:
           name: comp-flip-coin-pipeline
         taskInfo:
           name: flip-coin-pipeline
-          taskName: flip-coin-pipeline
       print-artifact:
         cachingOptions:
           enableCache: true
@@ -381,6 +376,5 @@ root:
                 producerTask: flip-coin-pipeline
         taskInfo:
           name: print-artifact
-          taskName: print-artifact
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

@@ -30,7 +30,6 @@ components:
                 componentInputParameter: msg
           taskInfo:
             name: print-op1
-            taskName: print-op1
         print-op2:
           cachingOptions:
             enableCache: true
@@ -46,7 +45,6 @@ components:
                   producerTask: print-op1
           taskInfo:
             name: print-op2
-            taskName: print-op2
     inputDefinitions:
       parameters:
         msg:
@@ -185,7 +183,6 @@ root:
                 constant: world
         taskInfo:
           name: inner-pipeline
-          taskName: inner-pipeline
       print-op1:
         cachingOptions:
           enableCache: true
@@ -197,7 +194,6 @@ root:
               componentInputParameter: msg
         taskInfo:
           name: print-op1
-          taskName: print-op1
   inputDefinitions:
     parameters:
       msg:
