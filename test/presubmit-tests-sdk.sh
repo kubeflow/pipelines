@@ -27,7 +27,7 @@ python3 -m pip install coveralls==1.9.2
 python3 -m pip install --upgrade protobuf
 
 cd sdk/python
-python3 -m pip install -e .
+python3 -m pip install .
 pytest kfp --cov=kfp
 
 # Pretty sure these are throwbacks to when we used prow. I'll clean them up (if
