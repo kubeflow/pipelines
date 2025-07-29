@@ -1,0 +1,87 @@
+{
+  "apiVersion": "machinelearning.seldon.io/v1alpha2",
+  "kind": "SeldonDeployment",
+  "metadata": {
+    "labels": {
+      "app": "seldon"
+    },
+    "name": "deployment-id"
+  },
+  "spec": {
+    "annotations": {
+      "project_name": "pytorch-classifier",
+      "deployment_version": "v1"
+    },
+    "name": "pytorch-classifier",
+    "oauth_key": "oauth-key",
+    "oauth_secret": "oauth-secret",
+    "predictors": [
+      {
+        "componentSpecs": [{
+          "spec": {
+            "containers": [
+              {
+                "image": "aipipeline/seldon-pytorch:0.1",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "classifier",
+                "resources": {
+                  "requests": {
+                    "memory": "1Mi"
+                  }
+                },
+                "env": [
+                  {
+                    "name": "MODEL_FILE_NAME",
+                    "value": "model.pt"
+                  },
+                  {
+                    "name": "TRAINING_ID",
+                    "value": "training-abcde1234"
+                  },
+                  {
+                    "name": "BUCKET_NAME",
+                    "value": "training-results"
+                  },
+                  {
+                    "name": "BUCKET_ENDPOINT_URL",
+                    "value": "https://s3-api.us-geo.objectstorage.softlayer.net"
+                  },
+                  {
+                    "name": "BUCKET_KEY",
+                    "value": ""
+                  },
+                  {
+                    "name": "BUCKET_SECRET",
+                    "value": ""
+                  },
+                  {
+                    "name": "MODEL_CLASS_NAME",
+                    "value": "ModelClass"
+                  },
+                  {
+                    "name": "MODEL_CLASS_FILE",
+                    "value": "model_class.py"
+                  }
+                ]
+              }
+            ],
+            "terminationGracePeriodSeconds": 20
+          }
+        }],
+        "graph": {
+          "children": [],
+          "name": "classifier",
+          "endpoint": {
+            "type": "REST"
+          },
+          "type": "MODEL"
+        },
+        "name": "single-model",
+        "replicas": 1,
+        "annotations": {
+          "predictor_version": "v1"
+        }
+      }
+    ]
+  }
+}

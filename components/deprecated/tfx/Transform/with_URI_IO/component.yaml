@@ -1,0 +1,208 @@
+name: Transform
+inputs:
+- {name: examples_uri, type: ExamplesUri}
+- {name: schema_uri, type: SchemaUri}
+- {name: output_transform_graph_uri, type: TransformGraphUri}
+- {name: output_transformed_examples_uri, type: ExamplesUri}
+- {name: output_updated_analyzer_cache_uri, type: TransformCacheUri}
+- {name: analyzer_cache_uri, type: TransformCacheUri, optional: true}
+- {name: module_file, type: String, optional: true}
+- {name: preprocessing_fn, type: String, optional: true}
+- {name: force_tf_compat_v1, type: Integer, optional: true}
+- {name: custom_config, type: String, optional: true}
+- name: splits_config
+  type:
+    JsonObject: {data_type: 'proto:tfx.components.transform.SplitsConfig'}
+  optional: true
+- {name: beam_pipeline_args, type: JsonArray, optional: true}
+outputs:
+- {name: transform_graph_uri, type: TransformGraphUri}
+- {name: transformed_examples_uri, type: ExamplesUri}
+- {name: updated_analyzer_cache_uri, type: TransformCacheUri}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/deprecated/tfx/Transform/with_URI_IO/component.yaml'
+implementation:
+  container:
+    image: tensorflow/tfx:0.29.0
+    command:
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def Transform(
+          examples_uri,
+          schema_uri,
+          output_transform_graph_uri,
+          output_transformed_examples_uri,
+          output_updated_analyzer_cache_uri,
+          analyzer_cache_uri = None,
+          module_file = None,
+          preprocessing_fn = None,
+          force_tf_compat_v1 = None,
+          custom_config = None,
+          splits_config = None,
+          beam_pipeline_args = None,
+      ):
+          from tfx.components.transform.component import Transform as component_class
+
+          #Generated code
+          import os
+          import tempfile
+          from tensorflow.io import gfile
+          from google.protobuf import json_format, message
+          from tfx.types import channel_utils, artifact_utils
+          from tfx.components.base import base_executor
+
+          arguments = locals().copy()
+
+          component_class_args = {}
+
+          for name, execution_parameter in component_class.SPEC_CLASS.PARAMETERS.items():
+              argument_value = arguments.get(name, None)
+              if argument_value is None:
+                  continue
+              parameter_type = execution_parameter.type
+              if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message):
+                  argument_value_obj = parameter_type()
+                  json_format.Parse(argument_value, argument_value_obj)
+              else:
+                  argument_value_obj = argument_value
+              component_class_args[name] = argument_value_obj
+
+          for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
+              artifact_path = arguments.get(name + '_uri') or arguments.get(name + '_path')
+              if artifact_path:
+                  artifact = channel_parameter.type()
+                  artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
+                  if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
+                      # Recovering splits
+                      subdirs = gfile.listdir(artifact_path)
+                      # Workaround for https://github.com/tensorflow/tensorflow/issues/39167
+                      subdirs = [subdir.rstrip('/') for subdir in subdirs]
+                      split_names = [subdir.replace('Split-', '') for subdir in subdirs]
+                      artifact.split_names = artifact_utils.encode_split_names(sorted(split_names))
+                  component_class_args[name] = channel_utils.as_channel([artifact])
+
+          component_class_instance = component_class(**component_class_args)
+
+          input_dict = channel_utils.unwrap_channel_dict(component_class_instance.inputs.get_all())
+          output_dict = {}
+          exec_properties = component_class_instance.exec_properties
+
+          # Generating paths for output artifacts
+          for name, channel in component_class_instance.outputs.items():
+              artifact_path = arguments.get('output_' + name + '_uri') or arguments.get(name + '_path')
+              if artifact_path:
+                  artifact = channel.type()
+                  artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
+                  artifact_list = [artifact]
+                  channel._artifacts = artifact_list
+                  output_dict[name] = artifact_list
+
+          print('component instance: ' + str(component_class_instance))
+
+          executor_context = base_executor.BaseExecutor.Context(
+              beam_pipeline_args=arguments.get('beam_pipeline_args'),
+              tmp_dir=tempfile.gettempdir(),
+              unique_id='tfx_component',
+          )
+          executor = component_class_instance.executor_spec.executor_class(executor_context)
+          executor.Do(
+              input_dict=input_dict,
+              output_dict=output_dict,
+              exec_properties=exec_properties,
+          )
+
+          return (output_transform_graph_uri, output_transformed_examples_uri, output_updated_analyzer_cache_uri, )
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Transform', description='')
+      _parser.add_argument("--examples-uri", dest="examples_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--schema-uri", dest="schema_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-transform-graph-uri", dest="output_transform_graph_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-transformed-examples-uri", dest="output_transformed_examples_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-updated-analyzer-cache-uri", dest="output_updated_analyzer_cache_uri", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--analyzer-cache-uri", dest="analyzer_cache_uri", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--module-file", dest="module_file", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--preprocessing-fn", dest="preprocessing_fn", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--force-tf-compat-v1", dest="force_tf_compat_v1", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--custom-config", dest="custom_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--splits-config", dest="splits_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--beam-pipeline-args", dest="beam_pipeline_args", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=3)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = Transform(**_parsed_args)
+
+      _output_serializers = [
+          str,
+          str,
+          str,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --examples-uri
+    - {inputValue: examples_uri}
+    - --schema-uri
+    - {inputValue: schema_uri}
+    - --output-transform-graph-uri
+    - {inputValue: output_transform_graph_uri}
+    - --output-transformed-examples-uri
+    - {inputValue: output_transformed_examples_uri}
+    - --output-updated-analyzer-cache-uri
+    - {inputValue: output_updated_analyzer_cache_uri}
+    - if:
+        cond: {isPresent: analyzer_cache_uri}
+        then:
+        - --analyzer-cache-uri
+        - {inputValue: analyzer_cache_uri}
+    - if:
+        cond: {isPresent: module_file}
+        then:
+        - --module-file
+        - {inputValue: module_file}
+    - if:
+        cond: {isPresent: preprocessing_fn}
+        then:
+        - --preprocessing-fn
+        - {inputValue: preprocessing_fn}
+    - if:
+        cond: {isPresent: force_tf_compat_v1}
+        then:
+        - --force-tf-compat-v1
+        - {inputValue: force_tf_compat_v1}
+    - if:
+        cond: {isPresent: custom_config}
+        then:
+        - --custom-config
+        - {inputValue: custom_config}
+    - if:
+        cond: {isPresent: splits_config}
+        then:
+        - --splits-config
+        - {inputValue: splits_config}
+    - if:
+        cond: {isPresent: beam_pipeline_args}
+        then:
+        - --beam-pipeline-args
+        - {inputValue: beam_pipeline_args}
+    - '----output-paths'
+    - {outputPath: transform_graph_uri}
+    - {outputPath: transformed_examples_uri}
+    - {outputPath: updated_analyzer_cache_uri}

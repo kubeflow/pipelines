@@ -1,50 +1,9 @@
 # Change log for AWS SageMaker Components
 
 The version of the AWS SageMaker Components is determined by the docker image tag used in YAML spec   
-Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components) or [Dockerhub](https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components). New releases after v1.1.1 will be using the public ECR repository
+Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components
 
 ---------------------------------------------
-**Change log for version 2.3.0**
-
-- Introducing SageMaker Model Monitor components v2. This release includes [Monitoring Schedule](./MonitoringSchedule/), [DataQualityJobDefinition](./DataQualityJobDefinition/), [ModelQualityJobDefinition](./ModelQualityJobDefinition/), [ModelExplainabilityJobDefinition](./ModelExplainabilityJobDefinition/), [ModelBiasJobDefinition](./ModelBiasJobDefinition/).
-
-> Pull request : [#9253](https://github.com/kubeflow/pipelines/pull/9253), [#9368](https://github.com/kubeflow/pipelines/pull/9368)
-
-Note: [#9253](https://github.com/kubeflow/pipelines/pull/9253) was merged accidentally with image pointing to an unofficial repository. Please do not pin to the commit corresponding to this PR.
-
-**Change log for version 2.2.1**
-- Fix: Path issue with git clone on macbook. Directory name for version 2 of Model component has been updated from `components/aws/sagemaker/Model` to `components/aws/sagemaker/Modelv2`.
-> Pull request : [#9331](https://github.com/kubeflow/pipelines/pull/9331) 
-
-**Change log for version 2.2.0**
-
-- Introducing SageMaker Hosting components v2. This release includes [Model](./Model/), [EndpointConfig](./EndpointConfig/), [Endpoint](./Endpoint/).
-> Pull request : [#9243](https://github.com/kubeflow/pipelines/pull/9243)
-
-**Change log for version 2.1.0**
-- Adds support for Managed Warm Pool clusters, Instance Groups, Retry Strategy in the Training Job component.
-
-> Pull request : [#8538](https://github.com/kubeflow/pipelines/pull/8538)
-
-**Change log for version 2.0.0**
-- Makes SageMaker TrainingJob component version 2 GA. This release only includes the [TrainingJob component](./TrainingJob/). Open sources version 2 component code. 
-- Errors out when component recieves Invalid Parameter error.
-
-> Pull requests : [#8258](https://github.com/kubeflow/pipelines/pull/8258), [#8264](https://github.com/kubeflow/pipelines/pull/8264)
-
-**Change log for version 2.0.0-alpha2**
-- Introducing SageMaker TrainingJob component v2 in Preview. This release only includes the [TrainingJob component](./TrainingJob/).
-
-> Pull requests : [#8158](https://github.com/kubeflow/pipelines/pull/8158)
-
-**Change log for version 1.1.2**
-- Fix: Made inputs.model_artifact_url optional in sagemaker model component.
-- Fix: Made TransformResources.VolumeKmsKeyId optional
-- Fix: Handles Stopped state for all version 1 components and fixes bug in robomaker simulation function.
-- Fix: Updated protobuf to 3.2. 
-
-> Pull requests : [#8336](https://github.com/kubeflow/pipelines/pull/8336)
-
 **Change log for version 1.1.1**
 - Print logs for Batch Transform and Processing jobs.
 

@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package gcp_launcher;
 
-import "google/rpc/status.proto";
-
 // The schema of the GCP resource. It will be used to parse the output parameter
 // "gcp_resources"
 message GcpResources {
@@ -14,10 +12,6 @@ message GcpResources {
     // The unique resource uri. E.g.
     // https://dataflow.googleapis.com/v1b3/projects/project_1/locations/us-central1/jobs/123
     optional string resource_uri = 2;
-    // The error from the resource.
-    google.rpc.Status error = 3;
-    // Optional. Used by component to save extra custom metadata for the resource.
-    repeated string labels = 4;
   }
 
   // A list of resources.

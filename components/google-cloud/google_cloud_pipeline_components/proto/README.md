@@ -12,9 +12,8 @@ pip install -U google-cloud-pipeline-components
 
 ## Usage
 To write a resource as an output parameter
-
 ```
-from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+from google_cloud_pipeline_components.experimental.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf.json_format import MessageToJson
 
 dataflow_resources = GcpResources()
@@ -39,11 +38,5 @@ input_gcp_resources = Parse(payload, GcpResources())
 ## Supported resource_type
 You can set the resource_type with arbitrary string. But only the following types will have the benefits listed above.
 This list will be expanded to support more types in the future.
-* BatchPredictionJob
-* BigQueryJob
-* CustomJob
 * DataflowJob
-* DataprocBatch
-* DataprocLro
-* HyperparameterTuningJob
-* VertexLro
+* CustomJob

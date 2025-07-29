@@ -1,0 +1,54 @@
+#!/usr/bin/env/python3
+# Copyright (c) Facebook, Inc. and its affiliates.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: Kubeflow - Serve Model using KFServing
+description: Serve Models using Kubeflow KFServing
+inputs:
+  - {name: Action,                    type: String, default: 'create',     description: 'Action to execute on KFServing'}
+  - {name: Model Name,                type: String, default: '',           description: 'Name to give to the deployed model'}
+  - {name: Model URI,                 type: String, default: '',           description: 'Path of the S3 or GCS compatible directory containing the model.'}
+  - {name: Canary Traffic Percent,    type: String, default: '100',        description: 'The traffic split percentage between the candidate model and the last ready model'}
+  - {name: Namespace,                 type: String, default: '',           description: 'Kubernetes namespace where the KFServing service is deployed.'}
+  - {name: Framework,                 type: String, default: '',           description: 'Machine Learning Framework for Model Serving.'}
+  - {name: Custom Model Spec,         type: String, default: '{}',         description: 'Custom model runtime container spec in JSON'}
+  - {name: Autoscaling Target,        type: String, default: '0',          description: 'Autoscaling Target Number'}
+  - {name: Service Account,           type: String, default: '',           description: 'ServiceAccount to use to run the InferenceService pod'}
+  - {name: Enable Istio Sidecar,      type: Bool,   default: 'True',       description: 'Whether to enable istio sidecar injection'}
+  - {name: InferenceService YAML,     type: String, default: '{}',         description: 'Raw InferenceService serialized YAML for deployment'}
+  - {name: Watch Timeout,             type: String, default: '300',        description: "Timeout seconds for watching until InferenceService becomes ready."}
+  - {name: Min Replicas,              type: String, default: '-1',         description: 'Minimum number of InferenceService replicas'}
+  - {name: Max Replicas,              type: String, default: '-1',         description: 'Maximum number of InferenceService replicas'}
+outputs:
+  - {name: InferenceService Status,   type: String,                        description: 'Status JSON output of InferenceService'}
+implementation:
+  container:
+    image: quay.io/aipipeline/kfserving-component:v0.5.0
+    command: ['python']
+    args: [
+      -u, kfservingdeployer.py,
+      --action,                 {inputValue: Action},
+      --model-name,             {inputValue: Model Name},
+      --model-uri,              {inputValue: Model URI},
+      --canary-traffic-percent, {inputValue: Canary Traffic Percent},
+      --namespace,              {inputValue: Namespace},
+      --framework,              {inputValue: Framework},
+      --custom-model-spec,      {inputValue: Custom Model Spec},
+      --autoscaling-target,     {inputValue: Autoscaling Target},
+      --service-account,        {inputValue: Service Account},
+      --enable-istio-sidecar,   {inputValue: Enable Istio Sidecar},
+      --output-path,            {outputPath: InferenceService Status},
+      --inferenceservice-yaml,  {inputValue: InferenceService YAML},
+      --watch-timeout,          {inputValue: Watch Timeout},
+      --min-replicas,           {inputValue: Min Replicas},
+      --max-replicas,           {inputValue: Max Replicas}
+    ]

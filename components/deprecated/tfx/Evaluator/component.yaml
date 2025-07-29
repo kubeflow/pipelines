@@ -1,0 +1,195 @@
+name: Evaluator
+inputs:
+- {name: examples, type: Examples}
+- {name: model, type: Model, optional: true}
+- {name: baseline_model, type: Model, optional: true}
+- {name: schema, type: Schema, optional: true}
+- name: eval_config
+  type:
+    JsonObject: {data_type: 'proto:tensorflow_model_analysis.EvalConfig'}
+  optional: true
+- name: feature_slicing_spec
+  type:
+    JsonObject: {data_type: 'proto:tfx.components.evaluator.FeatureSlicingSpec'}
+  optional: true
+- {name: fairness_indicator_thresholds, type: JsonArray, optional: true}
+- {name: example_splits, type: String, optional: true}
+- {name: module_file, type: String, optional: true}
+- {name: module_path, type: String, optional: true}
+outputs:
+- {name: evaluation, type: ModelEvaluation}
+- {name: blessing, type: ModelBlessing}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/deprecated/tfx/Evaluator/component.yaml'
+implementation:
+  container:
+    image: tensorflow/tfx:0.29.0
+    command:
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def Evaluator(
+          examples_path,
+          evaluation_path,
+          blessing_path,
+          model_path = None,
+          baseline_model_path = None,
+          schema_path = None,
+          eval_config = None,
+          feature_slicing_spec = None,
+          fairness_indicator_thresholds = None,
+          example_splits = None,
+          module_file = None,
+          module_path = None,
+      ):
+          from tfx.components.evaluator.component import Evaluator as component_class
+
+          #Generated code
+          import os
+          import tempfile
+          from tensorflow.io import gfile
+          from google.protobuf import json_format, message
+          from tfx.types import channel_utils, artifact_utils
+          from tfx.components.base import base_executor
+
+          arguments = locals().copy()
+
+          component_class_args = {}
+
+          for name, execution_parameter in component_class.SPEC_CLASS.PARAMETERS.items():
+              argument_value = arguments.get(name, None)
+              if argument_value is None:
+                  continue
+              parameter_type = execution_parameter.type
+              if isinstance(parameter_type, type) and issubclass(parameter_type, message.Message):
+                  argument_value_obj = parameter_type()
+                  json_format.Parse(argument_value, argument_value_obj)
+              else:
+                  argument_value_obj = argument_value
+              component_class_args[name] = argument_value_obj
+
+          for name, channel_parameter in component_class.SPEC_CLASS.INPUTS.items():
+              artifact_path = arguments.get(name + '_uri') or arguments.get(name + '_path')
+              if artifact_path:
+                  artifact = channel_parameter.type()
+                  artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
+                  if channel_parameter.type.PROPERTIES and 'split_names' in channel_parameter.type.PROPERTIES:
+                      # Recovering splits
+                      subdirs = gfile.listdir(artifact_path)
+                      # Workaround for https://github.com/tensorflow/tensorflow/issues/39167
+                      subdirs = [subdir.rstrip('/') for subdir in subdirs]
+                      split_names = [subdir.replace('Split-', '') for subdir in subdirs]
+                      artifact.split_names = artifact_utils.encode_split_names(sorted(split_names))
+                  component_class_args[name] = channel_utils.as_channel([artifact])
+
+          component_class_instance = component_class(**component_class_args)
+
+          input_dict = channel_utils.unwrap_channel_dict(component_class_instance.inputs.get_all())
+          output_dict = {}
+          exec_properties = component_class_instance.exec_properties
+
+          # Generating paths for output artifacts
+          for name, channel in component_class_instance.outputs.items():
+              artifact_path = arguments.get('output_' + name + '_uri') or arguments.get(name + '_path')
+              if artifact_path:
+                  artifact = channel.type()
+                  artifact.uri = artifact_path.rstrip('/') + '/'  # Some TFX components require that the artifact URIs end with a slash
+                  artifact_list = [artifact]
+                  channel._artifacts = artifact_list
+                  output_dict[name] = artifact_list
+
+          print('component instance: ' + str(component_class_instance))
+
+          executor_context = base_executor.BaseExecutor.Context(
+              beam_pipeline_args=arguments.get('beam_pipeline_args'),
+              tmp_dir=tempfile.gettempdir(),
+              unique_id='tfx_component',
+          )
+          executor = component_class_instance.executor_spec.executor_class(executor_context)
+          executor.Do(
+              input_dict=input_dict,
+              output_dict=output_dict,
+              exec_properties=exec_properties,
+          )
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Evaluator', description='')
+      _parser.add_argument("--examples", dest="examples_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--baseline-model", dest="baseline_model_path", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--schema", dest="schema_path", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--eval-config", dest="eval_config", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--feature-slicing-spec", dest="feature_slicing_spec", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--fairness-indicator-thresholds", dest="fairness_indicator_thresholds", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--example-splits", dest="example_splits", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--module-file", dest="module_file", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--module-path", dest="module_path", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--evaluation", dest="evaluation_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--blessing", dest="blessing_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = Evaluator(**_parsed_args)
+    args:
+    - --examples
+    - {inputPath: examples}
+    - if:
+        cond: {isPresent: model}
+        then:
+        - --model
+        - {inputPath: model}
+    - if:
+        cond: {isPresent: baseline_model}
+        then:
+        - --baseline-model
+        - {inputPath: baseline_model}
+    - if:
+        cond: {isPresent: schema}
+        then:
+        - --schema
+        - {inputPath: schema}
+    - if:
+        cond: {isPresent: eval_config}
+        then:
+        - --eval-config
+        - {inputValue: eval_config}
+    - if:
+        cond: {isPresent: feature_slicing_spec}
+        then:
+        - --feature-slicing-spec
+        - {inputValue: feature_slicing_spec}
+    - if:
+        cond: {isPresent: fairness_indicator_thresholds}
+        then:
+        - --fairness-indicator-thresholds
+        - {inputValue: fairness_indicator_thresholds}
+    - if:
+        cond: {isPresent: example_splits}
+        then:
+        - --example-splits
+        - {inputValue: example_splits}
+    - if:
+        cond: {isPresent: module_file}
+        then:
+        - --module-file
+        - {inputValue: module_file}
+    - if:
+        cond: {isPresent: module_path}
+        then:
+        - --module-path
+        - {inputValue: module_path}
+    - --evaluation
+    - {outputPath: evaluation}
+    - --blessing
+    - {outputPath: blessing}

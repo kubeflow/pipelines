@@ -1,0 +1,126 @@
+name: Execute notebook
+description: |
+  Executes a notebook using the Notebooks Executor API.
+
+  The component uses the same inputs as the Notebooks Executor API and additional
+  ones for blocking and failing the pipeline.
+
+  Args:
+    project (str):
+      Project to run the execution.
+    input_notebook_file: str
+      Path to the notebook file to execute.
+    output_notebook_folder: str
+      Path to the notebook folder to write to.
+    execution_id: str
+      Unique identificator for the execution.
+    location: str
+      Region to run the
+    master_type: str
+      Type of virtual machine to use for training job's master worker.
+    accelerator_type: str
+      Type of accelerator.
+    accelerator_core_count: str
+      Count of cores of the accelerator.
+    labels: str
+      Labels for execution.
+    container_image_uri: str
+      Container Image URI to a DLVM Example: 'gcr.io/deeplearning-platform-release/base-cu100'.
+    params_yaml_file: str
+      File with parameters to be overridden in the `inputNotebookFile` during execution.
+    parameters: str
+      Parameters to be overriden in the `inputNotebookFile` notebook.
+    block_pipeline: bool
+      Whether to block the pipeline until the execution operation is done.
+    fail_pipeline: bool
+      Whether to fail the pipeline if the execution raises an error.
+
+  Returns:
+    state:str
+      State of the execution. Empty if there is an error.
+    output_notebook_file:str
+      Path of the executed notebook. Empty if there is an error.
+    error:str
+      Error message if any.
+
+  Raises:
+    RuntimeError with the error message.
+inputs:
+- {name: project, type: String}
+- {name: input_notebook_file, type: String}
+- {name: output_notebook_folder, type: String}
+- {name: execution_id, type: String}
+- {name: location, type: String}
+- {name: master_type, type: String}
+- {name: container_image_uri, type: String}
+- {name: accelerator_type, type: String, optional: true}
+- {name: accelerator_core_count, type: String, default: '0', optional: true}
+- {name: labels, type: String, default: src=notebooks_executor_api, optional: true}
+- {name: params_yaml_file, type: String, optional: true}
+- {name: parameters, type: String, optional: true}
+- {name: block_pipeline, type: Boolean, default: "True", optional: true}
+- {name: fail_pipeline, type: Boolean, default: "True", optional: true}
+outputs:
+- {name: state, type: String}
+- {name: output_notebook_file, type: String}
+- {name: gcp_resources, type: String}
+- {name: error, type: String}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -m, google_cloud_pipeline_components.container.experimental.notebooks.executor]
+    args:
+    - --project
+    - {inputValue: project}
+    - --input_notebook_file
+    - {inputValue: input_notebook_file}
+    - --output_notebook_folder
+    - {inputValue: output_notebook_folder}
+    - --execution_id
+    - {inputValue: execution_id}
+    - --location
+    - {inputValue: location}
+    - --master_type
+    - {inputValue: master_type}
+    - --container_image_uri
+    - {inputValue: container_image_uri}
+    - if:
+        cond: {isPresent: accelerator_type}
+        then:
+        - --accelerator_type
+        - {inputValue: accelerator_type}
+    - if:
+        cond: {isPresent: accelerator_core_count}
+        then:
+        - --accelerator_core_count
+        - {inputValue: accelerator_core_count}
+    - if:
+        cond: {isPresent: labels}
+        then:
+        - --labels
+        - {inputValue: labels}
+    - if:
+        cond: {isPresent: params_yaml_file}
+        then:
+        - --params_yaml_file
+        - {inputValue: params_yaml_file}
+    - if:
+        cond: {isPresent: parameters}
+        then:
+        - --parameters
+        - {inputValue: parameters}
+    - if:
+        cond: {isPresent: block_pipeline}
+        then:
+        - --block_pipeline
+        - {inputValue: block_pipeline}
+    - if:
+        cond: {isPresent: fail_pipeline}
+        then:
+        - --fail_pipeline
+        - {inputValue: fail_pipeline}
+    - '----output-paths'
+    - {outputPath: state}
+    - {outputPath: output_notebook_file}
+    - {outputPath: gcp_resources}
+    - {outputPath: error}

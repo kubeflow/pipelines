@@ -1,0 +1,25 @@
+name: To ONNX from Keras HDF5 model
+inputs:
+- {name: Model, type: KerasModelHdf5}
+outputs:
+- {name: Model, type: OnnxModel}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/_converters/OnnxModel/from_KerasModelHdf5/component.yaml'
+implementation:
+  container:
+    image: tensorflow/tensorflow:2.3.0
+    command:
+    - sh
+    - -exc
+    - python3 -m pip install tf2onnx==1.6.3 && "$0" "$@"
+    - python3
+    - -m
+    - tf2onnx.convert
+    - --keras
+    - {inputPath: Model}
+    - --output
+    - {outputPath: Model}
+    - --fold_const
+    - --verbose

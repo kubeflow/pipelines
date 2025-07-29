@@ -1,0 +1,44 @@
+name: Filter text
+inputs:
+- {name: Text}
+- {name: Pattern, default: '.*'}
+outputs:
+- {name: Filtered text}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/sample/Python_script/component.yaml'
+implementation:
+  container:
+    image: python:3.8
+    command:
+    - sh
+    - -ec
+    - |
+      # This is how additional packages can be installed dynamically
+      python3 -m pip install pip six
+      # Run the rest of the command after installing the packages.
+      "$0" "$@"
+    - python3
+    - -u  # Auto-flush. We want the logs to appear in the console immediately.
+    - -c  # Inline scripts are easy, but have size limitaions and the error traces do not show source lines.
+    - |
+      import os
+      import re
+      import sys
+
+      text_path = sys.argv[1]
+      pattern = sys.argv[2]
+      filtered_text_path = sys.argv[3]
+
+      regex = re.compile(pattern)
+
+      os.makedirs(os.path.dirname(filtered_text_path), exist_ok=True)
+      with open(text_path, 'r') as reader:
+          with open(filtered_text_path, 'w') as writer:
+              for line in reader:
+                  if regex.search(line):
+                      writer.write(line)
+    - {inputPath: Text}
+    - {inputValue: Pattern}
+    - {outputPath: Filtered text}

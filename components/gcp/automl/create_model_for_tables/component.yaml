@@ -1,0 +1,142 @@
+name: Automl create model for tables
+inputs:
+- {name: gcp_project_id, type: String}
+- {name: gcp_region, type: String}
+- {name: display_name, type: String}
+- {name: dataset_id, type: String}
+- {name: target_column_path, type: String, optional: true}
+- {name: input_feature_column_paths, type: JsonArray, optional: true}
+- {name: optimization_objective, type: String, default: MAXIMIZE_AU_PRC, optional: true}
+- {name: train_budget_milli_node_hours, type: Integer, default: '1000', optional: true}
+outputs:
+- {name: model_path, type: String}
+- {name: model_id, type: String}
+- {name: model_page_url, type: URI}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/gcp/automl/create_model_for_tables/component.yaml'
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-cloud-automl==0.4.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip
+      install --quiet --no-warn-script-location 'google-cloud-automl==0.4.0' --user)
+      && "$0" "$@"
+    - python3
+    - -u
+    - -c
+    - |
+      def automl_create_model_for_tables(
+          gcp_project_id ,
+          gcp_region ,
+          display_name ,
+          dataset_id ,
+          target_column_path  = None,
+          input_feature_column_paths  = None,
+          optimization_objective  = 'MAXIMIZE_AU_PRC',
+          train_budget_milli_node_hours  = 1000,
+      )        :
+          from google.cloud import automl
+          client = automl.AutoMlClient()
+
+          location_path = client.location_path(gcp_project_id, gcp_region)
+          model_dict = {
+              'display_name': display_name,
+              'dataset_id': dataset_id,
+              'tables_model_metadata': {
+                  'target_column_spec': automl.types.ColumnSpec(name=target_column_path),
+                  'input_feature_column_specs': [automl.types.ColumnSpec(name=path) for path in input_feature_column_paths] if input_feature_column_paths else None,
+                  'optimization_objective': optimization_objective,
+                  'train_budget_milli_node_hours': train_budget_milli_node_hours,
+              },
+          }
+
+          create_model_response = client.create_model(location_path, model_dict)
+          print('Create model operation: {}'.format(create_model_response.operation))
+          result = create_model_response.result()
+          print(result)
+          model_name = result.name
+          model_id = model_name.rsplit('/', 1)[-1]
+          model_url = 'https://console.cloud.google.com/automl-tables/locations/{region}/datasets/{dataset_id};modelId={model_id};task=basic/train?project={project_id}'.format(
+              project_id=gcp_project_id,
+              region=gcp_region,
+              dataset_id=dataset_id,
+              model_id=model_id,
+          )
+
+          return (model_name, model_id, model_url)
+
+      def _serialize_str(str_value: str) -> str:
+          if not isinstance(str_value, str):
+              raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+          return str_value
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Automl create model for tables', description='')
+      _parser.add_argument("--gcp-project-id", dest="gcp_project_id", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--gcp-region", dest="gcp_region", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--display-name", dest="display_name", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--dataset-id", dest="dataset_id", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--target-column-path", dest="target_column_path", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--input-feature-column-paths", dest="input_feature_column_paths", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--optimization-objective", dest="optimization_objective", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--train-budget-milli-node-hours", dest="train_budget_milli_node_hours", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=3)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = automl_create_model_for_tables(**_parsed_args)
+
+      _output_serializers = [
+          _serialize_str,
+          _serialize_str,
+          str,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --gcp-project-id
+    - {inputValue: gcp_project_id}
+    - --gcp-region
+    - {inputValue: gcp_region}
+    - --display-name
+    - {inputValue: display_name}
+    - --dataset-id
+    - {inputValue: dataset_id}
+    - if:
+        cond: {isPresent: target_column_path}
+        then:
+        - --target-column-path
+        - {inputValue: target_column_path}
+    - if:
+        cond: {isPresent: input_feature_column_paths}
+        then:
+        - --input-feature-column-paths
+        - {inputValue: input_feature_column_paths}
+    - if:
+        cond: {isPresent: optimization_objective}
+        then:
+        - --optimization-objective
+        - {inputValue: optimization_objective}
+    - if:
+        cond: {isPresent: train_budget_milli_node_hours}
+        then:
+        - --train-budget-milli-node-hours
+        - {inputValue: train_budget_milli_node_hours}
+    - '----output-paths'
+    - {outputPath: model_path}
+    - {outputPath: model_id}
+    - {outputPath: model_page_url}

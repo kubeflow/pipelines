@@ -1,0 +1,35 @@
+name: Apply Kubernetes object
+inputs:
+- {name: Object, type: JsonObject}
+outputs:
+- {name: Name, type: String}
+- {name: Kind, type: String}
+- {name: Object, type: JsonObject}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/kubernetes/Apply_object/component.yaml'
+implementation:
+  container:
+    image: bitnami/kubectl:1.17.17
+    command:
+    - bash
+    - -exc
+    - |
+      object_path=$0
+      output_name_path=$1
+      output_kind_path=$2
+      output_object_path=$3
+      mkdir -p "$(dirname "$output_name_path")"
+      mkdir -p "$(dirname "$output_kind_path")"
+      mkdir -p "$(dirname "$output_object_path")"
+
+      kubectl apply -f "$object_path" --output=json > "$output_object_path"
+      
+      < "$output_object_path" jq '.metadata.name' --raw-output > "$output_name_path"
+      < "$output_object_path" jq '.kind' --raw-output > "$output_kind_path"
+
+    - {inputPath: Object}
+    - {outputPath: Name}
+    - {outputPath: Kind}
+    - {outputPath: Object}

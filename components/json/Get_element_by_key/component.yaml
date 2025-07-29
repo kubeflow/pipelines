@@ -1,0 +1,25 @@
+name: Get element by key from JSON
+inputs:
+- {name: Json}
+- {name: Key, type: String}
+outputs:
+- {name: Output}
+metadata:
+  annotations:
+    author: Alexey Volkov <alexey.volkov@ark-kun.com>
+    canonical_location: 'https://raw.githubusercontent.com/Ark-kun/pipeline_components/master/components/json/Get_element_by_key/component.yaml'
+implementation:
+  container:
+    image: stedolan/jq:latest
+    command:
+    - sh
+    - -exc
+    - |
+      input_path=$0
+      output_path=$1
+      key=$2
+      mkdir -p "$(dirname "$output_path")"
+      < "$input_path" jq --raw-output '.["'"$key"'"]' > "$output_path"
+    - {inputPath: Json}
+    - {outputPath: Output}
+    - {inputValue: Key}

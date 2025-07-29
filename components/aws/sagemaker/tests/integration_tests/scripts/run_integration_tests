@@ -17,12 +17,12 @@ REGION=${REGION:-"$(aws configure get region)"} # Deployment region
 
 ### Configuration parameters
 EKS_EXISTING_CLUSTER=${EKS_EXISTING_CLUSTER:-""} # Use an existing EKS cluster
-EKS_CLUSTER_VERSION=${EKS_CLUSTER_VERSION:-"1.22"} # EKS cluster K8s version
-EKS_NODE_COUNT=${EKS_NODE_COUNT:-"2"} # The initial node count of the EKS cluster
+EKS_CLUSTER_VERSION=${EKS_CLUSTER_VERSION:-"1.17"} # EKS cluster K8s version
+EKS_NODE_COUNT=${EKS_NODE_COUNT:-"1"} # The initial node count of the EKS cluster
 EKS_PUBLIC_SUBNETS=${EKS_PUBLIC_SUBNETS:-""}
 EKS_PRIVATE_SUBNETS=${EKS_PRIVATE_SUBNETS:-""}
 SKIP_KFP_OIDC_SETUP=${SKIP_KFP_OIDC_SETUP:-"false"}
-KFP_VERSION=${KFP_VERSION:-"2.0.0-alpha.7"}
+KFP_VERSION=${KFP_VERSION:-"1.7.0"}
 
 ### Testing parameters
 MINIO_LOCAL_PORT=${MINIO_LOCAL_PORT:-9000}
@@ -37,13 +37,6 @@ ASSUMED_ROLE_NAME=${ASSUMED_ROLE_NAME:-""}
 ROBOMAKER_EXECUTION_ROLE_ARN=${ROBOMAKER_EXECUTION_ROLE_ARN:-""}
 
 SKIP_FSX_TESTS=${SKIP_FSX_TESTS:-"false"}
-
-ACK_RELEASE_VERSION=${ACK_RELEASE_VERSION:-"1.2.4"}
-HELM_EXPERIMENTAL_OCI=1
-SERVICE=sagemaker
-CHART_EXPORT_PATH=/tmp/chart
-CHART_REF=sagemaker-chart
-TEST_EXIT_STATUS=1
 
 while getopts ":n:r:s:" opt; do
   case $opt in
@@ -90,17 +83,9 @@ function cleanup() {
   set +e
 
   cleanup_kfp
-  # If installation fails before ack installation resources should be freed.
-  if [[ -v ACK_K8S_NAMESPACE ]]; then
-    uninstall_ack
-  fi
   delete_assumed_role
   
   [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && delete_oidc_role
-
-  #push to metrics to cloudwatch
-  echo "Pushing Codebuild stats to Cloudwatch."
-  python ../../codebuild/scripts/push_stats_to_cloudwatch.py
 
   if [[ "${SKIP_FSX_TESTS}" == "false" ]]; then
     delete_fsx_instance
@@ -121,17 +106,11 @@ set -e
 function launch_eks() {
   echo "[Creating EKS] Launching EKS cluster $EKS_CLUSTER_NAME"
 
-  eksctl_args=( --managed --nodes "${EKS_NODE_COUNT}" --node-type=c5.xlarge --region "${REGION}" --version "${EKS_CLUSTER_VERSION}" )
+  eksctl_args=( --managed --nodes "${EKS_NODE_COUNT}" --node-type=c5.xlarge --timeout=30m --region "${REGION}" --auto-kubeconfig --version "${EKS_CLUSTER_VERSION}" )
   [ ! -z "${EKS_PUBLIC_SUBNETS}" ] && eksctl_args+=( --vpc-public-subnets="${EKS_PUBLIC_SUBNETS}" )
   [ ! -z "${EKS_PRIVATE_SUBNETS}" ] && eksctl_args+=( --vpc-private-subnets="${EKS_PRIVATE_SUBNETS}" )
 
-  # This command can print out non yaml output too. Take caution when upgrading eksctl.
-  eksctl create cluster "${EKS_CLUSTER_NAME}" "${eksctl_args[@]}" --dry-run > generated-cluster.yaml
-
-  yq -i ".managedNodeGroups[0].disableIMDSv1 = true" generated-cluster.yaml
-
-  eksctl create cluster -f generated-cluster.yaml --auto-kubeconfig --timeout=60m
-  rm generated-cluster.yaml
+  eksctl create cluster "${EKS_CLUSTER_NAME}" "${eksctl_args[@]}" --enable-ssm
 
   aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$REGION"
 
@@ -161,12 +140,11 @@ function delete_eks() {
 
 function install_kfp() {
   echo "[Installing KFP] Applying KFP manifests"
-  #Install cert-manager
-  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
-  kubectl wait --for=condition=ready pod -l 'app in (cert-manager,webhook)' --timeout=180s -n cert-manager
-  kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/cluster-scoped-resources?ref=$KFP_VERSION&timeout=90s"
-  kubectl wait --for condition=established --timeout=180s crd/applications.app.k8s.io
-  kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/dev?ref=$KFP_VERSION&timeout=90s"
+
+  kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$KFP_VERSION
+  kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
+  kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$KFP_VERSION
+
   echo "[Installing KFP] Port-forwarding Minio"
 
   kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=minio --timeout=5m
@@ -176,8 +154,6 @@ function install_kfp() {
   echo "[Installing KFP] Minio port-forwarded to ${MINIO_LOCAL_PORT}"
 
   echo "[Installing KFP] Waiting for pods to stand up"
-  #TODO: In the future, modify kubectl wait to end when only one pod becomes ready.
-  sleep 3m 
 
   kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=ml-pipeline --timeout=5m
 
@@ -186,35 +162,6 @@ function install_kfp() {
   sleep 3m
 
   echo "[Installing KFP] Pipeline pods are ready"
-}
-
-function install_ack(){
-  
-  local CHART_REPO=public.ecr.aws/aws-controllers-k8s/${CHART_REF}
-  local CHART_PACKAGE=${CHART_REF}-${ACK_RELEASE_VERSION}.tgz
-  ACK_K8S_NAMESPACE=ack-system
-
-  mkdir -p ${CHART_EXPORT_PATH}
-  
-  helm pull oci://${CHART_REPO} --version ${ACK_RELEASE_VERSION} -d ${CHART_EXPORT_PATH}
-  tar xvf ${CHART_EXPORT_PATH}/${CHART_PACKAGE} -C ${CHART_EXPORT_PATH}
-  
-  export OIDC_ROLE_ARN
-  cd ${CHART_EXPORT_PATH}/${SERVICE}-chart
-  yq e '.aws.region = env(REGION)' -i values.yaml
-  yq e '.serviceAccount.annotations."eks.amazonaws.com/role-arn" = strenv(OIDC_ROLE_ARN)' -i values.yaml
-  cd -
-
-  kubectl apply -f ${CHART_EXPORT_PATH}/${SERVICE}-chart/crds
-  helm install -n ${ACK_K8S_NAMESPACE} --create-namespace --skip-crds ack-${SERVICE}-controller \
-  ${CHART_EXPORT_PATH}/${SERVICE}-chart
-  kubectl apply -f ack-rbac.yaml
-}
-
-function uninstall_ack(){
-  kubectl delete trainingjob --all -n ${KFP_NAMESPACE}
-  kubectl delete -f ${CHART_EXPORT_PATH}/${SERVICE}-chart/crds
-  kubectl delete namespace $ACK_K8S_NAMESPACE
 }
 
 function generate_oidc_role_name() {
@@ -281,10 +228,6 @@ function cleanup_kfp() {
     # If this fails, deleting the nodegroup later will clean it up anyway
     kill -9 $MINIO_PID || true
   fi
-  if [[ $TEST_EXIT_STATUS -gt 0 ]]; then
-    kubectl delete -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/dev?ref=$KFP_VERSION&timeout=90s"
-    kubectl delete -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/cluster-scoped-resources?ref=$KFP_VERSION&timeout=90s" 
-  fi
 }
 
 if [[ -z "${EKS_EXISTING_CLUSTER}" ]]; then
@@ -318,7 +261,6 @@ fi
 install_kfp
 [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && install_oidc_role
 generate_assumed_role
-install_ack
 
 pytest_args=( --region "${REGION}" --sagemaker-role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" \
   --s3-data-bucket "${S3_DATA_BUCKET}" --kfp-namespace "${KFP_NAMESPACE}" \
@@ -337,6 +279,4 @@ fi
 
 DIR_THIS_FILE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-cd $DIR_THIS_FILE/../
-python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.xml -n 9
-TEST_EXIT_STATUS=$?
+cd $DIR_THIS_FILE/../ && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.log -n 10

@@ -72,7 +72,7 @@ outputs:
     the training algorithm.}
 implementation:
   container:
-    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:1.1.2
+    image: amazon/aws-sagemaker-kfp-components:1.1.1
     command: [python3]
     args:
     - train/src/sagemaker_training_component.py
