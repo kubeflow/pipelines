@@ -6,6 +6,7 @@ on:
 
   pull_request:
     paths:
+      - 'api/**'
       - 'sdk/python/**'
       - 'test/presubmit-isort-sdk.sh'
       - '.github/workflows/sdk-isort.yml'

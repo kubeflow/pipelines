@@ -6,6 +6,7 @@ on:
 
   pull_request:
     paths:
+      - 'api/**'
       - 'sdk/python/**'
       - 'test/presubmit-yapf-sdk.sh'
       - '.github/workflows/sdk-yapf.yml'
