@@ -307,13 +307,16 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				driver.Name = name
 				return []wfapi.DAGTask{*driver}, nil
 			}
-			executor := c.containerExecutorTask(name, containerExecutorInputs{
+			executor, err := c.containerExecutorTask(name, containerExecutorInputs{
 				podSpecPatch:    driverOutputs.podSpecPatch,
 				cachedDecision:  driverOutputs.cached,
 				condition:       driverOutputs.condition,
 				exitTemplate:    inputs.exitTemplate,
 				hookParentDagID: inputs.parentDagID,
 			}, task)
+			if err != nil {
+				return nil, fmt.Errorf("error creating executor for %q: %v", name, err)
+			}
 			executor.Depends = depends([]string{driverTaskName})
 			return []wfapi.DAGTask{*driver, *executor}, nil
 		case *pipelinespec.PipelineDeploymentConfig_ExecutorSpec_Importer:

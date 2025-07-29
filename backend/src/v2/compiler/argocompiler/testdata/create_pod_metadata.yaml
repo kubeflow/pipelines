@@ -110,16 +110,40 @@ spec:
           parameters:
           - name: pod-spec-patch
             value: '{{inputs.parameters.pod-spec-patch}}'
+          - name: pod-metadata-annotation-key-1
+            value: '{{inputs.parameters.pod-metadata-annotation-key-1}}'
+          - name: pod-metadata-annotation-val-1
+            value: '{{inputs.parameters.pod-metadata-annotation-val-1}}'
+          - name: pod-metadata-annotation-key-2
+            value: '{{inputs.parameters.pod-metadata-annotation-key-2}}'
+          - name: pod-metadata-annotation-val-2
+            value: '{{inputs.parameters.pod-metadata-annotation-val-2}}'
+          - name: pod-metadata-label-key-1
+            value: '{{inputs.parameters.pod-metadata-label-key-1}}'
+          - name: pod-metadata-label-val-1
+            value: '{{inputs.parameters.pod-metadata-label-val-1}}'
+          - name: pod-metadata-label-key-2
+            value: '{{inputs.parameters.pod-metadata-label-key-2}}'
+          - name: pod-metadata-label-val-2
+            value: '{{inputs.parameters.pod-metadata-label-val-2}}'
         name: executor
-        template: system-container-impl
+        template: metadata-2-2-system-container-impl
         when: '{{inputs.parameters.cached-decision}} != true'
     inputs:
       parameters:
       - name: pod-spec-patch
       - default: "false"
         name: cached-decision
+      - name: pod-metadata-annotation-key-1
+      - name: pod-metadata-annotation-val-1
+      - name: pod-metadata-annotation-key-2
+      - name: pod-metadata-annotation-val-2
+      - name: pod-metadata-label-key-1
+      - name: pod-metadata-label-val-1
+      - name: pod-metadata-label-key-2
+      - name: pod-metadata-label-val-2
     metadata: {}
-    name: system-container-executor
+    name: metadata-2-2-system-container-executor
     outputs: {}
   - container:
       command:
@@ -175,14 +199,22 @@ spec:
     inputs:
       parameters:
       - name: pod-spec-patch
+      - name: pod-metadata-annotation-key-1
+      - name: pod-metadata-annotation-val-1
+      - name: pod-metadata-annotation-key-2
+      - name: pod-metadata-annotation-val-2
+      - name: pod-metadata-label-key-1
+      - name: pod-metadata-label-val-1
+      - name: pod-metadata-label-key-2
+      - name: pod-metadata-label-val-2
     metadata:
       annotations:
-        experiment_id: "234567"
-        run_id: "123456"
+        '{{inputs.parameters.pod-metadata-annotation-key-1}}': '{{inputs.parameters.pod-metadata-annotation-val-1}}'
+        '{{inputs.parameters.pod-metadata-annotation-key-2}}': '{{inputs.parameters.pod-metadata-annotation-val-2}}'
       labels:
-        kubeflow.com/common: test
-        kubeflow.com/kfp: pipeline-node
-    name: system-container-impl
+        '{{inputs.parameters.pod-metadata-label-key-1}}': '{{inputs.parameters.pod-metadata-label-val-1}}'
+        '{{inputs.parameters.pod-metadata-label-key-2}}': '{{inputs.parameters.pod-metadata-label-val-2}}'
+    name: metadata-2-2-system-container-impl
     outputs: {}
     podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
     volumes:
@@ -225,9 +257,25 @@ spec:
           - default: "false"
             name: cached-decision
             value: '{{tasks.hello-world-driver.outputs.parameters.cached-decision}}'
+          - name: pod-metadata-annotation-key-1
+            value: 'experiment_id'
+          - name: pod-metadata-annotation-val-1
+            value: '234567'
+          - name: pod-metadata-annotation-key-2
+            value: 'run_id'
+          - name: pod-metadata-annotation-val-2
+            value: '123456'
+          - name: pod-metadata-label-key-1
+            value: 'kubeflow.com/common'
+          - name: pod-metadata-label-val-1
+            value: 'test'
+          - name: pod-metadata-label-key-2
+            value: 'kubeflow.com/kfp'
+          - name: pod-metadata-label-val-2
+            value: 'pipeline-node'
         depends: hello-world-driver.Succeeded
         name: hello-world
-        template: system-container-executor
+        template: metadata-2-2-system-container-executor
     inputs:
       parameters:
       - name: parent-dag-id

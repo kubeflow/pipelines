@@ -377,14 +377,18 @@ const (
 	paramIterationIndex          = "iteration-index"
 	paramExecutorInput           = "executor-input"
 	paramDriverType              = "driver-type"
-	paramCachedDecision          = "cached-decision"            // indicate hit cache or not
-	paramPodSpecPatch            = "pod-spec-patch"             // a strategic patch merged with the pod spec
-	paramCondition               = "condition"                  // condition = false -> skip the task
-	paramKubernetesConfig        = "kubernetes-config"          // stores Kubernetes config
-	paramRetryMaxCount           = "retry-max-count"            // limit on number of retries
-	paramRetryBackOffDuration    = "retry-backoff-duration"     // duration of backoff between retries
-	paramRetryBackOffFactor      = "retry-backoff-factor"       // multiplier for backoff duration between retries
-	paramRetryBackOffMaxDuration = "retry-backoff-max-duration" // limit on backoff duration between retries
+	paramCachedDecision          = "cached-decision"             // indicate hit cache or not
+	paramPodSpecPatch            = "pod-spec-patch"              // a strategic patch merged with the pod spec
+	paramCondition               = "condition"                   // condition = false -> skip the task
+	paramKubernetesConfig        = "kubernetes-config"           // stores Kubernetes config
+	paramRetryMaxCount           = "retry-max-count"             // limit on number of retries
+	paramRetryBackOffDuration    = "retry-backoff-duration"      // duration of backoff between retries
+	paramRetryBackOffFactor      = "retry-backoff-factor"        // multiplier for backoff duration between retries
+	paramRetryBackOffMaxDuration = "retry-backoff-max-duration"  // limit on backoff duration between retries
+	paramPodAnnotationKey        = "pod-metadata-annotation-key" // task-specific pod metadata annotation key
+	paramPodAnnotationVal        = "pod-metadata-annotation-val" // task-specific pod metadata annotation value
+	paramPodLabelKey             = "pod-metadata-label-key"      // task-specific pod metadata label key
+	paramPodLabelVal             = "pod-metadata-label-val"      // task-specific pod metadata label value
 )
 
 func runID() string {
