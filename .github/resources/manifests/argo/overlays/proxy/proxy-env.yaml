@@ -13,8 +13,6 @@ spec:
             - name: HTTPS_PROXY
               value: "http://squid.squid.svc.cluster.local:3128"
             - name: NO_PROXY
-              value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,kube-dns.kube-system.svc.cluster.local,metadata-grpc-service.kubeflow.svc.cluster.local,metadata-envoy-service.kubeflow.svc.cluster.local,minio-service.kubeflow.svc.cluster.local"
+              value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,metadata-grpc-service,10.0.0.0/8,0,1,2,3,4,5,6,7,8,9"
             - name: OBJECTSTORECONFIG_HOST
               value: "minio-service.kubeflow.svc.cluster.local"
-            - name: OBJECTSTORECONFIG_PORT
-              value: "9000"
