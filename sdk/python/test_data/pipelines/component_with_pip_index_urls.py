@@ -18,7 +18,6 @@ from kfp import dsl
 from kfp.dsl import component
 
 PACKAGES_TO_INSTALL = ['yapf']
-
 if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' in os.environ:
     PACKAGES_TO_INSTALL.append(os.environ['KFP_PIPELINE_SPEC_PACKAGE_PATH'])
 

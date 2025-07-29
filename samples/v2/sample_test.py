@@ -47,8 +47,11 @@ def get_package_path(subdir: str) -> str:
     return path
 
 # Set the component configuration BEFORE importing any pipeline modules
+# To have pipeline execution code leverage source kfp-pipeline-spec
+# in api/v2alpha1/python you can set:
+# packages_to_install=[get_kfp_pipeline_spec_path()]
 dsl.component = functools.partial(
-    dsl.component, kfp_package_path=get_kfp_package_path(), packages_to_install=[get_kfp_pipeline_spec_path()])
+    dsl.component, kfp_package_path=get_kfp_package_path())
 
 # Now import the pipeline modules, this way we can leverage the kfp_package and pipeline
 # spec defined above
