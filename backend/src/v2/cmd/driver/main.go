@@ -60,6 +60,7 @@ var (
 	taskSpecJson      = flag.String("task", "", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
 	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	taskName          = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
@@ -197,6 +198,7 @@ func drive() (err error) {
 		PublishLogs:      *publishLogs,
 		CacheDisabled:    *cacheDisabledFlag,
 		DriverType:       *driverType,
+		TaskName:         *taskName,
 	}
 	var execution *driver.Execution
 	var driverErr error

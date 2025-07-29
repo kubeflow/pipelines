@@ -25,7 +25,6 @@ components:
                 componentInputParameter: pipelinechannel--texts-loop-item
           taskInfo:
             name: make-dataset
-            taskName: make-dataset
     inputDefinitions:
       parameters:
         pipelinechannel--texts:
@@ -168,7 +167,6 @@ root:
                 producerTask: for-loop-1
         taskInfo:
           name: join-datasets
-          taskName: join-datasets
   inputDefinitions:
     parameters:
       texts:

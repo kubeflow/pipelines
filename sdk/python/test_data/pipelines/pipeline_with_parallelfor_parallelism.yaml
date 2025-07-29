@@ -30,7 +30,6 @@ components:
                 componentInputParameter: pipelinechannel--loop_parameter-loop-item
           taskInfo:
             name: print-text
-            taskName: print-text
     inputDefinitions:
       parameters:
         pipelinechannel--loop_parameter:
@@ -52,7 +51,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-3
-            taskName: print-int-3
     inputDefinitions:
       parameters:
         pipelinechannel--list-dict-maker-1-Output:
@@ -74,7 +72,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-4
-            taskName: print-int-4
     inputDefinitions:
       parameters:
         pipelinechannel--list-dict-maker-2-Output:
@@ -96,7 +93,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-5
-            taskName: print-int-5
     inputDefinitions:
       parameters:
         pipelinechannel--list-dict-maker-3-Output:
@@ -118,7 +114,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-6
-            taskName: print-int-6
     inputDefinitions:
       parameters:
         pipelinechannel--list-dict-maker-1-2-Output:
@@ -139,7 +134,6 @@ components:
                 componentInputParameter: pipelinechannel--loop_parameter-loop-item
           taskInfo:
             name: print-text-2
-            taskName: print-text-2
     inputDefinitions:
       parameters:
         pipelinechannel--loop_parameter:
@@ -172,7 +166,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["A_a"]
           taskInfo:
             name: print-text-3
-            taskName: print-text-3
         print-text-4:
           cachingOptions:
             enableCache: true
@@ -185,7 +178,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["B_b"]
           taskInfo:
             name: print-text-4
-            taskName: print-text-4
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-3:
@@ -205,7 +197,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["A_a"]
           taskInfo:
             name: print-text-5
-            taskName: print-text-5
         print-text-6:
           cachingOptions:
             enableCache: true
@@ -218,7 +209,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["B_b"]
           taskInfo:
             name: print-text-6
-            taskName: print-text-6
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-5:
@@ -238,7 +228,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int
-            taskName: print-int
     inputDefinitions:
       parameters:
         pipelinechannel--loop-item-param-7:
@@ -258,7 +247,6 @@ components:
                 parameterExpressionSelector: parseJson(string_value)["a"]
           taskInfo:
             name: print-int-2
-            taskName: print-int-2
     inputDefinitions:
       parameters:
         pipelinechannel--list-dict-maker-0-Output:
@@ -993,7 +981,6 @@ root:
           name: comp-list-dict-maker-0
         taskInfo:
           name: list-dict-maker-0
-          taskName: list-dict-maker-0
       list-dict-maker-1:
         cachingOptions:
           enableCache: true
@@ -1001,7 +988,6 @@ root:
           name: comp-list-dict-maker-1
         taskInfo:
           name: list-dict-maker-1
-          taskName: list-dict-maker-1
       list-dict-maker-1-2:
         cachingOptions:
           enableCache: true
@@ -1009,7 +995,6 @@ root:
           name: comp-list-dict-maker-1-2
         taskInfo:
           name: list-dict-maker-1-2
-          taskName: list-dict-maker-1-2
       list-dict-maker-2:
         cachingOptions:
           enableCache: true
@@ -1017,7 +1002,6 @@ root:
           name: comp-list-dict-maker-2
         taskInfo:
           name: list-dict-maker-2
-          taskName: list-dict-maker-2
       list-dict-maker-3:
         cachingOptions:
           enableCache: true
@@ -1025,7 +1009,6 @@ root:
           name: comp-list-dict-maker-3
         taskInfo:
           name: list-dict-maker-3
-          taskName: list-dict-maker-3
   inputDefinitions:
     parameters:
       loop_parameter:

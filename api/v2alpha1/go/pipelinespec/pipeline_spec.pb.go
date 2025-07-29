@@ -1567,10 +1567,7 @@ func (*ArtifactTypeSchema_InstanceSchema) isArtifactTypeSchema_Kind() {}
 type PipelineTaskInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The display name of the task.
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// The name of the task used throughout the pipeline acts as a unique
-	// identifier.
-	TaskName      string `protobuf:"bytes,2,opt,name=task_name,json=taskName,proto3" json:"task_name,omitempty"`
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1608,13 +1605,6 @@ func (*PipelineTaskInfo) Descriptor() ([]byte, []int) {
 func (x *PipelineTaskInfo) GetName() string {
 	if x != nil {
 		return x.Name
-	}
-	return ""
-}
-
-func (x *PipelineTaskInfo) GetTaskName() string {
-	if x != nil {
-		return x.TaskName
 	}
 	return ""
 }
@@ -5723,10 +5713,9 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"schema_uri\x18\x02 \x01(\tB\x02\x18\x01H\x00R\tschemaUri\x12)\n" +
 	"\x0finstance_schema\x18\x03 \x01(\tH\x00R\x0einstanceSchema\x12%\n" +
 	"\x0eschema_version\x18\x04 \x01(\tR\rschemaVersionB\x06\n" +
-	"\x04kind\"C\n" +
+	"\x04kind\"&\n" +
 	"\x10PipelineTaskInfo\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1b\n" +
-	"\ttask_name\x18\x02 \x01(\tR\btaskName\"\xc9\x01\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\xc9\x01\n" +
 	"\x17ValueOrRuntimeParameter\x12@\n" +
 	"\x0econstant_value\x18\x01 \x01(\v2\x13.ml_pipelines.ValueB\x02\x18\x01H\x00R\rconstantValue\x12-\n" +
 	"\x11runtime_parameter\x18\x02 \x01(\tH\x00R\x10runtimeParameter\x124\n" +

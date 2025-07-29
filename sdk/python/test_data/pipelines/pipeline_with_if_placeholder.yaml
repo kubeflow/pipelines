@@ -46,7 +46,6 @@ root:
               componentInputParameter: input0
         taskInfo:
           name: component-with-optional-inputs
-          taskName: component-with-optional-inputs
   inputDefinitions:
     parameters:
       input0:

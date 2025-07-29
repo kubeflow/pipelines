@@ -97,7 +97,6 @@ root:
               componentInputParameter: sample_input
         taskInfo:
           name: fail-op
-          taskName: fail-op
       print-op:
         cachingOptions:
           enableCache: true
@@ -113,7 +112,6 @@ root:
                 producerTask: fail-op
         taskInfo:
           name: print-op
-          taskName: print-op
         triggerPolicy:
           strategy: ALL_UPSTREAM_TASKS_COMPLETED
   inputDefinitions:

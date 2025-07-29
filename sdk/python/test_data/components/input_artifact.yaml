@@ -58,7 +58,6 @@ root:
               componentInputArtifact: data
         taskInfo:
           name: input-artifact
-          taskName: input-artifact
   inputDefinitions:
     artifacts:
       data:

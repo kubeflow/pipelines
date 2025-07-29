@@ -15,7 +15,6 @@ components:
                 componentInputArtifact: pipelinechannel--make-artifacts-Output-loop-item
           taskInfo:
             name: print-artifact-name
-            taskName: print-artifact-name
     inputDefinitions:
       artifacts:
         pipelinechannel--make-artifacts-Output:
@@ -47,7 +46,6 @@ components:
                 componentInputParameter: pipelinechannel--texts-loop-item
           taskInfo:
             name: make-artifact
-            taskName: make-artifact
     inputDefinitions:
       parameters:
         pipelinechannel--texts:
@@ -81,7 +79,6 @@ components:
                 componentInputParameter: pipelinechannel--texts-loop-item
           taskInfo:
             name: make-dataset
-            taskName: make-dataset
     inputDefinitions:
       parameters:
         pipelinechannel--texts:
@@ -109,7 +106,6 @@ components:
                 componentInputArtifact: pipelinechannel--make-datasets-Output-loop-item
           taskInfo:
             name: print-artifact-name-2
-            taskName: print-artifact-name-2
     inputDefinitions:
       artifacts:
         pipelinechannel--make-datasets-Output:
@@ -413,7 +409,6 @@ root:
           name: comp-make-artifacts
         taskInfo:
           name: make-artifacts
-          taskName: make-artifacts
       make-datasets:
         cachingOptions:
           enableCache: true
@@ -421,6 +416,5 @@ root:
           name: comp-make-datasets
         taskInfo:
           name: make-datasets
-          taskName: make-datasets
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

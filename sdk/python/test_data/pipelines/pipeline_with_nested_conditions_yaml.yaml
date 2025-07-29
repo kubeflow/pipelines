@@ -48,7 +48,6 @@ components:
             name: comp-generate-random-number
           taskInfo:
             name: generate-random-number
-            taskName: generate-random-number
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-output:
@@ -71,7 +70,6 @@ components:
                 componentInputParameter: pipelinechannel--generate-random-number-output
           taskInfo:
             name: print
-            taskName: print
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-output:
@@ -96,7 +94,6 @@ components:
                 componentInputParameter: pipelinechannel--generate-random-number-output
           taskInfo:
             name: print-2
-            taskName: print-2
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-output:
@@ -149,7 +146,6 @@ components:
             name: comp-generate-random-number-2
           taskInfo:
             name: generate-random-number-2
-            taskName: generate-random-number-2
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-output:
@@ -172,7 +168,6 @@ components:
                 componentInputParameter: pipelinechannel--generate-random-number-2-output
           taskInfo:
             name: print-3
-            taskName: print-3
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-output:
@@ -197,7 +192,6 @@ components:
                 componentInputParameter: pipelinechannel--generate-random-number-2-output
           taskInfo:
             name: print-4
-            taskName: print-4
     inputDefinitions:
       parameters:
         pipelinechannel--flip-coin-output:
@@ -352,6 +346,5 @@ root:
           name: comp-flip-coin
         taskInfo:
           name: flip-coin
-          taskName: flip-coin
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.13.0

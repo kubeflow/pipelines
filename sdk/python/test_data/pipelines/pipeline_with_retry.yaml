@@ -69,7 +69,6 @@ root:
           maxRetryCount: 3
         taskInfo:
           name: add
-          taskName: add
   inputDefinitions:
     parameters:
       a:

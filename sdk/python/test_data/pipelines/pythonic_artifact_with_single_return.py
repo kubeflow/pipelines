@@ -21,6 +21,7 @@ PACKAGES_TO_INSTALL = ['dill==0.3.7']
 if 'KFP_PIPELINE_SPEC_PACKAGE_PATH' in os.environ:
     PACKAGES_TO_INSTALL.append(os.environ['KFP_PIPELINE_SPEC_PACKAGE_PATH'])
 
+
 @dsl.component(packages_to_install=PACKAGES_TO_INSTALL)
 def make_language_model(text_dataset: Dataset) -> Model:
     # dill allows pickling objects belonging to a function's local namespace

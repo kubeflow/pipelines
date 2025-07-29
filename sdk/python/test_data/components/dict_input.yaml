@@ -55,7 +55,6 @@ root:
               componentInputParameter: struct
         taskInfo:
           name: dict-input
-          taskName: dict-input
   inputDefinitions:
     parameters:
       struct:
