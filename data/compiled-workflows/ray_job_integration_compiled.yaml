@@ -1,0 +1,453 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: ray-integration-test-
+spec:
+  arguments:
+    parameters:
+    - name: components-8ff2c59cd310bf86ddbde2385ea63167b4d20945fde680ecf386c95dd6dd4da0
+      value: '{"executorLabel":"exec-ray-fn","inputDefinitions":{"parameters":{"AWS_ACCESS_KEY_ID":{"parameterType":"STRING"},"AWS_DEFAULT_ENDPOINT":{"parameterType":"STRING"},"AWS_SECRET_ACCESS_KEY":{"parameterType":"STRING"},"AWS_STORAGE_BUCKET":{"parameterType":"STRING"},"AWS_STORAGE_BUCKET_MNIST_DIR":{"parameterType":"STRING"}}}}'
+    - name: implementations-8ff2c59cd310bf86ddbde2385ea63167b4d20945fde680ecf386c95dd6dd4da0
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","ray_fn"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''codeflare-sdk==v0.28.1''
+        \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf
+        \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true
+        python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        ray_fn(\n    AWS_DEFAULT_ENDPOINT: str,\n    AWS_STORAGE_BUCKET: str,\n    AWS_ACCESS_KEY_ID:
+        str,\n    AWS_SECRET_ACCESS_KEY: str,\n    AWS_STORAGE_BUCKET_MNIST_DIR: str\n)
+        -\u003e None:\n    import openshift\n    import subprocess\n    import ray  #
+        noqa: PLC0415\n    import tempfile\n    from codeflare_sdk import generate_cert  #
+        noqa: PLC0415\n    from codeflare_sdk.ray.cluster import Cluster, ClusterConfiguration  #
+        noqa: PLC0415\n    from codeflare_sdk.ray.client import RayJobClient\n    from
+        time import sleep\n\n    training_script = \"\"\"\nimport os\n\nimport torch\nimport
+        requests\nfrom pytorch_lightning import LightningModule, Trainer\nfrom pytorch_lightning.callbacks.progress
+        import TQDMProgressBar\nfrom torch import nn\nfrom torch.nn import functional
+        as F\nfrom torch.utils.data import DataLoader, random_split, RandomSampler\nfrom
+        torchmetrics import Accuracy\nfrom torchvision import transforms\nfrom torchvision.datasets
+        import MNIST\nimport gzip\nimport shutil\nfrom minio import Minio\n\nPATH_DATASETS
+        = os.environ.get(\"PATH_DATASETS\", \".\")\nBATCH_SIZE = 256 if torch.cuda.is_available()
+        else 64\n\nlocal_mnist_path = os.path.dirname(os.path.abspath(__file__))\n\nprint(\"prior
+        to running the trainer\")\nprint(\"MASTER_ADDR: is \", os.getenv(\"MASTER_ADDR\"))\nprint(\"MASTER_PORT:
+        is \", os.getenv(\"MASTER_PORT\"))\n\nSTORAGE_BUCKET_EXISTS = \"AWS_DEFAULT_ENDPOINT\"
+        in os.environ\nprint(\"STORAGE_BUCKET_EXISTS: \", STORAGE_BUCKET_EXISTS)\n\nprint(f''Storage_Bucket_Default_Endpoint
+        : is {os.environ.get(\"AWS_DEFAULT_ENDPOINT\")}'' if \"AWS_DEFAULT_ENDPOINT\"
+        in os.environ else \"\")\nprint(f''Storage_Bucket_Name : is {os.environ.get(\"AWS_STORAGE_BUCKET\")}''
+        if \"AWS_STORAGE_BUCKET\" in os.environ else \"\")\nprint(f''Storage_Bucket_Mnist_Directory
+        : is {os.environ.get(\"AWS_STORAGE_BUCKET_MNIST_DIR\")}'' if \"AWS_STORAGE_BUCKET_MNIST_DIR\"
+        in os.environ else \"\")\n\n\nclass LitMNIST(LightningModule):\n    def __init__(self,
+        data_dir=PATH_DATASETS, hidden_size=64, learning_rate=2e-4):\n        super().__init__()\n\n        #
+        Set our init args as class attributes\n        self.data_dir = data_dir\n        self.hidden_size
+        = hidden_size\n        self.learning_rate = learning_rate\n\n        # Hardcode
+        some dataset specific attributes\n        self.num_classes = 10\n        self.dims
+        = (1, 28, 28)\n        channels, width, height = self.dims\n        self.transform
+        = transforms.Compose(\n            [\n                transforms.ToTensor(),\n                transforms.Normalize((0.1307,),
+        (0.3081,)),\n            ]\n        )\n\n        # Define PyTorch model\n        self.model
+        = nn.Sequential(\n            nn.Flatten(),\n            nn.Linear(channels
+        * width * height, hidden_size),\n            nn.ReLU(),\n            nn.Dropout(0.1),\n            nn.Linear(hidden_size,
+        hidden_size),\n            nn.ReLU(),\n            nn.Dropout(0.1),\n            nn.Linear(hidden_size,
+        self.num_classes),\n        )\n\n        self.val_accuracy = Accuracy(task=\"multiclass\",
+        num_classes=10)\n        self.test_accuracy = Accuracy(task=\"multiclass\",
+        num_classes=10)\n\n    def forward(self, x):\n        x = self.model(x)\n        return
+        F.log_softmax(x, dim=1)\n\n    def training_step(self, batch, batch_idx):\n        x,
+        y = batch\n        logits = self(x)\n        loss = F.nll_loss(logits, y)\n        return
+        loss\n\n    def validation_step(self, batch, batch_idx):\n        x, y = batch\n        logits
+        = self(x)\n        loss = F.nll_loss(logits, y)\n        preds = torch.argmax(logits,
+        dim=1)\n        self.val_accuracy.update(preds, y)\n\n        # Calling self.log
+        will surface up scalars for you in TensorBoard\n        self.log(\"val_loss\",
+        loss, prog_bar=True)\n        self.log(\"val_acc\", self.val_accuracy, prog_bar=True)\n\n    def
+        test_step(self, batch, batch_idx):\n        x, y = batch\n        logits =
+        self(x)\n        loss = F.nll_loss(logits, y)\n        preds = torch.argmax(logits,
+        dim=1)\n        self.test_accuracy.update(preds, y)\n\n        # Calling self.log
+        will surface up scalars for you in TensorBoard\n        self.log(\"test_loss\",
+        loss, prog_bar=True)\n        self.log(\"test_acc\", self.test_accuracy, prog_bar=True)\n\n    def
+        configure_optimizers(self):\n        optimizer = torch.optim.Adam(self.parameters(),
+        lr=self.learning_rate)\n        return optimizer\n\n    ####################\n    #
+        DATA RELATED HOOKS\n    ####################\n\n    def prepare_data(self):\n        #
+        download\n        print(\"Downloading MNIST dataset...\")\n\n        if (\n            STORAGE_BUCKET_EXISTS\n            and
+        os.environ.get(\"AWS_DEFAULT_ENDPOINT\") != \"\"\n            and os.environ.get(\"AWS_DEFAULT_ENDPOINT\")
+        != None\n        ):\n            print(\"Using storage bucket to download
+        datasets...\")\n\n            dataset_dir = os.path.join(self.data_dir, \"MNIST/raw\")\n            endpoint
+        = os.environ.get(\"AWS_DEFAULT_ENDPOINT\")\n            access_key = os.environ.get(\"AWS_ACCESS_KEY_ID\")\n            secret_key
+        = os.environ.get(\"AWS_SECRET_ACCESS_KEY\")\n            bucket_name = os.environ.get(\"AWS_STORAGE_BUCKET\")\n\n            #
+        remove prefix if specified in storage bucket endpoint url\n            secure
+        = True\n            if endpoint.startswith(\"https://\"):\n                endpoint
+        = endpoint[len(\"https://\") :]\n            elif endpoint.startswith(\"http://\"):\n                endpoint
+        = endpoint[len(\"http://\") :]\n                secure = False\n\n            client
+        = Minio(\n                endpoint,\n                access_key=access_key,\n                secret_key=secret_key,\n                cert_check=False,\n                secure=secure,\n            )\n\n            if
+        not os.path.exists(dataset_dir):\n                os.makedirs(dataset_dir)\n            else:\n                print(f\"Directory
+        ''{dataset_dir}'' already exists\")\n\n            # To download datasets
+        from storage bucket''s specific directory, use prefix to provide directory
+        name\n            prefix = os.environ.get(\"AWS_STORAGE_BUCKET_MNIST_DIR\")\n            #
+        download all files from prefix folder of storage bucket recursively\n            for
+        item in client.list_objects(bucket_name, prefix=prefix, recursive=True):\n                file_name
+        = item.object_name[len(prefix) + 1 :]\n                dataset_file_path =
+        os.path.join(dataset_dir, file_name)\n                if not os.path.exists(dataset_file_path):\n                    client.fget_object(bucket_name,
+        item.object_name, dataset_file_path)\n                else:\n                    print(f\"File-path
+        ''{dataset_file_path}'' already exists\")\n                # Unzip files\n                with
+        gzip.open(dataset_file_path, \"rb\") as f_in:\n                    with open(dataset_file_path.split(\".\")[:-1][0],
+        \"wb\") as f_out:\n                        shutil.copyfileobj(f_in, f_out)\n                #
+        delete zip file\n                os.remove(dataset_file_path)\n                unzipped_filepath
+        = dataset_file_path.split(\".\")[0]\n                if os.path.exists(unzipped_filepath):\n                    print(\n                        f\"Unzipped
+        and saved dataset file to path - {unzipped_filepath}\"\n                    )\n            download_datasets
+        = False\n\n        else:\n            print(\"Using default MNIST mirror reference
+        to download datasets...\")\n            download_datasets = True\n\n        MNIST(self.data_dir,
+        train=True, download=download_datasets)\n        MNIST(self.data_dir, train=False,
+        download=download_datasets)\n\n    def setup(self, stage=None):\n        #
+        Assign train/val datasets for use in dataloaders\n        if stage == \"fit\"
+        or stage is None:\n            mnist_full = MNIST(\n                self.data_dir,
+        train=True, transform=self.transform, download=False\n            )\n            self.mnist_train,
+        self.mnist_val = random_split(mnist_full, [55000, 5000])\n\n        # Assign
+        test dataset for use in dataloader(s)\n        if stage == \"test\" or stage
+        is None:\n            self.mnist_test = MNIST(\n                self.data_dir,
+        train=False, transform=self.transform, download=False\n            )\n\n    def
+        train_dataloader(self):\n        return DataLoader(\n            self.mnist_train,\n            batch_size=BATCH_SIZE,\n            sampler=RandomSampler(self.mnist_train,
+        num_samples=1000),\n        )\n\n    def val_dataloader(self):\n        return
+        DataLoader(self.mnist_val, batch_size=BATCH_SIZE)\n\n    def test_dataloader(self):\n        return
+        DataLoader(self.mnist_test, batch_size=BATCH_SIZE)\n\n# Init DataLoader from
+        MNIST Dataset\n\nmodel = LitMNIST(data_dir=local_mnist_path)\n\nprint(\"GROUP:
+        \", int(os.environ.get(\"GROUP_WORLD_SIZE\", 1)))\nprint(\"LOCAL: \", int(os.environ.get(\"LOCAL_WORLD_SIZE\",
+        1)))\n\n# Initialize a trainer\ntrainer = Trainer(\n    # devices=1 if torch.cuda.is_available()
+        else None,  # limiting got iPython runs\n    max_epochs=3,\n    callbacks=[TQDMProgressBar(refresh_rate=20)],\n    num_nodes=int(os.environ.get(\"GROUP_WORLD_SIZE\",
+        1)),\n    devices=int(os.environ.get(\"LOCAL_WORLD_SIZE\", 1)),\n    strategy=\"ddp\",\n)\n\n#
+        Train the model\ntrainer.fit(model)\n\"\"\"\n\n    pip_requirements = \"\"\"\npytorch_lightning==2.4.0\ntorchmetrics==1.6.0\ntorchvision==0.20.1\nminio\n\"\"\"\n\n    def
+        assert_job_completion(status):\n        if status == \"SUCCEEDED\":\n            print(f\"Job
+        has completed: ''{status}''\")\n            assert True\n        else:\n            print(f\"Job
+        has completed: ''{status}''\")\n            assert False\n\n    def assert_jobsubmit_withlogin(cluster,
+        mnist_directory):\n        with open(\"/run/secrets/kubernetes.io/serviceaccount/token\")
+        as token_file:\n            auth_token = token_file.read()\n        print(\"Auth
+        token: \" + auth_token)\n        ray_dashboard = cluster.cluster_dashboard_uri()\n        header
+        = {\"Authorization\": f\"Bearer {auth_token}\"}\n        client = RayJobClient(address=ray_dashboard,
+        headers=header, verify=False)\n\n        submission_id = client.submit_job(\n            entrypoint=\"python
+        mnist.py\",\n            runtime_env={\n                \"working_dir\": mnist_directory,\n                \"pip\":
+        mnist_directory + \"/mnist_pip_requirements.txt\",\n                \"env_vars\":
+        {\n                    \"AWS_DEFAULT_ENDPOINT\": AWS_DEFAULT_ENDPOINT,\n                    \"AWS_STORAGE_BUCKET\":
+        AWS_STORAGE_BUCKET,\n                    \"AWS_ACCESS_KEY_ID\": AWS_ACCESS_KEY_ID,\n                    \"AWS_SECRET_ACCESS_KEY\":
+        AWS_SECRET_ACCESS_KEY,\n                    \"AWS_STORAGE_BUCKET_MNIST_DIR\":
+        AWS_STORAGE_BUCKET_MNIST_DIR\n                },\n            },\n            entrypoint_num_cpus=1,\n        )\n        print(f\"Submitted
+        job with ID: {submission_id}\")\n        done = False\n        time = 0\n        timeout
+        = 900\n        while not done:\n            status = client.get_job_status(submission_id)\n            if
+        status.is_terminal():\n                break\n            if not done:\n                print(status)\n                if
+        timeout and time \u003e= timeout:\n                    raise TimeoutError(f\"job
+        has timed out after waiting {timeout}s\")\n                sleep(5)\n                time
+        += 5\n\n        logs = client.get_job_logs(submission_id)\n        print(logs)\n\n        assert_job_completion(status)\n\n        client.delete_job(submission_id)\n\n        cluster.down()\n\n    cluster
+        = Cluster(\n        ClusterConfiguration(\n            name=\"raytest\",\n            num_workers=1,\n            head_cpu_requests=1,\n            head_cpu_limits=1,\n            head_memory_requests=4,\n            head_memory_limits=4,\n            worker_cpu_requests=1,\n            worker_cpu_limits=1,\n            worker_memory_requests=1,\n            worker_memory_limits=2,\n            image=\"quay.io/modh/ray@sha256:a5b7c04a14f180d7ca6d06a5697f6bb684e40a26b95a0c872cac23b552741707\",\n            verify_tls=False\n        )\n    )\n\n    #
+        always clean the resources\n    cluster.down()\n    print(cluster.status())\n    cluster.up()\n    cluster.wait_ready()\n    print(cluster.status())\n    print(cluster.details())\n\n    ray_dashboard_uri
+        = cluster.cluster_dashboard_uri()\n    ray_cluster_uri = cluster.cluster_uri()\n    print(ray_dashboard_uri)\n    print(ray_cluster_uri)\n\n    #
+        before proceeding make sure the cluster exists and the uri is not empty\n    assert
+        ray_cluster_uri, \"Ray cluster needs to be started and set before proceeding\"\n    assert
+        ray_dashboard_uri, \"Ray dashboard needs to be started and set before proceeding\"\n\n    mnist_directory
+        = tempfile.mkdtemp(prefix=\"mnist-dir\")\n    with open(mnist_directory +
+        \"/mnist.py\", \"w\") as mnist_file:\n        mnist_file.write(training_script)\n    with
+        open(mnist_directory + \"/mnist_pip_requirements.txt\", \"w\") as pip_requirements_file:\n        pip_requirements_file.write(pip_requirements)\n\n    assert_jobsubmit_withlogin(cluster,
+        mnist_directory)\n\n    cluster.down()\n\n"],"image":"registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"ray-fn":{"cachingOptions":{},"componentRef":{"name":"comp-ray-fn"},"inputs":{"parameters":{"AWS_ACCESS_KEY_ID":{"componentInputParameter":"AWS_ACCESS_KEY_ID"},"AWS_DEFAULT_ENDPOINT":{"componentInputParameter":"AWS_DEFAULT_ENDPOINT"},"AWS_SECRET_ACCESS_KEY":{"componentInputParameter":"AWS_SECRET_ACCESS_KEY"},"AWS_STORAGE_BUCKET":{"componentInputParameter":"AWS_STORAGE_BUCKET"},"AWS_STORAGE_BUCKET_MNIST_DIR":{"componentInputParameter":"AWS_STORAGE_BUCKET_MNIST_DIR"}}},"taskInfo":{"name":"ray-fn"}}}},"inputDefinitions":{"parameters":{"AWS_ACCESS_KEY_ID":{"parameterType":"STRING"},"AWS_DEFAULT_ENDPOINT":{"parameterType":"STRING"},"AWS_SECRET_ACCESS_KEY":{"parameterType":"STRING"},"AWS_STORAGE_BUCKET":{"parameterType":"STRING"},"AWS_STORAGE_BUCKET_MNIST_DIR":{"parameterType":"STRING"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - ray-integration-test
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-8ff2c59cd310bf86ddbde2385ea63167b4d20945fde680ecf386c95dd6dd4da0}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-ray-fn"},"inputs":{"parameters":{"AWS_ACCESS_KEY_ID":{"componentInputParameter":"AWS_ACCESS_KEY_ID"},"AWS_DEFAULT_ENDPOINT":{"componentInputParameter":"AWS_DEFAULT_ENDPOINT"},"AWS_SECRET_ACCESS_KEY":{"componentInputParameter":"AWS_SECRET_ACCESS_KEY"},"AWS_STORAGE_BUCKET":{"componentInputParameter":"AWS_STORAGE_BUCKET"},"AWS_STORAGE_BUCKET_MNIST_DIR":{"componentInputParameter":"AWS_STORAGE_BUCKET_MNIST_DIR"}}},"taskInfo":{"name":"ray-fn"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-8ff2c59cd310bf86ddbde2385ea63167b4d20945fde680ecf386c95dd6dd4da0}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: ray-fn-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.ray-fn-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.ray-fn-driver.outputs.parameters.cached-decision}}'
+        depends: ray-fn-driver.Succeeded
+        name: ray-fn
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - ray-integration-test
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

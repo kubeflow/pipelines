@@ -1,0 +1,427 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: test-data-passing-pipeline-1-
+spec:
+  arguments:
+    parameters:
+    - name: components-c01495e21d217ae913182dd9283a72555ef91dc7c7a2bc3fbf4dd22950466aa3
+      value: '{"executorLabel":"exec-receive-file","inputDefinitions":{"artifacts":{"incomingfile":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"saveartifact":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-c01495e21d217ae913182dd9283a72555ef91dc7c7a2bc3fbf4dd22950466aa3
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","receive_file"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        receive_file(\n    incomingfile: dsl.InputPath(),\n    saveartifact: dsl.OutputPath(),\n):\n    import
+        os  # noqa: PLC0415\n    import shutil  # noqa: PLC0415\n\n    print(\"reading
+        %s, size is %s\" % (incomingfile, os.path.getsize(incomingfile)))\n\n    with
+        open(incomingfile, \"rb\") as f:\n        b = f.read(1)\n        print(\"read
+        byte: %s\" % b)\n        f.close()\n\n    print(\"copying in %s to out %s\"
+        % (incomingfile, saveartifact))\n    shutil.copyfile(incomingfile, saveartifact)\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+    - name: components-590ff27193b35519f53bd3d75d32212943985553335c7caba53e824197932a4f
+      value: '{"executorLabel":"exec-send-file","inputDefinitions":{"parameters":{"file_size_bytes":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"outgoingfile":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-590ff27193b35519f53bd3d75d32212943985553335c7caba53e824197932a4f
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","send_file"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        send_file(\n    file_size_bytes: int,\n    outgoingfile: dsl.OutputPath(),\n):\n    import
+        os  # noqa: PLC0415\n    import zipfile  # noqa: PLC0415\n\n    def create_large_file(file_path,
+        size_in_bytes):\n        with open(file_path, \"wb\") as f:\n            f.write(os.urandom(size_in_bytes))\n\n    def
+        zip_file(input_file_path, output_zip_path):\n        with zipfile.ZipFile(output_zip_path,
+        \"w\", compression=zipfile.ZIP_DEFLATED) as zipf:\n            zipf.write(input_file_path,
+        os.path.basename(input_file_path))\n\n    print(\"starting creating the file...\")\n    file_path
+        = \"/tmp/large_file.txt\"\n    create_large_file(file_path, file_size_bytes)\n    zip_file(file_path,
+        outgoingfile)\n    print(f\"saved: {outgoingfile}\")\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+    - name: components-735e81a293005791f0f89efc89c25679643fe71b9d5d20ce46ef03cc92225ef8
+      value: '{"executorLabel":"exec-test-uploaded-artifact","inputDefinitions":{"artifacts":{"previous_step":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}},"parameters":{"bucket_name":{"parameterType":"STRING"},"file_size_bytes":{"parameterType":"NUMBER_INTEGER"},"mlpipeline_minio_artifact_secret":{"parameterType":"STRING"}}}}'
+    - name: implementations-735e81a293005791f0f89efc89c25679643fe71b9d5d20ce46ef03cc92225ef8
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","test_uploaded_artifact"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''minio'' \u0026\u0026 \"$0\"
+        \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" \u003e
+        \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        test_uploaded_artifact(\n    previous_step: dsl.InputPath(),\n    file_size_bytes:
+        int,\n    mlpipeline_minio_artifact_secret: str,\n    bucket_name: str,\n):\n    import
+        base64  # noqa: PLC0415\n    import json  # noqa: PLC0415\n\n    from minio
+        import Minio  # noqa: PLC0415\n\n    def inner_decode(my_str):\n        return
+        base64.b64decode(my_str).decode(\"utf-8\")\n\n    mlpipeline_minio_artifact_secret
+        = json.loads(mlpipeline_minio_artifact_secret.replace(\"''\", ''\"''))\n    host
+        = inner_decode(mlpipeline_minio_artifact_secret[\"host\"])\n    port = inner_decode(mlpipeline_minio_artifact_secret[\"port\"])\n    access_key
+        = inner_decode(mlpipeline_minio_artifact_secret[\"accesskey\"])\n    secret_key
+        = inner_decode(mlpipeline_minio_artifact_secret[\"secretkey\"])\n    secure
+        = inner_decode(mlpipeline_minio_artifact_secret[\"secure\"])\n    secure =
+        secure.lower() == \"true\"\n    client = Minio(f\"{host}:{port}\", access_key=access_key,
+        secret_key=secret_key, secure=secure)\n\n    store_object = previous_step.replace(f\"/s3/{bucket_name}/\",
+        \"\")\n    print(f\"parsing {previous_step} to {store_object} \")\n    data
+        = client.get_object(bucket_name, store_object)\n\n    with open(\"my-testfile\",
+        \"wb\") as file_data:\n        for d in data.stream(32 * 1024):\n            file_data.write(d)\n        bytes_written
+        = file_data.tell()\n\n    print(file_size_bytes, bytes_written)\n    diff
+        = round((bytes_written / file_size_bytes) - 1, 3)\n    print(diff)\n    #
+        if not matching, the test will fail\n    assert diff == 0\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"receive-file":{"cachingOptions":{},"componentRef":{"name":"comp-receive-file"},"dependentTasks":["send-file"],"inputs":{"artifacts":{"incomingfile":{"taskOutputArtifact":{"outputArtifactKey":"outgoingfile","producerTask":"send-file"}}}},"taskInfo":{"name":"receive-file"}},"send-file":{"cachingOptions":{},"componentRef":{"name":"comp-send-file"},"inputs":{"parameters":{"file_size_bytes":{"runtimeValue":{"constant":20971520}}}},"taskInfo":{"name":"send-file"}},"test-uploaded-artifact":{"cachingOptions":{},"componentRef":{"name":"comp-test-uploaded-artifact"},"dependentTasks":["receive-file"],"inputs":{"artifacts":{"previous_step":{"taskOutputArtifact":{"outputArtifactKey":"saveartifact","producerTask":"receive-file"}}},"parameters":{"bucket_name":{"componentInputParameter":"bucket_name"},"file_size_bytes":{"runtimeValue":{"constant":20971520}},"mlpipeline_minio_artifact_secret":{"componentInputParameter":"mlpipeline_minio_artifact_secret"}}},"taskInfo":{"name":"test-uploaded-artifact"}}}},"inputDefinitions":{"parameters":{"bucket_name":{"parameterType":"STRING"},"mlpipeline_minio_artifact_secret":{"parameterType":"STRING"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - test-data-passing-pipeline-1
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-c01495e21d217ae913182dd9283a72555ef91dc7c7a2bc3fbf4dd22950466aa3}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-receive-file"},"dependentTasks":["send-file"],"inputs":{"artifacts":{"incomingfile":{"taskOutputArtifact":{"outputArtifactKey":"outgoingfile","producerTask":"send-file"}}}},"taskInfo":{"name":"receive-file"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-c01495e21d217ae913182dd9283a72555ef91dc7c7a2bc3fbf4dd22950466aa3}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: send-file.Succeeded
+        name: receive-file-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.receive-file-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.receive-file-driver.outputs.parameters.cached-decision}}'
+        depends: receive-file-driver.Succeeded
+        name: receive-file
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-590ff27193b35519f53bd3d75d32212943985553335c7caba53e824197932a4f}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-send-file"},"inputs":{"parameters":{"file_size_bytes":{"runtimeValue":{"constant":20971520}}}},"taskInfo":{"name":"send-file"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-590ff27193b35519f53bd3d75d32212943985553335c7caba53e824197932a4f}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: send-file-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.send-file-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.send-file-driver.outputs.parameters.cached-decision}}'
+        depends: send-file-driver.Succeeded
+        name: send-file
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-735e81a293005791f0f89efc89c25679643fe71b9d5d20ce46ef03cc92225ef8}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-test-uploaded-artifact"},"dependentTasks":["receive-file"],"inputs":{"artifacts":{"previous_step":{"taskOutputArtifact":{"outputArtifactKey":"saveartifact","producerTask":"receive-file"}}},"parameters":{"bucket_name":{"componentInputParameter":"bucket_name"},"file_size_bytes":{"runtimeValue":{"constant":20971520}},"mlpipeline_minio_artifact_secret":{"componentInputParameter":"mlpipeline_minio_artifact_secret"}}},"taskInfo":{"name":"test-uploaded-artifact"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-735e81a293005791f0f89efc89c25679643fe71b9d5d20ce46ef03cc92225ef8}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: receive-file.Succeeded
+        name: test-uploaded-artifact-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.test-uploaded-artifact-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.test-uploaded-artifact-driver.outputs.parameters.cached-decision}}'
+        depends: test-uploaded-artifact-driver.Succeeded
+        name: test-uploaded-artifact
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - test-data-passing-pipeline-1
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

@@ -1,0 +1,819 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: collected-artifact-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: components-3a290ddc9c638535321b797c886ea8bcbb5beeb812e2a3ed23be856479a7ec52
+      value: '{"executorLabel":"exec-create-file","inputDefinitions":{"parameters":{"content":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"file":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-3a290ddc9c638535321b797c886ea8bcbb5beeb812e2a3ed23be856479a7ec52
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_file"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        create_file(file: Output[Artifact], content: str):\n    print(f''Creating
+        file with content: {content}'')\n    with open(file.path, ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.9"}'
+    - name: components-330143e75e6de608064ea1aab586d91afe83cfb638c5c91e719b47d1cddc5b65
+      value: '{"executorLabel":"exec-read-single-dataset-generate-model","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"id":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"results":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-330143e75e6de608064ea1aab586d91afe83cfb638c5c91e719b47d1cddc5b65
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_single_dataset_generate_model"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        read_single_dataset_generate_model(data: Dataset, id: str, results:Output[Model]):\n    print(f''Reading
+        file: {data.path}'')\n    with open(data.path, ''r'') as f:\n        info
+        = f.read()\n        with open(results.path, ''w'') as f2:\n            f2.write(f\"{info}-{id}\")\n            results.metadata[''model'']
+        = info\n            results.metadata[''model_name''] = f\"model-artifact-inner-iteration-{info}-{id}\"\n\n"],"image":"python:3.9"}'
+    - name: components-8c57e292746a6301673dcdfc50c4289c97a08082f15ac6f9e8215ead71099b18
+      value: '{"executorLabel":"exec-create-dataset","inputDefinitions":{"parameters":{"content":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-8c57e292746a6301673dcdfc50c4289c97a08082f15ac6f9e8215ead71099b18
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_dataset"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        create_dataset(data: Output[Dataset], content: str):\n    print(f''Creating
+        file with content: {content}'')\n    with open(data.path, ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.9"}'
+    - name: components-comp-single-node-dag
+      value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"data","producerSubtask":"create-dataset"}]}}},"tasks":{"create-dataset":{"cachingOptions":{},"componentRef":{"name":"comp-create-dataset"},"inputs":{"parameters":{"content":{"componentInputParameter":"char"}}},"taskInfo":{"name":"create-dataset"}}}},"inputDefinitions":{"parameters":{"char":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: components-comp-for-loop-2
+      value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--read-single-dataset-generate-model-results":{"artifactSelectors":[{"outputArtifactKey":"results","producerSubtask":"read-single-dataset-generate-model"}]},"pipelinechannel--single-node-dag-Output":{"artifactSelectors":[{"outputArtifactKey":"Output","producerSubtask":"single-node-dag"}]}}},"tasks":{"read-single-dataset-generate-model":{"cachingOptions":{},"componentRef":{"name":"comp-read-single-dataset-generate-model"},"dependentTasks":["single-node-dag"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"single-node-dag"}}},"parameters":{"id":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"read-single-dataset-generate-model"}},"single-node-dag":{"cachingOptions":{},"componentRef":{"name":"comp-single-node-dag"},"inputs":{"parameters":{"char":{"componentInputParameter":"pipelinechannel--split-chars-Output-loop-item"}}},"taskInfo":{"name":"single-node-dag"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--split-chars-Output":{"parameterType":"LIST"},"pipelinechannel--split-chars-Output-loop-item":{"parameterType":"STRING"},"pipelinechannel--split-ids-Output-loop-item":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--read-single-dataset-generate-model-results":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"},"isArtifactList":true},"pipelinechannel--single-node-dag-Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
+    - name: components-692cd36c12688cd3555cc750d3dd85ccd6fe3c1b375494fce3d573c931910974
+      value: '{"executorLabel":"exec-read-datasets","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-692cd36c12688cd3555cc750d3dd85ccd6fe3c1b375494fce3d573c931910974
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_datasets"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        read_datasets(data: List[Dataset]) -\u003e str:\n    for d in data:\n        print(f''Reading
+        dataset {d.name} file: {d.path}'')\n        with open(d.path, ''r'') as f:\n            print(f.read())\n\n    return
+        ''files read''\n\n"],"image":"python:3.9"}'
+    - name: components-2f4a9b4d21c95933dbabfaa4c537c9b7618d4a182ad6cd380aa2be378219f890
+      value: '{"executorLabel":"exec-read-models","inputDefinitions":{"artifacts":{"models":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-2f4a9b4d21c95933dbabfaa4c537c9b7618d4a182ad6cd380aa2be378219f890
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_models"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        read_models(models: List[Model],) -\u003e str:\n    for m in models:\n        print(f''Reading
+        model {m.name} file: {m.path}'')\n        with open(m.path, ''r'') as f:\n            info
+        = f.read()\n            print(f\"Model raw data: {info}\")\n            print(f\"Model
+        metadata: {m.metadata}\")\n    return ''models read''\n\n"],"image":"python:3.9"}'
+    - name: components-dc99ee2df9d6ea766c5f4f3ed0004827afcd75d5cf8c2e322790332d7d55ed68
+      value: '{"executorLabel":"exec-read-single-file","inputDefinitions":{"artifacts":{"file":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-dc99ee2df9d6ea766c5f4f3ed0004827afcd75d5cf8c2e322790332d7d55ed68
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_single_file"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        read_single_file(file: Artifact) -\u003e str:\n    print(f''Reading file:
+        {file.path}'')\n    with open(file.path, ''r'') as f:\n        print(f.read())\n\n    return
+        file.uri\n\n"],"image":"python:3.9"}'
+    - name: components-comp-for-loop-1
+      value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--read-single-dataset-generate-model-results":{"artifactSelectors":[{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerSubtask":"for-loop-2"}]}}},"tasks":{"create-file":{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"create-file"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--split-chars-Output":{"componentInputParameter":"pipelinechannel--split-chars-Output"},"pipelinechannel--split-ids-Output-loop-item":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"parameterIterator":{"itemInput":"pipelinechannel--split-chars-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-chars-Output"}},"taskInfo":{"name":"for-loop-2"}},"read-datasets":{"cachingOptions":{},"componentRef":{"name":"comp-read-datasets"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--single-node-dag-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-datasets"}},"read-models":{"cachingOptions":{},"componentRef":{"name":"comp-read-models"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"models":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-models"}},"read-single-file":{"cachingOptions":{},"componentRef":{"name":"comp-read-single-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"read-single-file"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--split-chars-Output":{"parameterType":"LIST"},"pipelinechannel--split-ids-Output":{"parameterType":"LIST"},"pipelinechannel--split-ids-Output-loop-item":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--read-single-dataset-generate-model-results":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
+    - name: components-428bc786363b9064b8bf43e0468e0f847dc303bd0cfb6fb87e76af1bbbfaae11
+      value: '{"executorLabel":"exec-split-chars","inputDefinitions":{"parameters":{"model_ids":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
+    - name: implementations-428bc786363b9064b8bf43e0468e0f847dc303bd0cfb6fb87e76af1bbbfaae11
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","split_chars"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        split_chars(model_ids: str) -\u003e list:\n    return model_ids.split('','')\n\n"],"image":"python:3.9"}'
+    - name: components-8f003b8bc279fb91300275bcb0f32e655c2a9f5192dab9be9eb36b14b085e753
+      value: '{"executorLabel":"exec-split-ids","inputDefinitions":{"parameters":{"model_ids":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
+    - name: implementations-8f003b8bc279fb91300275bcb0f32e655c2a9f5192dab9be9eb36b14b085e753
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","split_ids"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        split_ids(model_ids: str) -\u003e list:\n    return model_ids.split('','')\n\n"],"image":"python:3.9"}'
+    - name: components-comp-collecting-artifacts
+      value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerSubtask":"for-loop-1"}]}}},"tasks":{"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-chars","split-ids"],"inputs":{"parameters":{"pipelinechannel--split-chars-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-chars"}},"pipelinechannel--split-ids-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-ids"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-ids-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-ids-Output"}},"taskInfo":{"name":"for-loop-1"}},"split-chars":{"cachingOptions":{},"componentRef":{"name":"comp-split-chars"},"inputs":{"parameters":{"model_ids":{"componentInputParameter":"model_chars"}}},"taskInfo":{"name":"split-chars"}},"split-ids":{"cachingOptions":{},"componentRef":{"name":"comp-split-ids"},"inputs":{"parameters":{"model_ids":{"componentInputParameter":"model_ids"}}},"taskInfo":{"name":"split-ids"}}}},"inputDefinitions":{"parameters":{"model_chars":{"defaultValue":"","isOptional":true,"parameterType":"STRING"},"model_ids":{"defaultValue":"","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"collecting-artifacts":{"cachingOptions":{},"componentRef":{"name":"comp-collecting-artifacts"},"inputs":{"parameters":{"model_chars":{"runtimeValue":{"constant":"x,y,z"}},"model_ids":{"runtimeValue":{"constant":"s1,s2,s3"}}}},"taskInfo":{"name":"collecting-artifacts"}},"read-models":{"cachingOptions":{},"componentRef":{"name":"comp-read-models-2"},"dependentTasks":["collecting-artifacts"],"inputs":{"artifacts":{"models":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"collecting-artifacts"}}}},"taskInfo":{"name":"read-models"}}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - collected-artifact-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-8c57e292746a6301673dcdfc50c4289c97a08082f15ac6f9e8215ead71099b18}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-dataset"},"inputs":{"parameters":{"content":{"componentInputParameter":"char"}}},"taskInfo":{"name":"create-dataset"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-8c57e292746a6301673dcdfc50c4289c97a08082f15ac6f9e8215ead71099b18}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: create-dataset-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.create-dataset-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.create-dataset-driver.outputs.parameters.cached-decision}}'
+        depends: create-dataset-driver.Succeeded
+        name: create-dataset
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-single-node-dag
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - collected-artifact-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-330143e75e6de608064ea1aab586d91afe83cfb638c5c91e719b47d1cddc5b65}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-single-dataset-generate-model"},"dependentTasks":["single-node-dag"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"single-node-dag"}}},"parameters":{"id":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"read-single-dataset-generate-model"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-330143e75e6de608064ea1aab586d91afe83cfb638c5c91e719b47d1cddc5b65}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: single-node-dag.Succeeded
+        name: read-single-dataset-generate-model-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.read-single-dataset-generate-model-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.read-single-dataset-generate-model-driver.outputs.parameters.cached-decision}}'
+        depends: read-single-dataset-generate-model-driver.Succeeded
+        name: read-single-dataset-generate-model
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-single-node-dag}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-single-node-dag"},"inputs":{"parameters":{"char":{"componentInputParameter":"pipelinechannel--split-chars-Output-loop-item"}}},"taskInfo":{"name":"single-node-dag"}}'
+        name: single-node-dag-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.single-node-dag-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.single-node-dag-driver.outputs.parameters.condition}}'
+        depends: single-node-dag-driver.Succeeded
+        name: single-node-dag
+        template: comp-single-node-dag
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-2
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-2}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--split-chars-Output":{"componentInputParameter":"pipelinechannel--split-chars-Output"},"pipelinechannel--split-ids-Output-loop-item":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"parameterIterator":{"itemInput":"pipelinechannel--split-chars-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-chars-Output"}},"taskInfo":{"name":"for-loop-2"}}'
+        name: iteration-item-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+        depends: iteration-item-driver.Succeeded
+        name: iteration-item
+        template: comp-for-loop-2
+    inputs:
+      parameters:
+      - name: parent-dag-id
+      - name: iteration-index
+    metadata: {}
+    name: comp-for-loop-2-iteration
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--split-chars-Output":{"componentInputParameter":"pipelinechannel--split-chars-Output"},"pipelinechannel--split-ids-Output-loop-item":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"parameterIterator":{"itemInput":"pipelinechannel--split-chars-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-chars-Output"}},"taskInfo":{"name":"for-loop-2"}}'
+        name: iteration-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: iteration-index
+            value: '{{item}}'
+        depends: iteration-driver.Succeeded
+        name: iteration-iterations
+        template: comp-for-loop-2-iteration
+        withSequence:
+          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-2-for-loop-2-iterator
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-3a290ddc9c638535321b797c886ea8bcbb5beeb812e2a3ed23be856479a7ec52}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"create-file"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-3a290ddc9c638535321b797c886ea8bcbb5beeb812e2a3ed23be856479a7ec52}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: create-file-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.create-file-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.create-file-driver.outputs.parameters.cached-decision}}'
+        depends: create-file-driver.Succeeded
+        name: create-file
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: for-loop-2
+        template: comp-for-loop-2-for-loop-2-iterator
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-692cd36c12688cd3555cc750d3dd85ccd6fe3c1b375494fce3d573c931910974}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-datasets"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--single-node-dag-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-datasets"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-692cd36c12688cd3555cc750d3dd85ccd6fe3c1b375494fce3d573c931910974}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: for-loop-2.Succeeded
+        name: read-datasets-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.read-datasets-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.read-datasets-driver.outputs.parameters.cached-decision}}'
+        depends: read-datasets-driver.Succeeded
+        name: read-datasets
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-2f4a9b4d21c95933dbabfaa4c537c9b7618d4a182ad6cd380aa2be378219f890}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-models"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"models":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-models"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-2f4a9b4d21c95933dbabfaa4c537c9b7618d4a182ad6cd380aa2be378219f890}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: for-loop-2.Succeeded
+        name: read-models-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.read-models-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.read-models-driver.outputs.parameters.cached-decision}}'
+        depends: read-models-driver.Succeeded
+        name: read-models
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dc99ee2df9d6ea766c5f4f3ed0004827afcd75d5cf8c2e322790332d7d55ed68}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-single-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"read-single-file"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dc99ee2df9d6ea766c5f4f3ed0004827afcd75d5cf8c2e322790332d7d55ed68}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: create-file.Succeeded
+        name: read-single-file-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.read-single-file-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.read-single-file-driver.outputs.parameters.cached-decision}}'
+        depends: read-single-file-driver.Succeeded
+        name: read-single-file
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-1
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-1}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-chars","split-ids"],"inputs":{"parameters":{"pipelinechannel--split-chars-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-chars"}},"pipelinechannel--split-ids-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-ids"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-ids-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-ids-Output"}},"taskInfo":{"name":"for-loop-1"}}'
+        name: iteration-item-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+        depends: iteration-item-driver.Succeeded
+        name: iteration-item
+        template: comp-for-loop-1
+    inputs:
+      parameters:
+      - name: parent-dag-id
+      - name: iteration-index
+    metadata: {}
+    name: comp-for-loop-1-iteration
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-1}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-chars","split-ids"],"inputs":{"parameters":{"pipelinechannel--split-chars-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-chars"}},"pipelinechannel--split-ids-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-ids"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-ids-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-ids-Output"}},"taskInfo":{"name":"for-loop-1"}}'
+        name: iteration-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: iteration-index
+            value: '{{item}}'
+        depends: iteration-driver.Succeeded
+        name: iteration-iterations
+        template: comp-for-loop-1-iteration
+        withSequence:
+          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-1-for-loop-1-iterator
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: split-chars.Succeeded && split-ids.Succeeded
+        name: for-loop-1
+        template: comp-for-loop-1-for-loop-1-iterator
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-428bc786363b9064b8bf43e0468e0f847dc303bd0cfb6fb87e76af1bbbfaae11}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-split-chars"},"inputs":{"parameters":{"model_ids":{"componentInputParameter":"model_chars"}}},"taskInfo":{"name":"split-chars"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-428bc786363b9064b8bf43e0468e0f847dc303bd0cfb6fb87e76af1bbbfaae11}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: split-chars-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.split-chars-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.split-chars-driver.outputs.parameters.cached-decision}}'
+        depends: split-chars-driver.Succeeded
+        name: split-chars
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-8f003b8bc279fb91300275bcb0f32e655c2a9f5192dab9be9eb36b14b085e753}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-split-ids"},"inputs":{"parameters":{"model_ids":{"componentInputParameter":"model_ids"}}},"taskInfo":{"name":"split-ids"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-8f003b8bc279fb91300275bcb0f32e655c2a9f5192dab9be9eb36b14b085e753}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: split-ids-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.split-ids-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.split-ids-driver.outputs.parameters.cached-decision}}'
+        depends: split-ids-driver.Succeeded
+        name: split-ids
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-collecting-artifacts
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-collecting-artifacts}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-collecting-artifacts"},"inputs":{"parameters":{"model_chars":{"runtimeValue":{"constant":"x,y,z"}},"model_ids":{"runtimeValue":{"constant":"s1,s2,s3"}}}},"taskInfo":{"name":"collecting-artifacts"}}'
+        name: collecting-artifacts-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.collecting-artifacts-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.collecting-artifacts-driver.outputs.parameters.condition}}'
+        depends: collecting-artifacts-driver.Succeeded
+        name: collecting-artifacts
+        template: comp-collecting-artifacts
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-2f4a9b4d21c95933dbabfaa4c537c9b7618d4a182ad6cd380aa2be378219f890}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-models-2"},"dependentTasks":["collecting-artifacts"],"inputs":{"artifacts":{"models":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"collecting-artifacts"}}}},"taskInfo":{"name":"read-models"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-2f4a9b4d21c95933dbabfaa4c537c9b7618d4a182ad6cd380aa2be378219f890}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: collecting-artifacts.Succeeded
+        name: read-models-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.read-models-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.read-models-driver.outputs.parameters.cached-decision}}'
+        depends: read-models-driver.Succeeded
+        name: read-models
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

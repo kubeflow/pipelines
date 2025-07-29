@@ -1,0 +1,667 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: math-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: components-05cc7879dda54acb1442ca0ba39eab566ca8f0cf4a0910c44d00a57a4875003a
+      value: '{"executorLabel":"exec-add","inputDefinitions":{"artifacts":{"in_datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-05cc7879dda54acb1442ca0ba39eab566ca8f0cf4a0910c44d00a57a4875003a
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        add(\n    in_datasets: Input[List[Dataset]],\n    out_dataset: Output[Dataset],\n):\n    nums
+        = []\n    for dataset in in_datasets:\n        with open(dataset.path) as
+        f:\n            nums.append(int(f.read()))\n    with open(out_dataset.path,
+        ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.9"}'
+    - name: components-1fa80ad1cc58676a28011c7c46f36b9debfc94b31b570a0c5b461e034a332297
+      value: '{"executorLabel":"exec-add-two-ints","inputDefinitions":{"artifacts":{"in_dataset1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"in_dataset2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-1fa80ad1cc58676a28011c7c46f36b9debfc94b31b570a0c5b461e034a332297
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","add_two_ints"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        add_two_ints(\n    in_dataset1: Input[Dataset],\n    in_dataset2: Input[Dataset],\n    out_dataset:
+        Output[Dataset],\n):\n    with open(in_dataset1.path) as f:\n        in_dataset1
+        = int(f.read())\n\n    with open(in_dataset2.path) as f:\n        in_dataset2
+        = int(f.read())\n\n    with open(out_dataset.path, ''w'') as f:\n        f.write(str(in_dataset1
+        + in_dataset2))\n\n"],"image":"python:3.9"}'
+    - name: components-comp-add-two-lists-of-datasets
+      value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"out_dataset","producerSubtask":"add-two-ints"}]}}},"tasks":{"add":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets1"}}},"taskInfo":{"name":"add"}},"add-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets2"}}},"taskInfo":{"name":"add-2"}},"add-two-ints":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-ints"},"dependentTasks":["add","add-2"],"inputs":{"artifacts":{"in_dataset1":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add"}},"in_dataset2":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add-2"}}}},"taskInfo":{"name":"add-two-ints"}}}},"inputDefinitions":{"artifacts":{"in_datasets1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true},"in_datasets2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: components-5129ed0b01511503291d8e98a37a8effe4525e9409af6a839e1fe6208fad86c1
+      value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-5129ed0b01511503291d8e98a37a8effe4525e9409af6a839e1fe6208fad86c1
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","double"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        double(\n    num: int,\n    out_dataset: Output[Dataset],\n):\n    with open(out_dataset.path,
+        ''w'') as f:\n        f.write(str(2 * num))\n\n"],"image":"python:3.9"}'
+    - name: components-comp-condition-5
+      value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--double-2-out_dataset":{"artifactSelectors":[{"outputArtifactKey":"out_dataset","producerSubtask":"double-2"}]}}},"tasks":{"double-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"double-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-3":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--threshold":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--double-2-out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
+    - name: components-comp-for-loop-4
+      value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--double-2-out_dataset":{"artifactSelectors":[{"outputArtifactKey":"pipelinechannel--double-2-out_dataset","producerSubtask":"condition-5"}]}}},"tasks":{"condition-5":{"componentRef":{"name":"comp-condition-5"},"inputs":{"parameters":{"pipelinechannel--loop-item-param-3":{"componentInputParameter":"pipelinechannel--loop-item-param-3"},"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--loop-item-param-3''])
+        \u003e= int(inputs.parameter_values[''pipelinechannel--threshold''])"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-3":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--threshold":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--double-2-out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
+    - name: components-comp-for-loop-2
+      value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--double-2-out_dataset":{"artifactSelectors":[{"outputArtifactKey":"pipelinechannel--double-2-out_dataset","producerSubtask":"for-loop-4"}]},"pipelinechannel--double-out_dataset":{"artifactSelectors":[{"outputArtifactKey":"out_dataset","producerSubtask":"double"}]}}},"tasks":{"double":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}},"for-loop-4":{"componentRef":{"name":"comp-for-loop-4"},"inputs":{"parameters":{"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[1,
+        2, 3]"}},"taskInfo":{"name":"for-loop-4"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--threshold":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--double-2-out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true},"pipelinechannel--double-out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
+    - name: components-root
+      value: '{"dag":{"outputs":{"artifacts":{"datasets":{"artifactSelectors":[{"outputArtifactKey":"pipelinechannel--double-out_dataset","producerSubtask":"for-loop-2"}]},"sum":{"artifactSelectors":[{"outputArtifactKey":"Output","producerSubtask":"add-two-lists-of-datasets"}]}}},"tasks":{"add-two-lists-of-datasets":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-lists-of-datasets"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"in_datasets1":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-out_dataset","producerTask":"for-loop-2"}},"in_datasets2":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-2-out_dataset","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add-two-lists-of-datasets"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--threshold":{"componentInputParameter":"threshold"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
+        2, 3]"}},"taskInfo":{"name":"for-loop-2"}}}},"inputDefinitions":{"parameters":{"threshold":{"defaultValue":2,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true},"sum":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - math-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-05cc7879dda54acb1442ca0ba39eab566ca8f0cf4a0910c44d00a57a4875003a}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets1"}}},"taskInfo":{"name":"add"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-05cc7879dda54acb1442ca0ba39eab566ca8f0cf4a0910c44d00a57a4875003a}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: add-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.add-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.add-driver.outputs.parameters.cached-decision}}'
+        depends: add-driver.Succeeded
+        name: add
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-05cc7879dda54acb1442ca0ba39eab566ca8f0cf4a0910c44d00a57a4875003a}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets2"}}},"taskInfo":{"name":"add-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-05cc7879dda54acb1442ca0ba39eab566ca8f0cf4a0910c44d00a57a4875003a}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: add-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.add-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.add-2-driver.outputs.parameters.cached-decision}}'
+        depends: add-2-driver.Succeeded
+        name: add-2
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-1fa80ad1cc58676a28011c7c46f36b9debfc94b31b570a0c5b461e034a332297}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-ints"},"dependentTasks":["add","add-2"],"inputs":{"artifacts":{"in_dataset1":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add"}},"in_dataset2":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add-2"}}}},"taskInfo":{"name":"add-two-ints"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-1fa80ad1cc58676a28011c7c46f36b9debfc94b31b570a0c5b461e034a332297}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: add.Succeeded && add-2.Succeeded
+        name: add-two-ints-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.add-two-ints-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.add-two-ints-driver.outputs.parameters.cached-decision}}'
+        depends: add-two-ints-driver.Succeeded
+        name: add-two-ints
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-add-two-lists-of-datasets
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-5129ed0b01511503291d8e98a37a8effe4525e9409af6a839e1fe6208fad86c1}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"double-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-5129ed0b01511503291d8e98a37a8effe4525e9409af6a839e1fe6208fad86c1}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: double-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.double-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.double-2-driver.outputs.parameters.cached-decision}}'
+        depends: double-2-driver.Succeeded
+        name: double-2
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-5
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - math-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-5}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-5"},"inputs":{"parameters":{"pipelinechannel--loop-item-param-3":{"componentInputParameter":"pipelinechannel--loop-item-param-3"},"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--loop-item-param-3''])
+              \u003e= int(inputs.parameter_values[''pipelinechannel--threshold''])"}}'
+        name: condition-5-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-5-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-5-driver.outputs.parameters.condition}}'
+        depends: condition-5-driver.Succeeded
+        name: condition-5
+        template: comp-condition-5
+        when: '{{tasks.condition-5-driver.outputs.parameters.condition}} != false'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-4
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-4}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-4"},"inputs":{"parameters":{"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[1,
+              2, 3]"}},"taskInfo":{"name":"for-loop-4"}}'
+        name: iteration-item-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+        depends: iteration-item-driver.Succeeded
+        name: iteration-item
+        template: comp-for-loop-4
+    inputs:
+      parameters:
+      - name: parent-dag-id
+      - name: iteration-index
+    metadata: {}
+    name: comp-for-loop-4-iteration
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-4}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-4"},"inputs":{"parameters":{"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[1,
+              2, 3]"}},"taskInfo":{"name":"for-loop-4"}}'
+        name: iteration-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: iteration-index
+            value: '{{item}}'
+        depends: iteration-driver.Succeeded
+        name: iteration-iterations
+        template: comp-for-loop-4-iteration
+        withSequence:
+          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-4-for-loop-4-iterator
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-5129ed0b01511503291d8e98a37a8effe4525e9409af6a839e1fe6208fad86c1}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-5129ed0b01511503291d8e98a37a8effe4525e9409af6a839e1fe6208fad86c1}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: double-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.double-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.double-driver.outputs.parameters.cached-decision}}'
+        depends: double-driver.Succeeded
+        name: double
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: for-loop-4
+        template: comp-for-loop-4-for-loop-4-iterator
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-2
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-2}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--threshold":{"componentInputParameter":"threshold"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
+              2, 3]"}},"taskInfo":{"name":"for-loop-2"}}'
+        name: iteration-item-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+        depends: iteration-item-driver.Succeeded
+        name: iteration-item
+        template: comp-for-loop-2
+    inputs:
+      parameters:
+      - name: parent-dag-id
+      - name: iteration-index
+    metadata: {}
+    name: comp-for-loop-2-iteration
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--threshold":{"componentInputParameter":"threshold"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
+              2, 3]"}},"taskInfo":{"name":"for-loop-2"}}'
+        name: iteration-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: iteration-index
+            value: '{{item}}'
+        depends: iteration-driver.Succeeded
+        name: iteration-iterations
+        template: comp-for-loop-2-iteration
+        withSequence:
+          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-2-for-loop-2-iterator
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-add-two-lists-of-datasets}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-lists-of-datasets"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"in_datasets1":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-out_dataset","producerTask":"for-loop-2"}},"in_datasets2":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-2-out_dataset","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add-two-lists-of-datasets"}}'
+        depends: for-loop-2.Succeeded
+        name: add-two-lists-of-datasets-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.add-two-lists-of-datasets-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.add-two-lists-of-datasets-driver.outputs.parameters.condition}}'
+        depends: add-two-lists-of-datasets-driver.Succeeded
+        name: add-two-lists-of-datasets
+        template: comp-add-two-lists-of-datasets
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: for-loop-2
+        template: comp-for-loop-2-for-loop-2-iterator
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{"parameterValues":{"threshold":2}}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null
