@@ -4,8 +4,6 @@
 #
 #    pip-compile --no-emit-index-url test/sample-test/requirements.in
 #
-absl-py==1.4.0
-    # via kfp
 ansicolors==1.1.8
     # via papermill
 argon2-cffi==23.1.0
@@ -22,7 +20,6 @@ cachetools==5.5.0
     # via google-auth
 certifi==2024.7.4
     # via
-    #   kfp-server-api
     #   kubernetes
     #   minio
     #   requests
@@ -33,66 +30,21 @@ charset-normalizer==3.3.2
 click==8.1.7
     # via
     #   black
-    #   kfp
     #   papermill
-    #   typer
-cloudpickle==2.2.1
-    # via kfp
-deprecated==1.2.18
-    # via kfp
-docstring-parser==0.17.0
-    # via kfp
 entrypoints==0.4
     # via papermill
 fastjsonschema==2.20.0
     # via nbformat
 fire==0.7.0
-    # via
-    #   -r test/sample-test/requirements.in
-    #   kfp
-google-api-core==2.25.1
-    # via
-    #   google-api-python-client
-    #   google-cloud-core
-    #   google-cloud-storage
-    #   kfp
-google-api-python-client==1.12.11
-    # via kfp
+    # via -r test/sample-test/requirements.in
 google-auth==2.34.0
-    # via
-    #   google-api-core
-    #   google-api-python-client
-    #   google-auth-httplib2
-    #   google-cloud-core
-    #   google-cloud-storage
-    #   kfp
-    #   kubernetes
-google-auth-httplib2==0.2.0
-    # via google-api-python-client
-google-cloud-core==2.4.3
-    # via google-cloud-storage
-google-cloud-storage==2.19.0
-    # via kfp
-google-crc32c==1.7.1
-    # via
-    #   google-cloud-storage
-    #   google-resumable-media
-google-resumable-media==2.7.2
-    # via google-cloud-storage
-googleapis-common-protos==1.63.1
-    # via google-api-core
-httplib2==0.22.0
-    # via
-    #   google-api-python-client
-    #   google-auth-httplib2
+    # via kubernetes
 idna==3.8
     # via requests
 importlib-metadata==8.7.0
     # via jupyter-client
 jsonschema==4.23.0
-    # via
-    #   kfp
-    #   nbformat
+    # via nbformat
 jsonschema-specifications==2023.12.1
     # via jsonschema
 junit-xml==1.9
@@ -104,20 +56,8 @@ jupyter-core==5.7.2
     #   jupyter-client
     #   nbclient
     #   nbformat
-kfp @ file:///Users/alex/code/pipelines/sdk/python
-    # via -r test/sample-test/requirements.in
-kfp-pipeline-spec==0.1.16
-    # via kfp
-kfp-server-api==1.8.5
-    # via kfp
 kubernetes==25.3.0
-    # via
-    #   -r test/sample-test/requirements.in
-    #   kfp
-markdown-it-py==3.0.0
-    # via rich
-mdurl==0.1.2
-    # via markdown-it-py
+    # via -r test/sample-test/requirements.in
 minio==7.2.8
     # via -r test/sample-test/requirements.in
 mypy-extensions==1.0.0
@@ -140,15 +80,6 @@ platformdirs==4.2.2
     # via
     #   black
     #   jupyter-core
-proto-plus==1.26.1
-    # via google-api-core
-protobuf==3.20.0rc2
-    # via
-    #   google-api-core
-    #   googleapis-common-protos
-    #   kfp
-    #   kfp-pipeline-spec
-    #   proto-plus
 pyasn1==0.6.0
     # via
     #   pyasn1-modules
@@ -159,20 +90,12 @@ pycparser==2.22
     # via cffi
 pycryptodome==3.20.0
     # via minio
-pydantic==1.10.22
-    # via kfp
-pygments==2.19.2
-    # via rich
-pyparsing==3.2.3
-    # via httplib2
 python-dateutil==2.9.0.post0
     # via
     #   jupyter-client
-    #   kfp-server-api
     #   kubernetes
 pyyaml==6.0.2
     # via
-    #   kfp
     #   kubernetes
     #   papermill
     #   yamale
@@ -184,37 +107,22 @@ referencing==0.35.1
     #   jsonschema-specifications
 requests==2.32.3
     # via
-    #   google-api-core
-    #   google-cloud-storage
     #   kubernetes
     #   papermill
     #   requests-oauthlib
-    #   requests-toolbelt
 requests-oauthlib==2.0.0
     # via kubernetes
-requests-toolbelt==0.10.1
-    # via kfp
-rich==14.1.0
-    # via typer
 rpds-py==0.20.0
     # via
     #   jsonschema
     #   referencing
 rsa==4.9
     # via google-auth
-shellingham==1.5.4
-    # via typer
 six==1.15.0
     # via
-    #   google-api-python-client
     #   junit-xml
-    #   kfp-server-api
     #   kubernetes
     #   python-dateutil
-strip-hints==0.1.13
-    # via kfp
-tabulate==0.9.0
-    # via kfp
 tenacity==9.0.0
     # via papermill
 termcolor==2.4.0
@@ -231,31 +139,17 @@ traitlets==5.14.3
     #   jupyter-core
     #   nbclient
     #   nbformat
-typer==0.16.0
-    # via kfp
 typing-extensions==4.12.2
     # via
     #   black
     #   minio
-    #   pydantic
-    #   typer
-uritemplate==3.0.1
-    # via
-    #   google-api-python-client
-    #   kfp
 urllib3==1.26.19
     # via
-    #   kfp
-    #   kfp-server-api
     #   kubernetes
     #   minio
     #   requests
 websocket-client==1.8.0
     # via kubernetes
-wheel==0.45.1
-    # via strip-hints
-wrapt==1.17.2
-    # via deprecated
 yamale==5.2.1
     # via -r test/sample-test/requirements.in
 zipp==3.23.0
