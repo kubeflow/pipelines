@@ -1,5 +1,5 @@
 name: "Set up KFP on KinD"
-description: "Step to start and configure KFP on KinD"
+description: "Step to start and configure KFP on Kind"
 
 inputs:
   k8s_version:
@@ -17,6 +17,10 @@ inputs:
     description: "If KFP should be deployed with cache enabled globally"
     required: false
     default: 'true'
+  cluser_name:
+    description: "Provide kind cluster name if you want to name it other than kfp"
+    required: false
+    default: 'kfp'
 
 runs:
   using: "composite"
@@ -24,7 +28,7 @@ runs:
     - name: Create k8s Kind Cluster
       uses: container-tools/kind-action@v2
       with:
-        cluster_name: kfp
+        cluster_name: ${{ inputs.cluser_name }}
         kubectl_version: ${{ inputs.k8s_version }}
         version: v0.25.0
         node_image: kindest/node:${{ inputs.k8s_version }}
@@ -35,14 +39,31 @@ runs:
       shell: bash
       run: ./.github/resources/squid/deploy-squid.sh
 
-    - name: Build images
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and push
+      uses: docker/bake-action@v6
+      with:
+        push: false
+        files: ./.github/resources/scripts/build-images-parallel.hcl
+        targets: default
+        no-cache: 'true'
+        load: 'true'
+
+    - name: Print Images
+      run: |
+        docker images
+      shell: bash
+
+    - name: Load images
       shell: bash
       run: |
-        if [ "${{ inputs.proxy }}" = "true" ]; then
-          ./.github/resources/scripts/build-images.sh --proxy
-        else
-          ./.github/resources/scripts/build-images.sh
-        fi
+        kind --name ${{ inputs.cluser_name }} load docker-image kind-registry:5000/apiserver:latest
+        kind --name ${{ inputs.cluser_name }} load docker-image kind-registry:5000/driver:latest
+        kind --name ${{ inputs.cluser_name }} load docker-image kind-registry:5000/launcher:latest
+        kind --name ${{ inputs.cluser_name }} load docker-image kind-registry:5000/scheduledworkflow:latest
+        kind --name ${{ inputs.cluser_name }} load docker-image kind-registry:5000/persistenceagent:latest
 
     - name: Deploy KFP
       shell: bash
