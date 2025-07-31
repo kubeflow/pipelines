@@ -69,20 +69,16 @@ jobs:
       - name: Install kfp-pipeline-spec from source
         run: |
           python3 -m pip install -I api/v2alpha1/python
-
-      - name: Basic sample tests - sequential
+      
+      - name: Run large tests
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-        id: sequential-test
-        run: python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
-
-      - name: Basic sample tests - exit_handler
-        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-        id: sample-test
-        run: python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name exit_handler --expected-result failed --results-gcs-dir output
+        id: large-tests
+        run: |
+          python3 -m pytest test/v1-large -n 20
         continue-on-error: true
-
+      
       - name: Collect failed logs
-        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.sequential-test.outcome != 'success' || steps.sample-test.outcome != 'success'}}
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.large-tests.outcome != 'success'}}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
