@@ -16,8 +16,12 @@ on:
       - '!**/OWNERS'
 
 jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+
   kfp-kubernetes-execution-tests:
     runs-on: ubuntu-24.04
+    needs: build
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
@@ -36,18 +40,21 @@ jobs:
       # https://github.com/actions/runner-images/issues/2840#issuecomment-1284059930
       - name: Free up space in /dev/root
         run: |
-            echo "Disk usage before clean up:"
-            df -h
-            sudo rm -rf /usr/share/dotnet
-            sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-            echo "Disk usage after clean up:"
-            df -h
+          echo "Disk usage before clean up:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "Disk usage after clean up:"
+          df -h
 
       - name: Create KFP cluster
         id: create-kfp-cluster
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
         continue-on-error: true
 
       - name: Forward API port
