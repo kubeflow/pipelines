@@ -18,7 +18,7 @@ func DefaultConfig() *ServerConfig {
 	// 	}
 	// }
 	return &ServerConfig{
-		Address: "metadata-grpc-service.kubeflow.svc.cluster.local",
+		Address: "metadata-grpc-service.kubeflow",
 		Port:    "8080",
 	}
 }
