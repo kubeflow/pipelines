@@ -38,6 +38,7 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
 import {
   CollapsedAndExpandedRows,
+  ensureServiceError,
   getExpandedRow,
   groupRows,
   rowFilterFn,
@@ -151,7 +152,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
         rows: this.props.isGroupView ? groupedRows.collapsedRows : flattenedRows,
       });
     } catch (err) {
-      this.showPageError(serviceErrorToString(err));
+      this.showPageError(serviceErrorToString(ensureServiceError(err)));
     }
     return listOperationOpts.getNextPageToken();
   }
@@ -164,10 +165,11 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
       listOperationOpts?.setNextPageToken(response.getNextPageToken());
       return response.getExecutionsList();
     } catch (err) {
+      const serviceError = ensureServiceError(err);
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
-      if (err.code !== 5) {
-        err.message = 'Failed getting executions: ' + err.message;
+      if (serviceError.code !== 5) {
+        serviceError.message = 'Failed getting executions: ' + serviceError.message;
         throw err;
       }
     }
@@ -188,7 +190,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
 
       return executionTypesMap;
     } catch (err) {
-      this.showPageError(serviceErrorToString(err));
+      this.showPageError(serviceErrorToString(ensureServiceError(err)));
     }
     return new Map();
   }

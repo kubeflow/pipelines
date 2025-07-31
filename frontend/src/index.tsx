@@ -16,9 +16,10 @@
 
 // import './CSSReset';
 import 'src/build/tailwind.output.css';
-import MuiThemeProvider from '@material-ui/core/styles/MuiThemeProvider';
+// React Flow CSS (required for v11+)
+import 'reactflow/dist/style.css';
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import * as ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { HashRouter } from 'react-router-dom';
 import { cssRule } from 'typestyle';
@@ -33,6 +34,13 @@ import {
   NamespaceContextProvider,
 } from './lib/KubeflowClient';
 import { BuildInfoProvider } from './lib/BuildInfo';
+import { ThemeProvider, Theme, StyledEngineProvider } from '@mui/material/styles';
+
+declare module '@mui/styles/defaultTheme' {
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
+  interface DefaultTheme extends Theme {}
+}
+
 // import { ReactQueryDevtools } from 'react-query/devtools';
 
 // TODO: license headers
@@ -56,19 +64,23 @@ initFeatures();
 export const queryClient = new QueryClient();
 const app = (
   <QueryClientProvider client={queryClient}>
-    <MuiThemeProvider theme={theme}>
-      <BuildInfoProvider>
-        <GkeMetadataProvider>
-          <HashRouter>
-            <Router />
-          </HashRouter>
-        </GkeMetadataProvider>
-      </BuildInfoProvider>
-    </MuiThemeProvider>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={theme}>
+        <BuildInfoProvider>
+          <GkeMetadataProvider>
+            <HashRouter>
+              <Router />
+            </HashRouter>
+          </GkeMetadataProvider>
+        </BuildInfoProvider>
+      </ThemeProvider>
+    </StyledEngineProvider>
     {/* <ReactQueryDevtools initialIsOpen={false} /> */}
   </QueryClientProvider>
 );
-ReactDOM.render(
+const container = document.getElementById('root');
+const root = ReactDOM.createRoot(container!);
+root.render(
   KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW ? (
     <NamespaceContextProvider>{app}</NamespaceContextProvider>
   ) : (
@@ -76,5 +88,4 @@ ReactDOM.render(
       {app}
     </NamespaceContext.Provider>
   ),
-  document.getElementById('root'),
 );

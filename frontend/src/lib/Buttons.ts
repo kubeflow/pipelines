@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import AddIcon from '@material-ui/icons/Add';
-import CollapseIcon from '@material-ui/icons/UnfoldLess';
-import ExpandIcon from '@material-ui/icons/UnfoldMore';
+import AddIcon from '@mui/icons-material/Add';
+import CollapseIcon from '@mui/icons-material/UnfoldLess';
+import ExpandIcon from '@mui/icons-material/UnfoldMore';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { ToolbarActionMap } from 'src/components/Toolbar';
 import { PageProps } from 'src/pages/Page';
@@ -46,16 +46,28 @@ export enum ButtonKeys {
   UPLOAD_PIPELINE = 'uploadPipeline',
 }
 
+export type URLParserFunctions = {
+  get: (key: QUERY_PARAMS) => string | null;
+  build: (params: { [key: string]: string }) => string;
+};
+
 export default class Buttons {
   private _map: ToolbarActionMap;
   private _props: PageProps;
   private _refresh: () => void;
-  private _urlParser: URLParser;
+  private _urlParser: URLParserFunctions;
 
-  constructor(pageProps: PageProps, refresh: () => void, map?: ToolbarActionMap) {
+  constructor(
+    pageProps: PageProps,
+    refresh: () => void,
+    urlParserFunctions?: URLParserFunctions,
+    map?: ToolbarActionMap
+  ) {
     this._props = pageProps;
     this._refresh = refresh;
-    this._urlParser = new URLParser(pageProps);
+
+    // Use provided URLParser functions or create legacy URLParser as fallback
+    this._urlParser = urlParserFunctions || new URLParser(pageProps);
     this._map = map || {};
   }
 
@@ -163,8 +175,8 @@ export default class Buttons {
         resourceName === 'pipeline'
           ? this._deletePipeline(getSelectedIds(), useCurrentResource, callback)
           : resourceName === 'run'
-          ? this._deleteRun(getSelectedIds(), useCurrentResource, callback)
-          : this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
+            ? this._deleteRun(getSelectedIds(), useCurrentResource, callback)
+            : this._deleteRecurringRun(getSelectedIds()[0], useCurrentResource, callback),
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource
         ? undefined
@@ -418,7 +430,7 @@ export default class Buttons {
         searchTerms = { [QUERY_PARAMS.cloneFromRun]: runId || '' };
       }
       const searchString = this._urlParser.build(searchTerms);
-      this._props.history.push(RoutePage.NEW_RUN + searchString);
+      this._props.navigate(RoutePage.NEW_RUN + searchString);
     }
   }
 
@@ -446,11 +458,10 @@ export default class Buttons {
     this._dialogActionHandler(
       selectedIds,
       `Run${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
-        `${
-          selectedIds.length === 1 ? 'its' : 'their'
-        } details. Please note that the run will not ` +
-        `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
-        `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      `${selectedIds.length === 1 ? 'its' : 'their'
+      } details. Please note that the run will not ` +
+      `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
+      `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
       useCurrent,
       id => Apis.runServiceApiV2.archiveRun(id),
       callback,
@@ -466,8 +477,7 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to restore ${
-        selectedIds.length === 1 ? 'this run to its' : 'these runs to their'
+      `Do you want to restore ${selectedIds.length === 1 ? 'this run to its' : 'these runs to their'
       } original location?`,
       useCurrent,
       id => Apis.runServiceApiV2.unarchiveRun(id),
@@ -484,12 +494,9 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to restore ${
-        selectedIds.length === 1 ? 'this experiment to its' : 'these experiments to their'
-      } original location? All runs and jobs in ${
-        selectedIds.length === 1 ? 'this experiment' : 'these experiments'
-      } will stay at their current locations in spite that ${
-        selectedIds.length === 1 ? 'this experiment' : 'these experiments'
+      `Do you want to restore ${selectedIds.length === 1 ? 'this experiment to its' : 'these experiments to their'
+      } original location? All runs and jobs in ${selectedIds.length === 1 ? 'this experiment' : 'these experiments'
+      } will stay at their current locations in spite that ${selectedIds.length === 1 ? 'this experiment' : 'these experiments'
       } will be moved to ${selectedIds.length === 1 ? 'its' : 'their'} original location${s(
         selectedIds,
       )}.`,
@@ -508,8 +515,7 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to delete ${
-        selectedIds.length === 1 ? 'this Pipeline' : 'these Pipelines'
+      `Do you want to delete ${selectedIds.length === 1 ? 'this Pipeline' : 'these Pipelines'
       }? This action cannot be undone.`,
       useCurrentResource,
       id => Apis.pipelineServiceApi.deletePipeline(id),
@@ -528,8 +534,7 @@ export default class Buttons {
     const selectedIds = Array.from(selectedPipelineAndVersionIds.keys());
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to delete ${
-        selectedIds.length === 1 ? 'this Pipeline Version' : 'these Pipeline Versions'
+      `Do you want to delete ${selectedIds.length === 1 ? 'this Pipeline Version' : 'these Pipeline Versions'
       }? This action cannot be undone.`,
       useCurrentResource,
       vid =>
@@ -567,7 +572,7 @@ export default class Buttons {
     this._dialogActionHandler(
       ids,
       'Do you want to terminate this run? This action cannot be undone. This will terminate any' +
-        ' running pods, but they will not be deleted.',
+      ' running pods, but they will not be deleted.',
       useCurrentResource,
       id => Apis.runServiceApiV2.terminateRun(id),
       callback,
@@ -625,9 +630,8 @@ export default class Buttons {
       ],
       content,
       onClose: async () => await dialogClosedHandler(false),
-      title: `${actionName} ${useCurrentResource ? 'this' : selectedIds.length} ${resourceName}${
-        useCurrentResource ? '' : s(selectedIds.length)
-      }?`,
+      title: `${actionName} ${useCurrentResource ? 'this' : selectedIds.length} ${resourceName}${useCurrentResource ? '' : s(selectedIds.length)
+        }?`,
     });
   }
 
@@ -660,9 +664,8 @@ export default class Buttons {
       const successfulOps = selectedIds.length - unsuccessfulIds.length;
       if (successfulOps > 0) {
         this._props.updateSnackbar({
-          message: `${actionName} succeeded for ${
-            useCurrentResource ? 'this' : successfulOps
-          } ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
+          message: `${actionName} succeeded for ${useCurrentResource ? 'this' : successfulOps
+            } ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
           open: true,
         });
         if (!useCurrentResource) {
@@ -674,9 +677,8 @@ export default class Buttons {
         this._props.updateDialog({
           buttons: [{ text: 'Dismiss' }],
           content: errorMessages.join('\n\n'),
-          title: `Failed to ${actionName.toLowerCase()} ${
-            useCurrentResource ? '' : unsuccessfulIds.length + ' '
-          }${resourceName}${useCurrentResource ? '' : s(unsuccessfulIds)}`,
+          title: `Failed to ${actionName.toLowerCase()} ${useCurrentResource ? '' : unsuccessfulIds.length + ' '
+            }${resourceName}${useCurrentResource ? '' : s(unsuccessfulIds)}`,
         });
       }
 
@@ -688,17 +690,17 @@ export default class Buttons {
     if (indices.length > 1 && indices.length <= 10) {
       const runIds = selectedIds.join(',');
       const searchString = this._urlParser.build({ [QUERY_PARAMS.runlist]: runIds });
-      this._props.history.push(RoutePage.COMPARE + searchString);
+      this._props.navigate(RoutePage.COMPARE + searchString);
     }
   }
 
   private _createNewExperiment(pipelineId: string): void {
     const searchString = pipelineId
       ? this._urlParser.build({
-          [QUERY_PARAMS.pipelineId]: pipelineId,
-        })
+        [QUERY_PARAMS.pipelineId]: pipelineId,
+      })
       : '';
-    this._props.history.push(RoutePage.NEW_EXPERIMENT + searchString);
+    this._props.navigate(RoutePage.NEW_EXPERIMENT + searchString);
   }
 
   private _createNewRun(isRecurring: boolean, experimentId?: string): void {
@@ -706,7 +708,7 @@ export default class Buttons {
       [QUERY_PARAMS.experimentId]: experimentId || '',
       ...(isRecurring ? { [QUERY_PARAMS.isRecurring]: '1' } : {}),
     });
-    this._props.history.push(RoutePage.NEW_RUN + searchString);
+    this._props.navigate(RoutePage.NEW_RUN + searchString);
   }
 
   private _createNewRunFromPipelineVersion(pipelineId?: string, pipelineVersionId?: string): void {
@@ -722,7 +724,7 @@ export default class Buttons {
       });
     }
 
-    this._props.history.push(RoutePage.NEW_RUN + searchString);
+    this._props.navigate(RoutePage.NEW_RUN + searchString);
   }
 
   private async _setRecurringRunEnabledState(id: string, enabled: boolean): Promise<void> {
@@ -758,10 +760,10 @@ export default class Buttons {
   private _createNewPipelineVersion(pipelineId?: string): void {
     const searchString = pipelineId
       ? this._urlParser.build({
-          [QUERY_PARAMS.pipelineId]: pipelineId,
-        })
+        [QUERY_PARAMS.pipelineId]: pipelineId,
+      })
       : '';
-    this._props.history.push(RoutePage.NEW_PIPELINE_VERSION + searchString);
+    this._props.navigate(RoutePage.NEW_PIPELINE_VERSION + searchString);
   }
 
   private async _dialogDeletePipelinesAndPipelineVersions(
@@ -1066,8 +1068,7 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Experiment${s(selectedIds)} will be moved to the Archive section, where you can still view${
-        selectedIds.length === 1 ? 'its' : 'their'
+      `Experiment${s(selectedIds)} will be moved to the Archive section, where you can still view${selectedIds.length === 1 ? 'its' : 'their'
       } details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment${s(
         selectedIds,
       )} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,

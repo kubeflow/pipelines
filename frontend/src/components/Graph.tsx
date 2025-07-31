@@ -19,7 +19,8 @@ import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, color, fonts, zIndex } from '../Css';
 import { Constants } from '../lib/Constants';
-import Tooltip from '@material-ui/core/Tooltip';
+import Tooltip from '@mui/material/Tooltip';
+import * as StaticGraphParser from '../lib/StaticGraphParser';
 
 interface Segment {
   angle: number;
@@ -99,8 +100,16 @@ const css = stylesheet({
   },
 });
 
+export type AdditionalNodeData = {
+  bgColor?: string;
+  icon?: React.ReactNode;
+  isPlaceholder?: boolean;
+  statusColoring?: string;
+  info: StaticGraphParser.SelectedNodeInfo | null;
+};
+
 interface GraphProps {
-  graph: dagre.graphlib.Graph;
+  graph: dagre.graphlib.Graph<AdditionalNodeData>;
   onClick?: (id: string) => void;
   selectedNodeId?: string;
 }
@@ -110,6 +119,7 @@ interface GraphState {
 }
 
 interface GraphErrorBoundaryProps {
+  children?: React.ReactNode;
   onError?: (message: string, additionalInfo: string) => void;
 }
 class GraphErrorBoundary extends React.Component<GraphErrorBoundaryProps> {

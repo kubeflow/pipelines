@@ -15,14 +15,14 @@
  */
 
 import * as React from 'react';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableHead from '@material-ui/core/TableHead';
-import TablePagination from '@material-ui/core/TablePagination';
-import TableRow from '@material-ui/core/TableRow';
-import TableSortLabel from '@material-ui/core/TableSortLabel';
-import Tooltip from '@material-ui/core/Tooltip';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import TablePagination from '@mui/material/TablePagination';
+import TableRow from '@mui/material/TableRow';
+import TableSortLabel from '@mui/material/TableSortLabel';
+import Tooltip from '@mui/material/Tooltip';
 import Viewer, { ViewerConfig, PlotType } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
@@ -115,6 +115,7 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
                         active={orderBy === i}
                         direction={order}
                         onClick={this._handleSort(i)}
+                        data-testid={`table-sort-label-${i}`}
                       >
                         {label}
                       </TableSortLabel>
@@ -152,8 +153,8 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
           count={data.length}
           rowsPerPage={rowsPerPage}
           page={page}
-          onChangePage={this._handleChangePage}
-          onChangeRowsPerPage={this._handleChangeRowsPerPage}
+          onPageChange={this._handleChangePage}
+          onRowsPerPageChange={this._handleChangeRowsPerPage}
         />
       </div>
     );

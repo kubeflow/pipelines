@@ -82,7 +82,7 @@ export function saveFeatures(f: Feature[]) {
 function storageAvailable(type: string) {
   var storage;
   try {
-    storage = window[type];
+    storage = (window as any)[type];
     var x = '__storage_test__';
     storage.setItem(x, x);
     storage.removeItem(x);

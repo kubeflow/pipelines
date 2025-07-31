@@ -2,6 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
-    "module": "commonjs"
+    "module": "commonjs",
+    "include": ["src/**/*.test.tsx"]
   }
 }

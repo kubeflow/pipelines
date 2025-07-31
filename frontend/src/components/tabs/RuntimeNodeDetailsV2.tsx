@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-import { Button } from '@material-ui/core';
+import { Button } from '@mui/material';
 import * as React from 'react';
 import { useState } from 'react';
-import { FlowElement } from 'react-flow-renderer';
+import { Node, Edge } from 'reactflow';
 // import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
+
 import {
   KubernetesExecutorConfig,
   PvcMount,
@@ -75,6 +76,8 @@ const NODE_STATE_UNAVAILABLE = (
     </div>
   </div>
 );
+
+type FlowElement<T = any> = Node<T> | Edge<T>;
 
 interface RuntimeNodeDetailsV2Props {
   layers: string[];

@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ViewerContainer does not break on empty configs 1`] = `""`;
+exports[`ViewerContainer does not break on empty configs 1`] = `<DocumentFragment />`;
 
 exports[`ViewerContainer renders a viewer of type CONFUSION_MATRIX 1`] = `
 <ConfusionMatrix
@@ -26,18 +26,6 @@ exports[`ViewerContainer renders a viewer of type MARKDOWN 1`] = `
 />
 `;
 
-exports[`ViewerContainer renders a viewer of type ROC 1`] = `
-<ROCCurve
-  configs={
-    Array [
-      Object {
-        "type": "roc",
-      },
-    ]
-  }
-/>
-`;
-
 exports[`ViewerContainer renders a viewer of type TABLE 1`] = `
 <PagedTable
   configs={
@@ -50,38 +38,583 @@ exports[`ViewerContainer renders a viewer of type TABLE 1`] = `
 />
 `;
 
-exports[`ViewerContainer renders a viewer of type TENSORBOARD 1`] = `
-<TensorboardViewer
-  configs={
-    Array [
-      Object {
-        "type": "tensorboard",
-      },
-    ]
-  }
-/>
+exports[`ViewerContainer renders a viewer of type roc 1`] = `
+<DocumentFragment>
+  <div>
+    <div
+      class="VictoryContainer"
+      style="margin: auto; height: 100%; width: 100%; user-select: none; pointer-events: none; position: relative;"
+    >
+      <svg
+        height="520"
+        role="img"
+        style="width: 100%; height: 100%; pointer-events: all;"
+        viewBox="0 0 800 520"
+        width="800"
+      >
+        <g
+          role="presentation"
+        >
+          <line
+            role="presentation"
+            shape-rendering="auto"
+            style="stroke: #252525; fill: transparent; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round;"
+            vector-effect="non-scaling-stroke"
+            x1="50"
+            x2="750"
+            y1="470"
+            y2="470"
+          />
+          <text
+            direction="inherit"
+            dx="0"
+            id="chart-axis-0-axisLabel-0"
+            x="400"
+            y="506.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="text-anchor: middle; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 25px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="400"
+            >
+              fpr
+            </tspan>
+          </text>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-0"
+              x="190"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="190"
+              >
+                0.2
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-1"
+              x="330"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="330"
+              >
+                0.4
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-2"
+              x="470"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="470"
+              >
+                0.6
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-3"
+              x="610"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="610"
+              >
+                0.8
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-0-tickLabels-4"
+              x="750"
+              y="494.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="middle"
+                x="750"
+              >
+                1.0
+              </tspan>
+            </text>
+          </g>
+        </g>
+        <g
+          role="presentation"
+        >
+          <line
+            role="presentation"
+            shape-rendering="auto"
+            style="stroke: #252525; fill: transparent; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round;"
+            vector-effect="non-scaling-stroke"
+            x1="50"
+            x2="50"
+            y1="50"
+            y2="470"
+          />
+          <text
+            direction="inherit"
+            dx="0"
+            id="chart-axis-1-axisLabel-0"
+            transform="rotate(-90,25,260)"
+            x="25"
+            y="257.97"
+          >
+            <tspan
+              dx="0"
+              dy="0"
+              style="text-anchor: middle; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; font-size: 14px; letter-spacing: normal; padding: 25px; fill: #252525; stroke: transparent;"
+              text-anchor="middle"
+              x="25"
+            >
+              tpr
+            </tspan>
+          </text>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-0"
+              x="39"
+              y="391.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.2
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-1"
+              x="39"
+              y="307.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.4
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-2"
+              x="39"
+              y="223.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.6
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-3"
+              x="39"
+              y="139.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                0.8
+              </tspan>
+            </text>
+          </g>
+          <g
+            role="presentation"
+          >
+            <text
+              direction="inherit"
+              dx="0"
+              id="chart-axis-1-tickLabels-4"
+              x="39"
+              y="55.68"
+            >
+              <tspan
+                dx="0"
+                dy="0"
+                style="font-size: 16px; font-family: 'Gill Sans', 'Seravek', 'Trebuchet MS', sans-serif; letter-spacing: normal; padding: 10px; fill: #252525; stroke: transparent;"
+                text-anchor="end"
+                x="39"
+              >
+                1.0
+              </tspan>
+            </text>
+          </g>
+        </g>
+        <g
+          clip-path="url(#victory-clip-2)"
+          style="margin: auto; height: 100%; width: 100%; user-select: none;"
+        >
+          <defs>
+            <clippath
+              id="victory-clip-2"
+            >
+              <rect
+                height="420"
+                vector-effect="non-scaling-stroke"
+                width="0"
+                x="50"
+                y="50"
+              />
+            </clippath>
+          </defs>
+          <path
+            d="M50,470L57,465.8L64,461.59999999999997L71,457.4L78,453.2L85,449L92,444.79999999999995L99,440.59999999999997L106,436.40000000000003L113,432.2L120,428L127,423.8L134,419.6L141,415.4L148,411.2L155,407L162,402.8L169,398.59999999999997L176,394.40000000000003L183,390.20000000000005L190,386L197,381.8L204,377.6L211,373.40000000000003L218,369.2L225,365L232,360.8L239,356.59999999999997L246.00000000000003,352.4L252.99999999999997,348.2L260,344L267,339.79999999999995L274,335.59999999999997L281,331.4L288,327.2L295,323L302,318.8L309,314.6L316,310.4L323,306.2L330,302L337,297.8L344,293.6L351,289.40000000000003L358,285.20000000000005L365,281L372,276.8L379,272.6L386,268.4L393,264.20000000000005L400,260L407,255.79999999999998L414,251.6L421,247.39999999999998L428,243.2L435.00000000000006,238.99999999999997L442.00000000000006,234.79999999999998L448.99999999999994,230.60000000000002L455.99999999999994,226.4L463,222.20000000000002L470,218L477,213.8L484,209.6L491,205.4L498,201.2L505,197L512,192.79999999999998L519,188.6L526,184.39999999999998L533,180.20000000000002L540,176.00000000000003L547,171.8L554,167.60000000000002L561,163.4L568,159.2L575,155L582,150.8L589,146.6L596,142.39999999999998L603,138.2L610,134L617,129.79999999999995L624,125.60000000000002L631,121.40000000000002L638,117.20000000000002L645,113.00000000000001L652,108.80000000000001L659,104.6L666,100.4L673,96.19999999999999L680,92L687,87.79999999999998L694,83.59999999999998L701,79.39999999999998L708,75.20000000000002L715,71.00000000000003L722,66.80000000000001L729,62.60000000000001L736,58.400000000000006L743,54.2"
+            role="presentation"
+            shape-rendering="auto"
+            style="fill: transparent; stroke: #ddd; pointer-events: stroke; stroke-dasharray: 5,5; stroke-width: 1;"
+          />
+        </g>
+        <g>
+          <g
+            clip-path="url(#victory-clip-3)"
+            style="margin: auto; height: 100%; width: 100%; user-select: none;"
+          >
+            <defs>
+              <clippath
+                id="victory-clip-3"
+              >
+                <rect
+                  height="420"
+                  vector-effect="non-scaling-stroke"
+                  width="0"
+                  x="50"
+                  y="50"
+                />
+              </clippath>
+            </defs>
+            <path
+              d="M50,470L52.333333333333336,468.59999999999997C54.666666666666664,467.2,59.333333333333336,464.3999999999999,64,461.5999999999999C68.66666666666667,458.79999999999995,73.33333333333333,456,78,453.2C82.66666666666667,450.3999999999999,87.33333333333333,447.59999999999997,92,444.79999999999995C96.66666666666667,442,101.33333333333333,439.2,106,436.40000000000003C110.66666666666667,433.6000000000001,115.33333333333333,430.8,120,428C124.66666666666667,425.2,129.33333333333334,422.40000000000003,134,419.59999999999997C138.66666666666666,416.8,143.33333333333334,414,148,411.20000000000005C152.66666666666666,408.40000000000003,157.33333333333334,405.59999999999997,162,402.8C166.66666666666666,400,171.33333333333334,397.20000000000005,176,394.40000000000003C180.66666666666666,391.6000000000001,185.33333333333334,388.8,190,386C194.66666666666666,383.2,199.33333333333334,380.40000000000003,204,377.59999999999997C208.66666666666666,374.8,213.33333333333334,372,218,369.20000000000005C222.66666666666666,366.40000000000003,227.33333333333334,363.59999999999997,232,360.8C236.66666666666666,358,241.33333333333334,355.2,246,352.3999999999999C250.66666666666666,349.59999999999997,255.33333333333334,346.8,260,344C264.6666666666667,341.2,269.3333333333333,338.4,274,335.59999999999997C278.6666666666667,332.79999999999995,283.3333333333333,330,288,327.2C292.6666666666667,324.40000000000003,297.3333333333333,321.59999999999997,302,318.8C306.6666666666667,316,311.3333333333333,313.2,316,310.4C320.6666666666667,307.59999999999997,325.3333333333333,304.8,330,302C334.6666666666667,299.2,339.3333333333333,296.40000000000003,344,293.6C348.6666666666667,290.8,353.3333333333333,288.00000000000006,358,285.2C362.6666666666667,282.40000000000003,367.3333333333333,279.6,372,276.8C376.6666666666667,274,381.3333333333333,271.2,386,268.4C390.6666666666667,265.59999999999997,395.3333333333333,262.8,400,260C404.6666666666667,257.2,409.3333333333333,254.4,414,251.60000000000002C418.6666666666667,248.79999999999998,423.3333333333333,246,428,243.19999999999996C432.6666666666667,240.39999999999998,437.3333333333333,237.6,442,234.79999999999998C446.6666666666667,232,451.3333333333333,229.20000000000002,456,226.4C460.6666666666667,223.6,465.3333333333333,220.79999999999998,470,218C474.6666666666667,215.20000000000002,479.3333333333333,212.4,484,209.60000000000002C488.6666666666667,206.79999999999998,493.3333333333333,204,498,201.20000000000002C502.6666666666667,198.39999999999998,507.3333333333333,195.6,512,192.79999999999995C516.6666666666666,190,521.3333333333334,187.19999999999996,526,184.39999999999998C530.6666666666666,181.6,535.3333333333334,178.79999999999995,540,176C544.6666666666666,173.19999999999996,549.3333333333334,170.4,554,167.60000000000002C558.6666666666666,164.8,563.3333333333334,162,568,159.20000000000002C572.6666666666666,156.4,577.3333333333334,153.6,582,150.8C586.6666666666666,148,591.3333333333334,145.2,596,142.39999999999998C600.6666666666666,139.6,605.3333333333334,136.79999999999998,610,134C614.6666666666666,131.2,619.3333333333334,128.39999999999998,624,125.59999999999998C628.6666666666666,122.8,633.3333333333334,120,638,117.2C642.6666666666666,114.40000000000002,647.3333333333334,111.60000000000002,652,108.80000000000001C656.6666666666666,106,661.3333333333334,103.2,666,100.40000000000002C670.6666666666666,97.60000000000001,675.3333333333334,94.8,680,92C684.6666666666666,89.19999999999999,689.3333333333334,86.39999999999998,694,83.59999999999998C698.6666666666666,80.79999999999997,703.3333333333334,77.99999999999999,708,75.19999999999997C712.6666666666666,72.39999999999999,717.3333333333334,69.60000000000001,722,66.80000000000001C726.6666666666666,64.00000000000001,731.3333333333334,61.20000000000001,736,58.400000000000006C740.6666666666666,55.6,745.3333333333334,52.800000000000004,747.6666666666666,51.4L750,50"
+              role="presentation"
+              shape-rendering="auto"
+              style="fill: none; stroke: #4285f4; pointer-events: stroke; stroke-width: 2; opacity: 1; width: 7px;"
+            />
+          </g>
+        </g>
+      </svg>
+      <div
+        style="width: 100%; height: 100%; z-index: 99; position: absolute; top: 0px; left: 0px;"
+      >
+        <svg
+          height="520"
+          style="width: 100%; height: 100%; overflow: visible;"
+          viewBox="0 0 800 520"
+          width="800"
+        />
+      </div>
+    </div>
+    <div
+      class="flex"
+    />
+  </div>
+</DocumentFragment>
 `;
 
-exports[`ViewerContainer renders a viewer of type VISUALIZATION_CREATOR 1`] = `
-<VisualizationCreator
-  configs={
-    Array [
-      Object {
-        "type": "visualization-creator",
-      },
-    ]
-  }
-/>
+exports[`ViewerContainer renders a viewer of type tensorboard 1`] = `
+<DocumentFragment>
+  <div>
+    <div>
+      <div
+        class=""
+      >
+        <div
+          class="MuiFormControl-root formControl css-1nrlq1o-MuiFormControl-root"
+        >
+          <label
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+            data-shrink="true"
+            for="viewer-tb-image-select"
+          >
+            TF Image
+          </label>
+          <div
+            class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select css-1eed5fa-MuiInputBase-root-MuiInput-root"
+          >
+            <div
+              aria-controls=":r0:"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiInput-input css-1ar2bnf-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              role="combobox"
+              tabindex="0"
+            >
+              TensorFlow 2.2.2
+            </div>
+            <input
+              aria-hidden="true"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+              id="viewer-tb-image-select"
+              tabindex="-1"
+              value="tensorflow/tensorflow:2.2.2"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M7 10l5 5 5-5z"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div>
+        <button
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root rootBusy buttonAction css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          disabled=""
+          tabindex="-1"
+          type="button"
+        >
+          <span>
+            Start Tensorboard
+          </span>
+          <span
+            class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary spinner spinnerBusy css-18lrjg1-MuiCircularProgress-root"
+            role="progressbar"
+            style="width: 15px; height: 15px;"
+          >
+            <svg
+              class="MuiCircularProgress-svg css-1idz92c-MuiCircularProgress-svg"
+              viewBox="22 22 44 44"
+            >
+              <circle
+                class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate css-176wh8e-MuiCircularProgress-circle"
+                cx="44"
+                cy="44"
+                fill="none"
+                r="20.2"
+                stroke-width="3.6"
+              />
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</DocumentFragment>
 `;
 
-exports[`ViewerContainer renders a viewer of type WEB_APP 1`] = `
-<HTMLViewer
-  configs={
-    Array [
-      Object {
-        "type": "web-app",
-      },
-    ]
-  }
-/>
+exports[`ViewerContainer renders a viewer of type visualization-creator 1`] = `
+<DocumentFragment>
+  <div
+    style="width: 600px;"
+  >
+    <div
+      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
+      style="width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+        data-shrink="false"
+        for="visualization-type-selector"
+      >
+        Type
+      </label>
+      <div
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1yk1gt9-MuiInputBase-root-MuiOutlinedInput-root-MuiSelect-root"
+        style="min-height: 60px; width: 100%;"
+      >
+        <div
+          aria-controls=":r1:"
+          aria-expanded="false"
+          aria-haspopup="listbox"
+          aria-labelledby="mui-component-select-Visualization Type"
+          class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+          id="mui-component-select-Visualization Type"
+          role="combobox"
+          tabindex="0"
+        >
+          <span
+            class="notranslate"
+          >
+            ​
+          </span>
+        </div>
+        <input
+          aria-hidden="true"
+          aria-invalid="false"
+          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+          id="visualization-type-selector"
+          name="Visualization Type"
+          tabindex="-1"
+          value=""
+        />
+        <svg
+          aria-hidden="true"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+          data-testid="ArrowDropDownIcon"
+          focusable="false"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M7 10l5 5 5-5z"
+          />
+        </svg>
+        <fieldset
+          aria-hidden="true"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+        >
+          <legend
+            class="css-1whs34k-MuiNotchedOutlined-root"
+          >
+            <span
+              class="notranslate"
+            >
+              ​
+            </span>
+          </legend>
+        </fieldset>
+      </div>
+    </div>
+    <div
+      class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
+    >
+      <label
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+        data-shrink="false"
+        for=":r2:"
+        id=":r2:-label"
+      >
+        Source
+      </label>
+      <div
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+      >
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id=":r2:"
+          placeholder="File path or path pattern of data within GCS."
+          type="text"
+          value=""
+        />
+        <fieldset
+          aria-hidden="true"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+        >
+          <legend
+            class="css-njhac4-MuiNotchedOutlined-root"
+          >
+            <span>
+              Source
+            </span>
+          </legend>
+        </fieldset>
+      </div>
+    </div>
+    <button
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+      disabled=""
+      tabindex="-1"
+      type="button"
+    >
+      <span>
+        Generate Visualization
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`ViewerContainer renders a viewer of type web-app 1`] = `
+<DocumentFragment>
+  <iframe
+    class="iframe"
+    data-testid="html-viewer-iframe"
+    sandbox="allow-scripts"
+    src="about:blank"
+    srcdoc="undefined"
+    title="HTML Content Viewer"
+  />
+</DocumentFragment>
 `;

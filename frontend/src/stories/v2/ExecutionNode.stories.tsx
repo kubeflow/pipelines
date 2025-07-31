@@ -20,9 +20,9 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
-  OnLoadParams,
+  ReactFlowInstance,
   ReactFlowProvider,
-} from 'react-flow-renderer';
+} from 'reactflow';
 import { NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
 import { Execution } from 'src/third_party/mlmd';
 
@@ -33,11 +33,11 @@ interface WrappedExecutionNodeProps {
 }
 
 function WrappedExecutionNode({ id, label, state }: WrappedExecutionNodeProps) {
-  const onLoad = (reactFlowInstance: OnLoadParams) => {
+  const onInit = (reactFlowInstance: ReactFlowInstance) => {
     reactFlowInstance.fitView();
   };
 
-  const elements = [
+  const nodes = [
     {
       id: id,
       type: NodeTypeNames.EXECUTION,
@@ -51,11 +51,12 @@ function WrappedExecutionNode({ id, label, state }: WrappedExecutionNodeProps) {
       <ReactFlowProvider>
         <ReactFlow
           className='bg-gray-100'
-          elements={elements}
+          nodes={nodes}
+          edges={[]}
           snapToGrid={true}
           nodeTypes={NODE_TYPES}
           edgeTypes={{}}
-          onLoad={onLoad}
+          onInit={onInit}
         >
           <MiniMap />
           <Controls />

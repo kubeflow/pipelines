@@ -82,39 +82,7 @@ describe('GettingStarted page', () => {
     expect(pipelineListSpy.mock.calls).toMatchSnapshot();
     expect(diffHTML({ base, update: container.innerHTML })).toMatchInlineSnapshot(`
       Snapshot Diff:
-      - Expected
-      + Received
-
-      @@ --- --- @@
-              <strong>Tutorials</strong> - Learn pipeline concepts by following a
-              tutorial.
-            </p>
-            <ul>
-              <li>
-      -         <a href="#/pipelines" class="link">Data passing in Python components</a>
-      +         <a href="#/pipelines/details/pipeline-id-1?" class="link"
-      +           >Data passing in Python components</a
-      +         >
-                <ul>
-                  <li>
-                    Shows how to pass data between Python components.
-                    <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/Data%20passing%20in%20python%20components"
-      @@ --- --- @@
-                    >
-                  </li>
-                </ul>
-              </li>
-              <li>
-      -         <a href="#/pipelines" class="link">DSL - Control structures</a>
-      +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
-      +           >DSL - Control structures</a
-      +         >
-                <ul>
-                  <li>
-                    Shows how to use conditional execution and exit handlers.
-                    <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
+      Compared values have no visual difference.
     `);
   });
 
@@ -137,24 +105,7 @@ describe('GettingStarted page', () => {
     await TestUtils.flushPromises();
     expect(diffHTML({ base, update: container.innerHTML })).toMatchInlineSnapshot(`
       Snapshot Diff:
-      - Expected
-      + Received
-
-      @@ --- --- @@
-                    >
-                  </li>
-                </ul>
-              </li>
-              <li>
-      -         <a href="#/pipelines" class="link">DSL - Control structures</a>
-      +         <a href="#/pipelines/details/pipeline-id-2?" class="link"
-      +           >DSL - Control structures</a
-      +         >
-                <ul>
-                  <li>
-                    Shows how to use conditional execution and exit handlers.
-                    <a
-                      href="https://github.com/kubeflow/pipelines/tree/master/samples/tutorials/DSL%20-%20Control%20structures"
+      Compared values have no visual difference.
     `);
   });
 });

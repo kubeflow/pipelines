@@ -15,14 +15,14 @@
  */
 
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import ExperimentList from './ExperimentList';
 import ArchivedExperiments from './ArchivedExperiments';
 import MD2Tabs from '../atoms/MD2Tabs';
-import { Page, PageProps } from './Page';
 import { RoutePage } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { PageProps } from './Page';
 
 export enum AllExperimentsAndArchiveTab {
   EXPERIMENTS = 0,
@@ -31,46 +31,28 @@ export enum AllExperimentsAndArchiveTab {
 
 export interface AllExperimentsAndArchiveProps extends PageProps {
   view: AllExperimentsAndArchiveTab;
+  namespace?: string;
+  onError?: (message: string, error: Error) => void;
 }
 
-interface AllExperimentsAndArchiveState {
-  selectedTab: AllExperimentsAndArchiveTab;
-}
+const AllExperimentsAndArchive: React.FC<AllExperimentsAndArchiveProps> = props => {
+  const navigate = useNavigate();
 
-class AllExperimentsAndArchive extends Page<
-  AllExperimentsAndArchiveProps,
-  AllExperimentsAndArchiveState
-> {
-  public getInitialToolbarState(): ToolbarProps {
-    return { actions: {}, breadcrumbs: [], pageTitle: '' };
-  }
-
-  public render(): JSX.Element {
-    return (
-      <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs
-          tabs={['Active', 'Archived']}
-          selectedTab={this.props.view}
-          onSwitch={this._tabSwitched.bind(this)}
-        />
-        {this.props.view === 0 && <ExperimentList {...this.props} />}
-
-        {this.props.view === 1 && <ArchivedExperiments {...this.props} />}
-      </div>
-    );
-  }
-
-  public async refresh(): Promise<void> {
-    return;
-  }
-
-  private _tabSwitched(newTab: AllExperimentsAndArchiveTab): void {
-    this.props.history.push(
+  const tabSwitched = (newTab: AllExperimentsAndArchiveTab): void => {
+    const path =
       newTab === AllExperimentsAndArchiveTab.EXPERIMENTS
         ? RoutePage.EXPERIMENTS
-        : RoutePage.ARCHIVED_EXPERIMENTS,
-    );
-  }
-}
+        : RoutePage.ARCHIVED_EXPERIMENTS;
+    navigate(path);
+  };
+
+  return (
+    <div className={classes(commonCss.page, padding(20, 't'))}>
+      <MD2Tabs tabs={['Active', 'Archived']} selectedTab={props.view} onSwitch={tabSwitched} />
+      {props.view === 0 && <ExperimentList {...props} />}
+      {props.view === 1 && <ArchivedExperiments {...props} />}
+    </div>
+  );
+};
 
 export default AllExperimentsAndArchive;

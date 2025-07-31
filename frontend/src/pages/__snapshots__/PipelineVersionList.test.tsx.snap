@@ -15428,32 +15428,307 @@ exports[`PipelineVersionList renders a list of one pipeline version without crea
 `;
 
 exports[`PipelineVersionList renders an empty list with empty state message 1`] = `
-<div>
-  <CustomTable
-    columns={
-      Array [
-        Object {
-          "customRenderer": [Function],
-          "flex": 1,
-          "label": "Version name",
-          "sortKey": "display_name",
-        },
-        Object {
-          "customRenderer": [Function],
-          "flex": 3,
-          "label": "Description",
-        },
-        Object {
-          "flex": 1,
-          "label": "Uploaded on",
-          "sortKey": "created_at",
-        },
-      ]
-    }
-    emptyMessage="No pipeline versions found."
-    initialSortColumn="created_at"
-    reload={[Function]}
-    rows={Array []}
-  />
-</div>
+<DocumentFragment>
+  <div>
+    <div
+      class="pageOverflowHidden"
+      data-testid="custom-table"
+    >
+      <div>
+        <div
+          class="MuiFormControl-root MuiTextField-root filterBox css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+          spellcheck="false"
+          style="height: 48px; max-width: 100%; width: 100%;"
+        >
+          <label
+            class="MuiFormLabel-root MuiInputLabel-root noMargin MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+            data-shrink="true"
+            for="tableFilterBox"
+            id="tableFilterBox-label"
+          >
+            Filter
+          </label>
+          <div
+            class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
+          >
+            <div
+              class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
+            >
+              <svg
+                aria-hidden="true"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                data-testid="FilterListIcon"
+                focusable="false"
+                style="color: rgb(128, 134, 139); padding-right: 16px;"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M10 18h4v-2h-4zM3 6v2h18V6zm3 7h12v-2H6z"
+                />
+              </svg>
+            </div>
+            <input
+              aria-invalid="false"
+              class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
+              id="tableFilterBox"
+              type="text"
+              value=""
+            />
+            <fieldset
+              aria-hidden="true"
+              class="MuiOutlinedInput-notchedOutline filterBorderRadius css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+            >
+              <legend
+                class="css-sl37lx-MuiNotchedOutlined-root"
+              >
+                <span>
+                  Filter
+                </span>
+              </legend>
+            </fieldset>
+          </div>
+        </div>
+      </div>
+      <div
+        class="header"
+      >
+        <div
+          class="columnName cell selectionToggle"
+        >
+          <span
+            class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+            data-testid="checkbox-0"
+          >
+            <input
+              class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+              data-indeterminate="false"
+              type="checkbox"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              data-testid="CheckBoxOutlineBlankIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+              />
+            </svg>
+            <span
+              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+            />
+          </span>
+        </div>
+        <div
+          class="columnName"
+          style="width: 20%;"
+          title="Version name"
+        >
+          <span
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
+            role="button"
+            tabindex="0"
+          >
+            Version name
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName"
+          style="width: 60%;"
+          title="Description"
+        >
+          <span
+            aria-label="Cannot sort by this column"
+            class="MuiButtonBase-root MuiTableSortLabel-root ellipsis css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
+            role="button"
+            tabindex="0"
+          >
+            Description
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+        <div
+          class="columnName"
+          style="width: 20%;"
+          title="Uploaded on"
+        >
+          <span
+            aria-label="Sort"
+            class="MuiButtonBase-root MuiTableSortLabel-root Mui-active ellipsis css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+            data-mui-internal-clone-element="true"
+            role="button"
+            tabindex="0"
+          >
+            Uploaded on
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+              data-testid="ArrowDownwardIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"
+              />
+            </svg>
+          </span>
+        </div>
+      </div>
+      <div
+        class="scrollContainer"
+        style="min-height: 60px;"
+      >
+        <div
+          class="busyOverlay"
+        />
+        <span
+          class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary absoluteCenter css-18lrjg1-MuiCircularProgress-root"
+          role="progressbar"
+          style="width: 25px; height: 25px; z-index: 2;"
+        >
+          <svg
+            class="MuiCircularProgress-svg css-1idz92c-MuiCircularProgress-svg"
+            viewBox="22 22 44 44"
+          >
+            <circle
+              class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate css-176wh8e-MuiCircularProgress-circle"
+              cx="44"
+              cy="44"
+              fill="none"
+              r="20.2"
+              stroke-width="3.6"
+            />
+          </svg>
+        </span>
+      </div>
+      <div
+        class="footer"
+      >
+        <span
+          class=""
+        >
+          Rows per page:
+        </span>
+        <div
+          class="MuiFormControl-root MuiTextField-root verticalAlignInitial rowsPerPage css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+          data-testid="rows-per-page"
+        >
+          <div
+            class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
+          >
+            <div
+              aria-controls=":r5:"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              aria-labelledby=":r4:"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              id=":r4:"
+              role="combobox"
+              tabindex="0"
+            >
+              10
+            </div>
+            <input
+              aria-hidden="true"
+              aria-invalid="false"
+              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+              tabindex="-1"
+              value="10"
+            />
+            <svg
+              aria-hidden="true"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              data-testid="ArrowDropDownIcon"
+              focusable="false"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M7 10l5 5 5-5z"
+              />
+            </svg>
+          </div>
+        </div>
+        <button
+          class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+          data-testid="previous-page-button"
+          disabled=""
+          tabindex="-1"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronLeftIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+            />
+          </svg>
+        </button>
+        <button
+          class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+          data-testid="next-page-button"
+          tabindex="0"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="ChevronRightIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+            />
+          </svg>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </button>
+        <span
+          data-testid="current-page"
+          style="position: absolute; left: -9999px;"
+        >
+          0
+        </span>
+        <span
+          data-testid="token-list"
+          style="position: absolute; left: -9999px;"
+        />
+      </div>
+      <span
+        data-testid="filter-string-encoded"
+        style="position: absolute; left: -9999px;"
+      />
+    </div>
+  </div>
+</DocumentFragment>
 `;

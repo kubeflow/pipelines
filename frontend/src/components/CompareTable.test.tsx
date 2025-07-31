@@ -15,13 +15,12 @@
  */
 
 import * as React from 'react';
-import { shallow } from 'enzyme';
 import CompareTable from './CompareTable';
 import { render, screen } from '@testing-library/react';
 
 // tslint:disable-next-line:no-console
 const consoleErrorBackup = console.error;
-let consoleSpy: jest.Mock;
+let consoleSpy: jest.SpyInstance;
 
 const rows = [
   ['1', '2', '3'],
@@ -42,20 +41,20 @@ describe('CompareTable', () => {
   });
 
   it('renders no data', () => {
-    const tree = shallow(<CompareTable rows={[]} xLabels={[]} yLabels={[]} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<CompareTable rows={[]} xLabels={[]} yLabels={[]} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 
   it('logs error if ylabels and rows have different lengths', () => {
-    shallow(<CompareTable rows={[rows[0], rows[1]]} xLabels={xLabels} yLabels={yLabels} />);
+    render(<CompareTable rows={[rows[0], rows[1]]} xLabels={xLabels} yLabels={yLabels} />);
     expect(consoleSpy).toHaveBeenCalledWith(
       'Number of rows (2) should match the number of Y labels (3).',
     );
   });
 
   it('renders one row with three columns', () => {
-    const tree = shallow(<CompareTable rows={rows} xLabels={xLabels} yLabels={yLabels} />);
-    expect(tree).toMatchSnapshot();
+    const { asFragment } = render(<CompareTable rows={rows} xLabels={xLabels} yLabels={yLabels} />);
+    expect(asFragment()).toMatchSnapshot();
   });
 });
 

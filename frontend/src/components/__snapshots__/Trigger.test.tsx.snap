@@ -720,256 +720,519 @@ exports[`Trigger renders all week days enabled 1`] = `
 
 exports[`Trigger renders periodic schedule controls for initial render 1`] = `
 <div>
-  <Input
-    label="Trigger type"
-    onChange={[Function]}
-    required={true}
-    select={true}
-    value={0}
-    variant="outlined"
+  <div
+    class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+    spellcheck="false"
+    style="height: 40px; max-width: 600px; width: 100%;"
   >
-    <WithStyles(MenuItem)
-      key="0"
-      value={0}
+    <label
+      class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+      data-shrink="true"
+      for=":r0:"
+      id=":r0:-label"
     >
-      Periodic
-    </WithStyles(MenuItem)>
-    <WithStyles(MenuItem)
-      key="1"
-      value={1}
+      Trigger type
+      <span
+        aria-hidden="true"
+        class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
+      >
+         
+        *
+      </span>
+    </label>
+    <div
+      class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
     >
-      Cron
-    </WithStyles(MenuItem)>
-  </Input>
+      <div
+        aria-controls=":r1:"
+        aria-expanded="false"
+        aria-haspopup="listbox"
+        aria-labelledby=":r0:-label :r0:"
+        class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+        id=":r0:"
+        role="combobox"
+        tabindex="0"
+      >
+        Periodic
+      </div>
+      <input
+        aria-hidden="true"
+        aria-invalid="false"
+        class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+        required=""
+        tabindex="-1"
+        value="0"
+      />
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+        data-testid="ArrowDropDownIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M7 10l5 5 5-5z"
+        />
+      </svg>
+      <fieldset
+        aria-hidden="true"
+        class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+      >
+        <legend
+          class="css-sl37lx-MuiNotchedOutlined-root"
+        >
+          <span>
+            Trigger type
+             
+            *
+          </span>
+        </legend>
+      </fieldset>
+    </div>
+  </div>
   <div>
-    <Input
-      label="Maximum concurrent runs"
-      onChange={[Function]}
-      required={true}
-      value="10"
-      variant="outlined"
-    />
     <div
-      className="flex"
+      class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+      spellcheck="false"
+      style="height: 40px; max-width: 600px; width: 100%;"
     >
-      <WithStyles(WithFormControlContext(FormControlLabel))
-        control={
-          <WithStyles(Checkbox)
-            checked={false}
-            color="primary"
-            onClick={[Function]}
-          />
-        }
-        label="Has start date"
-      />
-      <Input
-        InputLabelProps={
-          Object {
-            "classes": Object {
-              "outlined": "noMargin",
-            },
-            "shrink": true,
-          }
-        }
-        label="Start date"
-        onChange={[Function]}
-        style={
-          Object {
-            "visibility": "hidden",
-          }
-        }
-        type="date"
-        value="2018-12-21"
-        variant="outlined"
-        width={160}
-      />
-      <Separator />
-      <Input
-        InputLabelProps={
-          Object {
-            "classes": Object {
-              "outlined": "noMargin",
-            },
-            "shrink": true,
-          }
-        }
-        label="Start time"
-        onChange={[Function]}
-        style={
-          Object {
-            "visibility": "hidden",
-          }
-        }
-        type="time"
-        value="07:53"
-        variant="outlined"
-        width={120}
-      />
+      <label
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiFormLabel-filled Mui-required MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+        data-shrink="true"
+        for=":r2:"
+        id=":r2:-label"
+      >
+        Maximum concurrent runs
+        <span
+          aria-hidden="true"
+          class="MuiFormLabel-asterisk MuiInputLabel-asterisk css-wgai2y-MuiFormLabel-asterisk"
+        >
+           
+          *
+        </span>
+      </label>
+      <div
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+      >
+        <input
+          aria-invalid="false"
+          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          id=":r2:"
+          required=""
+          type="text"
+          value="10"
+        />
+        <fieldset
+          aria-hidden="true"
+          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+        >
+          <legend
+            class="css-sl37lx-MuiNotchedOutlined-root"
+          >
+            <span>
+              Maximum concurrent runs
+               
+              *
+            </span>
+          </legend>
+        </fieldset>
+      </div>
     </div>
     <div
-      className="alert"
+      class="flex"
+    >
+      <label
+        class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
+      >
+        <span
+          class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+        >
+          <input
+            class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+            data-indeterminate="false"
+            type="checkbox"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="CheckBoxOutlineBlankIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+            />
+          </svg>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </span>
+        <span
+          class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
+        >
+          Has start date
+        </span>
+      </label>
+      <div
+        class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+        spellcheck="false"
+        style="visibility: hidden;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+          data-shrink="true"
+          for=":r3:"
+          id=":r3:-label"
+        >
+          Start date
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+        >
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+            id=":r3:"
+            type="date"
+            value="2018-12-21"
+          />
+          <fieldset
+            aria-hidden="true"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="css-sl37lx-MuiNotchedOutlined-root"
+            >
+              <span>
+                Start date
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+      <span
+        style="display: inline-block; min-width: 10px; width: 10px;"
+      />
+      <div
+        class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+        spellcheck="false"
+        style="visibility: hidden;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+          data-shrink="true"
+          for=":r4:"
+          id=":r4:-label"
+        >
+          Start time
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+        >
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+            id=":r4:"
+            type="time"
+            value="07:53"
+          />
+          <fieldset
+            aria-hidden="true"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="css-sl37lx-MuiNotchedOutlined-root"
+            >
+              <span>
+                Start time
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+    </div>
+    <div
+      class="alert"
       data-testid="startTimeMessage"
-      style={
-        Object {
-          "visibility": "hidden",
-        }
-      }
+      style="visibility: hidden;"
     />
     <div
-      className="flex"
+      class="flex"
     >
-      <WithStyles(WithFormControlContext(FormControlLabel))
-        control={
-          <WithStyles(Checkbox)
-            checked={false}
-            color="primary"
-            onClick={[Function]}
+      <label
+        class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
+      >
+        <span
+          class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+        >
+          <input
+            class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+            data-indeterminate="false"
+            type="checkbox"
           />
-        }
-        label="Has end date"
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="CheckBoxOutlineBlankIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
+            />
+          </svg>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </span>
+        <span
+          class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
+        >
+          Has end date
+        </span>
+      </label>
+      <div
+        class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+        spellcheck="false"
+        style="visibility: hidden;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+          data-shrink="true"
+          for=":r5:"
+          id=":r5:-label"
+        >
+          End date
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+        >
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+            id=":r5:"
+            type="date"
+            value="2018-12-28"
+          />
+          <fieldset
+            aria-hidden="true"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="css-sl37lx-MuiNotchedOutlined-root"
+            >
+              <span>
+                End date
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
+      <span
+        style="display: inline-block; min-width: 10px; width: 10px;"
       />
-      <Input
-        InputLabelProps={
-          Object {
-            "classes": Object {
-              "outlined": "noMargin",
-            },
-            "shrink": true,
-          }
-        }
-        label="End date"
-        onChange={[Function]}
-        style={
-          Object {
-            "visibility": "hidden",
-          }
-        }
-        type="date"
-        value="2018-12-28"
-        variant="outlined"
-        width={160}
-      />
-      <Separator />
-      <Input
-        InputLabelProps={
-          Object {
-            "classes": Object {
-              "outlined": "noMargin",
-            },
-            "shrink": true,
-          }
-        }
-        label="End time"
-        onChange={[Function]}
-        style={
-          Object {
-            "visibility": "hidden",
-          }
-        }
-        type="time"
-        value="07:53"
-        variant="outlined"
-        width={120}
-      />
+      <div
+        class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+        spellcheck="false"
+        style="visibility: hidden;"
+      >
+        <label
+          class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined noMargin css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+          data-shrink="true"
+          for=":r6:"
+          id=":r6:-label"
+        >
+          End time
+        </label>
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+        >
+          <input
+            aria-invalid="false"
+            class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+            id=":r6:"
+            type="time"
+            value="07:53"
+          />
+          <fieldset
+            aria-hidden="true"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="css-sl37lx-MuiNotchedOutlined-root"
+            >
+              <span>
+                End time
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
     </div>
     <div
-      className="alert"
+      class="alert"
       data-testid="endTimeMessage"
-      style={
-        Object {
-          "visibility": "hidden",
-        }
-      }
+      style="visibility: hidden;"
     />
     <span
-      className="flex"
+      class="flex"
     >
-      <WithStyles(WithFormControlContext(FormControlLabel))
-        control={
-          <WithStyles(Checkbox)
-            checked={true}
-            color="primary"
-            onClick={[Function]}
+      <label
+        class="MuiFormControlLabel-root MuiFormControlLabel-labelPlacementEnd css-j204z7-MuiFormControlLabel-root"
+      >
+        <span
+          class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium Mui-checked MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+        >
+          <input
+            checked=""
+            class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+            data-indeterminate="false"
+            type="checkbox"
           />
-        }
-        label="Catchup"
-      />
-      <HelpButton
-        helpText={
-          <div>
-            <p>
-              Whether the recurring run should catch up if behind schedule. Defaults to true.
-            </p>
-            <p>
-              For example, if the recurring run is paused for a while and re-enabled afterwards. If catchup=true, the scheduler will catch up on (backfill) each missed interval. Otherwise, it only schedules the latest interval if more than one interval is ready to be scheduled.
-            </p>
-            <p>
-              Usually, if your pipeline handles backfill internally, you should turn catchup off to avoid duplicate backfill.
-            </p>
-          </div>
-        }
-      />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+            data-testid="CheckBoxIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V5c0-1.1-.89-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            />
+          </svg>
+          <span
+            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+          />
+        </span>
+        <span
+          class="MuiTypography-root MuiTypography-body1 MuiFormControlLabel-label css-ahj2mt-MuiTypography-root"
+        >
+          Catchup
+        </span>
+      </label>
+      <button
+        class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+        data-mui-internal-clone-element="true"
+        tabindex="0"
+        type="button"
+      >
+        <svg
+          aria-hidden="true"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          data-testid="HelpIcon"
+          focusable="false"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25"
+          />
+        </svg>
+        <span
+          class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+        />
+      </button>
     </span>
     <span
-      className="flex"
+      class="flex"
     >
       Run every
       <div
-        className="flex"
+        class="flex"
       >
-        <Separator />
-        <Input
-          error={false}
-          height={30}
-          onChange={[Function]}
-          required={true}
-          type="number"
-          value={1}
-          variant="outlined"
-          width={65}
+        <span
+          style="display: inline-block; min-width: 10px; width: 10px;"
         />
+        <div
+          class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+          spellcheck="false"
+          style="height: 30px; max-width: 600px; width: 65px;"
+        >
+          <div
+            class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+          >
+            <input
+              aria-invalid="false"
+              class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+              id=":r8:"
+              required=""
+              type="number"
+              value="1"
+            />
+            <fieldset
+              aria-hidden="true"
+              class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+            >
+              <legend
+                class="css-1whs34k-MuiNotchedOutlined-root"
+              >
+                <span
+                  class="notranslate"
+                >
+                  ​
+                </span>
+              </legend>
+            </fieldset>
+          </div>
+        </div>
       </div>
-      <Separator />
-      <Input
-        height={30}
-        onChange={[Function]}
-        required={true}
-        select={true}
-        value="Hour"
-        variant="outlined"
-        width={95}
+      <span
+        style="display: inline-block; min-width: 10px; width: 10px;"
+      />
+      <div
+        class="MuiFormControl-root MuiTextField-root textField css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+        spellcheck="false"
+        style="height: 30px; max-width: 600px; width: 95px;"
       >
-        <WithStyles(MenuItem)
-          key="0"
-          value="Minute"
+        <div
+          class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
         >
-          Minutes
-        </WithStyles(MenuItem)>
-        <WithStyles(MenuItem)
-          key="1"
-          value="Hour"
-        >
-          Hours
-        </WithStyles(MenuItem)>
-        <WithStyles(MenuItem)
-          key="2"
-          value="Day"
-        >
-          Days
-        </WithStyles(MenuItem)>
-        <WithStyles(MenuItem)
-          key="3"
-          value="Week"
-        >
-          Weeks
-        </WithStyles(MenuItem)>
-        <WithStyles(MenuItem)
-          key="4"
-          value="Month"
-        >
-          Months
-        </WithStyles(MenuItem)>
-      </Input>
+          <div
+            aria-controls=":ra:"
+            aria-expanded="false"
+            aria-haspopup="listbox"
+            aria-labelledby=":r9:"
+            class="MuiSelect-select MuiSelect-outlined MuiInputBase-input MuiOutlinedInput-input css-11u53oe-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input"
+            id=":r9:"
+            role="combobox"
+            tabindex="0"
+          >
+            Hours
+          </div>
+          <input
+            aria-hidden="true"
+            aria-invalid="false"
+            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            required=""
+            tabindex="-1"
+            value="Hour"
+          />
+          <svg
+            aria-hidden="true"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconOutlined css-hfutr2-MuiSvgIcon-root-MuiSelect-icon"
+            data-testid="ArrowDropDownIcon"
+            focusable="false"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M7 10l5 5 5-5z"
+            />
+          </svg>
+          <fieldset
+            aria-hidden="true"
+            class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+          >
+            <legend
+              class="css-1whs34k-MuiNotchedOutlined-root"
+            >
+              <span
+                class="notranslate"
+              >
+                ​
+              </span>
+            </legend>
+          </fieldset>
+        </div>
+      </div>
     </span>
   </div>
 </div>

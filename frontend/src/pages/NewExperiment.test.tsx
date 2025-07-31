@@ -15,28 +15,44 @@
  */
 
 import * as React from 'react';
-import { NewExperiment } from './NewExperiment';
-import TestUtils from '../TestUtils';
-import { shallow, ReactWrapper, ShallowWrapper } from 'enzyme';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, QUERY_PARAMS } from '../components/Router';
-import { ApiResourceType, ApiRelationship } from 'src/apis/experiment';
+import NewExperiment from './NewExperiment';
+import { CommonTestWrapper } from '../TestWrapper';
+import TestUtils from '../TestUtils';
+
+// Mock React Router hooks
+const mockNavigate = jest.fn();
+const mockLocation = { pathname: '', search: '', hash: '', state: null, key: 'default' };
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+  useLocation: () => mockLocation,
+}));
 
 describe('NewExperiment', () => {
-  let tree: ReactWrapper | ShallowWrapper;
+  const TEST_EXPERIMENT_ID = 'new-experiment-id';
   const createExperimentSpy = jest.spyOn(Apis.experimentServiceApiV2, 'createExperiment');
-  const historyPushSpy = jest.fn();
+  const navigateSpy = jest.fn();
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
 
   function generateProps(): PageProps {
     return {
-      history: { push: historyPushSpy } as any,
-      location: { pathname: RoutePage.NEW_EXPERIMENT } as any,
-      match: '' as any,
-      toolbarProps: NewExperiment.prototype.getInitialToolbarState(),
+      navigate: navigateSpy,
+      location: {
+        pathname: RoutePage.NEW_EXPERIMENT,
+        search: '',
+        hash: '',
+        state: null,
+        key: 'default',
+      },
+      match: { params: {}, isExact: true, path: '', url: '' },
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'New experiment' },
       updateBanner: () => null,
       updateDialog: updateDialogSpy,
       updateSnackbar: updateSnackbarSpy,
@@ -44,33 +60,36 @@ describe('NewExperiment', () => {
     };
   }
 
-  // Used by tests that don't care about exact experiment name
-  function fillAnyExperimentName() {
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'a-random-experiment-name-DO-NOT-VERIFY-THIS' },
-    });
-  }
-
   beforeEach(() => {
-    // Reset mocks
-    createExperimentSpy.mockReset();
-    historyPushSpy.mockReset();
-    updateDialogSpy.mockReset();
-    updateSnackbarSpy.mockReset();
-    updateToolbarSpy.mockReset();
+    jest.clearAllMocks();
+    mockNavigate.mockClear();
+    navigateSpy.mockClear();
 
-    createExperimentSpy.mockImplementation(() => ({ experiment_id: 'new-experiment-id' }));
+    createExperimentSpy.mockResolvedValue({
+      experiment_id: TEST_EXPERIMENT_ID,
+      display_name: 'new-experiment-name',
+    });
   });
 
-  afterEach(() => tree.unmount());
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
 
   it('renders the new experiment page', () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
-    expect(tree).toMatchSnapshot();
+    const { container } = render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    expect(container.firstChild).toMatchSnapshot();
   });
 
   it('does not include any action buttons in the toolbar', () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
     expect(updateToolbarSpy).toHaveBeenCalledWith({
       actions: {},
@@ -80,217 +99,322 @@ describe('NewExperiment', () => {
   });
 
   it("enables the 'Next' button when an experiment name is entered", () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
-    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('disabled', true);
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'experiment name' },
-    });
-
-    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('disabled', false);
-    expect(tree).toMatchSnapshot();
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    const nextButton = screen.getByText('Next');
+    expect(nextButton.closest('button')?.disabled).toEqual(false);
   });
 
   it("re-disables the 'Next' button when an experiment name is cleared after having been entered", () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
-    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('disabled', true);
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'experiment name' },
-    });
-    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('disabled', false);
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    const nextButton = screen.getByText('Next');
+    expect(nextButton.closest('button')?.disabled).toEqual(false);
 
-    (tree.instance() as any).handleChange('experimentName')({ target: { value: '' } });
-    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('disabled', true);
-    expect(tree).toMatchSnapshot();
+    // Clear experiment name
+    fireEvent.change(experimentNameInput, { target: { value: '' } });
+    expect(nextButton.closest('button')?.disabled).toEqual(true);
   });
 
   it('updates the experiment name', () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'experiment name' },
-    });
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    expect(tree.state()).toEqual({
-      description: '',
-      experimentName: 'experiment name',
-      isbeingCreated: false,
-      validationError: '',
-    });
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    expect(experimentNameInput.closest('input')?.value).toBe('new-experiment-name');
   });
 
   it('updates the experiment description', () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
-    (tree.instance() as any).handleChange('description')({ target: { value: 'a description!' } });
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    expect(tree.state()).toEqual({
-      description: 'a description!',
-      experimentName: '',
-      isbeingCreated: false,
-      validationError: 'Experiment name is required',
+    const experimentDescriptionInput = screen.getByLabelText('Description');
+    fireEvent.change(experimentDescriptionInput, {
+      target: { value: 'new-experiment-description' },
     });
+    expect(experimentDescriptionInput.closest('textarea')?.value).toBe(
+      'new-experiment-description',
+    );
   });
 
   it("sets the page to a busy state upon clicking 'Next'", async () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
-
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'experiment-name' },
+    // Create a longer-running promise to test busy state
+    let resolvePromise: (value: any) => void;
+    const pendingPromise = new Promise<any>(resolve => {
+      resolvePromise = resolve;
     });
+    createExperimentSpy.mockReturnValue(pendingPromise);
 
-    tree.find('#createExperimentBtn').simulate('click');
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    const nextButton = screen.getByText('Next');
+    fireEvent.click(nextButton);
+
+    // Check that button is in busy state
+    expect(nextButton.closest('button')?.disabled).toEqual(true);
+
+    // Resolve the promise to clean up
+    resolvePromise!({
+      experiment_id: TEST_EXPERIMENT_ID,
+      display_name: 'new-experiment-name',
+    });
     await TestUtils.flushPromises();
-
-    expect(tree.state()).toHaveProperty('isbeingCreated', true);
-    expect(tree.find('#createExperimentBtn').props()).toHaveProperty('busy', true);
   });
 
   it("calls the createExperiment API with the new experiment upon clicking 'Next'", async () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'experiment name' },
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    const experimentDescriptionInput = screen.getByLabelText('Description');
+    fireEvent.change(experimentDescriptionInput, {
+      target: { value: 'new-experiment-description' },
     });
-    (tree.instance() as any).handleChange('description')({
-      target: { value: 'experiment description' },
-    });
+    const nextButton = screen.getByText('Next');
+    fireEvent.click(nextButton);
 
-    tree.find('#createExperimentBtn').simulate('click');
-    await TestUtils.flushPromises();
-
-    expect(createExperimentSpy).toHaveBeenCalledWith({
-      description: 'experiment description',
-      display_name: 'experiment name',
+    await waitFor(() => {
+      expect(createExperimentSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'new-experiment-description',
+          display_name: 'new-experiment-name',
+        }),
+      );
     });
   });
 
   it('calls the createExperimentAPI with namespace when it is provided', async () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} namespace='test-ns' />);
+    // Mock the NamespaceContext to provide a test namespace
+    const mockUseContext = jest.spyOn(React, 'useContext');
+    mockUseContext.mockImplementation(context => {
+      // Return test namespace for NamespaceContext, otherwise use real implementation
+      if (
+        context.displayName === 'NamespaceContext' ||
+        context === require('src/lib/KubeflowClient').NamespaceContext
+      ) {
+        return 'test-namespace';
+      }
+      return jest.requireActual('react').useContext(context);
+    });
 
-    fillAnyExperimentName();
-    tree.find('#createExperimentBtn').simulate('click');
-    await TestUtils.flushPromises();
-
-    expect(createExperimentSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        namespace: 'test-ns',
-      }),
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
     );
+
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    const nextButton = screen.getByText('Next');
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(createExperimentSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: '',
+          display_name: 'new-experiment-name',
+          namespace: 'test-namespace',
+        }),
+      );
+    });
+
+    mockUseContext.mockRestore();
   });
 
   it('navigates to NewRun page upon successful creation', async () => {
-    const experimentId = 'test-exp-id-1';
-    createExperimentSpy.mockImplementation(() => ({ experiment_id: experimentId }));
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'experiment-name' },
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    const nextButton = screen.getByText('Next');
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(createExperimentSpy).toHaveBeenCalled();
     });
 
-    tree.find('#createExperimentBtn').simulate('click');
-    await createExperimentSpy;
-    await TestUtils.flushPromises();
-
-    expect(historyPushSpy).toHaveBeenCalledWith(
-      RoutePage.NEW_RUN + `?experimentId=${experimentId}` + `&firstRunInExperiment=1`,
-    );
+    await waitFor(() => {
+      expect(navigateSpy).toHaveBeenCalledWith(
+        RoutePage.NEW_RUN + `?experimentId=${TEST_EXPERIMENT_ID}&firstRunInExperiment=1`,
+      );
+    });
   });
 
   it('includes pipeline ID and version ID in NewRun page query params if present', async () => {
-    const experimentId = 'test-exp-id-1';
-    createExperimentSpy.mockImplementation(() => ({ experiment_id: experimentId }));
+    const TEST_PIPELINE_ID = 'test-pipeline-id';
+    const TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
 
-    const pipelineId = 'some-pipeline-id';
-    const pipelineVersionId = 'version-id';
+    // Mock the getLatestVersion call
     const listPipelineVersionsSpy = jest.spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions');
-    listPipelineVersionsSpy.mockImplementation(() => ({
-      pipeline_versions: [{ pipeline_version_id: pipelineVersionId }],
-    }));
-
-    const props = generateProps();
-    props.location.search = `?${QUERY_PARAMS.pipelineId}=${pipelineId}`;
-    tree = shallow(<NewExperiment {...(props as any)} />);
-
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'experiment-name' },
+    listPipelineVersionsSpy.mockResolvedValue({
+      pipeline_versions: [{ pipeline_version_id: TEST_PIPELINE_VERSION_ID }],
+      total_size: 1,
     });
 
-    tree.find('#createExperimentBtn').simulate('click');
-    await createExperimentSpy;
-    await listPipelineVersionsSpy;
-    await TestUtils.flushPromises();
+    // Update the location mock to include the pipeline ID in search params
+    mockLocation.search = `?${QUERY_PARAMS.pipelineId}=${TEST_PIPELINE_ID}`;
 
-    expect(historyPushSpy).toHaveBeenCalledWith(
-      RoutePage.NEW_RUN +
-        `?experimentId=${experimentId}` +
-        `&pipelineId=${pipelineId}` +
-        `&pipelineVersionId=${pipelineVersionId}` +
-        `&firstRunInExperiment=1`,
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.pipelineId}=${TEST_PIPELINE_ID}`;
+
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...props} />
+      </CommonTestWrapper>,
     );
+
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    const nextButton = screen.getByText('Next');
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(createExperimentSpy).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(navigateSpy).toHaveBeenCalledWith(
+        RoutePage.NEW_RUN +
+          `?experimentId=${TEST_EXPERIMENT_ID}&pipelineId=${TEST_PIPELINE_ID}&pipelineVersionId=${TEST_PIPELINE_VERSION_ID}&firstRunInExperiment=1`,
+      );
+    });
+
+    // Clean up the mock
+    mockLocation.search = '';
   });
 
   it('shows snackbar confirmation after experiment is created', async () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'experiment-name' },
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    const nextButton = screen.getByText('Next');
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(createExperimentSpy).toHaveBeenCalled();
     });
 
-    tree.find('#createExperimentBtn').simulate('click');
-    await TestUtils.flushPromises();
-
-    expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
-      autoHideDuration: 10000,
-      message: 'Successfully created new Experiment: experiment-name',
-      open: true,
+    await waitFor(() => {
+      expect(updateSnackbarSpy).toHaveBeenCalledWith({
+        autoHideDuration: 10000,
+        message: 'Successfully created new Experiment: new-experiment-name',
+        open: true,
+      });
     });
   });
 
   it('unsets busy state when creation fails', async () => {
-    // Don't actually log to console.
-    // tslint:disable-next-line:no-console
-    console.error = jest.spyOn(console, 'error').mockImplementation();
+    TestUtils.makeErrorResponseOnce(createExperimentSpy, 'Creation failed');
 
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'experiment-name' },
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    const nextButton = screen.getByText('Next');
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(createExperimentSpy).toHaveBeenCalled();
     });
 
-    TestUtils.makeErrorResponseOnce(createExperimentSpy, 'test error!');
-    tree.find('#createExperimentBtn').simulate('click');
-    await createExperimentSpy;
-    await TestUtils.flushPromises();
+    // After error, the dialog should appear and closing it should unset busy state
+    expect(updateDialogSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        buttons: [{ text: 'Dismiss' }],
+        title: 'Experiment creation failed',
+      }),
+    );
 
-    expect(tree.state()).toHaveProperty('isbeingCreated', false);
+    // Simulate dismissing the dialog
+    const dialogCall = updateDialogSpy.mock.calls[0][0];
+    if (dialogCall.onClose) {
+      dialogCall.onClose();
+    }
+
+    // Button should be enabled again after dismissing error dialog
+    await waitFor(() => {
+      expect(nextButton.closest('button')?.disabled).toEqual(false);
+    });
   });
 
   it('shows error dialog when creation fails', async () => {
-    // Don't actually log to console.
-    // tslint:disable-next-line:no-console
-    console.error = jest.spyOn(console, 'error').mockImplementation();
+    TestUtils.makeErrorResponseOnce(createExperimentSpy, 'There was something wrong!');
 
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    (tree.instance() as any).handleChange('experimentName')({
-      target: { value: 'experiment-name' },
+    const experimentNameInput = screen.getByLabelText(/Experiment name/);
+    fireEvent.change(experimentNameInput, { target: { value: 'new-experiment-name' } });
+    const nextButton = screen.getByText('Next');
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(createExperimentSpy).toHaveBeenCalled();
     });
 
-    TestUtils.makeErrorResponseOnce(createExperimentSpy, 'test error!');
-    tree.find('#createExperimentBtn').simulate('click');
-    await createExperimentSpy;
-    await TestUtils.flushPromises();
-
-    const call = updateDialogSpy.mock.calls[0][0];
-    expect(call).toHaveProperty('title', 'Experiment creation failed');
-    expect(call).toHaveProperty('content', 'test error!');
+    expect(updateDialogSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'There was something wrong!',
+        title: 'Experiment creation failed',
+      }),
+    );
   });
 
-  it('navigates to experiment list page upon cancellation', async () => {
-    tree = shallow(<NewExperiment {...(generateProps() as any)} />);
-    tree.find('#cancelNewExperimentBtn').simulate('click');
-    await TestUtils.flushPromises();
+  it('navigates to experiment list page upon cancellation', () => {
+    render(
+      <CommonTestWrapper>
+        <NewExperiment {...generateProps()} />
+      </CommonTestWrapper>,
+    );
 
-    expect(historyPushSpy).toHaveBeenCalledWith(RoutePage.EXPERIMENTS);
+    const cancelButton = screen.getByText('Cancel');
+    fireEvent.click(cancelButton);
+
+    expect(navigateSpy).toHaveBeenCalledWith(RoutePage.EXPERIMENTS);
   });
 });

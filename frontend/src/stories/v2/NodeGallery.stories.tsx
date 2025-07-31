@@ -20,9 +20,9 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
-  OnLoadParams,
+  ReactFlowInstance,
   ReactFlowProvider,
-} from 'react-flow-renderer';
+} from 'reactflow';
 import 'src/build/tailwind.output.css';
 import {
   ArtifactFlowElementData,
@@ -140,7 +140,7 @@ const elements = [
 ];
 
 function WrappedNodeGallery({}) {
-  const onLoad = (reactFlowInstance: OnLoadParams) => {
+  const onInit = (reactFlowInstance: ReactFlowInstance) => {
     reactFlowInstance.fitView();
   };
 
@@ -150,11 +150,12 @@ function WrappedNodeGallery({}) {
       <ReactFlowProvider>
         <ReactFlow
           style={{ background: '#F5F5F5' }}
-          elements={elements}
+          nodes={elements}
+          edges={[]}
           snapToGrid={true}
           nodeTypes={NODE_TYPES}
           edgeTypes={{}}
-          onLoad={onLoad}
+          onInit={onInit}
         >
           <MiniMap />
           <Controls />

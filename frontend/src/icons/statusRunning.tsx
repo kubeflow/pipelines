@@ -15,9 +15,9 @@
  */
 
 import * as React from 'react';
-import { CSSProperties } from 'jss/css';
+import { NestedCSSProperties } from 'typestyle/lib/types';
 
-export default class StatusRunning extends React.Component<{ style: CSSProperties }> {
+export default class StatusRunning extends React.Component<{ style: NestedCSSProperties }> {
   public render(): JSX.Element {
     const { style } = this.props;
     return (

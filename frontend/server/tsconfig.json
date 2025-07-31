@@ -20,7 +20,6 @@
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "strictNullChecks": true,
-    "suppressImplicitAnyIndexErrors": true,
     "skipLibCheck": true,
     "strictPropertyInitialization": false, // Workaround: swagger generated client breaks this.
     "strict": true

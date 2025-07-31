@@ -34,7 +34,11 @@ interface RecurringRunConfigState {
   run: ApiJob | null;
 }
 
-class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
+class RecurringRunDetails extends Page<
+  {},
+  RecurringRunConfigState,
+  { [RouteParams.recurringRunId]: string }
+> {
   constructor(props: any) {
     super(props);
 
@@ -197,7 +201,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       const previousPage = breadcrumbs.length
         ? breadcrumbs[breadcrumbs.length - 1].href
         : RoutePage.EXPERIMENTS;
-      this.props.history.push(previousPage);
+      this.props.navigate(previousPage);
     }
   }
 }

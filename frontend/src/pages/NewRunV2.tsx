@@ -23,7 +23,7 @@ import {
   FormControlLabel,
   Radio,
   Checkbox,
-} from '@material-ui/core';
+} from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useMutation } from 'react-query';
@@ -45,7 +45,7 @@ import Trigger from 'src/components/Trigger';
 import { color, commonCss, padding } from 'src/Css';
 import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
-import { URLParser } from 'src/lib/URLParser';
+import { useURLParser } from 'src/lib/URLParser';
 import { errorToMessage, generateRandomString, logger } from 'src/lib/Utils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes, stylesheet } from 'typestyle';
@@ -57,7 +57,7 @@ import {
   convertExperimentToResource,
   convertPipelineVersionToResource,
 } from 'src/lib/ResourceConverter';
-import AddIcon from '@material-ui/icons/Add';
+import AddIcon from '@mui/icons-material/Add';
 import { ToolbarActionMap } from '../components/Toolbar';
 import { NewExperimentFC } from './functional_components/NewExperimentFC';
 
@@ -114,25 +114,23 @@ function getCloneOrigin(run?: V2beta1Run, recurringRun?: V2beta1RecurringRun) {
 }
 
 function getPipelineDetailsUrl(
-  props: NewRunV2Props,
+  urlParserBuild: (params: { [param: string]: string }) => string,
   isRecurring: boolean,
   existingRunId: string | null,
   originalRecurringRunId: string | null,
 ): string {
-  const urlParser = new URLParser(props);
-
   const pipelineDetailsUrlfromRun = existingRunId
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
         '',
-      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
+      ) + urlParserBuild({ [QUERY_PARAMS.fromRunId]: existingRunId })
     : '';
 
   const pipelineDetailsUrlfromRecurringRun = originalRecurringRunId
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
         '',
-      ) + urlParser.build({ [QUERY_PARAMS.fromRecurringRunId]: originalRecurringRunId })
+      ) + urlParserBuild({ [QUERY_PARAMS.fromRecurringRunId]: originalRecurringRunId })
     : '';
 
   return isRecurring ? pipelineDetailsUrlfromRecurringRun : pipelineDetailsUrlfromRun;
@@ -170,7 +168,7 @@ function NewRunV2(props: NewRunV2Props) {
     chosenExperiment,
   } = props;
   const cloneOrigin = getCloneOrigin(existingRun, existingRecurringRun);
-  const urlParser = new URLParser(props);
+  const urlParser = useURLParser();
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [pipelineName, setPipelineName] = useState('');
@@ -399,9 +397,9 @@ function NewRunV2(props: NewRunV2Props) {
         onSuccess: data => {
           setIsStartingNewRun(false);
           if (data.run_id) {
-            props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
+            props.navigate(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run_id));
           } else {
-            props.history.push(RoutePage.RUNS);
+            props.navigate(RoutePage.RUNS);
           }
 
           props.updateSnackbar({
@@ -425,14 +423,14 @@ function NewRunV2(props: NewRunV2Props) {
         onSuccess: data => {
           setIsStartingNewRun(false);
           if (data.recurring_run_id) {
-            props.history.push(
+            props.navigate(
               RoutePage.RECURRING_RUN_DETAILS.replace(
                 ':' + RouteParams.recurringRunId,
                 data.recurring_run_id,
               ),
             );
           } else {
-            props.history.push(RoutePage.RECURRING_RUNS);
+            props.navigate(RoutePage.RECURRING_RUNS);
           }
 
           props.updateSnackbar({
@@ -470,7 +468,7 @@ function NewRunV2(props: NewRunV2Props) {
                 <Link
                   className={classes(commonCss.link)}
                   to={getPipelineDetailsUrl(
-                    props,
+                    urlParser.build,
                     cloneOrigin.isRecurring,
                     existingRunId,
                     existingRecurringRunId,
@@ -501,7 +499,7 @@ function NewRunV2(props: NewRunV2Props) {
                     [QUERY_PARAMS.pipelineVersionId]: latestVersion?.pipeline_version_id || '',
                     [QUERY_PARAMS.isRecurring]: isRecurringRun ? '1' : '',
                   });
-                  props.history.replace(searchString);
+                  props.navigate(searchString, { replace: true });
                   handlePipelineVersionIdChange(latestVersion?.pipeline_version_id!);
                   handlePipelineIdChange(updatedPipeline.pipeline_id);
                 }
@@ -545,7 +543,7 @@ function NewRunV2(props: NewRunV2Props) {
                       updatedPipelineVersion.pipeline_version_id || '',
                     [QUERY_PARAMS.isRecurring]: isRecurringRun ? '1' : '',
                   });
-                  props.history.replace(searchString);
+                  props.navigate(searchString, { replace: true });
                   handlePipelineVersionIdChange(updatedPipelineVersion.pipeline_version_id);
                 }
               }}
@@ -610,7 +608,7 @@ function NewRunV2(props: NewRunV2Props) {
                   [QUERY_PARAMS.experimentId]: experiment.experiment_id || '',
                 });
               }
-              props.history.replace(searchString);
+              props.navigate(searchString, { replace: true });
             }
           }}
         />
@@ -716,7 +714,7 @@ function NewRunV2(props: NewRunV2Props) {
             id='exitNewRunPageBtn'
             onClick={() => {
               // TODO(zijianjoy): Return to previous page instead of defaulting to RUNS page.
-              props.history.push(RoutePage.RUNS);
+              props.navigate(RoutePage.RUNS);
             }}
           >
             {'Cancel'}

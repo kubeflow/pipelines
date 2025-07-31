@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-import Tooltip from '@material-ui/core/Tooltip';
+import Tooltip from '@mui/material/Tooltip';
 import produce from 'immer';
 import * as React from 'react';
-import { Link } from 'react-router-dom';
 import { classes } from 'typestyle';
 import { V2beta1Pipeline, V2beta1ListPipelinesResponse } from 'src/apisv2beta1/pipeline';
 import CustomTable, {
@@ -32,9 +31,10 @@ import { ToolbarProps } from 'src/components/Toolbar';
 import { commonCss, padding } from 'src/Css';
 import { Apis, ListRequest, PipelineSortKeys } from 'src/lib/Apis';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import { formatDateString } from 'src/lib/Utils';
+import { ensureError, formatDateString } from 'src/lib/Utils';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
+import { ForwardedLink } from 'src/atoms/ForwardedLink';
 
 interface DisplayPipeline extends V2beta1Pipeline {
   expandState?: ExpandState;
@@ -177,7 +177,7 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
       displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       this.clearBanner();
     } catch (err) {
-      await this.showPageError('Error: failed to retrieve list of pipelines.', err);
+      await this.showPageError('Error: failed to retrieve list of pipelines.', ensureError(err));
     }
 
     this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });
@@ -190,13 +190,13 @@ class PipelineList extends Page<{ namespace?: string }, PipelineListState> {
   > = (props: CustomRendererProps<{ display_name?: string; name: string }>) => {
     return (
       <Tooltip title={'Name: ' + (props.value?.name || '')} enterDelay={300} placement='top-start'>
-        <Link
+        <ForwardedLink
           onClick={e => e.stopPropagation()}
           className={commonCss.link}
           to={RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId, props.id)}
         >
           {props.value?.display_name || props.value?.name}
-        </Link>
+        </ForwardedLink>
       </Tooltip>
     );
   };

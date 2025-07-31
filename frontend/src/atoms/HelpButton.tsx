@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import IconButton from '@material-ui/core/IconButton';
-import HelpIcon from '@material-ui/icons/Help';
+import IconButton from '@mui/material/IconButton';
+import HelpIcon from '@mui/icons-material/Help';
 import React, { ReactNode } from 'react';
 import { CardTooltip } from './CardTooltip';
 
@@ -25,7 +25,7 @@ interface HelpButtonProps {
 export const HelpButton: React.FC<HelpButtonProps> = ({ helpText }) => {
   return (
     <CardTooltip helpText={helpText}>
-      <IconButton>
+      <IconButton size='large'>
         <HelpIcon />
       </IconButton>
     </CardTooltip>

@@ -19,8 +19,8 @@ const fetchSpy = (response: string) => {
   const spy = jest.fn(() =>
     Promise.resolve({
       ok: true,
-      text: () => response,
-    }),
+      text: () => Promise.resolve(response),
+    } as unknown as Response),
   );
   window.fetch = spy;
   return spy;
@@ -31,7 +31,7 @@ const failedFetchSpy = (response: string) => {
     Promise.resolve({
       ok: false,
       text: () => response,
-    }),
+    } as unknown as Response),
   );
   window.fetch = spy;
   return spy;
@@ -103,11 +103,11 @@ describe('Apis', () => {
       Promise.resolve({
         ok: false,
         text: () => 'bad response',
-      }),
-    );
-    expect(Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns')).rejects.toThrowError('bad response');
+      } as unknown as Response),
+    ) as unknown as typeof fetch;
+    expect(Apis.getPodLogs('a-run-id', 'some-pod-name', 'ns', '')).rejects.toThrowError('bad response');
     expect(
-      Apis.getPodLogs('a-run-id', 'some-pod-name', 'some-namespace-name'),
+      Apis.getPodLogs('a-run-id', 'some-pod-name', 'some-namespace-name', ''),
     ).rejects.toThrowError('bad response');
   });
 
@@ -132,8 +132,8 @@ describe('Apis', () => {
   });
 
   it('isJupyterHubAvailable returns false if the response for the /hub/ url was not ok', async () => {
-    const spy = jest.fn(() => Promise.resolve({ ok: false }));
-    window.fetch = spy;
+    const spy = jest.fn(() => Promise.resolve({ ok: false } as unknown as Response));
+    window.fetch = spy as unknown as typeof fetch;
     const isJupyterHubAvailable = await Apis.isJupyterHubAvailable();
     expect(spy).toHaveBeenCalledWith('/hub/', { credentials: 'same-origin' });
     expect(isJupyterHubAvailable).toEqual(false);
@@ -208,11 +208,11 @@ describe('Apis', () => {
       await Apis.startTensorboardApp(defaultArgs);
       expect(spy).toHaveBeenCalledWith(
         'apps/tensorboard?logdir=' +
-          encodeURIComponent(defaultArgs.logdir) +
-          '&namespace=' +
-          defaultArgs.namespace +
-          '&image=' +
-          encodeURIComponent(defaultArgs.image),
+        encodeURIComponent(defaultArgs.logdir) +
+        '&namespace=' +
+        defaultArgs.namespace +
+        '&image=' +
+        encodeURIComponent(defaultArgs.image),
         {
           credentials: 'same-origin',
           headers: { 'content-type': 'application/json' },
@@ -272,13 +272,13 @@ describe('Apis', () => {
       await Apis.startTensorboardApp(args);
       expect(spy).toHaveBeenCalledWith(
         'apps/tensorboard?logdir=' +
-          encodeURIComponent(args.logdir) +
-          '&namespace=' +
-          args.namespace +
-          '&image=' +
-          encodeURIComponent(args.image) +
-          '&podtemplatespec=' +
-          encodeURIComponent(JSON.stringify(args.podTemplateSpec)),
+        encodeURIComponent(args.logdir) +
+        '&namespace=' +
+        args.namespace +
+        '&image=' +
+        encodeURIComponent(args.image) +
+        '&podtemplatespec=' +
+        encodeURIComponent(JSON.stringify(args.podTemplateSpec)),
         expect.anything(),
       );
     });
@@ -307,11 +307,11 @@ describe('Apis', () => {
     expect(result).toEqual({ name: 'resultName' });
     expect(spy).toHaveBeenCalledWith(
       'apis/v1beta1/pipelines/upload?name=' +
-        encodeURIComponent('test pipeline name') +
-        '&display_name=' +
-        encodeURIComponent('test display name') +
-        '&description=' +
-        encodeURIComponent('test description'),
+      encodeURIComponent('test pipeline name') +
+      '&display_name=' +
+      encodeURIComponent('test display name') +
+      '&description=' +
+      encodeURIComponent('test description'),
       {
         body: expect.anything(),
         cache: 'no-cache',

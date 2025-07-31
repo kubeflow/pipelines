@@ -1,31 +1,61 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`CollapseButton initial render 1`] = `
-<div>
-  <WithStyles(Button)
-    className="collapseBtn"
-    onClick={[Function]}
-    title="Expand/Collapse this section"
-  >
-    <pure(ArrowDropUpIcon)
-      className="icon"
-    />
-    testSection
-  </WithStyles(Button)>
-</div>
+<DocumentFragment>
+  <div>
+    <button
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary collapseBtn css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      data-testid="collapse-button-testSection"
+      tabindex="0"
+      title="Expand/Collapse this section"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon css-i4bv87-MuiSvgIcon-root"
+        data-testid="ArrowDropUpIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="m7 14 5-5 5 5z"
+        />
+      </svg>
+      testSection
+      <span
+        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+      />
+    </button>
+  </div>
+</DocumentFragment>
 `;
 
 exports[`CollapseButton renders the button collapsed if in collapsedSections 1`] = `
-<div>
-  <WithStyles(Button)
-    className="collapseBtn"
-    onClick={[Function]}
-    title="Expand/Collapse this section"
-  >
-    <pure(ArrowDropUpIcon)
-      className="icon collapsed"
-    />
-    testSection
-  </WithStyles(Button)>
-</div>
+<DocumentFragment>
+  <div>
+    <button
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary collapseBtn css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      data-testid="collapse-button-testSection"
+      tabindex="0"
+      title="Expand/Collapse this section"
+      type="button"
+    >
+      <svg
+        aria-hidden="true"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon collapsed css-i4bv87-MuiSvgIcon-root"
+        data-testid="ArrowDropUpIcon"
+        focusable="false"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="m7 14 5-5 5 5z"
+        />
+      </svg>
+      testSection
+      <span
+        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+      />
+    </button>
+  </div>
+</DocumentFragment>
 `;

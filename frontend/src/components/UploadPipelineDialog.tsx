@@ -16,16 +16,16 @@
 
 import * as React from 'react';
 import BusyButton from '../atoms/BusyButton';
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogTitle from '@material-ui/core/DialogTitle';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogTitle from '@mui/material/DialogTitle';
 import Dropzone from 'react-dropzone';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import Input from '../atoms/Input';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
+import Radio from '@mui/material/Radio';
+import { TextFieldProps } from '@mui/material/TextField';
 import { padding, commonCss, zIndex, color } from '../Css';
 import { stylesheet, classes } from 'typestyle';
 import { ExternalLink } from '../atoms/ExternalLink';
@@ -85,7 +85,7 @@ class UploadPipelineDialog extends React.Component<
   UploadPipelineDialogState
 > {
   static contextType = BuildInfoContext;
-  private _dropzoneRef = React.createRef<Dropzone & HTMLDivElement>();
+  context!: React.ContextType<typeof BuildInfoContext>;
 
   constructor(props: any) {
     super(props);
@@ -155,40 +155,43 @@ class UploadPipelineDialog extends React.Component<
           {importMethod === ImportMethod.LOCAL && (
             <React.Fragment>
               <Dropzone
-                id='dropZone'
-                disableClick={true}
                 onDrop={this._onDrop.bind(this)}
                 onDragEnter={this._onDropzoneDragEnter.bind(this)}
                 onDragLeave={this._onDropzoneDragLeave.bind(this)}
-                style={{ position: 'relative' }}
-                ref={this._dropzoneRef}
-                inputProps={{ tabIndex: -1 }}
+                noClick={true}
               >
-                {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
+                {({ getRootProps, getInputProps, open }) => (
+                  <div {...getRootProps()} style={{ position: 'relative' }}>
+                    <input {...getInputProps()} tabIndex={-1} />
+                    {dropzoneActive && <div className={css.dropOverlay}>Drop files..</div>}
 
-                <div className={padding(10, 'b')}>You can also drag and drop the file here.</div>
-                <DocumentationCompilePipeline />
-                <Input
-                  onChange={this.handleChange('fileName')}
-                  value={fileName}
-                  required={true}
-                  label='File'
-                  variant='outlined'
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position='end'>
-                        <Button
-                          color='secondary'
-                          onClick={() => this._dropzoneRef.current!.open()}
-                          style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
-                        >
-                          Choose file
-                        </Button>
-                      </InputAdornment>
-                    ),
-                    readOnly: true,
-                  }}
-                />
+                    <div className={padding(10, 'b')}>
+                      You can also drag and drop the file here.
+                    </div>
+                    <DocumentationCompilePipeline />
+                    <Input
+                      onChange={this.handleChange('fileName')}
+                      value={fileName}
+                      required={true}
+                      label='File'
+                      variant='outlined'
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position='end'>
+                            <Button
+                              color='secondary'
+                              onClick={open}
+                              style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
+                            >
+                              Choose file
+                            </Button>
+                          </InputAdornment>
+                        ),
+                        readOnly: true,
+                      }}
+                    />
+                  </div>
+                )}
               </Dropzone>
             </React.Fragment>
           )}

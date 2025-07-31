@@ -33,7 +33,11 @@ interface RecurringRunConfigState {
   run: V2beta1RecurringRun | null;
 }
 
-class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
+class RecurringRunDetailsV2 extends Page<
+  {},
+  RecurringRunConfigState,
+  { [RouteParams.recurringRunId]: string }
+> {
   constructor(props: any) {
     super(props);
 
@@ -182,10 +186,12 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
     const pageTitle = run ? run.display_name! : recurringRunId;
 
     const toolbarActions = this.props.toolbarProps.actions;
-    toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
-      run.status === V2beta1RecurringRunStatus.ENABLED;
-    toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
-      run.status !== V2beta1RecurringRunStatus.ENABLED;
+    if (toolbarActions) {
+      toolbarActions[ButtonKeys.ENABLE_RECURRING_RUN].disabled =
+        run.status === V2beta1RecurringRunStatus.ENABLED;
+      toolbarActions[ButtonKeys.DISABLE_RECURRING_RUN].disabled =
+        run.status !== V2beta1RecurringRunStatus.ENABLED;
+    }
 
     this.props.updateToolbar({ actions: toolbarActions, breadcrumbs, pageTitle });
 
@@ -198,7 +204,7 @@ class RecurringRunDetailsV2 extends Page<{}, RecurringRunConfigState> {
       const previousPage = breadcrumbs.length
         ? breadcrumbs[breadcrumbs.length - 1].href
         : RoutePage.EXPERIMENTS;
-      this.props.history.push(previousPage);
+      this.props.navigate(previousPage);
     }
   }
 }

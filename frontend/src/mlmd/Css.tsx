@@ -1,38 +1,6 @@
-/*
- * Copyright 2021 The Kubeflow Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
- * Copyright 2018 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-import createMuiTheme from '@material-ui/core/styles/createMuiTheme';
 import { NestedCSSProperties } from 'typestyle/lib/types';
 import { style, stylesheet, cssRaw } from 'typestyle';
+import { createTheme } from '@mui/material/styles';
 
 cssRaw(`
   .LineageExplorer {
@@ -184,92 +152,109 @@ const palette = {
   },
 };
 
-export const theme = createMuiTheme({
-  overrides: {
+export const theme = createTheme({
+  components: {
     MuiButton: {
-      flat: {
-        fontSize: fontsize.base,
-        fontWeight: 'bold',
-        minHeight: dimension.tiny,
-        textTransform: 'none',
-      },
-      flatPrimary: {
-        border: '1px solid #ddd',
-        cursor: 'pointer',
-        fontSize: fontsize.base,
-        marginRight: 10,
-        textTransform: 'none',
-      },
-      flatSecondary: {
-        color: color.theme,
-      },
-      root: {
-        '&$disabled': {
-          backgroundColor: 'initial',
+      styleOverrides: {
+        text: {
+          fontSize: fontsize.base,
+          fontWeight: 'bold',
+          minHeight: dimension.tiny,
+          textTransform: 'none',
         },
-        color: color.theme,
-        marginRight: 10,
-        padding: '0 8px',
+        textPrimary: {
+          border: '1px solid #ddd',
+          cursor: 'pointer',
+          fontSize: fontsize.base,
+          marginRight: 10,
+          textTransform: 'none',
+        },
+        textSecondary: {
+          color: color.theme,
+        },
+        root: {
+          '&.Mui-disabled': {
+            backgroundColor: 'initial',
+          },
+          color: color.theme,
+          marginRight: 10,
+          padding: '0 8px',
+        },
       },
     },
     MuiDialogActions: {
-      root: {
-        margin: 15,
+      styleOverrides: {
+        root: {
+          margin: 15,
+        },
       },
     },
     MuiDialogTitle: {
-      root: {
-        fontSize: fontsize.large,
+      styleOverrides: {
+        root: {
+          fontSize: fontsize.large,
+        },
       },
     },
     MuiFormControlLabel: {
-      root: {
-        marginLeft: 0,
+      styleOverrides: {
+        root: {
+          marginLeft: 0,
+        },
       },
     },
     MuiFormLabel: {
-      filled: {
-        marginLeft: 0,
-        marginTop: 0,
-      },
-      root: {
-        '&$focused': {
+      styleOverrides: {
+        filled: {
           marginLeft: 0,
           marginTop: 0,
         },
-        fontSize: fontsize.base,
-        marginLeft: 5,
-        marginTop: -8,
+        root: {
+          '&.Mui-focused': {
+            marginLeft: 0,
+            marginTop: 0,
+          },
+          fontSize: fontsize.base,
+          marginLeft: 5,
+          marginTop: -8,
+        },
       },
     },
     MuiIconButton: {
-      root: {
-        padding: 9,
+      styleOverrides: {
+        root: {
+          padding: 9,
+        },
       },
     },
     MuiInput: {
-      input: { padding: 0 },
-      root: { padding: 0 },
+      styleOverrides: {
+        input: { padding: 0 },
+        root: { padding: 0 },
+      },
     },
     MuiInputAdornment: {
-      positionEnd: {
-        paddingRight: 0,
+      styleOverrides: {
+        positionEnd: {
+          paddingRight: 0,
+        },
+        root: { padding: 0 },
       },
-      root: { padding: 0 },
     },
     MuiTooltip: {
-      tooltip: {
-        backgroundColor: '#666',
-        color: '#f1f1f1',
-        fontSize: 12,
+      styleOverrides: {
+        tooltip: {
+          backgroundColor: '#666',
+          color: '#f1f1f1',
+          fontSize: 12,
+        },
       },
     },
   },
   palette,
   typography: {
     fontFamily: fonts.main,
-    fontSize: (fontsize.base + ' !important') as any,
-    useNextVariants: true,
+    fontSize: fontsize.base,
   },
 });
 

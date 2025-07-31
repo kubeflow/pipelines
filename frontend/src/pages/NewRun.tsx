@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import InputAdornment from '@mui/material/InputAdornment';
+import Radio from '@mui/material/Radio';
+import { TextFieldProps } from '@mui/material/TextField';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -54,7 +54,7 @@ import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } f
 import Buttons from '../lib/Buttons';
 import RunUtils from '../lib/RunUtils';
 import { URLParser } from '../lib/URLParser';
-import { errorToMessage, logger, mergeApiParametersByNames } from '../lib/Utils';
+import { ensureError, errorToMessage, logger, mergeApiParametersByNames } from '../lib/Utils';
 import { Workflow } from '../third_party/mlmd/argo_template';
 import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
@@ -600,7 +600,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             <Button
               id='exitNewRunPageBtn'
               onClick={() => {
-                this.props.history.push(
+                this.props.navigate(
                   !!this.state.experiment
                     ? RoutePage.EXPERIMENT_DETAILS.replace(
                         ':' + RouteParams.experimentId,
@@ -659,7 +659,10 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           experimentId = RunUtils.getFirstExperimentReferenceId(originalRun.run);
         }
       } catch (err) {
-        await this.showPageError(`Error: failed to retrieve original run: ${originalRunId}.`, err);
+        await this.showPageError(
+          `Error: failed to retrieve original run: ${originalRunId}.`,
+          ensureError(err),
+        );
         logger.error(`Failed to retrieve original run: ${originalRunId}`, err);
       }
     } else if (originalRecurringRunId) {
@@ -678,7 +681,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       } catch (err) {
         await this.showPageError(
           `Error: failed to retrieve original recurring run: ${originalRunId}.`,
-          err,
+          ensureError(err),
         );
         logger.error(`Failed to retrieve original recurring run: ${originalRunId}`, err);
       }
@@ -721,7 +724,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
               urlParser.clear(QUERY_PARAMS.pipelineVersionId);
               await this.showPageError(
                 `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
-                err,
+                ensureError(err),
               );
               logger.error(
                 `Failed to retrieve pipeline version: ${possiblePipelineVersionId}`,
@@ -737,7 +740,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
             `Error: failed to retrieve pipeline: ${possiblePipelineId}.`,
-            err,
+            ensureError(err),
           );
           logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
         }
@@ -758,7 +761,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       } catch (err) {
         await this.showPageError(
           `Error: failed to retrieve associated experiment: ${experimentId}.`,
-          err,
+          ensureError(err),
         );
         logger.error(`Failed to retrieve associated experiment: ${experimentId}`, err);
       }
@@ -798,19 +801,19 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: this.state.unconfirmedSelectedPipelineVersion.id || '',
         });
-        this.props.history.replace(searchString);
+        this.props.navigate(searchString, { replace: true });
       } else if (experiment.id && pipeline?.id) {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: '',
         });
-        this.props.history.replace(searchString);
+        this.props.navigate(searchString, { replace: true });
       } else if (experiment.id) {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
         });
-        this.props.history.replace(searchString);
+        this.props.navigate(searchString, { replace: true });
       }
     }
 
@@ -878,7 +881,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
           [QUERY_PARAMS.cloneFromRun]: cloneFromRunValue || '',
           [QUERY_PARAMS.isRecurring]: this.state.isRecurringRun ? '1' : '',
         });
-        this.props.history.replace(searchString);
+        this.props.navigate(searchString, { replace: true });
         this.props.handlePipelineVersionIdChange(pipelineVersion.id);
       }
     }
@@ -906,7 +909,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       [QUERY_PARAMS.pipelineVersionId]: pipelineVersionId || '',
       [QUERY_PARAMS.isRecurring]: this.state.isRecurringRun ? '1' : '',
     });
-    this.props.history.replace(searchString);
+    this.props.navigate(searchString, { replace: true });
     this.props.handlePipelineVersionIdChange(pipelineVersionId || '');
     this.props.handlePipelineIdChange(pipelineId);
   }
@@ -985,7 +988,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     } catch (err) {
       await this.showPageError(
         `Error: failed to retrieve the specified run: ${embeddedRunId}.`,
-        err,
+        ensureError(err),
       );
       logger.error(`Failed to retrieve the specified run: ${embeddedRunId}`, err);
       return;
@@ -1010,7 +1013,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     } catch (err) {
       await this.showPageError(
         `Error: failed to parse the embedded pipeline's spec: ${embeddedPipelineSpec}.`,
-        err,
+        ensureError(err),
       );
       logger.error(`Failed to parse the embedded pipeline's spec from run: ${embeddedRunId}`, err);
       return;
@@ -1059,7 +1062,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         await this.showPageError(
           'Error: failed to find a pipeline version corresponding to that of the original run:' +
             ` ${originalRun.id}.`,
-          err,
+          ensureError(err),
         );
         return;
       }
@@ -1071,7 +1074,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         await this.showPageError(
           'Error: failed to find a pipeline corresponding to that of the original run:' +
             ` ${originalRun.id}.`,
-          err,
+          ensureError(err),
         );
         return;
       }
@@ -1080,7 +1083,10 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
         workflowFromRun = JSON.parse(embeddedPipelineSpec);
         name = workflowFromRun!.metadata.name || '';
       } catch (err) {
-        await this.showPageError("Error: failed to read the clone run's pipeline definition.", err);
+        await this.showPageError(
+          "Error: failed to read the clone run's pipeline definition.",
+          ensureError(err),
+        );
         return;
       }
       useWorkflowFromRun = true;
@@ -1195,16 +1201,16 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       }
 
       if (this.state.isRecurringRun) {
-        this.props.history.push(RoutePage.RECURRING_RUNS);
+        this.props.navigate(RoutePage.RECURRING_RUNS);
       } else if (this.state.experiment) {
-        this.props.history.push(
+        this.props.navigate(
           RoutePage.EXPERIMENT_DETAILS.replace(
             ':' + RouteParams.experimentId,
             this.state.experiment.id!,
           ),
         );
       } else {
-        this.props.history.push(RoutePage.RUNS);
+        this.props.navigate(RoutePage.RUNS);
       }
       this.props.updateSnackbar({
         message: `Successfully started new Run: ${newRun.name}`,
@@ -1285,7 +1291,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
 
       this.setStateSafe({ errorMessage: '' });
     } catch (err) {
-      this.setStateSafe({ errorMessage: err.message });
+      this.setStateSafe({ errorMessage: ensureError(err).message });
     }
   }
 

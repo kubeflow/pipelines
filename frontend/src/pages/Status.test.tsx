@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+import { render } from '@testing-library/react';
 import * as Utils from '../lib/Utils';
 import { statusToIcon } from './Status';
 import { NodePhase } from '../lib/StatusUtils';
-import { shallow } from 'enzyme';
 
 describe('Status', () => {
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
@@ -28,7 +28,7 @@ describe('Status', () => {
   const endDate = new Date('Thu Jan 3 2019 10:11:12 GMT-0800');
 
   beforeEach(() => {
-    formatDateStringSpy.mockImplementation((date: Date) => {
+    formatDateStringSpy.mockImplementation((date: string | Date | undefined) => {
       return date === startDate ? '1/2/2019, 9:10:11 AM' : '1/3/2019, 10:11:12 AM';
     });
   });
@@ -36,15 +36,15 @@ describe('Status', () => {
   describe('statusToIcon', () => {
     it('handles an unknown phase', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
-      const tree = shallow(statusToIcon('bad phase' as any));
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(statusToIcon('bad phase' as any));
+      expect(asFragment()).toMatchSnapshot();
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', 'bad phase');
     });
 
     it('handles an undefined phase', () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementationOnce(() => null);
-      const tree = shallow(statusToIcon(/* no phase */));
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(statusToIcon(/* no phase */));
+      expect(asFragment()).toMatchSnapshot();
       expect(consoleSpy).toHaveBeenLastCalledWith('Unknown node phase:', undefined);
     });
 
@@ -59,209 +59,79 @@ describe('Status', () => {
     // });
 
     it('handles ERROR phase', () => {
-      const tree = shallow(statusToIcon(NodePhase.ERROR));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <pure(ErrorIcon)
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#d50000",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(NodePhase.ERROR));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles FAILED phase', () => {
-      const tree = shallow(statusToIcon(NodePhase.FAILED));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <pure(ErrorIcon)
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#d50000",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(NodePhase.FAILED));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles PENDING phase', () => {
-      const tree = shallow(statusToIcon(NodePhase.PENDING));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <pure(ScheduleIcon)
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#9aa0a6",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(NodePhase.PENDING));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles RUNNING phase', () => {
-      const tree = shallow(statusToIcon(NodePhase.RUNNING));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <StatusRunning
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#4285f4",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(NodePhase.RUNNING));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles TERMINATING phase', () => {
-      const tree = shallow(statusToIcon(NodePhase.TERMINATING));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <StatusRunning
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#4285f4",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(NodePhase.TERMINATING));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles SKIPPED phase', () => {
-      const tree = shallow(statusToIcon(NodePhase.SKIPPED));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <pure(SkipNextIcon)
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#5f6368",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(NodePhase.SKIPPED));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles SUCCEEDED phase', () => {
-      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <pure(CheckCircleIcon)
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#34a853",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(NodePhase.SUCCEEDED));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles CACHED phase', () => {
-      const tree = shallow(statusToIcon(NodePhase.CACHED));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <StatusCached
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#34a853",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(NodePhase.CACHED));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles TERMINATED phase', () => {
-      const tree = shallow(statusToIcon(NodePhase.TERMINATED));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <StatusRunning
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#80868b",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(NodePhase.TERMINATED));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('handles OMITTED phase', () => {
-      const tree = shallow(statusToIcon(NodePhase.OMITTED));
-      expect(tree.find('div')).toMatchInlineSnapshot(`
-        <div>
-          <pure(BlockIcon)
-            data-testid="node-status-sign"
-            style={
-              Object {
-                "color": "#5f6368",
-                "height": 18,
-                "width": 18,
-              }
-            }
-          />
-        </div>
-      `);
+      const { asFragment } = render(statusToIcon(NodePhase.OMITTED));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('displays start and end dates if both are provided', () => {
-      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate, endDate));
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(statusToIcon(NodePhase.SUCCEEDED, startDate, endDate));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('does not display a end date if none was provided', () => {
-      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, startDate));
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(statusToIcon(NodePhase.SUCCEEDED, startDate));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('does not display a start date if none was provided', () => {
-      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED, undefined, endDate));
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(statusToIcon(NodePhase.SUCCEEDED, undefined, endDate));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     it('does not display any dates if neither was provided', () => {
-      const tree = shallow(statusToIcon(NodePhase.SUCCEEDED /* No dates */));
-      expect(tree).toMatchSnapshot();
+      const { asFragment } = render(statusToIcon(NodePhase.SUCCEEDED /* No dates */));
+      expect(asFragment()).toMatchSnapshot();
     });
 
     Object.keys(NodePhase).map(status =>
       it('renders an icon with tooltip for phase: ' + status, () => {
-        const tree = shallow(statusToIcon(NodePhase[status]));
-        expect(tree).toMatchSnapshot();
+        const { asFragment } = render(statusToIcon(NodePhase[status as keyof typeof NodePhase]));
+        expect(asFragment()).toMatchSnapshot();
       }),
     );
   });

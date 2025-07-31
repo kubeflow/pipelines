@@ -17,7 +17,7 @@
 import * as JsYaml from 'js-yaml';
 import React from 'react';
 import { Apis, JSONObject } from 'src/lib/Apis';
-import { serviceErrorToString } from 'src/lib/Utils';
+import { ensureServiceError, serviceErrorToString } from 'src/lib/Utils';
 import Banner from './Banner';
 import Editor from './Editor';
 
@@ -84,7 +84,7 @@ const PodYaml: React.FC<{
         if (!aborted) {
           setError({
             message: errorMessage,
-            additionalInfo: await serviceErrorToString(err),
+            additionalInfo: serviceErrorToString(ensureServiceError(err)),
           });
         }
       }

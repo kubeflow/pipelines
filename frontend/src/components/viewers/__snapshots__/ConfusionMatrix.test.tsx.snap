@@ -1,872 +1,561 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ConfusionMatrix does not break on asymetric data 1`] = `
-<div
-  className="flex root"
->
-  <table>
-    <tbody>
-      <tr>
-        <td
-          className="yAxisLabel"
-        >
-          test y axis
-        </td>
-      </tr>
-      <tr
-        key="0"
-      >
-        <td>
-          <div
-            className="ylabel"
-          >
-            label2
-          </div>
-        </td>
-        <td
-          className="cell"
-          key="0"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.5)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          4
-        </td>
-        <td
-          className="cell"
-          key="1"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.875)",
-              "color": "#fff",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          7
-        </td>
-      </tr>
-      <tr
-        key="1"
-      >
-        <td>
-          <div
-            className="ylabel"
-          >
-            label1
-          </div>
-        </td>
-        <td
-          className="cell"
-          key="0"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.375)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          3
-        </td>
-        <td
-          className="cell"
-          key="1"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.75)",
-              "color": "#fff",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          6
-        </td>
-      </tr>
-      <tr>
-        <th
-          className="xlabel"
-        />
-        <th
-          key="0"
-        >
-          <div
-            className="xlabel"
-          >
-            label1
-          </div>
-        </th>
-        <th
-          key="1"
-        >
-          <div
-            className="xlabel"
-          >
-            label2
-          </div>
-        </th>
-        <td
-          className="xAxisLabel"
-        >
-          test x axis
-        </td>
-      </tr>
-    </tbody>
-  </table>
+<DocumentFragment>
   <div
-    className="legend"
-    style={
-      Object {
-        "height": 118.5,
-      }
-    }
+    class="flex root"
   >
+    <table>
+      <tbody>
+        <tr>
+          <td
+            class="yAxisLabel"
+          >
+            test y axis
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div
+              class="ylabel"
+            >
+              label2
+            </div>
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            4
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.875); color: rgb(255, 255, 255);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            7
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div
+              class="ylabel"
+            >
+              label1
+            </div>
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.375); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            3
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.75); color: rgb(255, 255, 255);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            6
+          </td>
+        </tr>
+        <tr>
+          <td
+            class="xlabel"
+          />
+          <th>
+            <div
+              class="xlabel"
+            >
+              label1
+            </div>
+          </th>
+          <th>
+            <div
+              class="xlabel"
+            >
+              label2
+            </div>
+          </th>
+          <td
+            class="xAxisLabel"
+          >
+            test x axis
+          </td>
+        </tr>
+      </tbody>
+    </table>
     <div
-      className="legendNotch"
-      style={
-        Object {
-          "top": 0,
-        }
-      }
+      class="legend"
+      style="height: 118.5px;"
     >
-      <span
-        className="legendLabel"
+      <div
+        class="legendNotch"
+        style="top: 0px;"
       >
-        8
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="0"
-      style={
-        Object {
-          "top": "100%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          8
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 100%;"
       >
-        0
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="1"
-      style={
-        Object {
-          "top": "80%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          0
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 80%;"
       >
-        1
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="2"
-      style={
-        Object {
-          "top": "60%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          1
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 60%;"
       >
-        3
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="3"
-      style={
-        Object {
-          "top": "40%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          3
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 40%;"
       >
-        4
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="4"
-      style={
-        Object {
-          "top": "20%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          4
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 20%;"
       >
-        6
-      </span>
+        <span
+          class="legendLabel"
+        >
+          6
+        </span>
+      </div>
     </div>
   </div>
-</div>
+</DocumentFragment>
 `;
 
-exports[`ConfusionMatrix does not break on empty data 1`] = `""`;
+exports[`ConfusionMatrix does not break on empty data 1`] = `<DocumentFragment />`;
 
 exports[`ConfusionMatrix renders a basic confusion matrix 1`] = `
-<div
-  className="flex root"
->
-  <table>
-    <tbody>
-      <tr>
-        <td
-          className="yAxisLabel"
-        >
-          test y axis
-        </td>
-      </tr>
-      <tr
-        key="0"
-      >
-        <td>
-          <div
-            className="ylabel"
-          >
-            label2
-          </div>
-        </td>
-        <td
-          className="cell"
-          key="0"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.125)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          1
-        </td>
-        <td
-          className="cell"
-          key="1"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.5)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          4
-        </td>
-      </tr>
-      <tr
-        key="1"
-      >
-        <td>
-          <div
-            className="ylabel"
-          >
-            label1
-          </div>
-        </td>
-        <td
-          className="cell"
-          key="0"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          0
-        </td>
-        <td
-          className="cell"
-          key="1"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.375)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          3
-        </td>
-      </tr>
-      <tr>
-        <th
-          className="xlabel"
-        />
-        <th
-          key="0"
-        >
-          <div
-            className="xlabel"
-          >
-            label1
-          </div>
-        </th>
-        <th
-          key="1"
-        >
-          <div
-            className="xlabel"
-          >
-            label2
-          </div>
-        </th>
-        <td
-          className="xAxisLabel"
-        >
-          test x axis
-        </td>
-      </tr>
-    </tbody>
-  </table>
+<DocumentFragment>
   <div
-    className="legend"
-    style={
-      Object {
-        "height": 177.75,
-      }
-    }
+    class="flex root"
   >
+    <table>
+      <tbody>
+        <tr>
+          <td
+            class="yAxisLabel"
+          >
+            test y axis
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div
+              class="ylabel"
+            >
+              label2
+            </div>
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.125); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            1
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            4
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div
+              class="ylabel"
+            >
+              label1
+            </div>
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            0
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.375); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            3
+          </td>
+        </tr>
+        <tr>
+          <td
+            class="xlabel"
+          />
+          <th>
+            <div
+              class="xlabel"
+            >
+              label1
+            </div>
+          </th>
+          <th>
+            <div
+              class="xlabel"
+            >
+              label2
+            </div>
+          </th>
+          <td
+            class="xAxisLabel"
+          >
+            test x axis
+          </td>
+        </tr>
+      </tbody>
+    </table>
     <div
-      className="legendNotch"
-      style={
-        Object {
-          "top": 0,
-        }
-      }
+      class="legend"
+      style="height: 177.75px;"
     >
-      <span
-        className="legendLabel"
+      <div
+        class="legendNotch"
+        style="top: 0px;"
       >
-        8
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="0"
-      style={
-        Object {
-          "top": "100%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          8
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 100%;"
       >
-        0
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="1"
-      style={
-        Object {
-          "top": "80%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          0
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 80%;"
       >
-        1
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="2"
-      style={
-        Object {
-          "top": "60%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          1
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 60%;"
       >
-        3
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="3"
-      style={
-        Object {
-          "top": "40%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          3
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 40%;"
       >
-        4
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="4"
-      style={
-        Object {
-          "top": "20%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          4
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 20%;"
       >
-        6
-      </span>
+        <span
+          class="legendLabel"
+        >
+          6
+        </span>
+      </div>
     </div>
   </div>
-</div>
+</DocumentFragment>
 `;
 
 exports[`ConfusionMatrix renders a small confusion matrix snapshot, with no labels or footer 1`] = `
-<div
-  className="flex root"
->
-  <table>
-    <tbody>
-      <tr
-        key="0"
-      >
-        <td
-          className="cell"
-          key="0"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.125)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          1
-        </td>
-        <td
-          className="cell"
-          key="1"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.5)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          4
-        </td>
-      </tr>
-      <tr
-        key="1"
-      >
-        <td
-          className="cell"
-          key="0"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          0
-        </td>
-        <td
-          className="cell"
-          key="1"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.375)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          3
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+<DocumentFragment>
+  <div
+    class="flex root"
+  >
+    <table>
+      <tbody>
+        <tr>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.125); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            1
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            4
+          </td>
+        </tr>
+        <tr>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            0
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.375); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            3
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</DocumentFragment>
 `;
 
 exports[`ConfusionMatrix renders only one of the given list of configs 1`] = `
-<div
-  className="flex root"
->
-  <table>
-    <tbody>
-      <tr>
-        <td
-          className="yAxisLabel"
-        >
-          test y axis
-        </td>
-      </tr>
-      <tr
-        key="0"
-      >
-        <td>
-          <div
-            className="ylabel"
-          >
-            label2
-          </div>
-        </td>
-        <td
-          className="cell"
-          key="0"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.125)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          1
-        </td>
-        <td
-          className="cell"
-          key="1"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.5)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          4
-        </td>
-      </tr>
-      <tr
-        key="1"
-      >
-        <td>
-          <div
-            className="ylabel"
-          >
-            label1
-          </div>
-        </td>
-        <td
-          className="cell"
-          key="0"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          0
-        </td>
-        <td
-          className="cell"
-          key="1"
-          onMouseLeave={[Function]}
-          onMouseOver={[Function]}
-          style={
-            Object {
-              "backgroundColor": "rgba(41, 121, 255, 0.375)",
-              "color": "#000",
-            }
-          }
-        >
-          <div
-            className="overlay"
-            style={
-              Object {
-                "opacity": 0,
-              }
-            }
-          />
-          3
-        </td>
-      </tr>
-      <tr>
-        <th
-          className="xlabel"
-        />
-        <th
-          key="0"
-        >
-          <div
-            className="xlabel"
-          >
-            label1
-          </div>
-        </th>
-        <th
-          key="1"
-        >
-          <div
-            className="xlabel"
-          >
-            label2
-          </div>
-        </th>
-        <td
-          className="xAxisLabel"
-        >
-          test x axis
-        </td>
-      </tr>
-    </tbody>
-  </table>
+<DocumentFragment>
   <div
-    className="legend"
-    style={
-      Object {
-        "height": 177.75,
-      }
-    }
+    class="flex root"
   >
+    <table>
+      <tbody>
+        <tr>
+          <td
+            class="yAxisLabel"
+          >
+            test y axis
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div
+              class="ylabel"
+            >
+              label2
+            </div>
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.125); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            1
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.5); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            4
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div
+              class="ylabel"
+            >
+              label1
+            </div>
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            0
+          </td>
+          <td
+            class="cell"
+            style="background-color: rgba(41, 121, 255, 0.375); color: rgb(0, 0, 0);"
+          >
+            <div
+              class="overlay"
+              style="opacity: 0;"
+            />
+            3
+          </td>
+        </tr>
+        <tr>
+          <td
+            class="xlabel"
+          />
+          <th>
+            <div
+              class="xlabel"
+            >
+              label1
+            </div>
+          </th>
+          <th>
+            <div
+              class="xlabel"
+            >
+              label2
+            </div>
+          </th>
+          <td
+            class="xAxisLabel"
+          >
+            test x axis
+          </td>
+        </tr>
+      </tbody>
+    </table>
     <div
-      className="legendNotch"
-      style={
-        Object {
-          "top": 0,
-        }
-      }
+      class="legend"
+      style="height: 177.75px;"
     >
-      <span
-        className="legendLabel"
+      <div
+        class="legendNotch"
+        style="top: 0px;"
       >
-        8
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="0"
-      style={
-        Object {
-          "top": "100%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          8
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 100%;"
       >
-        0
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="1"
-      style={
-        Object {
-          "top": "80%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          0
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 80%;"
       >
-        1
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="2"
-      style={
-        Object {
-          "top": "60%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          1
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 60%;"
       >
-        3
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="3"
-      style={
-        Object {
-          "top": "40%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          3
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 40%;"
       >
-        4
-      </span>
-    </div>
-    <div
-      className="legendNotch"
-      key="4"
-      style={
-        Object {
-          "top": "20%",
-        }
-      }
-    >
-      <span
-        className="legendLabel"
+        <span
+          class="legendLabel"
+        >
+          4
+        </span>
+      </div>
+      <div
+        class="legendNotch"
+        style="top: 20%;"
       >
-        6
-      </span>
+        <span
+          class="legendLabel"
+        >
+          6
+        </span>
+      </div>
     </div>
   </div>
-</div>
+</DocumentFragment>
 `;

@@ -15,26 +15,26 @@
  */
 
 import * as React from 'react';
-import Button from '@material-ui/core/Button';
+import Button from '@mui/material/Button';
 import Buttons, { ButtonKeys } from 'src/lib/Buttons';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import Paper from '@material-ui/core/Paper';
-import PopOutIcon from '@material-ui/icons/Launch';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import Paper from '@mui/material/Paper';
+import PopOutIcon from '@mui/icons-material/Launch';
 import RecurringRunsManager from './RecurringRunsManager';
 import RunListsRouter, { RunListsGroupTab } from './RunListsRouter';
 import Toolbar, { ToolbarProps } from 'src/components/Toolbar';
-import Tooltip from '@material-ui/core/Tooltip';
+import Tooltip from '@mui/material/Tooltip';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { Apis } from 'src/lib/Apis';
 import { Page, PageProps } from './Page';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, padding } from 'src/Css';
-import { logger } from 'src/lib/Utils';
+import { ensureError, logger } from 'src/lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
-import { Redirect } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 
@@ -135,8 +135,8 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   private _getRunInitialToolBarButtons(): Buttons {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     buttons
-      .newRun(() => this.props.match.params[RouteParams.experimentId])
-      .newRecurringRun(this.props.match.params[RouteParams.experimentId])
+      .newRun(() => (this.props.match.params as any)[RouteParams.experimentId])
+      .newRecurringRun((this.props.match.params as any)[RouteParams.experimentId])
       .compareRuns(() => this.state.selectedIds)
       .cloneRun(() => this.state.selectedIds, false);
     return buttons;
@@ -148,7 +148,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       actions: buttons.refresh(this.refresh.bind(this)).getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       // TODO: determine what to show if no props.
-      pageTitle: this.props ? this.props.match.params[RouteParams.experimentId] : '',
+      pageTitle: this.props ? (this.props.match.params as any)[RouteParams.experimentId] : '',
     };
   }
 
@@ -249,7 +249,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
               <DialogContent>
                 <RecurringRunsManager
                   {...this.props}
-                  experimentId={this.props.match.params[RouteParams.experimentId]}
+                  experimentId={(this.props.match.params as any)[RouteParams.experimentId]}
                 />
               </DialogContent>
               <DialogActions>
@@ -280,12 +280,12 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
   public async load(isFirstTimeLoad: boolean = false): Promise<void> {
     this.clearBanner();
 
-    const experimentId = this.props.match.params[RouteParams.experimentId];
+    const experimentId = (this.props.match.params as any)[RouteParams.experimentId];
 
     try {
       const experiment = await Apis.experimentServiceApiV2.getExperiment(experimentId);
       const pageTitle =
-        experiment.display_name || this.props.match.params[RouteParams.experimentId];
+        experiment.display_name || (this.props.match.params as any)[RouteParams.experimentId];
 
       // Update the Archive/Restore button based on the storage state of this experiment.
       const buttons = new Buttons(
@@ -337,7 +337,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       } catch (err) {
         await this.showPageError(
           `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`,
-          err,
+          ensureError(err),
         );
         logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
       }
@@ -351,7 +351,10 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       });
       this._selectionChanged([]);
     } catch (err) {
-      await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
+      await this.showPageError(
+        `Error: failed to retrieve experiment: ${experimentId}.`,
+        ensureError(err),
+      );
       logger.error(`Error loading experiment: ${experimentId}`, err);
     }
   }
@@ -432,7 +435,7 @@ const EnhancedExperimentDetails: React.FC<PageProps> = props => {
   // So we redirect to experiment list page instead.
   const namespaceChanged = useNamespaceChangeEvent();
   if (namespaceChanged) {
-    return <Redirect to={RoutePage.EXPERIMENTS} />;
+    return <Navigate to={RoutePage.EXPERIMENTS} replace />;
   }
 
   return <ExperimentDetails {...props} />;

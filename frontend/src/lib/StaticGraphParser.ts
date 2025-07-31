@@ -21,6 +21,7 @@ import { Constants } from './Constants';
 import { logger } from './Utils';
 import { parseTaskDisplayName } from './ParserUtils';
 import { graphlib } from 'dagre';
+import { AdditionalNodeData } from 'src/components/Graph';
 
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
@@ -210,8 +211,8 @@ function buildDag(
   }
 }
 
-export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
-  const graph = new dagre.graphlib.Graph();
+export function createGraph(workflow: Workflow): dagre.graphlib.Graph<AdditionalNodeData> {
+  const graph = new dagre.graphlib.Graph<AdditionalNodeData>();
   graph.setGraph({});
   graph.setDefaultEdgeLabel(() => ({}));
 
@@ -288,13 +289,17 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
  *
  * @param graph The dagre graph object
  */
-export function transitiveReduction(graph: dagre.graphlib.Graph): dagre.graphlib.Graph | undefined {
+export function transitiveReduction(
+  graph: dagre.graphlib.Graph<AdditionalNodeData>,
+): dagre.graphlib.Graph<AdditionalNodeData> | undefined {
   // safeguard against too big graphs
   if (!graph || graph.edgeCount() > 1000 || graph.nodeCount() > 1000) {
     return undefined;
   }
 
-  const result = graphlib.json.read(graphlib.json.write(graph));
+  const result = graphlib.json.read(graphlib.json.write(graph)) as dagre.graphlib.Graph<
+    AdditionalNodeData
+  >;
   let visited: string[] = [];
   const dfs_with_removal = (current: string, parent: string) => {
     result.successors(current)?.forEach((node: any) => {
