@@ -314,12 +314,10 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForDAGStatus(runID strin
 	require.NotEmpty(t, parallelForDAGs, "No ParallelFor DAG executions found")
 
 	for _, dagExecution := range parallelForDAGs {
-		// TODO: REVERT THIS WHEN BUG IS FIXED - DAGs are stuck in RUNNING state
-		// The correct assertion should check for expectedDAGState (COMPLETE/FAILED)
-		// But currently DAGs never transition from RUNNING due to the bug
-		assert.Equal(t, pb.Execution_RUNNING.String(), dagExecution.LastKnownState.String(),
-			"ParallelFor DAG execution ID=%d is stuck in RUNNING state (should be %v)",
-			dagExecution.GetId(), expectedDAGState)
+		// FIXED: Now expecting CORRECT final state - test will FAIL until DAG state bug is fixed
+		assert.Equal(t, expectedDAGState.String(), dagExecution.LastKnownState.String(),
+			"ParallelFor DAG execution ID=%d should reach final state %v (BUG: currently stuck in %v)",
+			dagExecution.GetId(), expectedDAGState, dagExecution.LastKnownState)
 
 		// Extract iteration_count from either direct property or inputs struct
 		var iterationCount int64
@@ -345,26 +343,21 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForDAGStatus(runID strin
 		// This is the core issue: total_dag_tasks should match iteration_count for ParallelFor
 		// Currently, total_dag_tasks is always 2 (driver + iterations) but should be iteration_count
 
-		// TODO: REVERT THIS WHEN BUG IS FIXED - Currently expecting buggy behavior to make tests pass
-		// The correct assertion should be: assert.Equal(t, iterationCount, totalDagTasks, ...)
-		// Bug pattern varies by pipeline type:
-		// - Static pipelines: total_dag_tasks = 1 (should be iteration_count)
-		// - Dynamic pipelines: total_dag_tasks = 0 (should be iteration_count)
+		// FIXED: Now expecting CORRECT behavior - test will FAIL until bug is fixed
+		// total_dag_tasks should equal iteration_count for ParallelFor constructs
+		assert.Equal(t, iterationCount, totalDagTasks,
+			"total_dag_tasks=%d should equal iteration_count=%d for ParallelFor DAG (BUG: currently returns wrong value)",
+			totalDagTasks, iterationCount)
 
-		// Check if this is a dynamic pipeline (iteration_count from inputs)
-		var expectedBuggyValue int64 = 1 // Default for static pipelines
-		if _, exists := dagExecution.GetCustomProperties()["iteration_count"]; !exists {
-			// Dynamic pipeline: no direct iteration_count property
-			expectedBuggyValue = 0
-		}
-
-		assert.Equal(t, expectedBuggyValue, totalDagTasks,
-			"total_dag_tasks is currently buggy - expecting %d instead of iteration_count (%d)",
-			expectedBuggyValue, iterationCount)
-
-		// TODO: REVERT THIS WHEN BUG IS FIXED - Log the expected vs actual for debugging
-		s.T().Logf("BUG VALIDATION: iteration_count=%d, total_dag_tasks=%d (should be equal!)",
-			iterationCount, totalDagTasks)
+		s.T().Logf("REGRESSION TEST: iteration_count=%d, total_dag_tasks=%d %s",
+			iterationCount, totalDagTasks,
+			func() string {
+				if iterationCount == totalDagTasks {
+					return "✅ CORRECT"
+				} else {
+					return "🚨 BUG DETECTED"
+				}
+			}())
 	}
 }
 

@@ -277,9 +277,9 @@ func (s *DAGStatusNestedTestSuite) validateNestedDAGStatus(runID string, expecte
 
 	// Enhanced search: Look for ALL DAG executions across all contexts to find nested structures
 	// This should capture both parent and child DAG executions
-	
+
 	s.T().Logf("Searching for all DAG executions related to run %s...", runID)
-	
+
 	// First, get all DAG executions in the system (within a reasonable time window)
 	allDAGExecutions, err := s.mlmdClient.GetExecutionsByType(context.Background(), &pb.GetExecutionsByTypeRequest{
 		TypeName: util.StringPointer("system.DAGExecution"),
@@ -289,25 +289,25 @@ func (s *DAGStatusNestedTestSuite) validateNestedDAGStatus(runID string, expecte
 
 	// Filter DAG executions that are related to our run (by timestamp proximity and potential context links)
 	var relatedDAGs []*pb.Execution
-	
+
 	for _, execution := range allDAGExecutions.Executions {
 		// Log all DAG executions for debugging
 		s.T().Logf("Examining DAG execution ID=%d, type=%s, state=%v, create_time=%v, properties=%v",
-			execution.GetId(), execution.GetType(), execution.LastKnownState, 
+			execution.GetId(), execution.GetType(), execution.LastKnownState,
 			execution.CreateTimeSinceEpoch, execution.GetCustomProperties())
-		
+
 		// Include DAG executions that are recent (within last 5 minutes) as potentially related
 		if execution.CreateTimeSinceEpoch != nil {
 			createdTime := *execution.CreateTimeSinceEpoch
 			now := time.Now().UnixMilli()
 			if now-createdTime < 5*60*1000 { // Within 5 minutes
 				relatedDAGs = append(relatedDAGs, execution)
-				s.T().Logf("Including recent DAG execution ID=%d (created %d ms ago)", 
+				s.T().Logf("Including recent DAG execution ID=%d (created %d ms ago)",
 					execution.GetId(), now-createdTime)
 			}
 		}
 	}
-	
+
 	// Also get executions from the specific run context for comparison
 	contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
 	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
@@ -349,7 +349,7 @@ func (s *DAGStatusNestedTestSuite) validateNestedDAGStatus(runID string, expecte
 
 	s.T().Logf("Found %d nested DAG executions for %s scenario", len(nestedDAGs), testScenario)
 
-		for _, dagExecution := range nestedDAGs {
+	for _, dagExecution := range nestedDAGs {
 		totalDagTasks := dagExecution.GetCustomProperties()["total_dag_tasks"].GetIntValue()
 		taskName := ""
 		if tn := dagExecution.GetCustomProperties()["task_name"]; tn != nil {
@@ -361,41 +361,51 @@ func (s *DAGStatusNestedTestSuite) validateNestedDAGStatus(runID string, expecte
 
 		// Identify child pipeline DAGs vs parent DAGs
 		isChildPipelineDAG := taskName == "child-pipeline"
-		
+
 		if isChildPipelineDAG {
 			// Child pipeline DAGs work correctly
-			s.T().Logf("✅ CHILD DAG %d: total_dag_tasks=%d (correct - child pipeline has 3 tasks)", 
+			s.T().Logf("✅ CHILD DAG %d: total_dag_tasks=%d (correct - child pipeline has 3 tasks)",
 				dagExecution.GetId(), totalDagTasks)
-			
+
 			// Child DAGs should have correct total_dag_tasks and can complete properly
 			assert.Equal(t, int64(3), totalDagTasks,
 				"Child pipeline DAG should have total_dag_tasks=3 (child_setup + child_worker + child_finalizer)")
-			
+
 			// Child DAGs can reach COMPLETE state
 			if dagExecution.LastKnownState != nil && *dagExecution.LastKnownState == pb.Execution_COMPLETE {
 				s.T().Logf("✅ Child DAG %d properly completed", dagExecution.GetId())
 			}
-			
+
 		} else {
-			// Parent DAGs have the bug
-			s.T().Logf("🚨 PARENT DAG %d: total_dag_tasks=%d (BUG - should account for nested structure)", 
+			// FIXED: Parent DAGs should account for nested structure
+			s.T().Logf("🚨 PARENT DAG %d: total_dag_tasks=%d (should account for nested structure)",
 				dagExecution.GetId(), totalDagTasks)
-			
-			// TODO: REVERT THIS WHEN BUG IS FIXED - Parent DAGs incorrectly have total_dag_tasks=0
-			// The correct value should account for the nested child pipeline tasks
-			assert.Equal(t, int64(0), totalDagTasks,
-				"Parent DAG has total_dag_tasks=0 bug (should include nested child pipeline tasks)")
-			
-			// TODO: REVERT THIS WHEN BUG IS FIXED - Parent DAGs are stuck in RUNNING state
-			// because total_dag_tasks=0 prevents proper completion tracking
-			assert.Equal(t, pb.Execution_RUNNING.String(), dagExecution.LastKnownState.String(),
-				"Parent DAG execution ID=%d is stuck in RUNNING state due to total_dag_tasks=0 bug",
-				dagExecution.GetId())
+
+			// FIXED: Now expecting CORRECT behavior - test will FAIL until bug is fixed
+			// Parent DAG should account for nested child pipeline tasks + own tasks
+			// Expected: parent_setup(1) + child_pipeline(3) + parent_finalizer(1) = 5 tasks minimum
+			assert.True(t, totalDagTasks >= 5,
+				"Parent DAG total_dag_tasks=%d should be >= 5 (BUG: currently returns 0, should include nested child pipeline tasks)",
+				totalDagTasks)
+
+			// FIXED: Now expecting CORRECT final state - test will FAIL until DAG state bug is fixed
+			assert.Equal(t, expectedDAGState.String(), dagExecution.LastKnownState.String(),
+				"Parent DAG execution ID=%d should reach final state %v (BUG: currently stuck in %v due to total_dag_tasks bug)",
+				dagExecution.GetId(), expectedDAGState, dagExecution.LastKnownState)
 		}
 
-		s.T().Logf("BUG VALIDATION for %s: %s DAG %d has total_dag_tasks=%d",
-			testScenario, map[bool]string{true: "CHILD", false: "PARENT"}[isChildPipelineDAG], 
-			dagExecution.GetId(), totalDagTasks)
+		s.T().Logf("REGRESSION TEST for %s: %s DAG %d has total_dag_tasks=%d %s",
+			testScenario, map[bool]string{true: "CHILD", false: "PARENT"}[isChildPipelineDAG],
+			dagExecution.GetId(), totalDagTasks,
+			func() string {
+				if isChildPipelineDAG {
+					return "✅ CORRECT"
+				} else if totalDagTasks >= 5 {
+					return "✅ CORRECT"
+				} else {
+					return "🚨 BUG DETECTED"
+				}
+			}())
 
 		// Log additional properties for debugging
 		if customProps := dagExecution.GetCustomProperties(); customProps != nil {
