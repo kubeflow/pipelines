@@ -30,8 +30,6 @@ cd sdk/python
 python3 -m pip install .
 pytest kfp --cov=kfp
 
-# Pretty sure these are throwbacks to when we used prow. I'll clean them up (if
-# necessary) at a later time.
 set +x
 # export COVERALLS_REPO_TOKEN=$(gsutil cat gs://ml-pipeline-test-keys/coveralls_repo_token)
 set -x
