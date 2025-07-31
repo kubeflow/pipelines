@@ -1,4 +1,4 @@
-name: KFP e2e tests
+name: KFP SDK large tests
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
-    name: Basic Sample Tests - K8s ${{ matrix.k8s_version }}
+    name: KFP SDK large tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,7 +49,7 @@ jobs:
 
       - name: Install prerequisites
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-        run: pip3 install -r ./test/sample-test/requirements.txt && pip install sdk/python
+        run: pip3 install -r ./test/sample-test/requirements.txt
 
       - name: Install protobuf-compiler
         id: install-protobuf-compiler
