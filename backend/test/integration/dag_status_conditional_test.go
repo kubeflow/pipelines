@@ -256,7 +256,7 @@ func (s *DAGStatusConditionalTestSuite) TestComplexConditional() {
 
 	for _, tc := range testCases {
 		t.Logf("Testing %s", tc.description)
-		
+
 		run, err := s.createRunWithParams(pipelineVersion, fmt.Sprintf("conditional-complex-test-%d", tc.testValue), map[string]interface{}{
 			"test_value": tc.testValue,
 		})
@@ -368,12 +368,10 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 	require.NotEmpty(t, conditionalDAGs, "No conditional DAG executions found")
 
 	for _, dagExecution := range conditionalDAGs {
-		// TODO: REVERT THIS WHEN BUG IS FIXED - DAGs are stuck in RUNNING state
-		// The correct assertion should check for expectedDAGState (COMPLETE/FAILED)
-		// But currently DAGs never transition from RUNNING due to the bug
-		assert.Equal(t, pb.Execution_RUNNING.String(), dagExecution.LastKnownState.String(),
-			"Conditional DAG execution ID=%d is stuck in RUNNING state (should be %v)",
-			dagExecution.GetId(), expectedDAGState)
+		// FIXED: Now expecting CORRECT final state - test will FAIL until DAG state bug is fixed
+		assert.Equal(t, expectedDAGState.String(), dagExecution.LastKnownState.String(),
+			"Conditional DAG execution ID=%d should reach final state %v (BUG: currently stuck in %v)",
+			dagExecution.GetId(), expectedDAGState, dagExecution.LastKnownState)
 
 		totalDagTasks := dagExecution.GetCustomProperties()["total_dag_tasks"].GetIntValue()
 
@@ -383,15 +381,21 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 		// This is the core issue: total_dag_tasks should match expectedExecutedBranches for Conditionals
 		// Currently, total_dag_tasks counts ALL branches, not just the executed ones
 
-		// TODO: REVERT THIS WHEN BUG IS FIXED - Currently expecting buggy behavior to make tests pass
-		// The correct assertion should be: assert.Equal(t, int64(expectedExecutedBranches), totalDagTasks, ...)
-		// But conditionals have the same bug as dynamic ParallelFor: total_dag_tasks = 0 always
+		// FIXED: Now expecting CORRECT behavior - test will FAIL until bug is fixed
+		// total_dag_tasks should equal expectedExecutedBranches for Conditional constructs
+		assert.Equal(t, int64(expectedExecutedBranches), totalDagTasks,
+			"total_dag_tasks=%d should equal expected_executed_branches=%d for Conditional DAG (BUG: currently returns wrong value)",
+			totalDagTasks, expectedExecutedBranches)
 
-		assert.Equal(t, int64(0), totalDagTasks,
-			"total_dag_tasks is currently buggy - expecting 0 instead of expected_executed_branches (%d)", expectedExecutedBranches)
-
-		s.T().Logf("BUG VALIDATION: expected_executed_branches=%d, total_dag_tasks=%d (total_dag_tasks should equal expected_executed_branches!)",
-			expectedExecutedBranches, totalDagTasks)
+		s.T().Logf("REGRESSION TEST: expected_executed_branches=%d, total_dag_tasks=%d %s",
+			expectedExecutedBranches, totalDagTasks,
+			func() string {
+				if int64(expectedExecutedBranches) == totalDagTasks {
+					return "✅ CORRECT"
+				} else {
+					return "🚨 BUG DETECTED"
+				}
+			}())
 	}
 }
 
