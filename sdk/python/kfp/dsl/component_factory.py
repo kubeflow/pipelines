@@ -37,7 +37,7 @@ from kfp.dsl.types import custom_artifact_types
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
 
-_DEFAULT_BASE_IMAGE = 'python:3.9'
+_DEFAULT_BASE_IMAGE = 'python:3.10'
 SINGLE_OUTPUT_NAME = 'Output'
 
 

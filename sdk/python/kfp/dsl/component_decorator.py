@@ -93,7 +93,7 @@ def component(func: Optional[Callable] = None,
             ...
 
         @dsl.component(
-        base_image='python:3.9',
+        base_image='python:3.10',
         output_component_file='my_function.yaml'
         )
         def my_function_two(input: Input[Mode])):
