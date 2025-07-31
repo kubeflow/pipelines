@@ -196,6 +196,21 @@ The sample of the Argo Workflow system-container-driver template based on plugin
               jsonPath: $.condition
 ```
 
+## Test Plan
+[x] I/we understand the owners of the involved components may require updates to existing tests to make this code solid enough prior to committing the changes necessary to implement this enhancement.
+
+Unit Tests
+Unit tests will primarily validate the compilation from KFP pipelines to Argo Workflow specs, while most other logic will be covered by integration tests.
+
+Integration tests
+Add an additional E2E test to verify the behavior of the global driver server.
+
+Additionally, it is nice to have end-to-end (E2E) tests to verify basic functionality. Existing tests should be reused if available. The E2E tests should cover at least the following scenarios:
+- A simple pipeline with a single component, waiting for successful completion of the run.
+- A pipeline with a chain of components passing inputs and outputs between them, waiting for successful completion of the run.
+- A pipeline designed to fail, waiting for the run to end with an error.
+- A pipeline which fails but has retries enabled(pipeline/ and component level), waiting for the run to complete successfully.
+
 ## Conclusion
 This proposal introduces an optimization for Kubeflow Pipelines (KFP) that replaces per-task driver pods with a lightweight standalone service based on Argo Workflows’ Executor Plugin mechanism. It significantly reduces pipeline task startup time by eliminating the overhead of scheduling a separate driver pod for each task — particularly beneficial for large pipelines with multiple steps and caching enabled.
 Instead of launching a new driver pod per task, the driver logic is offloaded to a shared agent pod that is scheduled per workflow, and completes once the workflow ends. This reduces latency in cache lookups and metadata initialization.
