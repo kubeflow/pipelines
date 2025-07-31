@@ -1,0 +1,14 @@
+# Sample of the config map for mounting the executor plugin
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    workflows.argoproj.io/configmap-type: ExecutorPlugin # Workflow Controller applies the plugin configuration based on this label
+  name: driver-plugin
+data:
+  sidecar.automountServiceAccountToken: "true" # Enables automatic mounting of the service account token in the sidecar
+  sidecar.container: |
+    image: ...
+    name: driver-plugin
+    resources:
+      ...

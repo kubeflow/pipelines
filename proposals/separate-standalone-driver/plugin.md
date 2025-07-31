@@ -15,9 +15,10 @@ As a result, driver-plugin implementations should merely act as a proxy between 
 
 1. Implement the driver plugin that simply proxies requests from the workflow controller to the kfp-driver-server and back. 
 2. Build the image for the driver plugin.
-3. Create the [yaml description](src/driver-plugin/plugin.yaml) of the plugin 
+3. Create the [yaml description](plugin.yaml) of the plugin 
 4. [Create](https://argo-workflows.readthedocs.io/en/latest/cli/argo_executor-plugin_build/) the configmap by executing  ```argo executor-plugin build .``` in the yaml description folder from the step 3 
 5. Apply the created ConfigMap to the workflow-controller Kubernetes namespace.
+6. Create the service account driver-plugin-executor-plugin and set automountServiceAccountToken: true in the sidecar plugin ConfigMap (required for Kubernetes API access; see details below).
 
 After that, you will be able to reference the corresponding driver plugin in your Argo Workflow using:
 ```yaml
@@ -26,61 +27,10 @@ plugin:
     ...
 ```
 
-### Problem: Interaction With the Kubernetes API From a Sidecar Container
+### Interaction With the Kubernetes API From a Sidecar Container
 The driver [requires](https://github.com/kubeflow/pipelines/blob/master/backend/src/v2/driver/k8s.go#L68) access to the k8s API.
-However, the required volume with the service account secret (/var/run/secrets/kubernetes.io/serviceaccount) is mounted only into the main (driver) container, but not into the sidecar container.
-Below is a sample YAML snippet showing the container definitions in the agent pod.
-```yaml
-Containers:
-  driver-plugin:
-    Image:          .../kfp-driver-agent:2.4.1-63
-    Port:           2948/TCP
-    Host Port:      0/TCP
-    Restart Count:  0
-    Limits:
-      cpu:     1
-      memory:  1Gi
-    Requests:
-      cpu:     250m
-      memory:  512Mi
-    Environment:
-      DRIVER_HOST:      http://ml-pipeline-kfp-driver.kubeflow.svc
-      DRIVER_PORT:      2948
-      SERVER_PORT:      2948
-      TIMEOUT_SECONDS:  120
-    Mounts:
-      /etc/gitconfig from gitconfig (ro,path="gitconfig")
-      /var/run/argo from var-run-argo (ro,path="driver-plugin")
-  main:
-    Image:           .../ml-platform/argoexec:v3.6.7
-    Command:
-      argoexec
-    Args:
-      agent
-      main
-      --loglevel
-      info
-      --log-format
-      text
-      --gloglevel
-      0
-    Ready:          True
-    Restart Count:  2
-    Limits:
-      cpu:     100m
-      memory:  256M
-    Requests:
-      cpu:     10m
-      memory:  64M
-    Environment:
-      ARGO_WORKFLOW_NAME:     debug-component-pipeline-7bgps
-      ARGO_WORKFLOW_UID:      03caea4e-70c1-4113-b700-b7183271f3b6
-      ARGO_AGENT_PATCH_RATE:  10s
-      ARGO_PLUGIN_ADDRESSES:  ["http://localhost:2948"]
-      ARGO_PLUGIN_NAMES:      ["driver-plugin"]
-    Mounts:
-      /etc/gitconfig from gitconfig (ro,path="gitconfig")
-      /var/run/argo from var-run-argo (rw)
-      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-z9nt6 (ro)
-```
-As a workaround, it makes sense to use the agent pod only as a proxy to the kfp-driver-server.
+However, by default, the Argo Workflow Controller does not mount the service account token in the executor plugin's sidecar container. Moreover, it [disabled](https://github.com/argoproj/argo-workflows/pull/8028) the ability to mount the Workflow's service account to the executor plugin.
+As a result, to enable access to the Kubernetes API:
+1. Create ServiceAccount in each profile namespace with the name `driver-plugin-executor-plugin`. Argo WF [expects](https://github.com/argoproj/argo-workflows/blob/main/workflow/controller/agent.go#L285) the format <plugin-name>-executor-plugin
+2. Add a Role with appropriate Kubernetes API access and bind it to the service account.
+3. Configure `sidecar.automountServiceAccountToken` see [example](plugin.yaml)
