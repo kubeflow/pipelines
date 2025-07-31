@@ -5,3 +5,5 @@ papermill
 fire
 yamale
 kubernetes
+pytest
+pytest-xdist
