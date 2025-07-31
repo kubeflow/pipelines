@@ -55,46 +55,22 @@ func TestGetWorkspacePVC(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "workspace with default size from options",
+			name: "workspace with empty size should fail",
 			workspace: &pipelinespec.WorkspaceConfig{
 				Size: "", // empty size
 			},
-			opts: &argocompiler.Options{
-				DefaultWorkspaceSize: "20Gi",
-			},
-			expectedPVC: k8score.PersistentVolumeClaim{
-				ObjectMeta: k8smeta.ObjectMeta{
-					Name: "kfp-workspace",
-				},
-				Spec: k8score.PersistentVolumeClaimSpec{
-					Resources: k8score.VolumeResourceRequirements{
-						Requests: map[k8score.ResourceName]resource.Quantity{
-							k8score.ResourceStorage: resource.MustParse("20Gi"),
-						},
-					},
-				},
-			},
-			expectError: false,
+			opts:        &argocompiler.Options{},
+			expectedPVC: k8score.PersistentVolumeClaim{},
+			expectError: true,
 		},
 		{
-			name: "workspace with fallback size",
+			name: "workspace with no size should fail",
 			workspace: &pipelinespec.WorkspaceConfig{
-				Size: "", // empty size
+				Size: "", // no size specified
 			},
-			opts: nil, // no options
-			expectedPVC: k8score.PersistentVolumeClaim{
-				ObjectMeta: k8smeta.ObjectMeta{
-					Name: "kfp-workspace",
-				},
-				Spec: k8score.PersistentVolumeClaimSpec{
-					Resources: k8score.VolumeResourceRequirements{
-						Requests: map[k8score.ResourceName]resource.Quantity{
-							k8score.ResourceStorage: resource.MustParse("10Gi"),
-						},
-					},
-				},
-			},
-			expectError: false,
+			opts:        nil, // no options
+			expectedPVC: k8score.PersistentVolumeClaim{},
+			expectError: true,
 		},
 		{
 			name: "workspace with default PVC spec from options",
@@ -408,7 +384,6 @@ func TestGetWorkspacePVC_Integration(t *testing.T) {
 		}
 
 		opts := &argocompiler.Options{
-			DefaultWorkspaceSize: "50Gi",
 			DefaultWorkspace: &k8score.PersistentVolumeClaimSpec{
 				AccessModes: []k8score.PersistentVolumeAccessMode{
 					k8score.ReadWriteOnce,

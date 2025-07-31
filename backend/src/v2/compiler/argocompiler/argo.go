@@ -47,14 +47,11 @@ type Options struct {
 	CacheDisabled bool
 	// optional
 	DefaultWorkspace *k8score.PersistentVolumeClaimSpec
-	// optional, default workspace size from API server config
-	DefaultWorkspaceSize string
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
 }
 
 const (
-	fallbackWorkspaceSize = "10Gi" // Used if no size is set in apiserver config but workspace is requested
-	workspaceVolumeName   = "kfp-workspace"
+	workspaceVolumeName = "kfp-workspace"
 )
 
 func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.SinglePlatformSpec, opts *Options) (*wfapi.Workflow, error) {
@@ -507,16 +504,14 @@ func convertStructToPVCSpec(structVal *structpb.Struct) (*k8score.PersistentVolu
 // GetWorkspacePVC constructs a PersistentVolumeClaim for the workspace.
 // It uses the default PVC spec (from API server config), and applies any user-specified
 // overrides from the pipeline spec, including the requested storage size.
+// The workspace size is required and must be specified by the user.
 func GetWorkspacePVC(
 	workspace *pipelinespec.WorkspaceConfig,
 	opts *Options,
 ) (k8score.PersistentVolumeClaim, error) {
 	sizeStr := workspace.GetSize()
-	if sizeStr == "" && opts != nil && opts.DefaultWorkspaceSize != "" {
-		sizeStr = opts.DefaultWorkspaceSize
-	}
 	if sizeStr == "" {
-		sizeStr = fallbackWorkspaceSize
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace size is required but not specified")
 	}
 
 	k8sWorkspace := workspace.GetKubernetes()
