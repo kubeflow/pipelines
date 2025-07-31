@@ -16,3 +16,5 @@
 
 // NOTE: This file must be here as it's loaded by the jest configuration with
 // this path hard-coded. Without ejecting, we can't change this path.
+
+import '@testing-library/jest-dom';
