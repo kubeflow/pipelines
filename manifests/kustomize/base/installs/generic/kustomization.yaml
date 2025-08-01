@@ -34,7 +34,7 @@ replacements:
       group: apps
       version: v1
       kind: ConfigMap
-      name: ml-pipeline
+      name: pipeline-install-config
     fieldPaths:
     - data.appName
 - source:
@@ -47,7 +47,7 @@ replacements:
       group: apps
       version: v1
       kind: ConfigMap
-      name: ml-pipeline
+      name: pipeline-install-config
     fieldPaths:
     - data.appVersion
 - source:
@@ -60,7 +60,7 @@ replacements:
       group: apps
       version: v1
       kind: ConfigMap
-      name: ml-pipeline
+      name: pipeline-install-config
     fieldPaths:
     - data.bucketName
 - source:
