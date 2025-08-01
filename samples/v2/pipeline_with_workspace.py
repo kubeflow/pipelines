@@ -13,13 +13,13 @@
 # limitations under the License.
 
 """A pipeline using workspace functionality."""
-import os
 from kfp import dsl
 
 
 @dsl.component
 def write_to_workspace(workspace_path: str) -> str:
     """Write a file to the workspace."""   
+    import os
     
     # Create a file in the workspace
     file_path = os.path.join(workspace_path, "data", "test_file.txt")
@@ -33,10 +33,12 @@ def write_to_workspace(workspace_path: str) -> str:
 
 
 @dsl.component
-def read_from_workspace(file_path: str) -> str:
+def read_from_workspace(workspace_path: str) -> str:
     """Read a file from the workspace."""    
+    import os
     
-    # Use the provided file_path parameter instead of hardcoded path
+    file_path = os.path.join(workspace_path, "data", "test_file.txt")
+    
     if os.path.exists(file_path):
         with open(file_path, "r") as f:
             content = f.read()
@@ -52,7 +54,12 @@ def read_from_workspace(file_path: str) -> str:
     name="pipeline-with-workspace",
     description="A pipeline that demonstrates workspace functionality",
     pipeline_config=dsl.PipelineConfig(
-        workspace=dsl.WorkspaceConfig(size='1Gi'),
+        workspace=dsl.WorkspaceConfig(
+            size='1Gi',
+            kubernetes=dsl.KubernetesWorkspaceConfig(
+                pvcSpecPatch={'storageClassName': 'standard-csi'}
+            )
+        ),
     ),
 )
 def pipeline_with_workspace() -> str:
@@ -65,7 +72,10 @@ def pipeline_with_workspace() -> str:
     
     # Read from workspace
     read_task = read_from_workspace(
-        file_path=write_task.output
-    ).after(write_task)
+        workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER
+    )
+    
+    # Ensure read task executes after write task
+    read_task.after(write_task)
     
     return read_task.output 
