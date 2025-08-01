@@ -19,6 +19,9 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from kfp import dsl
+from kfp.dsl import constants
+from kfp.local import config
+from kfp.local.config import DEFAULT_WORKSPACE_PATH
 
 
 def make_random_id() -> str:
@@ -347,6 +350,9 @@ def resolve_individual_placeholder(
             pipeline_task_id,
         dsl.PIPELINE_ROOT_PLACEHOLDER:
             pipeline_root,
+        dsl.WORKSPACE_PATH_PLACEHOLDER:
+            config.LocalExecutionConfig.instance.workspace_root
+            if config.LocalExecutionConfig.instance else DEFAULT_WORKSPACE_PATH,
     }
     for placeholder, value in PLACEHOLDERS.items():
         element = element.replace(placeholder, value)
