@@ -375,5 +375,21 @@ class TestPythonEOLWarning(unittest.TestCase):
                 pass
 
 
+class TestCompileTimeImports(unittest.TestCase):
+
+    def test_get_command_and_args_with_compile_time_imports(self):
+        def hello_world():
+            print("test function")
+
+        command, args = component_factory._get_command_and_args_for_lightweight_component(func=hello_world, include_compile_time_imports=True)
+        self.assertTrue("_KFP_RUNTIME=false" in command[2])
+
+    def test_get_command_and_args_default_without_compile_time_imports(self):
+        def hello_world():
+            print("test function")
+
+        command, args = component_factory._get_command_and_args_for_lightweight_component(func=hello_world)
+        self.assertTrue("_KFP_RUNTIME=true" in command[2])
+
 if __name__ == '__main__':
     unittest.main()
