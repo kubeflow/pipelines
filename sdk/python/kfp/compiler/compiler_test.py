@@ -4183,6 +4183,50 @@ class TestPlatformConfig(unittest.TestCase):
         # test that it can be compiled _again_ after reloading (tests YamlComponent internals)
         compile_and_reload(loaded_pipeline)
 
+    def test_workspace_config_validation(self):
+        """Test that workspace size validation works correctly."""
+        from kfp.dsl.pipeline_config import WorkspaceConfig
+
+        valid_sizes = ['10Gi', '1.5Gi', '1000Ti', '500Mi', '2Ki']
+        for size in valid_sizes:
+            with self.subTest(size=size):
+                workspace = WorkspaceConfig(size=size)
+                self.assertEqual(workspace.size, size)
+
+        with self.assertRaises(ValueError) as context:
+            WorkspaceConfig(size='')
+        self.assertIn('required and cannot be empty', str(context.exception))
+
+        # Test whitespace-only size raises error
+        whitespace_sizes = ['   ', '\t', '\n', '  \t  \n  ']
+        for size in whitespace_sizes:
+            with self.subTest(size=repr(size)):
+                with self.assertRaises(ValueError) as context:
+                    WorkspaceConfig(size=size)
+                self.assertIn('required and cannot be empty',
+                              str(context.exception))
+
+        # Test None size raises error
+        with self.assertRaises(ValueError):
+            WorkspaceConfig(size=None)
+
+        # Test set_size method validation
+        workspace = WorkspaceConfig(size='10Gi')
+
+        # Valid size update
+        workspace.set_size('20Gi')
+        self.assertEqual(workspace.size, '20Gi')
+
+        # Empty size update raises error
+        with self.assertRaises(ValueError) as context:
+            workspace.set_size('')
+        self.assertIn('required and cannot be empty', str(context.exception))
+
+        # Whitespace-only size update raises error
+        with self.assertRaises(ValueError) as context:
+            workspace.set_size('   ')
+        self.assertIn('required and cannot be empty', str(context.exception))
+
 
 class ExtractInputOutputDescription(unittest.TestCase):
 

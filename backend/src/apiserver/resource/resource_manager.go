@@ -101,10 +101,9 @@ type ClientManagerInterface interface {
 }
 
 type ResourceManagerOptions struct {
-	CollectMetrics       bool                              `json:"collect_metrics,omitempty"`
-	CacheDisabled        bool                              `json:"cache_disabled,omitempty"`
-	DefaultWorkspace     *corev1.PersistentVolumeClaimSpec `json:"default_workspace,omitempty"`
-	DefaultWorkspaceSize string                            `json:"default_workspace_size,omitempty"`
+	CollectMetrics   bool                              `json:"collect_metrics,omitempty"`
+	CacheDisabled    bool                              `json:"cache_disabled,omitempty"`
+	DefaultWorkspace *corev1.PersistentVolumeClaimSpec `json:"default_workspace,omitempty"`
 }
 
 type ResourceManager struct {

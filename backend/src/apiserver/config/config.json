@@ -26,7 +26,6 @@
   "CACHE_IMAGE": "ghcr.io/containerd/busybox",
   "CACHE_NODE_RESTRICTIONS": "false",
   "Workspace": {
-    "size": "100Gi",
     "VolumeClaimTemplateSpec": {
       "accessModes": [
         "ReadWriteOnce"

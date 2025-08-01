@@ -39,7 +39,7 @@ class WorkspaceConfig:
     run.
 
     Attributes:
-        size (str): The size of the workspace (e.g., '250Gi').
+        size (str): The size of the workspace (e.g., '250Gi'). This is a required field.
         See https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/ for valid quantity formats.
         kubernetes: (Optional) Kubernetes-specific configuration for the underlying PVC.
     """
@@ -47,7 +47,9 @@ class WorkspaceConfig:
     def __init__(self,
                  size: str,
                  kubernetes: Optional[KubernetesWorkspaceConfig] = None):
-        self.size = size
+        if not size or not size.strip():
+            raise ValueError('Workspace size is required and cannot be empty')
+        self.size = size.strip()
         self.kubernetes = kubernetes or KubernetesWorkspaceConfig()
 
     def get_workspace(self) -> dict:
@@ -59,6 +61,8 @@ class WorkspaceConfig:
         return workspace
 
     def set_size(self, size: str):
+        if not size or not size.strip():
+            raise ValueError('Workspace size is required and cannot be empty')
         self.size = size.strip()
 
     def set_kubernetes_config(self,
