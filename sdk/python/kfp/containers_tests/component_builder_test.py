@@ -18,6 +18,8 @@ import tempfile
 import unittest
 from unittest import mock
 
+import pytest
+
 from kfp.containers import _component_builder
 from kfp.containers import _container_builder
 from kfp import components
@@ -26,6 +28,7 @@ _TEST_TARGET_IMAGE = 'gcr.io/my-project/my-image'
 _TEST_STAGING_LOCATION = 'gs://my-project/tmp'
 
 
+@pytest.fixture
 def test_function(test_param: str,
                   test_artifact: components.InputArtifact('Dataset'),
                   test_output: components.OutputArtifact('Model')):
