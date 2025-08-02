@@ -1,0 +1,81 @@
+# PIPELINE DEFINITION
+# Name: parallel-for-success
+# Description: Simple ParallelFor loop that succeeds to test DAG status updates
+components:
+  comp-for-loop-2:
+    dag:
+      tasks:
+        hello-world:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-hello-world
+          inputs:
+            parameters:
+              message:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: hello-world
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: STRING
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - hello_world
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef hello_world(message: str) -> str:\n    \"\"\"Simple component\
+          \ that succeeds.\"\"\"\n    print(f\"Hello {message}!\")\n    return f\"\
+          Processed: {message}\"\n\n"
+        image: python:3.9
+pipelineInfo:
+  description: Simple ParallelFor loop that succeeds to test DAG status updates
+  name: parallel-for-success
+root:
+  dag:
+    tasks:
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '["world", "kubeflow", "pipelines"]'
+        taskInfo:
+          name: for-loop-2
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
