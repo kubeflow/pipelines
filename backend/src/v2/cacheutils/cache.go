@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,6 +17,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 )
 
 const (
@@ -87,18 +89,24 @@ func NewClient(cacheDisabled bool) (Client, error) {
 }
 
 func cacheDefaultEndpoint() string {
+	// If proxy is enabled, use DNS name `ml-pipeline.kubeflow:8887` as default.
+	_, isHttpProxySet := os.LookupEnv(proxy.HttpProxyEnv)
+	_, isHttpsProxySet := os.LookupEnv(proxy.HttpsProxyEnv)
+	if isHttpProxySet || isHttpsProxySet {
+		return defaultKfpApiEndpoint
+	}
 	// Discover ml-pipeline in the same namespace by env var.
 	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
-	// cacheHost := os.Getenv("ML_PIPELINE_SERVICE_HOST")
-	// cachePort := os.Getenv("ML_PIPELINE_SERVICE_PORT_GRPC")
-	// if cacheHost != "" && cachePort != "" {
-	// 	// If there is a ml-pipeline Kubernetes service in the same namespace,
-	// 	// ML_PIPELINE_SERVICE_HOST and ML_PIPELINE_SERVICE_PORT env vars should
-	// 	// exist by default, so we use it as default.
-	// 	return cacheHost + ":" + cachePort
-	// }
-	// // If the env vars do not exist, use default ml-pipeline grpc endpoint `ml-pipeline.kubeflow:8887`.
-	// glog.Infof("Cannot detect ml-pipeline in the same namespace, default to %s as KFP endpoint.", defaultKfpApiEndpoint)
+	cacheHost := os.Getenv("ML_PIPELINE_SERVICE_HOST")
+	cachePort := os.Getenv("ML_PIPELINE_SERVICE_PORT_GRPC")
+	if cacheHost != "" && cachePort != "" {
+		// If there is a ml-pipeline Kubernetes service in the same namespace,
+		// ML_PIPELINE_SERVICE_HOST and ML_PIPELINE_SERVICE_PORT env vars should
+		// exist by default, so we use it as default.
+		return cacheHost + ":" + cachePort
+	}
+	// If the env vars do not exist, use default ml-pipeline grpc endpoint `ml-pipeline.kubeflow:8887`.
+	glog.Infof("Cannot detect ml-pipeline in the same namespace, default to %s as KFP endpoint.", defaultKfpApiEndpoint)
 	return defaultKfpApiEndpoint
 }
 
