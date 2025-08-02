@@ -44,6 +44,10 @@ spec:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: bucketName
+            - name: OBJECTSTORECONFIG_HOST
+              value: "minio-service.kubeflow"
+            - name: OBJECTSTORECONFIG_PORT
+              value: "9000"
             # relic variables
             - name: DBCONFIG_USER
               valueFrom:

@@ -45,14 +45,25 @@ spec:
             exit 1
           }
           wait_for_service "http://minio-service.kubeflow:9000/status"
-          exec /bin/echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell
-          exec /bin/echo \
-          "s3.configure -user kubeflow-admin \
+          echo "Creating S3 bucket..."
+          echo "s3.bucket.create --name mlpipeline" | /usr/bin/weed shell > /dev/null 2>&1
+          if [ $? -eq 0 ]; then
+            echo "Bucket created successfully"
+          else
+            echo "Failed to create bucket or bucket already exists"
+          fi
+          echo "Configuring S3 credentials..."
+          echo "s3.configure -user kubeflow-admin \
                         -access_key $accesskey \
                         -secret_key $secretkey \
                         -actions Admin \
-                        -apply" |\
-          /usr/bin/weed shell
+                        -apply" | /usr/bin/weed shell > /dev/null 2>&1
+          if [ $? -eq 0 ]; then
+            echo "S3 credentials configured successfully"
+          else
+            echo "Failed to configure S3 credentials"
+            exit 1
+          fi
         securityContext:  # Using restricted profile
           allowPrivilegeEscalation: false
           privileged: false

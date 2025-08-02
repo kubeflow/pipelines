@@ -46,4 +46,4 @@ sudo rm -rf /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots
 sudo systemctl start containerd || true
 
 echo "=== Final disk usage ==="
-df -h 
+df -h
