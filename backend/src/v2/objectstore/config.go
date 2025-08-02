@@ -18,13 +18,10 @@ package objectstore
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/golang/glog"
 )
 
 // The endpoint uses Kubernetes service DNS name with namespace:
@@ -166,16 +163,16 @@ func ParseProviderFromPath(uri string) (string, error) {
 func MinioDefaultEndpoint() string {
 	// Discover minio-service in the same namespace by env var.
 	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
-	minioHost := os.Getenv("MINIO_SERVICE_SERVICE_HOST")
-	minioPort := os.Getenv("MINIO_SERVICE_SERVICE_PORT")
-	if minioHost != "" && minioPort != "" {
-		// If there is a minio-service Kubernetes service in the same namespace,
-		// MINIO_SERVICE_SERVICE_HOST and MINIO_SERVICE_SERVICE_PORT env vars should
-		// exist by default, so we use it as default.
-		return minioHost + ":" + minioPort
-	}
-	// If the env vars do not exist, we guess that we are running in KFP multi user mode, so default minio service should be `minio-service.kubeflow:9000`.
-	glog.Infof("Cannot detect minio-service in the same namespace, default to %s as MinIO endpoint.", defaultMinioEndpointInMultiUserMode)
+	// minioHost := os.Getenv("MINIO_SERVICE_SERVICE_HOST")
+	// minioPort := os.Getenv("MINIO_SERVICE_SERVICE_PORT")
+	// if minioHost != "" && minioPort != "" {
+	// 	// If there is a minio-service Kubernetes service in the same namespace,
+	// 	// MINIO_SERVICE_SERVICE_HOST and MINIO_SERVICE_SERVICE_PORT env vars should
+	// 	// exist by default, so we use it as default.
+	// 	return minioHost + ":" + minioPort
+	// }
+	// // If the env vars do not exist, we guess that we are running in KFP multi user mode, so default minio service should be `minio-service.kubeflow:9000`.
+	// glog.Infof("Cannot detect minio-service in the same namespace, default to %s as MinIO endpoint.", defaultMinioEndpointInMultiUserMode)
 	return defaultMinioEndpointInMultiUserMode
 }
 
