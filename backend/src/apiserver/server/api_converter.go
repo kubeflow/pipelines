@@ -55,15 +55,19 @@ func toModelExperiment(e interface{}) (*model.Experiment, error) {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Experiment must have a non-empty name"), "Failed to convert API experiment to model experiment")
 	}
 	// Namespace validation is handled in the server layer as it depends on multi-user mode.
-	if err := validation.ValidateFieldLength("Experiment", "Name", name); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to convert API experiment to model experiment")
-	}
-	return &model.Experiment{
+	exp := &model.Experiment{
 		Name:         name,
 		Description:  description,
 		Namespace:    namespace,
 		StorageState: model.StorageStateAvailable,
-	}, nil
+	}
+	if err := validation.ValidateModel(exp); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API experiment to model experiment",
+		)
+	}
+	return exp, nil
 }
 
 // Converts internal experiment representation to its API counterpart.
@@ -178,26 +182,24 @@ func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 		displayName = name
 	}
 
-	if err := validation.ValidateFieldLength("Pipeline", "Name", name); err != nil {
-		return nil, util.NewInternalServerError(
-			err,
-			"Failed to convert API pipeline to model pipeline",
-		)
+	// Build the full model first, then validate the actual values on the struct.
+	pipeline := &model.Pipeline{
+		Name:        name,
+		DisplayName: displayName,
+		Namespace:   namespace,
+		Description: description,
+		Status:      model.PipelineCreating,
 	}
-	if err := validation.ValidateFieldLength("Pipeline", "Namespace", namespace); err != nil {
+
+	if err := validation.ValidateModel(pipeline); err != nil {
 		return nil, util.NewInternalServerError(
 			err,
 			"Failed to convert API pipeline to model pipeline",
 		)
 	}
 
-	return &model.Pipeline{
-		Name:        name,
-		DisplayName: displayName,
-		Namespace:   namespace,
-		Description: description,
-		Status:      model.PipelineCreating,
-	}, nil
+	return pipeline, nil
+
 }
 
 // Converts internal pipeline and pipeline version representation to an API pipeline.
@@ -381,13 +383,7 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 	if displayName == "" {
 		displayName = name
 	}
-	if err := validation.ValidateFieldLength("PipelineVersion", "Name", name); err != nil {
-		return nil, util.NewInternalServerError(
-			err,
-			"Failed to convert API pipeline version to model pipeline version",
-		)
-	}
-	return &model.PipelineVersion{
+	pv := &model.PipelineVersion{
 		Name:            name,
 		DisplayName:     displayName,
 		PipelineId:      pipelineId,
@@ -395,7 +391,14 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 		CodeSourceUrl:   codeUrl,
 		Description:     description,
 		Status:          model.PipelineVersionCreating,
-	}, nil
+	}
+	if err := validation.ValidateModel(pv); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API pipeline version to model pipeline version",
+		)
+	}
+	return pv, nil
 }
 
 // Converts internal pipeline version representation to its API counterpart.
@@ -1048,12 +1051,6 @@ func toModelRunMetric(m interface{}, runId string) (*model.RunMetric, error) {
 	default:
 		return nil, util.NewUnknownApiVersionError("RunMetric", m)
 	}
-	if err := validation.ValidateFieldLength("RunMetric", "Name", name); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to convert API run metric to internal representation")
-	}
-	if err := validation.ValidateFieldLength("RunMetric", "NodeID", nodeId); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to convert API run metric to internal representation")
-	}
 	modelMetric := &model.RunMetric{
 		RunUUID:     runId,
 		Name:        name,
@@ -1061,7 +1058,11 @@ func toModelRunMetric(m interface{}, runId string) (*model.RunMetric, error) {
 		NumberValue: val,
 		Format:      format,
 	}
+	if err := validation.ValidateModel(modelMetric); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to convert API run metric to internal representation")
+	}
 	return modelMetric, nil
+
 }
 
 // Converts internal run metric representation to its API counterpart.
@@ -1351,13 +1352,7 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		},
 	}
 
-	if err := validation.ValidateFieldLength("Run", "ExperimentId", experimentId); err != nil {
-		return nil, util.NewInternalServerError(
-			err,
-			"Failed to convert API run to its internal representation",
-		)
-	}
-	if err := validation.ValidateFieldLength("Run", "Namespace", namespace); err != nil {
+	if err := validation.ValidateModel(&modelRun); err != nil {
 		return nil, util.NewInternalServerError(
 			err,
 			"Failed to convert API run to its internal representation",

@@ -25,7 +25,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -98,10 +97,6 @@ type ExperimentServerV1 struct {
 
 func (s *BaseExperimentServer) createExperiment(ctx context.Context, experiment *model.Experiment) (*model.Experiment, error) {
 	experiment.Namespace = s.resourceManager.ReplaceNamespace(experiment.Namespace)
-	// Validate Namespace field lengths for Experiment before authorization
-	if err := validation.ValidateFieldLength("Experiment", "Namespace", experiment.Namespace); err != nil {
-		return nil, err
-	}
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: experiment.Namespace,
 		Verb:      common.RbacResourceVerbCreate,

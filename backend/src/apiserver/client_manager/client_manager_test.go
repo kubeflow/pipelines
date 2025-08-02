@@ -78,7 +78,8 @@ func TestRunPreflightLengthChecks_FailOnTooLong(t *testing.T) {
 		{Model: &model.Experiment{}, Field: "Name", Max: 128},
 	}
 
-	err := RunPreflightLengthChecks(db, specs)
+	dialect := GetDialect("sqlite")
+	err := runPreflightLengthChecks(db, dialect, specs)
 	t.Logf("FULL ERR:\n%+v", err)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Preflight")
@@ -90,7 +91,8 @@ func TestRunPreflightLengthChecks_PassWhenOK(t *testing.T) {
 	createOldExperimentSchema(t, db)
 	// no long rows
 
-	err := RunPreflightLengthChecks(db, []validation.ColLenSpec{
+	dialect := GetDialect("sqlite")
+	err := runPreflightLengthChecks(db, dialect, []validation.ColLenSpec{
 		{Model: &model.Experiment{}, Field: "Name", Max: 128},
 	})
 	require.NoError(t, err)

@@ -19,7 +19,7 @@ package validation
 
 import (
 	"fmt"
-	"strings"
+	"reflect"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -73,21 +73,23 @@ var fieldMaxLenMap map[string]int
 func init() {
 	fieldMaxLenMap = make(map[string]int, len(LengthSpecs))
 	for _, spec := range LengthSpecs {
-		parts := strings.Split(fmt.Sprintf("%T", spec.Model), ".")
-		typ := parts[len(parts)-1]
+		typ := reflect.TypeOf(spec.Model).Elem().Name()
 		fieldMaxLenMap[typ+"."+spec.Field] = spec.Max
 	}
 }
 
-func GetMaxLength(modelName, field string) (int, bool) {
+func getMaxLength(modelName, field string) (int, bool) {
 	v, ok := fieldMaxLenMap[modelName+"."+field]
 	return v, ok
 }
 
-// ValidateFieldLength checks that the given value does not exceed the maximum
-// length defined for modelName.fieldName. If it does, returns an InvalidInputError.
+// ValidateFieldLength validates a single string field against LengthSpecs.
+// Primarily used in pipeline_upload_server for request-level validation of raw input values,
+// especially for fields like Namespace that may be modified before model construction.
+// Use this for targeted, field-specific validation. For full-model validation,
+// prefer ValidateModel().
 func ValidateFieldLength(modelName, fieldName, value string) error {
-	max, ok := GetMaxLength(modelName, fieldName)
+	maxLen, ok := getMaxLength(modelName, fieldName)
 	if !ok {
 		return util.NewInternalServerError(
 			fmt.Errorf("length spec missing for %s.%s", modelName, fieldName),
@@ -95,8 +97,47 @@ func ValidateFieldLength(modelName, fieldName, value string) error {
 		)
 	}
 
-	if len(value) > max {
-		return util.NewInvalidInputError("%s.%s length cannot exceed %d", modelName, fieldName, max)
+	if len(value) > maxLen {
+		return util.NewInvalidInputError("%s.%s length cannot exceed %d", modelName, fieldName, maxLen)
 	}
+	return nil
+}
+
+// ValidateModel dynamically validates all fields of the given model that are defined in LengthSpecs.
+// It uses reflection to extract field values and compare against the max length.
+// Returns the first encountered InvalidInputError or InternalServerError.
+func ValidateModel(model interface{}) error {
+	val := reflect.ValueOf(model)
+	if val.Kind() != reflect.Ptr || val.IsNil() {
+		return util.NewInternalServerError(
+			fmt.Errorf("model must be a non-nil pointer"),
+			"Model passed to ValidateModel must be a non-nil pointer",
+		)
+	}
+
+	elem := val.Elem()
+	typ := elem.Type()
+	modelName := typ.Name()
+
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		valueField := elem.Field(i)
+
+		// Only validate string fields
+		if field.Type.Kind() != reflect.String {
+			continue
+		}
+
+		maxLen, ok := getMaxLength(modelName, field.Name)
+		if !ok {
+			continue
+		}
+
+		strVal := valueField.String()
+		if len(strVal) > maxLen {
+			return util.NewInvalidInputError("%s.%s length cannot exceed %d", modelName, field.Name, maxLen)
+		}
+	}
+
 	return nil
 }

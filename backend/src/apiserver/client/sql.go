@@ -21,13 +21,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-const (
-	//nolint:staticcheck // allow legacy ALL_CAPS constant name
-	MYSQL_EXIST_ERROR string = "database exists"
-
-	PGX_EXIST_ERROR string = "already exists"
-)
-
 func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
 	dbName, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string,
 ) *mysql.Config {
