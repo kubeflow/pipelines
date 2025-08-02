@@ -182,6 +182,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		glog.Info("Cache disabled globally at the server level.")
 	}
 
+	//todo: set tls to false for now
 	podSpec, err := initPodSpecPatch(
 		opts.Container,
 		opts.Component,
@@ -192,6 +193,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.PipelineLogLevel,
 		opts.PublishLogs,
 		strconv.FormatBool(opts.CacheDisabled),
+		false,
 	)
 	if err != nil {
 		return execution, err

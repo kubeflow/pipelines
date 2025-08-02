@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -570,10 +571,14 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
+		"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	//if c.mlPipelineServiceTLSEnabled {
+	//	args = append(args, "--mlPipelineServiceTLSEnabled")
+	//}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -602,13 +607,15 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
+			Image:   c.driverImage,
+			Command: c.driverCommand,
+			//todo: should there be an option to use original env here?
+			Env:       MLPipelineServiceEnv,
 			Args:      args,
 			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
+	ConfigureCABundle(t)
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name

@@ -259,6 +259,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 			"",
 		},
 	}
+	//todo: setting tls to false for now.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			podSpec, err := initPodSpecPatch(
@@ -271,6 +272,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
+				false,
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -380,6 +382,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -421,6 +424,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -464,6 +468,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
 	)
 	assert.Nil(t, err)
 
@@ -503,6 +508,7 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"1",
 		"true",
 		"false",
+		false,
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -624,6 +630,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
+				false,
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
@@ -682,6 +689,7 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
 	)
 	require.Nil(t, err)
 

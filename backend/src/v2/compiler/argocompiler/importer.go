@@ -85,6 +85,9 @@ func (c *workflowCompiler) addImporterTemplate() string {
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	//if c.mlPipelineServiceTLSEnabled {
+	//	args = append(args, "--mlPipelineServiceTLSEnabled")
+	//}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
