@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudsqlproxy
+  labels:
+    app: cloudsqlproxy
+spec:
+  selector:
+    matchLabels:
+      app: cloudsqlproxy
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cloudsqlproxy
+    spec:
+      serviceAccountName: kubeflow-pipelines-cloudsql-proxy
+      containers:
+        - image: gcr.io/cloudsql-docker/gce-proxy:1.25.0
+          name: cloudsqlproxy
+          env:            
+            - name: GCP_CLOUDSQL_INSTANCE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: gcsCloudSqlInstanceName
+          command: ["/cloud_sql_proxy",
+                    "-dir=/cloudsql",                    
+                    "-instances=$(GCP_CLOUDSQL_INSTANCE_NAME)=tcp:0.0.0.0:3306",
+                    "-use_http_health_check",
+                    "term_timeout=10s"]
+          # set term_timeout if require graceful handling of shutdown
+          # NOTE: proxy will stop accepting new connections; only wait on existing connections
+          lifecycle:
+            preStop:
+              exec:
+                # (optional) add a preStop hook so that termination is delayed
+                # this is required if your server still require new connections (e.g., connection pools)
+                command: ['sleep', '10']
+          # Liveness probe configuration is adviced by Cloud SQL Proxy examples:
+          # https://github.com/GoogleCloudPlatform/cloudsql-proxy/tree/main/examples/k8s-health-check
+          # For details, see https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 8090
+            # Number of seconds after the container has started before the first probe is scheduled. Defaults to 0.
+            # Not necessary when the startup probe is in use.
+            initialDelaySeconds: 0
+            # Frequency of the probe.
+            periodSeconds: 60
+            # Number of seconds after which the probe times out.
+            timeoutSeconds: 30
+            # Number of times the probe is allowed to fail before the transition
+            # from healthy to failure state.
+            #
+            # If periodSeconds = 60, 5 tries will result in five minutes of
+            # checks. The proxy starts to refresh a certificate five minutes
+            # before its expiration. If those five minutes lapse without a
+            # successful refresh, the liveness probe will fail and the pod will be
+            # restarted.
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: 8090
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 5
+            # Number of times the probe must report success to transition from failure to healthy state.
+            # Defaults to 1 for readiness probe.
+            successThreshold: 1
+            failureThreshold: 1
+          startupProbe:
+            httpGet:
+              path: /startup
+              port: 8090
+            periodSeconds: 1
+            timeoutSeconds: 5
+            failureThreshold: 20
+          ports:
+            - name: mysql
+              containerPort: 3306
+          volumeMounts:
+            - mountPath: /cloudsql
+              name: cloudsql
+      volumes:
+        - name: cloudsql
+          emptyDir:

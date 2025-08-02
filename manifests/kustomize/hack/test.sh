@@ -32,6 +32,7 @@ kustomization_yamls=(
   "cluster-scoped-resources"
   "base/installs/generic"
   "env/dev"
+  "env/gcp"
   "env/platform-agnostic"
   "env/platform-agnostic-emissary"
 )
