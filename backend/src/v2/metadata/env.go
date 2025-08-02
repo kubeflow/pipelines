@@ -17,6 +17,7 @@ type ServerConfig struct {
 }
 
 func DefaultConfig() *ServerConfig {
+	// If proxy is enabled, use DNS name `metadata-grpc-service.kubeflow:8080` as default.
 	_, isHttpProxySet := os.LookupEnv(proxy.HttpProxyEnv)
 	_, isHttpsProxySet := os.LookupEnv(proxy.HttpsProxyEnv)
 	if isHttpProxySet || isHttpsProxySet {
