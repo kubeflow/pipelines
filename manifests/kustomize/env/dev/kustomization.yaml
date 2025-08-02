@@ -6,6 +6,7 @@ resources:
 - ../../third-party/application
 - ../../base/application
 - ../platform-agnostic
+- ../gcp/inverse-proxy
 
 images:
 - name: ghcr.io/kubeflow/kfp-api-server
