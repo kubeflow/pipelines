@@ -377,7 +377,6 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
-			Parameters:       []*run_model.APIParameter{},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
@@ -389,11 +388,9 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
-		CreatedAt:    runDetail.Run.CreatedAt,
-		ScheduledAt:  runDetail.Run.ScheduledAt,
-		FinishedAt:   runDetail.Run.FinishedAt,
-		Metrics:      []*run_model.APIRunMetric{},
-		StorageState: run_model.APIRunStorageStateSTORAGESTATEAVAILABLE.Pointer(),
+		CreatedAt:   runDetail.Run.CreatedAt,
+		ScheduledAt: runDetail.Run.ScheduledAt,
+		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 
 	verifyRunDetails(t, runDetail, expectedRun)
@@ -428,7 +425,6 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     runDetail.Run.PipelineSpec.PipelineName,
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
-			Parameters:       []*run_model.APIParameter{},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
@@ -440,11 +436,9 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
-		CreatedAt:    runDetail.Run.CreatedAt,
-		ScheduledAt:  runDetail.Run.ScheduledAt,
-		FinishedAt:   runDetail.Run.FinishedAt,
-		Metrics:      []*run_model.APIRunMetric{},
-		StorageState: run_model.APIRunStorageStateSTORAGESTATEAVAILABLE.Pointer(),
+		CreatedAt:   runDetail.Run.CreatedAt,
+		ScheduledAt: runDetail.Run.ScheduledAt,
+		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 
 	verifyRunDetails(t, runDetail, expectedRun)
@@ -478,11 +472,9 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 				Name: experimentName, Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 		},
-		CreatedAt:    runDetail.Run.CreatedAt,
-		ScheduledAt:  runDetail.Run.ScheduledAt,
-		FinishedAt:   runDetail.Run.FinishedAt,
-		Metrics:      []*run_model.APIRunMetric{},
-		StorageState: run_model.APIRunStorageStateSTORAGESTATEAVAILABLE.Pointer(),
+		CreatedAt:   runDetail.Run.CreatedAt,
+		ScheduledAt: runDetail.Run.ScheduledAt,
+		FinishedAt:  runDetail.Run.FinishedAt,
 	}
 
 	verifyRunDetails(t, runDetail, expectedRun)

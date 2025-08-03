@@ -554,7 +554,6 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 			PipelineID:       job.PipelineSpec.PipelineID,
 			PipelineName:     job.PipelineSpec.PipelineName,
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
-			Parameters:       []*job_model.APIParameter{},
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{
@@ -571,7 +570,6 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		CreatedAt:      job.CreatedAt,
 		UpdatedAt:      job.UpdatedAt,
 		Status:         job.Status,
-		Mode:           job_model.JobModeUNKNOWNMODE.Pointer(),
 	}
 
 	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences))
@@ -613,7 +611,6 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 		CreatedAt:      job.CreatedAt,
 		UpdatedAt:      job.UpdatedAt,
 		Status:         job.Status,
-		Mode:           job_model.JobModeUNKNOWNMODE.Pointer(),
 	}
 	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences))
 	expectedJob.ResourceReferences = job.ResourceReferences
