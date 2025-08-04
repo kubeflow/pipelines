@@ -2,16 +2,41 @@
 
 ## Features
 
-* feat(sdk): Add support for compiling pipelines to Kubernetes native format in SDK (#12012)
-
 ## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+
+# 2.14.0
+
+## Features
+
+* feat(sdk): Add support for compiling pipelines to Kubernetes native format in SDK (#12012)
+* feat(backend/sdk): enable dsl.Collected for parameters & artifacts (#11725)
+* feat(sdk): update PipelineConfig to reflect new workspace Protobuf changes (#11934)
+* feat(backend/sdk): support PipelineTaskFinalStatus input (#11953)
+* feat(sdk): Add Support for Docker Container Run Arguments (#12006)
 
 ## Deprecations
 * PipelineTaskFinalStatus field names pipelineJobResourceName and pipelineTaskName are deprecated. Support for these fields will be removed at a later date.
 
 ## Bug fixes and other changes
-
-## Documentation updates
+* fix(deps): widen urllib3 upper bound to <3.0.0 (#11819)
+* fix(sdk): resolve issue when creating pipeline version from pipeline name using the cli. Fixes #11810 (#11866)
+* fix(sdk): fix pip install for dev (#11891)
+* fix(sdk): Resolves issue when using ParallelFor with param and depending tasks (#11903)
+* chore(deps): bump urllib3 from 2.4.0 to 2.5.0 in /sdk/python (#11999)
+* fix: input resolution with set_display_name (#11938)
+* fix(sdk): Fixes for Identifying Untagged Images for Running (#11984)
+* fix(sdk): Move version info to version.py for editable installs. (#11997)
+* fix(sdk): Support partial replace of placeholders in dict/list objects (#12039)
+* fix(backend/sdk): update proto packages (#12067)
+* fix: backwards compatibility for pipeline spec task_name (#12061)
+* chore(backend): resolve linting errors (#12083)
+* fix(sdk,backend): Make the workspace size required (#12094)
 
 # 2.13.0
 

@@ -85,7 +85,7 @@ jupyter-core==5.8.1
     #   nbformat
 kfp==2.14.0
     # via -r requirements.in
-kfp-pipeline-spec==0.8.0
+kfp-pipeline-spec==2.14.0
     # via kfp
 kfp-server-api==2.5.0
     # via kfp
