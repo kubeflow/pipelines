@@ -50,7 +50,7 @@ def get_pod_statuses():
 
 
 def all_pods_ready(statuses):
-    def is_pod_ready(pod_name, pod_status, ready, total, waiting_messages):
+    def is_pod_ready(pod_status, ready, total):
         # Jobs/CronJobs are ready when they succeed
         if pod_status == 'Succeeded':
             return True
@@ -59,8 +59,8 @@ def all_pods_ready(statuses):
             return True
         return False
     
-    return all(is_pod_ready(pod_name, pod_status, ready, total, waiting_messages)
-               for pod_name, (pod_status, ready, total, waiting_messages) in statuses.items())
+    return all(is_pod_ready(pod_status, ready, total)
+               for _, (pod_status, ready, total, _) in statuses.items())
 
 
 def print_get_pods():
