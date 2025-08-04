@@ -17,8 +17,14 @@ from dataclasses import dataclass
 import inspect
 import os
 from pprint import pprint
+import subprocess
 from typing import List
 import unittest
+import uuid
+
+import collected_parameters
+import component_with_optional_inputs
+import hello_world
 import kfp
 from kfp.dsl.graph_component import GraphComponent
 from kubernetes import client
@@ -84,6 +90,8 @@ PRE_REQ_DIR = os.path.join(SAMPLES_DIR, 'v2', 'pre-requisites')
 PREREQS = [os.path.join(PRE_REQ_DIR, 'test-secrets.yaml')]
 
 _KFP_NAMESPACE = os.getenv('KFP_NAMESPACE', 'kubeflow')
+_KFP_MULTI_USER = os.getenv('KFP_MULTI_USER', 'false').lower() == 'true'
+_USER_NAMESPACE = os.getenv('_USER_NAMESPACE', 'kubeflow-user-example-com')
 
 
 @dataclass
@@ -145,28 +153,62 @@ def delete_k8s_yaml(namespace: str, yaml_file: str):
         print(f'Exception when deleting from YAML: {e}')
 
 
+def get_auth_token():
+    """Get authentication token for multi-user mode."""
+    if _KFP_MULTI_USER:
+        try:
+            namespace = _USER_NAMESPACE
+            print(f'Creating authentication token for namespace {namespace}...')
+            result = subprocess.run([
+                'kubectl', '-n', namespace, 'create', 'token', 'default-editor',
+                '--audience=pipelines.kubeflow.org'
+            ], capture_output=True, text=True, check=True)
+            token = result.stdout.strip()
+            print('Successfully created authentication token.')
+            return token
+        except subprocess.CalledProcessError as e:
+            print(f'Failed to create authentication token: {e}')
+            print(f'stderr: {e.stderr}')
+            return None
+    return None
+
+
 class SampleTest(unittest.TestCase):
     _kfp_host_and_port = os.getenv('KFP_API_HOST_AND_PORT',
                                    'http://localhost:8888')
     _kfp_ui_and_port = os.getenv('KFP_UI_HOST_AND_PORT',
                                  'http://localhost:8080')
-    _client = kfp.Client(host=_kfp_host_and_port, ui_host=_kfp_ui_and_port)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize client with token if in multi-user mode
+        auth_token = get_auth_token()
+        if auth_token:
+            self._client = kfp.Client(
+                host=self._kfp_host_and_port, 
+                ui_host=self._kfp_ui_and_port,
+                existing_token=auth_token
+            )
+        else:
+            self._client = kfp.Client(host=self._kfp_host_and_port, ui_host=self._kfp_ui_and_port)
 
 
     @classmethod
     def setUpClass(cls):
         """Runs once before all tests."""
         print('Deploying pre-requisites....')
+        target_namespace = _USER_NAMESPACE if _KFP_MULTI_USER else _KFP_NAMESPACE
         for p in PREREQS:
-            deploy_k8s_yaml(_KFP_NAMESPACE, p)
+            deploy_k8s_yaml(target_namespace, p)
         print('Done deploying pre-requisites.')
 
     @classmethod
     def tearDownClass(cls):
         """Runs once after all tests in this class."""
         print('Cleaning up resources....')
+        target_namespace = _USER_NAMESPACE if _KFP_MULTI_USER else _KFP_NAMESPACE
         for p in PREREQS:
-            delete_k8s_yaml(_KFP_NAMESPACE, p)
+            delete_k8s_yaml(target_namespace, p)
         print('Done clean up.')
 
     def test(self):
@@ -228,8 +270,11 @@ class SampleTest(unittest.TestCase):
             print(
                 f'Running pipeline: {inspect.getmodule(pipeline_func.pipeline_func).__name__}/{pipeline_func.name}.'
             )
+            experiment_name = f"test-{pipeline_func.name}-{uuid.uuid4().hex[:8]}"
             run_result = self._client.create_run_from_pipeline_func(
-                pipeline_func=pipeline_func)
+                pipeline_func=pipeline_func,
+                namespace=_USER_NAMESPACE,
+                experiment_name=experiment_name)
 
             run_response = run_result.wait_for_run_completion(timeout)
 

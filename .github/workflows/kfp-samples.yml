@@ -21,8 +21,24 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
-    name: KFP Samples - K8s ${{ matrix.k8s_version }}
+        include:
+          - k8s_version: "v1.29.2"
+            mode: "multi-user"
+            storage: "seaweedfs"
+          - k8s_version: "v1.29.2"
+            mode: "standalone"
+            storage: "seaweedfs"
+
+          - k8s_version: "v1.31.0"
+            mode: "multi-user"
+            storage: "seaweedfs"
+          - k8s_version: "v1.31.0"
+            mode: "standalone"
+            storage: "minio"
+          - k8s_version: "v1.31.0"
+            mode: "standalone"
+            storage: "seaweedfs"
+    name: KFP Samples - K8s ${{ matrix.k8s_version }} - ${{ matrix.mode }} - ${{ matrix.storage }}
 
     steps:
     - name: Checkout code
@@ -70,6 +86,8 @@ jobs:
       uses: ./.github/actions/kfp-cluster
       with:
         k8s_version: ${{ matrix.k8s_version }}
+        multi_user: ${{ matrix.mode == 'multi-user' }}
+        storage_backend: ${{ matrix.storage }}
       continue-on-error: true
 
     - name: Build and upload the sample Modelcar image to Kind
@@ -97,19 +115,32 @@ jobs:
     - name: Run Samples Tests
       id: tests
       if: ${{ steps.forward-api-port.outcome == 'success' }}
+      env:
+        PULL_NUMBER: ${{ github.event.pull_request.number }}
+        REPO_NAME: ${{ github.repository }}
+        KFP_MULTI_USER: ${{ matrix.mode == 'multi-user' }}
       run: |
         python3 -u ./samples/v2/sample_test.py
+      continue-on-error: true
+
+    - name: Test SeaweedFS Namespace Isolation
+      id: test-namespace-isolation
+      if: ${{ matrix.mode == 'multi-user' && matrix.storage == 'seaweedfs' && steps.tests.outcome == 'success' }}
+      run: ./test/seaweedfs/namespace_isolation_test.sh
       continue-on-error: true
 
     - name: Collect failed logs
       if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.tests.outcome != 'success' }}
       run: | 
         ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+        if [ "${{ matrix.mode }}" == "multi-user" ]; then
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow-user-example-com --output /tmp/tmp_user_pod_log.txt
+        fi
         exit 1
 
     - name: Collect test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}
+        name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.mode }}-${{ matrix.storage }}
         path: /tmp/tmp*/*

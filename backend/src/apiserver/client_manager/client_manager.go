@@ -18,7 +18,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -43,13 +42,6 @@ import (
 )
 
 const (
-	minioServiceHost   = "MINIO_SERVICE_SERVICE_HOST"
-	minioServicePort   = "MINIO_SERVICE_SERVICE_PORT"
-	minioServiceRegion = "MINIO_SERVICE_REGION"
-	minioServiceSecure = "MINIO_SERVICE_SECURE"
-	pipelineBucketName = "MINIO_PIPELINE_BUCKET_NAME"
-	pipelinePath       = "MINIO_PIPELINE_PATH"
-
 	mysqlServiceHost       = "DBConfig.MySQLConfig.Host"
 	mysqlServicePort       = "DBConfig.MySQLConfig.Port"
 	mysqlUser              = "DBConfig.MySQLConfig.User"
@@ -625,18 +617,14 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 
 func initMinioClient(ctx context.Context, initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
 	// Create minio client.
-	minioServiceHost := common.GetStringConfigWithDefault(
-		"ObjectStoreConfig.Host", os.Getenv(minioServiceHost))
-	minioServicePort := common.GetStringConfigWithDefault(
-		"ObjectStoreConfig.Port", os.Getenv(minioServicePort))
-	minioServiceRegion := common.GetStringConfigWithDefault(
-		"ObjectStoreConfig.Region", os.Getenv(minioServiceRegion))
-	minioServiceSecure := common.GetBoolConfigWithDefault(
-		"ObjectStoreConfig.Secure", common.GetBoolFromStringWithDefault(os.Getenv(minioServiceSecure), false))
+	minioServiceHost := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
+	minioServicePort := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
+	minioServiceRegion := common.GetStringConfigWithDefault("ObjectStoreConfig.Region", "")
+	minioServiceSecure := common.GetBoolConfigWithDefault("ObjectStoreConfig.Secure", false)
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
-	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", os.Getenv(pipelineBucketName))
-	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", os.Getenv(pipelinePath))
+	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
+	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
 	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
 	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
