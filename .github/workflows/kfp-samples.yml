@@ -86,6 +86,8 @@ jobs:
     - name: Run Samples Tests
       id: tests
       if: ${{ steps.forward-api-port.outcome == 'success' }}
+      env:
+        KFP_MULTI_USER: ${{ matrix.mode == 'multi-user' }}
       run: |
         python3 -u ./samples/v2/sample_test.py
       continue-on-error: true
