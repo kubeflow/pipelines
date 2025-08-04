@@ -333,3 +333,29 @@ Update master branch to the same version and include latest changelog:
 ## Release Process Development
 
 Please refer to [./test/release](./test/release).
+
+## Versioning Policy in KFP 
+
+Starting from version **2.14**, all major and minor versions (X.Y) of the Kubeflow Pipelines (KFP) components are aligned. The following components are included in this alignment:
+
+* **KFP Backend / UI**
+* **KFP Python SDK**
+* **KFP Python Kubernetes Platform SDK**
+* **KFP Python Pipeline Specification**
+* **KFP Server API**
+
+### Versioning and Compatibility Policy
+
+* **API Compatibility:**
+  All KFP components sharing the same major and minor version (X.Y) are guaranteed to be API-compatible.
+
+* **Backward Compatibility:**
+  The KFP project will make a *best effort* to maintain backward compatibility within a given **major version** for all Python SDK packages.
+  Specifically:
+
+    * Newer versions of the KFP Python SDK within the same major release (e.g., 2.x) should continue to function with older versions of the KFP backend.
+    * However, newly introduced features in a later SDK minor version may require a matching or newer backend version to function correctly. For example:
+        * A feature introduced in `kfp==2.15` is not guaranteed to be supported by a `2.14` backend. In such cases, upgrading the backend to version `2.15` or later is necessary.
+
+* **Patch Releases:**
+  Patch versions (X.Y.Z) may include bug fixes, maintenance updates, and minor feature enhancements. These changes must not break API compatibility or violate the support guarantees outlined above.
