@@ -25,18 +25,17 @@ NAME = 'kfp'
 REQUIRES = [
     'absl-py>=0.9,<2',
     'PyYAML~=6.0.1',
-    # Pin google-api-core version for the bug fixing in 1.31.5
-    # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
-    'google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0',
-    # `Blob.from_string` was introduced in google-cloud-storage 1.20.0
-    # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
-    'google-cloud-storage>=1.20.0,<3',
+    # Older versions are incompatible with protobuf >= 6:
+    # https://github.com/googleapis/python-api-core/blob/main/CHANGELOG.md
+    'google-api-core>=2.24.2,<3',
+    # Copied from: https://github.com/kubeflow/pipelines/blob/4bd3d4b4e99b5af38380ddad9693a2a0bbe4e968/sdk/python/requirements.in#L13
+    'google-cloud-storage>=2.2.1,<4', 
     'kubernetes>=8.0.0,<26',
-    # google-api-python-client v2 doesn't work for private dicovery by default:
+    # google-api-python-client v2 doesn't work for private discovery by default:
     # https://github.com/googleapis/google-api-python-client/issues/1225#issuecomment-791058235
     'google-api-python-client>=1.7.8,<2',
-    'google-auth>=1.6.1,<3',
-    'requests-toolbelt>=0.8.0,<1',
+    # Copied from https://github.com/kubeflow/pipelines/blob/4bd3d4b4e99b5af38380ddad9693a2a0bbe4e968/sdk/python/requirements.in#L28
+    'requests-toolbelt>=0.8.0,<2',
     'cloudpickle>=2.0.0,<3',
     # Update the upper version whenever a new major version of the
     # kfp-server-api package is released.
@@ -50,13 +49,13 @@ REQUIRES = [
     'Deprecated>=1.2.7,<2',
     'strip-hints>=0.1.8,<1',
     'docstring-parser>=0.7.3,<1',
-    'kfp-pipeline-spec>=0.1.16,<0.2.0',
+    # Copied from https://github.com/kubeflow/pipelines/blob/4bd3d4b4e99b5af38380ddad9693a2a0bbe4e968/sdk/python/requirements.in#L17
+    'kfp-pipeline-spec==0.8.0',
     'fire>=0.7.0,<1',
-    'protobuf>=3.13.0,<=3.20',
-    'protobuf>=3.13.0,<4',
+    'protobuf==6.31.1,<7.0',
     'uritemplate>=3.0.1,<4',
-    # pin to avoid break in requests-toolbelt due to https://github.com/psf/requests/commit/2ad18e0e10e7d7ecd5384c378f25ec8821a10a29
-    'urllib3<2',
+    # Resolves https://www.mend.io/vulnerability-database/CVE-2025-50181
+    'urllib3>=2.5.0,<3.0.0', 
     'pydantic>=1.8.2,<2',
     'typer>=0.3.2,<1.0',
     # Standard library backports

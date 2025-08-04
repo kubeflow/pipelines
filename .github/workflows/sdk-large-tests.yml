@@ -15,6 +15,7 @@ on:
       - 'proxy/**'
       - 'manifests/kustomize/**'
       - 'test/**'
+      - 'sdk/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
