@@ -203,9 +203,6 @@ jobs:
           pipeline_store: ${{ matrix.pipeline_store }}
         continue-on-error: true
 
-      - name: Free up disk space
-        run: ./.github/resources/scripts/free-disk-space.sh
-
       - name: Forward API port
         id: forward-api-port
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}

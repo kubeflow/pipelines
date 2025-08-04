@@ -43,4 +43,4 @@ rules:
   - create
   - update
   - patch
-  - delete 
+  - delete
