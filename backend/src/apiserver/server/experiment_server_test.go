@@ -1332,3 +1332,31 @@ func TestListExperimentsV1_Unauthenticated(t *testing.T) {
 		"User identity is empty in the request header",
 	)
 }
+
+func TestGetExperiment_JsonOmitEmpty(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	server := createExperimentServer(resourceManager)
+	experiment := &apiV2beta1.Experiment{
+		DisplayName: "exp1",
+		Description: "test description",
+	}
+
+	result, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+
+	getResult, err := server.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: result.ExperimentId})
+	assert.Nil(t, err)
+
+	// Convert to JSON using the custom marshaler used by runtime servers
+	customMarshaler := common.CustomMarshaler()
+	jsonBytes, err := customMarshaler.Marshal(getResult)
+	assert.Nil(t, err)
+
+	// Verify JSON doesn't contain empty/unset fields
+	jsonString := string(jsonBytes)
+	assert.Contains(t, jsonString, "description")
+	assert.Contains(t, jsonString, "display_name")
+	assert.Contains(t, jsonString, "experiment_id") // created by server
+	assert.NotContains(t, jsonString, "namespace")  // if we don't specify this it should be omitted
+}
