@@ -54,8 +54,7 @@ REQUIRES = [
     'fire>=0.7.0,<1',
     'protobuf==6.31.1,<7.0',
     'uritemplate>=3.0.1,<4',
-    # Resolves https://www.mend.io/vulnerability-database/CVE-2025-50181
-    'urllib3>=2.5.0,<3.0.0', 
+    'urllib3<3.0.0', 
     'pydantic>=1.8.2,<2',
     'typer>=0.3.2,<1.0',
     # Standard library backports
