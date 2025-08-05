@@ -1012,10 +1012,10 @@ func (c *Client) shouldApplyDynamicTaskCounting(dag *DAG, tasks map[string]*Exec
 		return true
 	}
 	
-	// For other patterns, apply dynamic counting as a safe default
-	// This ensures we adapt to actual execution rather than rigid expectations
-	glog.Infof("DAG %d: Applying dynamic counting (universal approach)", dagID)
-	return true
+	// For standard DAGs with normal execution patterns, don't apply dynamic counting
+	// Only apply dynamic counting when we detect patterns that suggest conditional behavior
+	glog.Infof("DAG %d: Standard DAG pattern, not applying dynamic counting", dagID)
+	return false
 }
 
 // isParallelForIterationDAG checks if this is an individual iteration of a ParallelFor
