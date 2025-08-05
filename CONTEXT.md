@@ -168,18 +168,59 @@ go test -v -timeout 10m -tags=integration -args -runIntegrationTests -isDevMode
 ### **Phase 1: Fix Conditional DAG Task Counting** (High Priority)
 **Issue**: DAGs complete but `total_dag_tasks=0` when should be 1+ for executed branches
 
+#### **Root Cause Analysis**
+From test output: `task_name:string_value:""` - DAG task names are empty, breaking conditional detection.
+
+**Key Insight**: We can rely on task names IF they are backend-controlled (not user-controlled):
+- ✅ **Backend-controlled names**: DAG task names, system-generated names like `"for-loop-1"`, `"condition-dag"`
+- ❌ **User-controlled names**: Pipeline names, component display names, user parameters
+
+**Current Problem**: The `isConditionalDAG()` function (lines 979-1007) relies on task name patterns like `"condition-"`, `"-condition"`, but task names are empty in test output.
+
+#### **Investigation Required**
+**Primary Question**: Are DAG task names supposed to be set by the backend but aren't (bug), or are they intentionally empty (design)?
+
 **Tasks**:
-1. **Debug conditional detection logic** 
-   - Check `isConditionalDAG()` function in `client.go:979-1007`
-   - Verify it correctly identifies conditional DAGs with executed branches
+1. **Audit DAG Creation Logic** (30 min)
+   - Find where DAG executions are created in the backend
+   - Check if task names should be set but aren't being assigned
+   - Identify backend naming standards for different DAG types
+   ```bash
+   # Search commands
+   grep -r "CreateExecution.*DAG" backend/src/v2/
+   grep -A 10 -B 5 "TaskName.*=.*" backend/src/v2/
+   find backend/src/v2 -name "*.go" -exec grep -l "condition\|conditional" {} \;
+   ```
+
+2. **Choose Detection Strategy** (15 min)
+   - **Option A**: If names should be set → Fix the name generation bug
+   - **Option B**: If names are intentionally empty → Use alternative backend properties
    
-2. **Fix task counting in conditional adjustment**
-   - Review lines 819-842 in `UpdateDAGExecutionsState()`
-   - The logic sets `totalDagTasks = executedOrRunningTasks` but may not be persisting correctly
+3. **Expected Backend Task Name Patterns** (if Option A):
+   ```go
+   // ParallelFor DAGs
+   "for-loop-{iteration-index}"     // For iteration DAGs
+   "parallel-for-{component-name}"  // For parent DAGs
    
-3. **Validate persistence of updated total_dag_tasks**
-   - Ensure the updated value in lines 836-841 is actually saved to MLMD
-   - May need to call `PutExecution` to persist the updated custom properties
+   // Conditional DAGs  
+   "condition-{component-name}"     // For conditional DAGs
+   "if-branch-{component-name}"     // For if branches
+   "else-branch-{component-name}"   // For else branches
+   
+   // Standard DAGs
+   "dag-{component-name}"           // For regular DAGs
+   ```
+
+4. **Alternative Detection Approaches** (if Option B):
+   - **Use DAG properties**: Check for `condition_result`, `conditional_task` properties
+   - **Use execution patterns**: Detect CANCELED tasks (non-executed branches)
+   - **Use hierarchy relationships**: Parent-child DAG relationships
+   - **Universal dynamic counting**: Adjust `total_dag_tasks` based on actual executed tasks
+
+#### **Implementation Strategy**
+1. **Audit Phase**: Determine if empty task names are a bug or intentional
+2. **Fix Phase**: Either fix task name generation OR implement robust alternative detection
+3. **Test Phase**: Validate detection works for all conditional scenarios
 
 ### **Phase 2: Fix ParallelFor Parent DAG Completion** (High Priority)  
 **Issue**: Parent DAGs remain RUNNING even when all child iteration DAGs complete
