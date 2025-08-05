@@ -131,10 +131,127 @@ go test -v -timeout 10m -tags=integration -args -runIntegrationTests -isDevMode
 - Status updates should propagate up the DAG hierarchy when child structures complete
 - Test expects parent DAGs to have `total_dag_tasks >= 5` (parent tasks + child pipeline tasks)
 
+## Current Progress (as of 2025-01-05)
+
+### ✅ **Major Fixes Implemented**
+**Location**: `/backend/src/v2/metadata/client.go` in `UpdateDAGExecutionsState()` method (lines 776-929)
+
+1. **Enhanced DAG Completion Logic**:
+   - **Conditional DAG detection**: `isConditionalDAG()` function (lines 979-1007)
+   - **ParallelFor logic**: Separate handling for iteration vs parent DAGs (lines 854-886)
+   - **Universal completion rule**: DAGs with no tasks and nothing running complete immediately (lines 858-861)
+   - **Status propagation**: `propagateDAGStateUp()` method for recursive hierarchy updates (lines 931-975)
+
+2. **Task Counting Fixes**:
+   - **Conditional adjustment**: Lines 819-842 adjust `total_dag_tasks` for executed branches only
+   - **ParallelFor parent completion**: Based on child DAG completion count, not container tasks
+
+3. **Comprehensive Testing**:
+   - **Unit tests**: 23 scenarios in `/backend/src/v2/metadata/dag_completion_test.go` ✅ **ALL PASSING**
+   - **Integration test infrastructure**: Fully working with proper port forwarding setup
+
+### ⚠️ **Remaining Issues** 
+**Status**: Partial fixes working, edge cases need refinement
+
+1. **Conditional DAG Task Counting**:
+   - ✅ **Working**: Simple conditional DAGs with 0 executed branches
+   - ❌ **Broken**: Conditional DAGs with 1+ executed branches show `total_dag_tasks=0` instead of correct count
+   - **Root cause**: Task counting adjustment may not be persisting to MLMD correctly
+
+2. **ParallelFor Parent DAG Completion**:
+   - ✅ **Working**: Individual iteration DAGs complete correctly  
+   - ❌ **Broken**: Parent DAGs remain stuck in RUNNING state even when all child DAGs complete
+   - **Root cause**: Parent completion logic not correctly detecting child DAG states
+
+## Next Phase Implementation Plan
+
+### **Phase 1: Fix Conditional DAG Task Counting** (High Priority)
+**Issue**: DAGs complete but `total_dag_tasks=0` when should be 1+ for executed branches
+
+**Tasks**:
+1. **Debug conditional detection logic** 
+   - Check `isConditionalDAG()` function in `client.go:979-1007`
+   - Verify it correctly identifies conditional DAGs with executed branches
+   
+2. **Fix task counting in conditional adjustment**
+   - Review lines 819-842 in `UpdateDAGExecutionsState()`
+   - The logic sets `totalDagTasks = executedOrRunningTasks` but may not be persisting correctly
+   
+3. **Validate persistence of updated total_dag_tasks**
+   - Ensure the updated value in lines 836-841 is actually saved to MLMD
+   - May need to call `PutExecution` to persist the updated custom properties
+
+### **Phase 2: Fix ParallelFor Parent DAG Completion** (High Priority)  
+**Issue**: Parent DAGs remain RUNNING even when all child iteration DAGs complete
+
+**Tasks**:
+1. **Debug ParallelFor parent completion logic**
+   - Check `isParallelForParentDAG()` function in `client.go:1017-1023`
+   - Review parent completion logic in lines 870-886
+   
+2. **Verify child DAG state detection**
+   - Ensure parent DAGs correctly count completed child DAG executions
+   - Check if `task.GetType() == "system.DAGExecution"` is working properly
+   
+3. **Test parent-child relationship queries**
+   - Verify `GetExecutionsInDAG()` returns child DAGs for parent DAGs
+   - May need to adjust filtering logic
+
+### **Phase 3: Comprehensive Testing** (Medium Priority)
+**Tasks**:
+1. **Run focused tests** after each fix:
+   ```bash
+   # Test conditionals
+   go test -run TestDAGStatusConditional/TestComplexConditional
+   
+   # Test ParallelFor  
+   go test -run TestDAGStatusParallelFor/TestSimpleParallelForSuccess
+   ```
+
+2. **Full regression testing**:
+   ```bash
+   # All DAG status tests
+   go test -run TestDAGStatus
+   ```
+
+3. **Verify unit tests still pass**:
+   ```bash
+   cd backend/src/v2/metadata && go test -run TestDAGCompletionLogic
+   ```
+
+## Implementation Strategy
+
+### **Development Workflow**
+1. **Build images with changes**:
+   ```bash
+   KFP_REPO=/Users/hbelmiro/dev/opendatahub-io/data-science-pipelines TAG=latest docker buildx bake --push -f /Users/hbelmiro/dev/hbelmiro/kfp-parallel-image-builder/docker-bake.hcl
+   ```
+
+2. **Deploy to Kind cluster**:
+   ```bash
+   h-kfp-undeploy && h-kfp-deploy
+   ```
+
+3. **Setup port forwarding**:
+   ```bash
+   nohup kubectl port-forward -n kubeflow svc/ml-pipeline 8888:8888 > /dev/null 2>&1 &
+   nohup kubectl port-forward -n kubeflow svc/metadata-grpc-service 8080:8080 > /dev/null 2>&1 &
+   ```
+
+4. **Run targeted tests**:
+   ```bash
+   cd backend/test/integration
+   go test -v -timeout 10m -tags=integration -run TestDAGStatusConditional -args -runIntegrationTests -isDevMode
+   ```
+
 ## Success Criteria
 
-- [ ] ParallelFor DAGs complete when all iterations finish
+- [x] Unit tests comprehensive and passing
+- [x] Integration test infrastructure working  
+- [x] Basic DAG completion logic implemented
+- [x] Status propagation framework in place
 - [ ] Conditional DAGs complete when branches finish (including 0-task cases)  
+- [ ] ParallelFor DAGs complete when all iterations finish
 - [ ] Nested DAGs complete properly with correct task counting across hierarchy levels
 - [ ] Status propagates correctly up DAG hierarchies
 - [ ] No regression in existing functionality
