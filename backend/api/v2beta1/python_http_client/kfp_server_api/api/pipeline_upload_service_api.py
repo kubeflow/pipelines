@@ -49,6 +49,8 @@ class PipelineUploadServiceApi(object):
         :type uploadfile: file
         :param name:
         :type name: str
+        :param display_name:
+        :type display_name: str
         :param description:
         :type description: str
         :param namespace:
@@ -83,6 +85,8 @@ class PipelineUploadServiceApi(object):
         :type uploadfile: file
         :param name:
         :type name: str
+        :param display_name:
+        :type display_name: str
         :param description:
         :type description: str
         :param namespace:
@@ -111,6 +115,7 @@ class PipelineUploadServiceApi(object):
         all_params = [
             'uploadfile',
             'name',
+            'display_name',
             'description',
             'namespace'
         ]
@@ -143,6 +148,8 @@ class PipelineUploadServiceApi(object):
         query_params = []
         if 'name' in local_var_params and local_var_params['name'] is not None:  # noqa: E501
             query_params.append(('name', local_var_params['name']))  # noqa: E501
+        if 'display_name' in local_var_params and local_var_params['display_name'] is not None:  # noqa: E501
+            query_params.append(('display_name', local_var_params['display_name']))  # noqa: E501
         if 'description' in local_var_params and local_var_params['description'] is not None:  # noqa: E501
             query_params.append(('description', local_var_params['description']))  # noqa: E501
         if 'namespace' in local_var_params and local_var_params['namespace'] is not None:  # noqa: E501
@@ -196,6 +203,8 @@ class PipelineUploadServiceApi(object):
         :type uploadfile: file
         :param name:
         :type name: str
+        :param display_name:
+        :type display_name: str
         :param pipelineid:
         :type pipelineid: str
         :param description:
@@ -230,6 +239,8 @@ class PipelineUploadServiceApi(object):
         :type uploadfile: file
         :param name:
         :type name: str
+        :param display_name:
+        :type display_name: str
         :param pipelineid:
         :type pipelineid: str
         :param description:
@@ -258,6 +269,7 @@ class PipelineUploadServiceApi(object):
         all_params = [
             'uploadfile',
             'name',
+            'display_name',
             'pipelineid',
             'description'
         ]
@@ -290,6 +302,8 @@ class PipelineUploadServiceApi(object):
         query_params = []
         if 'name' in local_var_params and local_var_params['name'] is not None:  # noqa: E501
             query_params.append(('name', local_var_params['name']))  # noqa: E501
+        if 'display_name' in local_var_params and local_var_params['display_name'] is not None:  # noqa: E501
+            query_params.append(('display_name', local_var_params['display_name']))  # noqa: E501
         if 'pipelineid' in local_var_params and local_var_params['pipelineid'] is not None:  # noqa: E501
             query_params.append(('pipelineid', local_var_params['pipelineid']))  # noqa: E501
         if 'description' in local_var_params and local_var_params['description'] is not None:  # noqa: E501

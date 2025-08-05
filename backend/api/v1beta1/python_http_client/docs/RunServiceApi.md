@@ -93,7 +93,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **run_service_create_run_v1**
-> ApiRunDetail run_service_create_run_v1(body)
+> ApiRunDetail run_service_create_run_v1(run)
 
 Creates a new run.
 
@@ -131,11 +131,11 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
-    body = kfp_server_api.ApiRun() # ApiRun | 
+    run = kfp_server_api.ApiRun() # ApiRun | 
 
     try:
         # Creates a new run.
-        api_response = api_instance.run_service_create_run_v1(body)
+        api_response = api_instance.run_service_create_run_v1(run)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RunServiceApi->run_service_create_run_v1: %s\n" % e)
@@ -145,7 +145,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**ApiRun**](ApiRun.md)|  | 
+ **run** | [**ApiRun**](ApiRun.md)|  | 
 
 ### Return type
 
@@ -526,7 +526,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
     run_id = 'run_id_example' # str | Required. The parent run ID of the metric.
-body = kfp_server_api.ApiReportRunMetricsRequest() # ApiReportRunMetricsRequest | 
+body = kfp_server_api.RunServiceReportRunMetricsV1Body() # RunServiceReportRunMetricsV1Body | 
 
     try:
         # ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
@@ -541,7 +541,7 @@ body = kfp_server_api.ApiReportRunMetricsRequest() # ApiReportRunMetricsRequest 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **run_id** | **str**| Required. The parent run ID of the metric. | 
- **body** | [**ApiReportRunMetricsRequest**](ApiReportRunMetricsRequest.md)|  | 
+ **body** | [**RunServiceReportRunMetricsV1Body**](RunServiceReportRunMetricsV1Body.md)|  | 
 
 ### Return type
 

@@ -36,17 +36,17 @@ class RecurringRunServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def recurring_run_service_create_recurring_run(self, body, **kwargs):  # noqa: E501
+    def recurring_run_service_create_recurring_run(self, recurring_run, **kwargs):  # noqa: E501
         """Creates a new recurring run in an experiment, given the experiment ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.recurring_run_service_create_recurring_run(body, async_req=True)
+        >>> thread = api.recurring_run_service_create_recurring_run(recurring_run, async_req=True)
         >>> result = thread.get()
 
-        :param body: The recurring run to be created. (required)
-        :type body: V2beta1RecurringRun
+        :param recurring_run: The recurring run to be created. (required)
+        :type recurring_run: V2beta1RecurringRun
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -62,19 +62,19 @@ class RecurringRunServiceApi(object):
         :rtype: V2beta1RecurringRun
         """
         kwargs['_return_http_data_only'] = True
-        return self.recurring_run_service_create_recurring_run_with_http_info(body, **kwargs)  # noqa: E501
+        return self.recurring_run_service_create_recurring_run_with_http_info(recurring_run, **kwargs)  # noqa: E501
 
-    def recurring_run_service_create_recurring_run_with_http_info(self, body, **kwargs):  # noqa: E501
+    def recurring_run_service_create_recurring_run_with_http_info(self, recurring_run, **kwargs):  # noqa: E501
         """Creates a new recurring run in an experiment, given the experiment ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.recurring_run_service_create_recurring_run_with_http_info(body, async_req=True)
+        >>> thread = api.recurring_run_service_create_recurring_run_with_http_info(recurring_run, async_req=True)
         >>> result = thread.get()
 
-        :param body: The recurring run to be created. (required)
-        :type body: V2beta1RecurringRun
+        :param recurring_run: The recurring run to be created. (required)
+        :type recurring_run: V2beta1RecurringRun
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -97,7 +97,7 @@ class RecurringRunServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'body'
+            'recurring_run'
         ]
         all_params.extend(
             [
@@ -116,10 +116,10 @@ class RecurringRunServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
-        # verify the required parameter 'body' is set
-        if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
-                                                        local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `recurring_run_service_create_recurring_run`")  # noqa: E501
+        # verify the required parameter 'recurring_run' is set
+        if self.api_client.client_side_validation and ('recurring_run' not in local_var_params or  # noqa: E501
+                                                        local_var_params['recurring_run'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `recurring_run` when calling `recurring_run_service_create_recurring_run`")  # noqa: E501
 
         collection_formats = {}
 
@@ -133,8 +133,8 @@ class RecurringRunServiceApi(object):
         local_var_files = {}
 
         body_params = None
-        if 'body' in local_var_params:
-            body_params = local_var_params['body']
+        if 'recurring_run' in local_var_params:
+            body_params = local_var_params['recurring_run']
         # HTTP header `Accept`
         header_params['Accept'] = self.api_client.select_header_accept(
             ['application/json'])  # noqa: E501
