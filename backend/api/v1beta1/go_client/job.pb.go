@@ -185,18 +185,18 @@ type ListJobsRequest struct {
 	// A page token to request the next page of results. The token is acquried
 	// from the nextPageToken field of the response from the previous
 	// ListJobs call or can be omitted when fetching the first page.
-	PageToken string `protobuf:"bytes,1,opt,name=page_token,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The number of jobs to be listed per page. If there are more jobs than this
 	// number, the response message will contain a nextPageToken field you can use
 	// to fetch the next page.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,proto3" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Can be format of "field_name", "field_name asc" or "field_name desc".
 	// Ascending by default.
-	SortBy string `protobuf:"bytes,3,opt,name=sort_by,proto3" json:"sort_by,omitempty"`
+	SortBy string `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// What resource reference to filter on.
 	// E.g. If listing job for an experiment, the query string would be
 	// resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
-	ResourceReferenceKey *ResourceKey `protobuf:"bytes,4,opt,name=resource_reference_key,proto3" json:"resource_reference_key,omitempty"`
+	ResourceReferenceKey *ResourceKey `protobuf:"bytes,4,opt,name=resource_reference_key,json=resourceReferenceKey,proto3" json:"resource_reference_key,omitempty"`
 	// A url-encoded, JSON-serialized Filter protocol buffer (see
 	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
 	Filter        string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
@@ -274,9 +274,9 @@ type ListJobsResponse struct {
 	// A list of jobs returned.
 	Jobs []*Job `protobuf:"bytes,1,rep,name=jobs,proto3" json:"jobs,omitempty"`
 	// The total number of jobs for the given query.
-	TotalSize int32 `protobuf:"varint,3,opt,name=total_size,proto3" json:"total_size,omitempty"`
+	TotalSize int32 `protobuf:"varint,3,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
 	// The token to list the next page of jobs.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,proto3" json:"next_page_token,omitempty"`
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -471,9 +471,9 @@ func (x *DisableJobRequest) GetId() string {
 type CronSchedule struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The start time of the cron job
-	StartTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_time,proto3" json:"start_time,omitempty"`
+	StartTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// The end time of the cron job
-	EndTime *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_time,proto3" json:"end_time,omitempty"`
+	EndTime *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// The cron string. For details how to compose a cron, visit
 	// ttps://en.wikipedia.org/wiki/Cron
 	Cron          string `protobuf:"bytes,3,opt,name=cron,proto3" json:"cron,omitempty"`
@@ -536,11 +536,11 @@ func (x *CronSchedule) GetCron() string {
 type PeriodicSchedule struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The start time of the periodic job
-	StartTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_time,proto3" json:"start_time,omitempty"`
+	StartTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	// The end time of the periodic job
-	EndTime *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_time,proto3" json:"end_time,omitempty"`
+	EndTime *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	// The time interval between the starting time of consecutive jobs
-	IntervalSecond int64 `protobuf:"varint,3,opt,name=interval_second,proto3" json:"interval_second,omitempty"`
+	IntervalSecond int64 `protobuf:"varint,3,opt,name=interval_second,json=intervalSecond,proto3" json:"interval_second,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -668,11 +668,11 @@ type isTrigger_Trigger interface {
 }
 
 type Trigger_CronSchedule struct {
-	CronSchedule *CronSchedule `protobuf:"bytes,1,opt,name=cron_schedule,proto3,oneof"`
+	CronSchedule *CronSchedule `protobuf:"bytes,1,opt,name=cron_schedule,json=cronSchedule,proto3,oneof"`
 }
 
 type Trigger_PeriodicSchedule struct {
-	PeriodicSchedule *PeriodicSchedule `protobuf:"bytes,2,opt,name=periodic_schedule,proto3,oneof"`
+	PeriodicSchedule *PeriodicSchedule `protobuf:"bytes,2,opt,name=periodic_schedule,json=periodicSchedule,proto3,oneof"`
 }
 
 func (*Trigger_CronSchedule) isTrigger_Trigger() {}
@@ -690,22 +690,22 @@ type Job struct {
 	// Optional input field.
 	// Describing what the pipeline manifest and parameters to use
 	// for the scheduled job. If unset, fetch the pipline_spec at runtime.
-	PipelineSpec *PipelineSpec `protobuf:"bytes,4,opt,name=pipeline_spec,proto3" json:"pipeline_spec,omitempty"`
+	PipelineSpec *PipelineSpec `protobuf:"bytes,4,opt,name=pipeline_spec,json=pipelineSpec,proto3" json:"pipeline_spec,omitempty"`
 	// Optional input field. Specify which resource this job belongs to.
-	ResourceReferences []*ResourceReference `protobuf:"bytes,5,rep,name=resource_references,proto3" json:"resource_references,omitempty"`
+	ResourceReferences []*ResourceReference `protobuf:"bytes,5,rep,name=resource_references,json=resourceReferences,proto3" json:"resource_references,omitempty"`
 	// Optional input field. Specify which Kubernetes service account this job uses.
-	ServiceAccount string `protobuf:"bytes,18,opt,name=service_account,proto3" json:"service_account,omitempty"`
+	ServiceAccount string `protobuf:"bytes,18,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
 	// Required input field.
 	// Specify how many runs can be executed concurrently. Rage [1-10]
-	MaxConcurrency int64 `protobuf:"varint,6,opt,name=max_concurrency,proto3" json:"max_concurrency,omitempty"`
+	MaxConcurrency int64 `protobuf:"varint,6,opt,name=max_concurrency,json=maxConcurrency,proto3" json:"max_concurrency,omitempty"`
 	// Required input field.
 	// Specify how a run is triggered. Support cron mode or periodic mode.
 	Trigger *Trigger `protobuf:"bytes,7,opt,name=trigger,proto3" json:"trigger,omitempty"`
 	Mode    Job_Mode `protobuf:"varint,8,opt,name=mode,proto3,enum=api.Job_Mode" json:"mode,omitempty"`
 	// Output. The time this job is created.
-	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,proto3" json:"created_at,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Output. The last time this job is updated.
-	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,proto3" json:"updated_at,omitempty"`
+	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Output. The status of the job.
 	// One of [Enable, Disable, Error]
 	Status string `protobuf:"bytes,11,opt,name=status,proto3" json:"status,omitempty"`
@@ -718,7 +718,7 @@ type Job struct {
 	// Optional input field. Whether the job should catch up if behind schedule.
 	// If true, the job will only schedule the latest interval if behind schedule.
 	// If false, the job will catch up on each past interval.
-	NoCatchup     bool `protobuf:"varint,17,opt,name=no_catchup,proto3" json:"no_catchup,omitempty"`
+	NoCatchup     bool `protobuf:"varint,17,opt,name=no_catchup,json=noCatchup,proto3" json:"no_catchup,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -866,66 +866,59 @@ const file_backend_api_v1beta1_job_proto_rawDesc = "" +
 	"\x10CreateJobRequest\x12\x1a\n" +
 	"\x03job\x18\x01 \x01(\v2\b.api.JobR\x03job\"\x1f\n" +
 	"\rGetJobRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xcb\x01\n" +
-	"\x0fListJobsRequest\x12\x1e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xc6\x01\n" +
+	"\x0fListJobsRequest\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x01 \x01(\tR\n" +
-	"page_token\x12\x1c\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\tpage_size\x12\x18\n" +
-	"\asort_by\x18\x03 \x01(\tR\asort_by\x12H\n" +
-	"\x16resource_reference_key\x18\x04 \x01(\v2\x10.api.ResourceKeyR\x16resource_reference_key\x12\x16\n" +
-	"\x06filter\x18\x05 \x01(\tR\x06filter\"z\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x17\n" +
+	"\asort_by\x18\x03 \x01(\tR\x06sortBy\x12F\n" +
+	"\x16resource_reference_key\x18\x04 \x01(\v2\x10.api.ResourceKeyR\x14resourceReferenceKey\x12\x16\n" +
+	"\x06filter\x18\x05 \x01(\tR\x06filter\"w\n" +
 	"\x10ListJobsResponse\x12\x1c\n" +
-	"\x04jobs\x18\x01 \x03(\v2\b.api.JobR\x04jobs\x12\x1e\n" +
+	"\x04jobs\x18\x01 \x03(\v2\b.api.JobR\x04jobs\x12\x1d\n" +
 	"\n" +
-	"total_size\x18\x03 \x01(\x05R\n" +
-	"total_size\x12(\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\x0fnext_page_token\"\"\n" +
+	"total_size\x18\x03 \x01(\x05R\ttotalSize\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\"\n" +
 	"\x10DeleteJobRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\"\n" +
 	"\x10EnableJobRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"#\n" +
 	"\x11DisableJobRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x96\x01\n" +
-	"\fCronSchedule\x12:\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x94\x01\n" +
+	"\fCronSchedule\x129\n" +
 	"\n" +
-	"start_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"start_time\x126\n" +
-	"\bend_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\bend_time\x12\x12\n" +
-	"\x04cron\x18\x03 \x01(\tR\x04cron\"\xb0\x01\n" +
-	"\x10PeriodicSchedule\x12:\n" +
+	"start_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x125\n" +
+	"\bend_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x12\x12\n" +
+	"\x04cron\x18\x03 \x01(\tR\x04cron\"\xad\x01\n" +
+	"\x10PeriodicSchedule\x129\n" +
 	"\n" +
-	"start_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"start_time\x126\n" +
-	"\bend_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\bend_time\x12(\n" +
-	"\x0finterval_second\x18\x03 \x01(\x03R\x0finterval_second\"\x96\x01\n" +
-	"\aTrigger\x129\n" +
-	"\rcron_schedule\x18\x01 \x01(\v2\x11.api.CronScheduleH\x00R\rcron_schedule\x12E\n" +
-	"\x11periodic_schedule\x18\x02 \x01(\v2\x15.api.PeriodicScheduleH\x00R\x11periodic_scheduleB\t\n" +
-	"\atrigger\"\x82\x05\n" +
+	"start_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x125\n" +
+	"\bend_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x12'\n" +
+	"\x0finterval_second\x18\x03 \x01(\x03R\x0eintervalSecond\"\x94\x01\n" +
+	"\aTrigger\x128\n" +
+	"\rcron_schedule\x18\x01 \x01(\v2\x11.api.CronScheduleH\x00R\fcronSchedule\x12D\n" +
+	"\x11periodic_schedule\x18\x02 \x01(\v2\x15.api.PeriodicScheduleH\x00R\x10periodicScheduleB\t\n" +
+	"\atrigger\"\xfb\x04\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x127\n" +
-	"\rpipeline_spec\x18\x04 \x01(\v2\x11.api.PipelineSpecR\rpipeline_spec\x12H\n" +
-	"\x13resource_references\x18\x05 \x03(\v2\x16.api.ResourceReferenceR\x13resource_references\x12(\n" +
-	"\x0fservice_account\x18\x12 \x01(\tR\x0fservice_account\x12(\n" +
-	"\x0fmax_concurrency\x18\x06 \x01(\x03R\x0fmax_concurrency\x12&\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x126\n" +
+	"\rpipeline_spec\x18\x04 \x01(\v2\x11.api.PipelineSpecR\fpipelineSpec\x12G\n" +
+	"\x13resource_references\x18\x05 \x03(\v2\x16.api.ResourceReferenceR\x12resourceReferences\x12'\n" +
+	"\x0fservice_account\x18\x12 \x01(\tR\x0eserviceAccount\x12'\n" +
+	"\x0fmax_concurrency\x18\x06 \x01(\x03R\x0emaxConcurrency\x12&\n" +
 	"\atrigger\x18\a \x01(\v2\f.api.TriggerR\atrigger\x12!\n" +
-	"\x04mode\x18\b \x01(\x0e2\r.api.Job.ModeR\x04mode\x12:\n" +
+	"\x04mode\x18\b \x01(\x0e2\r.api.Job.ModeR\x04mode\x129\n" +
 	"\n" +
-	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"created_at\x12:\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"updated_at\x12\x16\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x16\n" +
 	"\x06status\x18\v \x01(\tR\x06status\x12\x14\n" +
 	"\x05error\x18\f \x01(\tR\x05error\x12\x18\n" +
-	"\aenabled\x18\x10 \x01(\bR\aenabled\x12\x1e\n" +
+	"\aenabled\x18\x10 \x01(\bR\aenabled\x12\x1d\n" +
 	"\n" +
-	"no_catchup\x18\x11 \x01(\bR\n" +
-	"no_catchup\"3\n" +
+	"no_catchup\x18\x11 \x01(\bR\tnoCatchup\"3\n" +
 	"\x04Mode\x12\x10\n" +
 	"\fUNKNOWN_MODE\x10\x00\x12\v\n" +
 	"\aENABLED\x10\x01\x12\f\n" +
