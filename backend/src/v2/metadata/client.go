@@ -817,25 +817,43 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	
 	// FIX: Apply dynamic task counting for DAGs that may have variable execution patterns
 	shouldApplyDynamic := c.shouldApplyDynamicTaskCounting(dag, tasks)
-	glog.Infof("DAG %d: shouldApplyDynamic=%v, totalDagTasks=%d, tasks=%d", dag.Execution.GetID(), shouldApplyDynamic, totalDagTasks, len(tasks))
+	dagID := dag.Execution.GetID()
+	glog.Infof("DAG %d: shouldApplyDynamic=%v, totalDagTasks=%d, tasks=%d", dagID, shouldApplyDynamic, totalDagTasks, len(tasks))
+	
+	// DEBUG: Log all tasks found in this DAG
+	for taskName, task := range tasks {
+		taskType := task.GetType()
+		taskState := task.GetExecution().LastKnownState.String()
+		glog.Infof("DAG %d: Task %s, type=%s, state=%s", dagID, taskName, taskType, taskState)
+	}
 	if shouldApplyDynamic {
 		// For DAGs with dynamic execution, adjust total_dag_tasks based on actual execution
 		actualExecutedTasks := completedTasks + failedTasks
 		actualRunningTasks := runningTasks
 		
+		glog.Infof("DAG %d: Dynamic counting - completedTasks=%d, failedTasks=%d, runningTasks=%d", 
+			dagID, completedTasks, failedTasks, runningTasks)
+		glog.Infof("DAG %d: actualExecutedTasks=%d, actualRunningTasks=%d", 
+			dagID, actualExecutedTasks, actualRunningTasks)
+		
+		// Store original value for comparison
+		originalTotalDagTasks := totalDagTasks
+		
 		// Apply universal dynamic counting logic
 		if actualExecutedTasks > 0 {
 			// We have completed/failed tasks - use that as the expected total
 			totalDagTasks = int64(actualExecutedTasks)
-			glog.Infof("Dynamic DAG: Adjusted totalDagTasks to %d (actual executed tasks)", totalDagTasks)
+			glog.Infof("DAG %d: Adjusted totalDagTasks from %d to %d (actual executed tasks)", 
+				dagID, originalTotalDagTasks, totalDagTasks)
 		} else if actualRunningTasks > 0 {
 			// Tasks are running - use running count as temporary total
 			totalDagTasks = int64(actualRunningTasks)
-			glog.Infof("Dynamic DAG: Set totalDagTasks to %d (running tasks)", totalDagTasks)
+			glog.Infof("DAG %d: Set totalDagTasks from %d to %d (running tasks)", 
+				dagID, originalTotalDagTasks, totalDagTasks)
 		} else if totalDagTasks == 0 {
 			// No tasks at all - this is valid for conditionals with false branches
 			// Keep totalDagTasks = 0, this will trigger universal completion rule
-			glog.Infof("Dynamic DAG: Keeping totalDagTasks=0 (no tasks, likely false condition)")
+			glog.Infof("DAG %d: Keeping totalDagTasks=0 (no tasks, likely false condition)", dagID)
 		}
 		
 		// Update the stored total_dag_tasks value
@@ -845,6 +863,10 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 		dag.Execution.execution.CustomProperties["total_dag_tasks"] = &pb.Value{
 			Value: &pb.Value_IntValue{IntValue: totalDagTasks},
 		}
+		
+		// Verify the stored value
+		storedValue := dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+		glog.Infof("DAG %d: Stored total_dag_tasks value = %d", dagID, storedValue)
 	}
 	
 	glog.V(4).Infof("completedTasks: %d", completedTasks)
