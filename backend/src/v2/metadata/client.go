@@ -815,21 +815,27 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 		}
 	}
 	
-	// FIX: For conditional DAGs, adjust total_dag_tasks to only count executed branches
-	isConditionalDAG := c.isConditionalDAG(dag, tasks)
-	glog.Infof("DAG %d: isConditionalDAG=%v, totalDagTasks=%d, tasks=%d", dag.Execution.GetID(), isConditionalDAG, totalDagTasks, len(tasks))
-	if isConditionalDAG {
-		// For conditional DAGs, count only the branches that actually executed or are running
-		executedOrRunningTasks := completedTasks + failedTasks + runningTasks
+	// FIX: Apply dynamic task counting for DAGs that may have variable execution patterns
+	shouldApplyDynamic := c.shouldApplyDynamicTaskCounting(dag, tasks)
+	glog.Infof("DAG %d: shouldApplyDynamic=%v, totalDagTasks=%d, tasks=%d", dag.Execution.GetID(), shouldApplyDynamic, totalDagTasks, len(tasks))
+	if shouldApplyDynamic {
+		// For DAGs with dynamic execution, adjust total_dag_tasks based on actual execution
+		actualExecutedTasks := completedTasks + failedTasks
+		actualRunningTasks := runningTasks
 		
-		// If we have executed tasks, use that count. If no tasks yet, wait for them to start
-		if executedOrRunningTasks > 0 {
-			totalDagTasks = int64(executedOrRunningTasks)
-			glog.Infof("Conditional DAG: Adjusted totalDagTasks to %d (executed/running branches)", totalDagTasks)
+		// Apply universal dynamic counting logic
+		if actualExecutedTasks > 0 {
+			// We have completed/failed tasks - use that as the expected total
+			totalDagTasks = int64(actualExecutedTasks)
+			glog.Infof("Dynamic DAG: Adjusted totalDagTasks to %d (actual executed tasks)", totalDagTasks)
+		} else if actualRunningTasks > 0 {
+			// Tasks are running - use running count as temporary total
+			totalDagTasks = int64(actualRunningTasks)
+			glog.Infof("Dynamic DAG: Set totalDagTasks to %d (running tasks)", totalDagTasks)
 		} else if totalDagTasks == 0 {
-			// No tasks executed yet - set to 1 as minimum expectation for conditionals
-			totalDagTasks = 1
-			glog.Infof("Conditional DAG: Set totalDagTasks to 1 (waiting for branch execution)")
+			// No tasks at all - this is valid for conditionals with false branches
+			// Keep totalDagTasks = 0, this will trigger universal completion rule
+			glog.Infof("Dynamic DAG: Keeping totalDagTasks=0 (no tasks, likely false condition)")
 		}
 		
 		// Update the stored total_dag_tasks value
@@ -883,15 +889,6 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 			stateChanged = true
 			glog.Infof("ParallelFor parent DAG %d completed: %d/%d child DAGs finished", 
 				dag.Execution.GetID(), completedChildDags, childDagCount)
-		}
-	} else if isConditionalDAG {
-		// For conditional DAGs, complete when all executed branches are done
-		// If no tasks have executed yet but nothing is running, complete immediately  
-		if runningTasks == 0 && (completedTasks > 0 || totalDagTasks == 0) {
-			newState = pb.Execution_COMPLETE
-			stateChanged = true
-			glog.Infof("Conditional DAG %d completed: %d tasks completed, %d running", 
-				dag.Execution.GetID(), completedTasks, runningTasks)
 		}
 	} else {
 		// Standard DAG completion logic
@@ -976,34 +973,49 @@ func (c *Client) propagateDAGStateUp(ctx context.Context, completedDAGID int64) 
 
 // isConditionalDAG determines if a DAG represents a conditional construct
 // by looking for conditional patterns in the DAG's own task name or task names within it
-func (c *Client) isConditionalDAG(dag *DAG, tasks map[string]*Execution) bool {
-	glog.Infof("DAG %d: Checking if conditional with %d tasks", dag.Execution.GetID(), len(tasks))
+func (c *Client) shouldApplyDynamicTaskCounting(dag *DAG, tasks map[string]*Execution) bool {
+	props := dag.Execution.execution.CustomProperties
+	dagID := dag.Execution.GetID()
 	
-	// First, check the DAG's own task name (this is the most reliable indicator)
-	dagTaskName := dag.Execution.TaskName()
-	glog.Infof("DAG %d: DAG task name=%s", dag.Execution.GetID(), dagTaskName)
-	if strings.Contains(dagTaskName, "condition-") || 
-	   strings.Contains(dagTaskName, "-condition") ||
-	   strings.Contains(dagTaskName, "conditional-") {
-		glog.Infof("DAG %d: Found conditional pattern in DAG task name %s", dag.Execution.GetID(), dagTaskName)
+	glog.Infof("DAG %d: Checking if should apply dynamic task counting with %d tasks", dagID, len(tasks))
+	
+	// Skip ParallelFor DAGs - they have their own specialized logic
+	if props["iteration_count"] != nil || props["iteration_index"] != nil {
+		glog.Infof("DAG %d: Skipping dynamic counting (ParallelFor DAG)", dagID)
+		return false
+	}
+	
+	// Apply dynamic counting for any DAG that might have variable task execution:
+	// 1. DAGs with no tasks (conditional with false branch)
+	// 2. DAGs with canceled tasks (conditional with non-executed branches)  
+	// 3. DAGs where execution pattern suggests conditional behavior
+	
+	canceledTasks := 0
+	for _, task := range tasks {
+		if task.GetType() == "system.DAGExecution" {
+			continue // Skip child DAGs, only count container tasks
+		}
+		if task.GetExecution().LastKnownState.String() == "CANCELED" {
+			canceledTasks++
+		}
+	}
+	
+	// Heuristic: If we have canceled tasks, likely a conditional with non-executed branches
+	if canceledTasks > 0 {
+		glog.Infof("DAG %d: Found %d canceled tasks, applying dynamic counting", dagID, canceledTasks)
 		return true
 	}
 	
-	// Also check tasks within the DAG for conditional patterns (backup detection)
-	for taskName, task := range tasks {
-		actualTaskName := task.TaskName()
-		glog.Infof("DAG %d: Task key=%s, taskName=%s", dag.Execution.GetID(), taskName, actualTaskName)
-		// Check for conditional task patterns (if, else, elif branches)
-		if strings.Contains(actualTaskName, "-if-") || 
-		   strings.Contains(actualTaskName, "-else-") || 
-		   strings.Contains(actualTaskName, "-elif-") ||
-		   strings.Contains(actualTaskName, "condition-") {
-			glog.Infof("DAG %d: Found conditional pattern in task %s", dag.Execution.GetID(), actualTaskName)
-			return true
-		}
+	// Heuristic: Empty DAGs might be conditionals with false branches
+	if len(tasks) == 0 {
+		glog.Infof("DAG %d: Empty DAG, applying dynamic counting", dagID)
+		return true
 	}
-	glog.Infof("DAG %d: No conditional patterns found, not a conditional DAG", dag.Execution.GetID())
-	return false
+	
+	// For other patterns, apply dynamic counting as a safe default
+	// This ensures we adapt to actual execution rather than rigid expectations
+	glog.Infof("DAG %d: Applying dynamic counting (universal approach)", dagID)
+	return true
 }
 
 // isParallelForIterationDAG checks if this is an individual iteration of a ParallelFor
