@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.api_report_run_metrics_request import ApiReportRunMetricsRequest  # noqa: E501
+from kfp_server_api.models.googlerpc_status import GooglerpcStatus  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestApiReportRunMetricsRequest(unittest.TestCase):
-    """ApiReportRunMetricsRequest unit test stubs"""
+class TestGooglerpcStatus(unittest.TestCase):
+    """GooglerpcStatus unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,28 +29,27 @@ class TestApiReportRunMetricsRequest(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test ApiReportRunMetricsRequest
+        """Test GooglerpcStatus
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.api_report_run_metrics_request.ApiReportRunMetricsRequest()  # noqa: E501
+        # model = kfp_server_api.models.googlerpc_status.GooglerpcStatus()  # noqa: E501
         if include_optional :
-            return ApiReportRunMetricsRequest(
-                run_id = '0', 
-                metrics = [
-                    kfp_server_api.models.api_run_metric.apiRunMetric(
-                        name = '0', 
-                        node_id = '0', 
-                        number_value = 1.337, 
-                        format = 'UNSPECIFIED', )
+            return GooglerpcStatus(
+                code = 56, 
+                message = '0', 
+                details = [
+                    {
+                        'key' : None
+                        }
                     ]
             )
         else :
-            return ApiReportRunMetricsRequest(
+            return GooglerpcStatus(
         )
 
-    def testApiReportRunMetricsRequest(self):
-        """Test ApiReportRunMetricsRequest"""
+    def testGooglerpcStatus(self):
+        """Test GooglerpcStatus"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

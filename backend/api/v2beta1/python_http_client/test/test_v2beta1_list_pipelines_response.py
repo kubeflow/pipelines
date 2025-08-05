@@ -40,6 +40,7 @@ class TestV2beta1ListPipelinesResponse(unittest.TestCase):
                     kfp_server_api.models.v2beta1_pipeline.v2beta1Pipeline(
                         pipeline_id = '0', 
                         display_name = '0', 
+                        name = '0', 
                         description = '0', 
                         created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         namespace = '0', 
@@ -47,9 +48,9 @@ class TestV2beta1ListPipelinesResponse(unittest.TestCase):
                             code = 56, 
                             message = '0', 
                             details = [
-                                kfp_server_api.models.protobuf_any.protobufAny(
-                                    type_url = '0', 
-                                    value = 'YQ==', )
+                                {
+                                    'key' : None
+                                    }
                                 ], ), )
                     ], 
                 total_size = 56, 

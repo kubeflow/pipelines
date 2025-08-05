@@ -7,7 +7,7 @@ Method | HTTP request | Description
 [**pipeline_service_create_pipeline**](PipelineServiceApi.md#pipeline_service_create_pipeline) | **POST** /apis/v2beta1/pipelines | Creates a pipeline.
 [**pipeline_service_create_pipeline_and_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_and_version) | **POST** /apis/v2beta1/pipelines/create | Creates a new pipeline and a new pipeline version in a single transaction.
 [**pipeline_service_create_pipeline_version**](PipelineServiceApi.md#pipeline_service_create_pipeline_version) | **POST** /apis/v2beta1/pipelines/{pipeline_id}/versions | Adds a pipeline version to the specified pipeline ID.
-[**pipeline_service_delete_pipeline**](PipelineServiceApi.md#pipeline_service_delete_pipeline) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id} | Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
+[**pipeline_service_delete_pipeline**](PipelineServiceApi.md#pipeline_service_delete_pipeline) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id} | Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
 [**pipeline_service_delete_pipeline_version**](PipelineServiceApi.md#pipeline_service_delete_pipeline_version) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Deletes a specific pipeline version by pipeline version ID and pipeline ID.
 [**pipeline_service_get_pipeline**](PipelineServiceApi.md#pipeline_service_get_pipeline) | **GET** /apis/v2beta1/pipelines/{pipeline_id} | Finds a specific pipeline by ID.
 [**pipeline_service_get_pipeline_by_name**](PipelineServiceApi.md#pipeline_service_get_pipeline_by_name) | **GET** /apis/v2beta1/pipelines/names/{name} | Finds a specific pipeline by name and namespace.
@@ -17,7 +17,7 @@ Method | HTTP request | Description
 
 
 # **pipeline_service_create_pipeline**
-> V2beta1Pipeline pipeline_service_create_pipeline(body)
+> V2beta1Pipeline pipeline_service_create_pipeline(pipeline)
 
 Creates a pipeline.
 
@@ -55,11 +55,11 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    body = kfp_server_api.V2beta1Pipeline() # V2beta1Pipeline | Required input. Pipeline that needs to be created.
+    pipeline = kfp_server_api.V2beta1Pipeline() # V2beta1Pipeline | Required input. Pipeline that needs to be created.
 
     try:
         # Creates a pipeline.
-        api_response = api_instance.pipeline_service_create_pipeline(body)
+        api_response = api_instance.pipeline_service_create_pipeline(pipeline)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineServiceApi->pipeline_service_create_pipeline: %s\n" % e)
@@ -69,7 +69,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2beta1Pipeline**](V2beta1Pipeline.md)| Required input. Pipeline that needs to be created. | 
+ **pipeline** | [**V2beta1Pipeline**](V2beta1Pipeline.md)| Required input. Pipeline that needs to be created. | 
 
 ### Return type
 
@@ -169,7 +169,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_create_pipeline_version**
-> V2beta1PipelineVersion pipeline_service_create_pipeline_version(pipeline_id, body)
+> V2beta1PipelineVersion pipeline_service_create_pipeline_version(pipeline_id, pipeline_version)
 
 Adds a pipeline version to the specified pipeline ID.
 
@@ -208,11 +208,11 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
     pipeline_id = 'pipeline_id_example' # str | Required input. ID of the parent pipeline.
-body = kfp_server_api.V2beta1PipelineVersion() # V2beta1PipelineVersion | Required input. Pipeline version ID to be created.
+pipeline_version = kfp_server_api.V2beta1PipelineVersion() # V2beta1PipelineVersion | Required input. Pipeline version ID to be created.
 
     try:
         # Adds a pipeline version to the specified pipeline ID.
-        api_response = api_instance.pipeline_service_create_pipeline_version(pipeline_id, body)
+        api_response = api_instance.pipeline_service_create_pipeline_version(pipeline_id, pipeline_version)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineServiceApi->pipeline_service_create_pipeline_version: %s\n" % e)
@@ -223,7 +223,7 @@ body = kfp_server_api.V2beta1PipelineVersion() # V2beta1PipelineVersion | Requir
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **pipeline_id** | **str**| Required input. ID of the parent pipeline. | 
- **body** | [**V2beta1PipelineVersion**](V2beta1PipelineVersion.md)| Required input. Pipeline version ID to be created. | 
+ **pipeline_version** | [**V2beta1PipelineVersion**](V2beta1PipelineVersion.md)| Required input. Pipeline version ID to be created. | 
 
 ### Return type
 
@@ -247,9 +247,9 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **pipeline_service_delete_pipeline**
-> object pipeline_service_delete_pipeline(pipeline_id)
+> object pipeline_service_delete_pipeline(pipeline_id, cascade=cascade)
 
-Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
+Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
 
 ### Example
 
@@ -286,10 +286,11 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
     pipeline_id = 'pipeline_id_example' # str | Required input. ID of the pipeline to be deleted.
+cascade = True # bool | Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions. (optional)
 
     try:
-        # Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
-        api_response = api_instance.pipeline_service_delete_pipeline(pipeline_id)
+        # Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
+        api_response = api_instance.pipeline_service_delete_pipeline(pipeline_id, cascade=cascade)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineServiceApi->pipeline_service_delete_pipeline: %s\n" % e)
@@ -300,6 +301,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **pipeline_id** | **str**| Required input. ID of the pipeline to be deleted. | 
+ **cascade** | **bool**| Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions. | [optional] 
 
 ### Return type
 
