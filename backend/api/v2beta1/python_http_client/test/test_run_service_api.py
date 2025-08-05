@@ -38,7 +38,7 @@ class TestRunServiceApi(unittest.TestCase):
     def test_run_service_create_run(self):
         """Test case for run_service_create_run
 
-        Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.  # noqa: E501
+        Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.  # noqa: E501
         """
         pass
 
@@ -59,7 +59,7 @@ class TestRunServiceApi(unittest.TestCase):
     def test_run_service_list_runs(self):
         """Test case for run_service_list_runs
 
-        Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.  # noqa: E501
+        Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.  # noqa: E501
         """
         pass
 

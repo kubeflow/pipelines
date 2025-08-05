@@ -14,7 +14,7 @@ google-cloud-storage>=2.2.1,<4
 # pin kfp-pipeline-spec to an exact version, since this is the contract between a given KFP
 # SDK version and the BE. we don't want old version of the SDK to write new fields and to
 # have the BE reject the new unsupported field (even if the new field backward compatible from a proto perspective)
-kfp-pipeline-spec==0.8.0
+kfp-pipeline-spec==2.14.0
 # Update the upper version whenever a new major version of the
 # kfp-server-api package is released.
 # Update the lower version when kfp sdk depends on new apis/fields in
