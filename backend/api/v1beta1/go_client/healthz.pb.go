@@ -41,7 +41,7 @@ const (
 type GetHealthzResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Returns if KFP in multi-user mode
-	MultiUser     bool `protobuf:"varint,3,opt,name=multi_user,proto3" json:"multi_user,omitempty"`
+	MultiUser     bool `protobuf:"varint,3,opt,name=multi_user,json=multiUser,proto3" json:"multi_user,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -87,11 +87,10 @@ var File_backend_api_v1beta1_healthz_proto protoreflect.FileDescriptor
 
 const file_backend_api_v1beta1_healthz_proto_rawDesc = "" +
 	"\n" +
-	"!backend/api/v1beta1/healthz.proto\x12\x03api\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"4\n" +
-	"\x12GetHealthzResponse\x12\x1e\n" +
+	"!backend/api/v1beta1/healthz.proto\x12\x03api\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"3\n" +
+	"\x12GetHealthzResponse\x12\x1d\n" +
 	"\n" +
-	"multi_user\x18\x03 \x01(\bR\n" +
-	"multi_user2n\n" +
+	"multi_user\x18\x03 \x01(\bR\tmultiUser2n\n" +
 	"\x0eHealthzService\x12\\\n" +
 	"\n" +
 	"GetHealthz\x12\x16.google.protobuf.Empty\x1a\x17.api.GetHealthzResponse\"\x1d\x82\xd3\xe4\x93\x02\x17\x12\x15/apis/v1beta1/healthzB\x91\x01\x92AQ*\x02\x01\x02R\x1c\n" +

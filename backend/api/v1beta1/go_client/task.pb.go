@@ -53,9 +53,9 @@ type Task struct {
 	// Required input field. The ID of the MLMD execution associated with the PipelineTask.
 	MlmdExecutionID string `protobuf:"bytes,5,opt,name=mlmdExecutionID,proto3" json:"mlmdExecutionID,omitempty"`
 	// Required input field. The time this task is created.
-	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,proto3" json:"created_at,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Optional input field. The time this task is finished.
-	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=finished_at,proto3" json:"finished_at,omitempty"`
+	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	// Required input field.
 	Fingerprint   string `protobuf:"bytes,8,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -197,18 +197,18 @@ type ListTasksRequest struct {
 	// A page token to request the next page of results. The token is acquried
 	// from the nextPageToken field of the response from the previous
 	// ListExperiment call or can be omitted when fetching the first page.
-	PageToken string `protobuf:"bytes,1,opt,name=page_token,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The number of experiments to be listed per page. If there are more
 	// experiments than this number, the response message will contain a
 	// nextPageToken field you can use to fetch the next page.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,proto3" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Can be format of "field_name", "field_name asc" or "field_name desc"
 	// Ascending by default.
-	SortBy string `protobuf:"bytes,3,opt,name=sort_by,proto3" json:"sort_by,omitempty"`
+	SortBy string `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// What resource reference to filter on.
 	// E.g. If listing tasks for an pipeline run, the query string would be
 	// resource_reference_key.type="PIPELINE"&resource_reference_key.id=123
-	ResourceReferenceKey *ResourceKey `protobuf:"bytes,4,opt,name=resource_reference_key,proto3" json:"resource_reference_key,omitempty"`
+	ResourceReferenceKey *ResourceKey `protobuf:"bytes,4,opt,name=resource_reference_key,json=resourceReferenceKey,proto3" json:"resource_reference_key,omitempty"`
 	// A url-encoded, JSON-serialized Filter protocol buffer (see
 	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
 	Filter        string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
@@ -286,9 +286,9 @@ type ListTasksResponse struct {
 	// A list of tasks returned.
 	Tasks []*Task `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
 	// The token to list the next page of experiments.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,proto3" json:"next_page_token,omitempty"`
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	// The total number of experiments for the given query.
-	TotalSize     int32 `protobuf:"varint,3,opt,name=total_size,proto3" json:"total_size,omitempty"`
+	TotalSize     int32 `protobuf:"varint,3,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -348,34 +348,32 @@ var File_backend_api_v1beta1_task_proto protoreflect.FileDescriptor
 
 const file_backend_api_v1beta1_task_proto_rawDesc = "" +
 	"\n" +
-	"\x1ebackend/api/v1beta1/task.proto\x12\x03api\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a,backend/api/v1beta1/resource_reference.proto\"\xb4\x02\n" +
+	"\x1ebackend/api/v1beta1/task.proto\x12\x03api\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a,backend/api/v1beta1/resource_reference.proto\"\xb2\x02\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1c\n" +
 	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12\"\n" +
 	"\fpipelineName\x18\x03 \x01(\tR\fpipelineName\x12\x14\n" +
 	"\x05runId\x18\x04 \x01(\tR\x05runId\x12(\n" +
-	"\x0fmlmdExecutionID\x18\x05 \x01(\tR\x0fmlmdExecutionID\x12:\n" +
+	"\x0fmlmdExecutionID\x18\x05 \x01(\tR\x0fmlmdExecutionID\x129\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"created_at\x12<\n" +
-	"\vfinished_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vfinished_at\x12 \n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12;\n" +
+	"\vfinished_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"finishedAt\x12 \n" +
 	"\vfingerprint\x18\b \x01(\tR\vfingerprint\"2\n" +
 	"\x11CreateTaskRequest\x12\x1d\n" +
-	"\x04task\x18\x01 \x01(\v2\t.api.TaskR\x04task\"\xcc\x01\n" +
-	"\x10ListTasksRequest\x12\x1e\n" +
+	"\x04task\x18\x01 \x01(\v2\t.api.TaskR\x04task\"\xc7\x01\n" +
+	"\x10ListTasksRequest\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x01 \x01(\tR\n" +
-	"page_token\x12\x1c\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\tpage_size\x12\x18\n" +
-	"\asort_by\x18\x03 \x01(\tR\asort_by\x12H\n" +
-	"\x16resource_reference_key\x18\x04 \x01(\v2\x10.api.ResourceKeyR\x16resource_reference_key\x12\x16\n" +
-	"\x06filter\x18\x05 \x01(\tR\x06filter\"~\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x17\n" +
+	"\asort_by\x18\x03 \x01(\tR\x06sortBy\x12F\n" +
+	"\x16resource_reference_key\x18\x04 \x01(\v2\x10.api.ResourceKeyR\x14resourceReferenceKey\x12\x16\n" +
+	"\x06filter\x18\x05 \x01(\tR\x06filter\"{\n" +
 	"\x11ListTasksResponse\x12\x1f\n" +
-	"\x05tasks\x18\x01 \x03(\v2\t.api.TaskR\x05tasks\x12(\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\x0fnext_page_token\x12\x1e\n" +
+	"\x05tasks\x18\x01 \x03(\v2\t.api.TaskR\x05tasks\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1d\n" +
 	"\n" +
-	"total_size\x18\x03 \x01(\x05R\n" +
-	"total_size2\xc0\x01\n" +
+	"total_size\x18\x03 \x01(\x05R\ttotalSize2\xc0\x01\n" +
 	"\vTaskService\x12U\n" +
 	"\fCreateTaskV1\x12\x16.api.CreateTaskRequest\x1a\t.api.Task\"\"\x82\xd3\xe4\x93\x02\x1c:\x04task\"\x14/apis/v1alpha1/tasks\x12Z\n" +
 	"\vListTasksV1\x12\x15.api.ListTasksRequest\x1a\x16.api.ListTasksResponse\"\x1c\x82\xd3\xe4\x93\x02\x16\x12\x14/apis/v1alpha1/tasksB=Z;github.com/kubeflow/pipelines/backend/api/v1beta1/go_clientb\x06proto3"

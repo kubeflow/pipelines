@@ -33,8 +33,6 @@ type APIRunMetric struct {
 	NodeID string `json:"node_id,omitempty"`
 
 	// The number value of the metric.
-	// The camelCase support for json support of this field is
-	// deprecated, switch to using snake case.
 	NumberValue float64 `json:"number_value,omitempty"`
 }
 

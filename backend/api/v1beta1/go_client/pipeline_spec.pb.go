@@ -39,21 +39,21 @@ const (
 type PipelineSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Optional input field. The ID of the pipeline user uploaded before.
-	PipelineId string `protobuf:"bytes,1,opt,name=pipeline_id,proto3" json:"pipeline_id,omitempty"`
+	PipelineId string `protobuf:"bytes,1,opt,name=pipeline_id,json=pipelineId,proto3" json:"pipeline_id,omitempty"`
 	// Optional output field. The name of the pipeline.
 	// Not empty if the pipeline id is not empty.
-	PipelineName string `protobuf:"bytes,5,opt,name=pipeline_name,proto3" json:"pipeline_name,omitempty"`
+	PipelineName string `protobuf:"bytes,5,opt,name=pipeline_name,json=pipelineName,proto3" json:"pipeline_name,omitempty"`
 	// Optional input field. The marshalled raw argo JSON workflow.
 	// This will be deprecated when pipeline_manifest is in use.
-	WorkflowManifest string `protobuf:"bytes,2,opt,name=workflow_manifest,proto3" json:"workflow_manifest,omitempty"`
+	WorkflowManifest string `protobuf:"bytes,2,opt,name=workflow_manifest,json=workflowManifest,proto3" json:"workflow_manifest,omitempty"`
 	// Optional input field. The raw pipeline JSON spec.
-	PipelineManifest string `protobuf:"bytes,3,opt,name=pipeline_manifest,proto3" json:"pipeline_manifest,omitempty"`
+	PipelineManifest string `protobuf:"bytes,3,opt,name=pipeline_manifest,json=pipelineManifest,proto3" json:"pipeline_manifest,omitempty"`
 	// The parameter user provide to inject to the pipeline JSON.
 	// If a default value of a parameter exist in the JSON,
 	// the value user provided here will replace. V1 only
 	Parameters []*Parameter `protobuf:"bytes,4,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	// Runtime config of the pipeline. V2 only
-	RuntimeConfig *PipelineSpec_RuntimeConfig `protobuf:"bytes,6,opt,name=runtime_config,proto3" json:"runtime_config,omitempty"`
+	RuntimeConfig *PipelineSpec_RuntimeConfig `protobuf:"bytes,6,opt,name=runtime_config,json=runtimeConfig,proto3" json:"runtime_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -140,7 +140,7 @@ type PipelineSpec_RuntimeConfig struct {
 	// A path in a object store bucket which will be treated as the root
 	// output directory of the pipeline. It is used by the system to
 	// generate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
-	PipelineRoot  string `protobuf:"bytes,2,opt,name=pipeline_root,proto3" json:"pipeline_root,omitempty"`
+	PipelineRoot  string `protobuf:"bytes,2,opt,name=pipeline_root,json=pipelineRoot,proto3" json:"pipeline_root,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -193,21 +193,22 @@ var File_backend_api_v1beta1_pipeline_spec_proto protoreflect.FileDescriptor
 
 const file_backend_api_v1beta1_pipeline_spec_proto_rawDesc = "" +
 	"\n" +
-	"'backend/api/v1beta1/pipeline_spec.proto\x12\x03api\x1a#backend/api/v1beta1/parameter.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x8b\x04\n" +
-	"\fPipelineSpec\x12 \n" +
-	"\vpipeline_id\x18\x01 \x01(\tR\vpipeline_id\x12$\n" +
-	"\rpipeline_name\x18\x05 \x01(\tR\rpipeline_name\x12,\n" +
-	"\x11workflow_manifest\x18\x02 \x01(\tR\x11workflow_manifest\x12,\n" +
-	"\x11pipeline_manifest\x18\x03 \x01(\tR\x11pipeline_manifest\x12.\n" +
+	"'backend/api/v1beta1/pipeline_spec.proto\x12\x03api\x1a#backend/api/v1beta1/parameter.proto\x1a\x1cgoogle/protobuf/struct.proto\"\x85\x04\n" +
+	"\fPipelineSpec\x12\x1f\n" +
+	"\vpipeline_id\x18\x01 \x01(\tR\n" +
+	"pipelineId\x12#\n" +
+	"\rpipeline_name\x18\x05 \x01(\tR\fpipelineName\x12+\n" +
+	"\x11workflow_manifest\x18\x02 \x01(\tR\x10workflowManifest\x12+\n" +
+	"\x11pipeline_manifest\x18\x03 \x01(\tR\x10pipelineManifest\x12.\n" +
 	"\n" +
 	"parameters\x18\x04 \x03(\v2\x0e.api.ParameterR\n" +
-	"parameters\x12G\n" +
-	"\x0eruntime_config\x18\x06 \x01(\v2\x1f.api.PipelineSpec.RuntimeConfigR\x0eruntime_config\x1a\xdd\x01\n" +
+	"parameters\x12F\n" +
+	"\x0eruntime_config\x18\x06 \x01(\v2\x1f.api.PipelineSpec.RuntimeConfigR\rruntimeConfig\x1a\xdc\x01\n" +
 	"\rRuntimeConfig\x12O\n" +
 	"\n" +
 	"parameters\x18\x01 \x03(\v2/.api.PipelineSpec.RuntimeConfig.ParametersEntryR\n" +
-	"parameters\x12$\n" +
-	"\rpipeline_root\x18\x02 \x01(\tR\rpipeline_root\x1aU\n" +
+	"parameters\x12#\n" +
+	"\rpipeline_root\x18\x02 \x01(\tR\fpipelineRoot\x1aU\n" +
 	"\x0fParametersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12,\n" +
 	"\x05value\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x05value:\x028\x01B=Z;github.com/kubeflow/pipelines/backend/api/v1beta1/go_clientb\x06proto3"
