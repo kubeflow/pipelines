@@ -441,6 +441,45 @@ func createMockTasks(mockTasks map[string]*mockExecution) map[string]*Execution 
 	return tasks
 }
 
+// Test version of shouldApplyDynamicTaskCounting to match real implementation
+func (c *Client) shouldApplyDynamicTaskCountingTest(dag *DAG, tasks map[string]*Execution) bool {
+	props := dag.Execution.execution.CustomProperties
+	
+	// Skip ParallelFor DAGs - they have their own specialized logic
+	if props["iteration_count"] != nil || props["iteration_index"] != nil {
+		return false
+	}
+	
+	// Apply dynamic counting for any DAG that might have variable task execution:
+	// 1. DAGs with no tasks (conditional with false branch)
+	// 2. DAGs with canceled tasks (conditional with non-executed branches)  
+	// 3. DAGs where execution pattern suggests conditional behavior
+	
+	canceledTasks := 0
+	for _, task := range tasks {
+		if task.GetType() == "system.DAGExecution" {
+			continue // Skip child DAGs, only count container tasks
+		}
+		if task.GetExecution().LastKnownState.String() == "CANCELED" {
+			canceledTasks++
+		}
+	}
+	
+	// Heuristic: If we have canceled tasks, likely a conditional with non-executed branches
+	if canceledTasks > 0 {
+		return true
+	}
+	
+	// Heuristic: Empty DAGs might be conditionals with false branches
+	if len(tasks) == 0 {
+		return true
+	}
+	
+	// For standard DAGs with normal execution patterns, don't apply dynamic counting
+	// Only apply dynamic counting when we detect patterns that suggest conditional behavior
+	return false
+}
+
 // Test method that simulates the completion logic
 func (c *Client) testDAGCompletion(dag *DAG, tasks map[string]*Execution) completionResult {
 	// Simulate the counting logic from UpdateDAGExecutionsState
@@ -474,9 +513,25 @@ func (c *Client) testDAGCompletion(dag *DAG, tasks map[string]*Execution) comple
 		}
 	}
 	
-	// Apply conditional logic adjustments (simplified)
-	// Note: With universal rule, we don't need complex conditional detection
-	// Any DAG with totalDagTasks=0 and runningTasks=0 will complete via universal rule
+	// Apply universal dynamic counting logic (matching real implementation)
+	shouldApplyDynamic := c.shouldApplyDynamicTaskCountingTest(dag, tasks)
+	if shouldApplyDynamic {
+		// For DAGs with dynamic execution, adjust total_dag_tasks based on actual execution
+		actualExecutedTasks := completedTasks + failedTasks
+		actualRunningTasks := runningTasks
+		
+		// Apply universal dynamic counting logic
+		if actualExecutedTasks > 0 {
+			// We have completed/failed tasks - use that as the expected total
+			totalDagTasks = int64(actualExecutedTasks)
+		} else if actualRunningTasks > 0 {
+			// Tasks are running - use running count as temporary total
+			totalDagTasks = int64(actualRunningTasks)
+		} else if totalDagTasks == 0 {
+			// No tasks at all - this is valid for conditionals with false branches
+			// Keep totalDagTasks = 0, this will trigger universal completion rule
+		}
+	}
 	
 	// For ParallelFor iteration DAGs, ensure total_dag_tasks is preserved from iteration_count
 	isParallelForIterationDAG := c.isParallelForIterationDAG(dag)
