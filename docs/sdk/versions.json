@@ -1,7 +1,7 @@
 [
     {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.0/",
-        "title": "2.14.0",
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.1/",
+        "title": "2.14.1",
         "aliases": [
             "stable",
             "latest"

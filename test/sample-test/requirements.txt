@@ -83,7 +83,7 @@ jupyter-core==5.8.1
     #   jupyter-client
     #   nbclient
     #   nbformat
-kfp==2.14.0
+kfp==2.14.1
     # via -r requirements.in
 kfp-pipeline-spec==2.14.0
     # via kfp
