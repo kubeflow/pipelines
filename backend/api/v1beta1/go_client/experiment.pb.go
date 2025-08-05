@@ -183,21 +183,21 @@ type ListExperimentsRequest struct {
 	// A page token to request the next page of results. The token is acquried
 	// from the nextPageToken field of the response from the previous
 	// ListExperiment call or can be omitted when fetching the first page.
-	PageToken string `protobuf:"bytes,1,opt,name=page_token,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The number of experiments to be listed per page. If there are more
 	// experiments than this number, the response message will contain a
 	// nextPageToken field you can use to fetch the next page.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,proto3" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Can be format of "field_name", "field_name asc" or "field_name desc"
 	// Ascending by default.
-	SortBy string `protobuf:"bytes,3,opt,name=sort_by,proto3" json:"sort_by,omitempty"`
+	SortBy string `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// A url-encoded, JSON-serialized Filter protocol buffer (see
 	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
 	Filter string `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
 	// What resource reference to filter on.
 	// For Experiment, the only valid resource type is Namespace. An sample query string could be
 	// resource_reference_key.type=NAMESPACE&resource_reference_key.id=ns1
-	ResourceReferenceKey *ResourceKey `protobuf:"bytes,5,opt,name=resource_reference_key,proto3" json:"resource_reference_key,omitempty"`
+	ResourceReferenceKey *ResourceKey `protobuf:"bytes,5,opt,name=resource_reference_key,json=resourceReferenceKey,proto3" json:"resource_reference_key,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -272,9 +272,9 @@ type ListExperimentsResponse struct {
 	// A list of experiments returned.
 	Experiments []*Experiment `protobuf:"bytes,1,rep,name=experiments,proto3" json:"experiments,omitempty"`
 	// The total number of experiments for the given query.
-	TotalSize int32 `protobuf:"varint,3,opt,name=total_size,proto3" json:"total_size,omitempty"`
+	TotalSize int32 `protobuf:"varint,3,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
 	// The token to list the next page of experiments.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,proto3" json:"next_page_token,omitempty"`
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -384,12 +384,12 @@ type Experiment struct {
 	// Optional input field. Describing the purpose of the experiment
 	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// Output. The time that the experiment created.
-	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,proto3" json:"created_at,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Optional input field. Specify which resource this run belongs to.
 	// For Experiment, the only valid resource reference is a single Namespace.
-	ResourceReferences []*ResourceReference `protobuf:"bytes,5,rep,name=resource_references,proto3" json:"resource_references,omitempty"`
+	ResourceReferences []*ResourceReference `protobuf:"bytes,5,rep,name=resource_references,json=resourceReferences,proto3" json:"resource_references,omitempty"`
 	// Output. Specifies whether this experiment is in archived or available state.
-	StorageState  Experiment_StorageState `protobuf:"varint,6,opt,name=storage_state,proto3,enum=api.Experiment_StorageState" json:"storage_state,omitempty"`
+	StorageState  Experiment_StorageState `protobuf:"varint,6,opt,name=storage_state,json=storageState,proto3,enum=api.Experiment_StorageState" json:"storage_state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -566,33 +566,30 @@ const file_backend_api_v1beta1_experiment_proto_rawDesc = "" +
 	"experiment\x18\x01 \x01(\v2\x0f.api.ExperimentR\n" +
 	"experiment\"&\n" +
 	"\x14GetExperimentRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xd2\x01\n" +
-	"\x16ListExperimentsRequest\x12\x1e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xcd\x01\n" +
+	"\x16ListExperimentsRequest\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x01 \x01(\tR\n" +
-	"page_token\x12\x1c\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\tpage_size\x12\x18\n" +
-	"\asort_by\x18\x03 \x01(\tR\asort_by\x12\x16\n" +
-	"\x06filter\x18\x04 \x01(\tR\x06filter\x12H\n" +
-	"\x16resource_reference_key\x18\x05 \x01(\v2\x10.api.ResourceKeyR\x16resource_reference_key\"\x96\x01\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x17\n" +
+	"\asort_by\x18\x03 \x01(\tR\x06sortBy\x12\x16\n" +
+	"\x06filter\x18\x04 \x01(\tR\x06filter\x12F\n" +
+	"\x16resource_reference_key\x18\x05 \x01(\v2\x10.api.ResourceKeyR\x14resourceReferenceKey\"\x93\x01\n" +
 	"\x17ListExperimentsResponse\x121\n" +
-	"\vexperiments\x18\x01 \x03(\v2\x0f.api.ExperimentR\vexperiments\x12\x1e\n" +
+	"\vexperiments\x18\x01 \x03(\v2\x0f.api.ExperimentR\vexperiments\x12\x1d\n" +
 	"\n" +
-	"total_size\x18\x03 \x01(\x05R\n" +
-	"total_size\x12(\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\x0fnext_page_token\")\n" +
+	"total_size\x18\x03 \x01(\x05R\ttotalSize\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\")\n" +
 	"\x17DeleteExperimentRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x81\x03\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xfe\x02\n" +
 	"\n" +
 	"Experiment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12:\n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x129\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"created_at\x12H\n" +
-	"\x13resource_references\x18\x05 \x03(\v2\x16.api.ResourceReferenceR\x13resource_references\x12B\n" +
-	"\rstorage_state\x18\x06 \x01(\x0e2\x1c.api.Experiment.StorageStateR\rstorage_state\"c\n" +
+	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12G\n" +
+	"\x13resource_references\x18\x05 \x03(\v2\x16.api.ResourceReferenceR\x12resourceReferences\x12A\n" +
+	"\rstorage_state\x18\x06 \x01(\x0e2\x1c.api.Experiment.StorageStateR\fstorageState\"c\n" +
 	"\fStorageState\x12\x1c\n" +
 	"\x18STORAGESTATE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16STORAGESTATE_AVAILABLE\x10\x01\x12\x19\n" +

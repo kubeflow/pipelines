@@ -42,7 +42,7 @@ const (
 type Url struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// URL of the pipeline definition or the pipeline version definition.
-	PipelineUrl   string `protobuf:"bytes,1,opt,name=pipeline_url,proto3" json:"pipeline_url,omitempty"`
+	PipelineUrl   string `protobuf:"bytes,1,opt,name=pipeline_url,json=pipelineUrl,proto3" json:"pipeline_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -235,21 +235,21 @@ type ListPipelinesRequest struct {
 	// A page token to request the next page of results. The token is acquried
 	// from the nextPageToken field of the response from the previous
 	// ListPipelines call.
-	PageToken string `protobuf:"bytes,1,opt,name=page_token,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The number of pipelines to be listed per page. If there are more pipelines
 	// than this number, the response message will contain a valid value in the
 	// nextPageToken field.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,proto3" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Can be format of "field_name", "field_name asc" or "field_name desc"
 	// Ascending by default.
-	SortBy string `protobuf:"bytes,3,opt,name=sort_by,proto3" json:"sort_by,omitempty"`
+	SortBy string `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// A url-encoded, JSON-serialized Filter protocol buffer (see
 	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
 	Filter string `protobuf:"bytes,4,opt,name=filter,proto3" json:"filter,omitempty"`
 	// What resource reference to filter on.
 	// For Pipeline, the only valid resource type is Namespace. An sample query string could be
 	// resource_reference_key.type=NAMESPACE&resource_reference_key.id=ns1
-	ResourceReferenceKey *ResourceKey `protobuf:"bytes,5,opt,name=resource_reference_key,proto3" json:"resource_reference_key,omitempty"`
+	ResourceReferenceKey *ResourceKey `protobuf:"bytes,5,opt,name=resource_reference_key,json=resourceReferenceKey,proto3" json:"resource_reference_key,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -323,9 +323,9 @@ type ListPipelinesResponse struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Pipelines []*Pipeline            `protobuf:"bytes,1,rep,name=pipelines,proto3" json:"pipelines,omitempty"`
 	// The total number of pipelines for the given query.
-	TotalSize int32 `protobuf:"varint,3,opt,name=total_size,proto3" json:"total_size,omitempty"`
+	TotalSize int32 `protobuf:"varint,3,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
 	// The token to list the next page of pipelines.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,proto3" json:"next_page_token,omitempty"`
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -713,18 +713,18 @@ func (x *GetPipelineVersionRequest) GetVersionId() string {
 type ListPipelineVersionsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ResourceKey specifies the pipeline whose versions are to be listed.
-	ResourceKey *ResourceKey `protobuf:"bytes,1,opt,name=resource_key,proto3" json:"resource_key,omitempty"`
+	ResourceKey *ResourceKey `protobuf:"bytes,1,opt,name=resource_key,json=resourceKey,proto3" json:"resource_key,omitempty"`
 	// The number of pipeline versions to be listed per page. If there are more
 	// pipeline versions than this number, the response message will contain a
 	// nextPageToken field you can use to fetch the next page.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,proto3" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// A page token to request the next page of results. The token is acquried
 	// from the nextPageToken field of the response from the previous
 	// ListPipelineVersions call or can be omitted when fetching the first page.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// Can be format of "field_name", "field_name asc" or "field_name desc"
 	// Ascending by default.
-	SortBy string `protobuf:"bytes,4,opt,name=sort_by,proto3" json:"sort_by,omitempty"`
+	SortBy string `protobuf:"bytes,4,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// A base-64 encoded, JSON-serialized Filter protocol buffer (see
 	// filter.proto).
 	Filter        string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
@@ -801,9 +801,9 @@ type ListPipelineVersionsResponse struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	Versions []*PipelineVersion     `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
 	// The token to list the next page of pipeline versions.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,proto3" json:"next_page_token,omitempty"`
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	// The total number of pipeline versions for the given query.
-	TotalSize     int32 `protobuf:"varint,3,opt,name=total_size,proto3" json:"total_size,omitempty"`
+	TotalSize     int32 `protobuf:"varint,3,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -909,7 +909,7 @@ type Pipeline struct {
 	// Output. Unique pipeline ID. Generated by API server.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Output. The time this pipeline is created.
-	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,proto3" json:"created_at,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Optional input field. Pipeline name provided by user. If not specified,
 	// file name is used as pipeline name.
 	Name string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
@@ -930,10 +930,10 @@ type Pipeline struct {
 	// Output only. The default version of the pipeline. As of now, the latest
 	// version is used as default. (In the future, if desired by customers, we
 	// can allow them to set default version.)
-	DefaultVersion *PipelineVersion `protobuf:"bytes,8,opt,name=default_version,proto3" json:"default_version,omitempty"`
+	DefaultVersion *PipelineVersion `protobuf:"bytes,8,opt,name=default_version,json=defaultVersion,proto3" json:"default_version,omitempty"`
 	// Input field. Specify which resource this pipeline belongs to.
 	// For Pipeline, the only valid resource reference is a single Namespace.
-	ResourceReferences []*ResourceReference `protobuf:"bytes,9,rep,name=resource_references,proto3" json:"resource_references,omitempty"`
+	ResourceReferences []*ResourceReference `protobuf:"bytes,9,rep,name=resource_references,json=resourceReferences,proto3" json:"resource_references,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -1038,21 +1038,21 @@ type PipelineVersion struct {
 	// Optional input field. Version name provided by user.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// Output. The time this pipeline version is created.
-	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,proto3" json:"created_at,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Output. The input parameters for this pipeline.
 	Parameters []*Parameter `protobuf:"bytes,4,rep,name=parameters,proto3" json:"parameters,omitempty"`
 	// Input. Optional. The URL to the code source of the pipeline version.
 	// The code is usually the Python definition of the pipeline and potentially
 	// the related component definitions. This allows users to trace back to how
 	// the pipeline YAML was created.
-	CodeSourceUrl string `protobuf:"bytes,5,opt,name=code_source_url,proto3" json:"code_source_url,omitempty"`
+	CodeSourceUrl string `protobuf:"bytes,5,opt,name=code_source_url,json=codeSourceUrl,proto3" json:"code_source_url,omitempty"`
 	// Input. Required. The URL to the source of the pipeline version.
 	// This is required when creating the pipeine version through
 	// CreatePipelineVersion API.
-	PackageUrl *Url `protobuf:"bytes,6,opt,name=package_url,proto3" json:"package_url,omitempty"`
+	PackageUrl *Url `protobuf:"bytes,6,opt,name=package_url,json=packageUrl,proto3" json:"package_url,omitempty"`
 	// Input field. Specify which resource this pipeline version belongs to.
 	// For Experiment, the only valid resource reference is a single Namespace.
-	ResourceReferences []*ResourceReference `protobuf:"bytes,7,rep,name=resource_references,proto3" json:"resource_references,omitempty"`
+	ResourceReferences []*ResourceReference `protobuf:"bytes,7,rep,name=resource_references,json=resourceReferences,proto3" json:"resource_references,omitempty"`
 	// Input. Optional. Description for the pipeline version.
 	Description   string `protobuf:"bytes,8,opt,name=description,proto3" json:"description,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1149,9 +1149,9 @@ var File_backend_api_v1beta1_pipeline_proto protoreflect.FileDescriptor
 
 const file_backend_api_v1beta1_pipeline_proto_rawDesc = "" +
 	"\n" +
-	"\"backend/api/v1beta1/pipeline.proto\x12\x03api\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a#backend/api/v1beta1/parameter.proto\x1a,backend/api/v1beta1/resource_reference.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\")\n" +
-	"\x03Url\x12\"\n" +
-	"\fpipeline_url\x18\x01 \x01(\tR\fpipeline_url\"B\n" +
+	"\"backend/api/v1beta1/pipeline.proto\x12\x03api\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a#backend/api/v1beta1/parameter.proto\x1a,backend/api/v1beta1/resource_reference.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"(\n" +
+	"\x03Url\x12!\n" +
+	"\fpipeline_url\x18\x01 \x01(\tR\vpipelineUrl\"B\n" +
 	"\x15CreatePipelineRequest\x12)\n" +
 	"\bpipeline\x18\x01 \x01(\v2\r.api.PipelineR\bpipeline\"e\n" +
 	"#UpdatePipelineDefaultVersionRequest\x12\x1f\n" +
@@ -1160,21 +1160,19 @@ const file_backend_api_v1beta1_pipeline_proto_rawDesc = "" +
 	"\n" +
 	"version_id\x18\x02 \x01(\tR\tversionId\"$\n" +
 	"\x12GetPipelineRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xd0\x01\n" +
-	"\x14ListPipelinesRequest\x12\x1e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xcb\x01\n" +
+	"\x14ListPipelinesRequest\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x01 \x01(\tR\n" +
-	"page_token\x12\x1c\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\tpage_size\x12\x18\n" +
-	"\asort_by\x18\x03 \x01(\tR\asort_by\x12\x16\n" +
-	"\x06filter\x18\x04 \x01(\tR\x06filter\x12H\n" +
-	"\x16resource_reference_key\x18\x05 \x01(\v2\x10.api.ResourceKeyR\x16resource_reference_key\"\x8e\x01\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x17\n" +
+	"\asort_by\x18\x03 \x01(\tR\x06sortBy\x12\x16\n" +
+	"\x06filter\x18\x04 \x01(\tR\x06filter\x12F\n" +
+	"\x16resource_reference_key\x18\x05 \x01(\v2\x10.api.ResourceKeyR\x14resourceReferenceKey\"\x8b\x01\n" +
 	"\x15ListPipelinesResponse\x12+\n" +
-	"\tpipelines\x18\x01 \x03(\v2\r.api.PipelineR\tpipelines\x12\x1e\n" +
+	"\tpipelines\x18\x01 \x03(\v2\r.api.PipelineR\tpipelines\x12\x1d\n" +
 	"\n" +
-	"total_size\x18\x03 \x01(\x05R\n" +
-	"total_size\x12(\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\x0fnext_page_token\"L\n" +
+	"total_size\x18\x03 \x01(\x05R\ttotalSize\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"L\n" +
 	"\x18GetPipelineByNameRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
 	"\tnamespace\x18\x02 \x01(\tR\tnamespace\"'\n" +
@@ -1191,50 +1189,47 @@ const file_backend_api_v1beta1_pipeline_proto_rawDesc = "" +
 	"\aversion\x18\x01 \x01(\v2\x14.api.PipelineVersionR\aversion\":\n" +
 	"\x19GetPipelineVersionRequest\x12\x1d\n" +
 	"\n" +
-	"version_id\x18\x01 \x01(\tR\tversionId\"\xc3\x01\n" +
-	"\x1bListPipelineVersionsRequest\x124\n" +
-	"\fresource_key\x18\x01 \x01(\v2\x10.api.ResourceKeyR\fresource_key\x12\x1c\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\tpage_size\x12\x1e\n" +
+	"version_id\x18\x01 \x01(\tR\tversionId\"\xbf\x01\n" +
+	"\x1bListPipelineVersionsRequest\x123\n" +
+	"\fresource_key\x18\x01 \x01(\v2\x10.api.ResourceKeyR\vresourceKey\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\n" +
-	"page_token\x12\x18\n" +
-	"\asort_by\x18\x04 \x01(\tR\asort_by\x12\x16\n" +
-	"\x06filter\x18\x05 \x01(\tR\x06filter\"\x9a\x01\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x17\n" +
+	"\asort_by\x18\x04 \x01(\tR\x06sortBy\x12\x16\n" +
+	"\x06filter\x18\x05 \x01(\tR\x06filter\"\x97\x01\n" +
 	"\x1cListPipelineVersionsResponse\x120\n" +
-	"\bversions\x18\x01 \x03(\v2\x14.api.PipelineVersionR\bversions\x12(\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\x0fnext_page_token\x12\x1e\n" +
+	"\bversions\x18\x01 \x03(\v2\x14.api.PipelineVersionR\bversions\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1d\n" +
 	"\n" +
-	"total_size\x18\x03 \x01(\x05R\n" +
-	"total_size\"=\n" +
+	"total_size\x18\x03 \x01(\x05R\ttotalSize\"=\n" +
 	"\x1cDeletePipelineVersionRequest\x12\x1d\n" +
 	"\n" +
-	"version_id\x18\x01 \x01(\tR\tversionId\"\xf8\x02\n" +
+	"version_id\x18\x01 \x01(\tR\tversionId\"\xf5\x02\n" +
 	"\bPipeline\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12:\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\n" +
-	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"created_at\x12\x12\n" +
+	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12.\n" +
 	"\n" +
 	"parameters\x18\x05 \x03(\v2\x0e.api.ParameterR\n" +
 	"parameters\x12\x1a\n" +
 	"\x03url\x18\a \x01(\v2\b.api.UrlR\x03url\x12\x14\n" +
-	"\x05error\x18\x06 \x01(\tR\x05error\x12>\n" +
-	"\x0fdefault_version\x18\b \x01(\v2\x14.api.PipelineVersionR\x0fdefault_version\x12H\n" +
-	"\x13resource_references\x18\t \x03(\v2\x16.api.ResourceReferenceR\x13resource_references\"\xe3\x02\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\x12=\n" +
+	"\x0fdefault_version\x18\b \x01(\v2\x14.api.PipelineVersionR\x0edefaultVersion\x12G\n" +
+	"\x13resource_references\x18\t \x03(\v2\x16.api.ResourceReferenceR\x12resourceReferences\"\xde\x02\n" +
 	"\x0fPipelineVersion\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12:\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x129\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"created_at\x12.\n" +
+	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12.\n" +
 	"\n" +
 	"parameters\x18\x04 \x03(\v2\x0e.api.ParameterR\n" +
-	"parameters\x12(\n" +
-	"\x0fcode_source_url\x18\x05 \x01(\tR\x0fcode_source_url\x12*\n" +
-	"\vpackage_url\x18\x06 \x01(\v2\b.api.UrlR\vpackage_url\x12H\n" +
-	"\x13resource_references\x18\a \x03(\v2\x16.api.ResourceReferenceR\x13resource_references\x12 \n" +
+	"parameters\x12&\n" +
+	"\x0fcode_source_url\x18\x05 \x01(\tR\rcodeSourceUrl\x12)\n" +
+	"\vpackage_url\x18\x06 \x01(\v2\b.api.UrlR\n" +
+	"packageUrl\x12G\n" +
+	"\x13resource_references\x18\a \x03(\v2\x16.api.ResourceReferenceR\x12resourceReferences\x12 \n" +
 	"\vdescription\x18\b \x01(\tR\vdescription2\x9e\f\n" +
 	"\x0fPipelineService\x12h\n" +
 	"\x10CreatePipelineV1\x12\x1a.api.CreatePipelineRequest\x1a\r.api.Pipeline\")\x82\xd3\xe4\x93\x02#:\bpipeline\"\x17/apis/v1beta1/pipelines\x12]\n" +
