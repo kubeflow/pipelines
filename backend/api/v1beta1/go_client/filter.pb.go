@@ -249,34 +249,34 @@ type isPredicate_Value interface {
 }
 
 type Predicate_IntValue struct {
-	IntValue int32 `protobuf:"varint,3,opt,name=int_value,proto3,oneof"`
+	IntValue int32 `protobuf:"varint,3,opt,name=int_value,json=intValue,proto3,oneof"`
 }
 
 type Predicate_LongValue struct {
-	LongValue int64 `protobuf:"varint,4,opt,name=long_value,proto3,oneof"`
+	LongValue int64 `protobuf:"varint,4,opt,name=long_value,json=longValue,proto3,oneof"`
 }
 
 type Predicate_StringValue struct {
-	StringValue string `protobuf:"bytes,5,opt,name=string_value,proto3,oneof"`
+	StringValue string `protobuf:"bytes,5,opt,name=string_value,json=stringValue,proto3,oneof"`
 }
 
 type Predicate_TimestampValue struct {
 	// Timestamp values will be converted to Unix time (seconds since the epoch)
 	// prior to being used in a filtering operation.
-	TimestampValue *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=timestamp_value,proto3,oneof"`
+	TimestampValue *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=timestamp_value,json=timestampValue,proto3,oneof"`
 }
 
 type Predicate_IntValues struct {
 	// Array values below are only meant to be used by the IN operator.
-	IntValues *IntValues `protobuf:"bytes,7,opt,name=int_values,proto3,oneof"`
+	IntValues *IntValues `protobuf:"bytes,7,opt,name=int_values,json=intValues,proto3,oneof"`
 }
 
 type Predicate_LongValues struct {
-	LongValues *LongValues `protobuf:"bytes,8,opt,name=long_values,proto3,oneof"`
+	LongValues *LongValues `protobuf:"bytes,8,opt,name=long_values,json=longValues,proto3,oneof"`
 }
 
 type Predicate_StringValues struct {
-	StringValues *StringValues `protobuf:"bytes,9,opt,name=string_values,proto3,oneof"`
+	StringValues *StringValues `protobuf:"bytes,9,opt,name=string_values,json=stringValues,proto3,oneof"`
 }
 
 func (*Predicate_IntValue) isPredicate_Value() {}
@@ -516,21 +516,20 @@ var File_backend_api_v1beta1_filter_proto protoreflect.FileDescriptor
 
 const file_backend_api_v1beta1_filter_proto_rawDesc = "" +
 	"\n" +
-	" backend/api/v1beta1/filter.proto\x12\x03api\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb5\x04\n" +
+	" backend/api/v1beta1/filter.proto\x12\x03api\x1a\x1fgoogle/protobuf/timestamp.proto\"\xae\x04\n" +
 	"\tPredicate\x12!\n" +
 	"\x02op\x18\x01 \x01(\x0e2\x11.api.Predicate.OpR\x02op\x12\x10\n" +
-	"\x03key\x18\x02 \x01(\tR\x03key\x12\x1e\n" +
-	"\tint_value\x18\x03 \x01(\x05H\x00R\tint_value\x12 \n" +
+	"\x03key\x18\x02 \x01(\tR\x03key\x12\x1d\n" +
+	"\tint_value\x18\x03 \x01(\x05H\x00R\bintValue\x12\x1f\n" +
 	"\n" +
-	"long_value\x18\x04 \x01(\x03H\x00R\n" +
-	"long_value\x12$\n" +
-	"\fstring_value\x18\x05 \x01(\tH\x00R\fstring_value\x12F\n" +
-	"\x0ftimestamp_value\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x0ftimestamp_value\x120\n" +
+	"long_value\x18\x04 \x01(\x03H\x00R\tlongValue\x12#\n" +
+	"\fstring_value\x18\x05 \x01(\tH\x00R\vstringValue\x12E\n" +
+	"\x0ftimestamp_value\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\x0etimestampValue\x12/\n" +
 	"\n" +
-	"int_values\x18\a \x01(\v2\x0e.api.IntValuesH\x00R\n" +
-	"int_values\x123\n" +
-	"\vlong_values\x18\b \x01(\v2\x0f.api.LongValuesH\x00R\vlong_values\x129\n" +
-	"\rstring_values\x18\t \x01(\v2\x11.api.StringValuesH\x00R\rstring_values\"\x97\x01\n" +
+	"int_values\x18\a \x01(\v2\x0e.api.IntValuesH\x00R\tintValues\x122\n" +
+	"\vlong_values\x18\b \x01(\v2\x0f.api.LongValuesH\x00R\n" +
+	"longValues\x128\n" +
+	"\rstring_values\x18\t \x01(\v2\x11.api.StringValuesH\x00R\fstringValues\"\x97\x01\n" +
 	"\x02Op\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\n" +
 	"\n" +

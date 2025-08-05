@@ -38,8 +38,8 @@ const (
 
 type Error struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ErrorMessage  string                 `protobuf:"bytes,1,opt,name=error_message,proto3" json:"error_message,omitempty"`
-	ErrorDetails  string                 `protobuf:"bytes,2,opt,name=error_details,proto3" json:"error_details,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,1,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	ErrorDetails  string                 `protobuf:"bytes,2,opt,name=error_details,json=errorDetails,proto3" json:"error_details,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -152,10 +152,10 @@ var File_backend_api_v1beta1_error_proto protoreflect.FileDescriptor
 
 const file_backend_api_v1beta1_error_proto_rawDesc = "" +
 	"\n" +
-	"\x1fbackend/api/v1beta1/error.proto\x12\x03api\x1a\x19google/protobuf/any.proto\"S\n" +
-	"\x05Error\x12$\n" +
-	"\rerror_message\x18\x01 \x01(\tR\rerror_message\x12$\n" +
-	"\rerror_details\x18\x02 \x01(\tR\rerror_details\"b\n" +
+	"\x1fbackend/api/v1beta1/error.proto\x12\x03api\x1a\x19google/protobuf/any.proto\"Q\n" +
+	"\x05Error\x12#\n" +
+	"\rerror_message\x18\x01 \x01(\tR\ferrorMessage\x12#\n" +
+	"\rerror_details\x18\x02 \x01(\tR\ferrorDetails\"b\n" +
 	"\x06Status\x12\x14\n" +
 	"\x05error\x18\x01 \x01(\tR\x05error\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\x05R\x04code\x12.\n" +

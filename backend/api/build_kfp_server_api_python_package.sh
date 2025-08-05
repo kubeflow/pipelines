@@ -58,6 +58,10 @@ java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/$API_VERSION/pytho
     "packageUrl": "https://github.com/kubeflow/pipelines"
 }')
 
+echo "Removing unnecessary GitLab and TravisCI generated files"
+rm $CURRENT_DIR/$API_VERSION/python_http_client/.gitlab-ci.yml
+rm $CURRENT_DIR/$API_VERSION/python_http_client/.travis.yml
+
 echo "Copying LICENSE to $DIR"
 cp "$CURRENT_DIR/../../LICENSE" "$DIR"
 

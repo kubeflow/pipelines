@@ -85,7 +85,7 @@ func (x *ReportWorkflowRequest) GetWorkflow() string {
 type ReportScheduledWorkflowRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string.
-	ScheduledWorkflow string `protobuf:"bytes,1,opt,name=scheduled_workflow,proto3" json:"scheduled_workflow,omitempty"`
+	ScheduledWorkflow string `protobuf:"bytes,1,opt,name=scheduled_workflow,json=scheduledWorkflow,proto3" json:"scheduled_workflow,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -133,9 +133,9 @@ const file_backend_api_v1beta1_report_proto_rawDesc = "" +
 	"\n" +
 	" backend/api/v1beta1/report.proto\x12\x03api\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\"3\n" +
 	"\x15ReportWorkflowRequest\x12\x1a\n" +
-	"\bworkflow\x18\x01 \x01(\tR\bworkflow\"P\n" +
-	"\x1eReportScheduledWorkflowRequest\x12.\n" +
-	"\x12scheduled_workflow\x18\x01 \x01(\tR\x12scheduled_workflow2\x9b\x02\n" +
+	"\bworkflow\x18\x01 \x01(\tR\bworkflow\"O\n" +
+	"\x1eReportScheduledWorkflowRequest\x12-\n" +
+	"\x12scheduled_workflow\x18\x01 \x01(\tR\x11scheduledWorkflow2\x9b\x02\n" +
 	"\rReportService\x12q\n" +
 	"\x10ReportWorkflowV1\x12\x1a.api.ReportWorkflowRequest\x1a\x16.google.protobuf.Empty\")\x82\xd3\xe4\x93\x02#:\bworkflow\"\x17/apis/v1beta1/workflows\x12\x96\x01\n" +
 	"\x19ReportScheduledWorkflowV1\x12#.api.ReportScheduledWorkflowRequest\x1a\x16.google.protobuf.Empty\"<\x82\xd3\xe4\x93\x026:\x12scheduled_workflow\" /apis/v1beta1/scheduledworkflowsB=Z;github.com/kubeflow/pipelines/backend/api/v1beta1/go_clientb\x06proto3"
