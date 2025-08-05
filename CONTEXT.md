@@ -359,3 +359,84 @@ if actualExecutedTasks > 0 {
 - ✅ **Test Infrastructure**: Proper isolation and validation
 
 **The original DAG completion logic fixes were correct and working properly. The issue was test expectations not matching the actual KFP v2 execution model.**
+
+## **Phase 3 Plan: Fix ParallelFor Parent DAG Completion Logic** 🎯
+
+### **Problem Analysis**
+
+ParallelFor parent DAGs remain in RUNNING state even when all child iteration DAGs complete. Current issues:
+
+1. **Parent DAG Completion**: Parent DAGs don't transition to COMPLETE when all iterations finish
+2. **Task Counting**: `total_dag_tasks` should equal `iteration_count` but shows incorrect values
+3. **Child DAG Detection**: Parent completion logic may not properly detect completed child DAGs
+
+### **Detailed Implementation Plan**
+
+#### **Phase 3 Task 1: Analyze ParallelFor DAG Structure** 
+**Goal**: Understand how ParallelFor creates DAG hierarchies and what should trigger completion
+
+**Actions**:
+1. **Run ParallelFor integration test** to see current behavior
+2. **Examine MLMD structure** for ParallelFor runs:
+   - Identify parent DAG vs iteration DAG properties  
+   - Check parent-child relationships
+   - Validate `iteration_count` vs `iteration_index` usage
+3. **Review ParallelFor YAML structure** to understand expected execution flow
+4. **Debug current `isParallelForParentDAG()` detection logic**
+
+#### **Phase 3 Task 2: Debug Parent DAG Completion Detection**
+**Goal**: Identify why parent DAGs don't complete when child iterations finish
+
+**Actions**:
+1. **Add comprehensive debug logging** to ParallelFor completion logic
+2. **Trace `GetExecutionsInDAG()` behavior** for parent DAGs:
+   - Check if child DAG executions are properly returned
+   - Verify filtering logic doesn't exclude child DAGs
+3. **Debug child DAG counting logic**:
+   - Verify `dagExecutions` count is correct
+   - Check `completedChildDags` calculation  
+4. **Test parent-child DAG relationship queries**
+
+#### **Phase 3 Task 3: Fix ParallelFor Parent Completion Logic**
+**Goal**: Implement correct completion detection for ParallelFor parent DAGs
+
+**Actions**:
+1. **Fix child DAG detection** if `GetExecutionsInDAG()` isn't returning child DAGs properly
+2. **Correct completion criteria**:
+   - Ensure parent completes when ALL child iteration DAGs are complete
+   - Handle edge cases (0 iterations, failed iterations)
+3. **Fix `total_dag_tasks` calculation** for ParallelFor parent DAGs:
+   - Should equal `iteration_count`, not a fixed value
+4. **Update parent completion logic** to properly count completed child DAGs
+
+#### **Phase 3 Task 4: Test and Validate Fix**
+**Goal**: Ensure ParallelFor completion works correctly
+
+**Actions**:
+1. **Run single ParallelFor test** to verify fix works
+2. **Test edge cases**:
+   - Dynamic iteration counts (2, 5, 10 iterations)
+   - Failed iterations
+   - Zero iterations  
+3. **Validate MLMD state consistency**:
+   - Parent DAG reaches `COMPLETE` state
+   - `total_dag_tasks` equals `iteration_count`
+4. **Run full test suite** to ensure no regressions
+
+### **Success Criteria**
+
+- [ ] ParallelFor parent DAGs transition from `RUNNING` → `COMPLETE` when all child iterations finish
+- [ ] `total_dag_tasks` equals `iteration_count` for ParallelFor parent DAGs
+- [ ] ParallelFor integration tests pass consistently  
+- [ ] Dynamic iteration counts work correctly (2, 5, 10 iterations)
+- [ ] Failed iterations cause parent DAG to transition to `FAILED` state
+- [ ] No regression in conditional DAG logic or other DAG types
+
+### **Expected Implementation Areas**
+
+1. **`isParallelForParentDAG()` detection** (lines 1052-1057 in client.go)
+2. **Parent DAG completion logic** (lines 898-914 in client.go)
+3. **`GetExecutionsInDAG()` filtering** for child DAG relationships  
+4. **Task counting logic** for ParallelFor parent DAGs (lines 830-870 in client.go)
+
+This approach will systematically identify and fix the root cause of ParallelFor parent DAG completion issues, similar to how we successfully resolved the conditional DAG problems.
