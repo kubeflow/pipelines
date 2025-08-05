@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.runtime_error import RuntimeError  # noqa: E501
+from kfp_server_api.models.run_service_report_run_metrics_v1_body import RunServiceReportRunMetricsV1Body  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestRuntimeError(unittest.TestCase):
-    """RuntimeError unit test stubs"""
+class TestRunServiceReportRunMetricsV1Body(unittest.TestCase):
+    """RunServiceReportRunMetricsV1Body unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,28 +29,27 @@ class TestRuntimeError(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test RuntimeError
+        """Test RunServiceReportRunMetricsV1Body
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.runtime_error.RuntimeError()  # noqa: E501
+        # model = kfp_server_api.models.run_service_report_run_metrics_v1_body.RunServiceReportRunMetricsV1Body()  # noqa: E501
         if include_optional :
-            return RuntimeError(
-                error = '0', 
-                code = 56, 
-                message = '0', 
-                details = [
-                    kfp_server_api.models.protobuf_any.protobufAny(
-                        type_url = '0', 
-                        value = 'YQ==', )
+            return RunServiceReportRunMetricsV1Body(
+                metrics = [
+                    kfp_server_api.models.api_run_metric.apiRunMetric(
+                        name = '0', 
+                        node_id = '0', 
+                        number_value = 1.337, 
+                        format = 'UNSPECIFIED', )
                     ]
             )
         else :
-            return RuntimeError(
+            return RunServiceReportRunMetricsV1Body(
         )
 
-    def testRuntimeError(self):
-        """Test RuntimeError"""
+    def testRunServiceReportRunMetricsV1Body(self):
+        """Test RunServiceReportRunMetricsV1Body"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

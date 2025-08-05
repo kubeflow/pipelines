@@ -33,24 +33,29 @@ class V2beta1GetHealthzResponse(object):
                             and the value is json key in definition.
     """
     openapi_types = {
-        'multi_user': 'bool'
+        'multi_user': 'bool',
+        'pipeline_store': 'str'
     }
 
     attribute_map = {
-        'multi_user': 'multi_user'
+        'multi_user': 'multi_user',
+        'pipeline_store': 'pipeline_store'
     }
 
-    def __init__(self, multi_user=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, multi_user=None, pipeline_store=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1GetHealthzResponse - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
         self.local_vars_configuration = local_vars_configuration
 
         self._multi_user = None
+        self._pipeline_store = None
         self.discriminator = None
 
         if multi_user is not None:
             self.multi_user = multi_user
+        if pipeline_store is not None:
+            self.pipeline_store = pipeline_store
 
     @property
     def multi_user(self):
@@ -74,6 +79,27 @@ class V2beta1GetHealthzResponse(object):
         """
 
         self._multi_user = multi_user
+
+    @property
+    def pipeline_store(self):
+        """Gets the pipeline_store of this V2beta1GetHealthzResponse.  # noqa: E501
+
+
+        :return: The pipeline_store of this V2beta1GetHealthzResponse.  # noqa: E501
+        :rtype: str
+        """
+        return self._pipeline_store
+
+    @pipeline_store.setter
+    def pipeline_store(self, pipeline_store):
+        """Sets the pipeline_store of this V2beta1GetHealthzResponse.
+
+
+        :param pipeline_store: The pipeline_store of this V2beta1GetHealthzResponse.  # noqa: E501
+        :type pipeline_store: str
+        """
+
+        self._pipeline_store = pipeline_store
 
     def to_dict(self):
         """Returns the model properties as a dict"""
