@@ -282,6 +282,75 @@ func (e *Execution) FingerPrint() string {
 	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
 }
 
+// GetType returns the execution type name. Since the protobuf Type field is often empty,
+// this method attempts to determine the type from available information.
+func (e *Execution) GetType() string {
+	if e == nil || e.execution == nil {
+		glog.V(4).Infof("DEBUG GetType: execution is nil")
+		return ""
+	}
+	
+	// First try the protobuf Type field (this is the preferred method)
+	if e.execution.Type != nil && *e.execution.Type != "" {
+		glog.V(4).Infof("DEBUG GetType: using protobuf Type field: %s", *e.execution.Type)
+		return *e.execution.Type
+	}
+	
+	// Fallback: try to determine type from context
+	// This is a heuristic approach for when the Type field is not populated
+	glog.V(4).Infof("DEBUG GetType: protobuf Type field empty, using heuristics")
+	
+	// Check for DAG-specific properties to identify DAG executions
+	if props := e.execution.GetCustomProperties(); props != nil {
+		glog.V(4).Infof("DEBUG GetType: checking custom properties: %v", getPropertyKeys(props))
+		
+		// DAG executions often have iteration_count, total_dag_tasks, or parent_dag_id properties
+		if _, hasIterationCount := props["iteration_count"]; hasIterationCount {
+			glog.V(4).Infof("DEBUG GetType: detected DAG execution (has iteration_count)")
+			return string(DagExecutionTypeName)
+		}
+		if _, hasTotalDagTasks := props["total_dag_tasks"]; hasTotalDagTasks {
+			glog.V(4).Infof("DEBUG GetType: detected DAG execution (has total_dag_tasks)")
+			return string(DagExecutionTypeName)
+		}
+		if _, hasParentDagId := props["parent_dag_id"]; hasParentDagId {
+			// This could be either a DAG or a Container execution that's part of a DAG
+			// Check for other indicators
+			glog.V(4).Infof("DEBUG GetType: has parent_dag_id, checking other indicators")
+		}
+		
+		// Container executions typically have pod-related properties
+		if _, hasPodName := props["pod_name"]; hasPodName {
+			glog.V(4).Infof("DEBUG GetType: detected Container execution (has pod_name)")
+			return string(ContainerExecutionTypeName)
+		}
+		if _, hasPodUID := props["pod_uid"]; hasPodUID {
+			glog.V(4).Infof("DEBUG GetType: detected Container execution (has pod_uid)")
+			return string(ContainerExecutionTypeName)
+		}
+		if _, hasImage := props["image"]; hasImage {
+			glog.V(4).Infof("DEBUG GetType: detected Container execution (has image)")
+			return string(ContainerExecutionTypeName)
+		}
+	} else {
+		glog.V(4).Infof("DEBUG GetType: no custom properties found")
+	}
+	
+	// Ultimate fallback: return the protobuf Type field even if empty
+	fallback := e.execution.GetType()
+	glog.V(4).Infof("DEBUG GetType: using fallback: %s", fallback)
+	return fallback
+}
+
+// Helper function to get property keys for debugging
+func getPropertyKeys(props map[string]*pb.Value) []string {
+	keys := make([]string, 0, len(props))
+	for k := range props {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 // GetTaskNameWithDagID appends the taskName with its parent dag id. This is
 // used to help avoid collisions when creating the taskMap for downstream input
 // resolution.
@@ -716,10 +785,22 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	glog.V(4).Infof("Checking Tasks' State")
 	completedTasks := 0
 	failedTasks := 0
+	runningTasks := 0
+	dagExecutions := 0
+	
 	for _, task := range tasks {
 		taskState := task.GetExecution().LastKnownState.String()
+		taskType := task.GetType() // Use wrapper's GetType() method instead of protobuf's
 		glog.V(4).Infof("task: %s", task.TaskName())
 		glog.V(4).Infof("task state: %s", taskState)
+		glog.V(4).Infof("task type: %s", taskType)
+		
+		// Track DAG executions separately (for nested structures)
+		if taskType == "system.DAGExecution" {
+			dagExecutions++
+			continue
+		}
+		
 		switch taskState {
 		case "FAILED":
 			failedTasks++
@@ -729,21 +810,216 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 			completedTasks++
 		case "CANCELED":
 			completedTasks++
+		case "RUNNING":
+			runningTasks++
 		}
 	}
+	
+	// FIX: For conditional DAGs, adjust total_dag_tasks to only count executed branches
+	isConditionalDAG := c.isConditionalDAG(dag, tasks)
+	glog.Infof("DAG %d: isConditionalDAG=%v, totalDagTasks=%d, tasks=%d", dag.Execution.GetID(), isConditionalDAG, totalDagTasks, len(tasks))
+	if isConditionalDAG {
+		// For conditional DAGs, count only the branches that actually executed or are running
+		executedOrRunningTasks := completedTasks + failedTasks + runningTasks
+		
+		// If we have executed tasks, use that count. If no tasks yet, wait for them to start
+		if executedOrRunningTasks > 0 {
+			totalDagTasks = int64(executedOrRunningTasks)
+			glog.Infof("Conditional DAG: Adjusted totalDagTasks to %d (executed/running branches)", totalDagTasks)
+		} else if totalDagTasks == 0 {
+			// No tasks executed yet - set to 1 as minimum expectation for conditionals
+			totalDagTasks = 1
+			glog.Infof("Conditional DAG: Set totalDagTasks to 1 (waiting for branch execution)")
+		}
+		
+		// Update the stored total_dag_tasks value
+		if dag.Execution.execution.CustomProperties == nil {
+			dag.Execution.execution.CustomProperties = make(map[string]*pb.Value)
+		}
+		dag.Execution.execution.CustomProperties["total_dag_tasks"] = &pb.Value{
+			Value: &pb.Value_IntValue{IntValue: totalDagTasks},
+		}
+	}
+	
 	glog.V(4).Infof("completedTasks: %d", completedTasks)
 	glog.V(4).Infof("failedTasks: %d", failedTasks)
+	glog.V(4).Infof("runningTasks: %d", runningTasks)
 	glog.V(4).Infof("totalTasks: %d", totalDagTasks)
 
 	glog.Infof("Attempting to update DAG state")
-	if completedTasks == int(totalDagTasks) {
-		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_COMPLETE)
-	} else if failedTasks > 0 {
-		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_FAILED)
+	var newState pb.Execution_State
+	var stateChanged bool
+	
+	// Check for special DAG types that need different completion logic
+	isParallelForIterationDAG := c.isParallelForIterationDAG(dag)
+	isParallelForParentDAG := c.isParallelForParentDAG(dag)
+	
+	// UNIVERSAL RULE: Any DAG with no tasks and nothing running should complete
+	if totalDagTasks == 0 && runningTasks == 0 {
+		newState = pb.Execution_COMPLETE
+		stateChanged = true
+		glog.Infof("DAG %d completed: no tasks defined and nothing running (universal completion rule)", dag.Execution.GetID())
+	} else if isParallelForIterationDAG {
+		// ParallelFor iteration DAGs should complete immediately if no tasks are running
+		// These are typically empty placeholder DAGs representing individual iterations
+		if runningTasks == 0 {
+			newState = pb.Execution_COMPLETE
+			stateChanged = true
+			glog.Infof("ParallelFor iteration DAG %d completed (no running tasks)", dag.Execution.GetID())
+		}
+	} else if isParallelForParentDAG {
+		// ParallelFor parent DAGs complete when all child DAGs are complete
+		childDagCount := dagExecutions
+		completedChildDags := 0
+		for _, task := range tasks {
+			if task.GetType() == "system.DAGExecution" && 
+			   task.GetExecution().LastKnownState.String() == "COMPLETE" {
+				completedChildDags++
+			}
+		}
+		
+		if completedChildDags == childDagCount && childDagCount > 0 {
+			newState = pb.Execution_COMPLETE
+			stateChanged = true
+			glog.Infof("ParallelFor parent DAG %d completed: %d/%d child DAGs finished", 
+				dag.Execution.GetID(), completedChildDags, childDagCount)
+		}
+	} else if isConditionalDAG {
+		// For conditional DAGs, complete when all executed branches are done
+		// If no tasks have executed yet but nothing is running, complete immediately  
+		if runningTasks == 0 && (completedTasks > 0 || totalDagTasks == 0) {
+			newState = pb.Execution_COMPLETE
+			stateChanged = true
+			glog.Infof("Conditional DAG %d completed: %d tasks completed, %d running", 
+				dag.Execution.GetID(), completedTasks, runningTasks)
+		}
 	} else {
-		glog.V(4).Infof("DAG is still running")
+		// Standard DAG completion logic
+		if completedTasks == int(totalDagTasks) {
+			newState = pb.Execution_COMPLETE
+			stateChanged = true
+			glog.Infof("Standard DAG %d completed: %d/%d tasks finished", dag.Execution.GetID(), completedTasks, totalDagTasks)
+		}
 	}
+	
+	// Check for failures regardless of DAG type
+	if !stateChanged && failedTasks > 0 {
+		newState = pb.Execution_FAILED
+		stateChanged = true
+		glog.Infof("DAG %d failed: %d tasks failed", dag.Execution.GetID(), failedTasks)
+	}
+	
+	if !stateChanged {
+		glog.V(4).Infof("DAG %d is still running: %d/%d tasks completed, %d running", 
+			dag.Execution.GetID(), completedTasks, totalDagTasks, runningTasks)
+	}
+	
+	if stateChanged {
+		err := c.PutDAGExecutionState(ctx, dag.Execution.GetID(), newState)
+		if err != nil {
+			return err
+		}
+		
+		// FIX: Recursively propagate status updates up the DAG hierarchy
+		// This addresses the core issue where updates only go one level up
+		c.propagateDAGStateUp(ctx, dag.Execution.GetID())
+	}
+	
 	return nil
+}
+
+// propagateDAGStateUp recursively updates parent DAGs up the hierarchy
+// until reaching a DAG that still has pending tasks
+func (c *Client) propagateDAGStateUp(ctx context.Context, completedDAGID int64) {
+	// Get the completed DAG to find its parent
+	completedExecution, err := c.GetExecution(ctx, completedDAGID)
+	if err != nil {
+		glog.Errorf("Failed to get completed DAG execution %d: %v", completedDAGID, err)
+		return
+	}
+	
+	// Check if this DAG has a parent
+	parentDagIDProperty := completedExecution.execution.CustomProperties["parent_dag_id"]
+	if parentDagIDProperty == nil || parentDagIDProperty.GetIntValue() == 0 {
+		glog.V(4).Infof("DAG %d has no parent, stopping propagation", completedDAGID)
+		return
+	}
+	
+	parentDagID := parentDagIDProperty.GetIntValue()
+	glog.Infof("Propagating status from completed DAG %d to parent DAG %d", completedDAGID, parentDagID)
+	
+	// Get the parent DAG
+	parentDAG, err := c.GetDAG(ctx, parentDagID)
+	if err != nil {
+		glog.Errorf("Failed to get parent DAG %d: %v", parentDagID, err)
+		return
+	}
+	
+	// Get pipeline context for the parent DAG
+	parentPipeline, err := c.GetPipelineFromExecution(ctx, parentDAG.Execution.GetID())
+	if err != nil {
+		glog.Errorf("Failed to get pipeline for parent DAG %d: %v", parentDagID, err)
+		return
+	}
+	
+	// Update the parent DAG state
+	glog.Infof("Updating parent DAG %d state", parentDagID)
+	err = c.UpdateDAGExecutionsState(ctx, parentDAG, parentPipeline)
+	if err != nil {
+		glog.Errorf("Failed to update parent DAG %d state: %v", parentDagID, err)
+		return
+	}
+	
+	// The recursive call will happen automatically if the parent DAG also completes
+	// due to the stateChanged check in UpdateDAGExecutionsState
+}
+
+// isConditionalDAG determines if a DAG represents a conditional construct
+// by looking for conditional patterns in the DAG's own task name or task names within it
+func (c *Client) isConditionalDAG(dag *DAG, tasks map[string]*Execution) bool {
+	glog.Infof("DAG %d: Checking if conditional with %d tasks", dag.Execution.GetID(), len(tasks))
+	
+	// First, check the DAG's own task name (this is the most reliable indicator)
+	dagTaskName := dag.Execution.TaskName()
+	glog.Infof("DAG %d: DAG task name=%s", dag.Execution.GetID(), dagTaskName)
+	if strings.Contains(dagTaskName, "condition-") || 
+	   strings.Contains(dagTaskName, "-condition") ||
+	   strings.Contains(dagTaskName, "conditional-") {
+		glog.Infof("DAG %d: Found conditional pattern in DAG task name %s", dag.Execution.GetID(), dagTaskName)
+		return true
+	}
+	
+	// Also check tasks within the DAG for conditional patterns (backup detection)
+	for taskName, task := range tasks {
+		actualTaskName := task.TaskName()
+		glog.Infof("DAG %d: Task key=%s, taskName=%s", dag.Execution.GetID(), taskName, actualTaskName)
+		// Check for conditional task patterns (if, else, elif branches)
+		if strings.Contains(actualTaskName, "-if-") || 
+		   strings.Contains(actualTaskName, "-else-") || 
+		   strings.Contains(actualTaskName, "-elif-") ||
+		   strings.Contains(actualTaskName, "condition-") {
+			glog.Infof("DAG %d: Found conditional pattern in task %s", dag.Execution.GetID(), actualTaskName)
+			return true
+		}
+	}
+	glog.Infof("DAG %d: No conditional patterns found, not a conditional DAG", dag.Execution.GetID())
+	return false
+}
+
+// isParallelForIterationDAG checks if this is an individual iteration of a ParallelFor
+func (c *Client) isParallelForIterationDAG(dag *DAG) bool {
+	props := dag.Execution.execution.CustomProperties
+	return props["iteration_count"] != nil && 
+		   props["iteration_index"] != nil &&
+		   props["iteration_index"].GetIntValue() >= 0
+}
+
+// isParallelForParentDAG checks if this is a parent ParallelFor DAG that fans out iterations
+func (c *Client) isParallelForParentDAG(dag *DAG) bool {
+	props := dag.Execution.execution.CustomProperties
+	return props["iteration_count"] != nil && 
+		   props["iteration_count"].GetIntValue() > 0 &&
+		   (props["iteration_index"] == nil || props["iteration_index"].GetIntValue() < 0)
 }
 
 // PutDAGExecutionState updates the given DAG Id to the state provided.
