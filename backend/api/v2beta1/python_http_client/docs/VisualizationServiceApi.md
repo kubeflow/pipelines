@@ -8,7 +8,7 @@ Method | HTTP request | Description
 
 
 # **visualization_service_create_visualization_v1**
-> V2beta1Visualization visualization_service_create_visualization_v1(namespace, body)
+> V2beta1Visualization visualization_service_create_visualization_v1(namespace, visualization)
 
 
 
@@ -47,10 +47,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.VisualizationServiceApi(api_client)
     namespace = 'namespace_example' # str | 
-body = kfp_server_api.V2beta1Visualization() # V2beta1Visualization | 
+visualization = kfp_server_api.V2beta1Visualization() # V2beta1Visualization | 
 
     try:
-        api_response = api_instance.visualization_service_create_visualization_v1(namespace, body)
+        api_response = api_instance.visualization_service_create_visualization_v1(namespace, visualization)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling VisualizationServiceApi->visualization_service_create_visualization_v1: %s\n" % e)
@@ -61,7 +61,7 @@ body = kfp_server_api.V2beta1Visualization() # V2beta1Visualization |
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **namespace** | **str**|  | 
- **body** | [**V2beta1Visualization**](V2beta1Visualization.md)|  | 
+ **visualization** | [**V2beta1Visualization**](V2beta1Visualization.md)|  | 
 
 ### Return type
 

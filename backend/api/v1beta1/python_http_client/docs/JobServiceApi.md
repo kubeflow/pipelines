@@ -13,7 +13,7 @@ Method | HTTP request | Description
 
 
 # **job_service_create_job**
-> ApiJob job_service_create_job(body)
+> ApiJob job_service_create_job(job)
 
 Creates a new job.
 
@@ -51,11 +51,11 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.JobServiceApi(api_client)
-    body = kfp_server_api.ApiJob() # ApiJob | The job to be created
+    job = kfp_server_api.ApiJob() # ApiJob | The job to be created
 
     try:
         # Creates a new job.
-        api_response = api_instance.job_service_create_job(body)
+        api_response = api_instance.job_service_create_job(job)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling JobServiceApi->job_service_create_job: %s\n" % e)
@@ -65,7 +65,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**ApiJob**](ApiJob.md)| The job to be created | 
+ **job** | [**ApiJob**](ApiJob.md)| The job to be created | 
 
 ### Return type
 

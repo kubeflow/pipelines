@@ -424,7 +424,7 @@ class V2beta1PipelineTaskDetail(object):
     def state_history(self):
         """Gets the state_history of this V2beta1PipelineTaskDetail.  # noqa: E501
 
-        A sequence of task statuses. This field keeps a record  of state transitions.  # noqa: E501
+        A sequence of task statuses. This field keeps a record of state transitions.  # noqa: E501
 
         :return: The state_history of this V2beta1PipelineTaskDetail.  # noqa: E501
         :rtype: list[V2beta1RuntimeStatus]
@@ -435,7 +435,7 @@ class V2beta1PipelineTaskDetail(object):
     def state_history(self, state_history):
         """Sets the state_history of this V2beta1PipelineTaskDetail.
 
-        A sequence of task statuses. This field keeps a record  of state transitions.  # noqa: E501
+        A sequence of task statuses. This field keeps a record of state transitions.  # noqa: E501
 
         :param state_history: The state_history of this V2beta1PipelineTaskDetail.  # noqa: E501
         :type state_history: list[V2beta1RuntimeStatus]

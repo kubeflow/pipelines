@@ -45,11 +45,11 @@ class AuthServiceApi(object):
         >>> thread = api.auth_service_authorize(async_req=True)
         >>> result = thread.get()
 
-        :param namespace:
+        :param namespace: Namespace the resource belongs to.
         :type namespace: str
-        :param resources:
+        :param resources: Resource type asking for authorization.
         :type resources: str
-        :param verb:
+        :param verb: Verb on the resource asking for authorization.
         :type verb: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -77,11 +77,11 @@ class AuthServiceApi(object):
         >>> thread = api.auth_service_authorize_with_http_info(async_req=True)
         >>> result = thread.get()
 
-        :param namespace:
+        :param namespace: Namespace the resource belongs to.
         :type namespace: str
-        :param resources:
+        :param resources: Resource type asking for authorization.
         :type resources: str
-        :param verb:
+        :param verb: Verb on the resource asking for authorization.
         :type verb: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional

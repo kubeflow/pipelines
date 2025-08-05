@@ -52,7 +52,7 @@ class TestPipelineServiceApi(unittest.TestCase):
     def test_pipeline_service_delete_pipeline(self):
         """Test case for pipeline_service_delete_pipeline
 
-        Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.  # noqa: E501
+        Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.  # noqa: E501
         """
         pass
 

@@ -36,7 +36,8 @@ class TestV2beta1GetHealthzResponse(unittest.TestCase):
         # model = kfp_server_api.models.v2beta1_get_healthz_response.V2beta1GetHealthzResponse()  # noqa: E501
         if include_optional :
             return V2beta1GetHealthzResponse(
-                multi_user = True
+                multi_user = True, 
+                pipeline_store = '0'
             )
         else :
             return V2beta1GetHealthzResponse(
