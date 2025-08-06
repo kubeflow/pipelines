@@ -20,7 +20,6 @@ jobs:
   samples:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
         include:
           - k8s_version: "v1.29.2"
