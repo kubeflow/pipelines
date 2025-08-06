@@ -21,10 +21,6 @@ import subprocess
 from typing import List
 import unittest
 import uuid
-
-import collected_parameters
-import component_with_optional_inputs
-import hello_world
 import kfp
 from kfp.dsl.graph_component import GraphComponent
 from kubernetes import client
