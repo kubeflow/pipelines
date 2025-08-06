@@ -483,7 +483,12 @@ func (c *Client) shouldApplyDynamicTaskCountingTest(dag *DAG, tasks map[string]*
 // Test method that simulates the completion logic
 func (c *Client) testDAGCompletion(dag *DAG, tasks map[string]*Execution) completionResult {
 	// Simulate the counting logic from UpdateDAGExecutionsState
-	totalDagTasks := dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+	var totalDagTasks int64
+	if dag.Execution.execution.CustomProperties != nil && dag.Execution.execution.CustomProperties["total_dag_tasks"] != nil {
+		totalDagTasks = dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+	} else {
+		totalDagTasks = 0
+	}
 	completedTasks := 0
 	failedTasks := 0
 	runningTasks := 0

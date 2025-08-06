@@ -686,6 +686,10 @@ func (s *DAGStatusConditionalTestSuite) TearDownSuite() {
 }
 
 func (s *DAGStatusConditionalTestSuite) cleanUp() {
-	testV2.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
-	testV2.DeleteAllPipelines(s.pipelineClient, s.T())
+	if s.runClient != nil {
+		testV2.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
+	}
+	if s.pipelineClient != nil {
+		testV2.DeleteAllPipelines(s.pipelineClient, s.T())
+	}
 }

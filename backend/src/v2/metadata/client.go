@@ -272,14 +272,22 @@ func (e *Execution) TaskName() string {
 	if e == nil {
 		return ""
 	}
-	return e.execution.GetCustomProperties()[keyTaskName].GetStringValue()
+	props := e.execution.GetCustomProperties()
+	if props == nil || props[keyTaskName] == nil {
+		return ""
+	}
+	return props[keyTaskName].GetStringValue()
 }
 
 func (e *Execution) FingerPrint() string {
 	if e == nil {
 		return ""
 	}
-	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
+	props := e.execution.GetCustomProperties()
+	if props == nil || props[keyCacheFingerPrint] == nil {
+		return ""
+	}
+	return props[keyCacheFingerPrint].GetStringValue()
 }
 
 // GetType returns the execution type name. Since the protobuf Type field is often empty,
@@ -783,7 +791,12 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 		return err
 	}
 
-	totalDagTasks := dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+	var totalDagTasks int64
+	if dag.Execution.execution.CustomProperties != nil && dag.Execution.execution.CustomProperties["total_dag_tasks"] != nil {
+		totalDagTasks = dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+	} else {
+		totalDagTasks = 0
+	}
 
 	glog.V(4).Infof("tasks: %v", tasks)
 	glog.V(4).Infof("Checking Tasks' State")
@@ -829,10 +842,6 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 		taskState := task.GetExecution().LastKnownState.String()
 		glog.Infof("DAG %d: Task %s, type=%s, state=%s", dagID, taskName, taskType, taskState)
 		
-		// Special logging for failure debugging
-		if taskState == "FAILED" {
-			glog.Errorf("FAILURE DEBUG: DAG %d has FAILED task: %s (type=%s)", dagID, taskName, taskType)
-		}
 	}
 	if shouldApplyDynamic {
 		// For DAGs with dynamic execution, adjust total_dag_tasks based on actual execution
@@ -873,8 +882,10 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 		}
 		
 		// Verify the stored value
-		storedValue := dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
-		glog.Infof("DAG %d: Stored total_dag_tasks value = %d", dagID, storedValue)
+		if dag.Execution.execution.CustomProperties != nil && dag.Execution.execution.CustomProperties["total_dag_tasks"] != nil {
+			storedValue := dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+			glog.Infof("DAG %d: Stored total_dag_tasks value = %d", dagID, storedValue)
+		}
 	}
 	
 	glog.V(4).Infof("completedTasks: %d", completedTasks)
@@ -893,13 +904,6 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	// PHASE 3 DEBUG: Add comprehensive logging for ParallelFor analysis
 	glog.Errorf("PHASE 3 ANALYSIS: DAG %d - isParallelForIterationDAG=%v, isParallelForParentDAG=%v", 
 		dagID, isParallelForIterationDAG, isParallelForParentDAG)
-	glog.Errorf("PHASE 3 COUNTS: DAG %d - totalDagTasks=%d, completedTasks=%d, runningTasks=%d, failedTasks=%d, dagExecutions=%d", 
-		dagID, totalDagTasks, completedTasks, runningTasks, failedTasks, dagExecutions)
-	
-	// FAILURE DEBUG: Log failure detection logic
-	if failedTasks > 0 {
-		glog.Errorf("FAILURE DEBUG: DAG %d has %d failed tasks - should transition to FAILED", dagID, failedTasks)
-	}
 	
 	// UNIVERSAL RULE: Any DAG with no tasks and nothing running should complete
 	if totalDagTasks == 0 && runningTasks == 0 {
@@ -1221,7 +1225,8 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 			glog.V(4).Infof("taskName after DAG Injection: %s", taskName)
 			glog.V(4).Infof("execution: %s", execution)
 			if taskName == "" {
-				if e.GetCustomProperties()[keyParentDagID] != nil {
+				props := e.GetCustomProperties()
+			if props != nil && props[keyParentDagID] != nil {
 					return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
 				}
 				// When retrieving executions without the parentDAGFilter, the
@@ -1236,14 +1241,18 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 			// taskMap, the iteration index will be appended to the taskName.
 			// This also fortifies against potential collisions of tasks across
 			// iterations.
-			if e.GetCustomProperties()[keyIterationIndex] != nil {
-				taskName = GetParallelForTaskName(taskName, e.GetCustomProperties()[keyIterationIndex].GetIntValue())
+			props := e.GetCustomProperties()
+			if props != nil && props[keyIterationIndex] != nil {
+				taskName = GetParallelForTaskName(taskName, props[keyIterationIndex].GetIntValue())
 
-			} else if dag.Execution.GetExecution().GetCustomProperties()[keyIterationIndex] != nil {
-				// Handle for tasks within a parallelFor subdag that do not
-				// consume the values from the iterator as input but rather the
-				// output of a task that does.
-				taskName = GetParallelForTaskName(taskName, dag.Execution.GetExecution().GetCustomProperties()[keyIterationIndex].GetIntValue())
+			} else if dag.Execution.GetExecution() != nil {
+				dagProps := dag.Execution.GetExecution().GetCustomProperties()
+				if dagProps != nil && dagProps[keyIterationIndex] != nil {
+					// Handle for tasks within a parallelFor subdag that do not
+					// consume the values from the iterator as input but rather the
+					// output of a task that does.
+					taskName = GetParallelForTaskName(taskName, dagProps[keyIterationIndex].GetIntValue())
+				}
 			}
 
 			existing, ok := executionsMap[taskName]
