@@ -1,0 +1,44 @@
+name: KFP Readthedocs Release Readiness
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    paths:
+      - api/**
+      - sdk/**
+      - kubernetes_platform/**
+      - .github/workflows/readthedocs-builds.yml
+      - .readthedocs.yml
+
+jobs:
+  test-readthedocs-builds:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r docs/sdk/requirements.txt
+
+      - name: Build KFP SDK Docs
+        working-directory: docs/sdk
+        run: |
+          sphinx-build -b html . _build/html
+
+      - name: Build KFP Kubernetes SDK Docs
+        working-directory: kubernetes_platform/python/docs
+        run: |
+          sphinx-build -b html . _build/html
+
+      - name: Test K8s platform release script
+        working-directory: kubernetes_platform/python
+        run: |
+          KFP_KUBERNETES_VERSION=$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
+          source create_release_branch.sh
