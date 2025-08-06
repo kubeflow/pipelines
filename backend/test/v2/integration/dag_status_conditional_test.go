@@ -59,7 +59,12 @@ func (s *DAGStatusConditionalTestSuite) createUploadParams(testName, filePath st
 	pipelineName := fmt.Sprintf("%s_test", testName)
 	displayName := fmt.Sprintf("%s Test Pipeline", testName)
 	description := fmt.Sprintf("Test pipeline for %s scenario", testName)
+	
+	// Use resourceNamespace if available (Kubeflow mode), otherwise use kubeflow namespace
 	namespace := s.resourceNamespace
+	if namespace == "" {
+		namespace = "kubeflow"
+	}
 	
 	uploadParams.SetName(&pipelineName)
 	uploadParams.SetDisplayName(&displayName) 
