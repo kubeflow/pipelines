@@ -17,6 +17,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -51,16 +52,27 @@ type DAGStatusConditionalTestSuite struct {
 }
 
 func (s *DAGStatusConditionalTestSuite) SetupTest() {
+	// DEBUG: Add infrastructure debugging
+	s.T().Logf("=== SETUP TEST DEBUG ===")
+	s.T().Logf("runIntegrationTests: %v", *runIntegrationTests)
+	s.T().Logf("isDevMode: %v", *isDevMode)
+	s.T().Logf("namespace: %v", *namespace)
+	s.T().Logf("isKubeflowMode: %v", *isKubeflowMode)
+	
 	if !*runIntegrationTests {
 		s.T().SkipNow()
 		return
 	}
 
 	if !*isDevMode {
+		s.T().Logf("Waiting for cluster to be ready (timeout: %v)...", *initializeTimeout)
 		err := test.WaitForReady(*initializeTimeout)
 		if err != nil {
 			s.T().Fatalf("Failed to initialize test. Error: %s", err.Error())
 		}
+		s.T().Logf("✅ Cluster ready")
+	} else {
+		s.T().Logf("⚠️ DevMode - skipping cluster ready check")
 	}
 	s.namespace = *namespace
 
@@ -81,7 +93,9 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
 		}
 	} else {
+		s.T().Logf("Using standard mode (not Kubeflow mode)")
 		clientConfig := test.GetClientConfig(*namespace)
+		s.T().Logf("Client config: %+v", clientConfig)
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
@@ -95,13 +109,23 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 	}
 
 	var err error
+	
+	s.T().Logf("Creating pipeline client...")
 	s.pipelineClient, err = newPipelineClient()
 	if err != nil {
+		s.T().Logf("❌ PIPELINE CLIENT CREATION FAILED: %v", err)
 		s.T().Fatalf("Failed to get pipeline client. Error: %s", err.Error())
+	} else {
+		s.T().Logf("✅ Pipeline client created successfully")
 	}
+	
+	s.T().Logf("Creating pipeline upload client...")
 	s.pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
+		s.T().Logf("❌ PIPELINE UPLOAD CLIENT CREATION FAILED: %v", err)
 		s.T().Fatalf("Failed to get pipeline upload client. Error: %s", err.Error())
+	} else {
+		s.T().Logf("✅ Pipeline upload client created successfully")
 	}
 	s.runClient, err = newRunClient()
 	if err != nil {
@@ -125,10 +149,53 @@ func TestDAGStatusConditional(t *testing.T) {
 func (s *DAGStatusConditionalTestSuite) TestSimpleIfTrue() {
 	t := s.T()
 
-	pipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/dag_status/conditional_if_true.yaml",
-		uploadParams.NewUploadPipelineParams(),
-	)
+	// DEBUG: Add detailed instrumentation for pipeline upload
+	t.Logf("=== PIPELINE UPLOAD DEBUG ===")
+	t.Logf("Pipeline file path: ../resources/dag_status/conditional_if_true.yaml")
+	
+	// Check if file exists
+	filePath := "../resources/dag_status/conditional_if_true.yaml"
+	if _, fileErr := os.Stat(filePath); fileErr != nil {
+		t.Logf("ERROR: Pipeline file does not exist: %v", fileErr)
+	} else {
+		t.Logf("✅ Pipeline file exists")
+	}
+	
+	// Check client status
+	if s.pipelineUploadClient == nil {
+		t.Logf("ERROR: pipelineUploadClient is nil")
+	} else {
+		t.Logf("✅ pipelineUploadClient is initialized")
+	}
+	
+	// Create upload params with debug
+	uploadParams := uploadParams.NewUploadPipelineParams()
+	if uploadParams == nil {
+		t.Logf("ERROR: Failed to create upload params")
+	} else {
+		t.Logf("✅ Upload params created")
+	}
+	
+	t.Logf("Attempting pipeline upload...")
+	pipeline, err := s.pipelineUploadClient.UploadFile(filePath, uploadParams)
+	
+	// Detailed error logging
+	if err != nil {
+		t.Logf("PIPELINE UPLOAD FAILED:")
+		t.Logf("  Error: %v", err)
+		t.Logf("  Error Type: %T", err)
+		t.Logf("  Upload Params: %+v", uploadParams)
+		if pipeline != nil {
+			t.Logf("  Partial Pipeline: %+v", pipeline)
+		} else {
+			t.Logf("  Pipeline is nil")
+		}
+	} else {
+		t.Logf("✅ Pipeline upload successful")
+		t.Logf("  Pipeline ID: %s", pipeline.PipelineID)
+		t.Logf("  Pipeline Name: %s", pipeline.DisplayName)
+	}
+	
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
