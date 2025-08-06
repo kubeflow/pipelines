@@ -49,41 +49,16 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Free up disk space
-      run: ./.github/resources/scripts/free-disk-space.sh
+      run: |
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        docker system prune -af --volumes
+        docker image prune -af
+        ./.github/resources/scripts/free-disk-space.sh
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.9
-
-    - name: apt-get update
-      run: sudo apt-get update
-
-    - name: Install protobuf-compiler
-      run: sudo apt-get install protobuf-compiler -y
-
-    - name: Install setuptools
-      run: |
-        pip3 install setuptools
-        pip3 freeze
-
-    - name: Install Wheel
-      run: pip3 install wheel==0.42.0
-
-    - name: Install protobuf
-      run: pip3 install protobuf==4.25.3
-
-    - name: Generate API proto files
-      working-directory: ./api
-      run: make python
-
-    - name: Install kfp-pipeline-spec from source
-      run: |
-        python3 -m pip install api/v2alpha1/python
-
-    - name: Generate, Build, and Install Kubernetes API proto files & packages
-      working-directory: ./kubernetes_platform
-      run: make python && pip install python/dist/*.whl
 
     - name: Create KFP cluster
       id: create-kfp-cluster
@@ -129,6 +104,8 @@ jobs:
     - name: Run Samples Tests
       id: tests
       if: ${{ steps.forward-api-port.outcome == 'success' }}
+      env:
+        KFP_MULTI_USER: ${{ matrix.mode == 'multi-user' }}
       run: |
         python3 -u ./samples/v2/sample_test.py
       continue-on-error: true
