@@ -33,11 +33,7 @@ fi
 cd "$REPO_ROOT"
 "$DIR/check-release-needed-tools.sh"
 
-npm ci
-npm run changelog
-# Change github issue/PR references like #123 to real urls in markdown.
-# The issues must have a " " or a "(" before it to avoid already converted issues like [\#123](url...).
-sed -i.bak -e 's|\([ (]\)#\([0-9]\+\)|\1[\\#\2](https://github.com/kubeflow/pipelines/issues/\2)|g' "$REPO_ROOT/CHANGELOG.md"
+git-cliff -c cliff.toml --unreleased --tag ${TAG_NAME} --prepend CHANGELOG.md
 
 "$REPO_ROOT/manifests/gcp_marketplace/hack/release.sh" $TAG_NAME
 "$REPO_ROOT/manifests/kustomize/hack/release.sh" $TAG_NAME
