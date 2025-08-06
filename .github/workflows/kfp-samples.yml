@@ -20,6 +20,7 @@ jobs:
   samples:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - k8s_version: "v1.29.2"
@@ -45,7 +46,11 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Free up disk space
-      run: ./.github/resources/scripts/free-disk-space.sh
+      run: |
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+        docker system prune -af --volumes
+        docker image prune -af
+        ./.github/resources/scripts/free-disk-space.sh
 
     - name: Set up Python
       uses: actions/setup-python@v4
