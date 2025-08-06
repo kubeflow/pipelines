@@ -33,6 +33,26 @@ type DAGStatusNestedTestSuite struct {
 	mlmdClient           pb.MetadataStoreServiceClient
 }
 
+// createUploadParams creates properly configured upload parameters for CI compatibility
+func (s *DAGStatusNestedTestSuite) createUploadParams(testName, filePath string) *uploadParams.UploadPipelineParams {
+	uploadParams := uploadParams.NewUploadPipelineParams()
+	
+	// CI FIX: Set required fields that CI environment enforces
+	pipelineName := fmt.Sprintf("%s_test", testName)
+	displayName := fmt.Sprintf("%s Test Pipeline", testName)
+	description := fmt.Sprintf("Test pipeline for %s scenario", testName)
+	namespace := s.resourceNamespace
+	
+	uploadParams.SetName(&pipelineName)
+	uploadParams.SetDisplayName(&displayName) 
+	uploadParams.SetDescription(&description)
+	if namespace != "" {
+		uploadParams.SetNamespace(&namespace)
+	}
+	
+	return uploadParams
+}
+
 // Check the namespace have ML pipeline installed and ready
 func (s *DAGStatusNestedTestSuite) SetupTest() {
 	if !*runIntegrationTests {
@@ -122,7 +142,7 @@ func (s *DAGStatusNestedTestSuite) TestSimpleNested() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_simple.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("nested_simple", "../resources/dag_status/nested_simple.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -149,7 +169,7 @@ func (s *DAGStatusNestedTestSuite) TestNestedParallelFor() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_parallel_for.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("nested_parallel_for", "../resources/dag_status/nested_parallel_for.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -176,7 +196,7 @@ func (s *DAGStatusNestedTestSuite) TestNestedConditional() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_conditional.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("nested_conditional", "../resources/dag_status/nested_conditional.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -203,7 +223,7 @@ func (s *DAGStatusNestedTestSuite) TestDeepNesting() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_deep.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("nested_deep", "../resources/dag_status/nested_deep.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
