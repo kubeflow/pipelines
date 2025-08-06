@@ -49,6 +49,26 @@ type DAGStatusParallelForTestSuite struct {
 	mlmdClient           pb.MetadataStoreServiceClient
 }
 
+// createUploadParams creates properly configured upload parameters for CI compatibility
+func (s *DAGStatusParallelForTestSuite) createUploadParams(testName, filePath string) *uploadParams.UploadPipelineParams {
+	uploadParams := uploadParams.NewUploadPipelineParams()
+	
+	// CI FIX: Set required fields that CI environment enforces
+	pipelineName := fmt.Sprintf("%s_test", testName)
+	displayName := fmt.Sprintf("%s Test Pipeline", testName)
+	description := fmt.Sprintf("Test pipeline for %s scenario", testName)
+	namespace := s.resourceNamespace
+	
+	uploadParams.SetName(&pipelineName)
+	uploadParams.SetDisplayName(&displayName) 
+	uploadParams.SetDescription(&description)
+	if namespace != "" {
+		uploadParams.SetNamespace(&namespace)
+	}
+	
+	return uploadParams
+}
+
 func (s *DAGStatusParallelForTestSuite) SetupTest() {
 	if !*runIntegrationTests {
 		s.T().SkipNow()
@@ -126,7 +146,7 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForSuccess() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/parallel_for_success.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("parallel_for_success", "../resources/dag_status/parallel_for_success.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -155,7 +175,7 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForFailure() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/parallel_for_failure.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("parallel_for_failure", "../resources/dag_status/parallel_for_failure.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -183,7 +203,7 @@ func (s *DAGStatusParallelForTestSuite) TestDynamicParallelFor() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/parallel_for_dynamic.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("parallel_for_dynamic", "../resources/dag_status/parallel_for_dynamic.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)

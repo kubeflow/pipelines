@@ -51,6 +51,26 @@ type DAGStatusConditionalTestSuite struct {
 	mlmdClient           pb.MetadataStoreServiceClient
 }
 
+// createUploadParams creates properly configured upload parameters for CI compatibility
+func (s *DAGStatusConditionalTestSuite) createUploadParams(testName, filePath string) *uploadParams.UploadPipelineParams {
+	uploadParams := uploadParams.NewUploadPipelineParams()
+	
+	// CI FIX: Set required fields that CI environment enforces
+	pipelineName := fmt.Sprintf("%s_test", testName)
+	displayName := fmt.Sprintf("%s Test Pipeline", testName)
+	description := fmt.Sprintf("Test pipeline for %s scenario", testName)
+	namespace := s.resourceNamespace
+	
+	uploadParams.SetName(&pipelineName)
+	uploadParams.SetDisplayName(&displayName) 
+	uploadParams.SetDescription(&description)
+	if namespace != "" {
+		uploadParams.SetNamespace(&namespace)
+	}
+	
+	return uploadParams
+}
+
 func (s *DAGStatusConditionalTestSuite) SetupTest() {
 	// DEBUG: Add infrastructure debugging
 	s.T().Logf("=== SETUP TEST DEBUG ===")
@@ -168,13 +188,9 @@ func (s *DAGStatusConditionalTestSuite) TestSimpleIfTrue() {
 		t.Logf("✅ pipelineUploadClient is initialized")
 	}
 	
-	// Create upload params with debug
-	uploadParams := uploadParams.NewUploadPipelineParams()
-	if uploadParams == nil {
-		t.Logf("ERROR: Failed to create upload params")
-	} else {
-		t.Logf("✅ Upload params created")
-	}
+	// Create upload params with CI-compatible required fields
+	uploadParams := s.createUploadParams("conditional_if_true", filePath)
+	t.Logf("✅ Upload params created with CI-compatible required fields")
 	
 	t.Logf("Attempting pipeline upload...")
 	pipeline, err := s.pipelineUploadClient.UploadFile(filePath, uploadParams)
@@ -221,7 +237,7 @@ func (s *DAGStatusConditionalTestSuite) TestSimpleIfFalse() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_if_false.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("conditional_if_false", "../resources/dag_status/conditional_if_false.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -248,7 +264,7 @@ func (s *DAGStatusConditionalTestSuite) TestIfElseTrue() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_if_else_true.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("conditional_if_else_true", "../resources/dag_status/conditional_if_else_true.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -274,7 +290,7 @@ func (s *DAGStatusConditionalTestSuite) TestIfElseFalse() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_if_else_false.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("conditional_if_else_false", "../resources/dag_status/conditional_if_else_false.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -300,7 +316,7 @@ func (s *DAGStatusConditionalTestSuite) TestComplexConditional() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_complex.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		s.createUploadParams("conditional_complex", "../resources/dag_status/conditional_complex.yaml"),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
