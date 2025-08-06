@@ -774,8 +774,12 @@ func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, 
 
 // UpdateDAGExecutionState checks all the statuses of the tasks in the given DAG, based on that it will update the DAG to the corresponding status if necessary.
 func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) error {
+	dagID := dag.Execution.GetID()
+	glog.Errorf("PHASE 3 ENTRY: UpdateDAGExecutionsState called for DAG %d", dagID)
+	
 	tasks, err := c.GetExecutionsInDAG(ctx, dag, pipeline, true)
 	if err != nil {
+		glog.Errorf("PHASE 3 ERROR: GetExecutionsInDAG failed for DAG %d: %v", dagID, err)
 		return err
 	}
 
@@ -817,7 +821,6 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	
 	// FIX: Apply dynamic task counting for DAGs that may have variable execution patterns
 	shouldApplyDynamic := c.shouldApplyDynamicTaskCounting(dag, tasks)
-	dagID := dag.Execution.GetID()
 	glog.Infof("DAG %d: shouldApplyDynamic=%v, totalDagTasks=%d, tasks=%d", dagID, shouldApplyDynamic, totalDagTasks, len(tasks))
 	
 	// DEBUG: Log all tasks found in this DAG
@@ -825,6 +828,11 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 		taskType := task.GetType()
 		taskState := task.GetExecution().LastKnownState.String()
 		glog.Infof("DAG %d: Task %s, type=%s, state=%s", dagID, taskName, taskType, taskState)
+		
+		// Special logging for failure debugging
+		if taskState == "FAILED" {
+			glog.Errorf("FAILURE DEBUG: DAG %d has FAILED task: %s (type=%s)", dagID, taskName, taskType)
+		}
 	}
 	if shouldApplyDynamic {
 		// For DAGs with dynamic execution, adjust total_dag_tasks based on actual execution
@@ -882,6 +890,17 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	isParallelForIterationDAG := c.isParallelForIterationDAG(dag)
 	isParallelForParentDAG := c.isParallelForParentDAG(dag)
 	
+	// PHASE 3 DEBUG: Add comprehensive logging for ParallelFor analysis
+	glog.Errorf("PHASE 3 ANALYSIS: DAG %d - isParallelForIterationDAG=%v, isParallelForParentDAG=%v", 
+		dagID, isParallelForIterationDAG, isParallelForParentDAG)
+	glog.Errorf("PHASE 3 COUNTS: DAG %d - totalDagTasks=%d, completedTasks=%d, runningTasks=%d, failedTasks=%d, dagExecutions=%d", 
+		dagID, totalDagTasks, completedTasks, runningTasks, failedTasks, dagExecutions)
+	
+	// FAILURE DEBUG: Log failure detection logic
+	if failedTasks > 0 {
+		glog.Errorf("FAILURE DEBUG: DAG %d has %d failed tasks - should transition to FAILED", dagID, failedTasks)
+	}
+	
 	// UNIVERSAL RULE: Any DAG with no tasks and nothing running should complete
 	if totalDagTasks == 0 && runningTasks == 0 {
 		newState = pb.Execution_COMPLETE
@@ -890,27 +909,50 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	} else if isParallelForIterationDAG {
 		// ParallelFor iteration DAGs should complete immediately if no tasks are running
 		// These are typically empty placeholder DAGs representing individual iterations
+		glog.Infof("PHASE 3 DEBUG: ParallelFor iteration DAG %d - runningTasks=%d", dagID, runningTasks)
+		
 		if runningTasks == 0 {
 			newState = pb.Execution_COMPLETE
 			stateChanged = true
 			glog.Infof("ParallelFor iteration DAG %d completed (no running tasks)", dag.Execution.GetID())
+		} else {
+			glog.Infof("PHASE 3 DEBUG: Iteration DAG %d NOT completing - runningTasks=%d > 0", dagID, runningTasks)
 		}
 	} else if isParallelForParentDAG {
 		// ParallelFor parent DAGs complete when all child DAGs are complete
 		childDagCount := dagExecutions
 		completedChildDags := 0
-		for _, task := range tasks {
-			if task.GetType() == "system.DAGExecution" && 
-			   task.GetExecution().LastKnownState.String() == "COMPLETE" {
-				completedChildDags++
+		
+		glog.Infof("PHASE 3 DEBUG: ParallelFor parent DAG %d - checking %d child DAGs", dagID, childDagCount)
+		
+		for taskName, task := range tasks {
+			taskType := task.GetType()
+			taskState := task.GetExecution().LastKnownState.String()
+			glog.Infof("PHASE 3 DEBUG: Parent DAG %d - task '%s', type=%s, state=%s", 
+				dagID, taskName, taskType, taskState)
+				
+			if taskType == "system.DAGExecution" {
+				if taskState == "COMPLETE" {
+					completedChildDags++
+					glog.Infof("PHASE 3 DEBUG: Parent DAG %d - found COMPLETE child DAG: %s", dagID, taskName)
+				} else {
+					glog.Infof("PHASE 3 DEBUG: Parent DAG %d - found non-COMPLETE child DAG: %s (state=%s)", 
+						dagID, taskName, taskState)
+				}
 			}
 		}
+		
+		glog.Infof("PHASE 3 DEBUG: Parent DAG %d - completedChildDags=%d, childDagCount=%d", 
+			dagID, completedChildDags, childDagCount)
 		
 		if completedChildDags == childDagCount && childDagCount > 0 {
 			newState = pb.Execution_COMPLETE
 			stateChanged = true
 			glog.Infof("ParallelFor parent DAG %d completed: %d/%d child DAGs finished", 
 				dag.Execution.GetID(), completedChildDags, childDagCount)
+		} else {
+			glog.Infof("PHASE 3 DEBUG: Parent DAG %d NOT completing - completedChildDags=%d != childDagCount=%d", 
+				dagID, completedChildDags, childDagCount)
 		}
 	} else {
 		// Standard DAG completion logic
