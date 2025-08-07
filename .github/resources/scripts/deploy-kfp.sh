@@ -49,7 +49,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ "${USE_PROXY}" == "true" && "${PIPELINES_STORE}" == "kubernetes" ]; then
+if [ "${USE_PROXY}" == "true" ] && [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   echo "ERROR: Kubernetes Pipeline store cannot be deployed with proxy support."
   exit 1
 fi

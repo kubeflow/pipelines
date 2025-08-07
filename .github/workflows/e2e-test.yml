@@ -20,8 +20,12 @@ on:
       - '!**/OWNERS'
 
 jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+
   initialization-tests-v1:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
@@ -40,6 +44,9 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
         continue-on-error: true
 
       - name: Forward API port
@@ -72,6 +79,7 @@ jobs:
 
   initialization-tests-v2:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
@@ -90,6 +98,9 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
         continue-on-error: true
 
       - name: Forward API port
@@ -122,6 +133,7 @@ jobs:
 
   api-integration-tests-v1:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
@@ -140,6 +152,9 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
         continue-on-error: true
 
       - name: Forward API port
@@ -178,6 +193,7 @@ jobs:
 
   api-integration-tests-v2:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         pipeline_store: [ "database", "kubernetes" ]
@@ -198,6 +214,9 @@ jobs:
         with:
           k8s_version: ${{ matrix.k8s_version }}
           pipeline_store: ${{ matrix.pipeline_store }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
         continue-on-error: true
 
       - name: Forward API port
@@ -237,6 +256,7 @@ jobs:
 
   api-integration-tests-v2-with-proxy:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         k8s_version: [ "v1.31.0" ]
@@ -255,6 +275,9 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
           proxy: 'true'
         continue-on-error: true
 
@@ -295,6 +318,7 @@ jobs:
 
   api-integration-tests-v2-with-cache-disabled:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         k8s_version: [ "v1.31.0" ]
@@ -313,6 +337,9 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
           cache_enabled: 'false'
         continue-on-error: true
 
@@ -352,6 +379,7 @@ jobs:
 
   frontend-integration-test:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
@@ -370,6 +398,9 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
         continue-on-error: true
 
       - name: Forward API port
@@ -409,6 +440,7 @@ jobs:
 
   basic-sample-tests:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
@@ -427,6 +459,9 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
         continue-on-error: true
 
       - name: Forward API port

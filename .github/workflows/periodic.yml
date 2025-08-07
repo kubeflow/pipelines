@@ -5,8 +5,12 @@ on:
     - cron: '0 0 * * *' # Run every day at midnight
 
 jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+
   run_tests:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         k8s_version: [ "v1.29.2", "v1.31.0" ]
@@ -22,6 +26,9 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
 
       - name: Port forward kfp apiserver
         run: |

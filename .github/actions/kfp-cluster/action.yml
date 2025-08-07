@@ -1,5 +1,5 @@
 name: "Set up KFP on KinD"
-description: "Step to start and configure KFP on KinD"
+description: "Step to start and configure KFP on Kind"
 
 inputs:
   k8s_version:
@@ -17,14 +17,26 @@ inputs:
     description: "If KFP should be deployed with cache enabled globally"
     required: false
     default: 'true'
-
+  cluser_name:
+    description: "Provide kind cluster name if you want to name it other than kfp"
+    required: false
+    default: 'kfp'
+  image_tag:
+    required: true
+    description: "Provide the image tag your image was tagged with"
+  image_path:
+    required: true
+    description: "Path within github artifacts where your image tarball is stored"
+  image_registry:
+    required: true
+    description: "Image Registry address of the images"
 runs:
   using: "composite"
   steps:
     - name: Create k8s Kind Cluster
       uses: container-tools/kind-action@v2
       with:
-        cluster_name: kfp
+        cluster_name: ${{ inputs.cluser_name }}
         kubectl_version: ${{ inputs.k8s_version }}
         version: v0.25.0
         node_image: kindest/node:${{ inputs.k8s_version }}
@@ -35,14 +47,19 @@ runs:
       shell: bash
       run: ./.github/resources/squid/deploy-squid.sh
 
-    - name: Build images
+    - name: Download Docker Images
+      uses: actions/download-artifact@v4
+      with:
+        path: "images_${{ github.sha }}"
+
+    - name: Load Docker Images
       shell: bash
       run: |
-        if [ "${{ inputs.proxy }}" = "true" ]; then
-          ./.github/resources/scripts/build-images.sh --proxy
-        else
-          ./.github/resources/scripts/build-images.sh
-        fi
+        APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent")
+        for app in "${APPS[@]}"; do
+          docker image load -i ${{ inputs.image_path }}/$app/$app.tar
+          docker push ${{ inputs.image_registry }}/$app:${{ inputs.IMAGE_TAG }}
+        done  
 
     - name: Deploy KFP
       shell: bash
