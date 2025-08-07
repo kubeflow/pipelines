@@ -26,12 +26,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
+	pipelineParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	pipeline_upload_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
-	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
@@ -45,16 +45,10 @@ type DAGStatusConditionalTestSuite struct {
 	suite.Suite
 	namespace            string
 	resourceNamespace    string
-	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
-	runClient            *api_server.RunClient
+	pipelineClient       *apiserver.PipelineClient
+	pipelineUploadClient *apiserver.PipelineUploadClient
+	runClient            *apiserver.RunClient
 	mlmdClient           pb.MetadataStoreServiceClient
-}
-
-// createUploadParams creates properly configured upload parameters for CI compatibility
-func (s *DAGStatusConditionalTestSuite) createUploadParams(testName, filePath string) *uploadParams.UploadPipelineParams {
-	// Use standard upload params like other tests in this directory
-	return uploadParams.NewUploadPipelineParams()
 }
 
 func (s *DAGStatusConditionalTestSuite) SetupTest() {
@@ -64,7 +58,7 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 	s.T().Logf("isDevMode: %v", *isDevMode)
 	s.T().Logf("namespace: %v", *namespace)
 	s.T().Logf("isKubeflowMode: %v", *isKubeflowMode)
-	
+
 	if !*runIntegrationTests {
 		s.T().SkipNow()
 		return
@@ -82,40 +76,40 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 	}
 	s.namespace = *namespace
 
-	var newPipelineClient func() (*api_server.PipelineClient, error)
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
-	var newRunClient func() (*api_server.RunClient, error)
+	var newPipelineClient func() (*apiserver.PipelineClient, error)
+	var newPipelineUploadClient func() (*apiserver.PipelineUploadClient, error)
+	var newRunClient func() (*apiserver.RunClient, error)
 
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
-		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+		newPipelineClient = func() (*apiserver.PipelineClient, error) {
+			return apiserver.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
 		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
+			return apiserver.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
 		}
-		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+		newRunClient = func() (*apiserver.RunClient, error) {
+			return apiserver.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
 		}
 	} else {
 		s.T().Logf("Using standard mode (not Kubeflow mode)")
 		clientConfig := test.GetClientConfig(*namespace)
 		s.T().Logf("Client config: %+v", clientConfig)
 
-		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+		newPipelineClient = func() (*apiserver.PipelineClient, error) {
+			return apiserver.NewPipelineClient(clientConfig, *isDebugMode)
 		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
+			return apiserver.NewPipelineUploadClient(clientConfig, *isDebugMode)
 		}
-		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+		newRunClient = func() (*apiserver.RunClient, error) {
+			return apiserver.NewRunClient(clientConfig, *isDebugMode)
 		}
 	}
 
 	var err error
-	
+
 	s.T().Logf("Creating pipeline client...")
 	s.pipelineClient, err = newPipelineClient()
 	if err != nil {
@@ -124,7 +118,7 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 	} else {
 		s.T().Logf("✅ Pipeline client created successfully")
 	}
-	
+
 	s.T().Logf("Creating pipeline upload client...")
 	s.pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
@@ -158,7 +152,7 @@ func (s *DAGStatusConditionalTestSuite) TestSimpleIfTrue() {
 	// DEBUG: Add detailed instrumentation for pipeline upload
 	t.Logf("=== PIPELINE UPLOAD DEBUG ===")
 	t.Logf("Pipeline file path: ../resources/dag_status/conditional_if_true.yaml")
-	
+
 	// Check if file exists
 	filePath := "../resources/dag_status/conditional_if_true.yaml"
 	if _, fileErr := os.Stat(filePath); fileErr != nil {
@@ -166,27 +160,23 @@ func (s *DAGStatusConditionalTestSuite) TestSimpleIfTrue() {
 	} else {
 		t.Logf("✅ Pipeline file exists")
 	}
-	
+
 	// Check client status
 	if s.pipelineUploadClient == nil {
 		t.Logf("ERROR: pipelineUploadClient is nil")
 	} else {
 		t.Logf("✅ pipelineUploadClient is initialized")
 	}
-	
-	// Create upload params with CI-compatible required fields
-	uploadParams := s.createUploadParams("conditional_if_true", filePath)
-	t.Logf("✅ Upload params created with CI-compatible required fields")
-	
+
 	t.Logf("Attempting pipeline upload...")
-	pipeline, err := s.pipelineUploadClient.UploadFile(filePath, uploadParams)
-	
+	pipeline, err := s.pipelineUploadClient.UploadFile(filePath, uploadParams.NewUploadPipelineParams())
+
 	// Detailed error logging
 	if err != nil {
 		t.Logf("PIPELINE UPLOAD FAILED:")
 		t.Logf("  Error: %v", err)
 		t.Logf("  Error Type: %T", err)
-		t.Logf("  Upload Params: %+v", uploadParams)
+		t.Logf("  Using standard upload params")
 		if pipeline != nil {
 			t.Logf("  Partial Pipeline: %+v", pipeline)
 		} else {
@@ -197,7 +187,7 @@ func (s *DAGStatusConditionalTestSuite) TestSimpleIfTrue() {
 		t.Logf("  Pipeline ID: %s", pipeline.PipelineID)
 		t.Logf("  Pipeline Name: %s", pipeline.DisplayName)
 	}
-	
+
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
@@ -223,7 +213,7 @@ func (s *DAGStatusConditionalTestSuite) TestSimpleIfFalse() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_if_false.yaml",
-		s.createUploadParams("conditional_if_false", "../resources/dag_status/conditional_if_false.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -250,7 +240,7 @@ func (s *DAGStatusConditionalTestSuite) TestIfElseTrue() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_if_else_true.yaml",
-		s.createUploadParams("conditional_if_else_true", "../resources/dag_status/conditional_if_else_true.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -276,7 +266,7 @@ func (s *DAGStatusConditionalTestSuite) TestIfElseFalse() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_if_else_false.yaml",
-		s.createUploadParams("conditional_if_else_false", "../resources/dag_status/conditional_if_else_false.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -302,7 +292,7 @@ func (s *DAGStatusConditionalTestSuite) TestComplexConditional() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_complex.yaml",
-		s.createUploadParams("conditional_complex", "../resources/dag_status/conditional_complex.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -333,7 +323,7 @@ func (s *DAGStatusConditionalTestSuite) TestComplexConditional() {
 
 		s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateSUCCEEDED)
 
-		// CONFIRMED: Complex conditional tests also don't create conditional DAGs - they execute directly in root DAG context  
+		// CONFIRMED: Complex conditional tests also don't create conditional DAGs - they execute directly in root DAG context
 		s.T().Logf("✅ Complex conditional (%s) completed successfully - conditional execution handled directly in root DAG", tc.description)
 	}
 }
@@ -361,7 +351,7 @@ func (s *DAGStatusConditionalTestSuite) createRunWithParams(pipelineVersion *pip
 // Helper function to get the default pipeline version created when uploading a pipeline
 func (s *DAGStatusConditionalTestSuite) getDefaultPipelineVersion(pipelineID string) (*pipeline_upload_model.V2beta1PipelineVersion, error) {
 	// List pipeline versions for the uploaded pipeline
-	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&pipelineParams.PipelineServiceListPipelineVersionsParams{
 		PipelineID: pipelineID,
 	})
 	if err != nil {
@@ -402,10 +392,10 @@ func (s *DAGStatusConditionalTestSuite) waitForRunCompletion(runID string, expec
 
 func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatusWithRetry(runID string, expectedDAGState pb.Execution_State, expectedExecutedBranches int, maxRetries int) {
 	t := s.T()
-	
+
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		t.Logf("Attempt %d/%d: Looking for conditional DAG executions for run %s...", attempt, maxRetries, runID)
-		
+
 		// Get the context for this specific run
 		contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
 		contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
@@ -413,7 +403,7 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatusWithRetry(ru
 				FilterQuery: contextsFilterQuery,
 			},
 		})
-		
+
 		if err != nil || len(contexts.Contexts) == 0 {
 			if attempt == maxRetries {
 				require.NoError(t, err)
@@ -424,7 +414,7 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatusWithRetry(ru
 				continue
 			}
 		}
-		
+
 		// Get executions for this specific run context only
 		executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
 			ContextId: contexts.Contexts[0].Id,
@@ -438,11 +428,11 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatusWithRetry(ru
 				continue
 			}
 		}
-		
+
 		// Find the root DAG ID first, then look for conditional DAGs that are children of this root DAG
 		var rootDAGID int64
 		t.Logf("Searching %d executions for root DAG in run %s", len(executionsByContext.Executions), runID)
-		
+
 		for _, exec := range executionsByContext.Executions {
 			taskName := ""
 			if props := exec.GetCustomProperties(); props != nil {
@@ -450,10 +440,10 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatusWithRetry(ru
 					taskName = nameVal.GetStringValue()
 				}
 			}
-			
-			t.Logf("Execution ID=%d, Type=%s, TaskName='%s', State=%s", 
+
+			t.Logf("Execution ID=%d, Type=%s, TaskName='%s', State=%s",
 				exec.GetId(), exec.GetType(), taskName, exec.LastKnownState.String())
-			
+
 			// Find the root DAG (has empty task name and is a DAG execution)
 			if exec.GetType() == "system.DAGExecution" && taskName == "" {
 				rootDAGID = exec.GetId()
@@ -461,7 +451,7 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatusWithRetry(ru
 				break
 			}
 		}
-		
+
 		// Now look for conditional DAGs that are children of this root DAG
 		var conditionalDAGs []*pb.Execution
 		if rootDAGID > 0 {
@@ -470,12 +460,12 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatusWithRetry(ru
 			if err == nil {
 				t.Logf("Searching for conditional DAGs with parent_dag_id=%d", rootDAGID)
 				t.Logf("DEBUG: All DAG executions in MLMD:")
-				
+
 				for _, exec := range allExecsRes.Executions {
 					if exec.GetType() != "system.DAGExecution" {
 						continue
 					}
-					
+
 					taskName := ""
 					parentDagID := int64(0)
 					if props := exec.GetCustomProperties(); props != nil {
@@ -486,13 +476,13 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatusWithRetry(ru
 							parentDagID = parentVal.GetIntValue()
 						}
 					}
-					
-					t.Logf("DEBUG: DAG ID=%d, TaskName='%s', State=%s, ParentDAG=%d", 
+
+					t.Logf("DEBUG: DAG ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
 						exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
-					
+
 					// Find conditional DAGs that are children OR grandchildren of our root DAG
 					isDirectChild := parentDagID == rootDAGID && strings.HasPrefix(taskName, "condition-")
-					
+
 					// Also check if this is a grandchild (parent is a child of root DAG)
 					isGrandchild := false
 					if strings.HasPrefix(taskName, "condition-") {
@@ -510,29 +500,29 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatusWithRetry(ru
 							}
 						}
 					}
-					
+
 					if isDirectChild || isGrandchild {
-						t.Logf("Found conditional DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d", 
+						t.Logf("Found conditional DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
 							exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
 						conditionalDAGs = append(conditionalDAGs, exec)
 					}
 				}
 			}
 		}
-		
+
 		if len(conditionalDAGs) > 0 {
 			// Found conditional DAGs in the current run, proceed with validation
 			t.Logf("Found %d conditional DAGs in run %s, proceeding with validation", len(conditionalDAGs), runID)
 			s.validateConditionalDAGStatus(runID, expectedDAGState, expectedExecutedBranches)
 			return
 		}
-		
+
 		if attempt < maxRetries {
 			t.Logf("No conditional DAGs found in run %s on attempt %d - retrying in 10 seconds...", runID, attempt)
 			time.Sleep(10 * time.Second)
 		}
 	}
-	
+
 	// If we get here, all retries failed
 	require.Fail(t, "No conditional DAG executions found for run %s after %d attempts", runID, maxRetries)
 }
@@ -560,7 +550,7 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 	var conditionalDAGs []*pb.Execution
 	var containerExecutions []*pb.Execution
 	var rootDAGID int64
-	
+
 	s.T().Logf("=== DEBUG: All executions in context ===")
 	for _, execution := range executionsByContext.Executions {
 		taskName := ""
@@ -569,10 +559,10 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 				taskName = nameVal.GetStringValue()
 			}
 		}
-		
-		s.T().Logf("Execution ID=%d, Type=%s, State=%s, TaskName='%s'", 
+
+		s.T().Logf("Execution ID=%d, Type=%s, State=%s, TaskName='%s'",
 			execution.GetId(), execution.GetType(), execution.LastKnownState.String(), taskName)
-		
+
 		if execution.GetType() == "system.DAGExecution" {
 			s.T().Logf("Found DAG execution ID=%d, type=%s, state=%v, properties=%v",
 				execution.GetId(), execution.GetType(), execution.LastKnownState, execution.GetCustomProperties())
@@ -582,13 +572,13 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 				rootDAGID = execution.GetId()
 				s.T().Logf("Found root DAG ID=%d for run %s", rootDAGID, runID)
 			}
-			
+
 			conditionalDAGs = append(conditionalDAGs, execution)
 		} else if execution.GetType() == "system.ContainerExecution" {
 			containerExecutions = append(containerExecutions, execution)
 		}
 	}
-	
+
 	// FIXED: Look for conditional DAGs across ALL contexts that have the root DAG as their parent
 	// This ensures we only find conditional DAGs that belong to this specific test run
 	if rootDAGID > 0 {
@@ -596,12 +586,12 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 		allExecsRes, err := s.mlmdClient.GetExecutions(context.Background(), allExecsReq)
 		if err == nil {
 			s.T().Logf("Searching for conditional DAGs with parent_dag_id=%d", rootDAGID)
-			
+
 			for _, exec := range allExecsRes.Executions {
 				if exec.GetType() != "system.DAGExecution" {
 					continue
 				}
-				
+
 				taskName := ""
 				parentDagID := int64(0)
 				if props := exec.GetCustomProperties(); props != nil {
@@ -612,10 +602,10 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 						parentDagID = parentVal.GetIntValue()
 					}
 				}
-				
+
 				// Find conditional DAGs that are children OR grandchildren of our root DAG
 				isDirectChild := parentDagID == rootDAGID && strings.HasPrefix(taskName, "condition-")
-				
+
 				// Also check if this is a grandchild (parent is a child of root DAG)
 				isGrandchild := false
 				if strings.HasPrefix(taskName, "condition-") {
@@ -633,17 +623,17 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 						}
 					}
 				}
-				
+
 				if isDirectChild || isGrandchild {
-					s.T().Logf("Found conditional DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d", 
+					s.T().Logf("Found conditional DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
 						exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
 					conditionalDAGs = append(conditionalDAGs, exec)
 				}
 			}
 		}
 	}
-	
-	s.T().Logf("=== Summary: Found %d DAG executions, %d container executions ===", 
+
+	s.T().Logf("=== Summary: Found %d DAG executions, %d container executions ===",
 		len(conditionalDAGs), len(containerExecutions))
 
 	require.NotEmpty(t, conditionalDAGs, "No conditional DAG executions found")
@@ -657,12 +647,12 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 				taskName = nameVal.GetStringValue()
 			}
 		}
-		
+
 		// Only validate conditional DAGs like "condition-1", "condition-2", "condition-branches-1", not root DAGs
 		if taskName != "" && strings.HasPrefix(taskName, "condition-") {
 			actualConditionalDAGs = append(actualConditionalDAGs, dagExecution)
 		} else {
-			s.T().Logf("Skipping root DAG ID=%d (TaskName='%s') - not a conditional branch DAG", 
+			s.T().Logf("Skipping root DAG ID=%d (TaskName='%s') - not a conditional branch DAG",
 				dagExecution.GetId(), taskName)
 		}
 	}
@@ -678,25 +668,25 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 						taskName = nameVal.GetStringValue()
 					}
 				}
-				
+
 				// Validate DAG state
 				assert.Equal(t, "CANCELED", dagExecution.LastKnownState.String(),
 					"Conditional DAG '%s' (ID=%d) should be CANCELED for false condition",
 					taskName, dagExecution.GetId())
-				
+
 				// Validate total_dag_tasks for false conditions
 				totalDagTasks := dagExecution.GetCustomProperties()["total_dag_tasks"].GetIntValue()
 				s.T().Logf("Conditional DAG '%s' (ID=%d): expected_executed_branches=%d, total_dag_tasks=%d (CANCELED)",
 					taskName, dagExecution.GetId(), expectedExecutedBranches, totalDagTasks)
-				
+
 				// For false conditions, the conditional DAG should still have the correct task structure
 				// The total_dag_tasks represents the potential tasks that would have been executed
 				// This should typically be >= 1 since the conditional defines at least one branch
 				assert.True(t, totalDagTasks >= 1,
 					"Conditional DAG '%s' should have total_dag_tasks >= 1 even when CANCELED (got %d)",
 					taskName, totalDagTasks)
-					
-				s.T().Logf("✅ CORRECT: Conditional DAG '%s' (ID=%d) correctly CANCELED with total_dag_tasks=%d", 
+
+				s.T().Logf("✅ CORRECT: Conditional DAG '%s' (ID=%d) correctly CANCELED with total_dag_tasks=%d",
 					taskName, dagExecution.GetId(), totalDagTasks)
 			}
 		} else {
@@ -714,7 +704,7 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 				taskName = nameVal.GetStringValue()
 			}
 		}
-		
+
 		// FIXED: Now expecting CORRECT final state - test will FAIL until DAG state bug is fixed
 		assert.Equal(t, expectedDAGState.String(), dagExecution.LastKnownState.String(),
 			"Conditional DAG '%s' (ID=%d) should reach final state %v (BUG: currently stuck in %v)",

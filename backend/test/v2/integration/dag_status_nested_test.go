@@ -10,12 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
-	uploadParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	pipeline_upload_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	pipelineParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
-	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
@@ -27,16 +26,10 @@ type DAGStatusNestedTestSuite struct {
 	suite.Suite
 	namespace            string
 	resourceNamespace    string
-	pipelineUploadClient *api_server.PipelineUploadClient
-	pipelineClient       *api_server.PipelineClient
-	runClient            *api_server.RunClient
+	pipelineUploadClient *apiserver.PipelineUploadClient
+	pipelineClient       *apiserver.PipelineClient
+	runClient            *apiserver.RunClient
 	mlmdClient           pb.MetadataStoreServiceClient
-}
-
-// createUploadParams creates properly configured upload parameters for CI compatibility
-func (s *DAGStatusNestedTestSuite) createUploadParams(testName, filePath string) *uploadParams.UploadPipelineParams {
-	// Use standard upload params like other tests in this directory
-	return uploadParams.NewUploadPipelineParams()
 }
 
 // Check the namespace have ML pipeline installed and ready
@@ -54,33 +47,33 @@ func (s *DAGStatusNestedTestSuite) SetupTest() {
 	}
 	s.namespace = *namespace
 
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
-	var newPipelineClient func() (*api_server.PipelineClient, error)
-	var newRunClient func() (*api_server.RunClient, error)
+	var newPipelineUploadClient func() (*apiserver.PipelineUploadClient, error)
+	var newPipelineClient func() (*apiserver.PipelineClient, error)
+	var newRunClient func() (*apiserver.RunClient, error)
 
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
+			return apiserver.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
 		}
-		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+		newPipelineClient = func() (*apiserver.PipelineClient, error) {
+			return apiserver.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
 		}
-		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+		newRunClient = func() (*apiserver.RunClient, error) {
+			return apiserver.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
 		}
 	} else {
 		clientConfig := testV2.GetClientConfig(*namespace)
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
+			return apiserver.NewPipelineUploadClient(clientConfig, *isDebugMode)
 		}
-		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+		newPipelineClient = func() (*apiserver.PipelineClient, error) {
+			return apiserver.NewPipelineClient(clientConfig, *isDebugMode)
 		}
-		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+		newRunClient = func() (*apiserver.RunClient, error) {
+			return apiserver.NewRunClient(clientConfig, *isDebugMode)
 		}
 	}
 
@@ -132,7 +125,7 @@ func (s *DAGStatusNestedTestSuite) TestSimpleNested() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_simple.yaml",
-		s.createUploadParams("nested_simple", "../resources/dag_status/nested_simple.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -164,7 +157,7 @@ func (s *DAGStatusNestedTestSuite) TestNestedParallelFor() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_parallel_for.yaml",
-		s.createUploadParams("nested_parallel_for", "../resources/dag_status/nested_parallel_for.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -196,7 +189,7 @@ func (s *DAGStatusNestedTestSuite) TestNestedConditional() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_conditional.yaml",
-		s.createUploadParams("nested_conditional", "../resources/dag_status/nested_conditional.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -228,7 +221,7 @@ func (s *DAGStatusNestedTestSuite) TestDeepNesting() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_deep.yaml",
-		s.createUploadParams("nested_deep", "../resources/dag_status/nested_deep.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -279,7 +272,7 @@ func (s *DAGStatusNestedTestSuite) waitForRunCompletion(runID string, expectedSt
 
 func (s *DAGStatusNestedTestSuite) getDefaultPipelineVersion(pipelineID string) (*pipeline_upload_model.V2beta1PipelineVersion, error) {
 	// List pipeline versions for the uploaded pipeline
-	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&pipelineParams.PipelineServiceListPipelineVersionsParams{
 		PipelineID: pipelineID,
 	})
 	if err != nil {
