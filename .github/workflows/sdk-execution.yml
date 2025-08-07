@@ -80,6 +80,7 @@ jobs:
 
       - name: Run tests
         id: tests
+        if: ${{ steps.forward-minio-port.outcome == 'success' }}
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           REPO_NAME: ${{ github.repository }}
