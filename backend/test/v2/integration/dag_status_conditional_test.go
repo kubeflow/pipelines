@@ -53,27 +53,8 @@ type DAGStatusConditionalTestSuite struct {
 
 // createUploadParams creates properly configured upload parameters for CI compatibility
 func (s *DAGStatusConditionalTestSuite) createUploadParams(testName, filePath string) *uploadParams.UploadPipelineParams {
-	uploadParams := uploadParams.NewUploadPipelineParams()
-	
-	// CI FIX: Set required fields that CI environment enforces
-	pipelineName := fmt.Sprintf("%s_test", testName)
-	displayName := fmt.Sprintf("%s Test Pipeline", testName)
-	description := fmt.Sprintf("Test pipeline for %s scenario", testName)
-	
-	// Use resourceNamespace if available (Kubeflow mode), otherwise use kubeflow namespace
-	namespace := s.resourceNamespace
-	if namespace == "" {
-		namespace = "kubeflow"
-	}
-	
-	uploadParams.SetName(&pipelineName)
-	uploadParams.SetDisplayName(&displayName) 
-	uploadParams.SetDescription(&description)
-	if namespace != "" {
-		uploadParams.SetNamespace(&namespace)
-	}
-	
-	return uploadParams
+	// Use standard upload params like other tests in this directory
+	return uploadParams.NewUploadPipelineParams()
 }
 
 func (s *DAGStatusConditionalTestSuite) SetupTest() {
