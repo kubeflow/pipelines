@@ -1,6 +1,15 @@
 package metadata
 
-import "os"
+import (
+	"os"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+)
+
+const (
+	metadataGrpcServiceAddress = "metadata-grpc-service.kubeflow"
+	metadataGrpcServicePort    = "8080"
+)
 
 type ServerConfig struct {
 	Address string
@@ -8,6 +17,15 @@ type ServerConfig struct {
 }
 
 func DefaultConfig() *ServerConfig {
+	// If proxy is enabled, use DNS name `metadata-grpc-service.kubeflow:8080` as default.
+	_, isHttpProxySet := os.LookupEnv(proxy.HttpProxyEnv)
+	_, isHttpsProxySet := os.LookupEnv(proxy.HttpsProxyEnv)
+	if isHttpProxySet || isHttpsProxySet {
+		return &ServerConfig{
+			Address: metadataGrpcServiceAddress,
+			Port:    metadataGrpcServicePort,
+		}
+	}
 	// The env vars exist when metadata-grpc-service Kubernetes service is
 	// in the same namespace as the current Pod.
 	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
@@ -20,7 +38,7 @@ func DefaultConfig() *ServerConfig {
 		}
 	}
 	return &ServerConfig{
-		Address: "metadata-grpc-service.kubeflow",
-		Port:    "8080",
+		Address: metadataGrpcServiceAddress,
+		Port:    metadataGrpcServicePort,
 	}
 }

@@ -17,6 +17,14 @@ inputs:
     description: "If KFP should be deployed with cache enabled globally"
     required: false
     default: 'true'
+  multi_user:
+    description: "If KFP should be deployed in multi-user mode"
+    required: false
+    default: 'false'
+  storage_backend:
+    description: "Storage backend to use (minio or seaweedfs)"
+    required: false
+    default: 'seaweedfs'
 
 runs:
   using: "composite"
@@ -51,10 +59,22 @@ runs:
 
         if [ "${{ inputs.proxy }}" = "true" ]; then
           ARGS="${ARGS} --proxy"
-        elif [ "${{inputs.cache_enabled }}" = "false" ]; then
+        fi
+        
+        if [ "${{inputs.cache_enabled }}" = "false" ]; then
           ARGS="${ARGS} --cache-disabled"
-        elif [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
-          ARGS="${ARGS}  --deploy-k8s-native"
+        fi
+        
+        if [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
+          ARGS="${ARGS} --deploy-k8s-native"
+        fi
+        
+        if [ "${{ inputs.multi_user }}" = "true" ]; then
+          ARGS="${ARGS} --multi-user"
+        fi
+        
+        if [ "${{ inputs.storage_backend }}" != "seaweedfs" ]; then
+          ARGS="${ARGS} --storage ${{ inputs.storage_backend }}"
         fi
         
         ./.github/resources/scripts/deploy-kfp.sh $ARGS

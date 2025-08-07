@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 )
 
 // The endpoint uses Kubernetes service DNS name with namespace:
@@ -164,6 +165,12 @@ func ParseProviderFromPath(uri string) (string, error) {
 }
 
 func MinioDefaultEndpoint() string {
+	// If proxy is enabled, use DNS name `minio-service.kubeflow:9000` as default.
+	_, isHttpProxySet := os.LookupEnv(proxy.HttpProxyEnv)
+	_, isHttpsProxySet := os.LookupEnv(proxy.HttpsProxyEnv)
+	if isHttpProxySet || isHttpsProxySet {
+		return defaultMinioEndpointInMultiUserMode
+	}
 	// Discover minio-service in the same namespace by env var.
 	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
 	minioHost := os.Getenv("MINIO_SERVICE_SERVICE_HOST")

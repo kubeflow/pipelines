@@ -9,7 +9,6 @@ resources:
 - ../../base/metadata/base
 - ../../third-party/argo/installs/namespace
 - inverse-proxy
-- minio-gcs-gateway
 - cloudsql-proxy
 
 

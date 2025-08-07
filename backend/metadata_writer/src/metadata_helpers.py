@@ -32,10 +32,8 @@ def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
 
 
 def connect_to_mlmd() -> metadata_store.MetadataStore:
-    metadata_service_host = os.environ.get(
-        'METADATA_GRPC_SERVICE_SERVICE_HOST', 'metadata-grpc-service')
-    metadata_service_port = int(os.environ.get(
-        'METADATA_GRPC_SERVICE_SERVICE_PORT', 8080))
+    metadata_service_host = "metadata-grpc-service.kubeflow"
+    metadata_service_port = 8080
 
     mlmd_connection_config = metadata_store_pb2.MetadataStoreClientConfig(
         host="[{}]".format(metadata_service_host) if isIPv6(metadata_service_host) else metadata_service_host,
