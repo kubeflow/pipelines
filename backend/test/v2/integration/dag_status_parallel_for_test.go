@@ -24,12 +24,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
+	pipelineParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	pipeline_upload_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
-	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
@@ -43,16 +43,10 @@ type DAGStatusParallelForTestSuite struct {
 	suite.Suite
 	namespace            string
 	resourceNamespace    string
-	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
-	runClient            *api_server.RunClient
+	pipelineClient       *apiserver.PipelineClient
+	pipelineUploadClient *apiserver.PipelineUploadClient
+	runClient            *apiserver.RunClient
 	mlmdClient           pb.MetadataStoreServiceClient
-}
-
-// createUploadParams creates properly configured upload parameters for CI compatibility
-func (s *DAGStatusParallelForTestSuite) createUploadParams(testName, filePath string) *uploadParams.UploadPipelineParams {
-	// Use standard upload params like other tests in this directory
-	return uploadParams.NewUploadPipelineParams()
 }
 
 func (s *DAGStatusParallelForTestSuite) SetupTest() {
@@ -69,33 +63,33 @@ func (s *DAGStatusParallelForTestSuite) SetupTest() {
 	}
 	s.namespace = *namespace
 
-	var newPipelineClient func() (*api_server.PipelineClient, error)
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
-	var newRunClient func() (*api_server.RunClient, error)
+	var newPipelineClient func() (*apiserver.PipelineClient, error)
+	var newPipelineUploadClient func() (*apiserver.PipelineUploadClient, error)
+	var newRunClient func() (*apiserver.RunClient, error)
 
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
-		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+		newPipelineClient = func() (*apiserver.PipelineClient, error) {
+			return apiserver.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
 		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
+			return apiserver.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
 		}
-		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+		newRunClient = func() (*apiserver.RunClient, error) {
+			return apiserver.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
-		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+		newPipelineClient = func() (*apiserver.PipelineClient, error) {
+			return apiserver.NewPipelineClient(clientConfig, *isDebugMode)
 		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
+			return apiserver.NewPipelineUploadClient(clientConfig, *isDebugMode)
 		}
-		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+		newRunClient = func() (*apiserver.RunClient, error) {
+			return apiserver.NewRunClient(clientConfig, *isDebugMode)
 		}
 	}
 
@@ -132,7 +126,7 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForSuccess() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/parallel_for_success.yaml",
-		s.createUploadParams("parallel_for_success", "../resources/dag_status/parallel_for_success.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -150,7 +144,7 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForSuccess() {
 }
 
 // Test Case 2: Simple ParallelFor - Failure
-// TODO: This test reveals an architectural issue where failed container tasks 
+// TODO: This test reveals an architectural issue where failed container tasks
 // don't get recorded in MLMD because they exit before the launcher's publish logic executes.
 // The DAG completion logic only sees MLMD executions, so failed tasks are invisible.
 // This requires a larger fix to sync Argo workflow failure status to MLMD.
@@ -161,7 +155,7 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForFailure() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/parallel_for_failure.yaml",
-		s.createUploadParams("parallel_for_failure", "../resources/dag_status/parallel_for_failure.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -179,7 +173,7 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForFailure() {
 }
 */
 
-// Test Case 3: Dynamic ParallelFor  
+// Test Case 3: Dynamic ParallelFor
 // TODO: Dynamic ParallelFor test times out during validation. The core completion logic
 // works for static ParallelFor, but dynamic scenarios may need additional investigation.
 // Skipping for now as the fundamental ParallelFor completion is working.
@@ -189,7 +183,7 @@ func (s *DAGStatusParallelForTestSuite) TestDynamicParallelFor() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/parallel_for_dynamic.yaml",
-		s.createUploadParams("parallel_for_dynamic", "../resources/dag_status/parallel_for_dynamic.yaml"),
+		uploadParams.NewUploadPipelineParams(),
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -232,7 +226,7 @@ func (s *DAGStatusParallelForTestSuite) createRunWithParams(pipelineVersion *pip
 }
 
 func (s *DAGStatusParallelForTestSuite) getDefaultPipelineVersion(pipelineID string) (*pipeline_upload_model.V2beta1PipelineVersion, error) {
-	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&pipelineParams.PipelineServiceListPipelineVersionsParams{
 		PipelineID: pipelineID,
 	})
 	if err != nil {
@@ -270,7 +264,7 @@ func (s *DAGStatusParallelForTestSuite) waitForRunCompletion(runID string, expec
 		s.T().Logf("Run %s state: %s", runID, currentState)
 		return runDetail.State != nil && *runDetail.State == expectedState
 	}, 5*time.Minute, 15*time.Second, "Run did not reach expected final state")
-	
+
 	// Give additional time for container defer blocks to execute and update DAG states
 	// This ensures UpdateDAGExecutionsState has been called by launcher containers
 	s.T().Logf("Run completed, waiting for DAG state updates to propagate...")
@@ -328,7 +322,7 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForDAGStatus(runID strin
 	require.NotEmpty(t, parallelForDAGs, "No ParallelFor DAG executions found")
 
 	for _, dagExecution := range parallelForDAGs {
-		// Validate DAG reaches expected final state 
+		// Validate DAG reaches expected final state
 		assert.Equal(t, expectedDAGState.String(), dagExecution.LastKnownState.String(),
 			"ParallelFor DAG execution ID=%d should reach final state %v, got %v",
 			dagExecution.GetId(), expectedDAGState, dagExecution.LastKnownState)
