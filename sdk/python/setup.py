@@ -97,10 +97,9 @@ setuptools.setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.9, <3.13',
     python_requires='>=3.10, <3.13',
-    master
     include_package_data=True,
+    
     entry_points={
         'console_scripts': [
             'dsl-compile = kfp.cli.compile_:main',
