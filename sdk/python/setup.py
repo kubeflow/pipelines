@@ -14,7 +14,7 @@
 
 import os
 import re
-from typing import List
+from typing import Listg
 
 import setuptools
 
@@ -97,12 +97,13 @@ setuptools.setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
+    
     python_requires='>=3.10, <3.13',
     include_package_data=True,
-    
     entry_points={
         'console_scripts': [
             'dsl-compile = kfp.cli.compile_:main',
             'kfp=kfp.cli.__main__:main',
         ]
-    })
+    }
+)
