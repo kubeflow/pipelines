@@ -722,3 +722,41 @@ func (s *TestSuite) cleanUp() {
 - `/backend/test/integration/dag_status_parallel_for_test.go` - Nil client checks
 
 **Result**: CI-ready code with comprehensive nil pointer protection and robust error handling.
+
+## **⚠️ Potential Side Effects - Test Behavior Changes**
+
+### **Issue: Upgrade Test Timeout After DAG Completion Fixes**
+After implementing the DAG completion fixes, the CI upgrade test (`TestUpgrade/TestPrepare`) started timing out after 10 minutes.
+
+**Timeline**: 
+- **Before DAG fixes**: Pipeline runs could show `SUCCEEDED` even with DAGs stuck in `RUNNING` state
+- **After DAG fixes**: DAGs now correctly transition to final states (`COMPLETE`/`FAILED`)
+
+**Potential Root Cause**: 
+The DAG completion fixes may have exposed test quality issues that were previously masked by broken DAG status logic.
+
+**Hypothesis 1 - Exposed Test Logic Issues**:
+- **Before**: Tests relied only on pipeline status (`SUCCEEDED`) which could be incorrect
+- **After**: DAGs that should fail now properly show `FAILED`, breaking test expectations
+- **Impact**: Tests written assuming broken behavior now fail when DAGs correctly complete
+
+**Hypothesis 2 - Database State Issues**:
+- **Before**: CI database may contain "successful" pipelines with stuck DAGs
+- **After**: Upgrade test queries these legacy pipelines and hangs waiting for DAG completion
+- **Impact**: Historical data inconsistency affects upgrade test logic
+
+**Hypothesis 3 - Infrastructure Timing**:
+- **Unrelated**: API server connectivity, namespace issues, or resource constraints
+- **Coincidental**: Timing issue that happened to appear after DAG fixes were implemented
+
+**Current Status**: 
+- ✅ DAG completion logic working correctly
+- ❌ Upgrade test timing out (may be exposing existing test quality issues)
+- 🔍 **Investigation needed**: Manual testing with cache disabled to determine root cause
+
+**Action Plan**:
+1. **Manual testing**: Deploy with cache disabled and run upgrade test manually for better error visibility
+2. **Root cause analysis**: Determine if timeout is related to DAG fixes or separate infrastructure issue
+3. **Test audit**: If related to DAG fixes, review test expectations and validation logic
+
+**Documentation Note**: This demonstrates that fixing core infrastructure bugs can expose downstream test quality issues that were previously hidden by incorrect behavior.
