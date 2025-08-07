@@ -130,7 +130,11 @@ func (s *DAGStatusNestedTestSuite) TestSimpleNested() {
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	pipelineVersion, err := s.getDefaultPipelineVersion(pipeline.PipelineID)
+	// Upload a pipeline version explicitly like run_api_test.go does
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/nested_simple.yaml", &uploadParams.UploadPipelineVersionParams{
+		Name:       util.StringPointer("test-version"),
+		Pipelineid: util.StringPointer(pipeline.PipelineID),
+	})
 	require.NoError(t, err)
 	require.NotNil(t, pipelineVersion)
 
@@ -162,7 +166,11 @@ func (s *DAGStatusNestedTestSuite) TestNestedParallelFor() {
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	pipelineVersion, err := s.getDefaultPipelineVersion(pipeline.PipelineID)
+	// Upload a pipeline version explicitly like run_api_test.go does
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/nested_parallel_for.yaml", &uploadParams.UploadPipelineVersionParams{
+		Name:       util.StringPointer("test-version"),
+		Pipelineid: util.StringPointer(pipeline.PipelineID),
+	})
 	require.NoError(t, err)
 	require.NotNil(t, pipelineVersion)
 
@@ -194,7 +202,11 @@ func (s *DAGStatusNestedTestSuite) TestNestedConditional() {
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	pipelineVersion, err := s.getDefaultPipelineVersion(pipeline.PipelineID)
+	// Upload a pipeline version explicitly like run_api_test.go does
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/nested_conditional.yaml", &uploadParams.UploadPipelineVersionParams{
+		Name:       util.StringPointer("test-version"),
+		Pipelineid: util.StringPointer(pipeline.PipelineID),
+	})
 	require.NoError(t, err)
 	require.NotNil(t, pipelineVersion)
 
@@ -226,7 +238,11 @@ func (s *DAGStatusNestedTestSuite) TestDeepNesting() {
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	pipelineVersion, err := s.getDefaultPipelineVersion(pipeline.PipelineID)
+	// Upload a pipeline version explicitly like run_api_test.go does
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/nested_deep.yaml", &uploadParams.UploadPipelineVersionParams{
+		Name:       util.StringPointer("test-version"),
+		Pipelineid: util.StringPointer(pipeline.PipelineID),
+	})
 	require.NoError(t, err)
 	require.NotNil(t, pipelineVersion)
 

@@ -131,7 +131,12 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForSuccess() {
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	pipelineVersion, err := s.getDefaultPipelineVersion(pipeline.PipelineID)
+	// Upload a pipeline version explicitly like run_api_test.go does  
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		"../resources/dag_status/parallel_for_success.yaml", &uploadParams.UploadPipelineVersionParams{
+			Name:       util.StringPointer("test-version"),
+			Pipelineid: util.StringPointer(pipeline.PipelineID),
+		})
 	require.NoError(t, err)
 	require.NotNil(t, pipelineVersion)
 
@@ -160,7 +165,12 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForFailure() {
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	pipelineVersion, err := s.getDefaultPipelineVersion(pipeline.PipelineID)
+	// Upload a pipeline version explicitly like run_api_test.go does  
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		"../resources/dag_status/parallel_for_failure.yaml", &uploadParams.UploadPipelineVersionParams{
+			Name:       util.StringPointer("test-version"),
+			Pipelineid: util.StringPointer(pipeline.PipelineID),
+		})
 	require.NoError(t, err)
 	require.NotNil(t, pipelineVersion)
 
@@ -188,7 +198,12 @@ func (s *DAGStatusParallelForTestSuite) TestDynamicParallelFor() {
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	pipelineVersion, err := s.getDefaultPipelineVersion(pipeline.PipelineID)
+	// Upload a pipeline version explicitly like run_api_test.go does  
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		"../resources/dag_status/parallel_for_dynamic.yaml", &uploadParams.UploadPipelineVersionParams{
+			Name:       util.StringPointer("test-version"),
+			Pipelineid: util.StringPointer(pipeline.PipelineID),
+		})
 	require.NoError(t, err)
 	require.NotNil(t, pipelineVersion)
 
