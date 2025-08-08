@@ -21,15 +21,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-const (
-	MYSQL_TEXT_FORMAT      string = "longtext not null"
-	MYSQL_TEXT_FORMAT_NULL string = "longtext"
-	MYSQL_EXIST_ERROR      string = "database exists"
-
-	PGX_TEXT_FORMAT string = "text"
-	PGX_EXIST_ERROR string = "already exists"
-)
-
 func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
 	dbName, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string,
 ) *mysql.Config {

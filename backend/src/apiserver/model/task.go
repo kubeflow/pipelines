@@ -19,11 +19,15 @@ import (
 )
 
 type Task struct {
-	UUID      string `gorm:"column:UUID; not null; primary_key"`
+	UUID      string `gorm:"column:UUID; not null; primaryKey; type:varchar(191);"`
 	Namespace string `gorm:"column:Namespace; not null;"`
 	// PipelineName was deprecated. Use RunId instead.
-	PipelineName       string           `gorm:"column:PipelineName; not null;"`
-	RunId              string           `gorm:"column:RunUUID; not null;"`
+	PipelineName string `gorm:"column:PipelineName; not null;"`
+	// RunId is limited to varchar(191) to make it indexable as a foreign key.
+	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
+	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
+	RunId              string           `gorm:"column:RunUUID; type:varchar(191); not null; index:tasks_RunUUID_run_details_UUID_foreign;"`                            // Note: field name (RunId) ≠ column name (RunUUID). The former should be the foreign key instead of the letter.
+	Run                Run              `gorm:"foreignKey:RunId;references:UUID;constraint:tasks_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE;"` // A Task belongs to a Run.
 	PodName            string           `gorm:"column:PodName; not null;"`
 	MLMDExecutionID    string           `gorm:"column:MLMDExecutionID; not null;"`
 	CreatedTimestamp   int64            `gorm:"column:CreatedTimestamp; not null;"`
@@ -33,13 +37,13 @@ type Task struct {
 	Name               string           `gorm:"column:Name; default:null"`
 	ParentTaskId       string           `gorm:"column:ParentTaskUUID; default:null"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString string           `gorm:"column:StateHistory; default:null; size:65535;"`
-	MLMDInputs         string           `gorm:"column:MLMDInputs; default:null; size:65535;"`
-	MLMDOutputs        string           `gorm:"column:MLMDOutputs; default:null; size:65535;"`
-	ChildrenPodsString string           `gorm:"column:ChildrenPods; default:null; size:65535;"`
+	StateHistoryString string           `gorm:"column:StateHistory; default:null; type:longtext;"`
+	MLMDInputs         string           `gorm:"column:MLMDInputs; default:null; type:longtext;"`
+	MLMDOutputs        string           `gorm:"column:MLMDOutputs; default:null; type:longtext;"`
+	ChildrenPodsString string           `gorm:"column:ChildrenPods; default:null; type:longtext;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	ChildrenPods       []string         `gorm:"-;"`
-	Payload            string           `gorm:"column:Payload; default:null; size:65535;"`
+	Payload            string           `gorm:"column:Payload; default:null; type:longtext;"`
 }
 
 func (t Task) ToString() string {
