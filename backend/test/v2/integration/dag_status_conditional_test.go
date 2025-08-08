@@ -168,13 +168,10 @@ func (s *DAGStatusConditionalTestSuite) TestSimpleIfTrue() {
 	}
 
 	t.Logf("Attempting pipeline upload...")
-	// DEBUG: Log upload parameters
-	uploadParamsObj := uploadParams.NewUploadPipelineParams()
-	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
-		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-
-	pipeline, err := s.pipelineUploadClient.UploadFile(filePath, uploadParamsObj)
+	pipeline, err := s.pipelineUploadClient.UploadFile(filePath, &uploadParams.UploadPipelineParams{
+		Name:        util.StringPointer("conditional-if-true-test"),
+		DisplayName: util.StringPointer("Conditional If True Test Pipeline"),
+	})
 
 	// Detailed error logging
 	if err != nil {
@@ -220,15 +217,12 @@ func (s *DAGStatusConditionalTestSuite) TestSimpleIfTrue() {
 func (s *DAGStatusConditionalTestSuite) TestSimpleIfFalse() {
 	t := s.T()
 
-	// DEBUG: Log upload parameters
-	uploadParamsObj := uploadParams.NewUploadPipelineParams()
-	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
-		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_if_false.yaml",
-		uploadParamsObj,
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("conditional-if-false-test"),
+			DisplayName: util.StringPointer("Conditional If False Test Pipeline"),
+		},
 	)
 
 	if err != nil {
@@ -265,15 +259,12 @@ func (s *DAGStatusConditionalTestSuite) TestSimpleIfFalse() {
 func (s *DAGStatusConditionalTestSuite) TestIfElseTrue() {
 	t := s.T()
 
-	// DEBUG: Log upload parameters
-	uploadParamsObj := uploadParams.NewUploadPipelineParams()
-	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
-		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_if_else_true.yaml",
-		uploadParamsObj,
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("conditional-if-else-true-test"),
+			DisplayName: util.StringPointer("Conditional If-Else True Test Pipeline"),
+		},
 	)
 
 	if err != nil {
@@ -309,15 +300,12 @@ func (s *DAGStatusConditionalTestSuite) TestIfElseTrue() {
 func (s *DAGStatusConditionalTestSuite) TestIfElseFalse() {
 	t := s.T()
 
-	// DEBUG: Log upload parameters
-	uploadParamsObj := uploadParams.NewUploadPipelineParams()
-	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
-		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_if_else_false.yaml",
-		uploadParamsObj,
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("conditional-if-else-false-test"),
+			DisplayName: util.StringPointer("Conditional If-Else False Test Pipeline"),
+		},
 	)
 
 	if err != nil {
@@ -353,18 +341,12 @@ func (s *DAGStatusConditionalTestSuite) TestIfElseFalse() {
 func (s *DAGStatusConditionalTestSuite) TestComplexConditional() {
 	t := s.T()
 
-	// DEBUG: Log upload parameters
-	uploadParamsObj := uploadParams.NewUploadPipelineParams()
-	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
-		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-
-	t.Logf("DEBUG: About to call UploadFile with file: ../resources/dag_status/conditional_complex.yaml")
-	t.Logf("DEBUG: PipelineUploadClient is nil: %v", s.pipelineUploadClient == nil)
-
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/conditional_complex.yaml",
-		uploadParamsObj,
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("conditional-complex-test"),
+			DisplayName: util.StringPointer("Conditional Complex Test Pipeline"),
+		},
 	)
 
 	if err != nil {

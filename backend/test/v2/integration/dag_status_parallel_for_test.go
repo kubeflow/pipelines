@@ -123,18 +123,12 @@ func TestDAGStatusParallelFor(t *testing.T) {
 func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForSuccess() {
 	t := s.T()
 
-	// DEBUG: Log upload parameters
-	uploadParamsObj := uploadParams.NewUploadPipelineParams()
-	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
-		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-
-	t.Logf("DEBUG: About to call UploadFile with file: ../resources/dag_status/parallel_for_success.yaml")
-	t.Logf("DEBUG: PipelineUploadClient is nil: %v", s.pipelineUploadClient == nil)
-
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/parallel_for_success.yaml",
-		uploadParamsObj,
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("parallel-for-success-test"),
+			DisplayName: util.StringPointer("Parallel For Success Test Pipeline"),
+		},
 	)
 
 	if err != nil {
@@ -176,7 +170,10 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForFailure() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/parallel_for_failure.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("parallel-for-failure-test"),
+			DisplayName: util.StringPointer("Parallel For Failure Test Pipeline"),
+		},
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
@@ -209,7 +206,10 @@ func (s *DAGStatusParallelForTestSuite) TestDynamicParallelFor() {
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/parallel_for_dynamic.yaml",
-		uploadParams.NewUploadPipelineParams(),
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("parallel-for-dynamic-test"),
+			DisplayName: util.StringPointer("Parallel For Dynamic Test Pipeline"),
+		},
 	)
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)

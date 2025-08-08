@@ -123,15 +123,12 @@ func (s *DAGStatusNestedTestSuite) cleanUp() {
 func (s *DAGStatusNestedTestSuite) TestSimpleNested() {
 	t := s.T()
 
-	// DEBUG: Log upload parameters
-	uploadParamsObj := uploadParams.NewUploadPipelineParams()
-	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
-		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_simple.yaml",
-		uploadParamsObj,
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("nested-simple-test"),
+			DisplayName: util.StringPointer("Nested Simple Test Pipeline"),
+		},
 	)
 
 	if err != nil {
@@ -173,15 +170,12 @@ func (s *DAGStatusNestedTestSuite) TestSimpleNested() {
 func (s *DAGStatusNestedTestSuite) TestNestedParallelFor() {
 	t := s.T()
 
-	// DEBUG: Log upload parameters
-	uploadParamsObj := uploadParams.NewUploadPipelineParams()
-	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
-		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_parallel_for.yaml",
-		uploadParamsObj,
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("nested-parallel-for-test"),
+			DisplayName: util.StringPointer("Nested Parallel For Test Pipeline"),
+		},
 	)
 
 	if err != nil {
@@ -223,15 +217,12 @@ func (s *DAGStatusNestedTestSuite) TestNestedParallelFor() {
 func (s *DAGStatusNestedTestSuite) TestNestedConditional() {
 	t := s.T()
 
-	// DEBUG: Log upload parameters
-	uploadParamsObj := uploadParams.NewUploadPipelineParams()
-	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
-		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_conditional.yaml",
-		uploadParamsObj,
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("nested-conditional-test"),
+			DisplayName: util.StringPointer("Nested Conditional Test Pipeline"),
+		},
 	)
 
 	if err != nil {
@@ -273,15 +264,12 @@ func (s *DAGStatusNestedTestSuite) TestNestedConditional() {
 func (s *DAGStatusNestedTestSuite) TestDeepNesting() {
 	t := s.T()
 
-	// DEBUG: Log upload parameters
-	uploadParamsObj := uploadParams.NewUploadPipelineParams()
-	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
-		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_deep.yaml",
-		uploadParamsObj,
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("nested-deep-test"),
+			DisplayName: util.StringPointer("Nested Deep Test Pipeline"),
+		},
 	)
 
 	if err != nil {
