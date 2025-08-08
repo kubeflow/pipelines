@@ -17,9 +17,12 @@ spec:
             - --executor-image
             - quay.io/argoproj/argoexec:v3.6.7
           securityContext:
-            seccompProfile:
-              type: RuntimeDefault
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           resources:
             requests:
               cpu: 100m
