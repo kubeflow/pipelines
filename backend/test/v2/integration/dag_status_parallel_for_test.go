@@ -197,9 +197,10 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForFailure() {
 */
 
 // Test Case 3: Dynamic ParallelFor
-// TODO: Dynamic ParallelFor test times out during validation. The core completion logic
-// works for static ParallelFor, but dynamic scenarios may need additional investigation.
-// Skipping for now as the fundamental ParallelFor completion is working.
+// CONFIRMED LIMITATION: Dynamic ParallelFor DAGs don't complete properly due to runtime task counting issues.
+// Root cause: DAG completion logic doesn't handle runtime-determined iteration counts correctly.
+// Evidence: Parent DAGs remain RUNNING with incorrect total_dag_tasks values (0 and 1 instead of 2).
+// Static ParallelFor works perfectly, but dynamic scenarios need task counting logic enhancement.
 /*
 func (s *DAGStatusParallelForTestSuite) TestDynamicParallelFor() {
 	t := s.T()
