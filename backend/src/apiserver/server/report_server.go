@@ -57,7 +57,7 @@ func (s *BaseReportServer) reportTasksFromExecution(execSpec util.ExecutionSpec,
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report tasks of an execution")
 	}
-	return s.resourceManager.CreateOrUpdateTasks(tasks)
+	return s.resourceManager.CreateOrUpdateTasks(tasks, runId)
 }
 
 // Reports a workflow.
