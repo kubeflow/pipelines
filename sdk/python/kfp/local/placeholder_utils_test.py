@@ -14,6 +14,7 @@
 """Tests for placeholder_utils.py."""
 
 import json
+import os
 from typing import List, Optional
 import unittest
 
@@ -456,6 +457,97 @@ class TestResolveSelfReferencesInExecutorInput(unittest.TestCase):
             pipeline_task_id='987654321',
         )
         self.assertEqual(actual, expected)
+
+
+class TestWorkspacePlaceholderResolution(unittest.TestCase):
+    """Tests for workspace placeholder resolution."""
+
+    def setUp(self):
+        """Set up test environment."""
+        # Initialize local config for testing
+        from kfp import local
+        local.init(runner=local.SubprocessRunner())
+
+    def test_workspace_path_placeholder_resolution(self):
+        """Test that workspace path placeholder is correctly resolved."""
+        executor_input_dict = {
+            'inputs': {
+                'parameterValues': {
+                    'workspace_path': '{{$.workspace_path}}'
+                }
+            },
+            'outputs': {
+                'outputFile': '/tmp/outputs/output.txt'
+            }
+        }
+
+        result = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.workspace_path}}',
+            executor_input_dict=executor_input_dict,
+            pipeline_resource_name='test-pipeline',
+            task_resource_name='test-task',
+            pipeline_root='/tmp/pipeline',
+            pipeline_job_id='test-job-id',
+            pipeline_task_id='test-task-id')
+
+        self.assertIsInstance(result, str)
+        self.assertTrue(result.startswith('/tmp/kfp-workspace-'))
+
+    def test_embedded_workspace_placeholder(self):
+        """Test embedded workspace placeholder resolution."""
+        executor_input_dict = {
+            'inputs': {
+                'parameterValues': {
+                    'file_path':
+                        os.path.join('{{$.workspace_path}}', 'data', 'file.txt')
+                }
+            },
+            'outputs': {
+                'outputFile': '/tmp/outputs/output.txt'
+            }
+        }
+
+        result = placeholder_utils.resolve_individual_placeholder(
+            element="os.path.join('{{$.workspace_path}}', 'data', 'file.txt')",
+            executor_input_dict=executor_input_dict,
+            pipeline_resource_name='test-pipeline',
+            task_resource_name='test-task',
+            pipeline_root='/tmp/pipeline',
+            pipeline_job_id='test-job-id',
+            pipeline_task_id='test-task-id')
+
+        self.assertIsInstance(result, str)
+        self.assertIn('os.path.join', result)
+        self.assertIn('/tmp/kfp-workspace-', result)
+        self.assertIn('data', result)
+        self.assertIn('file.txt', result)
+
+    def test_workspace_configured_resolves(self):
+        """Test that workspace placeholder resolves when workspace is
+        configured."""
+        executor_input_dict = {
+            'inputs': {
+                'parameterValues': {
+                    'workspace_path': '{{$.workspace_path}}'
+                }
+            },
+            'outputs': {
+                'outputFile': '/tmp/outputs/output.txt'
+            }
+        }
+
+        result = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.workspace_path}}',
+            executor_input_dict=executor_input_dict,
+            pipeline_resource_name='test-pipeline',
+            task_resource_name='test-task',
+            pipeline_root='/tmp/pipeline',
+            pipeline_job_id='test-job-id',
+            pipeline_task_id='test-task-id')
+
+        # Should resolve to actual workspace path
+        self.assertIsInstance(result, str)
+        self.assertTrue(result.startswith('/tmp/kfp-workspace-'))
 
 
 if __name__ == '__main__':

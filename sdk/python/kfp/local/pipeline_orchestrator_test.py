@@ -677,6 +677,47 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         task = my_pipeline()
         self.assertEqual(task.output, 'foo-bar-baz')
 
+    def test_workspace_functionality(self):
+        import tempfile
+
+        # Create temporary directory for workspace
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_root = os.path.join(temp_dir, 'workspace')
+            os.makedirs(workspace_root, exist_ok=True)
+
+            local.init(
+                local.SubprocessRunner(),
+                pipeline_root=ROOT_FOR_TESTING,
+                workspace_root=workspace_root)
+
+            @dsl.component
+            def write_to_workspace(text: str, workspace_path: str) -> str:
+                import os
+                output_file = os.path.join(workspace_path, 'output.txt')
+                with open(output_file, 'w') as f:
+                    f.write(text)
+                return output_file
+
+            @dsl.component
+            def read_from_workspace(file_path: str) -> str:
+                with open(file_path, 'r') as f:
+                    return f.read()
+
+            @dsl.pipeline
+            def my_pipeline(text: str = 'Hello workspace!') -> str:
+                # Write to workspace
+                write_task = write_to_workspace(
+                    text=text, workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+
+                # Read from workspace
+                read_task = read_from_workspace(file_path=write_task.output)
+
+                return read_task.output
+
+            task = my_pipeline(text='Test workspace functionality!')
+            self.assertEqual(task.output, 'Test workspace functionality!')
+            self.assert_output_dir_contents(1, 2)
+
 
 class TestFstringContainerComponent(
         testing_utilities.LocalRunnerEnvironmentTestCase):
