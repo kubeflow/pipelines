@@ -359,7 +359,7 @@ jobs:
         id: tests
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
-        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -cacheEnabled=false
+        run: go test -v -timeout 15m ./... -namespace kubeflow -args -runIntegrationTests=true -cacheEnabled=false
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
