@@ -18,7 +18,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
-	testV2 "github.com/kubeflow/pipelines/backend/test/v2"
+	"github.com/kubeflow/pipelines/backend/test/v2"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 )
 
@@ -40,7 +40,7 @@ func (s *DAGStatusNestedTestSuite) SetupTest() {
 	}
 
 	if !*isDevMode {
-		err := testV2.WaitForReady(*initializeTimeout)
+		err := test.WaitForReady(*initializeTimeout)
 		if err != nil {
 			s.T().Logf("Failed to initialize test. Error: %s", err.Error())
 		}
@@ -64,7 +64,7 @@ func (s *DAGStatusNestedTestSuite) SetupTest() {
 			return apiserver.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
 		}
 	} else {
-		clientConfig := testV2.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*namespace)
 
 		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
 			return apiserver.NewPipelineUploadClient(clientConfig, *isDebugMode)
@@ -107,10 +107,10 @@ func (s *DAGStatusNestedTestSuite) TearDownTest() {
 
 func (s *DAGStatusNestedTestSuite) cleanUp() {
 	if s.runClient != nil {
-		testV2.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
+		test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
 	}
 	if s.pipelineClient != nil {
-		testV2.DeleteAllPipelines(s.pipelineClient, s.T())
+		test.DeleteAllPipelines(s.pipelineClient, s.T())
 	}
 }
 
@@ -126,21 +126,21 @@ func (s *DAGStatusNestedTestSuite) TestSimpleNested() {
 	// DEBUG: Log upload parameters
 	uploadParamsObj := uploadParams.NewUploadPipelineParams()
 	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v", 
+	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
 		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-	
+
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_simple.yaml",
 		uploadParamsObj,
 	)
-	
+
 	if err != nil {
 		t.Logf("DEBUG: UploadFile failed with error: %v", err)
 		t.Logf("DEBUG: Error type: %T", err)
 	} else {
 		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
 	}
-	
+
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
@@ -176,21 +176,21 @@ func (s *DAGStatusNestedTestSuite) TestNestedParallelFor() {
 	// DEBUG: Log upload parameters
 	uploadParamsObj := uploadParams.NewUploadPipelineParams()
 	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v", 
+	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
 		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-	
+
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_parallel_for.yaml",
 		uploadParamsObj,
 	)
-	
+
 	if err != nil {
 		t.Logf("DEBUG: UploadFile failed with error: %v", err)
 		t.Logf("DEBUG: Error type: %T", err)
 	} else {
 		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
 	}
-	
+
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
@@ -226,21 +226,21 @@ func (s *DAGStatusNestedTestSuite) TestNestedConditional() {
 	// DEBUG: Log upload parameters
 	uploadParamsObj := uploadParams.NewUploadPipelineParams()
 	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v", 
+	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
 		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-	
+
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_conditional.yaml",
 		uploadParamsObj,
 	)
-	
+
 	if err != nil {
 		t.Logf("DEBUG: UploadFile failed with error: %v", err)
 		t.Logf("DEBUG: Error type: %T", err)
 	} else {
 		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
 	}
-	
+
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
@@ -276,21 +276,21 @@ func (s *DAGStatusNestedTestSuite) TestDeepNesting() {
 	// DEBUG: Log upload parameters
 	uploadParamsObj := uploadParams.NewUploadPipelineParams()
 	t.Logf("DEBUG: NewUploadPipelineParams() returned: %+v", uploadParamsObj)
-	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v", 
+	t.Logf("DEBUG: Upload params fields - Description: %v, DisplayName: %v, Name: %v, Namespace: %v",
 		uploadParamsObj.Description, uploadParamsObj.DisplayName, uploadParamsObj.Name, uploadParamsObj.Namespace)
-	
+
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_deep.yaml",
 		uploadParamsObj,
 	)
-	
+
 	if err != nil {
 		t.Logf("DEBUG: UploadFile failed with error: %v", err)
 		t.Logf("DEBUG: Error type: %T", err)
 	} else {
 		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
 	}
-	
+
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
