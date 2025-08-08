@@ -149,3 +149,21 @@ class TestComponentDecorator(unittest.TestCase):
         # TODO: ideally should be the canonical type string, rather than the specific annotation as string, but both work
         self.assertEqual(comp.component_spec.outputs['Output'].type,
                          'typing.List[str]')
+
+    def test_with_compile_time_imports(self):
+
+        @component(base_image='python:3.9', compile_time_imports=True)
+        def hello_world(text: str) -> str:
+            return text
+
+        self.assertIsInstance(hello_world, python_component.PythonComponent)
+        self.assertTrue("_KFP_RUNTIME=false" in hello_world.component_spec.implementation.container.command[5])
+
+    def test_with_compile_time_imports_defaults_false(self):
+
+        @component(base_image='python:3.9')
+        def hello_world(text: str) -> str:
+            return text
+
+        self.assertIsInstance(hello_world, python_component.PythonComponent)
+        self.assertTrue("_KFP_RUNTIME=true" in hello_world.component_spec.implementation.container.command[5])
