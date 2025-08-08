@@ -20,12 +20,13 @@ import (
 )
 
 var (
-	namespace           = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
-	initializeTimeout   = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
-	runIntegrationTests = flag.Bool("runIntegrationTests", false, "Whether to also run integration tests that call the service")
-	runUpgradeTests     = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
-	useProxy            = flag.Bool("useProxy", false, "Whether to run the proxy tests")
-	cacheEnabled        = flag.Bool("cacheEnabled", true, "Whether cache is enabled tests")
+	namespace            = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
+	initializeTimeout    = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
+	runIntegrationTests  = flag.Bool("runIntegrationTests", false, "Whether to also run integration tests that call the service")
+	runUpgradeTests      = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
+	useProxy             = flag.Bool("useProxy", false, "Whether to run the proxy tests")
+	cacheEnabled         = flag.Bool("cacheEnabled", true, "Whether cache is enabled tests")
+	mlPipelineTLSEnabled = flag.Bool("tls_enabled", true, "Whether TLS is enabled tests")
 )
 
 /**
