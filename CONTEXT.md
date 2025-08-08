@@ -240,23 +240,23 @@ if actualExecutedTasks > 0 {
 - ✅ Universal completion rule continues working perfectly
 - ✅ DAG completion logic functioning correctly
 
-### **Phase 2: Fix ParallelFor Parent DAG Completion** (High Priority)  
-**Issue**: Parent DAGs remain RUNNING even when all child iteration DAGs complete
+### **Phase 3: Fix Dynamic ParallelFor Completion** (Medium Priority)  
+**Issue**: Dynamic ParallelFor DAGs remain RUNNING due to incorrect task counting for runtime-determined iterations
 
 **Tasks**:
-1. **Debug ParallelFor parent completion logic**
-   - Check `isParallelForParentDAG()` function in `client.go:1017-1023`
-   - Review parent completion logic in lines 870-886
+1. **Enhance dynamic iteration detection**
+   - Modify DAG completion logic in `/backend/src/v2/metadata/client.go` to detect runtime-generated child DAGs
+   - Replace static `iteration_count` dependency with actual child DAG counting
    
-2. **Verify child DAG state detection**
-   - Ensure parent DAGs correctly count completed child DAG executions
-   - Check if `task.GetType() == "system.DAGExecution"` is working properly
+2. **Fix task counting for dynamic scenarios**
+   - Count actual `system.DAGExecution` children instead of relying on static properties
+   - Update `total_dag_tasks` based on runtime-discovered child DAG executions
    
-3. **Test parent-child relationship queries**
-   - Verify `GetExecutionsInDAG()` returns child DAGs for parent DAGs
-   - May need to adjust filtering logic
+3. **Test dynamic completion logic**
+   - Validate fix with uncommented `TestDynamicParallelFor`
+   - Ensure no regression in static ParallelFor functionality
 
-### **Phase 3: Comprehensive Testing** (Medium Priority)
+### **Phase 4: Comprehensive Testing** (Medium Priority)
 **Tasks**:
 1. **Run focused tests** after each fix:
    ```bash
@@ -311,20 +311,21 @@ if actualExecutedTasks > 0 {
 - [x] Status propagation framework in place
 - [x] Universal detection system implemented (no dependency on task names)
 - [x] **Conditional DAGs with 0 branches complete correctly** (`TestSimpleIfFalse` ✅)
-- [x] **Universal completion rule working** (empty DAGs complete immediately)
-- [ ] Conditional DAGs with executed branches show correct task count (Phase 2 target)
-- [ ] ParallelFor DAGs complete when all iterations finish  
-- [ ] Nested DAGs complete properly with correct task counting across hierarchy levels
-- [ ] Status propagates correctly up DAG hierarchies
-- [ ] No regression in existing functionality
-- [ ] Pipeline runs complete instead of hanging indefinitely
-- [ ] All three integration tests pass consistently
+- [x] **Universal completion rule working** (empty DAGs complete immediately)  
+- [x] **Conditional DAGs with executed branches show correct task count** (Phase 2 ✅)
+- [x] **Static ParallelFor DAGs complete when all iterations finish** (`TestSimpleParallelForSuccess` ✅)
+- [ ] **Dynamic ParallelFor DAGs complete properly** (Phase 3 target - confirmed limitation)
+- [ ] Nested DAGs complete properly with correct task counting across hierarchy levels (Phase 4)
+- [x] **Status propagates correctly up DAG hierarchies** (for working scenarios ✅)
+- [x] **No regression in existing functionality** (core fixes working ✅)
+- [x] **Pipeline runs complete instead of hanging indefinitely** (for static scenarios ✅)
+- [ ] All integration tests pass consistently (2/3 scenarios working, dynamic ParallelFor needs fix)
 
-## Current Status: 🎯 **Major Progress Made - New Discovery**
+## Current Status: 🎯 **Major Progress Made - Dynamic ParallelFor Limitation Confirmed**
 - **Phase 1**: ✅ Universal detection system working perfectly
-- **Phase 2**: ✅ Task count persistence completely fixed
-- **Discovery**: 🔍 Found upstream conditional execution issues
-- **Phase 3**: ⏳ ParallelFor parent completion logic
+- **Phase 2**: ✅ Task count persistence completely fixed  
+- **Phase 3**: ✅ Static ParallelFor completion working perfectly
+- **Discovery**: ❌ **Dynamic ParallelFor confirmed as real limitation requiring task counting logic enhancement**
 
 ## **✅ FINAL SUCCESS: All Issues Resolved** 🎉
 
@@ -466,9 +467,10 @@ The ParallelFor completion logic in `/backend/src/v2/metadata/client.go` (lines 
 - **Impact**: Core success logic working perfectly, failure edge case requires broader architecture work
 
 **TestDynamicParallelFor:**
-- **Status**: Core logic works but times out during validation
-- **Root Cause**: Dynamic scenarios may need additional investigation for timing
-- **Impact**: Fundamental ParallelFor completion logic confirmed working
+- **Status**: ❌ **CONFIRMED REAL LIMITATION** - DAG completion logic fails for runtime-determined iterations
+- **Root Cause**: Task counting logic doesn't handle dynamic scenarios where `iteration_count` is determined at runtime
+- **Evidence**: Parent DAGs remain `RUNNING` with incorrect `total_dag_tasks` values (0 and 1 instead of 2)
+- **Impact**: Static ParallelFor works perfectly, but dynamic workflows affected by completion logic gap
 
 ### **🎯 Technical Achievements Summary**
 
@@ -566,34 +568,45 @@ When individual tasks within a ParallelFor loop fail, the ParallelFor DAGs shoul
 3. **Modify launcher** to record execution state immediately upon failure
 4. **Add workflow-level failure detection** in DAG completion logic using Argo workflow status
 
-### **2. Dynamic ParallelFor Timing Issue**
+### **2. Dynamic ParallelFor Completion Issue** ⚠️ **CONFIRMED REAL LIMITATION**
 
-**Location:** `/backend/test/integration/dag_status_parallel_for_test.go` (lines 177-179, test commented out)
+**Location:** `/backend/test/v2/integration/dag_status_parallel_for_test.go` (lines 199-238, test commented out)
 
 **Problem Description:**
-Dynamic ParallelFor scenarios work correctly but experience delayed status propagation during validation phase.
+Dynamic ParallelFor DAGs don't reach `COMPLETE` state due to incorrect task counting logic for runtime-determined iterations.
 
-**Observed Behavior:**
-- ✅ Run completes successfully: `Run state: SUCCEEDED`
-- ❌ Test times out during DAG state validation phase
-- ✅ Core completion logic confirmed working
+**Confirmed Behavior (January 8, 2025):**
+- ✅ Pipeline completes successfully: `Run state: SUCCEEDED`
+- ✅ Child iteration DAGs complete: Individual iterations reach `COMPLETE` state  
+- ❌ Parent DAGs remain `RUNNING`: Both root and parent DAGs never complete
+- ❌ Incorrect task counting: `total_dag_tasks` shows wrong values (0, 1 instead of 2)
 
-**Potential Causes:**
-1. **Dynamic iteration processing complexity:** Runtime-determined iteration counts require additional processing
-2. **Additional DAG structures:** Dynamic scenarios may create more complex DAG hierarchies
-3. **Timing synchronization:** Current 30-second buffer may be insufficient for complex dynamic workflows
-4. **MLMD query performance:** Large numbers of iterations may slow DAG state queries
+**Root Cause Analysis:**
+The DAG completion logic in `/backend/src/v2/metadata/client.go` doesn't properly handle scenarios where `iteration_count` is determined at runtime rather than being statically defined in the pipeline YAML.
+
+**Evidence from Test Results:**
+```
+- Root DAG (ID=8): total_dag_tasks=0, iteration_count=2 (should be 2)
+- Parent DAG (ID=10): total_dag_tasks=1, iteration_count=2 (should be 2)  
+- Child DAGs (ID=11,12): COMPLETE ✅ (working correctly)
+```
+
+**Technical Analysis:**
+1. **Static ParallelFor**: Works perfectly - `iteration_count` known at pipeline compile time
+2. **Dynamic ParallelFor**: Fails - `iteration_count` determined by upstream task output at runtime
+3. **Task Counting Gap**: Current logic doesn't detect/count runtime-determined child DAGs properly
 
 **Impact:**
-- **Severity:** Low - functionality works but with performance implications
-- **Scope:** Only affects dynamic ParallelFor with runtime-determined iteration counts
-- **Workaround:** Static ParallelFor works perfectly; core logic is sound
+- **Severity:** Medium - affects dynamic workflow patterns commonly used in ML pipelines
+- **Scope:** Only affects ParallelFor with runtime-determined iteration counts from upstream tasks
+- **Workaround:** Use static ParallelFor where possible; dynamic workflows will hang in `RUNNING` state
 
-**Potential Solutions:**
-1. **Optimize DAG state query performance** for workflows with many iterations
-2. **Implement progressive status checking** with complexity-based timeouts
-3. **Add workflow complexity detection** to adjust validation timing
-4. **Enhance MLMD indexing** for better performance with large iteration counts
+**Required Fix:**
+Enhance DAG completion logic to:
+1. **Detect dynamic iteration patterns** in MLMD execution hierarchy
+2. **Count actual child DAG executions** instead of relying on static `iteration_count` properties
+3. **Update `total_dag_tasks`** based on runtime-discovered child DAG count
+4. **Handle completion detection** for dynamically-generated DAG structures
 
 ### **📝 Documentation Status**
 
