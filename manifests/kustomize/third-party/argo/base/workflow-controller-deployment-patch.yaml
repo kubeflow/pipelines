@@ -5,6 +5,9 @@ metadata:
 spec:
   template:
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: workflow-controller
           image: quay.io/argoproj/workflow-controller:v3.6.7
