@@ -714,7 +714,38 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		e.CustomProperties[keyArtifactProducerTask] = StringValue(string(b))
 	}
 	if config.TotalDagTasks != nil {
-		e.CustomProperties[keyTotalDagTasks] = intValue(int64(*config.TotalDagTasks))
+		totalDagTasks := *config.TotalDagTasks
+		
+		// DEBUG: Log all relevant config values for ParallelFor debugging
+		glog.Infof("CreateExecution DEBUG: TotalDagTasks=%d, IterationCount=%v, IterationIndex=%v, TaskName=%s", 
+			totalDagTasks, 
+			func() interface{} { if config.IterationCount != nil { return *config.IterationCount } else { return "nil" } }(),
+			func() interface{} { if config.IterationIndex != nil { return *config.IterationIndex } else { return "nil" } }(),
+			config.TaskName)
+		
+		// FIX: For ParallelFor parent DAGs, ensure total_dag_tasks equals iteration_count
+		// This fixes cases where DAG driver sets total_dag_tasks incorrectly
+		if config.IterationCount != nil && *config.IterationCount > 0 && 
+		   (config.IterationIndex == nil || *config.IterationIndex < 0) {
+			// This is a ParallelFor parent DAG
+			glog.Infof("CreateExecution DEBUG: ParallelFor parent DAG detected - IterationCount=%d, current TotalDagTasks=%d", 
+				*config.IterationCount, totalDagTasks)
+			if totalDagTasks != *config.IterationCount {
+				glog.Infof("ParallelFor parent DAG: Correcting total_dag_tasks from %d to %d (iteration_count)", 
+					totalDagTasks, *config.IterationCount)
+				totalDagTasks = *config.IterationCount
+			} else {
+				glog.Infof("ParallelFor parent DAG: total_dag_tasks=%d already matches iteration_count=%d", 
+					totalDagTasks, *config.IterationCount)
+			}
+		} else {
+			glog.Infof("CreateExecution DEBUG: Not a ParallelFor parent DAG - conditions not met")
+		}
+		
+		e.CustomProperties[keyTotalDagTasks] = intValue(int64(totalDagTasks))
+		glog.Infof("CreateExecution DEBUG: Final total_dag_tasks set to %d", totalDagTasks)
+	} else {
+		glog.Infof("CreateExecution DEBUG: config.TotalDagTasks is nil")
 	}
 
 	req := &pb.PutExecutionRequest{
@@ -927,7 +958,8 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 		childDagCount := dagExecutions
 		completedChildDags := 0
 		
-		glog.Infof("PHASE 3 DEBUG: ParallelFor parent DAG %d - checking %d child DAGs", dagID, childDagCount)
+		glog.Infof("PHASE 3 DEBUG: ParallelFor parent DAG %d - checking %d child DAGs, current total_dag_tasks=%d", 
+			dagID, childDagCount, totalDagTasks)
 		
 		for taskName, task := range tasks {
 			taskType := task.GetType()
@@ -946,17 +978,37 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 			}
 		}
 		
-		glog.Infof("PHASE 3 DEBUG: Parent DAG %d - completedChildDags=%d, childDagCount=%d", 
-			dagID, completedChildDags, childDagCount)
+		// For ParallelFor parent DAGs, the meaningful completion count is the number of child DAGs
+		// not the stored total_dag_tasks which may be incorrect (often shows 1 instead of iteration_count)
+		finalIterationCount := childDagCount
 		
-		if completedChildDags == childDagCount && childDagCount > 0 {
+		// FIX: Update total_dag_tasks to match actual child DAG count for consistency
+		// This fixes both static and dynamic ParallelFor scenarios where total_dag_tasks is wrong
+		if totalDagTasks != int64(finalIterationCount) && finalIterationCount > 0 {
+			glog.Infof("ParallelFor parent DAG %d: Correcting total_dag_tasks from %d to %d (child DAG count)", 
+				dagID, totalDagTasks, finalIterationCount)
+			if dag.Execution.execution.CustomProperties == nil {
+				dag.Execution.execution.CustomProperties = make(map[string]*pb.Value)
+			}
+			dag.Execution.execution.CustomProperties["total_dag_tasks"] = &pb.Value{
+				Value: &pb.Value_IntValue{IntValue: int64(finalIterationCount)},
+			}
+			// Update local variable for consistency
+			totalDagTasks = int64(finalIterationCount)
+		}
+		
+		glog.Infof("PHASE 3 DEBUG: Parent DAG %d - completedChildDags=%d, finalIterationCount=%d", 
+			dagID, completedChildDags, finalIterationCount)
+		
+		if completedChildDags == finalIterationCount && finalIterationCount > 0 {
 			newState = pb.Execution_COMPLETE
 			stateChanged = true
+			
 			glog.Infof("ParallelFor parent DAG %d completed: %d/%d child DAGs finished", 
-				dag.Execution.GetID(), completedChildDags, childDagCount)
+				dag.Execution.GetID(), completedChildDags, finalIterationCount)
 		} else {
-			glog.Infof("PHASE 3 DEBUG: Parent DAG %d NOT completing - completedChildDags=%d != childDagCount=%d", 
-				dagID, completedChildDags, childDagCount)
+			glog.Infof("PHASE 3 DEBUG: Parent DAG %d NOT completing - completedChildDags=%d != finalIterationCount=%d", 
+				dagID, completedChildDags, finalIterationCount)
 		}
 	} else {
 		// Standard DAG completion logic
@@ -1097,10 +1149,31 @@ func (c *Client) isParallelForIterationDAG(dag *DAG) bool {
 // isParallelForParentDAG checks if this is a parent ParallelFor DAG that fans out iterations
 func (c *Client) isParallelForParentDAG(dag *DAG) bool {
 	props := dag.Execution.execution.CustomProperties
-	return props["iteration_count"] != nil && 
-		   props["iteration_count"].GetIntValue() > 0 &&
-		   (props["iteration_index"] == nil || props["iteration_index"].GetIntValue() < 0)
+	
+	// Check for static iteration_count property (works for compile-time scenarios)
+	if props["iteration_count"] != nil && 
+	   props["iteration_count"].GetIntValue() > 0 &&
+	   (props["iteration_index"] == nil || props["iteration_index"].GetIntValue() < 0) {
+		return true
+	}
+	
+	// Check for dynamic iteration_count in inputs (works for runtime scenarios)
+	if props["inputs"] != nil {
+		inputs := props["inputs"].GetStructValue()
+		if inputs != nil && inputs.Fields != nil {
+			if iterField, exists := inputs.Fields["iteration_count"]; exists {
+				if iterField.GetNumberValue() > 0 {
+					glog.Infof("Dynamic ParallelFor: DAG %d detected with inputs.iteration_count=%.0f", 
+						dag.Execution.GetID(), iterField.GetNumberValue())
+					return true
+				}
+			}
+		}
+	}
+	
+	return false
 }
+
 
 // PutDAGExecutionState updates the given DAG Id to the state provided.
 func (c *Client) PutDAGExecutionState(ctx context.Context, executionID int64, state pb.Execution_State) error {

@@ -118,7 +118,8 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	// Initial totalDagTasks calculation based on compile-time component tasks
 	totalDagTasks := len(opts.Component.GetDag().GetTasks())
 	ecfg.TotalDagTasks = &totalDagTasks
-	glog.V(4).Info("initial totalDagTasks: ", *ecfg.TotalDagTasks)
+	glog.Infof("DAG Driver DEBUG: initial totalDagTasks=%d, taskName=%s, iterationIndex=%d", 
+		*ecfg.TotalDagTasks, taskName, opts.IterationIndex)
 
 	if opts.Task.GetArtifactIterator() != nil {
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
@@ -167,7 +168,8 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		// FIX: For ParallelFor, total_dag_tasks should equal iteration_count
 		totalDagTasks = count
 		ecfg.TotalDagTasks = &totalDagTasks
-		glog.Infof("ParallelFor: Updated totalDagTasks=%d to match iteration_count", totalDagTasks)
+		glog.Infof("DAG Driver DEBUG: ParallelFor parent DAG - Updated totalDagTasks=%d to match iteration_count=%d", 
+			totalDagTasks, count)
 	} else if opts.IterationIndex >= 0 {
 		// FIX: For individual ParallelFor iteration DAGs, inherit iteration_count from parent
 		// Get parent DAG to find the iteration_count
@@ -177,7 +179,8 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 			totalDagTasks = parentIterationCount
 			ecfg.IterationCount = &parentIterationCount
 			ecfg.TotalDagTasks = &totalDagTasks
-			glog.Infof("ParallelFor iteration %d: Set totalDagTasks=%d from parent iteration_count", opts.IterationIndex, totalDagTasks)
+			glog.Infof("DAG Driver DEBUG: ParallelFor iteration %d - Set totalDagTasks=%d from parent iteration_count", 
+				opts.IterationIndex, totalDagTasks)
 		}
 	}
 
@@ -185,6 +188,13 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	b, _ = json.Marshal(*ecfg)
 	glog.V(4).Info("ecfg: ", string(b))
 	glog.V(4).Infof("dag: %v", dag)
+
+	// DEBUG: Final config summary before calling CreateExecution
+	glog.Infof("DAG Driver DEBUG: Final ExecutionConfig - TaskName=%s, TotalDagTasks=%v, IterationCount=%v, IterationIndex=%v", 
+		ecfg.TaskName,
+		func() interface{} { if ecfg.TotalDagTasks != nil { return *ecfg.TotalDagTasks } else { return "nil" } }(),
+		func() interface{} { if ecfg.IterationCount != nil { return *ecfg.IterationCount } else { return "nil" } }(),
+		func() interface{} { if ecfg.IterationIndex != nil { return *ecfg.IterationIndex } else { return "nil" } }())
 
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
