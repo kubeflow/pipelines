@@ -1,0 +1,307 @@
+# PIPELINE DEFINITION
+# Name: conditional-complex
+# Description: Complex If/Elif/Else condition to test DAG status updates
+# Inputs:
+#    test_value: int [Default: 2.0]
+components:
+  comp-condition-2:
+    dag:
+      tasks:
+        execute-if-task:
+          cachingOptions: {}
+          componentRef:
+            name: comp-execute-if-task
+          inputs:
+            parameters:
+              message:
+                runtimeValue:
+                  constant: value was 1
+          taskInfo:
+            name: execute-if-task
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-value-Output:
+          parameterType: NUMBER_INTEGER
+  comp-condition-3:
+    dag:
+      tasks:
+        execute-elif-task:
+          cachingOptions: {}
+          componentRef:
+            name: comp-execute-elif-task
+          inputs:
+            parameters:
+              message:
+                runtimeValue:
+                  constant: value was 2
+          taskInfo:
+            name: execute-elif-task
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-value-Output:
+          parameterType: NUMBER_INTEGER
+  comp-condition-4:
+    dag:
+      tasks:
+        execute-else-task:
+          cachingOptions: {}
+          componentRef:
+            name: comp-execute-else-task
+          inputs:
+            parameters:
+              message:
+                runtimeValue:
+                  constant: value was something else
+          taskInfo:
+            name: execute-else-task
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-value-Output:
+          parameterType: NUMBER_INTEGER
+  comp-condition-branches-1:
+    dag:
+      tasks:
+        condition-2:
+          componentRef:
+            name: comp-condition-2
+          inputs:
+            parameters:
+              pipelinechannel--get-value-Output:
+                componentInputParameter: pipelinechannel--get-value-Output
+          taskInfo:
+            name: condition-2
+          triggerPolicy:
+            condition: int(inputs.parameter_values['pipelinechannel--get-value-Output'])
+              == 1
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            parameters:
+              pipelinechannel--get-value-Output:
+                componentInputParameter: pipelinechannel--get-value-Output
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: '!(int(inputs.parameter_values[''pipelinechannel--get-value-Output''])
+              == 1) && int(inputs.parameter_values[''pipelinechannel--get-value-Output''])
+              == 2'
+        condition-4:
+          componentRef:
+            name: comp-condition-4
+          inputs:
+            parameters:
+              pipelinechannel--get-value-Output:
+                componentInputParameter: pipelinechannel--get-value-Output
+          taskInfo:
+            name: condition-4
+          triggerPolicy:
+            condition: '!(int(inputs.parameter_values[''pipelinechannel--get-value-Output''])
+              == 1) && !(int(inputs.parameter_values[''pipelinechannel--get-value-Output''])
+              == 2)'
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-value-Output:
+          parameterType: NUMBER_INTEGER
+  comp-execute-elif-task:
+    executorLabel: exec-execute-elif-task
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-execute-else-task:
+    executorLabel: exec-execute-else-task
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-execute-if-task:
+    executorLabel: exec-execute-if-task
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-get-value:
+    executorLabel: exec-get-value
+    inputDefinitions:
+      parameters:
+        input_value:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-execute-elif-task:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - execute_elif_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef execute_elif_task(message: str) -> str:\n    \"\"\"Component\
+          \ that executes when Elif condition is True (value == 2).\"\"\"\n    print(f\"\
+          Elif branch executed: {message}\")\n    return f\"Elif result: {message}\"\
+          \n\n"
+        image: python:3.9
+    exec-execute-else-task:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - execute_else_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef execute_else_task(message: str) -> str:\n    \"\"\"Component\
+          \ that executes when all conditions are False (value != 1,2).\"\"\"\n  \
+          \  print(f\"Else branch executed: {message}\")\n    return f\"Else result:\
+          \ {message}\"\n\n"
+        image: python:3.9
+    exec-execute-if-task:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - execute_if_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef execute_if_task(message: str) -> str:\n    \"\"\"Component that\
+          \ executes when If condition is True (value == 1).\"\"\"\n    print(f\"\
+          If branch executed: {message}\")\n    return f\"If result: {message}\"\n\
+          \n"
+        image: python:3.9
+    exec-get-value:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_value
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_value(input_value: int) -> int:\n    \"\"\"Component that\
+          \ returns the input value to test different conditions.\"\"\"\n    print(f\"\
+          Received input value: {input_value}\")\n    return input_value\n\n"
+        image: python:3.9
+pipelineInfo:
+  description: Complex If/Elif/Else condition to test DAG status updates
+  name: conditional-complex
+root:
+  dag:
+    tasks:
+      condition-branches-1:
+        componentRef:
+          name: comp-condition-branches-1
+        dependentTasks:
+        - get-value
+        inputs:
+          parameters:
+            pipelinechannel--get-value-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: get-value
+        taskInfo:
+          name: condition-branches-1
+      get-value:
+        cachingOptions: {}
+        componentRef:
+          name: comp-get-value
+        inputs:
+          parameters:
+            input_value:
+              componentInputParameter: test_value
+        taskInfo:
+          name: get-value
+  inputDefinitions:
+    parameters:
+      test_value:
+        defaultValue: 2.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

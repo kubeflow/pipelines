@@ -63,15 +63,43 @@ func TestUpgrade(t *testing.T) {
 func (s *UpgradeTests) TestPrepare() {
 	t := s.T()
 
+	glog.Infof("UpgradeTests TestPrepare: Starting cleanup phase")
+	
+	glog.Infof("UpgradeTests TestPrepare: Deleting all recurring runs")
 	test.DeleteAllRecurringRuns(s.recurringRunClient, s.resourceNamespace, t)
+	glog.Infof("UpgradeTests TestPrepare: Recurring runs deleted successfully")
+	
+	glog.Infof("UpgradeTests TestPrepare: Deleting all runs")
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
+	glog.Infof("UpgradeTests TestPrepare: Runs deleted successfully")
+	
+	glog.Infof("UpgradeTests TestPrepare: Deleting all pipelines")
 	test.DeleteAllPipelines(s.pipelineClient, t)
+	glog.Infof("UpgradeTests TestPrepare: Pipelines deleted successfully")
+	
+	glog.Infof("UpgradeTests TestPrepare: Deleting all experiments")
 	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
+	glog.Infof("UpgradeTests TestPrepare: Experiments deleted successfully")
 
+	glog.Infof("UpgradeTests TestPrepare: Starting prepare phase")
+	
+	glog.Infof("UpgradeTests TestPrepare: Preparing experiments")
 	s.PrepareExperiments()
+	glog.Infof("UpgradeTests TestPrepare: Experiments prepared successfully")
+	
+	glog.Infof("UpgradeTests TestPrepare: Preparing pipelines")
 	s.PreparePipelines()
+	glog.Infof("UpgradeTests TestPrepare: Pipelines prepared successfully")
+	
+	glog.Infof("UpgradeTests TestPrepare: Preparing runs")
 	s.PrepareRuns()
+	glog.Infof("UpgradeTests TestPrepare: Runs prepared successfully")
+	
+	glog.Infof("UpgradeTests TestPrepare: Preparing recurring runs")
 	s.PrepareRecurringRuns()
+	glog.Infof("UpgradeTests TestPrepare: Recurring runs prepared successfully")
+	
+	glog.Infof("UpgradeTests TestPrepare: All preparation completed successfully")
 }
 
 func (s *UpgradeTests) TestVerify() {
@@ -87,16 +115,26 @@ func (s *UpgradeTests) SetupSuite() {
 	// Integration tests also run these tests to first ensure they work, so that
 	// when integration tests pass and upgrade tests fail, we know for sure
 	// upgrade process went wrong somehow.
+	glog.Infof("UpgradeTests SetupSuite: Starting initialization")
+	glog.Infof("UpgradeTests SetupSuite: runIntegrationTests=%v, runUpgradeTests=%v", *runIntegrationTests, *runUpgradeTests)
+	
 	if !(*runIntegrationTests || *runUpgradeTests) {
+		glog.Infof("UpgradeTests SetupSuite: Skipping due to test flags")
 		s.T().SkipNow()
 		return
 	}
 
+	glog.Infof("UpgradeTests SetupSuite: isDevMode=%v, initializeTimeout=%v", *isDevMode, *initializeTimeout)
 	if !*isDevMode {
+		glog.Infof("UpgradeTests SetupSuite: Starting WaitForReady with timeout %v", *initializeTimeout)
 		err := test.WaitForReady(*initializeTimeout)
 		if err != nil {
+			glog.Errorf("UpgradeTests SetupSuite: WaitForReady failed with error: %v", err)
 			glog.Exitf("Failed to initialize test. Error: %v", err)
 		}
+		glog.Infof("UpgradeTests SetupSuite: WaitForReady completed successfully")
+	} else {
+		glog.Infof("UpgradeTests SetupSuite: Skipping WaitForReady due to isDevMode=true")
 	}
 	s.namespace = *namespace
 
@@ -144,27 +182,50 @@ func (s *UpgradeTests) SetupSuite() {
 		}
 	}
 
+	glog.Infof("UpgradeTests SetupSuite: Creating API clients (isKubeflowMode=%v)", *isKubeflowMode)
 	var err error
+	
+	glog.Infof("UpgradeTests SetupSuite: Creating experiment client")
 	s.experimentClient, err = newExperimentClient()
 	if err != nil {
+		glog.Errorf("UpgradeTests SetupSuite: Failed to create experiment client: %v", err)
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
+	glog.Infof("UpgradeTests SetupSuite: Experiment client created successfully")
+	
+	glog.Infof("UpgradeTests SetupSuite: Creating pipeline upload client")
 	s.pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
+		glog.Errorf("UpgradeTests SetupSuite: Failed to create pipeline upload client: %v", err)
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
+	glog.Infof("UpgradeTests SetupSuite: Pipeline upload client created successfully")
+	
+	glog.Infof("UpgradeTests SetupSuite: Creating pipeline client")
 	s.pipelineClient, err = newPipelineClient()
 	if err != nil {
+		glog.Errorf("UpgradeTests SetupSuite: Failed to create pipeline client: %v", err)
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
+	glog.Infof("UpgradeTests SetupSuite: Pipeline client created successfully")
+	
+	glog.Infof("UpgradeTests SetupSuite: Creating run client")
 	s.runClient, err = newRunClient()
 	if err != nil {
+		glog.Errorf("UpgradeTests SetupSuite: Failed to create run client: %v", err)
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
+	glog.Infof("UpgradeTests SetupSuite: Run client created successfully")
+	
+	glog.Infof("UpgradeTests SetupSuite: Creating recurring run client")
 	s.recurringRunClient, err = newRecurringRunClient()
 	if err != nil {
+		glog.Errorf("UpgradeTests SetupSuite: Failed to create recurring run client: %v", err)
 		glog.Exitf("Failed to get job client. Error: %s", err.Error())
 	}
+	glog.Infof("UpgradeTests SetupSuite: Recurring run client created successfully")
+	
+	glog.Infof("UpgradeTests SetupSuite: All clients created successfully, setup complete")
 }
 
 func (s *UpgradeTests) TearDownSuite() {

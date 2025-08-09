@@ -272,14 +272,91 @@ func (e *Execution) TaskName() string {
 	if e == nil {
 		return ""
 	}
-	return e.execution.GetCustomProperties()[keyTaskName].GetStringValue()
+	props := e.execution.GetCustomProperties()
+	if props == nil || props[keyTaskName] == nil {
+		return ""
+	}
+	return props[keyTaskName].GetStringValue()
 }
 
 func (e *Execution) FingerPrint() string {
 	if e == nil {
 		return ""
 	}
-	return e.execution.GetCustomProperties()[keyCacheFingerPrint].GetStringValue()
+	props := e.execution.GetCustomProperties()
+	if props == nil || props[keyCacheFingerPrint] == nil {
+		return ""
+	}
+	return props[keyCacheFingerPrint].GetStringValue()
+}
+
+// GetType returns the execution type name. Since the protobuf Type field is often empty,
+// this method attempts to determine the type from available information.
+func (e *Execution) GetType() string {
+	if e == nil || e.execution == nil {
+		glog.V(4).Infof("DEBUG GetType: execution is nil")
+		return ""
+	}
+	
+	// First try the protobuf Type field (this is the preferred method)
+	if e.execution.Type != nil && *e.execution.Type != "" {
+		glog.V(4).Infof("DEBUG GetType: using protobuf Type field: %s", *e.execution.Type)
+		return *e.execution.Type
+	}
+	
+	// Fallback: try to determine type from context
+	// This is a heuristic approach for when the Type field is not populated
+	glog.V(4).Infof("DEBUG GetType: protobuf Type field empty, using heuristics")
+	
+	// Check for DAG-specific properties to identify DAG executions
+	if props := e.execution.GetCustomProperties(); props != nil {
+		glog.V(4).Infof("DEBUG GetType: checking custom properties: %v", getPropertyKeys(props))
+		
+		// DAG executions often have iteration_count, total_dag_tasks, or parent_dag_id properties
+		if _, hasIterationCount := props["iteration_count"]; hasIterationCount {
+			glog.V(4).Infof("DEBUG GetType: detected DAG execution (has iteration_count)")
+			return string(DagExecutionTypeName)
+		}
+		if _, hasTotalDagTasks := props["total_dag_tasks"]; hasTotalDagTasks {
+			glog.V(4).Infof("DEBUG GetType: detected DAG execution (has total_dag_tasks)")
+			return string(DagExecutionTypeName)
+		}
+		if _, hasParentDagId := props["parent_dag_id"]; hasParentDagId {
+			// This could be either a DAG or a Container execution that's part of a DAG
+			// Check for other indicators
+			glog.V(4).Infof("DEBUG GetType: has parent_dag_id, checking other indicators")
+		}
+		
+		// Container executions typically have pod-related properties
+		if _, hasPodName := props["pod_name"]; hasPodName {
+			glog.V(4).Infof("DEBUG GetType: detected Container execution (has pod_name)")
+			return string(ContainerExecutionTypeName)
+		}
+		if _, hasPodUID := props["pod_uid"]; hasPodUID {
+			glog.V(4).Infof("DEBUG GetType: detected Container execution (has pod_uid)")
+			return string(ContainerExecutionTypeName)
+		}
+		if _, hasImage := props["image"]; hasImage {
+			glog.V(4).Infof("DEBUG GetType: detected Container execution (has image)")
+			return string(ContainerExecutionTypeName)
+		}
+	} else {
+		glog.V(4).Infof("DEBUG GetType: no custom properties found")
+	}
+	
+	// Ultimate fallback: return the protobuf Type field even if empty
+	fallback := e.execution.GetType()
+	glog.V(4).Infof("DEBUG GetType: using fallback: %s", fallback)
+	return fallback
+}
+
+// Helper function to get property keys for debugging
+func getPropertyKeys(props map[string]*pb.Value) []string {
+	keys := make([]string, 0, len(props))
+	for k := range props {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // GetTaskNameWithDagID appends the taskName with its parent dag id. This is
@@ -637,7 +714,38 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 		e.CustomProperties[keyArtifactProducerTask] = StringValue(string(b))
 	}
 	if config.TotalDagTasks != nil {
-		e.CustomProperties[keyTotalDagTasks] = intValue(int64(*config.TotalDagTasks))
+		totalDagTasks := *config.TotalDagTasks
+		
+		// DEBUG: Log all relevant config values for ParallelFor debugging
+		glog.Infof("CreateExecution DEBUG: TotalDagTasks=%d, IterationCount=%v, IterationIndex=%v, TaskName=%s", 
+			totalDagTasks, 
+			func() interface{} { if config.IterationCount != nil { return *config.IterationCount } else { return "nil" } }(),
+			func() interface{} { if config.IterationIndex != nil { return *config.IterationIndex } else { return "nil" } }(),
+			config.TaskName)
+		
+		// FIX: For ParallelFor parent DAGs, ensure total_dag_tasks equals iteration_count
+		// This fixes cases where DAG driver sets total_dag_tasks incorrectly
+		if config.IterationCount != nil && *config.IterationCount > 0 && 
+		   (config.IterationIndex == nil || *config.IterationIndex < 0) {
+			// This is a ParallelFor parent DAG
+			glog.Infof("CreateExecution DEBUG: ParallelFor parent DAG detected - IterationCount=%d, current TotalDagTasks=%d", 
+				*config.IterationCount, totalDagTasks)
+			if totalDagTasks != *config.IterationCount {
+				glog.Infof("ParallelFor parent DAG: Correcting total_dag_tasks from %d to %d (iteration_count)", 
+					totalDagTasks, *config.IterationCount)
+				totalDagTasks = *config.IterationCount
+			} else {
+				glog.Infof("ParallelFor parent DAG: total_dag_tasks=%d already matches iteration_count=%d", 
+					totalDagTasks, *config.IterationCount)
+			}
+		} else {
+			glog.Infof("CreateExecution DEBUG: Not a ParallelFor parent DAG - conditions not met")
+		}
+		
+		e.CustomProperties[keyTotalDagTasks] = intValue(int64(totalDagTasks))
+		glog.Infof("CreateExecution DEBUG: Final total_dag_tasks set to %d", totalDagTasks)
+	} else {
+		glog.Infof("CreateExecution DEBUG: config.TotalDagTasks is nil")
 	}
 
 	req := &pb.PutExecutionRequest{
@@ -705,21 +813,42 @@ func (c *Client) PrePublishExecution(ctx context.Context, execution *Execution, 
 
 // UpdateDAGExecutionState checks all the statuses of the tasks in the given DAG, based on that it will update the DAG to the corresponding status if necessary.
 func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipeline *Pipeline) error {
+	dagID := dag.Execution.GetID()
+	glog.Errorf("PHASE 3 ENTRY: UpdateDAGExecutionsState called for DAG %d", dagID)
+	
 	tasks, err := c.GetExecutionsInDAG(ctx, dag, pipeline, true)
 	if err != nil {
+		glog.Errorf("PHASE 3 ERROR: GetExecutionsInDAG failed for DAG %d: %v", dagID, err)
 		return err
 	}
 
-	totalDagTasks := dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+	var totalDagTasks int64
+	if dag.Execution.execution.CustomProperties != nil && dag.Execution.execution.CustomProperties["total_dag_tasks"] != nil {
+		totalDagTasks = dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+	} else {
+		totalDagTasks = 0
+	}
 
 	glog.V(4).Infof("tasks: %v", tasks)
 	glog.V(4).Infof("Checking Tasks' State")
 	completedTasks := 0
 	failedTasks := 0
+	runningTasks := 0
+	dagExecutions := 0
+	
 	for _, task := range tasks {
 		taskState := task.GetExecution().LastKnownState.String()
+		taskType := task.GetType() // Use wrapper's GetType() method instead of protobuf's
 		glog.V(4).Infof("task: %s", task.TaskName())
 		glog.V(4).Infof("task state: %s", taskState)
+		glog.V(4).Infof("task type: %s", taskType)
+		
+		// Track DAG executions separately (for nested structures)
+		if taskType == "system.DAGExecution" {
+			dagExecutions++
+			continue
+		}
+		
 		switch taskState {
 		case "FAILED":
 			failedTasks++
@@ -729,22 +858,322 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 			completedTasks++
 		case "CANCELED":
 			completedTasks++
+		case "RUNNING":
+			runningTasks++
 		}
 	}
+	
+	// FIX: Apply dynamic task counting for DAGs that may have variable execution patterns
+	shouldApplyDynamic := c.shouldApplyDynamicTaskCounting(dag, tasks)
+	glog.Infof("DAG %d: shouldApplyDynamic=%v, totalDagTasks=%d, tasks=%d", dagID, shouldApplyDynamic, totalDagTasks, len(tasks))
+	
+	// DEBUG: Log all tasks found in this DAG
+	for taskName, task := range tasks {
+		taskType := task.GetType()
+		taskState := task.GetExecution().LastKnownState.String()
+		glog.Infof("DAG %d: Task %s, type=%s, state=%s", dagID, taskName, taskType, taskState)
+		
+	}
+	if shouldApplyDynamic {
+		// For DAGs with dynamic execution, adjust total_dag_tasks based on actual execution
+		actualExecutedTasks := completedTasks + failedTasks
+		actualRunningTasks := runningTasks
+		
+		glog.Infof("DAG %d: Dynamic counting - completedTasks=%d, failedTasks=%d, runningTasks=%d", 
+			dagID, completedTasks, failedTasks, runningTasks)
+		glog.Infof("DAG %d: actualExecutedTasks=%d, actualRunningTasks=%d", 
+			dagID, actualExecutedTasks, actualRunningTasks)
+		
+		// Store original value for comparison
+		originalTotalDagTasks := totalDagTasks
+		
+		// Apply universal dynamic counting logic
+		if actualExecutedTasks > 0 {
+			// We have completed/failed tasks - use that as the expected total
+			totalDagTasks = int64(actualExecutedTasks)
+			glog.Infof("DAG %d: Adjusted totalDagTasks from %d to %d (actual executed tasks)", 
+				dagID, originalTotalDagTasks, totalDagTasks)
+		} else if actualRunningTasks > 0 {
+			// Tasks are running - use running count as temporary total
+			totalDagTasks = int64(actualRunningTasks)
+			glog.Infof("DAG %d: Set totalDagTasks from %d to %d (running tasks)", 
+				dagID, originalTotalDagTasks, totalDagTasks)
+		} else if totalDagTasks == 0 {
+			// No tasks at all - this is valid for conditionals with false branches
+			// Keep totalDagTasks = 0, this will trigger universal completion rule
+			glog.Infof("DAG %d: Keeping totalDagTasks=0 (no tasks, likely false condition)", dagID)
+		}
+		
+		// Update the stored total_dag_tasks value
+		if dag.Execution.execution.CustomProperties == nil {
+			dag.Execution.execution.CustomProperties = make(map[string]*pb.Value)
+		}
+		dag.Execution.execution.CustomProperties["total_dag_tasks"] = &pb.Value{
+			Value: &pb.Value_IntValue{IntValue: totalDagTasks},
+		}
+		
+		// Verify the stored value
+		if dag.Execution.execution.CustomProperties != nil && dag.Execution.execution.CustomProperties["total_dag_tasks"] != nil {
+			storedValue := dag.Execution.execution.CustomProperties["total_dag_tasks"].GetIntValue()
+			glog.Infof("DAG %d: Stored total_dag_tasks value = %d", dagID, storedValue)
+		}
+	}
+	
 	glog.V(4).Infof("completedTasks: %d", completedTasks)
 	glog.V(4).Infof("failedTasks: %d", failedTasks)
+	glog.V(4).Infof("runningTasks: %d", runningTasks)
 	glog.V(4).Infof("totalTasks: %d", totalDagTasks)
 
 	glog.Infof("Attempting to update DAG state")
-	if completedTasks == int(totalDagTasks) {
-		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_COMPLETE)
-	} else if failedTasks > 0 {
-		c.PutDAGExecutionState(ctx, dag.Execution.GetID(), pb.Execution_FAILED)
+	var newState pb.Execution_State
+	var stateChanged bool
+	
+	// Check for special DAG types that need different completion logic
+	isParallelForIterationDAG := c.isParallelForIterationDAG(dag)
+	isParallelForParentDAG := c.isParallelForParentDAG(dag)
+	
+	// PHASE 3 DEBUG: Add comprehensive logging for ParallelFor analysis
+	glog.Errorf("PHASE 3 ANALYSIS: DAG %d - isParallelForIterationDAG=%v, isParallelForParentDAG=%v", 
+		dagID, isParallelForIterationDAG, isParallelForParentDAG)
+	
+	// UNIVERSAL RULE: Any DAG with no tasks and nothing running should complete
+	if totalDagTasks == 0 && runningTasks == 0 {
+		newState = pb.Execution_COMPLETE
+		stateChanged = true
+		glog.Infof("DAG %d completed: no tasks defined and nothing running (universal completion rule)", dag.Execution.GetID())
+	} else if isParallelForIterationDAG {
+		// ParallelFor iteration DAGs should complete immediately if no tasks are running
+		// These are typically empty placeholder DAGs representing individual iterations
+		glog.Infof("PHASE 3 DEBUG: ParallelFor iteration DAG %d - runningTasks=%d", dagID, runningTasks)
+		
+		if runningTasks == 0 {
+			newState = pb.Execution_COMPLETE
+			stateChanged = true
+			glog.Infof("ParallelFor iteration DAG %d completed (no running tasks)", dag.Execution.GetID())
+		} else {
+			glog.Infof("PHASE 3 DEBUG: Iteration DAG %d NOT completing - runningTasks=%d > 0", dagID, runningTasks)
+		}
+	} else if isParallelForParentDAG {
+		// ParallelFor parent DAGs complete when all child DAGs are complete
+		childDagCount := dagExecutions
+		completedChildDags := 0
+		
+		glog.Infof("PHASE 3 DEBUG: ParallelFor parent DAG %d - checking %d child DAGs, current total_dag_tasks=%d", 
+			dagID, childDagCount, totalDagTasks)
+		
+		for taskName, task := range tasks {
+			taskType := task.GetType()
+			taskState := task.GetExecution().LastKnownState.String()
+			glog.Infof("PHASE 3 DEBUG: Parent DAG %d - task '%s', type=%s, state=%s", 
+				dagID, taskName, taskType, taskState)
+				
+			if taskType == "system.DAGExecution" {
+				if taskState == "COMPLETE" {
+					completedChildDags++
+					glog.Infof("PHASE 3 DEBUG: Parent DAG %d - found COMPLETE child DAG: %s", dagID, taskName)
+				} else {
+					glog.Infof("PHASE 3 DEBUG: Parent DAG %d - found non-COMPLETE child DAG: %s (state=%s)", 
+						dagID, taskName, taskState)
+				}
+			}
+		}
+		
+		// For ParallelFor parent DAGs, the meaningful completion count is the number of child DAGs
+		// not the stored total_dag_tasks which may be incorrect (often shows 1 instead of iteration_count)
+		finalIterationCount := childDagCount
+		
+		// FIX: Update total_dag_tasks to match actual child DAG count for consistency
+		// This fixes both static and dynamic ParallelFor scenarios where total_dag_tasks is wrong
+		if totalDagTasks != int64(finalIterationCount) && finalIterationCount > 0 {
+			glog.Infof("ParallelFor parent DAG %d: Correcting total_dag_tasks from %d to %d (child DAG count)", 
+				dagID, totalDagTasks, finalIterationCount)
+			if dag.Execution.execution.CustomProperties == nil {
+				dag.Execution.execution.CustomProperties = make(map[string]*pb.Value)
+			}
+			dag.Execution.execution.CustomProperties["total_dag_tasks"] = &pb.Value{
+				Value: &pb.Value_IntValue{IntValue: int64(finalIterationCount)},
+			}
+			// Update local variable for consistency
+			totalDagTasks = int64(finalIterationCount)
+		}
+		
+		glog.Infof("PHASE 3 DEBUG: Parent DAG %d - completedChildDags=%d, finalIterationCount=%d", 
+			dagID, completedChildDags, finalIterationCount)
+		
+		if completedChildDags == finalIterationCount && finalIterationCount > 0 {
+			newState = pb.Execution_COMPLETE
+			stateChanged = true
+			
+			glog.Infof("ParallelFor parent DAG %d completed: %d/%d child DAGs finished", 
+				dag.Execution.GetID(), completedChildDags, finalIterationCount)
+		} else {
+			glog.Infof("PHASE 3 DEBUG: Parent DAG %d NOT completing - completedChildDags=%d != finalIterationCount=%d", 
+				dagID, completedChildDags, finalIterationCount)
+		}
 	} else {
-		glog.V(4).Infof("DAG is still running")
+		// Standard DAG completion logic
+		if completedTasks == int(totalDagTasks) {
+			newState = pb.Execution_COMPLETE
+			stateChanged = true
+			glog.Infof("Standard DAG %d completed: %d/%d tasks finished", dag.Execution.GetID(), completedTasks, totalDagTasks)
+		}
 	}
+	
+	// Check for failures regardless of DAG type
+	if !stateChanged && failedTasks > 0 {
+		newState = pb.Execution_FAILED
+		stateChanged = true
+		glog.Infof("DAG %d failed: %d tasks failed", dag.Execution.GetID(), failedTasks)
+	}
+	
+	if !stateChanged {
+		glog.V(4).Infof("DAG %d is still running: %d/%d tasks completed, %d running", 
+			dag.Execution.GetID(), completedTasks, totalDagTasks, runningTasks)
+	}
+	
+	if stateChanged {
+		err := c.PutDAGExecutionState(ctx, dag.Execution.GetID(), newState)
+		if err != nil {
+			return err
+		}
+		
+		// FIX: Recursively propagate status updates up the DAG hierarchy
+		// This addresses the core issue where updates only go one level up
+		c.propagateDAGStateUp(ctx, dag.Execution.GetID())
+	}
+	
 	return nil
 }
+
+// propagateDAGStateUp recursively updates parent DAGs up the hierarchy
+// until reaching a DAG that still has pending tasks
+func (c *Client) propagateDAGStateUp(ctx context.Context, completedDAGID int64) {
+	// Get the completed DAG to find its parent
+	completedExecution, err := c.GetExecution(ctx, completedDAGID)
+	if err != nil {
+		glog.Errorf("Failed to get completed DAG execution %d: %v", completedDAGID, err)
+		return
+	}
+	
+	// Check if this DAG has a parent
+	parentDagIDProperty := completedExecution.execution.CustomProperties["parent_dag_id"]
+	if parentDagIDProperty == nil || parentDagIDProperty.GetIntValue() == 0 {
+		glog.V(4).Infof("DAG %d has no parent, stopping propagation", completedDAGID)
+		return
+	}
+	
+	parentDagID := parentDagIDProperty.GetIntValue()
+	glog.Infof("Propagating status from completed DAG %d to parent DAG %d", completedDAGID, parentDagID)
+	
+	// Get the parent DAG
+	parentDAG, err := c.GetDAG(ctx, parentDagID)
+	if err != nil {
+		glog.Errorf("Failed to get parent DAG %d: %v", parentDagID, err)
+		return
+	}
+	
+	// Get pipeline context for the parent DAG
+	parentPipeline, err := c.GetPipelineFromExecution(ctx, parentDAG.Execution.GetID())
+	if err != nil {
+		glog.Errorf("Failed to get pipeline for parent DAG %d: %v", parentDagID, err)
+		return
+	}
+	
+	// Update the parent DAG state
+	glog.Infof("Updating parent DAG %d state", parentDagID)
+	err = c.UpdateDAGExecutionsState(ctx, parentDAG, parentPipeline)
+	if err != nil {
+		glog.Errorf("Failed to update parent DAG %d state: %v", parentDagID, err)
+		return
+	}
+	
+	// The recursive call will happen automatically if the parent DAG also completes
+	// due to the stateChanged check in UpdateDAGExecutionsState
+}
+
+// isConditionalDAG determines if a DAG represents a conditional construct
+// by looking for conditional patterns in the DAG's own task name or task names within it
+func (c *Client) shouldApplyDynamicTaskCounting(dag *DAG, tasks map[string]*Execution) bool {
+	props := dag.Execution.execution.CustomProperties
+	dagID := dag.Execution.GetID()
+	
+	glog.Infof("DAG %d: Checking if should apply dynamic task counting with %d tasks", dagID, len(tasks))
+	
+	// Skip ParallelFor DAGs - they have their own specialized logic
+	if props["iteration_count"] != nil || props["iteration_index"] != nil {
+		glog.Infof("DAG %d: Skipping dynamic counting (ParallelFor DAG)", dagID)
+		return false
+	}
+	
+	// Apply dynamic counting for any DAG that might have variable task execution:
+	// 1. DAGs with no tasks (conditional with false branch)
+	// 2. DAGs with canceled tasks (conditional with non-executed branches)  
+	// 3. DAGs where execution pattern suggests conditional behavior
+	
+	canceledTasks := 0
+	for _, task := range tasks {
+		if task.GetType() == "system.DAGExecution" {
+			continue // Skip child DAGs, only count container tasks
+		}
+		if task.GetExecution().LastKnownState.String() == "CANCELED" {
+			canceledTasks++
+		}
+	}
+	
+	// Heuristic: If we have canceled tasks, likely a conditional with non-executed branches
+	if canceledTasks > 0 {
+		glog.Infof("DAG %d: Found %d canceled tasks, applying dynamic counting", dagID, canceledTasks)
+		return true
+	}
+	
+	// Heuristic: Empty DAGs might be conditionals with false branches
+	if len(tasks) == 0 {
+		glog.Infof("DAG %d: Empty DAG, applying dynamic counting", dagID)
+		return true
+	}
+	
+	// For standard DAGs with normal execution patterns, don't apply dynamic counting
+	// Only apply dynamic counting when we detect patterns that suggest conditional behavior
+	glog.Infof("DAG %d: Standard DAG pattern, not applying dynamic counting", dagID)
+	return false
+}
+
+// isParallelForIterationDAG checks if this is an individual iteration of a ParallelFor
+func (c *Client) isParallelForIterationDAG(dag *DAG) bool {
+	props := dag.Execution.execution.CustomProperties
+	return props["iteration_count"] != nil && 
+		   props["iteration_index"] != nil &&
+		   props["iteration_index"].GetIntValue() >= 0
+}
+
+// isParallelForParentDAG checks if this is a parent ParallelFor DAG that fans out iterations
+func (c *Client) isParallelForParentDAG(dag *DAG) bool {
+	props := dag.Execution.execution.CustomProperties
+	
+	// Check for static iteration_count property (works for compile-time scenarios)
+	if props["iteration_count"] != nil && 
+	   props["iteration_count"].GetIntValue() > 0 &&
+	   (props["iteration_index"] == nil || props["iteration_index"].GetIntValue() < 0) {
+		return true
+	}
+	
+	// Check for dynamic iteration_count in inputs (works for runtime scenarios)
+	if props["inputs"] != nil {
+		inputs := props["inputs"].GetStructValue()
+		if inputs != nil && inputs.Fields != nil {
+			if iterField, exists := inputs.Fields["iteration_count"]; exists {
+				if iterField.GetNumberValue() > 0 {
+					glog.Infof("Dynamic ParallelFor: DAG %d detected with inputs.iteration_count=%.0f", 
+						dag.Execution.GetID(), iterField.GetNumberValue())
+					return true
+				}
+			}
+		}
+	}
+	
+	return false
+}
+
 
 // PutDAGExecutionState updates the given DAG Id to the state provided.
 func (c *Client) PutDAGExecutionState(ctx context.Context, executionID int64, state pb.Execution_State) error {
@@ -869,7 +1298,8 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 			glog.V(4).Infof("taskName after DAG Injection: %s", taskName)
 			glog.V(4).Infof("execution: %s", execution)
 			if taskName == "" {
-				if e.GetCustomProperties()[keyParentDagID] != nil {
+				props := e.GetCustomProperties()
+			if props != nil && props[keyParentDagID] != nil {
 					return nil, fmt.Errorf("empty task name for execution ID: %v", execution.GetID())
 				}
 				// When retrieving executions without the parentDAGFilter, the
@@ -884,14 +1314,18 @@ func (c *Client) GetExecutionsInDAG(ctx context.Context, dag *DAG, pipeline *Pip
 			// taskMap, the iteration index will be appended to the taskName.
 			// This also fortifies against potential collisions of tasks across
 			// iterations.
-			if e.GetCustomProperties()[keyIterationIndex] != nil {
-				taskName = GetParallelForTaskName(taskName, e.GetCustomProperties()[keyIterationIndex].GetIntValue())
+			props := e.GetCustomProperties()
+			if props != nil && props[keyIterationIndex] != nil {
+				taskName = GetParallelForTaskName(taskName, props[keyIterationIndex].GetIntValue())
 
-			} else if dag.Execution.GetExecution().GetCustomProperties()[keyIterationIndex] != nil {
-				// Handle for tasks within a parallelFor subdag that do not
-				// consume the values from the iterator as input but rather the
-				// output of a task that does.
-				taskName = GetParallelForTaskName(taskName, dag.Execution.GetExecution().GetCustomProperties()[keyIterationIndex].GetIntValue())
+			} else if dag.Execution.GetExecution() != nil {
+				dagProps := dag.Execution.GetExecution().GetCustomProperties()
+				if dagProps != nil && dagProps[keyIterationIndex] != nil {
+					// Handle for tasks within a parallelFor subdag that do not
+					// consume the values from the iterator as input but rather the
+					// output of a task that does.
+					taskName = GetParallelForTaskName(taskName, dagProps[keyIterationIndex].GetIntValue())
+				}
 			}
 
 			existing, ok := executionsMap[taskName]
