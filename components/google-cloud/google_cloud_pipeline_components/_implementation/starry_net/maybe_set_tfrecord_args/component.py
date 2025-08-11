@@ -18,7 +18,7 @@ from typing import List, NamedTuple
 from kfp import dsl
 
 
-@dsl.component
+@dsl.component(base_image='python:3.9')
 def maybe_set_tfrecord_args(
     dataprep_previous_run_dir: str,
     static_covariates: List[str],
