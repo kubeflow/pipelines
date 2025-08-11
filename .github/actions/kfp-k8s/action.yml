@@ -15,6 +15,10 @@ runs:
       shell: bash
       run: pip install build==${{inputs.build_version}}
 
+    - name: Install kfp-server-api
+      shell: bash
+      run: pip install -U 'kfp-server-api==2.5.0'
+
     - name: Build kfp dist
       id: install-kfp
       shell: bash
