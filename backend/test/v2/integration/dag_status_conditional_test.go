@@ -336,7 +336,58 @@ func (s *DAGStatusConditionalTestSuite) TestIfElseFalse() {
 	s.T().Logf("✅ If/Else (false) completed successfully - conditional execution handled directly in root DAG")
 }
 
-// Test Case 5: Complex If/Elif/Else
+// Test Case 5: Nested Complex Conditional
+// Validates that nested conditional DAGs with multiple levels update status correctly
+func (s *DAGStatusConditionalTestSuite) TestNestedComplexConditional() {
+	t := s.T()
+
+	pipeline, err := s.pipelineUploadClient.UploadFile(
+		"../resources/dag_status/conditional_nested_complex.yaml",
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("conditional-nested-complex-test"),
+			DisplayName: util.StringPointer("Conditional Nested Complex Test Pipeline"),
+		},
+	)
+
+	if err != nil {
+		t.Logf("DEBUG: UploadFile failed with error: %v", err)
+		t.Logf("DEBUG: Error type: %T", err)
+	} else {
+		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
+	}
+
+	require.NoError(t, err)
+	require.NotNil(t, pipeline)
+
+	// Upload a pipeline version explicitly like run_api_test.go does
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/conditional_nested_complex.yaml", &uploadParams.UploadPipelineVersionParams{
+		Name:       util.StringPointer("test-version"),
+		Pipelineid: util.StringPointer(pipeline.PipelineID),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, pipelineVersion)
+
+	run, err := s.createRun(pipelineVersion, "conditional-nested-complex-test")
+	require.NoError(t, err)
+	require.NotNil(t, run)
+
+	// This pipeline should FAIL because it has a failing branch that will be executed
+	// Based on the pipeline: output_msg() returns "that" which triggers condition-4 (nested conditional)
+	// The nested conditional should execute condition-8 (fail-2) causing the run to fail
+	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateFAILED)
+
+	// Validate that nested conditional DAGs handle status propagation correctly
+	// This tests the complex scenario with multiple nested conditional levels
+	s.T().Logf("✅ Nested complex conditional completed with expected failure - testing DAG status propagation")
+	
+	// Give some time for MLMD DAG execution to be created and updated
+	time.Sleep(30 * time.Second)
+	
+	// This should test that DAG status propagation works correctly even with failures in nested conditionals
+	s.validateNestedConditionalDAGStatus(run.RunID)
+}
+
+// Test Case 6: Complex If/Elif/Else
 // Validates that a complex conditional DAG updates status correctly
 func (s *DAGStatusConditionalTestSuite) TestComplexConditional() {
 	t := s.T()
@@ -808,6 +859,159 @@ func (s *DAGStatusConditionalTestSuite) TearDownSuite() {
 			s.cleanUp()
 		}
 	}
+}
+
+func (s *DAGStatusConditionalTestSuite) validateNestedConditionalDAGStatus(runID string) {
+	t := s.T()
+
+	// Get the context for this specific run
+	contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
+	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
+		Options: &pb.ListOperationOptions{
+			FilterQuery: contextsFilterQuery,
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, contexts.Contexts)
+
+	// Get executions for this specific run context only
+	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
+		ContextId: contexts.Contexts[0].Id,
+	})
+	require.NoError(t, err)
+
+	// Find the root DAG ID first
+	var rootDAGID int64
+	t.Logf("Searching %d executions for root DAG in run %s", len(executionsByContext.Executions), runID)
+
+	for _, exec := range executionsByContext.Executions {
+		taskName := ""
+		if props := exec.GetCustomProperties(); props != nil {
+			if nameVal := props["task_name"]; nameVal != nil {
+				taskName = nameVal.GetStringValue()
+			}
+		}
+
+		t.Logf("Execution ID=%d, Type=%s, TaskName='%s', State=%s",
+			exec.GetId(), exec.GetType(), taskName, exec.LastKnownState.String())
+
+		// Find the root DAG (has empty task name and is a DAG execution)
+		if exec.GetType() == "system.DAGExecution" && taskName == "" {
+			rootDAGID = exec.GetId()
+			t.Logf("Found root DAG ID=%d for run %s", rootDAGID, runID)
+			break
+		}
+	}
+
+	require.NotZero(t, rootDAGID, "Root DAG not found")
+
+	// Now look for all conditional DAGs that are related to this root DAG
+	allExecsReq := &pb.GetExecutionsRequest{}
+	allExecsRes, err := s.mlmdClient.GetExecutions(context.Background(), allExecsReq)
+	require.NoError(t, err)
+
+	var conditionalDAGs []*pb.Execution
+	t.Logf("Searching for conditional DAGs related to root DAG ID=%d", rootDAGID)
+
+	for _, exec := range allExecsRes.Executions {
+		if exec.GetType() != "system.DAGExecution" {
+			continue
+		}
+
+		taskName := ""
+		parentDagID := int64(0)
+		if props := exec.GetCustomProperties(); props != nil {
+			if nameVal := props["task_name"]; nameVal != nil {
+				taskName = nameVal.GetStringValue()
+			}
+			if parentVal := props["parent_dag_id"]; parentVal != nil {
+				parentDagID = parentVal.GetIntValue()
+			}
+		}
+
+		t.Logf("DEBUG: DAG ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
+			exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
+
+		// Find conditional DAGs that are children of our root DAG or children of children
+		isRelatedToRun := parentDagID == rootDAGID && strings.HasPrefix(taskName, "condition-")
+
+		// Also check for deeper nesting
+		if !isRelatedToRun && strings.HasPrefix(taskName, "condition-") {
+			// Check if this is a grandchild or deeper
+			currentParentID := parentDagID
+			for depth := 0; depth < 5 && currentParentID > 0; depth++ { // Max depth of 5 levels
+				for _, parentExec := range allExecsRes.Executions {
+					if parentExec.GetId() == currentParentID && parentExec.GetType() == "system.DAGExecution" {
+						if parentProps := parentExec.GetCustomProperties(); parentProps != nil {
+							if grandparentVal := parentProps["parent_dag_id"]; grandparentVal != nil {
+								currentParentID = grandparentVal.GetIntValue()
+								if currentParentID == rootDAGID {
+									isRelatedToRun = true
+									break
+								}
+							}
+						}
+						break
+					}
+				}
+				if isRelatedToRun {
+					break
+				}
+			}
+		}
+
+		if isRelatedToRun {
+			t.Logf("Found conditional DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
+				exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
+			conditionalDAGs = append(conditionalDAGs, exec)
+		}
+	}
+
+	t.Logf("Found %d conditional DAG executions for nested complex pipeline", len(conditionalDAGs))
+
+	// For nested complex conditionals, we expect to find multiple conditional DAGs
+	// This pipeline has both simple and nested conditional constructs
+	for _, dagExecution := range conditionalDAGs {
+		taskName := ""
+		totalDagTasks := int64(0)
+		if props := dagExecution.GetCustomProperties(); props != nil {
+			if nameVal := props["task_name"]; nameVal != nil {
+				taskName = nameVal.GetStringValue()
+			}
+			if totalVal := props["total_dag_tasks"]; totalVal != nil {
+				totalDagTasks = totalVal.GetIntValue()
+			}
+		}
+
+		t.Logf("Conditional DAG '%s' (ID=%d): State=%s, total_dag_tasks=%d",
+			taskName, dagExecution.GetId(), dagExecution.LastKnownState.String(), totalDagTasks)
+
+		// The key test: DAG status propagation should work correctly for nested conditionals
+		// Even with failures, the DAGs should reach proper final states (COMPLETE, FAILED, or CANCELED)
+		// not remain stuck in RUNNING
+		validStates := []string{"COMPLETE", "FAILED", "CANCELED"}
+		currentState := dagExecution.LastKnownState.String()
+		
+		stateIsValid := false
+		for _, validState := range validStates {
+			if currentState == validState {
+				stateIsValid = true
+				break
+			}
+		}
+
+		assert.True(t, stateIsValid,
+			"Conditional DAG '%s' (ID=%d) should reach final state (COMPLETE/FAILED/CANCELED), not remain in %s",
+			taskName, dagExecution.GetId(), currentState)
+
+		if stateIsValid {
+			t.Logf("✅ Conditional DAG '%s' reached final state: %s", taskName, currentState)
+		} else {
+			t.Logf("❌ Conditional DAG '%s' stuck in non-final state: %s", taskName, currentState)
+		}
+	}
+
+	t.Logf("✅ Nested complex conditional DAG status validation completed")
 }
 
 func (s *DAGStatusConditionalTestSuite) cleanUp() {
