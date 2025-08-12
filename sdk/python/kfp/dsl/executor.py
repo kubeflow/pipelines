@@ -287,6 +287,7 @@ class Executor:
                 'name': artifact.name,
                 'uri': artifact.uri,
                 'metadata': artifact.metadata,
+                'custom_path': artifact.custom_path
             }
             artifacts_list = {'artifacts': [runtime_artifact]}
 

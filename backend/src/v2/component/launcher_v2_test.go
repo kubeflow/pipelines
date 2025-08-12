@@ -418,3 +418,36 @@ func Test_NewLauncherV2(t *testing.T) {
 		})
 	}
 }
+
+func Test_retrieve_artifact_path(t *testing.T) {
+	customPath := "/var/lib/kubelet/pods/pod-uid/volumes/kubernetes.io~csi/pvc-uuid/mount"
+	tests := []struct {
+		name         string
+		artifact     *pipelinespec.RuntimeArtifact
+		expectedPath string
+	}{
+		{
+			"Artifact with no custom path",
+			&pipelinespec.RuntimeArtifact{
+				Uri: "gs://bucket/path/to/artifact",
+			},
+			"/gcs/bucket/path/to/artifact",
+		},
+		{
+			"Artifact with custom path",
+			&pipelinespec.RuntimeArtifact{
+				Uri:        "gs://bucket/path/to/artifact",
+				CustomPath: &customPath,
+			},
+			customPath,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			path, err := retrieveArtifactPath(test.artifact)
+			assert.Nil(t, err)
+			assert.Equal(t, path, test.expectedPath)
+		})
+	}
+}

@@ -78,10 +78,12 @@ class Artifact:
                  name: Optional[str] = None,
                  uri: Optional[str] = None,
                  metadata: Optional[Dict] = None) -> None:
-        """Initializes the Artifact with the given name, URI and metadata."""
+        """Initializes the Artifact with the given name, URI, metadata, and
+        blank custom path."""
         self.uri = uri or ''
         self.name = name or ''
         self.metadata = metadata or {}
+        self._custom_path = ''
 
     @property
     def path(self) -> str:
@@ -89,9 +91,11 @@ class Artifact:
 
     @path.setter
     def path(self, path: str) -> None:
-        self._set_path(path)
+        self._set_custom_path(path)
 
     def _get_path(self) -> Optional[str]:
+        if self.custom_path is not '':
+            return self._get_custom_path()
         if self.uri.startswith(RemotePrefix.GCS.value):
             return _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.GCS.value
                                                          ):]
@@ -108,8 +112,22 @@ class Artifact:
         # uri == path for local execution
         return self.uri
 
+    @property
+    def custom_path(self) -> str:
+        return self._custom_path
+
+    def _get_custom_path(self) -> str:
+        return self._custom_path
+
     def _set_path(self, path: str) -> None:
         self.uri = convert_local_path_to_remote_path(path)
+
+    def _set_custom_path(self, value: str) -> None:
+        self._custom_path = value
+
+    @custom_path.setter
+    def custom_path(self, value: str):
+        self._custom_path = value
 
 
 def convert_local_path_to_remote_path(path: str) -> str:

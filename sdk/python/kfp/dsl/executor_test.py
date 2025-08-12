@@ -318,6 +318,8 @@ class ExecutorTest(parameterized.TestCase):
                                 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
                             'uri':
                                 'new-uri',
+                            'custom_path':
+                                '',
                             'metadata': {
                                 'key_1': 'value_1',
                                 'key_2': 2,
@@ -645,7 +647,9 @@ class ExecutorTest(parameterized.TestCase):
                             'name':
                                 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
                             'uri':
-                                'gs://some-bucket/output'
+                                'gs://some-bucket/output',
+                            'custom_path':
+                                ''
                         }]
                     }
                 },
@@ -702,7 +706,9 @@ class ExecutorTest(parameterized.TestCase):
                             'name':
                                 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
                             'uri':
-                                'gs://some-bucket/output'
+                                'gs://some-bucket/output',
+                            'custom_path':
+                                ''
                         }]
                     }
                 },
@@ -815,7 +821,9 @@ class ExecutorTest(parameterized.TestCase):
                                 'name':
                                     'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
                                 'uri':
-                                    'gs://some-bucket/output_dataset'
+                                    'gs://some-bucket/output_dataset',
+                                'custom_path':
+                                    ''
                             }]
                         }
                     },
@@ -1054,6 +1062,8 @@ class ExecutorTest(parameterized.TestCase):
                                 '',
                             'uri':
                                 'gs://mlpipeline/v2/artifacts/my-test-pipeline-beta/b2b0cdee-b15c-48ff-b8bc-a394ae46c854/train/model',
+                            'custom_path':
+                                '',
                             'metadata': {
                                 'accuracy': 0.9
                             }
@@ -1288,6 +1298,8 @@ class ExecutorTest(parameterized.TestCase):
                                 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
                             'uri':
                                 'gs://manually_specified_bucket/foo',
+                            'custom_path':
+                                '',
                             'metadata': {
                                 'data': 123
                             }
@@ -1339,6 +1351,8 @@ class ExecutorTest(parameterized.TestCase):
                                 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
                             'uri':
                                 'gs://another_bucket/my_artifact',
+                            'custom_path':
+                                '',
                             'metadata': {
                                 'data': 123
                             }
@@ -1408,6 +1422,8 @@ class ExecutorTest(parameterized.TestCase):
                                 'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
                             'uri':
                                 'gs://another_bucket/artifact',
+                            'custom_path':
+                                '',
                             'metadata': {
                                 'data': 123
                             }
@@ -1419,6 +1435,8 @@ class ExecutorTest(parameterized.TestCase):
                                 'projects/123/locations/us-central1/metadataStores/default/artifacts/321',
                             'uri':
                                 'gs://another_bucket/dataset',
+                            'custom_path':
+                                '',
                             'metadata': {}
                         }]
                     }
