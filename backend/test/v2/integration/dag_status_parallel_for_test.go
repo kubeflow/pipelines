@@ -17,6 +17,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -297,10 +298,10 @@ func (s *DAGStatusParallelForTestSuite) waitForRunCompletion(runID string, expec
 		return runDetail.State != nil && *runDetail.State == expectedState
 	}, 5*time.Minute, 15*time.Second, "Run did not reach expected final state")
 
-	// Give additional time for container defer blocks to execute and update DAG states
+	// Give a brief time for container defer blocks to execute and update DAG states
 	// This ensures UpdateDAGExecutionsState has been called by launcher containers
 	s.T().Logf("Run completed, waiting for DAG state updates to propagate...")
-	time.Sleep(30 * time.Second)
+	time.Sleep(5 * time.Second)
 }
 
 func (s *DAGStatusParallelForTestSuite) validateParallelForDAGStatus(runID string, expectedDAGState pb.Execution_State) {
@@ -396,6 +397,290 @@ func (s *DAGStatusParallelForTestSuite) TearDownSuite() {
 			s.cleanUp()
 		}
 	}
+}
+
+// Test Case 4: ParallelFor with Sequential Tasks and Failure 
+// Tests a ParallelFor loop where each iteration runs hello_world then fail tasks in sequence
+// This validates DAG completion behavior when ParallelFor contains failing sequential tasks
+func (s *DAGStatusParallelForTestSuite) TestParallelForLoopsWithFailure() {
+	t := s.T()
+
+	pipeline, err := s.pipelineUploadClient.UploadFile(
+		"../resources/dag_status/loops.yaml",
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("parallel-for-loops-test"),
+			DisplayName: util.StringPointer("Parallel For Loops Test Pipeline"),
+		},
+	)
+
+	if err != nil {
+		t.Logf("DEBUG: UploadFile failed with error: %v", err)
+		t.Logf("DEBUG: Error type: %T", err)
+	} else {
+		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
+	}
+
+	require.NoError(t, err)
+	require.NotNil(t, pipeline)
+
+	// Upload a pipeline version explicitly like run_api_test.go does
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		"../resources/dag_status/loops.yaml", &uploadParams.UploadPipelineVersionParams{
+			Name:       util.StringPointer("test-version"),
+			Pipelineid: util.StringPointer(pipeline.PipelineID),
+		})
+	require.NoError(t, err)
+	require.NotNil(t, pipelineVersion)
+
+	run, err := s.createRun(pipelineVersion, "parallel-for-loops-test")
+	require.NoError(t, err)
+	require.NotNil(t, run)
+
+	// This pipeline should FAIL because each iteration contains a failing task
+	// Structure: for-loop-2 with 3 iterations, each running hello_world then fail(model_id)
+	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateFAILED)
+	
+	// CRITICAL: Validate that DAG failure propagation is working correctly
+	// The ParallelFor DAGs should transition to FAILED state, not just the pipeline run
+	s.validateParallelForFailurePropagation(run.RunID)
+	
+	s.T().Logf("✅ ParallelFor loops with failure completed successfully")
+}
+
+// validateParallelForLoopsDAGStatus validates the specific DAG structure for the loops pipeline
+func (s *DAGStatusParallelForTestSuite) validateParallelForLoopsDAGStatus(runID string) {
+	t := s.T()
+
+	// Get the context for this specific run
+	contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
+	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
+		Options: &pb.ListOperationOptions{
+			FilterQuery: contextsFilterQuery,
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, contexts.Contexts)
+
+	// Get executions for this specific run context only
+	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
+		ContextId: contexts.Contexts[0].Id,
+	})
+	require.NoError(t, err)
+
+	t.Logf("Found %d total executions in run context", len(executionsByContext.Executions))
+
+	// Find all DAG executions in this run
+	var dagExecutions []*pb.Execution
+	for _, exec := range executionsByContext.Executions {
+		if exec.GetType() == "system.DAGExecution" {
+			dagExecutions = append(dagExecutions, exec)
+		}
+	}
+
+	t.Logf("Found %d DAG executions in run %s", len(dagExecutions), runID)
+	
+	// Log all DAG executions for analysis
+	t.Logf("📊 All DAG Executions in Run:")
+	for _, dag := range dagExecutions {
+		taskName := ""
+		iterationIndex := int64(-1)
+		totalDagTasks := int64(0)
+		parentDagID := int64(0)
+		
+		if props := dag.GetCustomProperties(); props != nil {
+			if nameVal := props["task_name"]; nameVal != nil {
+				taskName = nameVal.GetStringValue()
+			}
+			if iterIndexVal := props["iteration_index"]; iterIndexVal != nil {
+				iterationIndex = iterIndexVal.GetIntValue()
+			}
+			if totalVal := props["total_dag_tasks"]; totalVal != nil {
+				totalDagTasks = totalVal.GetIntValue()
+			}
+			if parentVal := props["parent_dag_id"]; parentVal != nil {
+				parentDagID = parentVal.GetIntValue()
+			}
+		}
+		
+		dagType := "Root DAG"
+		if taskName == "for-loop-2" || strings.Contains(taskName, "for-loop") {
+			if iterationIndex >= 0 {
+				dagType = fmt.Sprintf("ParallelFor Iteration %d", iterationIndex)
+			} else {
+				dagType = "ParallelFor Parent"
+			}
+		}
+		
+		stateIcon := "❓"
+		if dag.LastKnownState.String() == "COMPLETE" {
+			stateIcon = "✅"
+		} else if dag.LastKnownState.String() == "FAILED" {
+			stateIcon = "🔴"
+		} else if dag.LastKnownState.String() == "RUNNING" {
+			stateIcon = "🟡"
+		}
+		
+		t.Logf("├── %s %s (ID=%d): %s | TaskName='%s' | total_dag_tasks=%d | parent=%d", 
+			stateIcon, dagType, dag.GetId(), dag.LastKnownState.String(), taskName, totalDagTasks, parentDagID)
+	}
+	
+	// Basic validation: we should have at least 1 DAG (root) and ideally 4 (root + parent + 3 iterations)
+	require.GreaterOrEqual(t, len(dagExecutions), 1, "Should find at least 1 DAG execution")
+	
+	// Count different types of DAGs
+	rootDAGs := 0
+	parallelForParentDAGs := 0
+	parallelForIterationDAGs := 0
+	
+	for _, dag := range dagExecutions {
+		taskName := ""
+		iterationIndex := int64(-1)
+		
+		if props := dag.GetCustomProperties(); props != nil {
+			if nameVal := props["task_name"]; nameVal != nil {
+				taskName = nameVal.GetStringValue()
+			}
+			if iterIndexVal := props["iteration_index"]; iterIndexVal != nil {
+				iterationIndex = iterIndexVal.GetIntValue()
+			}
+		}
+		
+		if taskName == "" {
+			rootDAGs++
+		} else if taskName == "for-loop-2" || strings.Contains(taskName, "for-loop") {
+			if iterationIndex >= 0 {
+				parallelForIterationDAGs++
+			} else {
+				parallelForParentDAGs++
+			}
+		}
+	}
+	
+	t.Logf("📊 DAG Summary: %d root, %d ParallelFor parent, %d ParallelFor iterations", 
+		rootDAGs, parallelForParentDAGs, parallelForIterationDAGs)
+	
+	// Expected structure for ParallelFor with 3 iterations:
+	// - 1 root DAG
+	// - 1 ParallelFor parent DAG  
+	// - 3 ParallelFor iteration DAGs
+	// Total: 5 DAGs, but we'll be flexible and just require basics
+	
+	require.GreaterOrEqual(t, rootDAGs, 1, "Should have at least 1 root DAG")
+	if parallelForParentDAGs > 0 || parallelForIterationDAGs > 0 {
+		t.Logf("✅ Found ParallelFor DAG structure - validation completed successfully")
+	} else {
+		t.Logf("⚠️  No ParallelFor-specific DAGs found, but basic DAG structure is present")
+	}
+	
+	t.Logf("✅ ParallelFor loops DAG status validation completed")
+}
+
+// validateParallelForFailurePropagation validates that ParallelFor DAG failure propagation works correctly
+func (s *DAGStatusParallelForTestSuite) validateParallelForFailurePropagation(runID string) {
+	t := s.T()
+
+	// Get the context for this specific run
+	contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
+	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
+		Options: &pb.ListOperationOptions{
+			FilterQuery: contextsFilterQuery,
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, contexts.Contexts)
+
+	// Get executions for this specific run context only
+	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
+		ContextId: contexts.Contexts[0].Id,
+	})
+	require.NoError(t, err)
+
+	t.Logf("Found %d total executions in run context", len(executionsByContext.Executions))
+
+	// Find all DAG executions in this run
+	var dagExecutions []*pb.Execution
+	var rootDAG *pb.Execution
+	var parallelForParentDAG *pb.Execution
+	var parallelForIterationDAGs []*pb.Execution
+
+	for _, exec := range executionsByContext.Executions {
+		if exec.GetType() == "system.DAGExecution" {
+			dagExecutions = append(dagExecutions, exec)
+			
+			taskName := ""
+			iterationIndex := int64(-1)
+			
+			if props := exec.GetCustomProperties(); props != nil {
+				if nameVal := props["task_name"]; nameVal != nil {
+					taskName = nameVal.GetStringValue()
+				}
+				if iterIndexVal := props["iteration_index"]; iterIndexVal != nil {
+					iterationIndex = iterIndexVal.GetIntValue()
+				}
+			}
+			
+			if taskName == "" {
+				rootDAG = exec
+			} else if taskName == "for-loop-2" || strings.Contains(taskName, "for-loop") {
+				if iterationIndex >= 0 {
+					parallelForIterationDAGs = append(parallelForIterationDAGs, exec)
+				} else {
+					parallelForParentDAG = exec
+				}
+			}
+		}
+	}
+
+	t.Logf("Found DAG structure: %d total DAGs, root=%v, parent=%v, iterations=%d", 
+		len(dagExecutions), rootDAG != nil, parallelForParentDAG != nil, len(parallelForIterationDAGs))
+
+	// CRITICAL VALIDATION: Check that DAG failure propagation worked correctly
+	
+	// 1. Root DAG should exist
+	require.NotNil(t, rootDAG, "Root DAG should exist")
+	
+	// 2. ParallelFor parent DAG should exist  
+	require.NotNil(t, parallelForParentDAG, "ParallelFor parent DAG should exist")
+	
+	// 3. Should have 3 iteration DAGs (one for each item: '1', '2', '3')
+	require.Equal(t, 3, len(parallelForIterationDAGs), "Should have exactly 3 ParallelFor iteration DAGs")
+
+	// 4. CRITICAL: Check that ParallelFor parent DAG transitioned to FAILED state
+	parentState := parallelForParentDAG.LastKnownState.String()
+	t.Logf("ParallelFor parent DAG (ID=%d) state: %s", parallelForParentDAG.GetId(), parentState)
+	
+	// This is the core test - the parent DAG should be FAILED because its child iterations failed
+	if parentState != "FAILED" {
+		t.Errorf("❌ FAILURE PROPAGATION BUG: ParallelFor parent DAG should be FAILED but is %s", parentState)
+		t.Errorf("This indicates that DAG completion logic is not properly handling failure propagation in ParallelFor constructs")
+		
+		// Log detailed state information for debugging
+		t.Logf("🔍 Debug Information:")
+		t.Logf("├── Root DAG (ID=%d): %s", rootDAG.GetId(), rootDAG.LastKnownState.String())
+		t.Logf("├── ParallelFor Parent DAG (ID=%d): %s ❌ SHOULD BE FAILED", 
+			parallelForParentDAG.GetId(), parallelForParentDAG.LastKnownState.String())
+		
+		for i, iterDAG := range parallelForIterationDAGs {
+			t.Logf("├── Iteration DAG %d (ID=%d): %s", i, iterDAG.GetId(), iterDAG.LastKnownState.String())
+		}
+		
+		require.Fail(t, "ParallelFor failure propagation is broken - parent DAG should be FAILED")
+	} else {
+		t.Logf("✅ ParallelFor parent DAG correctly transitioned to FAILED state")
+	}
+
+	// 5. Check root DAG state - should also be FAILED due to child failure propagation
+	rootState := rootDAG.LastKnownState.String()
+	t.Logf("Root DAG (ID=%d) state: %s", rootDAG.GetId(), rootState)
+	
+	if rootState != "FAILED" {
+		t.Errorf("❌ ROOT FAILURE PROPAGATION BUG: Root DAG should be FAILED but is %s", rootState)
+		require.Fail(t, "Root DAG failure propagation is broken - should propagate from failed ParallelFor")
+	} else {
+		t.Logf("✅ Root DAG correctly transitioned to FAILED state")
+	}
+
+	t.Logf("✅ ParallelFor failure propagation validation completed successfully")
 }
 
 func (s *DAGStatusParallelForTestSuite) cleanUp() {

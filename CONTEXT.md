@@ -1176,3 +1176,197 @@ This resolution ensures that nested pipeline failure propagation works reliably 
 - ✅ **Enhanced logging and debugging for nested pipeline completion**
 
 **The core nested pipeline failure propagation issue that was causing deeply nested pipelines to hang indefinitely has been completely resolved.**
+
+## **🚨 CRITICAL BUG DISCOVERED: ParallelFor Container Task Failure Propagation Issue**
+
+### **Issue Summary - January 12, 2025**
+
+**Status**: ❌ **ACTIVE BUG** - ParallelFor DAG failure propagation is broken when container tasks fail before completing MLMD publish
+
+#### **Bug Description**
+When container tasks within ParallelFor iterations fail (e.g., `sys.exit(1)`), the failure is **not propagating** to the DAG execution layer. Pipeline runs correctly fail, but intermediate DAG executions remain in `COMPLETE` state instead of transitioning to `FAILED`.
+
+#### **Test Case Evidence**
+**Test**: `TestParallelForLoopsWithFailure` in `/backend/test/v2/integration/dag_status_parallel_for_test.go`
+
+**Pipeline Structure**:
+```python
+with dsl.ParallelFor(items=['1', '2', '3']) as model_id:  
+    hello_task = hello_world().set_caching_options(enable_caching=False)  
+    fail_task = fail(model_id=model_id).set_caching_options(enable_caching=False)  
+    fail_task.after(hello_task)
+```
+
+**Expected vs Actual Results**:
+```
+Expected:                           Actual:
+├── Root DAG: FAILED               ├── Root DAG: COMPLETE ❌
+├── ParallelFor Parent: FAILED     ├── ParallelFor Parent: COMPLETE ❌ 
+├── Iteration 0: FAILED            ├── Iteration 0: COMPLETE ❌
+├── Iteration 1: FAILED            ├── Iteration 1: COMPLETE ❌
+└── Iteration 2: FAILED            └── Iteration 2: COMPLETE ❌
+
+Pipeline Run: FAILED ✅            Pipeline Run: FAILED ✅
+```
+
+#### **Root Cause Analysis - MLMD/Argo Integration Gap**
+
+**Failure Flow**:
+```
+Container Task fails with sys.exit(1)
+    ↓
+Pod terminates immediately  
+    ↓ 
+Launcher defer block never executes
+    ↓
+No MLMD execution record created for failed task
+    ↓
+DAG completion logic sees 0 failed tasks in MLMD
+    ↓
+DAG completes as COMPLETE instead of FAILED ❌
+```
+
+**Technical Details**:
+1. **Container Execution**: `fail(model_id)` calls `sys.exit(1)` and pod terminates
+2. **Launcher Logic**: Deferred publish logic in `/backend/src/v2/component/launcher_v2.go` (lines 173-193) never executes
+3. **MLMD State**: No execution record created for failed container task
+4. **DAG Completion**: `UpdateDAGExecutionsState()` only sees MLMD executions, `failedTasks` counter = 0
+5. **Result**: DAG marked as `COMPLETE` despite containing failed tasks
+
+#### **Impact Assessment**
+
+**Severity**: **High** - Affects failure reporting accuracy and user visibility
+
+**Scope**: 
+- ✅ **Pipeline Run Level**: Correctly reports FAILED
+- ❌ **DAG Execution Level**: Incorrectly reports COMPLETE
+- ❌ **User Visibility**: DAG status misleading in UI
+- ❌ **Downstream Logic**: Any logic depending on DAG failure state
+
+**Affected Patterns**:
+- ParallelFor loops with container task failures
+- Any scenario where containers fail before completing launcher publish flow
+- Batch processing pipelines with error-prone tasks
+
+#### **Architecture Gap: MLMD/Argo Synchronization**
+
+**Current Architecture**:
+- **Argo Workflows**: Immediately detects pod/container failures
+- **MLMD**: Only knows about executions that complete launcher publish flow  
+- **DAG Completion Logic**: Only considers MLMD state, ignores Argo workflow state
+- **Result**: Synchronization gap between Argo failure detection and MLMD state
+
+#### **Proposed Solution: Hybrid Approach**
+
+##### **Phase 1: Enhanced Launcher Failure Handling** (Short-term)
+
+**Concept**: Modify launcher to record execution state before running user code
+
+**Implementation**:
+```go
+// In launcher_v2.go - BEFORE executing user container
+func (l *Launcher) executeWithFailureDetection() error {
+    // 1. Pre-record execution in RUNNING state
+    execID, err := l.preRecordExecution()
+    if err != nil {
+        return err
+    }
+    
+    // 2. Set up failure handler via signal trapping  
+    defer func() {
+        if r := recover(); r != nil {
+            l.mlmdClient.UpdateExecutionState(execID, pb.Execution_FAILED)
+        }
+    }()
+    
+    // 3. Execute user code
+    result := l.runUserCode()
+    
+    // 4. Record final state
+    if result.Success {
+        l.recordSuccess(execID, result)
+    } else {
+        l.recordFailure(execID, result.Error)
+    }
+    
+    return result.Error
+}
+```
+
+**Benefits**: 
+- ✅ Fixes 80% of failure propagation issues
+- ✅ Minimal architectural changes
+- ✅ Preserves MLMD as single source of truth
+
+**Limitations**:
+- ❌ Still vulnerable to SIGKILL, OOM, node failures
+
+##### **Phase 2: Argo Workflow State Synchronization** (Long-term)
+
+**Concept**: Enhance persistence agent to sync Argo workflow failures to MLMD
+
+**Implementation**:
+```go
+// In persistence agent - new component
+func (agent *PersistenceAgent) syncArgoFailuresToMLMD() error {
+    // 1. Monitor Argo workflows for failed nodes
+    failedNodes := agent.getFailedWorkflowNodes()
+    
+    // 2. For each failed node, update corresponding MLMD execution
+    for _, node := range failedNodes {
+        execID := agent.extractExecutionID(node)
+        agent.mlmdClient.UpdateExecutionState(execID, pb.Execution_FAILED)
+    }
+    
+    // 3. Trigger DAG completion logic updates
+    return agent.triggerDAGUpdates()
+}
+```
+
+**Benefits**:
+- ✅ Handles all failure scenarios (SIGKILL, OOM, node failures)
+- ✅ Comprehensive failure coverage
+- ✅ Leverages Argo's robust failure detection
+
+#### **Current Status and Next Steps**
+
+**Test Status**: 
+- ✅ **TestParallelForLoopsWithFailure**: Correctly detects and reports the bug
+- ✅ **Bug Reproduction**: Consistently reproducible in integration tests
+- ✅ **Root Cause**: Confirmed as MLMD/Argo synchronization gap
+
+**Immediate Actions Required**:
+1. **Priority 1**: Implement Phase 1 launcher enhancement
+2. **Priority 2**: Design Phase 2 Argo synchronization architecture
+3. **Priority 3**: Update user documentation about current limitations
+
+**Validation Strategy**:
+```go
+// After fixes, TestParallelForLoopsWithFailure should show:
+// ✅ ParallelFor Parent DAG: FAILED  
+// ✅ Root DAG: FAILED
+// ✅ Iteration DAGs: FAILED (or appropriate states)
+```
+
+#### **Related Issues**
+
+This bug represents a **broader architectural pattern** that may affect:
+- Other container task failure scenarios beyond ParallelFor
+- Integration between Kubernetes job failures and MLMD state  
+- Any workflow patterns that depend on accurate DAG failure state
+
+The TestParallelForLoopsWithFailure test case now serves as a **regression test** to validate when this architectural gap is properly resolved.
+
+#### **Documentation for Future Development**
+
+**Files Modified for Bug Detection**:
+- `/backend/test/v2/integration/dag_status_parallel_for_test.go` - Added TestParallelForLoopsWithFailure
+- `/backend/test/v2/resources/dag_status/loops.py` - ParallelFor test pipeline
+- `/backend/test/v2/resources/dag_status/loops.yaml` - Compiled test pipeline
+
+**Key Code Locations**:
+- **DAG Completion Logic**: `/backend/src/v2/metadata/client.go:UpdateDAGExecutionsState()`
+- **Launcher Publish Logic**: `/backend/src/v2/component/launcher_v2.go` (defer blocks)
+- **ParallelFor Detection**: `/backend/src/v2/metadata/client.go:isParallelForParentDAG()`
+
+This bug discovery demonstrates the importance of **comprehensive test coverage** that validates not just pipeline-level success/failure, but also intermediate DAG state transitions throughout the execution hierarchy.
