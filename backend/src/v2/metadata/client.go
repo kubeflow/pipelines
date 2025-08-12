@@ -897,6 +897,7 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	var newState pb.Execution_State
 	var stateChanged bool
 	var isConditionalDAG bool
+	var isNestedPipelineDAG bool
 	
 	// Check for special DAG types that need different completion logic
 	isParallelForIterationDAG := c.isParallelForIterationDAG(dag)
@@ -962,6 +963,9 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	} else {
 		// Check if this is a conditional DAG that needs special handling
 		isConditionalDAG = c.isConditionalDAG(dag, tasks)
+		
+		// Check if this is a nested pipeline DAG that needs special handling
+		isNestedPipelineDAG = c.isNestedPipelineDAG(dag, tasks)
 		
 		if isConditionalDAG {
 			// Conditional DAG completion logic: considers both container tasks and child DAGs
@@ -1040,6 +1044,81 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 				glog.Infof("Conditional DAG %d still running: childDAGs running=%d, containerTasks running=%d", 
 					dagID, runningChildDAGs, runningContainerTasks)
 			}
+		} else if isNestedPipelineDAG {
+			// Nested pipeline DAG completion logic: considers child pipeline DAGs
+			glog.Infof("Nested pipeline DAG %d: checking completion with %d tasks", dagID, len(tasks))
+			
+			// Count child DAG executions and their states
+			childDAGs := 0
+			completedChildDAGs := 0
+			failedChildDAGs := 0
+			runningChildDAGs := 0
+			
+			// Also track container tasks within this nested pipeline DAG
+			containerTasks := 0
+			completedContainerTasks := 0
+			failedContainerTasks := 0
+			runningContainerTasks := 0
+			
+			for taskName, task := range tasks {
+				taskType := task.GetType()
+				taskState := task.GetExecution().LastKnownState.String()
+				
+				if taskType == "system.DAGExecution" {
+					childDAGs++
+					if taskState == "COMPLETE" {
+						completedChildDAGs++
+					} else if taskState == "FAILED" {
+						failedChildDAGs++
+					} else if taskState == "RUNNING" {
+						runningChildDAGs++
+					}
+					glog.Infof("Nested pipeline DAG %d: child DAG '%s' state=%s", dagID, taskName, taskState)
+				} else if taskType == "system.ContainerExecution" {
+					containerTasks++
+					if taskState == "COMPLETE" {
+						completedContainerTasks++
+					} else if taskState == "FAILED" {
+						failedContainerTasks++
+					} else if taskState == "RUNNING" {
+						runningContainerTasks++
+					}
+					glog.Infof("Nested pipeline DAG %d: container task '%s' state=%s", dagID, taskName, taskState)
+				}
+			}
+			
+			glog.Infof("Nested pipeline DAG %d: childDAGs=%d (completed=%d, failed=%d, running=%d)", 
+				dagID, childDAGs, completedChildDAGs, failedChildDAGs, runningChildDAGs)
+			glog.Infof("Nested pipeline DAG %d: containerTasks=%d (completed=%d, failed=%d, running=%d)", 
+				dagID, containerTasks, completedContainerTasks, failedContainerTasks, runningContainerTasks)
+			
+			// Nested pipeline DAG completion rules:
+			// 1. No child DAGs or container tasks are running
+			// 2. Account for failed child DAGs or container tasks (propagate failures)
+			// 3. Complete when all child components are done
+			
+			allChildDAGsComplete := (childDAGs == 0) || (runningChildDAGs == 0)
+			allContainerTasksComplete := (containerTasks == 0) || (runningContainerTasks == 0)
+			hasFailures := failedChildDAGs > 0 || failedContainerTasks > 0
+			
+			if allChildDAGsComplete && allContainerTasksComplete {
+				if hasFailures {
+					// Some child components failed - propagate failure up the nested pipeline hierarchy
+					newState = pb.Execution_FAILED
+					stateChanged = true
+					glog.Infof("Nested pipeline DAG %d FAILED: %d child DAGs failed, %d container tasks failed", 
+						dag.Execution.GetID(), failedChildDAGs, failedContainerTasks)
+				} else {
+					// All child components complete successfully
+					newState = pb.Execution_COMPLETE
+					stateChanged = true
+					glog.Infof("Nested pipeline DAG %d COMPLETE: all child DAGs (%d) and container tasks (%d) finished successfully", 
+						dag.Execution.GetID(), childDAGs, containerTasks)
+				}
+			} else {
+				glog.Infof("Nested pipeline DAG %d still running: childDAGs running=%d, containerTasks running=%d", 
+					dagID, runningChildDAGs, runningContainerTasks)
+			}
 		} else {
 			// Standard DAG completion logic
 			if completedTasks == int(totalDagTasks) {
@@ -1075,6 +1154,16 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 		// ENHANCED FIX: For conditional DAGs that fail, aggressively trigger parent updates
 		if isConditionalDAG && newState == pb.Execution_FAILED {
 			glog.Infof("Conditional DAG %d failed - triggering immediate parent propagation", dag.Execution.GetID())
+			// Trigger additional propagation cycles to ensure immediate failure propagation
+			go func() {
+				time.Sleep(5 * time.Second)
+				c.propagateDAGStateUp(ctx, dag.Execution.GetID())
+			}()
+		}
+		
+		// ENHANCED FIX: For nested pipeline DAGs that fail, aggressively trigger parent updates
+		if isNestedPipelineDAG && newState == pb.Execution_FAILED {
+			glog.Infof("Nested pipeline DAG %d failed - triggering immediate parent propagation", dag.Execution.GetID())
 			// Trigger additional propagation cycles to ensure immediate failure propagation
 			go func() {
 				time.Sleep(5 * time.Second)
@@ -1183,6 +1272,77 @@ func (c *Client) isConditionalDAG(dag *DAG, tasks map[string]*Execution) bool {
 	}
 	
 	glog.Infof("DAG %d: Not detected as conditional DAG", dagID)
+	return false
+}
+
+// isNestedPipelineDAG determines if a DAG represents a nested pipeline construct
+// by looking for child DAGs that represent sub-pipelines (not ParallelFor iterations or conditional branches)
+func (c *Client) isNestedPipelineDAG(dag *DAG, tasks map[string]*Execution) bool {
+	props := dag.Execution.execution.CustomProperties
+	dagID := dag.Execution.GetID()
+	
+	// Check the DAG's own task name for nested pipeline patterns
+	var taskName string
+	if props != nil && props["task_name"] != nil {
+		taskName = props["task_name"].GetStringValue()
+	}
+	
+	glog.Infof("DAG %d: checking if nested pipeline with taskName='%s'", dagID, taskName)
+	
+	// Skip ParallelFor DAGs - they have their own specialized logic
+	if props != nil && (props["iteration_count"] != nil || props["iteration_index"] != nil) {
+		glog.Infof("DAG %d: Not nested pipeline (ParallelFor DAG)", dagID)
+		return false
+	}
+	
+	// Skip conditional DAGs - they are handled separately
+	if strings.HasPrefix(taskName, "condition-") || strings.Contains(taskName, "condition-branches") {
+		glog.Infof("DAG %d: Not nested pipeline (conditional DAG)", dagID)
+		return false
+	}
+	
+	// Check for structural patterns that indicate nested pipeline DAGs:
+	// 1. Has child DAGs that are likely sub-pipelines (not conditional branches)
+	// 2. Child DAG task names suggest pipeline components (e.g., "inner-pipeline", "inner__pipeline")
+	childDAGs := 0
+	pipelineChildDAGs := 0
+	
+	for _, task := range tasks {
+		if task.GetType() == "system.DAGExecution" {
+			childDAGs++
+			
+			// Check if child DAG task name suggests a pipeline component
+			childTaskName := ""
+			if childProps := task.GetExecution().GetCustomProperties(); childProps != nil && childProps["task_name"] != nil {
+				childTaskName = childProps["task_name"].GetStringValue()
+			}
+			
+			// Look for pipeline-like naming patterns in child DAGs
+			if strings.Contains(childTaskName, "pipeline") || 
+			   strings.Contains(childTaskName, "__pipeline") ||
+			   (childTaskName != "" && !strings.HasPrefix(childTaskName, "condition-")) {
+				pipelineChildDAGs++
+				glog.Infof("DAG %d: Found pipeline-like child DAG: '%s'", dagID, childTaskName)
+			}
+		}
+	}
+	
+	// If we have child DAGs that look like pipeline components, this is likely a nested pipeline
+	if childDAGs > 0 && pipelineChildDAGs > 0 {
+		glog.Infof("DAG %d: Detected as nested pipeline DAG (has %d child DAGs, %d pipeline-like)", 
+			dagID, childDAGs, pipelineChildDAGs)
+		return true
+	}
+	
+	// Additional heuristic: If the DAG itself has a pipeline-like name and contains child DAGs
+	if childDAGs > 0 && (strings.Contains(taskName, "pipeline") || taskName == "") {
+		glog.Infof("DAG %d: Detected as nested pipeline DAG (pipeline-like name '%s' with %d child DAGs)", 
+			dagID, taskName, childDAGs)
+		return true
+	}
+	
+	glog.Infof("DAG %d: Not detected as nested pipeline DAG (childDAGs=%d, pipelineChildDAGs=%d)", 
+		dagID, childDAGs, pipelineChildDAGs)
 	return false
 }
 

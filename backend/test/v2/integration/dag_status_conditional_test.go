@@ -266,8 +266,8 @@ func (s *DAGStatusConditionalTestSuite) TestIfElseFalse() {
 	s.T().Logf("✅ If/Else (false) completed successfully - conditional execution handled directly in root DAG")
 }
 
-// Test Case 4: Nested Conditional with Failure Propagation
-// Tests complex nested conditional constructs where failure propagates up the DAG hierarchy
+// Test Case 4: Complex Conditional with Failure Propagation
+// Tests complex conditional constructs (if/elif/else) where failure propagates up the DAG hierarchy
 func (s *DAGStatusConditionalTestSuite) TestNestedConditionalFailurePropagation() {
 	t := s.T()
 
@@ -370,6 +370,54 @@ func (s *DAGStatusConditionalTestSuite) TestParameterBasedConditionalBranching()
 		// CONFIRMED: Parameter-based conditional tests don't create conditional DAGs - they execute directly in root DAG context
 		s.T().Logf("✅ Parameter-based conditional (%s) completed successfully - conditional execution handled directly in root DAG", tc.description)
 	}
+}
+
+// Test Case 6: Deeply Nested Pipeline Failure Propagation
+// Validates that failure propagates correctly through multiple levels of nested pipelines
+func (s *DAGStatusConditionalTestSuite) TestDeeplyNestedPipelineFailurePropagation() {
+	t := s.T()
+
+	pipeline, err := s.pipelineUploadClient.UploadFile(
+		"../resources/dag_status/nested_pipeline.yaml",
+		&uploadParams.UploadPipelineParams{
+			Name:        util.StringPointer("deeply-nested-pipeline-test"),
+			DisplayName: util.StringPointer("Deeply Nested Pipeline Failure Propagation Test"),
+		},
+	)
+
+	if err != nil {
+		t.Logf("DEBUG: UploadFile failed with error: %v", err)
+		t.Logf("DEBUG: Error type: %T", err)
+	} else {
+		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
+	}
+
+	require.NoError(t, err)
+	require.NotNil(t, pipeline)
+
+	// Upload a pipeline version explicitly like run_api_test.go does
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/nested_pipeline.yaml", &uploadParams.UploadPipelineVersionParams{
+		Name:       util.StringPointer("test-version"),
+		Pipelineid: util.StringPointer(pipeline.PipelineID),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, pipelineVersion)
+
+	run, err := s.createRun(pipelineVersion, "deeply-nested-pipeline-test")
+	require.NoError(t, err)
+	require.NotNil(t, run)
+
+	// This pipeline should FAIL because it has a deeply nested failing component
+	// Structure: outer_pipeline -> inner_pipeline -> inner_inner_pipeline -> fail()
+	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateFAILED)
+
+	// Give time for MLMD DAG execution to be created, then validate failure propagation through nested DAGs
+	time.Sleep(20 * time.Second)
+	
+	// Validate that failure propagates correctly through all levels of nesting
+	s.validateDeeplyNestedDAGFailurePropagation(run.RunID)
+	
+	s.T().Logf("✅ Deeply nested pipeline failure propagation completed successfully with proper DAG status propagation")
 }
 
 func (s *DAGStatusConditionalTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion, displayName string) (*run_model.V2beta1Run, error) {
@@ -1080,6 +1128,126 @@ func (s *DAGStatusConditionalTestSuite) validateFinalDAGStates(allExecsRes *pb.G
 			}
 		}
 	}
+}
+
+// validateDeeplyNestedDAGFailurePropagation validates that failure propagates through multiple levels of nested DAGs
+func (s *DAGStatusConditionalTestSuite) validateDeeplyNestedDAGFailurePropagation(runID string) {
+	t := s.T()
+
+	// Get the context for this specific run
+	contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
+	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
+		Options: &pb.ListOperationOptions{
+			FilterQuery: contextsFilterQuery,
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, contexts.Contexts)
+
+	// Get executions for this specific run context only
+	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
+		ContextId: contexts.Contexts[0].Id,
+	})
+	require.NoError(t, err)
+
+	// Find the root DAG ID first
+	var rootDAGID int64
+	t.Logf("Searching %d executions for root DAG in run %s", len(executionsByContext.Executions), runID)
+
+	for _, exec := range executionsByContext.Executions {
+		taskName := ""
+		if props := exec.GetCustomProperties(); props != nil {
+			if nameVal := props["task_name"]; nameVal != nil {
+				taskName = nameVal.GetStringValue()
+			}
+		}
+
+		t.Logf("Execution ID=%d, Type=%s, TaskName='%s', State=%s",
+			exec.GetId(), exec.GetType(), taskName, exec.LastKnownState.String())
+
+		// Find the root DAG (has empty task name and is a DAG execution)
+		if exec.GetType() == "system.DAGExecution" && taskName == "" {
+			rootDAGID = exec.GetId()
+			t.Logf("Found root DAG ID=%d for run %s", rootDAGID, runID)
+			break
+		}
+	}
+
+	require.NotZero(t, rootDAGID, "Root DAG not found")
+
+	// Now look for all nested DAGs that are related to this root DAG
+	allExecsReq := &pb.GetExecutionsRequest{}
+	allExecsRes, err := s.mlmdClient.GetExecutions(context.Background(), allExecsReq)
+	require.NoError(t, err)
+
+	var nestedDAGs []*pb.Execution
+	t.Logf("Searching for nested DAGs related to root DAG ID=%d", rootDAGID)
+
+	// Collect all DAGs that are part of this nested pipeline hierarchy
+	for _, exec := range allExecsRes.Executions {
+		if exec.GetType() != "system.DAGExecution" {
+			continue
+		}
+
+		taskName := ""
+		parentDagID := int64(0)
+		if props := exec.GetCustomProperties(); props != nil {
+			if nameVal := props["task_name"]; nameVal != nil {
+				taskName = nameVal.GetStringValue()
+			}
+			if parentVal := props["parent_dag_id"]; parentVal != nil {
+				parentDagID = parentVal.GetIntValue()
+			}
+		}
+
+		t.Logf("DEBUG: DAG ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
+			exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
+
+		// Check if this DAG is part of our nested pipeline hierarchy
+		isRelatedToRun := false
+		
+		// Direct child of root (outer -> inner)
+		if parentDagID == rootDAGID && (taskName == "inner-pipeline" || taskName == "inner__pipeline") {
+			isRelatedToRun = true
+		}
+		
+		// Check for deeper nesting by traversing up the parent hierarchy
+		if !isRelatedToRun {
+			currentParentID := parentDagID
+			for depth := 0; depth < 5 && currentParentID > 0; depth++ { // Max depth of 5 levels
+				for _, parentExec := range allExecsRes.Executions {
+					if parentExec.GetId() == currentParentID && parentExec.GetType() == "system.DAGExecution" {
+						if parentProps := parentExec.GetCustomProperties(); parentProps != nil {
+							if grandparentVal := parentProps["parent_dag_id"]; grandparentVal != nil {
+								currentParentID = grandparentVal.GetIntValue()
+								if currentParentID == rootDAGID {
+									isRelatedToRun = true
+									break
+								}
+							}
+						}
+						break
+					}
+				}
+				if isRelatedToRun {
+					break
+				}
+			}
+		}
+
+		if isRelatedToRun {
+			t.Logf("Found nested DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
+				exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
+			nestedDAGs = append(nestedDAGs, exec)
+		}
+	}
+
+	t.Logf("Found %d nested DAG executions for deeply nested pipeline", len(nestedDAGs))
+	
+	// Use polling/retry logic with 60-second timeout for failure propagation through nested levels
+	s.validateDAGsWithPolling(nestedDAGs, 60*time.Second)
+
+	t.Logf("✅ Deeply nested pipeline DAG status validation completed")
 }
 
 func (s *DAGStatusConditionalTestSuite) cleanUp() {
