@@ -972,3 +972,69 @@ The infinite loop occurred in the `CollectInputs` function (lines 834-1003) wher
 ✅ **Production Ready**: Fix is safe for production deployment  
 
 This resolution ensures that ParallelFor parameter collection works reliably and prevents the infinite loop scenario that was causing pipelines to hang indefinitely. The enhanced logging and safety mechanisms provide both immediate fixes and long-term maintainability improvements.
+
+## **🧹 Test Suite Consolidation - Conditional DAG Tests**
+
+### **Issue: Duplicate Test Scenarios**
+After completing all DAG status propagation fixes, analysis revealed duplicate test scenarios in the conditional DAG test suite that were testing functionally identical behavior.
+
+### **Duplication Analysis and Resolution**
+
+#### **Identified Duplication:**
+- **TestSimpleIfTrue** and **TestIfElseTrue** were functionally identical
+  - Both tested: if-condition = true → if-branch executes → 1 task runs  
+  - The else-branch in TestIfElseTrue was just dead code that never executed
+  - Same execution pattern with unnecessary complexity
+
+#### **Consolidation Implemented:**
+**Removed**: `TestSimpleIfTrue` (redundant test function and pipeline files)
+**Kept**: All other tests as they serve distinct purposes:
+
+### **Final Consolidated Test Suite Structure:**
+
+✅ **Test Case 1: Simple If - False** (`TestSimpleIfFalse`)
+- **Purpose**: Tests if-condition = false → no branches execute (0 tasks)
+- **Pipeline**: `conditional_if_false.yaml`
+- **Scenario**: Empty conditional execution
+
+✅ **Test Case 2: If/Else - True** (`TestIfElseTrue`) 
+- **Purpose**: Tests if-condition = true → if-branch executes, else-branch skipped (1 task)
+- **Pipeline**: `conditional_if_else_true.yaml`  
+- **Scenario**: If-branch execution with unused else-branch
+
+✅ **Test Case 3: If/Else - False** (`TestIfElseFalse`)
+- **Purpose**: Tests if-condition = false → if-branch skipped, else-branch executes (1 task)
+- **Pipeline**: `conditional_if_else_false.yaml`
+- **Scenario**: Else-branch execution
+
+✅ **Test Case 4: Nested Conditional with Failure Propagation** (`TestNestedConditionalFailurePropagation`)
+- **Purpose**: Tests complex nested conditionals with failure scenarios
+- **Pipeline**: `conditional_complex.yaml` (was `complex_conditional.yaml`)
+- **Scenario**: Complex nested structures with failure propagation testing
+
+✅ **Test Case 5: Parameter-Based If/Elif/Else Branching** (`TestParameterBasedConditionalBranching`)
+- **Purpose**: Tests dynamic if/elif/else branching with different input values (1, 2, 99)
+- **Pipeline**: `conditional_complex.yaml`
+- **Scenario**: Parameter-driven conditional execution
+
+### **Files Modified:**
+- **Removed Test**: `TestSimpleIfTrue` function from `dag_status_conditional_test.go`
+- **Updated Test Comments**: Renumbered test cases sequentially (1-5)
+- **Pipeline File**: Fixed reference from `complex_conditional.yaml` → `conditional_complex.yaml`
+- **Cleaned Up**: Removed unused `nested_conditional_failure.yaml` file
+
+### **Benefits Achieved:**
+- ✅ **Eliminated true duplication** without losing test coverage
+- ✅ **Comprehensive scenario coverage**: 0 tasks, 1 task (if-branch), 1 task (else-branch), complex scenarios  
+- ✅ **Cleaner test suite** with distinct, non-overlapping test cases
+- ✅ **Better maintainability** with fewer redundant test files
+- ✅ **Proper test isolation** using different pipeline files for different scenarios
+
+### **Test Coverage Verification:**
+The consolidated test suite maintains complete coverage of conditional DAG scenarios:
+- **Empty conditionals** (false conditions, 0 tasks)
+- **Single branch execution** (if-branch true, else-branch true)  
+- **Complex nested conditionals** with failure propagation
+- **Parameter-based dynamic branching** with multiple test values
+
+**Result**: The conditional test suite now provides complete coverage of conditional DAG scenarios without any functional duplication, making it more maintainable and easier to understand.
