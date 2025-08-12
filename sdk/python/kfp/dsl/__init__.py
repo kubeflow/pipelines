@@ -40,6 +40,7 @@ __all__ = [
     'PIPELINE_ROOT_PLACEHOLDER',
     'PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER',
     'PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER',
+    'WORKSPACE_PATH_PLACEHOLDER',
 ]
 import os
 
@@ -206,6 +207,23 @@ PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER = '{{$.pipeline_job_schedule_time_utc
             print_op(
                 msg='Job scheduled at:',
                 value=dsl.PIPELINE_JOB_SCHEDULE_TIME_UTC,
+            )
+"""
+
+WORKSPACE_PATH_PLACEHOLDER = '{{$.workspace_path}}'
+"""A placeholder used to obtain the path to the shared workspace within a component.
+    
+    Example:
+      ::
+
+        @dsl.pipeline(
+            pipeline_config=dsl.PipelineConfig(
+                workspace=dsl.WorkspaceConfig(size='100Gi'),
+            ),
+        )
+        def my_pipeline():
+            clone_repo_task = clone_repo(
+                workspacePath=dsl.WORKSPACE_PATH_PLACEHOLDER, repo='https://github.com/example/repo',
             )
 """
 

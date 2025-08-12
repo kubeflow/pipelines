@@ -725,3 +725,241 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 	assert.Equal(t, expectedExecutorInput, actualExecutorInput)
 	assert.Equal(t, expectedComponentSpec, actualComponentSpec)
 }
+
+func TestNeedsWorkspaceMount(t *testing.T) {
+	tests := []struct {
+		name          string
+		executorInput *pipelinespec.ExecutorInput
+		expected      bool
+	}{
+		{
+			name: "workspace path placeholder in parameters",
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"workspace_path": {
+							Kind: &structpb.Value_StringValue{
+								StringValue: "{{$.workspace_path}}",
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "workspace path prefix in parameters",
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"file_path": {
+							Kind: &structpb.Value_StringValue{
+								StringValue: "/kfp-workspace/data/file.txt",
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "artifact with workspace metadata",
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
+						"model": {
+							Artifacts: []*pipelinespec.RuntimeArtifact{
+								{
+									Metadata: &structpb.Struct{
+										Fields: map[string]*structpb.Value{
+											"_kfp_workspace": {
+												Kind: &structpb.Value_BoolValue{
+													BoolValue: true,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "workspace path with subdirectory",
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"file_path": {
+							Kind: &structpb.Value_StringValue{
+								StringValue: "{{$.workspace_path}}/data",
+							},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "no workspace usage",
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"text": {
+							Kind: &structpb.Value_StringValue{
+								StringValue: "hello world",
+							},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := needsWorkspaceMount(tt.executorInput)
+			if result != tt.expected {
+				t.Errorf("needsWorkspaceMount() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestAddWorkspaceMount(t *testing.T) {
+	podSpec := &k8score.PodSpec{
+		Containers: []k8score.Container{
+			{
+				Name: "main",
+			},
+		},
+	}
+
+	pvcName := "test-workflow-kfp-workspace"
+
+	addWorkspaceMount(podSpec, pvcName)
+
+	// Check that volume was added
+	if len(podSpec.Volumes) != 1 {
+		t.Errorf("Expected 1 volume, got %d", len(podSpec.Volumes))
+	}
+
+	volume := podSpec.Volumes[0]
+	if volume.Name != "kfp-workspace" {
+		t.Errorf("Expected volume name kfp-workspace, got %s", volume.Name)
+	}
+
+	if volume.PersistentVolumeClaim == nil {
+		t.Error("Expected PersistentVolumeClaim to be set")
+	}
+
+	if volume.PersistentVolumeClaim.ClaimName != pvcName {
+		t.Errorf("Expected claim name %s, got %s", pvcName, volume.PersistentVolumeClaim.ClaimName)
+	}
+
+	// Check that volume mount was added
+	if len(podSpec.Containers[0].VolumeMounts) != 1 {
+		t.Errorf("Expected 1 volume mount, got %d", len(podSpec.Containers[0].VolumeMounts))
+	}
+
+	volumeMount := podSpec.Containers[0].VolumeMounts[0]
+	if volumeMount.Name != "kfp-workspace" {
+		t.Errorf("Expected volume mount name kfp-workspace, got %s", volumeMount.Name)
+	}
+
+	if volumeMount.MountPath != "/kfp-workspace" {
+		t.Errorf("Expected mount path /kfp-workspace, got %s", volumeMount.MountPath)
+	}
+}
+
+func TestValidateVolumeMounts(t *testing.T) {
+	tests := []struct {
+		name        string
+		podSpec     *k8score.PodSpec
+		expectError bool
+	}{
+		{
+			name: "no conflicting volume mounts",
+			podSpec: &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "data",
+								MountPath: "/data",
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "conflicting volume mount path",
+			podSpec: &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "workspace",
+								MountPath: "/kfp-workspace",
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "conflicting volume mount subpath",
+			podSpec: &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "data",
+								MountPath: "/kfp-workspace/data",
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "conflicting volume name kfp-workspace",
+			podSpec: &k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						VolumeMounts: []k8score.VolumeMount{
+							{
+								Name:      "kfp-workspace",
+								MountPath: "/data",
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateVolumeMounts(tt.podSpec)
+			if tt.expectError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Expected no error but got: %v", err)
+			}
+		})
+	}
+}
