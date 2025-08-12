@@ -49,6 +49,13 @@ type DAGStatusParallelForTestSuite struct {
 	mlmdClient           pb.MetadataStoreServiceClient
 }
 
+// debugLogf logs only when debug mode is enabled to reduce test verbosity
+func (s *DAGStatusParallelForTestSuite) debugLogf(format string, args ...interface{}) {
+	if *isDebugMode {
+		s.T().Logf(format, args...)
+	}
+}
+
 func (s *DAGStatusParallelForTestSuite) SetupTest() {
 	if !*runIntegrationTests {
 		s.T().SkipNow()
@@ -285,7 +292,7 @@ func (s *DAGStatusParallelForTestSuite) waitForRunCompletion(runID string, expec
 	require.Eventually(s.T(), func() bool {
 		runDetail, err := s.runClient.Get(&runparams.RunServiceGetRunParams{RunID: runID})
 		if err != nil {
-			s.T().Logf("Error getting run %s: %v", runID, err)
+			s.debugLogf("Error getting run %s: %v", runID, err)
 			return false
 		}
 
@@ -293,13 +300,13 @@ func (s *DAGStatusParallelForTestSuite) waitForRunCompletion(runID string, expec
 		if runDetail.State != nil {
 			currentState = string(*runDetail.State)
 		}
-		s.T().Logf("Run %s state: %s", runID, currentState)
+		s.debugLogf("Run %s state: %s", runID, currentState)
 		return runDetail.State != nil && *runDetail.State == expectedState
 	}, 5*time.Minute, 15*time.Second, "Run did not reach expected final state")
 
 	// Give a brief time for container defer blocks to execute and update DAG states
 	// This ensures UpdateDAGExecutionsState has been called by launcher containers
-	s.T().Logf("Run completed, waiting for DAG state updates to propagate...")
+	s.debugLogf("Run completed, waiting for DAG state updates to propagate...")
 	time.Sleep(5 * time.Second)
 }
 

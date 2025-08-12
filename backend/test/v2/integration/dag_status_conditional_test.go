@@ -49,13 +49,20 @@ type DAGStatusConditionalTestSuite struct {
 	mlmdClient           pb.MetadataStoreServiceClient
 }
 
+// debugLogf logs only when debug mode is enabled to reduce test verbosity
+func (s *DAGStatusConditionalTestSuite) debugLogf(format string, args ...interface{}) {
+	if *isDebugMode {
+		s.T().Logf(format, args...)
+	}
+}
+
 func (s *DAGStatusConditionalTestSuite) SetupTest() {
 	// DEBUG: Add infrastructure debugging
-	s.T().Logf("=== SETUP TEST DEBUG ===")
-	s.T().Logf("runIntegrationTests: %v", *runIntegrationTests)
-	s.T().Logf("isDevMode: %v", *isDevMode)
-	s.T().Logf("namespace: %v", *namespace)
-	s.T().Logf("isKubeflowMode: %v", *isKubeflowMode)
+	s.debugLogf("=== SETUP TEST DEBUG ===")
+	s.debugLogf("runIntegrationTests: %v", *runIntegrationTests)
+	s.debugLogf("isDevMode: %v", *isDevMode)
+	s.debugLogf("namespace: %v", *namespace)
+	s.debugLogf("isKubeflowMode: %v", *isKubeflowMode)
 
 	if !*runIntegrationTests {
 		s.T().SkipNow()
@@ -63,14 +70,14 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 	}
 
 	if !*isDevMode {
-		s.T().Logf("Waiting for cluster to be ready (timeout: %v)...", *initializeTimeout)
+		s.debugLogf("Waiting for cluster to be ready (timeout: %v)...", *initializeTimeout)
 		err := test.WaitForReady(*initializeTimeout)
 		if err != nil {
 			s.T().Fatalf("Failed to initialize test. Error: %s", err.Error())
 		}
-		s.T().Logf("✅ Cluster ready")
+		s.debugLogf("✅ Cluster ready")
 	} else {
-		s.T().Logf("⚠️ DevMode - skipping cluster ready check")
+		s.debugLogf("⚠️ DevMode - skipping cluster ready check")
 	}
 	s.namespace = *namespace
 
@@ -91,9 +98,9 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 			return apiserver.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
 		}
 	} else {
-		s.T().Logf("Using standard mode (not Kubeflow mode)")
+		s.debugLogf("Using standard mode (not Kubeflow mode)")
 		clientConfig := test.GetClientConfig(*namespace)
-		s.T().Logf("Client config: %+v", clientConfig)
+		s.debugLogf("Client config: %+v", clientConfig)
 
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewPipelineClient(clientConfig, *isDebugMode)
@@ -108,22 +115,22 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 
 	var err error
 
-	s.T().Logf("Creating pipeline client...")
+	s.debugLogf("Creating pipeline client...")
 	s.pipelineClient, err = newPipelineClient()
 	if err != nil {
 		s.T().Logf("❌ PIPELINE CLIENT CREATION FAILED: %v", err)
 		s.T().Fatalf("Failed to get pipeline client. Error: %s", err.Error())
 	} else {
-		s.T().Logf("✅ Pipeline client created successfully")
+		s.debugLogf("✅ Pipeline client created successfully")
 	}
 
-	s.T().Logf("Creating pipeline upload client...")
+	s.debugLogf("Creating pipeline upload client...")
 	s.pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
 		s.T().Logf("❌ PIPELINE UPLOAD CLIENT CREATION FAILED: %v", err)
 		s.T().Fatalf("Failed to get pipeline upload client. Error: %s", err.Error())
 	} else {
-		s.T().Logf("✅ Pipeline upload client created successfully")
+		s.debugLogf("✅ Pipeline upload client created successfully")
 	}
 	s.runClient, err = newRunClient()
 	if err != nil {
