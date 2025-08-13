@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	pipelineParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
+	uploadParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
@@ -113,13 +114,12 @@ func (s *DAGStatusNestedTestSuite) cleanUp() {
 }
 
 // Test Case 1: Simple Nested Structure
-// Validates that a nested DAG structure updates status correctly
-// TODO: This test reveals architectural issues with nested DAG task counting.
+// DISABLED: This test reveals architectural issues with nested DAG task counting.
 // Parent DAGs don't account for nested child pipeline tasks in total_dag_tasks calculation.
-// Skipping until nested DAG architecture is improved.
-/*
+// Requires significant enhancement to nested DAG architecture. See CONTEXT.md for analysis.
 func (s *DAGStatusNestedTestSuite) TestSimpleNested() {
 	t := s.T()
+	t.Skip("DISABLED: Nested DAG task counting requires architectural improvement - see CONTEXT.md")
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_simple.yaml",
@@ -157,16 +157,14 @@ func (s *DAGStatusNestedTestSuite) TestSimpleNested() {
 	time.Sleep(45 * time.Second)
 	s.validateNestedDAGStatus(run.RunID, pb.Execution_COMPLETE, "simple_nested")
 }
-*/
 
 // Test Case 2: Nested ParallelFor
-// Validates that nested ParallelFor structures update status correctly
-// TODO: This test reveals architectural issues with nested DAG task counting.
+// DISABLED: This test reveals architectural issues with nested DAG task counting.
 // Parent DAGs don't account for nested child pipeline tasks in total_dag_tasks calculation.
-// Skipping until nested DAG architecture is improved.
-/*
+// Requires significant enhancement to nested DAG architecture. See CONTEXT.md for analysis.
 func (s *DAGStatusNestedTestSuite) TestNestedParallelFor() {
 	t := s.T()
+	t.Skip("DISABLED: Nested DAG task counting requires architectural improvement - see CONTEXT.md")
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_parallel_for.yaml",
@@ -204,16 +202,14 @@ func (s *DAGStatusNestedTestSuite) TestNestedParallelFor() {
 	time.Sleep(20 * time.Second)
 	s.validateNestedDAGStatus(run.RunID, pb.Execution_COMPLETE, "nested_parallel_for")
 }
-*/
 
 // Test Case 3: Nested Conditional
-// Validates that nested conditional structures update status correctly
-// TODO: This test reveals architectural issues with nested DAG task counting.
+// DISABLED: This test reveals architectural issues with nested DAG task counting.
 // Parent DAGs don't account for nested child pipeline tasks in total_dag_tasks calculation.
-// Skipping until nested DAG architecture is improved.
-/*
+// Requires significant enhancement to nested DAG architecture. See CONTEXT.md for analysis.
 func (s *DAGStatusNestedTestSuite) TestNestedConditional() {
 	t := s.T()
+	t.Skip("DISABLED: Nested DAG task counting requires architectural improvement - see CONTEXT.md")
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_conditional.yaml",
@@ -251,16 +247,14 @@ func (s *DAGStatusNestedTestSuite) TestNestedConditional() {
 	time.Sleep(20 * time.Second)
 	s.validateNestedDAGStatus(run.RunID, pb.Execution_COMPLETE, "nested_conditional")
 }
-*/
 
 // Test Case 4: Deep Nesting
-// Validates that deeply nested structures update status correctly
-// TODO: This test reveals architectural issues with nested DAG task counting.
+// DISABLED: This test reveals architectural issues with nested DAG task counting.
 // Parent DAGs don't account for nested child pipeline tasks in total_dag_tasks calculation.
-// Skipping until nested DAG architecture is improved.
-/*
+// Requires significant enhancement to nested DAG architecture. See CONTEXT.md for analysis.
 func (s *DAGStatusNestedTestSuite) TestDeepNesting() {
 	t := s.T()
+	t.Skip("DISABLED: Nested DAG task counting requires architectural improvement - see CONTEXT.md")
 
 	pipeline, err := s.pipelineUploadClient.UploadFile(
 		"../resources/dag_status/nested_deep.yaml",
@@ -298,7 +292,6 @@ func (s *DAGStatusNestedTestSuite) TestDeepNesting() {
 	time.Sleep(20 * time.Second)
 	s.validateNestedDAGStatus(run.RunID, pb.Execution_COMPLETE, "deep_nesting")
 }
-*/
 
 func (s *DAGStatusNestedTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion, displayName string) (*run_model.V2beta1Run, error) {
 	createRunRequest := &runparams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
@@ -313,8 +306,7 @@ func (s *DAGStatusNestedTestSuite) createRun(pipelineVersion *pipeline_upload_mo
 }
 
 func (s *DAGStatusNestedTestSuite) waitForRunCompletion(runID string, expectedState run_model.V2beta1RuntimeState) {
-	// TODO: REVERT THIS WHEN BUG IS FIXED - Currently runs never complete due to DAG status bug
-	// We'll wait for the run to at least start executing, then validate the bug directly
+	// Wait for the run to start executing, then rely on DAG completion logic for final states
 	require.Eventually(s.T(), func() bool {
 		runDetail, err := s.runClient.Get(&runparams.RunServiceGetRunParams{RunID: runID})
 		if err != nil {
