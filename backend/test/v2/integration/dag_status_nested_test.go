@@ -28,6 +28,7 @@ type DAGStatusNestedTestSuite struct {
 	pipelineClient       *apiserver.PipelineClient
 	runClient            *apiserver.RunClient
 	mlmdClient           pb.MetadataStoreServiceClient
+	helpers              *DAGTestUtil
 }
 
 func (s *DAGStatusNestedTestSuite) SetupTest() {
@@ -91,6 +92,9 @@ func (s *DAGStatusNestedTestSuite) SetupTest() {
 	if err != nil {
 		s.T().Logf("Failed to create MLMD client. Error: %s", err.Error())
 	}
+
+	// Initialize shared DAG test dagTestUtil
+	s.helpers = NewDAGTestHelpers(s.T(), s.mlmdClient)
 
 	s.cleanUp()
 }
@@ -296,110 +300,29 @@ func (s *DAGStatusNestedTestSuite) waitForRunCompletion(runID string) {
 }
 
 func (s *DAGStatusNestedTestSuite) validateNestedDAGStatus(runID string, expectedDAGState pb.Execution_State, testScenario string) {
-	// Initialize shared helpers
-	helpers := NewDAGTestHelpers(s.T(), s.mlmdClient)
-	
-	// Find all nested DAG executions related to this run
-	nestedDAGs := s.findNestedDAGExecutions(runID, testScenario, helpers)
-	
+	// Get the complete context needed for nested DAG validation
+	ctx := s.helpers.GetNestedDAGContext(runID, testScenario)
+
 	// Validate each nested DAG execution
-	s.validateEachNestedDAG(nestedDAGs, expectedDAGState, testScenario, helpers)
+	s.validateEachNestedDAG(ctx.NestedDAGs, expectedDAGState, testScenario)
 }
 
-// findNestedDAGExecutions locates all nested DAG executions for a run
-func (s *DAGStatusNestedTestSuite) findNestedDAGExecutions(runID string, testScenario string, helpers *DAGTestHelpers) []*pb.Execution {
-	t := s.T()
-	
-	s.T().Logf("Searching for all DAG executions related to run %s...", runID)
-	
-	// Get recent DAG executions and context-specific executions
-	recentDAGs := s.getRecentDAGExecutions(helpers)
-	contextDAGs := s.getContextSpecificDAGExecutions(runID, helpers)
-	
-	// Merge and deduplicate DAG executions
-	nestedDAGs := s.mergeDAGExecutions(recentDAGs, contextDAGs)
-	
-	require.NotEmpty(t, nestedDAGs, "No nested DAG executions found for %s", testScenario)
-	s.T().Logf("Found %d nested DAG executions for %s scenario", len(nestedDAGs), testScenario)
-	
-	return nestedDAGs
-}
-
-// getRecentDAGExecutions retrieves recent DAG executions from the system
-func (s *DAGStatusNestedTestSuite) getRecentDAGExecutions(helpers *DAGTestHelpers) []*pb.Execution {
-	// Get all DAG executions in the system
-	allDAGExecutions := helpers.GetAllDAGExecutions()
-
-	// Filter DAG executions that are recent (within last 5 minutes)
-	var recentDAGs []*pb.Execution
-
-	for _, execution := range allDAGExecutions {
-		// Log all DAG executions for debugging
-		helpers.LogExecutionSummary(execution, "Examining DAG execution")
-
-		// Include DAG executions that are recent as potentially related
-		if helpers.IsRecentExecution(execution) {
-			recentDAGs = append(recentDAGs, execution)
-			s.T().Logf("Including recent DAG execution ID=%d", execution.GetId())
-		}
-	}
-	
-	return recentDAGs
-}
-
-
-// getContextSpecificDAGExecutions retrieves DAG executions from the specific run context
-func (s *DAGStatusNestedTestSuite) getContextSpecificDAGExecutions(runID string, helpers *DAGTestHelpers) []*pb.Execution {
-	// Get all executions for the run
-	executions := helpers.GetExecutionsForRun(runID)
-	
-	// Filter for DAG executions only
-	contextDAGs := helpers.FilterDAGExecutions(executions)
-	for _, execution := range contextDAGs {
-		s.T().Logf("Adding context-specific DAG execution ID=%d", execution.GetId())
-	}
-	
-	return contextDAGs
-}
-
-// mergeDAGExecutions merges and deduplicates DAG executions from different sources
-func (s *DAGStatusNestedTestSuite) mergeDAGExecutions(recentDAGs, contextDAGs []*pb.Execution) []*pb.Execution {
-	// Start with recent DAGs
-	merged := make([]*pb.Execution, len(recentDAGs))
-	copy(merged, recentDAGs)
-	
-	// Add context DAGs that aren't already present
-	for _, contextDAG := range contextDAGs {
-		found := false
-		for _, existing := range merged {
-			if existing.GetId() == contextDAG.GetId() {
-				found = true
-				break
-			}
-		}
-		if !found {
-			merged = append(merged, contextDAG)
-		}
-	}
-	
-	return merged
-}
 
 // validateEachNestedDAG validates each nested DAG execution
-func (s *DAGStatusNestedTestSuite) validateEachNestedDAG(nestedDAGs []*pb.Execution, expectedDAGState pb.Execution_State, testScenario string, helpers *DAGTestHelpers) {
+func (s *DAGStatusNestedTestSuite) validateEachNestedDAG(nestedDAGs []*pb.Execution, expectedDAGState pb.Execution_State, testScenario string) {
 	for _, dagExecution := range nestedDAGs {
-		s.validateSingleNestedDAG(dagExecution, expectedDAGState, testScenario, helpers)
+		s.validateSingleNestedDAG(dagExecution, expectedDAGState, testScenario)
 	}
 }
 
 // validateSingleNestedDAG validates a single nested DAG execution
-func (s *DAGStatusNestedTestSuite) validateSingleNestedDAG(dagExecution *pb.Execution, expectedDAGState pb.Execution_State, testScenario string, helpers *DAGTestHelpers) {
+func (s *DAGStatusNestedTestSuite) validateSingleNestedDAG(dagExecution *pb.Execution, expectedDAGState pb.Execution_State, testScenario string) {
 	// Extract DAG properties
-	totalDagTasks, taskName := s.extractDAGProperties(dagExecution, helpers)
-	
+	totalDagTasks, taskName := s.extractDAGProperties(dagExecution)
+
 	// Log DAG information
 	s.logDAGInformation(dagExecution, taskName, totalDagTasks, testScenario)
-	
+
 	// Validate based on DAG type (child vs parent)
 	isChildPipelineDAG := taskName == "child-pipeline"
 	if isChildPipelineDAG {
@@ -407,18 +330,18 @@ func (s *DAGStatusNestedTestSuite) validateSingleNestedDAG(dagExecution *pb.Exec
 	} else {
 		s.validateParentPipelineDAG(dagExecution, totalDagTasks, expectedDAGState)
 	}
-	
+
 	// Log regression test results
 	s.logRegressionTestResults(dagExecution, totalDagTasks, testScenario, isChildPipelineDAG)
-	
+
 	// Log additional properties for debugging
 	s.logAdditionalProperties(dagExecution)
 }
 
 // extractDAGProperties extracts total_dag_tasks and task_name from DAG execution
-func (s *DAGStatusNestedTestSuite) extractDAGProperties(dagExecution *pb.Execution, helpers *DAGTestHelpers) (int64, string) {
-	totalDagTasks := helpers.GetTotalDagTasks(dagExecution)
-	taskName := helpers.GetTaskName(dagExecution)
+func (s *DAGStatusNestedTestSuite) extractDAGProperties(dagExecution *pb.Execution) (int64, string) {
+	totalDagTasks := s.helpers.GetTotalDagTasks(dagExecution)
+	taskName := s.helpers.GetTaskName(dagExecution)
 	return totalDagTasks, taskName
 }
 
@@ -431,7 +354,7 @@ func (s *DAGStatusNestedTestSuite) logDAGInformation(dagExecution *pb.Execution,
 // validateChildPipelineDAG validates a child pipeline DAG
 func (s *DAGStatusNestedTestSuite) validateChildPipelineDAG(dagExecution *pb.Execution, totalDagTasks int64) {
 	t := s.T()
-	
+
 	s.T().Logf("✅ CHILD DAG %d: total_dag_tasks=%d (correct - child pipeline has 3 tasks)",
 		dagExecution.GetId(), totalDagTasks)
 
@@ -448,7 +371,7 @@ func (s *DAGStatusNestedTestSuite) validateChildPipelineDAG(dagExecution *pb.Exe
 // validateParentPipelineDAG validates a parent pipeline DAG
 func (s *DAGStatusNestedTestSuite) validateParentPipelineDAG(dagExecution *pb.Execution, totalDagTasks int64, expectedDAGState pb.Execution_State) {
 	t := s.T()
-	
+
 	s.T().Logf("🚨 PARENT DAG %d: total_dag_tasks=%d (should account for nested structure)",
 		dagExecution.GetId(), totalDagTasks)
 
@@ -475,9 +398,9 @@ func (s *DAGStatusNestedTestSuite) logRegressionTestResults(dagExecution *pb.Exe
 			return "🚨 BUG DETECTED"
 		}
 	}()
-	
+
 	dagType := map[bool]string{true: "CHILD", false: "PARENT"}[isChildPipelineDAG]
-	
+
 	s.T().Logf("REGRESSION TEST for %s: %s DAG %d has total_dag_tasks=%d %s",
 		testScenario, dagType, dagExecution.GetId(), totalDagTasks, resultStatus)
 }

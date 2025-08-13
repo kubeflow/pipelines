@@ -46,6 +46,7 @@ type DAGStatusParallelForTestSuite struct {
 	pipelineUploadClient *apiserver.PipelineUploadClient
 	runClient            *apiserver.RunClient
 	mlmdClient           pb.MetadataStoreServiceClient
+	helpers              *DAGTestUtil
 }
 
 // debugLogf logs only when debug mode is enabled to reduce test verbosity
@@ -118,6 +119,9 @@ func (s *DAGStatusParallelForTestSuite) SetupTest() {
 		s.T().Fatalf("Failed to create MLMD client. Error: %s", err.Error())
 	}
 
+	// Initialize shared DAG test dagTestUtil
+	s.helpers = NewDAGTestHelpers(s.T(), s.mlmdClient)
+
 	s.cleanUp()
 }
 
@@ -169,7 +173,7 @@ func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForSuccess() {
 // DISABLED: This test reveals an architectural issue where failed container tasks
 // don't get recorded in MLMD because they exit before the launcher's publish logic executes.
 // The DAG completion logic only sees MLMD executions, so failed tasks are invisible.
-// This requires Phase 2 (Argo workflow state synchronization) which is deferred due to 
+// This requires Phase 2 (Argo workflow state synchronization) which is deferred due to
 // high complexity (7.5/10). See CONTEXT.md for detailed analysis.
 func (s *DAGStatusParallelForTestSuite) TestSimpleParallelForFailure() {
 	t := s.T()
@@ -311,144 +315,30 @@ func (s *DAGStatusParallelForTestSuite) waitForRunCompletion(runID string, expec
 
 // validateParallelForDAGStatus performs comprehensive validation of ParallelFor DAG hierarchy
 func (s *DAGStatusParallelForTestSuite) validateParallelForDAGStatus(runID string, expectedDAGState pb.Execution_State) {
-	// Get all DAG executions for comprehensive hierarchy analysis
-	dagHierarchy := s.buildDAGHierarchy(runID)
-	
+	// Get the complete context needed for ParallelFor DAG validation
+	ctx := s.helpers.GetParallelForDAGContext(runID)
+
 	// Validate the complete ParallelFor hierarchy
-	s.validateParallelForHierarchy(dagHierarchy, expectedDAGState)
+	s.validateParallelForHierarchy(ctx, expectedDAGState)
 }
 
-// buildDAGHierarchy constructs a complete DAG hierarchy map for the given run
-func (s *DAGStatusParallelForTestSuite) buildDAGHierarchy(runID string) map[int64]*DAGNode {
-	// Initialize shared helpers
-	helpers := NewDAGTestHelpers(s.T(), s.mlmdClient)
-	
-	// Get all executions for the run
-	executions := helpers.GetExecutionsForRun(runID)
-	
-	// Create DAG nodes from executions
-	dagNodes := s.createDAGNodes(executions, helpers)
-	
-	// Build parent-child relationships
-	rootDAG := s.buildParentChildRelationships(dagNodes, helpers)
-	
-	t := s.T()
-	require.NotNil(t, rootDAG, "No root DAG found")
-	t.Logf("Built DAG hierarchy with %d nodes, root DAG ID=%d", len(dagNodes), rootDAG.Execution.GetId())
-	
-	return dagNodes
-}
-
-
-// createDAGNodes creates DAGNode objects from executions
-func (s *DAGStatusParallelForTestSuite) createDAGNodes(executions []*pb.Execution, helpers *DAGTestHelpers) map[int64]*DAGNode {
-	dagNodes := make(map[int64]*DAGNode)
-	
-	// Filter to only DAG executions
-	dagExecutions := helpers.FilterDAGExecutions(executions)
-	
-	for _, execution := range dagExecutions {
-		node := &DAGNode{
-			Execution: execution,
-			Children:  make([]*DAGNode, 0),
-		}
-		dagNodes[execution.GetId()] = node
-		
-		helpers.LogExecutionSummary(execution, "Found DAG execution")
-	}
-	
-	return dagNodes
-}
-
-// buildParentChildRelationships establishes parent-child relationships between DAG nodes
-func (s *DAGStatusParallelForTestSuite) buildParentChildRelationships(dagNodes map[int64]*DAGNode, helpers *DAGTestHelpers) *DAGNode {
-	t := s.T()
-	var rootDAG *DAGNode
-	
-	for _, node := range dagNodes {
-		parentID := helpers.GetParentDagID(node.Execution)
-		if parentID != 0 {
-			if parentNode, exists := dagNodes[parentID]; exists {
-				parentNode.Children = append(parentNode.Children, node)
-				node.Parent = parentNode
-				t.Logf("DAG %d is child of DAG %d", node.Execution.GetId(), parentID)
-			}
-		} else {
-			// This is the root DAG
-			rootDAG = node
-			t.Logf("DAG %d is the root DAG", node.Execution.GetId())
-		}
-	}
-	
-	return rootDAG
-}
 
 // validateParallelForHierarchy validates the complete ParallelFor DAG hierarchy
-func (s *DAGStatusParallelForTestSuite) validateParallelForHierarchy(dagNodes map[int64]*DAGNode, expectedDAGState pb.Execution_State) {
-	// Initialize shared helpers
-	helpers := NewDAGTestHelpers(s.T(), s.mlmdClient)
-	
-	// Find and categorize DAG nodes
-	rootDAG := s.findRootDAG(dagNodes, helpers)
-	parallelForParents, parallelForIterations := s.categorizeParallelForDAGs(dagNodes, helpers)
-	
+func (s *DAGStatusParallelForTestSuite) validateParallelForHierarchy(ctx *ParallelForDAGValidationContext, expectedDAGState pb.Execution_State) {
 	// Log hierarchy analysis
-	s.logParallelForHierarchyAnalysis(rootDAG, parallelForParents, parallelForIterations)
-	
+	s.logParallelForHierarchyAnalysis(ctx.RootDAG, ctx.ParallelForParents, ctx.ParallelForIterations)
+
 	// Validate each category of DAGs
-	s.validateParallelForParentDAGs(parallelForParents, expectedDAGState, helpers)
-	s.validateParallelForIterationDAGs(parallelForIterations, expectedDAGState, helpers)
-	s.validateRootDAGConsistency(rootDAG, parallelForParents, expectedDAGState)
+	s.validateParallelForParentDAGs(ctx.ParallelForParents, expectedDAGState)
+	s.validateParallelForIterationDAGs(ctx.ParallelForIterations, expectedDAGState)
+	s.validateRootDAGConsistency(ctx.RootDAG, ctx.ParallelForParents, expectedDAGState)
 }
 
-// findRootDAG locates the root DAG in the hierarchy
-func (s *DAGStatusParallelForTestSuite) findRootDAG(dagNodes map[int64]*DAGNode, helpers *DAGTestHelpers) *DAGNode {
-	t := s.T()
-	
-	for _, node := range dagNodes {
-		parentDagID := helpers.GetParentDagID(node.Execution)
-		if parentDagID == 0 {
-			require.NotNil(t, node, "No root DAG found")
-			return node
-		}
-	}
-	
-	require.Fail(t, "No root DAG found")
-	return nil
-}
-
-// categorizeParallelForDAGs separates parent and iteration ParallelFor DAGs
-func (s *DAGStatusParallelForTestSuite) categorizeParallelForDAGs(dagNodes map[int64]*DAGNode, helpers *DAGTestHelpers) ([]*DAGNode, []*DAGNode) {
-	t := s.T()
-	var parallelForParentDAGs []*DAGNode
-	var parallelForIterationDAGs []*DAGNode
-
-	for _, node := range dagNodes {
-		iterationCount := helpers.GetIterationCount(node.Execution)
-		if iterationCount > 0 {
-			// Check if this is a parent DAG (no iteration_index) or iteration DAG (has iteration_index)
-			iterationIndex := helpers.GetIterationIndex(node.Execution)
-			if iterationIndex >= 0 {
-				// Has iteration_index, so it's an iteration DAG
-				parallelForIterationDAGs = append(parallelForIterationDAGs, node)
-				t.Logf("Found ParallelFor iteration DAG: ID=%d, iteration_index=%d, state=%s",
-					node.Execution.GetId(), iterationIndex, (*node.Execution.LastKnownState).String())
-			} else {
-				// No iteration_index, so it's a parent DAG
-				parallelForParentDAGs = append(parallelForParentDAGs, node)
-				t.Logf("Found ParallelFor parent DAG: ID=%d, iteration_count=%d, state=%s",
-					node.Execution.GetId(), iterationCount, (*node.Execution.LastKnownState).String())
-			}
-		}
-	}
-	
-	return parallelForParentDAGs, parallelForIterationDAGs
-}
 
 // logParallelForHierarchyAnalysis logs the hierarchy analysis information
 func (s *DAGStatusParallelForTestSuite) logParallelForHierarchyAnalysis(rootDAG *DAGNode, parallelForParents []*DAGNode, parallelForIterations []*DAGNode) {
 	t := s.T()
-	
+
 	t.Logf("=== ParallelFor Hierarchy Analysis ===")
 	t.Logf("Root DAG: ID=%d, state=%s", rootDAG.Execution.GetId(), (*rootDAG.Execution.LastKnownState).String())
 	t.Logf("ParallelFor Parent DAGs: %d", len(parallelForParents))
@@ -456,55 +346,55 @@ func (s *DAGStatusParallelForTestSuite) logParallelForHierarchyAnalysis(rootDAG 
 }
 
 // validateParallelForParentDAGs validates all ParallelFor parent DAGs
-func (s *DAGStatusParallelForTestSuite) validateParallelForParentDAGs(parentDAGs []*DAGNode, expectedDAGState pb.Execution_State, helpers *DAGTestHelpers) {
+func (s *DAGStatusParallelForTestSuite) validateParallelForParentDAGs(parentDAGs []*DAGNode, expectedDAGState pb.Execution_State) {
 	for _, parentDAG := range parentDAGs {
-		s.validateParallelForParentDAG(parentDAG, expectedDAGState, helpers)
+		s.validateParallelForParentDAG(parentDAG, expectedDAGState)
 	}
 }
 
 // validateParallelForIterationDAGs validates all ParallelFor iteration DAGs
-func (s *DAGStatusParallelForTestSuite) validateParallelForIterationDAGs(iterationDAGs []*DAGNode, expectedDAGState pb.Execution_State, helpers *DAGTestHelpers) {
+func (s *DAGStatusParallelForTestSuite) validateParallelForIterationDAGs(iterationDAGs []*DAGNode, expectedDAGState pb.Execution_State) {
 	for _, iterationDAG := range iterationDAGs {
-		s.validateParallelForIterationDAG(iterationDAG, expectedDAGState, helpers)
+		s.validateParallelForIterationDAG(iterationDAG, expectedDAGState)
 	}
 }
 
 // validateParallelForParentDAG validates a ParallelFor parent DAG and its relationship with children
-func (s *DAGStatusParallelForTestSuite) validateParallelForParentDAG(parentDAG *DAGNode, expectedDAGState pb.Execution_State, helpers *DAGTestHelpers) {
+func (s *DAGStatusParallelForTestSuite) validateParallelForParentDAG(parentDAG *DAGNode, expectedDAGState pb.Execution_State) {
 	// Extract properties and log validation info
-	iterationCount, totalDagTasks := s.extractParentDAGProperties(parentDAG, helpers)
+	iterationCount, totalDagTasks := s.extractParentDAGProperties(parentDAG)
 	s.logParentDAGValidation(parentDAG, expectedDAGState, iterationCount, totalDagTasks)
-	
+
 	// Validate parent DAG properties
 	s.validateParentDAGState(parentDAG, expectedDAGState)
 	s.validateParentDAGTaskCounting(parentDAG, iterationCount, totalDagTasks)
 	s.validateParentDAGChildCount(parentDAG, iterationCount)
-	
+
 	// Validate child DAG states
 	s.validateChildDAGStates(parentDAG, expectedDAGState)
-	
+
 	// Validate state propagation logic
 	s.validateParentDAGStatePropagation(parentDAG, expectedDAGState)
-	
+
 	s.T().Logf("✅ ParallelFor parent DAG %d validation completed", parentDAG.Execution.GetId())
 }
 
 // extractParentDAGProperties extracts iteration count and total DAG tasks from parent DAG
-func (s *DAGStatusParallelForTestSuite) extractParentDAGProperties(parentDAG *DAGNode, helpers *DAGTestHelpers) (int64, int64) {
+func (s *DAGStatusParallelForTestSuite) extractParentDAGProperties(parentDAG *DAGNode) (int64, int64) {
 	t := s.T()
-	
-	iterationCount := helpers.GetIterationCount(parentDAG.Execution)
-	totalDagTasks := helpers.GetTotalDagTasks(parentDAG.Execution)
-	
+
+	iterationCount := s.helpers.GetIterationCount(parentDAG.Execution)
+	totalDagTasks := s.helpers.GetTotalDagTasks(parentDAG.Execution)
+
 	require.Greater(t, iterationCount, int64(0), "ParallelFor parent DAG should have iteration_count > 0")
-	
+
 	return iterationCount, totalDagTasks
 }
 
 // logParentDAGValidation logs information about parent DAG validation
 func (s *DAGStatusParallelForTestSuite) logParentDAGValidation(parentDAG *DAGNode, expectedDAGState pb.Execution_State, iterationCount, totalDagTasks int64) {
 	t := s.T()
-	
+
 	t.Logf("=== Validating ParallelFor Parent DAG %d ===", parentDAG.Execution.GetId())
 	t.Logf("Expected state: %s, Actual state: %s", expectedDAGState.String(), (*parentDAG.Execution.LastKnownState).String())
 	t.Logf("Iteration count: %d, Total DAG tasks: %d", iterationCount, totalDagTasks)
@@ -514,7 +404,7 @@ func (s *DAGStatusParallelForTestSuite) logParentDAGValidation(parentDAG *DAGNod
 // validateParentDAGState validates the parent DAG execution state
 func (s *DAGStatusParallelForTestSuite) validateParentDAGState(parentDAG *DAGNode, expectedDAGState pb.Execution_State) {
 	t := s.T()
-	
+
 	assert.Equal(t, expectedDAGState.String(), (*parentDAG.Execution.LastKnownState).String(),
 		"ParallelFor parent DAG %d should be in state %v, got %v",
 		parentDAG.Execution.GetId(), expectedDAGState, *parentDAG.Execution.LastKnownState)
@@ -523,7 +413,7 @@ func (s *DAGStatusParallelForTestSuite) validateParentDAGState(parentDAG *DAGNod
 // validateParentDAGTaskCounting validates parent DAG task counting
 func (s *DAGStatusParallelForTestSuite) validateParentDAGTaskCounting(parentDAG *DAGNode, iterationCount, totalDagTasks int64) {
 	t := s.T()
-	
+
 	assert.Equal(t, iterationCount, totalDagTasks,
 		"ParallelFor parent DAG %d: total_dag_tasks (%d) should equal iteration_count (%d)",
 		parentDAG.Execution.GetId(), totalDagTasks, iterationCount)
@@ -532,7 +422,7 @@ func (s *DAGStatusParallelForTestSuite) validateParentDAGTaskCounting(parentDAG 
 // validateParentDAGChildCount validates that child count matches iteration count
 func (s *DAGStatusParallelForTestSuite) validateParentDAGChildCount(parentDAG *DAGNode, iterationCount int64) {
 	t := s.T()
-	
+
 	assert.Equal(t, int(iterationCount), len(parentDAG.Children),
 		"ParallelFor parent DAG %d should have %d child DAGs, found %d",
 		parentDAG.Execution.GetId(), iterationCount, len(parentDAG.Children))
@@ -541,7 +431,7 @@ func (s *DAGStatusParallelForTestSuite) validateParentDAGChildCount(parentDAG *D
 // validateChildDAGStates validates the state of each child DAG
 func (s *DAGStatusParallelForTestSuite) validateChildDAGStates(parentDAG *DAGNode, expectedDAGState pb.Execution_State) {
 	t := s.T()
-	
+
 	for i, child := range parentDAG.Children {
 		assert.Equal(t, expectedDAGState.String(), (*child.Execution.LastKnownState).String(),
 			"ParallelFor parent DAG %d child %d (ID=%d) should be in state %v, got %v",
@@ -561,7 +451,7 @@ func (s *DAGStatusParallelForTestSuite) validateParentDAGStatePropagation(parent
 // validateFailureStatePropagation validates failure state propagation
 func (s *DAGStatusParallelForTestSuite) validateFailureStatePropagation(parentDAG *DAGNode) {
 	t := s.T()
-	
+
 	childFailures := 0
 	for _, child := range parentDAG.Children {
 		if *child.Execution.LastKnownState == pb.Execution_FAILED {
@@ -578,7 +468,7 @@ func (s *DAGStatusParallelForTestSuite) validateFailureStatePropagation(parentDA
 // validateCompleteStatePropagation validates complete state propagation
 func (s *DAGStatusParallelForTestSuite) validateCompleteStatePropagation(parentDAG *DAGNode) {
 	t := s.T()
-	
+
 	for _, child := range parentDAG.Children {
 		assert.Equal(t, pb.Execution_COMPLETE.String(), (*child.Execution.LastKnownState).String(),
 			"ParallelFor parent DAG %d child %d should be COMPLETE for parent to be COMPLETE",
@@ -587,13 +477,13 @@ func (s *DAGStatusParallelForTestSuite) validateCompleteStatePropagation(parentD
 }
 
 // validateParallelForIterationDAG validates an individual ParallelFor iteration DAG
-func (s *DAGStatusParallelForTestSuite) validateParallelForIterationDAG(iterationDAG *DAGNode, expectedDAGState pb.Execution_State, helpers *DAGTestHelpers) {
+func (s *DAGStatusParallelForTestSuite) validateParallelForIterationDAG(iterationDAG *DAGNode, expectedDAGState pb.Execution_State) {
 	t := s.T()
-	
-	iterationIndex := helpers.GetIterationIndex(iterationDAG.Execution)
+
+	iterationIndex := s.helpers.GetIterationIndex(iterationDAG.Execution)
 	require.GreaterOrEqual(t, iterationIndex, int64(0), "ParallelFor iteration DAG should have iteration_index >= 0")
-	
-	t.Logf("=== Validating ParallelFor Iteration DAG %d (index=%d) ===", 
+
+	t.Logf("=== Validating ParallelFor Iteration DAG %d (index=%d) ===",
 		iterationDAG.Execution.GetId(), iterationIndex)
 
 	// Validate iteration DAG state
@@ -620,12 +510,6 @@ func (s *DAGStatusParallelForTestSuite) validateRootDAGConsistency(rootDAG *DAGN
 	t.Logf("✅ Root DAG consistency validation completed")
 }
 
-// DAGNode represents a node in the DAG hierarchy
-type DAGNode struct {
-	Execution *pb.Execution
-	Parent    *DAGNode
-	Children  []*DAGNode
-}
 
 func (s *DAGStatusParallelForTestSuite) TearDownSuite() {
 	if *runIntegrationTests {
@@ -635,13 +519,13 @@ func (s *DAGStatusParallelForTestSuite) TearDownSuite() {
 	}
 }
 
-// Test Case 4: ParallelFor with Sequential Tasks and Failure 
+// Test Case 4: ParallelFor with Sequential Tasks and Failure
 // Tests a ParallelFor loop where each iteration runs hello_world then fail tasks in sequence
 // This validates DAG completion behavior when ParallelFor contains failing sequential tasks
 //
 // DISABLED: This test exposes an architectural limitation where container task failures
 // (sys.exit(1)) don't get recorded in MLMD due to immediate pod termination before
-// launcher defer blocks can execute. Fixing this requires Phase 2 (Argo workflow 
+// launcher defer blocks can execute. Fixing this requires Phase 2 (Argo workflow
 // state synchronization) which is deferred due to high complexity (7.5/10).
 // See CONTEXT.md for detailed analysis.
 func (s *DAGStatusParallelForTestSuite) TestParallelForLoopsWithFailure() {
@@ -682,30 +566,27 @@ func (s *DAGStatusParallelForTestSuite) TestParallelForLoopsWithFailure() {
 	// This pipeline should FAIL because each iteration contains a failing task
 	// Structure: for-loop-2 with 3 iterations, each running hello_world then fail(model_id)
 	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateFAILED)
-	
+
 	// CRITICAL: Validate that DAG failure propagation is working correctly
 	// The ParallelFor DAGs should transition to FAILED state, not just the pipeline run
 	s.validateParallelForFailurePropagation(run.RunID)
-	
+
 	s.T().Logf("✅ ParallelFor loops with failure completed successfully")
 }
 
 // validateParallelForLoopsDAGStatus validates the specific DAG structure for the loops pipeline
 func (s *DAGStatusParallelForTestSuite) validateParallelForLoopsDAGStatus(runID string) {
 	t := s.T()
-	
-	// Initialize shared helpers
-	helpers := NewDAGTestHelpers(s.T(), s.mlmdClient)
 
 	// Get all executions for the run
-	executions := helpers.GetExecutionsForRun(runID)
+	executions := s.helpers.GetExecutionsForRun(runID)
 	t.Logf("Found %d total executions in run context", len(executions))
 
 	// Find all DAG executions in this run
-	dagExecutions := helpers.FilterDAGExecutions(executions)
+	dagExecutions := s.helpers.FilterDAGExecutions(executions)
 
 	t.Logf("Found %d DAG executions in run %s", len(dagExecutions), runID)
-	
+
 	// Log all DAG executions for analysis
 	t.Logf("📊 All DAG Executions in Run:")
 	for _, dag := range dagExecutions {
@@ -713,7 +594,7 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForLoopsDAGStatus(runID 
 		iterationIndex := int64(-1)
 		totalDagTasks := int64(0)
 		parentDagID := int64(0)
-		
+
 		if props := dag.GetCustomProperties(); props != nil {
 			if nameVal := props["task_name"]; nameVal != nil {
 				taskName = nameVal.GetStringValue()
@@ -728,7 +609,7 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForLoopsDAGStatus(runID 
 				parentDagID = parentVal.GetIntValue()
 			}
 		}
-		
+
 		dagType := "Root DAG"
 		if taskName == "for-loop-2" || strings.Contains(taskName, "for-loop") {
 			if iterationIndex >= 0 {
@@ -737,7 +618,7 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForLoopsDAGStatus(runID 
 				dagType = "ParallelFor Parent"
 			}
 		}
-		
+
 		stateIcon := "❓"
 		if dag.LastKnownState.String() == "COMPLETE" {
 			stateIcon = "✅"
@@ -746,23 +627,23 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForLoopsDAGStatus(runID 
 		} else if dag.LastKnownState.String() == "RUNNING" {
 			stateIcon = "🟡"
 		}
-		
-		t.Logf("├── %s %s (ID=%d): %s | TaskName='%s' | total_dag_tasks=%d | parent=%d", 
+
+		t.Logf("├── %s %s (ID=%d): %s | TaskName='%s' | total_dag_tasks=%d | parent=%d",
 			stateIcon, dagType, dag.GetId(), dag.LastKnownState.String(), taskName, totalDagTasks, parentDagID)
 	}
-	
+
 	// Basic validation: we should have at least 1 DAG (root) and ideally 4 (root + parent + 3 iterations)
 	require.GreaterOrEqual(t, len(dagExecutions), 1, "Should find at least 1 DAG execution")
-	
+
 	// Count different types of DAGs
 	rootDAGs := 0
 	parallelForParentDAGs := 0
 	parallelForIterationDAGs := 0
-	
+
 	for _, dag := range dagExecutions {
 		taskName := ""
 		iterationIndex := int64(-1)
-		
+
 		if props := dag.GetCustomProperties(); props != nil {
 			if nameVal := props["task_name"]; nameVal != nil {
 				taskName = nameVal.GetStringValue()
@@ -771,7 +652,7 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForLoopsDAGStatus(runID 
 				iterationIndex = iterIndexVal.GetIntValue()
 			}
 		}
-		
+
 		if taskName == "" {
 			rootDAGs++
 		} else if taskName == "for-loop-2" || strings.Contains(taskName, "for-loop") {
@@ -782,31 +663,31 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForLoopsDAGStatus(runID 
 			}
 		}
 	}
-	
-	t.Logf("📊 DAG Summary: %d root, %d ParallelFor parent, %d ParallelFor iterations", 
+
+	t.Logf("📊 DAG Summary: %d root, %d ParallelFor parent, %d ParallelFor iterations",
 		rootDAGs, parallelForParentDAGs, parallelForIterationDAGs)
-	
+
 	// Expected structure for ParallelFor with 3 iterations:
 	// - 1 root DAG
-	// - 1 ParallelFor parent DAG  
+	// - 1 ParallelFor parent DAG
 	// - 3 ParallelFor iteration DAGs
 	// Total: 5 DAGs, but we'll be flexible and just require basics
-	
+
 	require.GreaterOrEqual(t, rootDAGs, 1, "Should have at least 1 root DAG")
 	if parallelForParentDAGs > 0 || parallelForIterationDAGs > 0 {
 		t.Logf("✅ Found ParallelFor DAG structure - validation completed successfully")
 	} else {
 		t.Logf("⚠️  No ParallelFor-specific DAGs found, but basic DAG structure is present")
 	}
-	
+
 	t.Logf("✅ ParallelFor loops DAG status validation completed")
 }
 
 // validateParallelForFailurePropagation validates that ParallelFor DAG failure propagation works correctly
 func (s *DAGStatusParallelForTestSuite) validateParallelForFailurePropagation(runID string) {
 	t := s.T()
-	
-	// Initialize shared helpers
+
+	// Initialize shared dagTestUtil
 	helpers := NewDAGTestHelpers(s.T(), s.mlmdClient)
 
 	// Get all executions for the run
@@ -822,7 +703,7 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForFailurePropagation(ru
 	for _, exec := range dagExecutions {
 		taskName := helpers.GetTaskName(exec)
 		iterationIndex := helpers.GetIterationIndex(exec)
-			
+
 		if taskName == "" {
 			rootDAG = exec
 		} else if taskName == "for-loop-2" || strings.Contains(taskName, "for-loop") {
@@ -834,39 +715,39 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForFailurePropagation(ru
 		}
 	}
 
-	t.Logf("Found DAG structure: %d total DAGs, root=%v, parent=%v, iterations=%d", 
+	t.Logf("Found DAG structure: %d total DAGs, root=%v, parent=%v, iterations=%d",
 		len(dagExecutions), rootDAG != nil, parallelForParentDAG != nil, len(parallelForIterationDAGs))
 
 	// CRITICAL VALIDATION: Check that DAG failure propagation worked correctly
-	
+
 	// 1. Root DAG should exist
 	require.NotNil(t, rootDAG, "Root DAG should exist")
-	
-	// 2. ParallelFor parent DAG should exist  
+
+	// 2. ParallelFor parent DAG should exist
 	require.NotNil(t, parallelForParentDAG, "ParallelFor parent DAG should exist")
-	
+
 	// 3. Should have 3 iteration DAGs (one for each item: '1', '2', '3')
 	require.Equal(t, 3, len(parallelForIterationDAGs), "Should have exactly 3 ParallelFor iteration DAGs")
 
 	// 4. CRITICAL: Check that ParallelFor parent DAG transitioned to FAILED state
 	parentState := parallelForParentDAG.LastKnownState.String()
 	t.Logf("ParallelFor parent DAG (ID=%d) state: %s", parallelForParentDAG.GetId(), parentState)
-	
+
 	// This is the core test - the parent DAG should be FAILED because its child iterations failed
 	if parentState != "FAILED" {
 		t.Errorf("❌ FAILURE PROPAGATION BUG: ParallelFor parent DAG should be FAILED but is %s", parentState)
 		t.Errorf("This indicates that DAG completion logic is not properly handling failure propagation in ParallelFor constructs")
-		
+
 		// Log detailed state information for debugging
 		t.Logf("🔍 Debug Information:")
 		t.Logf("├── Root DAG (ID=%d): %s", rootDAG.GetId(), rootDAG.LastKnownState.String())
-		t.Logf("├── ParallelFor Parent DAG (ID=%d): %s ❌ SHOULD BE FAILED", 
+		t.Logf("├── ParallelFor Parent DAG (ID=%d): %s ❌ SHOULD BE FAILED",
 			parallelForParentDAG.GetId(), parallelForParentDAG.LastKnownState.String())
-		
+
 		for i, iterDAG := range parallelForIterationDAGs {
 			t.Logf("├── Iteration DAG %d (ID=%d): %s", i, iterDAG.GetId(), iterDAG.LastKnownState.String())
 		}
-		
+
 		require.Fail(t, "ParallelFor failure propagation is broken - parent DAG should be FAILED")
 	} else {
 		t.Logf("✅ ParallelFor parent DAG correctly transitioned to FAILED state")
@@ -875,7 +756,7 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForFailurePropagation(ru
 	// 5. Check root DAG state - should also be FAILED due to child failure propagation
 	rootState := rootDAG.LastKnownState.String()
 	t.Logf("Root DAG (ID=%d) state: %s", rootDAG.GetId(), rootState)
-	
+
 	if rootState != "FAILED" {
 		t.Errorf("❌ ROOT FAILURE PROPAGATION BUG: Root DAG should be FAILED but is %s", rootState)
 		require.Fail(t, "Root DAG failure propagation is broken - should propagate from failed ParallelFor")
