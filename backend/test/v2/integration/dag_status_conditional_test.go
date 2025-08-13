@@ -197,8 +197,12 @@ func (s *DAGStatusConditionalTestSuite) TestIfElseTrue() {
 
 	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateSUCCEEDED)
 
-	// CONFIRMED: If/Else tests don't create conditional DAGs - they execute directly in root DAG context
-	s.T().Logf("✅ If/Else (true) completed successfully - conditional execution handled directly in root DAG")
+	// Give some time for MLMD DAG execution to be created
+	time.Sleep(20 * time.Second)
+	
+	// Validate that the if-else true condition executes the if-branch (1 task executed)
+	// Since if/else constructs execute directly in root DAG context, we validate the root DAG
+	s.validateConditionalDAGStatus(run.RunID, pb.Execution_COMPLETE, 1)
 }
 
 // Test Case 3: If/Else - False
@@ -238,8 +242,12 @@ func (s *DAGStatusConditionalTestSuite) TestIfElseFalse() {
 
 	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateSUCCEEDED)
 
-	// CONFIRMED: If/Else tests don't create conditional DAGs - they execute directly in root DAG context
-	s.T().Logf("✅ If/Else (false) completed successfully - conditional execution handled directly in root DAG")
+	// Give some time for MLMD DAG execution to be created
+	time.Sleep(20 * time.Second)
+	
+	// Validate that the if-else false condition executes the else-branch (1 task executed)
+	// Since if/else constructs execute directly in root DAG context, we validate the root DAG
+	s.validateConditionalDAGStatus(run.RunID, pb.Execution_COMPLETE, 1)
 }
 
 // Test Case 4: Complex Conditional with Failure Propagation
@@ -343,8 +351,12 @@ func (s *DAGStatusConditionalTestSuite) TestParameterBasedConditionalBranching()
 
 		s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateSUCCEEDED)
 
-		// CONFIRMED: Parameter-based conditional tests don't create conditional DAGs - they execute directly in root DAG context
-		s.T().Logf("✅ Parameter-based conditional (%s) completed successfully - conditional execution handled directly in root DAG", tc.description)
+		// Give some time for MLMD DAG execution to be created
+		time.Sleep(20 * time.Second)
+		
+		// Validate that the parameter-based conditional executes the correct branch (1 task executed)
+		// Since parameter-based conditionals execute directly in root DAG context, we validate the root DAG
+		s.validateConditionalDAGStatus(run.RunID, pb.Execution_COMPLETE, tc.expectedBranches)
 	}
 }
 
