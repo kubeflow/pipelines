@@ -84,7 +84,7 @@ jobs:
       if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
       run: |
         docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
-        kind --name kfp load docker-image registry.domain.local/modelcar:test
+        kind --name seaweedfs load docker-image registry.domain.local/modelcar:test
       continue-on-error: true
 
     - name: Forward API port
@@ -100,6 +100,11 @@ jobs:
     - name: Install kfp & kfp-kubernetes from source
       id: install-kfp-k8s-deps
       uses: ./.github/actions/kfp-k8s
+
+    - name: Pin kfp-server-api
+      run: python -m pip install -U 'kfp-server-api==2.5.0'
+    - name: Show installed kfp packages
+      run: python -m pip show kfp kfp-server-api | cat
 
     - name: Run Samples Tests
       id: tests
