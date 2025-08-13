@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	pipelineParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
@@ -113,7 +111,7 @@ func (s *DAGStatusNestedTestSuite) cleanUp() {
 	}
 }
 
-// Test Case 1: Simple Nested Structure
+// Simple Nested Structure
 // DISABLED: This test reveals architectural issues with nested DAG task counting.
 // Parent DAGs don't account for nested child pipeline tasks in total_dag_tasks calculation.
 // Requires significant enhancement to nested DAG architecture. See CONTEXT.md for analysis.
@@ -121,26 +119,20 @@ func (s *DAGStatusNestedTestSuite) TestSimpleNested() {
 	t := s.T()
 	t.Skip("DISABLED: Nested DAG task counting requires architectural improvement - see CONTEXT.md")
 
+	pipelineFile := "../resources/dag_status/nested_simple.yaml"
+
 	pipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/dag_status/nested_simple.yaml",
+		pipelineFile,
 		&uploadParams.UploadPipelineParams{
 			Name:        util.StringPointer("nested-simple-test"),
 			DisplayName: util.StringPointer("Nested Simple Test Pipeline"),
 		},
 	)
 
-	if err != nil {
-		t.Logf("DEBUG: UploadFile failed with error: %v", err)
-		t.Logf("DEBUG: Error type: %T", err)
-	} else {
-		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
-	}
-
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	// Upload a pipeline version explicitly like run_api_test.go does
-	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/nested_simple.yaml", &uploadParams.UploadPipelineVersionParams{
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(pipelineFile, &uploadParams.UploadPipelineVersionParams{
 		Name:       util.StringPointer("test-version"),
 		Pipelineid: util.StringPointer(pipeline.PipelineID),
 	})
@@ -151,14 +143,15 @@ func (s *DAGStatusNestedTestSuite) TestSimpleNested() {
 	require.NoError(t, err)
 	require.NotNil(t, run)
 
-	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateSUCCEEDED)
+	s.waitForRunCompletion(run.RunID)
 
+	// TODO: Helber - replace this Sleep with require.Eventually()
 	// Give extra time for MLMD DAG executions (parent + child) to be created
 	time.Sleep(45 * time.Second)
 	s.validateNestedDAGStatus(run.RunID, pb.Execution_COMPLETE, "simple_nested")
 }
 
-// Test Case 2: Nested ParallelFor
+// Nested ParallelFor
 // DISABLED: This test reveals architectural issues with nested DAG task counting.
 // Parent DAGs don't account for nested child pipeline tasks in total_dag_tasks calculation.
 // Requires significant enhancement to nested DAG architecture. See CONTEXT.md for analysis.
@@ -166,26 +159,20 @@ func (s *DAGStatusNestedTestSuite) TestNestedParallelFor() {
 	t := s.T()
 	t.Skip("DISABLED: Nested DAG task counting requires architectural improvement - see CONTEXT.md")
 
+	pipelineFile := "../resources/dag_status/nested_parallel_for.yaml"
+
 	pipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/dag_status/nested_parallel_for.yaml",
+		pipelineFile,
 		&uploadParams.UploadPipelineParams{
 			Name:        util.StringPointer("nested-parallel-for-test"),
 			DisplayName: util.StringPointer("Nested Parallel For Test Pipeline"),
 		},
 	)
 
-	if err != nil {
-		t.Logf("DEBUG: UploadFile failed with error: %v", err)
-		t.Logf("DEBUG: Error type: %T", err)
-	} else {
-		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
-	}
-
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	// Upload a pipeline version explicitly like run_api_test.go does
-	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/nested_parallel_for.yaml", &uploadParams.UploadPipelineVersionParams{
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(pipelineFile, &uploadParams.UploadPipelineVersionParams{
 		Name:       util.StringPointer("test-version"),
 		Pipelineid: util.StringPointer(pipeline.PipelineID),
 	})
@@ -196,14 +183,15 @@ func (s *DAGStatusNestedTestSuite) TestNestedParallelFor() {
 	require.NoError(t, err)
 	require.NotNil(t, run)
 
-	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateSUCCEEDED)
+	s.waitForRunCompletion(run.RunID)
 
+	// TODO: Helber - replace this Sleep with require.Eventually()
 	// Give some time for MLMD DAG execution to be created
 	time.Sleep(20 * time.Second)
 	s.validateNestedDAGStatus(run.RunID, pb.Execution_COMPLETE, "nested_parallel_for")
 }
 
-// Test Case 3: Nested Conditional
+// Nested Conditional
 // DISABLED: This test reveals architectural issues with nested DAG task counting.
 // Parent DAGs don't account for nested child pipeline tasks in total_dag_tasks calculation.
 // Requires significant enhancement to nested DAG architecture. See CONTEXT.md for analysis.
@@ -211,26 +199,20 @@ func (s *DAGStatusNestedTestSuite) TestNestedConditional() {
 	t := s.T()
 	t.Skip("DISABLED: Nested DAG task counting requires architectural improvement - see CONTEXT.md")
 
+	pipelineFile := "../resources/dag_status/nested_conditional.yaml"
+
 	pipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/dag_status/nested_conditional.yaml",
+		pipelineFile,
 		&uploadParams.UploadPipelineParams{
 			Name:        util.StringPointer("nested-conditional-test"),
 			DisplayName: util.StringPointer("Nested Conditional Test Pipeline"),
 		},
 	)
 
-	if err != nil {
-		t.Logf("DEBUG: UploadFile failed with error: %v", err)
-		t.Logf("DEBUG: Error type: %T", err)
-	} else {
-		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
-	}
-
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	// Upload a pipeline version explicitly like run_api_test.go does
-	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/nested_conditional.yaml", &uploadParams.UploadPipelineVersionParams{
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(pipelineFile, &uploadParams.UploadPipelineVersionParams{
 		Name:       util.StringPointer("test-version"),
 		Pipelineid: util.StringPointer(pipeline.PipelineID),
 	})
@@ -241,14 +223,15 @@ func (s *DAGStatusNestedTestSuite) TestNestedConditional() {
 	require.NoError(t, err)
 	require.NotNil(t, run)
 
-	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateSUCCEEDED)
+	s.waitForRunCompletion(run.RunID)
 
+	// TODO: Helber - replace this Sleep with require.Eventually()
 	// Give some time for MLMD DAG execution to be created
 	time.Sleep(20 * time.Second)
 	s.validateNestedDAGStatus(run.RunID, pb.Execution_COMPLETE, "nested_conditional")
 }
 
-// Test Case 4: Deep Nesting
+// Deep Nesting
 // DISABLED: This test reveals architectural issues with nested DAG task counting.
 // Parent DAGs don't account for nested child pipeline tasks in total_dag_tasks calculation.
 // Requires significant enhancement to nested DAG architecture. See CONTEXT.md for analysis.
@@ -256,26 +239,20 @@ func (s *DAGStatusNestedTestSuite) TestDeepNesting() {
 	t := s.T()
 	t.Skip("DISABLED: Nested DAG task counting requires architectural improvement - see CONTEXT.md")
 
+	pipelineFile := "../resources/dag_status/nested_deep.yaml"
+
 	pipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/dag_status/nested_deep.yaml",
+		pipelineFile,
 		&uploadParams.UploadPipelineParams{
 			Name:        util.StringPointer("nested-deep-test"),
 			DisplayName: util.StringPointer("Nested Deep Test Pipeline"),
 		},
 	)
 
-	if err != nil {
-		t.Logf("DEBUG: UploadFile failed with error: %v", err)
-		t.Logf("DEBUG: Error type: %T", err)
-	} else {
-		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
-	}
-
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	// Upload a pipeline version explicitly like run_api_test.go does
-	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/nested_deep.yaml", &uploadParams.UploadPipelineVersionParams{
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(pipelineFile, &uploadParams.UploadPipelineVersionParams{
 		Name:       util.StringPointer("test-version"),
 		Pipelineid: util.StringPointer(pipeline.PipelineID),
 	})
@@ -286,8 +263,9 @@ func (s *DAGStatusNestedTestSuite) TestDeepNesting() {
 	require.NoError(t, err)
 	require.NotNil(t, run)
 
-	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateSUCCEEDED)
+	s.waitForRunCompletion(run.RunID)
 
+	// TODO: Helber - replace this Sleep with require.Eventually()
 	// Give some time for MLMD DAG execution to be created
 	time.Sleep(20 * time.Second)
 	s.validateNestedDAGStatus(run.RunID, pb.Execution_COMPLETE, "deep_nesting")
@@ -305,8 +283,7 @@ func (s *DAGStatusNestedTestSuite) createRun(pipelineVersion *pipeline_upload_mo
 	return s.runClient.Create(createRunRequest)
 }
 
-func (s *DAGStatusNestedTestSuite) waitForRunCompletion(runID string, expectedState run_model.V2beta1RuntimeState) {
-	// Wait for the run to start executing, then rely on DAG completion logic for final states
+func (s *DAGStatusNestedTestSuite) waitForRunCompletion(runID string) {
 	require.Eventually(s.T(), func() bool {
 		runDetail, err := s.runClient.Get(&runparams.RunServiceGetRunParams{RunID: runID})
 		if err != nil {
@@ -315,34 +292,8 @@ func (s *DAGStatusNestedTestSuite) waitForRunCompletion(runID string, expectedSt
 		}
 
 		s.T().Logf("Run %s state: %v", runID, runDetail.State)
-		// Wait for run to start executing (RUNNING state), then we'll validate the bug
 		return runDetail.State != nil && *runDetail.State == run_model.V2beta1RuntimeStateRUNNING
 	}, 2*time.Minute, 10*time.Second, "Run did not start executing")
-}
-
-func (s *DAGStatusNestedTestSuite) getDefaultPipelineVersion(pipelineID string) (*pipeline_upload_model.V2beta1PipelineVersion, error) {
-	// List pipeline versions for the uploaded pipeline
-	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&pipelineParams.PipelineServiceListPipelineVersionsParams{
-		PipelineID: pipelineID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if len(versions) == 0 {
-		return nil, fmt.Errorf("no pipeline versions found for pipeline %s", pipelineID)
-	}
-
-	// Convert from pipeline_model to pipeline_upload_model (they have the same fields)
-	version := versions[0]
-	return &pipeline_upload_model.V2beta1PipelineVersion{
-		PipelineID:        version.PipelineID,
-		PipelineVersionID: version.PipelineVersionID,
-		DisplayName:       version.DisplayName,
-		Name:              version.Name,
-		Description:       version.Description,
-		CreatedAt:         version.CreatedAt,
-	}, nil
 }
 
 func (s *DAGStatusNestedTestSuite) validateNestedDAGStatus(runID string, expectedDAGState pb.Execution_State, testScenario string) {
