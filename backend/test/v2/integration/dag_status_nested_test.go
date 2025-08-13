@@ -32,7 +32,6 @@ type DAGStatusNestedTestSuite struct {
 	mlmdClient           pb.MetadataStoreServiceClient
 }
 
-// Check the namespace have ML pipeline installed and ready
 func (s *DAGStatusNestedTestSuite) SetupTest() {
 	if !*runIntegrationTests {
 		s.T().SkipNow()
@@ -90,8 +89,7 @@ func (s *DAGStatusNestedTestSuite) SetupTest() {
 	if err != nil {
 		s.T().Logf("Failed to get run client. Error: %s", err.Error())
 	}
-
-	s.mlmdClient, err = testutils.NewTestMlmdClient("127.0.0.1", metadata.DefaultConfig().Port)
+	s.mlmdClient, err = testutils.NewTestMlmdClient("localhost", metadata.DefaultConfig().Port)
 	if err != nil {
 		s.T().Logf("Failed to create MLMD client. Error: %s", err.Error())
 	}
