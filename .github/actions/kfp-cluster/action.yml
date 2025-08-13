@@ -17,7 +17,7 @@ inputs:
     description: "If KFP should be deployed with cache enabled globally"
     required: false
     default: 'true'
-  cluser_name:
+  cluster_name:
     description: "Provide kind cluster name if you want to name it other than kfp"
     required: false
     default: 'kfp'
@@ -53,7 +53,7 @@ runs:
     - name: Create k8s Kind Cluster
       uses: container-tools/kind-action@v2
       with:
-        cluster_name: ${{ inputs.cluser_name }}
+        cluster_name: ${{ inputs.cluster_name }}
         kubectl_version: ${{ inputs.k8s_version }}
         version: v0.25.0
         node_image: kindest/node:${{ inputs.k8s_version }}
