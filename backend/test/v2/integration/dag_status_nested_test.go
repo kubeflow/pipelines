@@ -324,7 +324,7 @@ func (s *DAGStatusNestedTestSuite) validateSingleNestedDAG(dagExecution *pb.Exec
 	s.logDAGInformation(dagExecution, taskName, totalDagTasks, testScenario)
 
 	// Validate based on DAG type (child vs parent)
-	isChildPipelineDAG := taskName == "child-pipeline"
+	isChildPipelineDAG := s.helpers.IsChildPipelineDAG(dagExecution)
 	if isChildPipelineDAG {
 		s.validateChildPipelineDAG(dagExecution, totalDagTasks)
 	} else {

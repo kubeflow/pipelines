@@ -21,7 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -35,6 +34,16 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
 	"github.com/kubeflow/pipelines/backend/test/v2"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+)
+
+// TODO: Helber - this seems fragile
+const (
+	// maxDAGIDProximity defines the maximum distance between DAG IDs to consider them related to the same run
+	maxDAGIDProximity = 20
+	// maxNestingDepth defines the maximum depth to traverse when checking for nested DAG relationships
+	maxNestingDepth = 5
+	// defaultPollInterval defines the default interval between polling attempts
+	defaultPollInterval = 5 * time.Second
 )
 
 // Test suite for validating DAG status updates in Conditional scenarios
@@ -441,30 +450,19 @@ func (s *DAGStatusConditionalTestSuite) validateFalseConditionDAGs(actualConditi
 	t := s.T()
 
 	if len(actualConditionalDAGs) > 0 {
-		// False conditions should create CANCELED conditional DAGs
 		for _, dagExecution := range actualConditionalDAGs {
 			taskName := s.dagTestUtil.GetTaskName(dagExecution)
 
-			// Validate DAG state
-			assert.Equal(t, "CANCELED", dagExecution.LastKnownState.String(),
+			require.Equal(t, "CANCELED", dagExecution.LastKnownState.String(),
 				"Conditional DAG '%s' (ID=%d) should be CANCELED for false condition",
 				taskName, dagExecution.GetId())
 
-			// Validate total_dag_tasks for false conditions
 			totalDagTasks := s.dagTestUtil.GetTotalDagTasks(dagExecution)
-			s.T().Logf("Conditional DAG '%s' (ID=%d): total_dag_tasks=%d (CANCELED)",
-				taskName, dagExecution.GetId(), totalDagTasks)
 
-			// For false conditions, the conditional DAG should still have the correct task structure
-			assert.True(t, totalDagTasks >= 1,
+			require.True(t, totalDagTasks >= 1,
 				"Conditional DAG '%s' should have total_dag_tasks >= 1 even when CANCELED (got %d)",
 				taskName, totalDagTasks)
-
-			s.T().Logf("✅ CORRECT: Conditional DAG '%s' (ID=%d) correctly CANCELED with total_dag_tasks=%d",
-				taskName, dagExecution.GetId(), totalDagTasks)
 		}
-	} else {
-		s.T().Logf("✅ CORRECT: No conditional DAGs found for false condition")
 	}
 }
 
@@ -477,86 +475,42 @@ func (s *DAGStatusConditionalTestSuite) validateTrueConditionDAGs(actualConditio
 	for _, dagExecution := range actualConditionalDAGs {
 		taskName := s.dagTestUtil.GetTaskName(dagExecution)
 
-		// Validate DAG state
-		assert.Equal(t, expectedDAGState.String(), dagExecution.LastKnownState.String(),
+		require.Equal(t, expectedDAGState.String(), dagExecution.LastKnownState.String(),
 			"Conditional DAG '%s' (ID=%d) should reach final state %v (currently in %v)",
 			taskName, dagExecution.GetId(), expectedDAGState, dagExecution.LastKnownState)
 
 		totalDagTasks := s.dagTestUtil.GetTotalDagTasks(dagExecution)
 
-		s.T().Logf("Conditional DAG '%s' (ID=%d): expected_executed_branches=%d, total_dag_tasks=%d",
-			taskName, dagExecution.GetId(), expectedExecutedBranches, totalDagTasks)
-
-		// Validate total_dag_tasks matches expected executed branches
-		assert.Equal(t, int64(expectedExecutedBranches), totalDagTasks,
+		require.Equal(t, int64(expectedExecutedBranches), totalDagTasks,
 			"total_dag_tasks=%d should equal expected_executed_branches=%d for Conditional DAG '%s'",
 			totalDagTasks, expectedExecutedBranches, taskName)
-
-		s.T().Logf("REGRESSION TEST: conditional DAG '%s' - expected_executed_branches=%d, total_dag_tasks=%d %s",
-			taskName, expectedExecutedBranches, totalDagTasks,
-			func() string {
-				if int64(expectedExecutedBranches) == totalDagTasks {
-					return "✅ CORRECT"
-				} else {
-					return "🚨 BUG DETECTED"
-				}
-			}())
 	}
 }
 
 func (s *DAGStatusConditionalTestSuite) validateNestedConditionalDAGStatus(runID string) {
-	// Get the root DAG ID for this run
 	rootDAGID := s.findRootDAGForRun(runID)
-
-	// Find all conditional DAGs related to this root DAG
 	conditionalDAGs := s.findRelatedConditionalDAGs(rootDAGID)
-
-	// Log validation progress
-	s.logNestedConditionalValidation(conditionalDAGs, rootDAGID)
-
-	// Validate DAGs with polling for failure propagation
-	s.validateDAGsWithPolling(conditionalDAGs, 60*time.Second)
-
-	s.T().Logf("✅ Nested complex conditional DAG status validation completed")
+	s.validateDAGsWithConditionalComplexPipeline(conditionalDAGs, 60*time.Second)
 }
 
 // findRootDAGForRun locates the root DAG ID for a specific run
 func (s *DAGStatusConditionalTestSuite) findRootDAGForRun(runID string) int64 {
-	t := s.T()
-
-	// Get executions for this specific run
 	executions := s.dagTestUtil.GetExecutionsForRun(runID)
-	t.Logf("Searching %d executions for root DAG in run %s", len(executions), runID)
 
-	// Find the root DAG
 	rootDAG := s.dagTestUtil.FindRootDAG(executions)
-	require.NotNil(t, rootDAG, "Root DAG not found")
+	require.NotNil(s.T(), rootDAG, "Root DAG not found")
 
-	t.Logf("Found root DAG ID=%d for run %s", rootDAG.GetId(), runID)
 	return rootDAG.GetId()
 }
 
 // findRelatedConditionalDAGs finds all conditional DAGs related to the root DAG
 func (s *DAGStatusConditionalTestSuite) findRelatedConditionalDAGs(rootDAGID int64) []*pb.Execution {
-	t := s.T()
-
-	// Get all DAG executions
 	allDAGExecutions := s.dagTestUtil.GetAllDAGExecutions()
 
 	var conditionalDAGs []*pb.Execution
-	t.Logf("Searching for conditional DAGs related to root DAG ID=%d", rootDAGID)
 
 	for _, exec := range allDAGExecutions {
-		taskName := s.dagTestUtil.GetTaskName(exec)
-		parentDagID := s.dagTestUtil.GetParentDagID(exec)
-
-		t.Logf("DEBUG: DAG ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
-			exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
-
-		// Check if this DAG is related to our run
 		if s.isDAGRelatedToRun(exec, rootDAGID, allDAGExecutions) {
-			t.Logf("Found conditional DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
-				exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
 			conditionalDAGs = append(conditionalDAGs, exec)
 		}
 	}
@@ -569,18 +523,14 @@ func (s *DAGStatusConditionalTestSuite) isDAGRelatedToRun(exec *pb.Execution, ro
 	taskName := s.dagTestUtil.GetTaskName(exec)
 	parentDagID := s.dagTestUtil.GetParentDagID(exec)
 
-	// Direct child conditional DAG
-	isDirectChild := parentDagID == rootDAGID && strings.HasPrefix(taskName, "condition-")
-	if isDirectChild {
+	if s.dagTestUtil.IsDirectChildConditionalDAG(taskName, parentDagID, rootDAGID) {
 		return true
 	}
 
-	// Check if this is a recent DAG from our run context (ID proximity heuristic)
 	if s.isRecentConditionalDAG(exec, rootDAGID, taskName) {
 		return true
 	}
 
-	// Check for deeper nesting
 	return s.isDeeplyNestedConditionalDAG(exec, rootDAGID, allExecutions, taskName)
 }
 
@@ -591,7 +541,7 @@ func (s *DAGStatusConditionalTestSuite) isRecentConditionalDAG(exec *pb.Executio
 	}
 
 	idDifference := exec.GetId() - rootDAGID
-	return idDifference > 0 && idDifference < 20 // Recent DAGs from same run
+	return idDifference > 0 && idDifference < maxDAGIDProximity
 }
 
 // isDeeplyNestedConditionalDAG checks for deeply nested conditional relationships
@@ -603,8 +553,8 @@ func (s *DAGStatusConditionalTestSuite) isDeeplyNestedConditionalDAG(exec *pb.Ex
 	parentDagID := s.dagTestUtil.GetParentDagID(exec)
 	currentParentID := parentDagID
 
-	// Traverse up the parent hierarchy (max 5 levels)
-	for depth := 0; depth < 5 && currentParentID > 0; depth++ {
+	// Traverse up the parent hierarchy to find a relationship to root DAG
+	for depth := 0; depth < maxNestingDepth && currentParentID > 0; depth++ {
 		for _, parentExec := range allExecutions {
 			if parentExec.GetId() == currentParentID && parentExec.GetType() == "system.DAGExecution" {
 				grandparentID := s.dagTestUtil.GetParentDagID(parentExec)
@@ -620,140 +570,166 @@ func (s *DAGStatusConditionalTestSuite) isDeeplyNestedConditionalDAG(exec *pb.Ex
 	return false
 }
 
-// logNestedConditionalValidation logs the validation progress
-func (s *DAGStatusConditionalTestSuite) logNestedConditionalValidation(conditionalDAGs []*pb.Execution, rootDAGID int64) {
-	t := s.T()
-
-	t.Logf("Found %d conditional DAG executions for nested complex pipeline", len(conditionalDAGs))
-
-	if len(conditionalDAGs) > 0 {
-		t.Logf("Validating conditional DAGs from current run (root DAG ID=%d)", rootDAGID)
-	}
-}
-
 // validateDAGsWithPolling polls DAG states with timeout to wait for failure propagation
 func (s *DAGStatusConditionalTestSuite) validateDAGsWithPolling(initialDAGs []*pb.Execution, timeout time.Duration) {
-	t := s.T()
+	dagIDsToCheck := s.createDAGTrackingList(initialDAGs)
 
-	// Create a map to track DAGs by ID for efficient polling
-	dagIDsToCheck := make(map[int64]string) // ID -> taskName
-	for _, dagExecution := range initialDAGs {
-		taskName := ""
-		if props := dagExecution.GetCustomProperties(); props != nil {
-			if nameVal := props["task_name"]; nameVal != nil {
-				taskName = nameVal.GetStringValue()
-			}
-		}
-		dagIDsToCheck[dagExecution.GetId()] = taskName
+	if s.pollUntilFinalStates(dagIDsToCheck, timeout) {
+		return
 	}
 
-	t.Logf("Starting polling validation for %d conditional DAGs with %v timeout", len(dagIDsToCheck), timeout)
+	s.T().Logf("Timeout reached (%v) - performing final validation with current states", timeout)
+	s.performFinalValidation(dagIDsToCheck)
+}
 
+// validateDAGsWithConditionalComplexPipeline polls DAG states and performs conditional_complex.yaml specific validations
+func (s *DAGStatusConditionalTestSuite) validateDAGsWithConditionalComplexPipeline(initialDAGs []*pb.Execution, timeout time.Duration) {
+	dagIDsToCheck := s.createDAGTrackingList(initialDAGs)
+
+	if s.pollUntilFinalStatesWithConditionalComplexValidation(dagIDsToCheck, timeout) {
+		return
+	}
+
+	s.T().Logf("Timeout reached (%v) - performing final validation with current states", timeout)
+	s.performFinalValidationWithConditionalComplexPipeline(dagIDsToCheck)
+}
+
+// createDAGTrackingList creates a list of DAG IDs to track during polling
+func (s *DAGStatusConditionalTestSuite) createDAGTrackingList(initialDAGs []*pb.Execution) []int64 {
+	var dagIDsToCheck []int64
+	for _, dagExecution := range initialDAGs {
+		dagIDsToCheck = append(dagIDsToCheck, dagExecution.GetId())
+	}
+	return dagIDsToCheck
+}
+
+// pollUntilFinalStates polls DAGs until they reach final states or timeout
+func (s *DAGStatusConditionalTestSuite) pollUntilFinalStates(dagIDsToCheck []int64, timeout time.Duration) bool {
 	startTime := time.Now()
 	pollInterval := 5 * time.Second
 
 	for time.Since(startTime) < timeout {
-		// Get fresh DAG states
-		allExecsReq := &pb.GetExecutionsRequest{}
-		allExecsRes, err := s.mlmdClient.GetExecutions(context.Background(), allExecsReq)
-		require.NoError(t, err)
+		allExecutions := s.getAllExecutionsFromMLMD()
 
-		allReachedFinalState := true
-
-		// Check each DAG we're tracking
-		for dagID, taskName := range dagIDsToCheck {
-			// Find current state of this DAG
-			var currentDAG *pb.Execution
-			for _, exec := range allExecsRes.Executions {
-				if exec.GetId() == dagID {
-					currentDAG = exec
-					break
-				}
-			}
-
-			if currentDAG == nil {
-				t.Logf("⚠️ DAG ID=%d (%s) not found in current executions", dagID, taskName)
-				continue
-			}
-
-			currentState := currentDAG.LastKnownState.String()
-			totalDagTasks := int64(0)
-			if props := currentDAG.GetCustomProperties(); props != nil {
-				if totalVal := props["total_dag_tasks"]; totalVal != nil {
-					totalDagTasks = totalVal.GetIntValue()
-				}
-			}
-
-			// Check if this DAG has reached a final state
-			validStates := []string{"COMPLETE", "FAILED", "CANCELED"}
-			stateIsValid := false
-			for _, validState := range validStates {
-				if currentState == validState {
-					stateIsValid = true
-					break
-				}
-			}
-
-			if !stateIsValid {
-				allReachedFinalState = false
-				t.Logf("🔄 Polling: DAG '%s' (ID=%d) still in %s state (total_dag_tasks=%d)",
-					taskName, dagID, currentState, totalDagTasks)
-			} else {
-				t.Logf("✅ Polling: DAG '%s' (ID=%d) reached final state: %s (total_dag_tasks=%d)",
-					taskName, dagID, currentState, totalDagTasks)
-			}
+		if s.checkAllDAGStates(dagIDsToCheck, allExecutions) {
+			s.validateFinalDAGStates(allExecutions, dagIDsToCheck)
+			return true
 		}
 
-		// If all DAGs reached final states, validate them and exit
-		if allReachedFinalState {
-			t.Logf("🎉 All conditional DAGs reached final states! Proceeding with validation...")
-			s.validateFinalDAGStates(allExecsRes, dagIDsToCheck)
-			return
-		}
-
-		// Wait before next poll
-		t.Logf("⏳ Waiting %v before next poll (elapsed: %v/%v)", pollInterval, time.Since(startTime).Round(time.Second), timeout)
-		time.Sleep(pollInterval)
+		s.waitBeforeNextPoll(pollInterval, startTime, timeout)
 	}
 
-	// Timeout reached - do final validation anyway to show current states
-	t.Logf("⏰ Timeout reached (%v) - performing final validation with current states", timeout)
-	allExecsReq := &pb.GetExecutionsRequest{}
-	allExecsRes, err := s.mlmdClient.GetExecutions(context.Background(), allExecsReq)
-	require.NoError(t, err)
-	s.validateFinalDAGStates(allExecsRes, dagIDsToCheck)
+	return false
 }
 
-// validateFinalDAGStates performs the actual validation of DAG states
-func (s *DAGStatusConditionalTestSuite) validateFinalDAGStates(allExecsRes *pb.GetExecutionsResponse, dagIDsToCheck map[int64]string) {
+// getAllExecutionsFromMLMD retrieves all executions from MLMD
+func (s *DAGStatusConditionalTestSuite) getAllExecutionsFromMLMD() []*pb.Execution {
+	allExecsReq := &pb.GetExecutionsRequest{}
+	allExecsRes, err := s.mlmdClient.GetExecutions(context.Background(), allExecsReq)
+	require.NoError(s.T(), err)
+	return allExecsRes.Executions
+}
+
+// checkAllDAGStates checks if all tracked DAGs have reached final states
+func (s *DAGStatusConditionalTestSuite) checkAllDAGStates(dagIDsToCheck []int64, allExecutions []*pb.Execution) bool {
+	allReachedFinalState := true
+
+	for _, dagID := range dagIDsToCheck {
+		currentDAG := s.findDAGByID(allExecutions, dagID)
+		if currentDAG == nil {
+			continue
+		}
+
+		if !s.isDAGInFinalState(currentDAG) {
+			allReachedFinalState = false
+		}
+	}
+
+	return allReachedFinalState
+}
+
+// findDAGByID finds a DAG execution by its ID
+func (s *DAGStatusConditionalTestSuite) findDAGByID(executions []*pb.Execution, dagID int64) *pb.Execution {
+	for _, exec := range executions {
+		if exec.GetId() == dagID {
+			return exec
+		}
+	}
+	return nil
+}
+
+// isDAGInFinalState checks if a DAG is in a final state
+func (s *DAGStatusConditionalTestSuite) isDAGInFinalState(currentDAG *pb.Execution) bool {
+	currentState := currentDAG.LastKnownState.String()
+
+	finalStates := []string{"COMPLETE", "FAILED", "CANCELED"}
+	for _, finalState := range finalStates {
+		if currentState == finalState {
+			return true
+		}
+	}
+
+	return false
+}
+
+// waitBeforeNextPoll waits for the specified interval before the next polling attempt
+func (s *DAGStatusConditionalTestSuite) waitBeforeNextPoll(pollInterval time.Duration, startTime time.Time, timeout time.Duration) {
+	s.T().Logf("Waiting %v before next poll (elapsed: %v/%v)",
+		pollInterval, time.Since(startTime).Round(time.Second), timeout)
+	time.Sleep(pollInterval)
+}
+
+// performFinalValidation performs validation when timeout is reached
+func (s *DAGStatusConditionalTestSuite) performFinalValidation(dagIDsToCheck []int64) {
+	s.validateFinalDAGStates(s.getAllExecutionsFromMLMD(), dagIDsToCheck)
+}
+
+// performFinalValidationWithConditionalComplexPipeline performs validation with conditional_complex.yaml specific checks
+func (s *DAGStatusConditionalTestSuite) performFinalValidationWithConditionalComplexPipeline(dagIDsToCheck []int64) {
+	allExecutions := s.getAllExecutionsFromMLMD()
+	s.validateFinalDAGStates(allExecutions, dagIDsToCheck)
+	s.validateConditionalComplexPipelineFailurePropagation(allExecutions, dagIDsToCheck)
+}
+
+// pollUntilFinalStatesWithConditionalComplexValidation polls with conditional_complex.yaml specific validation
+func (s *DAGStatusConditionalTestSuite) pollUntilFinalStatesWithConditionalComplexValidation(dagIDsToCheck []int64, timeout time.Duration) bool {
+	startTime := time.Now()
+	pollInterval := 5 * time.Second
+
+	for time.Since(startTime) < timeout {
+		allExecutions := s.getAllExecutionsFromMLMD()
+
+		if s.checkAllDAGStates(dagIDsToCheck, allExecutions) {
+			s.validateFinalDAGStates(allExecutions, dagIDsToCheck)
+			s.validateConditionalComplexPipelineFailurePropagation(allExecutions, dagIDsToCheck)
+			return true
+		}
+
+		s.waitBeforeNextPoll(pollInterval, startTime, timeout)
+	}
+
+	return false
+}
+
+// validateFinalDAGStates performs generic validation that all DAGs have reached final states
+func (s *DAGStatusConditionalTestSuite) validateFinalDAGStates(allExecutions []*pb.Execution, dagIDsToCheck []int64) {
 	t := s.T()
 
-	for dagID, taskName := range dagIDsToCheck {
-		// Find current state of this DAG
+	for _, dagID := range dagIDsToCheck {
 		var currentDAG *pb.Execution
-		for _, exec := range allExecsRes.Executions {
+		for _, exec := range allExecutions {
 			if exec.GetId() == dagID {
 				currentDAG = exec
 				break
 			}
 		}
 
-		if currentDAG == nil {
-			t.Errorf("❌ DAG ID=%d (%s) not found in executions", dagID, taskName)
-			continue
-		}
+		require.NotNil(t, currentDAG, "DAG ID=%d not found in executions", dagID)
 
+		taskName := s.dagTestUtil.GetTaskName(currentDAG)
 		currentState := currentDAG.LastKnownState.String()
-		totalDagTasks := int64(0)
-		if props := currentDAG.GetCustomProperties(); props != nil {
-			if totalVal := props["total_dag_tasks"]; totalVal != nil {
-				totalDagTasks = totalVal.GetIntValue()
-			}
-		}
 
-		t.Logf("📊 Final DAG '%s' (ID=%d): State=%s, total_dag_tasks=%d", taskName, dagID, currentState, totalDagTasks)
-
-		// Validate that DAG reached a final state
+		// Generic validation: DAG should reach a final state
 		validStates := []string{"COMPLETE", "FAILED", "CANCELED"}
 		stateIsValid := false
 		for _, validState := range validStates {
@@ -763,42 +739,60 @@ func (s *DAGStatusConditionalTestSuite) validateFinalDAGStates(allExecsRes *pb.G
 			}
 		}
 
-		assert.True(t, stateIsValid,
-			"Conditional DAG '%s' (ID=%d) should reach final state (COMPLETE/FAILED/CANCELED), not remain in %s",
+		require.True(t, stateIsValid,
+			"DAG '%s' (ID=%d) should reach final state (COMPLETE/FAILED/CANCELED), not remain in %s",
 			taskName, dagID, currentState)
+	}
+}
 
-		if stateIsValid {
-			t.Logf("✅ Conditional DAG '%s' reached final state: %s", taskName, currentState)
-		} else {
-			t.Logf("❌ Conditional DAG '%s' stuck in non-final state: %s", taskName, currentState)
+// ConditionalComplexDAGValidationRule defines a validation rule for conditional complex pipeline DAGs
+type ConditionalComplexDAGValidationRule struct {
+	TaskName      string
+	ExpectedState string
+	Description   string
+}
+
+// getConditionalComplexPipelineValidationRules returns the validation rules for conditional_complex.yaml pipeline
+func (s *DAGStatusConditionalTestSuite) getConditionalComplexPipelineValidationRules() []ConditionalComplexDAGValidationRule {
+	return []ConditionalComplexDAGValidationRule{
+		{
+			TaskName:      TaskNameConditionBranches1,
+			ExpectedState: "FAILED",
+			Description:   "Parent DAG 'condition-branches-1' should be FAILED when child 'condition-3' fails",
+		},
+		{
+			TaskName:      TaskNameCondition4,
+			ExpectedState: "FAILED",
+			Description:   "Parent DAG 'condition-4' should be FAILED when child 'condition-8' fails",
+		},
+	}
+}
+
+// validateConditionalComplexPipelineFailurePropagation performs validation specific to the conditional_complex.yaml pipeline
+func (s *DAGStatusConditionalTestSuite) validateConditionalComplexPipelineFailurePropagation(allExecutions []*pb.Execution, dagIDsToCheck []int64) {
+	//TODO: Helber - this is not good
+	validationRules := s.getConditionalComplexPipelineValidationRules()
+
+	for _, dagID := range dagIDsToCheck {
+		currentDAG := s.findDAGByID(allExecutions, dagID)
+		if currentDAG == nil {
+			continue
 		}
 
-		// ENHANCED TEST: Check failure propagation logic
-		// For this specific pipeline, we expect certain parent-child failure relationships
-		if taskName == "condition-branches-1" {
-			// condition-branches-1 should be FAILED because condition-3 (its child) fails
-			assert.Equal(t, "FAILED", currentState,
-				"Parent DAG 'condition-branches-1' should be FAILED when child 'condition-3' fails")
-			if currentState == "FAILED" {
-				t.Logf("✅ Verified failure propagation: condition-branches-1 correctly shows FAILED")
-			}
-		}
+		taskName := s.dagTestUtil.GetTaskName(currentDAG)
+		currentState := currentDAG.LastKnownState.String()
 
-		if taskName == "condition-4" {
-			// condition-4 should be FAILED because condition-8 (its child) fails
-			assert.Equal(t, "FAILED", currentState,
-				"Parent DAG 'condition-4' should be FAILED when child 'condition-8' fails")
-			if currentState == "FAILED" {
-				t.Logf("✅ Verified failure propagation: condition-4 correctly shows FAILED")
+		for _, rule := range validationRules {
+			if taskName == rule.TaskName {
+				require.Equal(s.T(), rule.ExpectedState, currentState, rule.Description)
 			}
 		}
 	}
 }
 
+// TODO: Helber - refactor - too big
 // validateDeeplyNestedDAGFailurePropagation validates that failure propagates through multiple levels of nested DAGs
 func (s *DAGStatusConditionalTestSuite) validateDeeplyNestedDAGFailurePropagation(runID string) {
-	t := s.T()
-
 	// Get the context for this specific run
 	contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
 	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
@@ -806,18 +800,18 @@ func (s *DAGStatusConditionalTestSuite) validateDeeplyNestedDAGFailurePropagatio
 			FilterQuery: contextsFilterQuery,
 		},
 	})
-	require.NoError(t, err)
-	require.NotEmpty(t, contexts.Contexts)
+	require.NoError(s.T(), err)
+	require.NotEmpty(s.T(), contexts.Contexts)
 
 	// Get executions for this specific run context only
 	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
 		ContextId: contexts.Contexts[0].Id,
 	})
-	require.NoError(t, err)
+	require.NoError(s.T(), err)
 
 	// Find the root DAG ID first
 	var rootDAGID int64
-	t.Logf("Searching %d executions for root DAG in run %s", len(executionsByContext.Executions), runID)
+	s.T().Logf("Searching %d executions for root DAG in run %s", len(executionsByContext.Executions), runID)
 
 	for _, exec := range executionsByContext.Executions {
 		taskName := ""
@@ -827,29 +821,27 @@ func (s *DAGStatusConditionalTestSuite) validateDeeplyNestedDAGFailurePropagatio
 			}
 		}
 
-		t.Logf("Execution ID=%d, Type=%s, TaskName='%s', State=%s",
+		s.T().Logf("Execution ID=%d, Type=%s, TaskName='%s', State=%s",
 			exec.GetId(), exec.GetType(), taskName, exec.LastKnownState.String())
 
 		// Find the root DAG (has empty task name and is a DAG execution)
 		if exec.GetType() == "system.DAGExecution" && taskName == "" {
 			rootDAGID = exec.GetId()
-			t.Logf("Found root DAG ID=%d for run %s", rootDAGID, runID)
+			s.T().Logf("Found root DAG ID=%d for run %s", rootDAGID, runID)
 			break
 		}
 	}
 
-	require.NotZero(t, rootDAGID, "Root DAG not found")
+	require.NotZero(s.T(), rootDAGID, "Root DAG not found")
 
 	// Now look for all nested DAGs that are related to this root DAG
-	allExecsReq := &pb.GetExecutionsRequest{}
-	allExecsRes, err := s.mlmdClient.GetExecutions(context.Background(), allExecsReq)
-	require.NoError(t, err)
+	allExecutions := s.getAllExecutionsFromMLMD()
 
 	var nestedDAGs []*pb.Execution
-	t.Logf("Searching for nested DAGs related to root DAG ID=%d", rootDAGID)
+	s.T().Logf("Searching for nested DAGs related to root DAG ID=%d", rootDAGID)
 
 	// Collect all DAGs that are part of this nested pipeline hierarchy
-	for _, exec := range allExecsRes.Executions {
+	for _, exec := range allExecutions {
 		if exec.GetType() != "system.DAGExecution" {
 			continue
 		}
@@ -865,22 +857,22 @@ func (s *DAGStatusConditionalTestSuite) validateDeeplyNestedDAGFailurePropagatio
 			}
 		}
 
-		t.Logf("DEBUG: DAG ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
+		s.T().Logf("DEBUG: DAG ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
 			exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
 
 		// Check if this DAG is part of our nested pipeline hierarchy
 		isRelatedToRun := false
 
 		// Direct child of root (outer -> inner)
-		if parentDagID == rootDAGID && (taskName == "inner-pipeline" || taskName == "inner__pipeline") {
+		if parentDagID == rootDAGID && s.dagTestUtil.IsInnerPipelineDAG(exec) {
 			isRelatedToRun = true
 		}
 
 		// Check for deeper nesting by traversing up the parent hierarchy
 		if !isRelatedToRun {
 			currentParentID := parentDagID
-			for depth := 0; depth < 5 && currentParentID > 0; depth++ { // Max depth of 5 levels
-				for _, parentExec := range allExecsRes.Executions {
+			for depth := 0; depth < maxNestingDepth && currentParentID > 0; depth++ {
+				for _, parentExec := range allExecutions {
 					if parentExec.GetId() == currentParentID && parentExec.GetType() == "system.DAGExecution" {
 						if parentProps := parentExec.GetCustomProperties(); parentProps != nil {
 							if grandparentVal := parentProps["parent_dag_id"]; grandparentVal != nil {
@@ -901,18 +893,18 @@ func (s *DAGStatusConditionalTestSuite) validateDeeplyNestedDAGFailurePropagatio
 		}
 
 		if isRelatedToRun {
-			t.Logf("Found nested DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
+			s.T().Logf("Found nested DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
 				exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
 			nestedDAGs = append(nestedDAGs, exec)
 		}
 	}
 
-	t.Logf("Found %d nested DAG executions for deeply nested pipeline", len(nestedDAGs))
+	s.T().Logf("Found %d nested DAG executions for deeply nested pipeline", len(nestedDAGs))
 
 	// Use polling/retry logic with 60-second timeout for failure propagation through nested levels
 	s.validateDAGsWithPolling(nestedDAGs, 60*time.Second)
 
-	t.Logf("✅ Deeply nested pipeline DAG status validation completed")
+	s.T().Logf("✅ Deeply nested pipeline DAG status validation completed")
 }
 
 // validateSimpleConditionalPattern validates conditional behavior when no separate DAG executions are created
@@ -920,48 +912,32 @@ func (s *DAGStatusConditionalTestSuite) validateDeeplyNestedDAGFailurePropagatio
 func (s *DAGStatusConditionalTestSuite) validateSimpleConditionalPattern(expectedExecutedBranches int, containerExecutions []*pb.Execution) {
 	t := s.T()
 
-	t.Logf("=== Validating Simple Conditional Pattern ===")
-	t.Logf("Expected executed branches: %d", expectedExecutedBranches)
-	t.Logf("Container executions found: %d", len(containerExecutions))
-
-	// Analyze container execution states
 	taskCounts := s.analyzeContainerExecutionStates(containerExecutions)
 
-	t.Logf("Task execution summary: %d executed, %d canceled, %d total",
-		taskCounts.executedTasks, taskCounts.canceledTasks, taskCounts.totalTasks)
-
-	// Validate based on expected execution pattern
 	if expectedExecutedBranches == 0 {
 		s.validateFalseConditionPattern(taskCounts)
 	} else {
 		s.validateTrueConditionPattern(taskCounts, expectedExecutedBranches)
 	}
 
-	// Validate that we have some form of conditional logic execution
-	assert.Greater(t, taskCounts.totalTasks, 0, "Should have at least some container executions for conditional logic")
-
-	t.Logf("✅ Simple conditional pattern validation completed successfully")
+	require.Greater(t, taskCounts.totalTasks, 0, "Should have at least some container executions for conditional logic")
 }
 
-// TaskExecutionCounts holds counts of different task execution states
-type TaskExecutionCounts struct {
+// taskExecutionCounts holds counts of different task execution states
+type taskExecutionCounts struct {
 	executedTasks int
 	canceledTasks int
 	totalTasks    int
 }
 
 // analyzeContainerExecutionStates counts and logs container execution states
-func (s *DAGStatusConditionalTestSuite) analyzeContainerExecutionStates(containerExecutions []*pb.Execution) TaskExecutionCounts {
-	t := s.T()
-	counts := TaskExecutionCounts{
+func (s *DAGStatusConditionalTestSuite) analyzeContainerExecutionStates(containerExecutions []*pb.Execution) taskExecutionCounts {
+	counts := taskExecutionCounts{
 		totalTasks: len(containerExecutions),
 	}
 
-	// Analyze each container execution
 	for _, exec := range containerExecutions {
-		taskName := s.dagTestUtil.GetTaskName(exec)
 		state := exec.LastKnownState.String()
-		t.Logf("Container task '%s': state=%s", taskName, state)
 
 		switch state {
 		case "COMPLETE":
@@ -975,16 +951,14 @@ func (s *DAGStatusConditionalTestSuite) analyzeContainerExecutionStates(containe
 }
 
 // validateFalseConditionPattern validates execution pattern for false conditions
-func (s *DAGStatusConditionalTestSuite) validateFalseConditionPattern(counts TaskExecutionCounts) {
-	t := s.T()
-
+func (s *DAGStatusConditionalTestSuite) validateFalseConditionPattern(counts taskExecutionCounts) {
 	// False condition: expect at least the condition check task
-	assert.GreaterOrEqual(t, counts.executedTasks, 1, "Should have at least 1 executed task (condition check)")
-	t.Logf("✅ CORRECT: False condition - %d tasks executed (including condition check)", counts.executedTasks)
+	require.GreaterOrEqual(s.T(), counts.executedTasks, 1, "Should have at least 1 executed task (condition check)")
 }
 
+// TODO: Helber - review this logic - this seems suspicious
 // validateTrueConditionPattern validates execution pattern for true conditions
-func (s *DAGStatusConditionalTestSuite) validateTrueConditionPattern(counts TaskExecutionCounts, expectedExecutedBranches int) {
+func (s *DAGStatusConditionalTestSuite) validateTrueConditionPattern(counts taskExecutionCounts, expectedExecutedBranches int) {
 	t := s.T()
 
 	// True condition: For simple conditionals, we may only see the condition check in MLMD

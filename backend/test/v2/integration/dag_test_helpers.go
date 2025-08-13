@@ -26,6 +26,27 @@ import (
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 )
 
+const (
+	// recentExecutionTimeWindow defines the time window (in milliseconds) to consider an execution as "recent"
+	recentExecutionTimeWindow = 5 * 60 * 1000 // 5 minutes in milliseconds
+)
+
+// Pipeline-specific task name constants
+const (
+	// Nested pipeline task names
+	TaskNameChildPipeline     = "child-pipeline"
+	TaskNameInnerPipeline     = "inner-pipeline"
+	TaskNameInnerPipelineAlt  = "inner__pipeline"
+	
+	// ParallelFor task names
+	TaskNameForLoop2          = "for-loop-2"
+	TaskNameForLoopPrefix     = "for-loop"
+	
+	// Conditional pipeline task names
+	TaskNameConditionBranches1 = "condition-branches-1"
+	TaskNameCondition4         = "condition-4"
+)
+
 // DAGTestUtil provides common helper methods for DAG status testing across test suites
 type DAGTestUtil struct {
 	t          *testing.T
@@ -148,15 +169,47 @@ func (h *DAGTestUtil) GetIterationIndex(execution *pb.Execution) int64 {
 	return -1 // Not found
 }
 
+// Task name checking helper functions
+// IsRootDAG checks if the execution is a root DAG (empty task name)
+func (h *DAGTestUtil) IsRootDAG(execution *pb.Execution) bool {
+	return h.GetTaskName(execution) == ""
+}
+
+// IsChildPipelineDAG checks if the execution is a child pipeline DAG
+func (h *DAGTestUtil) IsChildPipelineDAG(execution *pb.Execution) bool {
+	return h.GetTaskName(execution) == TaskNameChildPipeline
+}
+
+// IsInnerPipelineDAG checks if the execution is an inner pipeline DAG
+func (h *DAGTestUtil) IsInnerPipelineDAG(execution *pb.Execution) bool {
+	taskName := h.GetTaskName(execution)
+	return taskName == TaskNameInnerPipeline || taskName == TaskNameInnerPipelineAlt
+}
+
+// IsForLoopDAG checks if the execution is a for-loop related DAG
+func (h *DAGTestUtil) IsForLoopDAG(execution *pb.Execution) bool {
+	taskName := h.GetTaskName(execution)
+	return taskName == TaskNameForLoop2 || strings.Contains(taskName, TaskNameForLoopPrefix)
+}
+
+// IsConditionalBranches1DAG checks if the execution is the condition-branches-1 DAG
+func (h *DAGTestUtil) IsConditionalBranches1DAG(execution *pb.Execution) bool {
+	return h.GetTaskName(execution) == TaskNameConditionBranches1
+}
+
+// IsCondition4DAG checks if the execution is the condition-4 DAG
+func (h *DAGTestUtil) IsCondition4DAG(execution *pb.Execution) bool {
+	return h.GetTaskName(execution) == TaskNameCondition4
+}
+
 // FindRootDAG finds the root DAG execution (no parent_dag_id and empty task_name)
 func (h *DAGTestUtil) FindRootDAG(executions []*pb.Execution) *pb.Execution {
 	dagExecutions := h.FilterDAGExecutions(executions)
 	for _, execution := range dagExecutions {
-		taskName := h.GetTaskName(execution)
 		parentDagID := h.GetParentDagID(execution)
 
 		// Root DAG has empty task name and no parent
-		if taskName == "" && parentDagID == 0 {
+		if h.IsRootDAG(execution) && parentDagID == 0 {
 			return execution
 		}
 	}
@@ -171,7 +224,7 @@ func (h *DAGTestUtil) IsRecentExecution(execution *pb.Execution) bool {
 
 	createdTime := *execution.CreateTimeSinceEpoch
 	now := time.Now().UnixMilli()
-	return now-createdTime < 5*60*1000 // Within 5 minutes
+	return now-createdTime < recentExecutionTimeWindow
 }
 
 // LogExecutionSummary logs a summary of an execution for debugging
@@ -193,10 +246,8 @@ func (h *DAGTestUtil) CategorizeExecutionsByType(executions []*pb.Execution) (co
 		h.LogExecutionSummary(execution, "├──")
 
 		if execution.GetType() == "system.DAGExecution" {
-			taskName := h.GetTaskName(execution)
-
 			// Identify the root DAG (has empty task name)
-			if taskName == "" {
+			if h.IsRootDAG(execution) {
 				rootDAGID = execution.GetId()
 				h.t.Logf("Found root DAG ID=%d", rootDAGID)
 			}
@@ -309,24 +360,36 @@ func (h *DAGTestUtil) isConditionalDAGRelatedToRoot(exec *pb.Execution, rootDAGI
 	taskName := h.GetTaskName(exec)
 	parentDagID := h.GetParentDagID(exec)
 
-	// Find conditional DAGs that are children OR grandchildren of our root DAG
-	isDirectChild := parentDagID == rootDAGID && strings.HasPrefix(taskName, "condition-")
+	// Check if this is a direct child conditional DAG
+	if h.IsDirectChildConditionalDAG(taskName, parentDagID, rootDAGID) {
+		return true
+	}
 
-	// Also check if this is a grandchild (parent is a child of root DAG)
-	isGrandchild := false
-	if strings.HasPrefix(taskName, "condition-") {
-		// Find the parent DAG and check if its parent is our root DAG
-		for _, parentExec := range allExecutions {
-			if parentExec.GetId() == parentDagID && parentExec.GetType() == "system.DAGExecution" {
-				if h.GetParentDagID(parentExec) == rootDAGID {
-					isGrandchild = true
-					break
-				}
+	// Check if this is a grandchild conditional DAG
+	return h.isGrandchildConditionalDAG(taskName, parentDagID, rootDAGID, allExecutions)
+}
+
+// IsDirectChildConditionalDAG checks if this is a direct child conditional DAG
+func (h *DAGTestUtil) IsDirectChildConditionalDAG(taskName string, parentDagID, rootDAGID int64) bool {
+	return parentDagID == rootDAGID && strings.HasPrefix(taskName, "condition-")
+}
+
+// isGrandchildConditionalDAG checks if this is a grandchild conditional DAG
+func (h *DAGTestUtil) isGrandchildConditionalDAG(taskName string, parentDagID, rootDAGID int64, allExecutions []*pb.Execution) bool {
+	if !strings.HasPrefix(taskName, "condition-") {
+		return false
+	}
+
+	// Find the parent DAG and check if its parent is our root DAG
+	for _, parentExec := range allExecutions {
+		if parentExec.GetId() == parentDagID && parentExec.GetType() == "system.DAGExecution" {
+			if h.GetParentDagID(parentExec) == rootDAGID {
+				return true
 			}
 		}
 	}
 
-	return isDirectChild || isGrandchild
+	return false
 }
 
 // FilterToActualConditionalDAGs filters out root DAGs, keeping only conditional DAGs

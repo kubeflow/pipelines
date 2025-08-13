@@ -16,7 +16,6 @@ package integration
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -611,7 +610,7 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForLoopsDAGStatus(runID 
 		}
 
 		dagType := "Root DAG"
-		if taskName == "for-loop-2" || strings.Contains(taskName, "for-loop") {
+		if s.helpers.IsForLoopDAG(dag) {
 			if iterationIndex >= 0 {
 				dagType = fmt.Sprintf("ParallelFor Iteration %d", iterationIndex)
 			} else {
@@ -641,21 +640,17 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForLoopsDAGStatus(runID 
 	parallelForIterationDAGs := 0
 
 	for _, dag := range dagExecutions {
-		taskName := ""
 		iterationIndex := int64(-1)
 
 		if props := dag.GetCustomProperties(); props != nil {
-			if nameVal := props["task_name"]; nameVal != nil {
-				taskName = nameVal.GetStringValue()
-			}
 			if iterIndexVal := props["iteration_index"]; iterIndexVal != nil {
 				iterationIndex = iterIndexVal.GetIntValue()
 			}
 		}
 
-		if taskName == "" {
+		if s.helpers.IsRootDAG(dag) {
 			rootDAGs++
-		} else if taskName == "for-loop-2" || strings.Contains(taskName, "for-loop") {
+		} else if s.helpers.IsForLoopDAG(dag) {
 			if iterationIndex >= 0 {
 				parallelForIterationDAGs++
 			} else {
@@ -701,12 +696,11 @@ func (s *DAGStatusParallelForTestSuite) validateParallelForFailurePropagation(ru
 	var parallelForIterationDAGs []*pb.Execution
 
 	for _, exec := range dagExecutions {
-		taskName := helpers.GetTaskName(exec)
 		iterationIndex := helpers.GetIterationIndex(exec)
 
-		if taskName == "" {
+		if helpers.IsRootDAG(exec) {
 			rootDAG = exec
-		} else if taskName == "for-loop-2" || strings.Contains(taskName, "for-loop") {
+		} else if helpers.IsForLoopDAG(exec) {
 			if iterationIndex >= 0 {
 				parallelForIterationDAGs = append(parallelForIterationDAGs, exec)
 			} else {
