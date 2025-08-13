@@ -4,12 +4,12 @@
   - [Schedule](#schedule)
   - [Release Tags and Branches](#release-tags-and-branches)
   - [Contributor Instructions](#contributor-instructions)
-    - [Cherry picking pull requests to release branch](#cherry-picking-pull-requests-to-release-branch)
+    - [Cherry-picking pull requests to release branch](#cherry-picking-pull-requests-to-release-branch)
       - [Option - (Recommended) cherrypick-approved label](#option---recommended-cherrypick-approved-label)
       - [Option - git cherry-pick](#option---git-cherry-pick)
   - [Release Manager Instructions](#release-manager-instructions)
     - [Common Prerequisites](#common-prerequisites)
-    - [Cutting a release branch (Optional)](#cutting-a-release-branch-optional)
+    - [Cutting a release branch (Optional)](#cutting-a-release-branch)
     - [Before release](#before-release)
     - [Releasing from release branch](#releasing-from-release-branch)
     - [Release KFP Python Packages](#releasing-kfp-python-packages)
@@ -97,7 +97,10 @@ if you only want to use or contribute to this repo.
     1. Clone github.com/kubeflow/pipelines repo into `$KFP_REPO`.
     2. `cd $KFP_REPO`
 
-### Cutting a release branch (Optional)
+### Cutting a release branch
+
+KFP releases are required to be cut from a release branch. This includes all python packages.
+Release branches must be scoped to a minor version. The following components should always have all future patch versions tagged and released from their respective minor branch. For example, you would cut a release for SDK 2.14.1 from the release-2.14 branch, the same with KFP backend 2.14.4, kfp-kubernetes 2.14.2, and so on.
 
 1. Choose a good commit on master branch with commit hash as `$COMMIT_SHA`.
 1. Choose the next release branch's `$MINOR_VERSION` in format `x.y`, e.g. `1.0`, `1.1`...
@@ -113,9 +116,9 @@ if you only want to use or contribute to this repo.
 ### Before release
 
 Do the following things before a release:
-1. **(Do this step only when releasing from a NON-master release branch)**
+1. Cherry-picking
 
-    Note: Instead of following this step to cherry pick all PRs, you can also manually cherry pick commits from master branch to release branch, if the number of PRs to cherry pick is minimal. Command for manual cherry pick:
+    Note: Instead of following this step to cherry-pick all PRs, you can also manually cherry-pick commits from the master branch to release branch, if the number of PRs to cherry-pick is minimal. Command for manual cherry-pick:
 
     ```
     git cherry-pick <commit-id>
@@ -177,7 +180,6 @@ If not, contact the KFP team to determine if the failure(s) would block the rele
 
 ### Releasing from release branch
 
-Note, when releasing from master, all the below mentions of "release branch" means master branch.
 
 1. Choose the release's complete `$VERSION` following semantic versioning, e.g.
     - `1.0.0-rc.1`
@@ -193,8 +195,8 @@ Note, when releasing from master, all the below mentions of "release branch" mea
     ```bash
     cd ./test/release && TAG=$VERSION BRANCH=$BRANCH make release
     ```
-
-    It will prompt you whether to push it to release branch. Press `y` and hit `Enter`.
+    This script updates the version values for various manifests, and generated code.
+    Once finished, it will prompt you whether to push it to release branch. You can inspect the changes by navigating to the temporary directory it creates. Once you are comfortable with the changes, press `y` and hit `Enter`. 
 
     Note, the script will clone kubeflow/pipelines repo into a temporary location on your computer, make those changes and attempt to push to upstream, so that it won't interfere with your current git repo.
     
@@ -209,7 +211,95 @@ The target tag should be `$VERSION`.
 
 ### Releasing KFP Python Packages
 
-1. Release `kfp-server-api` python packages to PyPI.
+All Python packages must be released with wheel and source packages. When doing a minor release, you *must* make a release for all Python packages as well, even if there are no new changes there. This includes: 
+
+* kfp-pipeline-spec
+* kfp
+* kfp-kubernetes
+* kfp-server-api
+
+
+> [!Note]
+> When making a release, if something goes wrong, always yank the release in pypi, **do not delete** the package and try to re-upload it with the same version, pypi won't let you do this even though it lets you delete the package. In such an event, yank the release and do a new release with a new patch version.
+
+When performing these releases, you should adhere to the order presented below.
+
+1. Release `kfp-pipeline-spec` Python packages to PyPI.
+    Update the version in `setup.py` found in `api/v2alpha1/python/setup.py`. 
+    ```bash
+    git checkout -b release-X.Y
+    pip3 install twine --user
+    cd api
+    make python 
+    cd v2alpha1/python
+    twine check dist/*
+    twine upload dist/*
+    ```
+
+1. Release `kfp` Python packages to PyPI.
+    
+    Update the SDK version in `version.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11715/files).
+    
+    ```bash
+    git checkout -b release-X.Y
+    pip3 install twine --user
+    cd sdk
+    make python
+    cd python
+    twine check dist/*
+    twine upload dist/*
+    ```
+
+    !!! The file name must contain the version. See <https://github.com/kubeflow/pipelines/issues/1292>
+
+** Update Readthedocs **
+
+* Create a GitHub release for KFP SDK release. [Here's an example](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.14.1) reference for a template.
+  * When creating a release create a new tag `sdk-x.y.z`
+* Navigate to the readthedocs website [here](https://app.readthedocs.org/projects/kubeflow-pipelines/), login if needed
+* You should see a new build under "Versions" section for this new tag, ensure it succeeds.
+* Click "Settings"
+* Set the default version to `sdk-x.y.z` (the version we just built and released)
+* Set the default branch to be the release branch `release-x.y.z`
+
+1. Release `kfp-kubernetes` Python packages to PyPI.
+
+    Update the KFP Kubernetes SDK version in `__init__.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11380).
+
+    ```bash
+    git checkout -b release-X.Y
+    pip3 install twine --user
+    cd kubernetes_platform
+    make python 
+    cd python
+    twine check dist/*
+    twine upload dist/*
+    
+    # Cut release-the-docs branch 
+    export KFP_KUBERNETES_VERSION= # Set this to the version being released x.y.z
+    cd kubernetes_platform/python
+    ./create_release_branch.sh
+    ```
+    
+    Follow the output push instructions to **commit and push the read the docs release branch to KFP**.
+
+> [!Note]
+> Note that kfp-kubernetes package has a separate readthedocs site and requires that a new branch be pushed for readthedocs to be able to host multiple pages from the same repo. 
+> Every new patch version for this package requires us to create a new release branch purely for readthedocs purposes. However always cut this branch from the `release-X.Y` branch.
+
+** Update Readthedocs ** 
+Once the branch is updated, you need to add this version to readthedocs. Follow these steps: 
+
+* Navigate to the package section on the readthedocs website [here](https://app.readthedocs.org/projects/kfp-kubernetes/). 
+* Click "Add version"
+* Enter the branch `kfp-kubernetes-x.y.z` where x.y.z is the version you released, if you pushed it and it's not showing up, press the "Resync Versions" button and try again 
+* Add this version, navigate back to the "Versions" section, and you should see a build, make sure it succeeds before moving onto the next section.
+* Go to Settings
+* Set this version as the default version. 
+* Click Save
+* Click "View Docs" to navigate to the docs page and ensure the new version shows up as the default. 
+   
+1. Release `kfp-server-api` Python packages to PyPI.
 
     ```bash
     git checkout $BRANCH
@@ -220,40 +310,7 @@ The target tag should be `$VERSION`.
     python3 -m twine upload dist/*
     ```
 
-1. Release `kfp` python packages to PyPI. (Note: Please skip this step for backend release, this step will be handled by SDK release.)
-    
-    Update the SDK version in `version.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11715/files).
-    
-    ```bash
-    pip3 install twine --user
-    cd sdk/python
-    ./build.sh kfp-$VERSION.tar.gz
-    python3 -m twine upload kfp-$VERSION.tar.gz
-    ```
-
-    !!! The file name must contain the version. See <https://github.com/kubeflow/pipelines/issues/1292>
-
-1. Release `kfp-kubernetes` python packages to PyPI. (Note: Please skip this step for backend release, this step will be handled by SDK release.)
-
-    Update the KFP Kubernetes SDK version in `__init__.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11380).
-
-    ```bash
-    export KFP_KUBERNETES_VERSION=
-    pip3 install twine --user
-    cd kubernetes_platform/python
-    ./create_release_branch.sh
-    ```
-
-    Follow the output push instructions to **commit and push the branch to KFP**, then do the following:
-
-    ```bash
-    # set this to the appropriate version that matches what was set in __init__.py earlier
-    export KFP_KUBERNETES_VERSION=
-    cd kubernetes_platform/python
-    ./release.sh
-    ```
-   
-    Note that this script will build the package, test install, and push to PyPi.
+Push the changes to the `release-X.Y` branch. 
 
 ### Create GitHub Release
 
@@ -269,7 +326,7 @@ fill in the description. Detailed steps:
        <pre>
        To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/)
 
-       Install python SDK (python 3.9 above) by running:
+       Install Python SDK (Python 3.9 above) by running:
 
        ```bash
        python3 -m pip install kfp kfp-server-api --upgrade
@@ -284,7 +341,7 @@ fill in the description. Detailed steps:
        <pre>
         To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/components/pipelines/operator-guides/installation/).
 
-        Install kfp-server-api package (python 3.9 above) by running:
+        Install kfp-server-api package (Python 3.9 above) by running:
 
         ```bash
         python3 -m pip install kfp-server-api==$VERSION --upgrade
@@ -294,13 +351,12 @@ fill in the description. Detailed steps:
         * [Upgrade Notes with notices and breaking changes](https://www.kubeflow.org/docs/components/pipelines/installation/upgrade/)
         * [Change Log](https://github.com/kubeflow/pipelines/blob/$VERSION/CHANGELOG.md)
 
-        NOTE, kfp python SDK is **NOT** included and released separately.
+        NOTE, kfp Python SDK is **NOT** included and released separately.
        </pre>
     
 ### Sync Master Branch with latest release
 
-1. **(Do this step only when releasing from a NON-master release branch)**
-Update master branch to the same version and include latest changelog:
+1. Update master branch to the same version and include latest changelog:
 
     ```bash
     git checkout master
@@ -333,3 +389,30 @@ Update master branch to the same version and include latest changelog:
 ## Release Process Development
 
 Please refer to [./test/release](./test/release).
+
+## Versioning Policy in KFP 
+
+Starting from version **2.14**, all major and minor versions (X.Y) of the Kubeflow Pipelines (KFP) components are aligned. The following components are included in this alignment:
+
+* **KFP Backend / UI**
+* **KFP Python SDK**
+* **KFP Python Kubernetes Platform SDK**
+* **KFP Python Pipeline Specification**
+* **KFP Server API**
+
+### Versioning and Compatibility Policy
+
+* **API Compatibility:**
+  All KFP components sharing the same major and minor version (X.Y) are guaranteed to be API-compatible.
+
+* **Backward Compatibility:**
+  The KFP project aims to maintain backward compatibility within a given **major version** for all Python SDK packages, though there may be exceptions at times.
+
+  Specifically:
+
+    * Newer versions of the KFP Python SDK within the same major release (e.g., 2.x) should continue to function with older versions of the KFP backend.
+    * However, newly introduced features in a later SDK minor version may require a matching or newer backend version to function correctly. For example:
+        * A feature introduced in `kfp==2.15` is not guaranteed to be supported by a `2.14` backend. In such cases, upgrading the backend to version `2.15` or later is necessary.
+
+* **Patch Releases:**
+  Patch versions (X.Y.Z) may include bug fixes, maintenance updates, and minor feature enhancements. These changes must not break API compatibility or violate the support guarantees outlined above.

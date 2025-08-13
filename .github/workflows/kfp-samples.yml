@@ -17,8 +17,12 @@ on:
       - '!**/OWNERS'
 
 jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+
   samples:
     runs-on: ubuntu-latest
+    needs: build
     strategy:
       matrix:
         include:
@@ -41,8 +45,8 @@ jobs:
     name: KFP Samples - K8s ${{ matrix.k8s_version }} - ${{ matrix.mode }} - ${{ matrix.storage }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v5
 
     - name: Free up disk space
       run: |
@@ -63,29 +67,32 @@ jobs:
         k8s_version: ${{ matrix.k8s_version }}
         multi_user: ${{ matrix.mode == 'multi-user' }}
         storage_backend: ${{ matrix.storage }}
+        image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+        image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+        image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
       continue-on-error: true
 
-    - name: Build and upload the sample Modelcar image to Kind
-      id: build-sample-modelcar-image
-      if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
-      run: |
-        docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
-        kind --name kfp load docker-image registry.domain.local/modelcar:test
-      continue-on-error: true
+      - name: Build and upload the sample Modelcar image to Kind
+        id: build-sample-modelcar-image
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: |
+          docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          kind --name kfp load docker-image registry.domain.local/modelcar:test
+        continue-on-error: true
 
-    - name: Forward API port
-      id: forward-api-port
-      if: ${{ steps.build-sample-modelcar-image.outcome == 'success' }}
-      run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-      continue-on-error: true
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.build-sample-modelcar-image.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
 
-    - name: Install protobuf dependencies & kfp-pipeline-spec
-      id: install-protobuf-deps
-      uses: ./.github/actions/protobuf
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
 
-    - name: Install kfp & kfp-kubernetes from source
-      id: install-kfp-k8s-deps
-      uses: ./.github/actions/kfp-k8s
+      - name: Install kfp & kfp-kubernetes from source
+        id: install-kfp-k8s-deps
+        uses: ./.github/actions/kfp-k8s
 
     - name: Run Samples Tests
       id: tests

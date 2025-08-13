@@ -76,6 +76,7 @@ import nested_pipeline_opt_inputs_parent_level
 import nested_pipeline_opt_inputs_nil
 import nested_pipeline_opt_input_child_level
 import pipeline_with_pod_metadata
+import pipeline_with_workspace
 from modelcar import modelcar
 
 
@@ -250,7 +251,8 @@ class SampleTest(unittest.TestCase):
             TestCase(pipeline_func=nested_pipeline_opt_inputs_parent_level.nested_pipeline_opt_inputs_parent_level),
             TestCase(pipeline_func=nested_pipeline_opt_input_child_level.nested_pipeline_opt_input_child_level),
             TestCase(pipeline_func=nested_pipeline_opt_inputs_nil.nested_pipeline_opt_inputs_nil),
-            TestCase(pipeline_func=pipeline_with_pod_metadata.pipeline_with_pod_metadata)
+            TestCase(pipeline_func=pipeline_with_pod_metadata.pipeline_with_pod_metadata),
+            TestCase(pipeline_func=pipeline_with_workspace.pipeline_with_workspace),
         ]
 
         with ThreadPoolExecutor() as executor:

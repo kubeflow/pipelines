@@ -1,43 +1,58 @@
-name: Build images from sources.
+name: Build and Push images
 run-name: Build images
 on:
   workflow_call:
     inputs:
       src_branch:
         type: string
-        default: 'release-X.Y'
+        default: ''
         description: 'Source branch to build KFP from'
-        required: true
+        required: false
       target_tag:
         type: string
         default: 'X.Y.Z'
         description: 'Target Image Tag'
         required: true
-      fail_fast:
-        type: string
-        default: 'true'
-        description: 'Stop running entire Workflow if a single build fails'
-        required: true
       overwrite_imgs:
         type: string
         default: 'true'
         description: 'Overwrite images in GHCR if they already exist for this tag.'
-        required: true
+        required: false
       set_latest:
         type: string
         default: 'true'
         description: 'Set latest tag on build images.'
-        required: true
+        required: false
       add_sha_tag:
         type: string
         default: 'true'
         description: 'Add a sha image tag.'
+        required: false
+      app_to_build:
+        type: string
+        default: ''
+        description: 'Provide the app name to build'
+        required: true
+      image_context:
+        type: string
+        default: ''
+        description: 'Provide the docker file path'
+        required: true
+      docker_file:
+        type: string
+        default: ''
+        description: 'Provide the docker file name'
+        required: true
+      push:
+        type: boolean
+        default: false
+        description: 'Whether to push image to CR or not'
         required: false
   workflow_dispatch:
     inputs:
       src_branch:
         type: string
-        default: 'release-X.Y'
+        default: ''
         description: 'Source branch to build KFP from'
         required: true
       target_tag:
@@ -65,16 +80,39 @@ on:
         default: 'true'
         description: 'Add a sha image tag.'
         required: false
+      app_to_build:
+        type: string
+        default: ''
+        description: 'Provide the app name to build'
+        required: true
+      image_context:
+        type: string
+        default: ''
+        description: 'Provide the docker file path'
+        required: true
+      docker_file:
+        type: string
+        default: ''
+        description: 'Provide the docker file name'
+        required: true
+      push:
+        type: boolean
+        default: false
+        description: 'Whether to push image to CR or not'
+        required: true
 env:
   SOURCE_BRANCH: ${{ inputs.src_branch }}
   TARGET_IMAGE_TAG: ${{ inputs.target_tag }}
   OVERWRITE_IMAGES: ${{ inputs.overwrite_imgs }}
   IMAGE_REGISTRY: ghcr.io
-  IMAGE_ORG: ${{ github.repository_owner }}
+  IMAGE_ORG: ${{ github.repository }}
   SET_LATEST: ${{ inputs.set_latest }}
   ADD_SHA_TAG: ${{ inputs.add_sha_tag }}
+  CACHE_PATH: '/tmp/.buildx-cache'
+
 jobs:
-  build-images-with-tag:
+  build-and-push-images:
+    if: inputs.push && inputs.src_branch
     continue-on-error: false
     runs-on: ubuntu-latest
     permissions:
@@ -82,54 +120,12 @@ jobs:
       packages: write
       attestations: write
       id-token: write
-    strategy:
-      fail-fast: ${{ inputs.fail_fast == 'true' }}
-      matrix:
-        include:
-          - image: kfp-api-server
-            dockerfile: backend/Dockerfile
-            context: .
-          - image: kfp-frontend
-            dockerfile: frontend/Dockerfile
-            context: .
-          - image: kfp-persistence-agent
-            dockerfile: backend/Dockerfile.persistenceagent
-            context: .
-          - image: kfp-scheduled-workflow-controller
-            dockerfile: backend/Dockerfile.scheduledworkflow
-            context: .
-          - image: kfp-viewer-crd-controller
-            dockerfile: backend/Dockerfile.viewercontroller
-            context: .
-          - image: kfp-visualization-server
-            dockerfile: backend/Dockerfile.visualization
-            context: .
-          - image: kfp-launcher
-            dockerfile: backend/Dockerfile.launcher
-            context: .
-          - image: kfp-driver
-            dockerfile: backend/Dockerfile.driver
-            context: .
-          - image: kfp-cache-deployer
-            dockerfile: backend/src/cache/deployer/Dockerfile
-            context: .
-          - image: kfp-cache-server
-            dockerfile: backend/Dockerfile.cacheserver
-            context: .
-          - image: kfp-metadata-writer
-            dockerfile: backend/metadata_writer/Dockerfile
-            context: .
-          - image: kfp-metadata-envoy
-            dockerfile: third_party/metadata_envoy/Dockerfile
-            context: .
-          - image: kfp-inverse-proxy-agent
-            dockerfile: proxy/Dockerfile
-            context: ./proxy
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{env.SOURCE_BRANCH}}
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -140,7 +136,7 @@ jobs:
       - name: Check if image tag already exists
         id: check_tag
         env:
-          IMAGE: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ matrix.image }}:${{env.TARGET_IMAGE_TAG}}
+          IMAGE: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}:${{env.TARGET_IMAGE_TAG}}
           OVERWRITE: ${{ env.OVERWRITE_IMAGES }}
         run: |
           if docker manifest inspect ${IMAGE} > /dev/null 2>&1; then
@@ -164,7 +160,7 @@ jobs:
         uses: docker/metadata-action@v5
         if: steps.check_tag.outcome == 'success'
         with:
-          images: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ matrix.image }}
+          images: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
           tags: |
             type=raw,value=${{env.TARGET_IMAGE_TAG}}
             type=raw,value=latest,enable=${{ env.SET_LATEST == 'true'}}
@@ -178,8 +174,8 @@ jobs:
         uses: docker/build-push-action@v6
         if: steps.check_tag.outcome == 'success'
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          context: ${{ inputs.image_context }}
+          file: ${{ inputs.docker_file }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -193,6 +189,5 @@ jobs:
         uses: actions/attest-build-provenance@v1
         if: steps.check_tag.outcome == 'success'
         with:
-          subject-name: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ matrix.image }}
+          subject-name: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
           subject-digest: ${{ steps.push.outputs.digest }}
-

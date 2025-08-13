@@ -51,7 +51,6 @@ else
     git add $PKG_ROOT/docs/.readthedocs.yml
     git add $REPO_ROOT/.readthedocs.yml
     git add $REPO_ROOT/kubernetes_platform/.gitignore
-    git add $REPO_ROOT/*_pb2.py
 
     echo "Next steps:"
     echo "1. Inspect and commit the modified files."

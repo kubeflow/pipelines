@@ -36,19 +36,19 @@ class VisualizationServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def visualization_service_create_visualization_v1(self, namespace, body, **kwargs):  # noqa: E501
+    def visualization_service_create_visualization_v1(self, namespace, visualization, **kwargs):  # noqa: E501
         """visualization_service_create_visualization_v1  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.visualization_service_create_visualization_v1(namespace, body, async_req=True)
+        >>> thread = api.visualization_service_create_visualization_v1(namespace, visualization, async_req=True)
         >>> result = thread.get()
 
         :param namespace: (required)
         :type namespace: str
-        :param body: (required)
-        :type body: V2beta1Visualization
+        :param visualization: (required)
+        :type visualization: V2beta1Visualization
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -64,21 +64,21 @@ class VisualizationServiceApi(object):
         :rtype: V2beta1Visualization
         """
         kwargs['_return_http_data_only'] = True
-        return self.visualization_service_create_visualization_v1_with_http_info(namespace, body, **kwargs)  # noqa: E501
+        return self.visualization_service_create_visualization_v1_with_http_info(namespace, visualization, **kwargs)  # noqa: E501
 
-    def visualization_service_create_visualization_v1_with_http_info(self, namespace, body, **kwargs):  # noqa: E501
+    def visualization_service_create_visualization_v1_with_http_info(self, namespace, visualization, **kwargs):  # noqa: E501
         """visualization_service_create_visualization_v1  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.visualization_service_create_visualization_v1_with_http_info(namespace, body, async_req=True)
+        >>> thread = api.visualization_service_create_visualization_v1_with_http_info(namespace, visualization, async_req=True)
         >>> result = thread.get()
 
         :param namespace: (required)
         :type namespace: str
-        :param body: (required)
-        :type body: V2beta1Visualization
+        :param visualization: (required)
+        :type visualization: V2beta1Visualization
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -102,7 +102,7 @@ class VisualizationServiceApi(object):
 
         all_params = [
             'namespace',
-            'body'
+            'visualization'
         ]
         all_params.extend(
             [
@@ -125,10 +125,10 @@ class VisualizationServiceApi(object):
         if self.api_client.client_side_validation and ('namespace' not in local_var_params or  # noqa: E501
                                                         local_var_params['namespace'] is None):  # noqa: E501
             raise ApiValueError("Missing the required parameter `namespace` when calling `visualization_service_create_visualization_v1`")  # noqa: E501
-        # verify the required parameter 'body' is set
-        if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
-                                                        local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `visualization_service_create_visualization_v1`")  # noqa: E501
+        # verify the required parameter 'visualization' is set
+        if self.api_client.client_side_validation and ('visualization' not in local_var_params or  # noqa: E501
+                                                        local_var_params['visualization'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `visualization` when calling `visualization_service_create_visualization_v1`")  # noqa: E501
 
         collection_formats = {}
 
@@ -144,8 +144,8 @@ class VisualizationServiceApi(object):
         local_var_files = {}
 
         body_params = None
-        if 'body' in local_var_params:
-            body_params = local_var_params['body']
+        if 'visualization' in local_var_params:
+            body_params = local_var_params['visualization']
         # HTTP header `Accept`
         header_params['Accept'] = self.api_client.select_header_accept(
             ['application/json'])  # noqa: E501

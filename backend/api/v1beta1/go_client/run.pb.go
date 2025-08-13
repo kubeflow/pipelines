@@ -244,7 +244,7 @@ func (x *CreateRunRequest) GetRun() *Run {
 type GetRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the run to be retrieved.
-	RunId         string `protobuf:"bytes,1,opt,name=run_id,proto3" json:"run_id,omitempty"`
+	RunId         string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -291,18 +291,18 @@ type ListRunsRequest struct {
 	// A page token to request the next page of results. The token is acquried
 	// from the nextPageToken field of the response from the previous
 	// ListRuns call or can be omitted when fetching the first page.
-	PageToken string `protobuf:"bytes,1,opt,name=page_token,proto3" json:"page_token,omitempty"`
+	PageToken string `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	// The number of runs to be listed per page. If there are more runs than this
 	// number, the response message will contain a nextPageToken field you can use
 	// to fetch the next page.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,proto3" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Can be format of "field_name", "field_name asc" or "field_name desc"
 	// (Example, "name asc" or "id desc"). Ascending by default.
-	SortBy string `protobuf:"bytes,3,opt,name=sort_by,proto3" json:"sort_by,omitempty"`
+	SortBy string `protobuf:"bytes,3,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
 	// What resource reference to filter on.
 	// E.g. If listing run for an experiment, the query string would be
 	// resource_reference_key.type=EXPERIMENT&resource_reference_key.id=123
-	ResourceReferenceKey *ResourceKey `protobuf:"bytes,4,opt,name=resource_reference_key,proto3" json:"resource_reference_key,omitempty"`
+	ResourceReferenceKey *ResourceKey `protobuf:"bytes,4,opt,name=resource_reference_key,json=resourceReferenceKey,proto3" json:"resource_reference_key,omitempty"`
 	// A url-encoded, JSON-serialized Filter protocol buffer (see
 	// [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).
 	Filter        string `protobuf:"bytes,5,opt,name=filter,proto3" json:"filter,omitempty"`
@@ -378,7 +378,7 @@ func (x *ListRunsRequest) GetFilter() string {
 type TerminateRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the run to be terminated.
-	RunId         string `protobuf:"bytes,1,opt,name=run_id,proto3" json:"run_id,omitempty"`
+	RunId         string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -423,7 +423,7 @@ func (x *TerminateRunRequest) GetRunId() string {
 type RetryRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the run to be retried.
-	RunId         string `protobuf:"bytes,1,opt,name=run_id,proto3" json:"run_id,omitempty"`
+	RunId         string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -469,9 +469,9 @@ type ListRunsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Runs  []*Run                 `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
 	// The total number of runs for the given query.
-	TotalSize int32 `protobuf:"varint,3,opt,name=total_size,proto3" json:"total_size,omitempty"`
+	TotalSize int32 `protobuf:"varint,3,opt,name=total_size,json=totalSize,proto3" json:"total_size,omitempty"`
 	// The token to list the next page of runs.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,proto3" json:"next_page_token,omitempty"`
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -670,27 +670,27 @@ type Run struct {
 	// or auto generated if run is created by scheduled job. Not unique.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// Output. Specify whether this run is in archived or available mode.
-	StorageState Run_StorageState `protobuf:"varint,10,opt,name=storage_state,proto3,enum=api.Run_StorageState" json:"storage_state,omitempty"`
+	StorageState Run_StorageState `protobuf:"varint,10,opt,name=storage_state,json=storageState,proto3,enum=api.Run_StorageState" json:"storage_state,omitempty"`
 	// Optional input field. Describing the purpose of the run
 	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	// Required input field.
 	// Describing what the pipeline manifest and parameters to use for the run.
-	PipelineSpec *PipelineSpec `protobuf:"bytes,4,opt,name=pipeline_spec,proto3" json:"pipeline_spec,omitempty"`
+	PipelineSpec *PipelineSpec `protobuf:"bytes,4,opt,name=pipeline_spec,json=pipelineSpec,proto3" json:"pipeline_spec,omitempty"`
 	// Optional input field. Specify which resource this run belongs to.
 	// When creating a run from a particular pipeline version, the pipeline
 	// version can be specified here.
-	ResourceReferences []*ResourceReference `protobuf:"bytes,5,rep,name=resource_references,proto3" json:"resource_references,omitempty"`
+	ResourceReferences []*ResourceReference `protobuf:"bytes,5,rep,name=resource_references,json=resourceReferences,proto3" json:"resource_references,omitempty"`
 	// Optional input field. Specify which Kubernetes service account this run uses.
-	ServiceAccount string `protobuf:"bytes,14,opt,name=service_account,proto3" json:"service_account,omitempty"`
+	ServiceAccount string `protobuf:"bytes,14,opt,name=service_account,json=serviceAccount,proto3" json:"service_account,omitempty"`
 	// Output. The time that the run created.
-	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,proto3" json:"created_at,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Output. When this run is scheduled to run. This could be different from
 	// created_at. For example, if a run is from a backfilling job that was
 	// supposed to run 2 month ago, the scheduled_at is 2 month ago,
 	// v.s. created_at is the current time.
-	ScheduledAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=scheduled_at,proto3" json:"scheduled_at,omitempty"`
+	ScheduledAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"`
 	// Output. The time this run is finished.
-	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=finished_at,proto3" json:"finished_at,omitempty"`
+	FinishedAt *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"`
 	// Output. The status of the run.
 	// One of [Pending, Running, Succeeded, Skipped, Failed, Error]
 	Status string `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
@@ -830,10 +830,10 @@ type PipelineRuntime struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Output. The runtime JSON manifest of the pipeline, including the status
 	// of pipeline steps and fields need for UI visualization etc.
-	PipelineManifest string `protobuf:"bytes,10,opt,name=pipeline_manifest,proto3" json:"pipeline_manifest,omitempty"`
+	PipelineManifest string `protobuf:"bytes,10,opt,name=pipeline_manifest,json=pipelineManifest,proto3" json:"pipeline_manifest,omitempty"`
 	// Output. The runtime JSON manifest of the argo workflow.
 	// This is deprecated after pipeline_runtime_manifest is in use.
-	WorkflowManifest string `protobuf:"bytes,11,opt,name=workflow_manifest,proto3" json:"workflow_manifest,omitempty"`
+	WorkflowManifest string `protobuf:"bytes,11,opt,name=workflow_manifest,json=workflowManifest,proto3" json:"workflow_manifest,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -885,7 +885,7 @@ func (x *PipelineRuntime) GetWorkflowManifest() string {
 type RunDetail struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Run             *Run                   `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
-	PipelineRuntime *PipelineRuntime       `protobuf:"bytes,2,opt,name=pipeline_runtime,proto3" json:"pipeline_runtime,omitempty"`
+	PipelineRuntime *PipelineRuntime       `protobuf:"bytes,2,opt,name=pipeline_runtime,json=pipelineRuntime,proto3" json:"pipeline_runtime,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -944,7 +944,7 @@ type RunMetric struct {
 	// found in the RunDetail.workflow.Status. Metric with same (node_id, name)
 	// are considerd as duplicate. Only the first reporting will be recorded. Max
 	// length is 128.
-	NodeId string `protobuf:"bytes,2,opt,name=node_id,proto3" json:"node_id,omitempty"`
+	NodeId string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	// Types that are valid to be assigned to Value:
 	//
 	//	*RunMetric_NumberValue
@@ -1028,9 +1028,7 @@ type isRunMetric_Value interface {
 
 type RunMetric_NumberValue struct {
 	// The number value of the metric.
-	// The camelCase support for json support of this field is
-	// deprecated, switch to using snake case.
-	NumberValue float64 `protobuf:"fixed64,3,opt,name=number_value,proto3,oneof"`
+	NumberValue float64 `protobuf:"fixed64,3,opt,name=number_value,json=numberValue,proto3,oneof"`
 }
 
 func (*RunMetric_NumberValue) isRunMetric_Value() {}
@@ -1038,7 +1036,7 @@ func (*RunMetric_NumberValue) isRunMetric_Value() {}
 type ReportRunMetricsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Required. The parent run ID of the metric.
-	RunId string `protobuf:"bytes,1,opt,name=run_id,proto3" json:"run_id,omitempty"`
+	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// List of metrics to report.
 	Metrics       []*RunMetric `protobuf:"bytes,2,rep,name=metrics,proto3" json:"metrics,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1136,11 +1134,11 @@ func (x *ReportRunMetricsResponse) GetResults() []*ReportRunMetricsResponse_Repo
 type ReadArtifactRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ID of the run.
-	RunId string `protobuf:"bytes,1,opt,name=run_id,proto3" json:"run_id,omitempty"`
+	RunId string `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	// The ID of the running node.
-	NodeId string `protobuf:"bytes,2,opt,name=node_id,proto3" json:"node_id,omitempty"`
+	NodeId string `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
 	// The name of the artifact.
-	ArtifactName  string `protobuf:"bytes,3,opt,name=artifact_name,proto3" json:"artifact_name,omitempty"`
+	ArtifactName  string `protobuf:"bytes,3,opt,name=artifact_name,json=artifactName,proto3" json:"artifact_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1244,9 +1242,9 @@ func (x *ReadArtifactResponse) GetData() []byte {
 type ReportRunMetricsResponse_ReportRunMetricResult struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Output. The name of the metric.
-	MetricName string `protobuf:"bytes,1,opt,name=metric_name,proto3" json:"metric_name,omitempty"`
+	MetricName string `protobuf:"bytes,1,opt,name=metric_name,json=metricName,proto3" json:"metric_name,omitempty"`
 	// Output. The ID of the node which reports the metric.
-	MetricNodeId string `protobuf:"bytes,2,opt,name=metric_node_id,proto3" json:"metric_node_id,omitempty"`
+	MetricNodeId string `protobuf:"bytes,2,opt,name=metric_node_id,json=metricNodeId,proto3" json:"metric_node_id,omitempty"`
 	// Output. The status of the metric reporting.
 	Status ReportRunMetricsResponse_ReportRunMetricResult_Status `protobuf:"varint,3,opt,name=status,proto3,enum=api.ReportRunMetricsResponse_ReportRunMetricResult_Status" json:"status,omitempty"`
 	// Output. The detailed message of the error of the reporting.
@@ -1319,79 +1317,78 @@ const file_backend_api_v1beta1_run_proto_rawDesc = "" +
 	"\n" +
 	"\x1dbackend/api/v1beta1/run.proto\x12\x03api\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a'backend/api/v1beta1/pipeline_spec.proto\x1a,backend/api/v1beta1/resource_reference.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\".\n" +
 	"\x10CreateRunRequest\x12\x1a\n" +
-	"\x03run\x18\x01 \x01(\v2\b.api.RunR\x03run\"'\n" +
-	"\rGetRunRequest\x12\x16\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x06run_id\"\xcb\x01\n" +
-	"\x0fListRunsRequest\x12\x1e\n" +
+	"\x03run\x18\x01 \x01(\v2\b.api.RunR\x03run\"&\n" +
+	"\rGetRunRequest\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\"\xc6\x01\n" +
+	"\x0fListRunsRequest\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x01 \x01(\tR\n" +
-	"page_token\x12\x1c\n" +
-	"\tpage_size\x18\x02 \x01(\x05R\tpage_size\x12\x18\n" +
-	"\asort_by\x18\x03 \x01(\tR\asort_by\x12H\n" +
-	"\x16resource_reference_key\x18\x04 \x01(\v2\x10.api.ResourceKeyR\x16resource_reference_key\x12\x16\n" +
-	"\x06filter\x18\x05 \x01(\tR\x06filter\"-\n" +
-	"\x13TerminateRunRequest\x12\x16\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x06run_id\")\n" +
-	"\x0fRetryRunRequest\x12\x16\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x06run_id\"z\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x17\n" +
+	"\asort_by\x18\x03 \x01(\tR\x06sortBy\x12F\n" +
+	"\x16resource_reference_key\x18\x04 \x01(\v2\x10.api.ResourceKeyR\x14resourceReferenceKey\x12\x16\n" +
+	"\x06filter\x18\x05 \x01(\tR\x06filter\",\n" +
+	"\x13TerminateRunRequest\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\"(\n" +
+	"\x0fRetryRunRequest\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\"w\n" +
 	"\x10ListRunsResponse\x12\x1c\n" +
-	"\x04runs\x18\x01 \x03(\v2\b.api.RunR\x04runs\x12\x1e\n" +
+	"\x04runs\x18\x01 \x03(\v2\b.api.RunR\x04runs\x12\x1d\n" +
 	"\n" +
-	"total_size\x18\x03 \x01(\x05R\n" +
-	"total_size\x12(\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\x0fnext_page_token\"#\n" +
+	"total_size\x18\x03 \x01(\x05R\ttotalSize\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"#\n" +
 	"\x11ArchiveRunRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"%\n" +
 	"\x13UnarchiveRunRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\"\n" +
 	"\x10DeleteRunRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x8e\x05\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x87\x05\n" +
 	"\x03Run\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12;\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12:\n" +
 	"\rstorage_state\x18\n" +
-	" \x01(\x0e2\x15.api.Run.StorageStateR\rstorage_state\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x127\n" +
-	"\rpipeline_spec\x18\x04 \x01(\v2\x11.api.PipelineSpecR\rpipeline_spec\x12H\n" +
-	"\x13resource_references\x18\x05 \x03(\v2\x16.api.ResourceReferenceR\x13resource_references\x12(\n" +
-	"\x0fservice_account\x18\x0e \x01(\tR\x0fservice_account\x12:\n" +
+	" \x01(\x0e2\x15.api.Run.StorageStateR\fstorageState\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x126\n" +
+	"\rpipeline_spec\x18\x04 \x01(\v2\x11.api.PipelineSpecR\fpipelineSpec\x12G\n" +
+	"\x13resource_references\x18\x05 \x03(\v2\x16.api.ResourceReferenceR\x12resourceReferences\x12'\n" +
+	"\x0fservice_account\x18\x0e \x01(\tR\x0eserviceAccount\x129\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"created_at\x12>\n" +
-	"\fscheduled_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\fscheduled_at\x12<\n" +
-	"\vfinished_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\vfinished_at\x12\x16\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12=\n" +
+	"\fscheduled_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vscheduledAt\x12;\n" +
+	"\vfinished_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"finishedAt\x12\x16\n" +
 	"\x06status\x18\b \x01(\tR\x06status\x12\x14\n" +
 	"\x05error\x18\f \x01(\tR\x05error\x12(\n" +
 	"\ametrics\x18\t \x03(\v2\x0e.api.RunMetricR\ametrics\"E\n" +
 	"\fStorageState\x12\x1a\n" +
 	"\x16STORAGESTATE_AVAILABLE\x10\x00\x12\x19\n" +
-	"\x15STORAGESTATE_ARCHIVED\x10\x01\"m\n" +
-	"\x0fPipelineRuntime\x12,\n" +
+	"\x15STORAGESTATE_ARCHIVED\x10\x01\"k\n" +
+	"\x0fPipelineRuntime\x12+\n" +
 	"\x11pipeline_manifest\x18\n" +
-	" \x01(\tR\x11pipeline_manifest\x12,\n" +
-	"\x11workflow_manifest\x18\v \x01(\tR\x11workflow_manifest\"i\n" +
+	" \x01(\tR\x10pipelineManifest\x12+\n" +
+	"\x11workflow_manifest\x18\v \x01(\tR\x10workflowManifest\"h\n" +
 	"\tRunDetail\x12\x1a\n" +
-	"\x03run\x18\x01 \x01(\v2\b.api.RunR\x03run\x12@\n" +
-	"\x10pipeline_runtime\x18\x02 \x01(\v2\x14.api.PipelineRuntimeR\x10pipeline_runtime\"\xcb\x01\n" +
+	"\x03run\x18\x01 \x01(\v2\b.api.RunR\x03run\x12?\n" +
+	"\x10pipeline_runtime\x18\x02 \x01(\v2\x14.api.PipelineRuntimeR\x0fpipelineRuntime\"\xc9\x01\n" +
 	"\tRunMetric\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
-	"\anode_id\x18\x02 \x01(\tR\anode_id\x12$\n" +
-	"\fnumber_value\x18\x03 \x01(\x01H\x00R\fnumber_value\x12-\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x17\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12#\n" +
+	"\fnumber_value\x18\x03 \x01(\x01H\x00R\vnumberValue\x12-\n" +
 	"\x06format\x18\x04 \x01(\x0e2\x15.api.RunMetric.FormatR\x06format\"2\n" +
 	"\x06Format\x12\x0f\n" +
 	"\vUNSPECIFIED\x10\x00\x12\a\n" +
 	"\x03RAW\x10\x01\x12\x0e\n" +
 	"\n" +
 	"PERCENTAGE\x10\x02B\a\n" +
-	"\x05value\"[\n" +
-	"\x17ReportRunMetricsRequest\x12\x16\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x06run_id\x12(\n" +
-	"\ametrics\x18\x02 \x03(\v2\x0e.api.RunMetricR\ametrics\"\xa1\x03\n" +
+	"\x05value\"Z\n" +
+	"\x17ReportRunMetricsRequest\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12(\n" +
+	"\ametrics\x18\x02 \x03(\v2\x0e.api.RunMetricR\ametrics\"\x9e\x03\n" +
 	"\x18ReportRunMetricsResponse\x12M\n" +
-	"\aresults\x18\x01 \x03(\v23.api.ReportRunMetricsResponse.ReportRunMetricResultR\aresults\x1a\xb5\x02\n" +
-	"\x15ReportRunMetricResult\x12 \n" +
-	"\vmetric_name\x18\x01 \x01(\tR\vmetric_name\x12&\n" +
-	"\x0emetric_node_id\x18\x02 \x01(\tR\x0emetric_node_id\x12R\n" +
+	"\aresults\x18\x01 \x03(\v23.api.ReportRunMetricsResponse.ReportRunMetricResultR\aresults\x1a\xb2\x02\n" +
+	"\x15ReportRunMetricResult\x12\x1f\n" +
+	"\vmetric_name\x18\x01 \x01(\tR\n" +
+	"metricName\x12$\n" +
+	"\x0emetric_node_id\x18\x02 \x01(\tR\fmetricNodeId\x12R\n" +
 	"\x06status\x18\x03 \x01(\x0e2:.api.ReportRunMetricsResponse.ReportRunMetricResult.StatusR\x06status\x12\x18\n" +
 	"\amessage\x18\x04 \x01(\tR\amessage\"d\n" +
 	"\x06Status\x12\x0f\n" +
@@ -1399,11 +1396,11 @@ const file_backend_api_v1beta1_run_proto_rawDesc = "" +
 	"\x02OK\x10\x01\x12\x14\n" +
 	"\x10INVALID_ARGUMENT\x10\x02\x12\x17\n" +
 	"\x13DUPLICATE_REPORTING\x10\x03\x12\x12\n" +
-	"\x0eINTERNAL_ERROR\x10\x04\"m\n" +
-	"\x13ReadArtifactRequest\x12\x16\n" +
-	"\x06run_id\x18\x01 \x01(\tR\x06run_id\x12\x18\n" +
-	"\anode_id\x18\x02 \x01(\tR\anode_id\x12$\n" +
-	"\rartifact_name\x18\x03 \x01(\tR\rartifact_name\"*\n" +
+	"\x0eINTERNAL_ERROR\x10\x04\"j\n" +
+	"\x13ReadArtifactRequest\x12\x15\n" +
+	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x17\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12#\n" +
+	"\rartifact_name\x18\x03 \x01(\tR\fartifactName\"*\n" +
 	"\x14ReadArtifactResponse\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\fR\x04data2\xc6\b\n" +
 	"\n" +

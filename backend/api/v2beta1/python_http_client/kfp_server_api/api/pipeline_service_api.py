@@ -36,17 +36,17 @@ class PipelineServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def pipeline_service_create_pipeline(self, body, **kwargs):  # noqa: E501
+    def pipeline_service_create_pipeline(self, pipeline, **kwargs):  # noqa: E501
         """Creates a pipeline.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.pipeline_service_create_pipeline(body, async_req=True)
+        >>> thread = api.pipeline_service_create_pipeline(pipeline, async_req=True)
         >>> result = thread.get()
 
-        :param body: Required input. Pipeline that needs to be created. (required)
-        :type body: V2beta1Pipeline
+        :param pipeline: Required input. Pipeline that needs to be created. (required)
+        :type pipeline: V2beta1Pipeline
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -62,19 +62,19 @@ class PipelineServiceApi(object):
         :rtype: V2beta1Pipeline
         """
         kwargs['_return_http_data_only'] = True
-        return self.pipeline_service_create_pipeline_with_http_info(body, **kwargs)  # noqa: E501
+        return self.pipeline_service_create_pipeline_with_http_info(pipeline, **kwargs)  # noqa: E501
 
-    def pipeline_service_create_pipeline_with_http_info(self, body, **kwargs):  # noqa: E501
+    def pipeline_service_create_pipeline_with_http_info(self, pipeline, **kwargs):  # noqa: E501
         """Creates a pipeline.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.pipeline_service_create_pipeline_with_http_info(body, async_req=True)
+        >>> thread = api.pipeline_service_create_pipeline_with_http_info(pipeline, async_req=True)
         >>> result = thread.get()
 
-        :param body: Required input. Pipeline that needs to be created. (required)
-        :type body: V2beta1Pipeline
+        :param pipeline: Required input. Pipeline that needs to be created. (required)
+        :type pipeline: V2beta1Pipeline
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -97,7 +97,7 @@ class PipelineServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'body'
+            'pipeline'
         ]
         all_params.extend(
             [
@@ -116,10 +116,10 @@ class PipelineServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
-        # verify the required parameter 'body' is set
-        if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
-                                                        local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `pipeline_service_create_pipeline`")  # noqa: E501
+        # verify the required parameter 'pipeline' is set
+        if self.api_client.client_side_validation and ('pipeline' not in local_var_params or  # noqa: E501
+                                                        local_var_params['pipeline'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `pipeline` when calling `pipeline_service_create_pipeline`")  # noqa: E501
 
         collection_formats = {}
 
@@ -133,8 +133,8 @@ class PipelineServiceApi(object):
         local_var_files = {}
 
         body_params = None
-        if 'body' in local_var_params:
-            body_params = local_var_params['body']
+        if 'pipeline' in local_var_params:
+            body_params = local_var_params['pipeline']
         # HTTP header `Accept`
         header_params['Accept'] = self.api_client.select_header_accept(
             ['application/json'])  # noqa: E501
@@ -288,19 +288,19 @@ class PipelineServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def pipeline_service_create_pipeline_version(self, pipeline_id, body, **kwargs):  # noqa: E501
+    def pipeline_service_create_pipeline_version(self, pipeline_id, pipeline_version, **kwargs):  # noqa: E501
         """Adds a pipeline version to the specified pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.pipeline_service_create_pipeline_version(pipeline_id, body, async_req=True)
+        >>> thread = api.pipeline_service_create_pipeline_version(pipeline_id, pipeline_version, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
         :type pipeline_id: str
-        :param body: Required input. Pipeline version ID to be created. (required)
-        :type body: V2beta1PipelineVersion
+        :param pipeline_version: Required input. Pipeline version ID to be created. (required)
+        :type pipeline_version: V2beta1PipelineVersion
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -316,21 +316,21 @@ class PipelineServiceApi(object):
         :rtype: V2beta1PipelineVersion
         """
         kwargs['_return_http_data_only'] = True
-        return self.pipeline_service_create_pipeline_version_with_http_info(pipeline_id, body, **kwargs)  # noqa: E501
+        return self.pipeline_service_create_pipeline_version_with_http_info(pipeline_id, pipeline_version, **kwargs)  # noqa: E501
 
-    def pipeline_service_create_pipeline_version_with_http_info(self, pipeline_id, body, **kwargs):  # noqa: E501
+    def pipeline_service_create_pipeline_version_with_http_info(self, pipeline_id, pipeline_version, **kwargs):  # noqa: E501
         """Adds a pipeline version to the specified pipeline ID.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.pipeline_service_create_pipeline_version_with_http_info(pipeline_id, body, async_req=True)
+        >>> thread = api.pipeline_service_create_pipeline_version_with_http_info(pipeline_id, pipeline_version, async_req=True)
         >>> result = thread.get()
 
         :param pipeline_id: Required input. ID of the parent pipeline. (required)
         :type pipeline_id: str
-        :param body: Required input. Pipeline version ID to be created. (required)
-        :type body: V2beta1PipelineVersion
+        :param pipeline_version: Required input. Pipeline version ID to be created. (required)
+        :type pipeline_version: V2beta1PipelineVersion
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -354,7 +354,7 @@ class PipelineServiceApi(object):
 
         all_params = [
             'pipeline_id',
-            'body'
+            'pipeline_version'
         ]
         all_params.extend(
             [
@@ -377,10 +377,10 @@ class PipelineServiceApi(object):
         if self.api_client.client_side_validation and ('pipeline_id' not in local_var_params or  # noqa: E501
                                                         local_var_params['pipeline_id'] is None):  # noqa: E501
             raise ApiValueError("Missing the required parameter `pipeline_id` when calling `pipeline_service_create_pipeline_version`")  # noqa: E501
-        # verify the required parameter 'body' is set
-        if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
-                                                        local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `pipeline_service_create_pipeline_version`")  # noqa: E501
+        # verify the required parameter 'pipeline_version' is set
+        if self.api_client.client_side_validation and ('pipeline_version' not in local_var_params or  # noqa: E501
+                                                        local_var_params['pipeline_version'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `pipeline_version` when calling `pipeline_service_create_pipeline_version`")  # noqa: E501
 
         collection_formats = {}
 
@@ -396,8 +396,8 @@ class PipelineServiceApi(object):
         local_var_files = {}
 
         body_params = None
-        if 'body' in local_var_params:
-            body_params = local_var_params['body']
+        if 'pipeline_version' in local_var_params:
+            body_params = local_var_params['pipeline_version']
         # HTTP header `Accept`
         header_params['Accept'] = self.api_client.select_header_accept(
             ['application/json'])  # noqa: E501
@@ -426,7 +426,7 @@ class PipelineServiceApi(object):
             collection_formats=collection_formats)
 
     def pipeline_service_delete_pipeline(self, pipeline_id, **kwargs):  # noqa: E501
-        """Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.  # noqa: E501
+        """Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -436,6 +436,8 @@ class PipelineServiceApi(object):
 
         :param pipeline_id: Required input. ID of the pipeline to be deleted. (required)
         :type pipeline_id: str
+        :param cascade: Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions.
+        :type cascade: bool
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -454,7 +456,7 @@ class PipelineServiceApi(object):
         return self.pipeline_service_delete_pipeline_with_http_info(pipeline_id, **kwargs)  # noqa: E501
 
     def pipeline_service_delete_pipeline_with_http_info(self, pipeline_id, **kwargs):  # noqa: E501
-        """Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.  # noqa: E501
+        """Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
@@ -464,6 +466,8 @@ class PipelineServiceApi(object):
 
         :param pipeline_id: Required input. ID of the pipeline to be deleted. (required)
         :type pipeline_id: str
+        :param cascade: Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions.
+        :type cascade: bool
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -486,7 +490,8 @@ class PipelineServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'pipeline_id'
+            'pipeline_id',
+            'cascade'
         ]
         all_params.extend(
             [
@@ -517,6 +522,8 @@ class PipelineServiceApi(object):
             path_params['pipeline_id'] = local_var_params['pipeline_id']  # noqa: E501
 
         query_params = []
+        if 'cascade' in local_var_params and local_var_params['cascade'] is not None:  # noqa: E501
+            query_params.append(('cascade', local_var_params['cascade']))  # noqa: E501
 
         header_params = {}
 

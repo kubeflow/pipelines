@@ -25,4 +25,8 @@ const (
 	// Env vars in metadata-grpc-configmap
 	EnvMetadataHost = "METADATA_GRPC_SERVICE_HOST"
 	EnvMetadataPort = "METADATA_GRPC_SERVICE_PORT"
+
+	// Workspace-related constants
+	WorkspaceVolumeName = "kfp-workspace"
+	WorkspaceMountPath  = "/kfp-workspace"
 )
