@@ -417,59 +417,39 @@ func (s *DAGStatusConditionalTestSuite) waitForRunCompletion(runID string) {
 }
 
 func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID string, expectedDAGState pb.Execution_State, expectedExecutedBranches int) {
-	t := s.T()
-
-	contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
-	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
-		Options: &pb.ListOperationOptions{
-			FilterQuery: contextsFilterQuery,
-		},
-	})
-	require.NoError(t, err)
-	require.NotNil(t, contexts)
-	require.NotEmpty(t, contexts.Contexts)
-
-	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
-		ContextId: contexts.Contexts[0].Id,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, executionsByContext)
-	require.NotEmpty(t, executionsByContext.Executions)
-
-	var conditionalDAGs []*pb.Execution
-	var containerExecutions []*pb.Execution
-	var rootDAGID int64
-
-	s.T().Logf("=== DEBUG: All executions in context ===")
-	for _, execution := range executionsByContext.Executions {
-		taskName := ""
-		if props := execution.GetCustomProperties(); props != nil {
-			if nameVal := props["task_name"]; nameVal != nil {
-				taskName = nameVal.GetStringValue()
-			}
-		}
-
-		s.T().Logf("Execution ID=%d, Type=%s, State=%s, TaskName='%s'",
-			execution.GetId(), execution.GetType(), execution.LastKnownState.String(), taskName)
-
-		if execution.GetType() == "system.DAGExecution" {
-			s.T().Logf("Found DAG execution ID=%d, type=%s, state=%v, properties=%v",
-				execution.GetId(), execution.GetType(), execution.LastKnownState, execution.GetCustomProperties())
-
-			// Identify the root DAG (has empty task name and no parent_dag_id)
-			if taskName == "" {
-				rootDAGID = execution.GetId()
-				s.T().Logf("Found root DAG ID=%d for run %s", rootDAGID, runID)
-			}
-
-			conditionalDAGs = append(conditionalDAGs, execution)
-		} else if execution.GetType() == "system.ContainerExecution" {
-			containerExecutions = append(containerExecutions, execution)
-		}
+	// Get all executions for the run
+	executions := s.getExecutionsForRun(runID)
+	
+	// Separate and identify different types of executions
+	conditionalDAGs, containerExecutions, rootDAGID := s.categorizeExecutions(executions.Executions)
+	
+	// Find additional conditional DAGs across all contexts
+	allConditionalDAGs := s.findConditionalDAGsInAllContexts(conditionalDAGs, rootDAGID)
+	
+	// Filter to actual conditional DAGs (exclude root DAG)
+	actualConditionalDAGs := s.filterToActualConditionalDAGs(allConditionalDAGs)
+	
+	// Handle simple conditional pattern if no DAG executions found
+	if len(actualConditionalDAGs) == 0 {
+		s.T().Logf("No conditional DAG executions found - checking for simple conditional pattern")
+		s.validateSimpleConditionalPattern(expectedExecutedBranches, containerExecutions)
+		return
 	}
+	
+	// Validate based on expected execution branches
+	if expectedExecutedBranches == 0 {
+		s.validateFalseConditionDAGs(actualConditionalDAGs)
+	} else {
+		s.validateTrueConditionDAGs(actualConditionalDAGs, expectedDAGState, expectedExecutedBranches)
+	}
+}
 
-	// FIXED: Look for conditional DAGs across ALL contexts that have the root DAG as their parent
-	// This ensures we only find conditional DAGs that belong to this specific test run
+
+
+// findConditionalDAGsInAllContexts searches for conditional DAGs across all contexts
+func (s *DAGStatusConditionalTestSuite) findConditionalDAGsInAllContexts(initialDAGs []*pb.Execution, rootDAGID int64) []*pb.Execution {
+	allConditionalDAGs := initialDAGs
+	
 	if rootDAGID > 0 {
 		allExecsReq := &pb.GetExecutionsRequest{}
 		allExecsRes, err := s.mlmdClient.GetExecutions(context.Background(), allExecsReq)
@@ -481,59 +461,55 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 					continue
 				}
 
-				taskName := ""
-				parentDagID := int64(0)
-				if props := exec.GetCustomProperties(); props != nil {
-					if nameVal := props["task_name"]; nameVal != nil {
-						taskName = nameVal.GetStringValue()
-					}
-					if parentVal := props["parent_dag_id"]; parentVal != nil {
-						parentDagID = parentVal.GetIntValue()
-					}
-				}
-
-				// Find conditional DAGs that are children OR grandchildren of our root DAG
-				isDirectChild := parentDagID == rootDAGID && strings.HasPrefix(taskName, "condition-")
-
-				// Also check if this is a grandchild (parent is a child of root DAG)
-				isGrandchild := false
-				if strings.HasPrefix(taskName, "condition-") {
-					// Find the parent DAG and check if its parent is our root DAG
-					for _, parentExec := range allExecsRes.Executions {
-						if parentExec.GetId() == parentDagID && parentExec.GetType() == "system.DAGExecution" {
-							if parentProps := parentExec.GetCustomProperties(); parentProps != nil {
-								if grandparentVal := parentProps["parent_dag_id"]; grandparentVal != nil {
-									if grandparentVal.GetIntValue() == rootDAGID {
-										isGrandchild = true
-										break
-									}
-								}
-							}
-						}
-					}
-				}
-
-				if isDirectChild || isGrandchild {
+				if s.isConditionalDAGRelatedToRoot(exec, rootDAGID, allExecsRes.Executions) {
+					taskName := s.getTaskName(exec)
+					parentDagID := s.getParentDagID(exec)
 					s.T().Logf("Found conditional DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
 						exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
-					conditionalDAGs = append(conditionalDAGs, exec)
+					allConditionalDAGs = append(allConditionalDAGs, exec)
+				}
+			}
+		}
+	}
+	
+	s.T().Logf("=== Summary: Found %d total DAG executions ===", len(allConditionalDAGs))
+	return allConditionalDAGs
+}
+
+// isConditionalDAGRelatedToRoot checks if a DAG execution is related to the root DAG
+func (s *DAGStatusConditionalTestSuite) isConditionalDAGRelatedToRoot(exec *pb.Execution, rootDAGID int64, allExecutions []*pb.Execution) bool {
+	taskName := s.getTaskName(exec)
+	parentDagID := s.getParentDagID(exec)
+	
+	// Find conditional DAGs that are children OR grandchildren of our root DAG
+	isDirectChild := parentDagID == rootDAGID && strings.HasPrefix(taskName, "condition-")
+
+	// Also check if this is a grandchild (parent is a child of root DAG)
+	isGrandchild := false
+	if strings.HasPrefix(taskName, "condition-") {
+		// Find the parent DAG and check if its parent is our root DAG
+		for _, parentExec := range allExecutions {
+			if parentExec.GetId() == parentDagID && parentExec.GetType() == "system.DAGExecution" {
+				if parentProps := parentExec.GetCustomProperties(); parentProps != nil {
+					if grandparentVal := parentProps["parent_dag_id"]; grandparentVal != nil {
+						if grandparentVal.GetIntValue() == rootDAGID {
+							isGrandchild = true
+							break
+						}
+					}
 				}
 			}
 		}
 	}
 
-	s.T().Logf("=== Summary: Found %d DAG executions, %d container executions ===",
-		len(conditionalDAGs), len(containerExecutions))
+	return isDirectChild || isGrandchild
+}
 
-	// Filter to only validate actual conditional DAGs (not root DAG)
+// filterToActualConditionalDAGs filters out root DAGs, keeping only conditional DAGs
+func (s *DAGStatusConditionalTestSuite) filterToActualConditionalDAGs(dagExecutions []*pb.Execution) []*pb.Execution {
 	actualConditionalDAGs := []*pb.Execution{}
-	for _, dagExecution := range conditionalDAGs {
-		taskName := ""
-		if props := dagExecution.GetCustomProperties(); props != nil {
-			if nameVal := props["task_name"]; nameVal != nil {
-				taskName = nameVal.GetStringValue()
-			}
-		}
+	for _, dagExecution := range dagExecutions {
+		taskName := s.getTaskName(dagExecution)
 
 		// Only validate conditional DAGs like "condition-1", "condition-2", "condition-branches-1", not root DAGs
 		if taskName != "" && strings.HasPrefix(taskName, "condition-") {
@@ -543,80 +519,63 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 				dagExecution.GetId(), taskName)
 		}
 	}
+	return actualConditionalDAGs
+}
 
-	// Check if this is a simple conditional pattern where DAG executions might not be created
-	// In KFP v2, simple conditionals might be handled as trigger policies without separate DAG contexts
-	if len(actualConditionalDAGs) == 0 {
-		s.T().Logf("No conditional DAG executions found - checking for simple conditional pattern")
-		s.validateSimpleConditionalPattern(expectedExecutedBranches, containerExecutions)
-		return
-	}
+// validateFalseConditionDAGs validates DAGs for false conditional branches
+func (s *DAGStatusConditionalTestSuite) validateFalseConditionDAGs(actualConditionalDAGs []*pb.Execution) {
+	t := s.T()
+	
+	if len(actualConditionalDAGs) > 0 {
+		// False conditions should create CANCELED conditional DAGs
+		for _, dagExecution := range actualConditionalDAGs {
+			taskName := s.getTaskName(dagExecution)
 
-	// For expectedExecutedBranches=0 (false conditions), conditional DAGs should be CANCELED
-	if expectedExecutedBranches == 0 {
-		if len(actualConditionalDAGs) > 0 {
-			// False conditions should create CANCELED conditional DAGs
-			for _, dagExecution := range actualConditionalDAGs {
-				taskName := ""
-				if props := dagExecution.GetCustomProperties(); props != nil {
-					if nameVal := props["task_name"]; nameVal != nil {
-						taskName = nameVal.GetStringValue()
-					}
-				}
+			// Validate DAG state
+			assert.Equal(t, "CANCELED", dagExecution.LastKnownState.String(),
+				"Conditional DAG '%s' (ID=%d) should be CANCELED for false condition",
+				taskName, dagExecution.GetId())
 
-				// Validate DAG state
-				assert.Equal(t, "CANCELED", dagExecution.LastKnownState.String(),
-					"Conditional DAG '%s' (ID=%d) should be CANCELED for false condition",
-					taskName, dagExecution.GetId())
+			// Validate total_dag_tasks for false conditions
+			totalDagTasks := s.getTotalDagTasks(dagExecution)
+			s.T().Logf("Conditional DAG '%s' (ID=%d): total_dag_tasks=%d (CANCELED)",
+				taskName, dagExecution.GetId(), totalDagTasks)
 
-				// Validate total_dag_tasks for false conditions
-				totalDagTasks := dagExecution.GetCustomProperties()["total_dag_tasks"].GetIntValue()
-				s.T().Logf("Conditional DAG '%s' (ID=%d): expected_executed_branches=%d, total_dag_tasks=%d (CANCELED)",
-					taskName, dagExecution.GetId(), expectedExecutedBranches, totalDagTasks)
+			// For false conditions, the conditional DAG should still have the correct task structure
+			assert.True(t, totalDagTasks >= 1,
+				"Conditional DAG '%s' should have total_dag_tasks >= 1 even when CANCELED (got %d)",
+				taskName, totalDagTasks)
 
-				// For false conditions, the conditional DAG should still have the correct task structure
-				// The total_dag_tasks represents the potential tasks that would have been executed
-				// This should typically be >= 1 since the conditional defines at least one branch
-				assert.True(t, totalDagTasks >= 1,
-					"Conditional DAG '%s' should have total_dag_tasks >= 1 even when CANCELED (got %d)",
-					taskName, totalDagTasks)
-
-				s.T().Logf("✅ CORRECT: Conditional DAG '%s' (ID=%d) correctly CANCELED with total_dag_tasks=%d",
-					taskName, dagExecution.GetId(), totalDagTasks)
-			}
-		} else {
-			s.T().Logf("✅ CORRECT: No conditional DAGs found for false condition")
+			s.T().Logf("✅ CORRECT: Conditional DAG '%s' (ID=%d) correctly CANCELED with total_dag_tasks=%d",
+				taskName, dagExecution.GetId(), totalDagTasks)
 		}
-		return
+	} else {
+		s.T().Logf("✅ CORRECT: No conditional DAGs found for false condition")
 	}
+}
 
+// validateTrueConditionDAGs validates DAGs for true conditional branches
+func (s *DAGStatusConditionalTestSuite) validateTrueConditionDAGs(actualConditionalDAGs []*pb.Execution, expectedDAGState pb.Execution_State, expectedExecutedBranches int) {
+	t := s.T()
+	
 	require.NotEmpty(t, actualConditionalDAGs, "No actual conditional DAG executions found for true conditions")
 
 	for _, dagExecution := range actualConditionalDAGs {
-		taskName := ""
-		if props := dagExecution.GetCustomProperties(); props != nil {
-			if nameVal := props["task_name"]; nameVal != nil {
-				taskName = nameVal.GetStringValue()
-			}
-		}
+		taskName := s.getTaskName(dagExecution)
 
-		// FIXED: Now expecting CORRECT final state - test will FAIL until DAG state bug is fixed
+		// Validate DAG state
 		assert.Equal(t, expectedDAGState.String(), dagExecution.LastKnownState.String(),
-			"Conditional DAG '%s' (ID=%d) should reach final state %v (BUG: currently stuck in %v)",
+			"Conditional DAG '%s' (ID=%d) should reach final state %v (currently in %v)",
 			taskName, dagExecution.GetId(), expectedDAGState, dagExecution.LastKnownState)
 
-		totalDagTasks := dagExecution.GetCustomProperties()["total_dag_tasks"].GetIntValue()
+		totalDagTasks := s.getTotalDagTasks(dagExecution)
 
 		s.T().Logf("Conditional DAG '%s' (ID=%d): expected_executed_branches=%d, total_dag_tasks=%d",
 			taskName, dagExecution.GetId(), expectedExecutedBranches, totalDagTasks)
 
-		// This is the core issue: total_dag_tasks should match expectedExecutedBranches for Conditionals
-		// Currently, total_dag_tasks counts ALL branches, not just the executed ones
-
-		// FIXED: Now expecting CORRECT behavior - test will FAIL until bug is fixed
-		// total_dag_tasks should equal expectedExecutedBranches for Conditional constructs
+		// Validate total_dag_tasks matches expected executed branches
 		assert.Equal(t, int64(expectedExecutedBranches), totalDagTasks,
-			"total_dag_tasks=%d should equal expected_executed_branches=%d for Conditional DAG '%s' (BUG: currently returns wrong value)",
+			"total_dag_tasks=%d should equal expected_executed_branches=%d for Conditional DAG '%s'",
 			totalDagTasks, expectedExecutedBranches, taskName)
 
 		s.T().Logf("REGRESSION TEST: conditional DAG '%s' - expected_executed_branches=%d, total_dag_tasks=%d %s",
@@ -631,9 +590,27 @@ func (s *DAGStatusConditionalTestSuite) validateConditionalDAGStatus(runID strin
 	}
 }
 
-func (s *DAGStatusConditionalTestSuite) validateNestedConditionalDAGStatus(runID string) {
-	t := s.T()
 
+func (s *DAGStatusConditionalTestSuite) validateNestedConditionalDAGStatus(runID string) {
+	// Get the root DAG ID for this run
+	rootDAGID := s.findRootDAGForRun(runID)
+	
+	// Find all conditional DAGs related to this root DAG
+	conditionalDAGs := s.findRelatedConditionalDAGs(rootDAGID)
+	
+	// Log validation progress
+	s.logNestedConditionalValidation(conditionalDAGs, rootDAGID)
+	
+	// Validate DAGs with polling for failure propagation
+	s.validateDAGsWithPolling(conditionalDAGs, 60*time.Second)
+
+	s.T().Logf("✅ Nested complex conditional DAG status validation completed")
+}
+
+// findRootDAGForRun locates the root DAG ID for a specific run
+func (s *DAGStatusConditionalTestSuite) findRootDAGForRun(runID string) int64 {
+	t := s.T()
+	
 	// Get the context for this specific run
 	contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
 	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
@@ -650,17 +627,12 @@ func (s *DAGStatusConditionalTestSuite) validateNestedConditionalDAGStatus(runID
 	})
 	require.NoError(t, err)
 
-	// Find the root DAG ID first
+	// Find the root DAG ID
 	var rootDAGID int64
 	t.Logf("Searching %d executions for root DAG in run %s", len(executionsByContext.Executions), runID)
 
 	for _, exec := range executionsByContext.Executions {
-		taskName := ""
-		if props := exec.GetCustomProperties(); props != nil {
-			if nameVal := props["task_name"]; nameVal != nil {
-				taskName = nameVal.GetStringValue()
-			}
-		}
+		taskName := s.getTaskName(exec)
 
 		t.Logf("Execution ID=%d, Type=%s, TaskName='%s', State=%s",
 			exec.GetId(), exec.GetType(), taskName, exec.LastKnownState.String())
@@ -674,8 +646,14 @@ func (s *DAGStatusConditionalTestSuite) validateNestedConditionalDAGStatus(runID
 	}
 
 	require.NotZero(t, rootDAGID, "Root DAG not found")
+	return rootDAGID
+}
 
-	// Now look for all conditional DAGs that are related to this root DAG
+// findRelatedConditionalDAGs finds all conditional DAGs related to the root DAG
+func (s *DAGStatusConditionalTestSuite) findRelatedConditionalDAGs(rootDAGID int64) []*pb.Execution {
+	t := s.T()
+	
+	// Get all executions to search through
 	allExecsReq := &pb.GetExecutionsRequest{}
 	allExecsRes, err := s.mlmdClient.GetExecutions(context.Background(), allExecsReq)
 	require.NoError(t, err)
@@ -688,77 +666,88 @@ func (s *DAGStatusConditionalTestSuite) validateNestedConditionalDAGStatus(runID
 			continue
 		}
 
-		taskName := ""
-		parentDagID := int64(0)
-		if props := exec.GetCustomProperties(); props != nil {
-			if nameVal := props["task_name"]; nameVal != nil {
-				taskName = nameVal.GetStringValue()
-			}
-			if parentVal := props["parent_dag_id"]; parentVal != nil {
-				parentDagID = parentVal.GetIntValue()
-			}
-		}
+		taskName := s.getTaskName(exec)
+		parentDagID := s.getParentDagID(exec)
 
 		t.Logf("DEBUG: DAG ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
 			exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
 
-		// Find conditional DAGs that are children of our root DAG or children of children
-		isRelatedToRun := parentDagID == rootDAGID && strings.HasPrefix(taskName, "condition-")
-
-		// For the current test, also check if this is a recent DAG from our run context
-		// by checking if the DAG ID is close to our root DAG ID (same execution batch)
-		if !isRelatedToRun && strings.HasPrefix(taskName, "condition-") {
-			idDifference := exec.GetId() - rootDAGID
-			if idDifference > 0 && idDifference < 20 { // Recent DAGs from same run
-				isRelatedToRun = true
-			}
-		}
-
-		// Also check for deeper nesting
-		if !isRelatedToRun && strings.HasPrefix(taskName, "condition-") {
-			// Check if this is a grandchild or deeper
-			currentParentID := parentDagID
-			for depth := 0; depth < 5 && currentParentID > 0; depth++ { // Max depth of 5 levels
-				for _, parentExec := range allExecsRes.Executions {
-					if parentExec.GetId() == currentParentID && parentExec.GetType() == "system.DAGExecution" {
-						if parentProps := parentExec.GetCustomProperties(); parentProps != nil {
-							if grandparentVal := parentProps["parent_dag_id"]; grandparentVal != nil {
-								currentParentID = grandparentVal.GetIntValue()
-								if currentParentID == rootDAGID {
-									isRelatedToRun = true
-									break
-								}
-							}
-						}
-						break
-					}
-				}
-				if isRelatedToRun {
-					break
-				}
-			}
-		}
-
-		if isRelatedToRun {
+		// Check if this DAG is related to our run
+		if s.isDAGRelatedToRun(exec, rootDAGID, allExecsRes.Executions) {
 			t.Logf("Found conditional DAG for current run: ID=%d, TaskName='%s', State=%s, ParentDAG=%d",
 				exec.GetId(), taskName, exec.LastKnownState.String(), parentDagID)
 			conditionalDAGs = append(conditionalDAGs, exec)
 		}
 	}
+	
+	return conditionalDAGs
+}
 
+// isDAGRelatedToRun checks if a DAG execution is related to the current run
+func (s *DAGStatusConditionalTestSuite) isDAGRelatedToRun(exec *pb.Execution, rootDAGID int64, allExecutions []*pb.Execution) bool {
+	taskName := s.getTaskName(exec)
+	parentDagID := s.getParentDagID(exec)
+	
+	// Direct child conditional DAG
+	isDirectChild := parentDagID == rootDAGID && strings.HasPrefix(taskName, "condition-")
+	if isDirectChild {
+		return true
+	}
+	
+	// Check if this is a recent DAG from our run context (ID proximity heuristic)
+	if s.isRecentConditionalDAG(exec, rootDAGID, taskName) {
+		return true
+	}
+	
+	// Check for deeper nesting
+	return s.isDeeplyNestedConditionalDAG(exec, rootDAGID, allExecutions, taskName)
+}
+
+// isRecentConditionalDAG checks if this is a recent conditional DAG based on ID proximity
+func (s *DAGStatusConditionalTestSuite) isRecentConditionalDAG(exec *pb.Execution, rootDAGID int64, taskName string) bool {
+	if !strings.HasPrefix(taskName, "condition-") {
+		return false
+	}
+	
+	idDifference := exec.GetId() - rootDAGID
+	return idDifference > 0 && idDifference < 20 // Recent DAGs from same run
+}
+
+// isDeeplyNestedConditionalDAG checks for deeply nested conditional relationships
+func (s *DAGStatusConditionalTestSuite) isDeeplyNestedConditionalDAG(exec *pb.Execution, rootDAGID int64, allExecutions []*pb.Execution, taskName string) bool {
+	if !strings.HasPrefix(taskName, "condition-") {
+		return false
+	}
+	
+	parentDagID := s.getParentDagID(exec)
+	currentParentID := parentDagID
+	
+	// Traverse up the parent hierarchy (max 5 levels)
+	for depth := 0; depth < 5 && currentParentID > 0; depth++ {
+		for _, parentExec := range allExecutions {
+			if parentExec.GetId() == currentParentID && parentExec.GetType() == "system.DAGExecution" {
+				grandparentID := s.getParentDagID(parentExec)
+				if grandparentID == rootDAGID {
+					return true
+				}
+				currentParentID = grandparentID
+				break
+			}
+		}
+	}
+	
+	return false
+}
+
+// logNestedConditionalValidation logs the validation progress
+func (s *DAGStatusConditionalTestSuite) logNestedConditionalValidation(conditionalDAGs []*pb.Execution, rootDAGID int64) {
+	t := s.T()
+	
 	t.Logf("Found %d conditional DAG executions for nested complex pipeline", len(conditionalDAGs))
 
-	// If we found conditional DAGs from the current run, validate them
 	if len(conditionalDAGs) > 0 {
 		t.Logf("Validating conditional DAGs from current run (root DAG ID=%d)", rootDAGID)
 	}
-
-	// For nested complex conditionals, we expect to find multiple conditional DAGs
-	// This pipeline has both simple and nested conditional constructs
-	// Use polling/retry logic with 60-second timeout for failure propagation
-	s.validateDAGsWithPolling(conditionalDAGs, 60*time.Second)
-
-	t.Logf("✅ Nested complex conditional DAG status validation completed")
 }
 
 // validateDAGsWithPolling polls DAG states with timeout to wait for failure propagation
@@ -1054,58 +1043,164 @@ func (s *DAGStatusConditionalTestSuite) validateSimpleConditionalPattern(expecte
 	t.Logf("Expected executed branches: %d", expectedExecutedBranches)
 	t.Logf("Container executions found: %d", len(containerExecutions))
 
-	// Count executed vs non-executed container tasks
-	executedTasks := 0
-	canceledTasks := 0
-	totalTasks := len(containerExecutions)
+	// Analyze container execution states
+	taskCounts := s.analyzeContainerExecutionStates(containerExecutions)
+	
+	t.Logf("Task execution summary: %d executed, %d canceled, %d total", 
+		taskCounts.executedTasks, taskCounts.canceledTasks, taskCounts.totalTasks)
+
+	// Validate based on expected execution pattern
+	if expectedExecutedBranches == 0 {
+		s.validateFalseConditionPattern(taskCounts)
+	} else {
+		s.validateTrueConditionPattern(taskCounts, expectedExecutedBranches)
+	}
+
+	// Validate that we have some form of conditional logic execution
+	assert.Greater(t, taskCounts.totalTasks, 0, "Should have at least some container executions for conditional logic")
+
+	t.Logf("✅ Simple conditional pattern validation completed successfully")
+}
+
+// TaskExecutionCounts holds counts of different task execution states
+type TaskExecutionCounts struct {
+	executedTasks int
+	canceledTasks int
+	totalTasks    int
+}
+
+// analyzeContainerExecutionStates counts and logs container execution states
+func (s *DAGStatusConditionalTestSuite) analyzeContainerExecutionStates(containerExecutions []*pb.Execution) TaskExecutionCounts {
+	t := s.T()
+	counts := TaskExecutionCounts{
+		totalTasks: len(containerExecutions),
+	}
 
 	// Analyze each container execution
 	for _, exec := range containerExecutions {
-		taskName := ""
-		if props := exec.GetCustomProperties(); props != nil {
-			if nameVal := props["task_name"]; nameVal != nil {
-				taskName = nameVal.GetStringValue()
-			}
-		}
-
+		taskName := s.getTaskName(exec)
 		state := exec.LastKnownState.String()
 		t.Logf("Container task '%s': state=%s", taskName, state)
 
 		switch state {
 		case "COMPLETE":
-			executedTasks++
+			counts.executedTasks++
 		case "CANCELED":
-			canceledTasks++
+			counts.canceledTasks++
 		}
 	}
+	
+	return counts
+}
 
-	t.Logf("Task execution summary: %d executed, %d canceled, %d total", executedTasks, canceledTasks, totalTasks)
+// getExecutionsForRun retrieves all executions for a specific run
+func (s *DAGStatusConditionalTestSuite) getExecutionsForRun(runID string) *pb.GetExecutionsByContextResponse {
+	t := s.T()
+	
+	contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
+	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
+		Options: &pb.ListOperationOptions{
+			FilterQuery: contextsFilterQuery,
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, contexts)
+	require.NotEmpty(t, contexts.Contexts)
 
-	// For simple conditionals, validate that the correct number of tasks executed
-	// Note: In KFP v2, conditional execution might be handled differently than expected
-	// We validate based on what we actually observe rather than theoretical expectations
-	if expectedExecutedBranches == 0 {
-		// False condition: expect at least the condition check task
-		assert.GreaterOrEqual(t, executedTasks, 1, "Should have at least 1 executed task (condition check)")
-		t.Logf("✅ CORRECT: False condition - %d tasks executed (including condition check)", executedTasks)
+	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
+		ContextId: contexts.Contexts[0].Id,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, executionsByContext)
+	require.NotEmpty(t, executionsByContext.Executions)
+	
+	return executionsByContext
+}
+
+// categorizeExecutions separates executions into DAGs, containers, and finds root DAG ID
+func (s *DAGStatusConditionalTestSuite) categorizeExecutions(executions []*pb.Execution) ([]*pb.Execution, []*pb.Execution, int64) {
+	var conditionalDAGs []*pb.Execution
+	var containerExecutions []*pb.Execution
+	var rootDAGID int64
+
+	s.T().Logf("=== DEBUG: All executions in context ===")
+	for _, execution := range executions {
+		taskName := s.getTaskName(execution)
+
+		s.T().Logf("Execution ID=%d, Type=%s, State=%s, TaskName='%s'",
+			execution.GetId(), execution.GetType(), execution.LastKnownState.String(), taskName)
+
+		if execution.GetType() == "system.DAGExecution" {
+			s.T().Logf("Found DAG execution ID=%d, type=%s, state=%v, properties=%v",
+				execution.GetId(), execution.GetType(), execution.LastKnownState, execution.GetCustomProperties())
+
+			// Identify the root DAG (has empty task name)
+			if taskName == "" {
+				rootDAGID = execution.GetId()
+				s.T().Logf("Found root DAG ID=%d", rootDAGID)
+			}
+
+			conditionalDAGs = append(conditionalDAGs, execution)
+		} else if execution.GetType() == "system.ContainerExecution" {
+			containerExecutions = append(containerExecutions, execution)
+		}
+	}
+	
+	return conditionalDAGs, containerExecutions, rootDAGID
+}
+
+// Helper methods for extracting common properties
+func (s *DAGStatusConditionalTestSuite) getTaskName(execution *pb.Execution) string {
+	if props := execution.GetCustomProperties(); props != nil {
+		if nameVal := props["task_name"]; nameVal != nil {
+			return nameVal.GetStringValue()
+		}
+	}
+	return ""
+}
+
+func (s *DAGStatusConditionalTestSuite) getParentDagID(execution *pb.Execution) int64 {
+	if props := execution.GetCustomProperties(); props != nil {
+		if parentVal := props["parent_dag_id"]; parentVal != nil {
+			return parentVal.GetIntValue()
+		}
+	}
+	return 0
+}
+
+func (s *DAGStatusConditionalTestSuite) getTotalDagTasks(execution *pb.Execution) int64 {
+	if props := execution.GetCustomProperties(); props != nil {
+		if totalVal := props["total_dag_tasks"]; totalVal != nil {
+			return totalVal.GetIntValue()
+		}
+	}
+	return 0
+}
+
+// validateFalseConditionPattern validates execution pattern for false conditions
+func (s *DAGStatusConditionalTestSuite) validateFalseConditionPattern(counts TaskExecutionCounts) {
+	t := s.T()
+	
+	// False condition: expect at least the condition check task
+	assert.GreaterOrEqual(t, counts.executedTasks, 1, "Should have at least 1 executed task (condition check)")
+	t.Logf("✅ CORRECT: False condition - %d tasks executed (including condition check)", counts.executedTasks)
+}
+
+// validateTrueConditionPattern validates execution pattern for true conditions
+func (s *DAGStatusConditionalTestSuite) validateTrueConditionPattern(counts TaskExecutionCounts, expectedExecutedBranches int) {
+	t := s.T()
+	
+	// True condition: For simple conditionals, we may only see the condition check in MLMD
+	// The actual conditional branches might be handled by the workflow engine without separate MLMD entries
+	if counts.executedTasks >= expectedExecutedBranches {
+		t.Logf("✅ CORRECT: True condition - %d tasks executed (expected %d branches)",
+			counts.executedTasks, expectedExecutedBranches)
 	} else {
-		// True condition: For simple conditionals, we may only see the condition check in MLMD
-		// The actual conditional branches might be handled by the workflow engine without separate MLMD entries
-		if executedTasks >= expectedExecutedBranches {
-			t.Logf("✅ CORRECT: True condition - %d tasks executed (expected %d branches)",
-				executedTasks, expectedExecutedBranches)
-		} else {
-			// In KFP v2, conditional branches might not appear as separate container executions in MLMD
-			// This is acceptable for simple conditionals where the workflow engine handles the branching
-			t.Logf("⚠️ ACCEPTABLE: Simple conditional pattern - %d tasks executed (expected %d branches, but KFP v2 may handle branching in workflow engine)",
-				executedTasks, expectedExecutedBranches)
-		}
+		// In KFP v2, conditional branches might not appear as separate container executions in MLMD
+		// This is acceptable for simple conditionals where the workflow engine handles the branching
+		t.Logf("⚠️ ACCEPTABLE: Simple conditional pattern - %d tasks executed (expected %d branches, but KFP v2 may handle branching in workflow engine)",
+			counts.executedTasks, expectedExecutedBranches)
 	}
-
-	// Validate that we have some form of conditional logic execution
-	assert.Greater(t, totalTasks, 0, "Should have at least some container executions for conditional logic")
-
-	t.Logf("✅ Simple conditional pattern validation completed successfully")
 }
 
 func (s *DAGStatusConditionalTestSuite) cleanUp() {
