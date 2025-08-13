@@ -17,7 +17,7 @@ jobs:
     name: Periodic Functional Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
