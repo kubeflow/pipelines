@@ -21,10 +21,7 @@ def conditional_if_false_pipeline():
     """
     Simple conditional pipeline with If statement that evaluates to False.
     
-    This tests the issue where total_dag_tasks counts all branches
-    even when they don't execute (condition is False).
     """
-    # Check condition (always False)
     condition_task = check_condition().set_caching_options(enable_caching=False)
     
     # If condition is False, this task should NOT execute

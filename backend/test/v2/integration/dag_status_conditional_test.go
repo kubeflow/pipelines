@@ -1,4 +1,4 @@
-// Copyright 2018-2023 The Kubeflow Authors
+// Copyright 2018-2025 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -57,13 +57,6 @@ func (s *DAGStatusConditionalTestSuite) debugLogf(format string, args ...interfa
 }
 
 func (s *DAGStatusConditionalTestSuite) SetupTest() {
-	// DEBUG: Add infrastructure debugging
-	s.debugLogf("=== SETUP TEST DEBUG ===")
-	s.debugLogf("runIntegrationTests: %v", *runIntegrationTests)
-	s.debugLogf("isDevMode: %v", *isDevMode)
-	s.debugLogf("namespace: %v", *namespace)
-	s.debugLogf("isKubeflowMode: %v", *isKubeflowMode)
-
 	if !*runIntegrationTests {
 		s.T().SkipNow()
 		return
@@ -75,10 +68,9 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 		if err != nil {
 			s.T().Fatalf("Failed to initialize test. Error: %s", err.Error())
 		}
-		s.debugLogf("✅ Cluster ready")
-	} else {
-		s.debugLogf("⚠️ DevMode - skipping cluster ready check")
+		s.debugLogf("Cluster ready")
 	}
+
 	s.namespace = *namespace
 
 	var newPipelineClient func() (*apiserver.PipelineClient, error)
@@ -98,9 +90,7 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 			return apiserver.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
 		}
 	} else {
-		s.debugLogf("Using standard mode (not Kubeflow mode)")
 		clientConfig := test.GetClientConfig(*namespace)
-		s.debugLogf("Client config: %+v", clientConfig)
 
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewPipelineClient(clientConfig, *isDebugMode)
@@ -115,28 +105,18 @@ func (s *DAGStatusConditionalTestSuite) SetupTest() {
 
 	var err error
 
-	s.debugLogf("Creating pipeline client...")
 	s.pipelineClient, err = newPipelineClient()
 	if err != nil {
-		s.T().Logf("❌ PIPELINE CLIENT CREATION FAILED: %v", err)
 		s.T().Fatalf("Failed to get pipeline client. Error: %s", err.Error())
-	} else {
-		s.debugLogf("✅ Pipeline client created successfully")
 	}
-
-	s.debugLogf("Creating pipeline upload client...")
 	s.pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
-		s.T().Logf("❌ PIPELINE UPLOAD CLIENT CREATION FAILED: %v", err)
 		s.T().Fatalf("Failed to get pipeline upload client. Error: %s", err.Error())
-	} else {
-		s.debugLogf("✅ Pipeline upload client created successfully")
 	}
 	s.runClient, err = newRunClient()
 	if err != nil {
 		s.T().Fatalf("Failed to get run client. Error: %s", err.Error())
 	}
-
 	s.mlmdClient, err = testutils.NewTestMlmdClient("127.0.0.1", metadata.DefaultConfig().Port)
 	if err != nil {
 		s.T().Fatalf("Failed to create MLMD client. Error: %s", err.Error())
@@ -149,31 +129,25 @@ func TestDAGStatusConditional(t *testing.T) {
 	suite.Run(t, new(DAGStatusConditionalTestSuite))
 }
 
-// Test Case 1: Simple If - False
+// Simple If - False
 // Validates that a conditional DAG with If (false) updates status correctly
 func (s *DAGStatusConditionalTestSuite) TestSimpleIfFalse() {
 	t := s.T()
 
+	pipelineFile := "../resources/dag_status/conditional_if_false.yaml"
+
 	pipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/dag_status/conditional_if_false.yaml",
+		pipelineFile,
 		&uploadParams.UploadPipelineParams{
 			Name:        util.StringPointer("conditional-if-false-test"),
 			DisplayName: util.StringPointer("Conditional If False Test Pipeline"),
 		},
 	)
 
-	if err != nil {
-		t.Logf("DEBUG: UploadFile failed with error: %v", err)
-		t.Logf("DEBUG: Error type: %T", err)
-	} else {
-		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
-	}
-
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	// Upload a pipeline version explicitly like run_api_test.go does
-	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/conditional_if_false.yaml", &uploadParams.UploadPipelineVersionParams{
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(pipelineFile, &uploadParams.UploadPipelineVersionParams{
 		Name:       util.StringPointer("test-version"),
 		Pipelineid: util.StringPointer(pipeline.PipelineID),
 	})
@@ -186,36 +160,31 @@ func (s *DAGStatusConditionalTestSuite) TestSimpleIfFalse() {
 
 	s.waitForRunCompletion(run.RunID, run_model.V2beta1RuntimeStateSUCCEEDED)
 
+	// TODO: Helber - replace this Sleep with require.Eventually()
 	// Give some time for MLMD DAG execution to be created
 	time.Sleep(20 * time.Second)
-	s.validateConditionalDAGStatus(run.RunID, pb.Execution_COMPLETE, 0) // 0 branches executed
+	s.validateConditionalDAGStatus(run.RunID, pb.Execution_COMPLETE, 0)
 }
 
-// Test Case 2: If/Else - True
+// If/Else - True
 // Validates that an If/Else DAG with If (true) updates status correctly
 func (s *DAGStatusConditionalTestSuite) TestIfElseTrue() {
 	t := s.T()
 
+	pipelineFile := "../resources/dag_status/conditional_if_else_true.yaml"
+
 	pipeline, err := s.pipelineUploadClient.UploadFile(
-		"../resources/dag_status/conditional_if_else_true.yaml",
+		pipelineFile,
 		&uploadParams.UploadPipelineParams{
 			Name:        util.StringPointer("conditional-if-else-true-test"),
 			DisplayName: util.StringPointer("Conditional If-Else True Test Pipeline"),
 		},
 	)
 
-	if err != nil {
-		t.Logf("DEBUG: UploadFile failed with error: %v", err)
-		t.Logf("DEBUG: Error type: %T", err)
-	} else {
-		t.Logf("DEBUG: UploadFile succeeded, pipeline: %+v", pipeline)
-	}
-
 	require.NoError(t, err)
 	require.NotNil(t, pipeline)
 
-	// Upload a pipeline version explicitly like run_api_test.go does
-	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion("../resources/dag_status/conditional_if_else_true.yaml", &uploadParams.UploadPipelineVersionParams{
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(pipelineFile, &uploadParams.UploadPipelineVersionParams{
 		Name:       util.StringPointer("test-version"),
 		Pipelineid: util.StringPointer(pipeline.PipelineID),
 	})
@@ -420,10 +389,10 @@ func (s *DAGStatusConditionalTestSuite) TestDeeplyNestedPipelineFailurePropagati
 
 	// Give time for MLMD DAG execution to be created, then validate failure propagation through nested DAGs
 	time.Sleep(20 * time.Second)
-	
+
 	// Validate that failure propagates correctly through all levels of nesting
 	s.validateDeeplyNestedDAGFailurePropagation(run.RunID)
-	
+
 	s.T().Logf("✅ Deeply nested pipeline failure propagation completed successfully with proper DAG status propagation")
 }
 
@@ -1212,12 +1181,12 @@ func (s *DAGStatusConditionalTestSuite) validateDeeplyNestedDAGFailurePropagatio
 
 		// Check if this DAG is part of our nested pipeline hierarchy
 		isRelatedToRun := false
-		
+
 		// Direct child of root (outer -> inner)
 		if parentDagID == rootDAGID && (taskName == "inner-pipeline" || taskName == "inner__pipeline") {
 			isRelatedToRun = true
 		}
-		
+
 		// Check for deeper nesting by traversing up the parent hierarchy
 		if !isRelatedToRun {
 			currentParentID := parentDagID
@@ -1250,7 +1219,7 @@ func (s *DAGStatusConditionalTestSuite) validateDeeplyNestedDAGFailurePropagatio
 	}
 
 	t.Logf("Found %d nested DAG executions for deeply nested pipeline", len(nestedDAGs))
-	
+
 	// Use polling/retry logic with 60-second timeout for failure propagation through nested levels
 	s.validateDAGsWithPolling(nestedDAGs, 60*time.Second)
 
