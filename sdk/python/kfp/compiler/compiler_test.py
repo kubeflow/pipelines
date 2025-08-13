@@ -1039,7 +1039,8 @@ implementation:
     def test_compile_with_kubernetes_manifest_format(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            @dsl.pipeline(name='my-pipeline')
+            @dsl.pipeline(
+                name='my-pipeline', description='A simple test pipeline')
             def my_pipeline(input1: str):
                 print_op(message=input1)
 
@@ -1080,6 +1081,8 @@ implementation:
                              pipeline_name)
             self.assertEqual(pipeline_manifest['spec']['displayName'],
                              pipeline_display_name)
+            self.assertEqual(pipeline_manifest['spec']['description'],
+                             'A simple test pipeline')
             self.assertEqual(pipeline_manifest['metadata']['namespace'],
                              namespace)
 
@@ -1091,6 +1094,8 @@ implementation:
                              pipeline_version_name)
             self.assertEqual(pipeline_version_manifest['spec']['displayName'],
                              pipeline_version_display_name)
+            self.assertEqual(pipeline_version_manifest['spec']['description'],
+                             'A simple test pipeline')
             self.assertEqual(pipeline_version_manifest['spec']['pipelineName'],
                              pipeline_name)
             self.assertEqual(pipeline_version_manifest['metadata']['namespace'],
