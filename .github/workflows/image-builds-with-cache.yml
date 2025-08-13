@@ -47,7 +47,7 @@ jobs:
       ARTIFACTS_PATH: "images_${{ github.sha }}"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create Artifacts Path Directory
         id: configure
