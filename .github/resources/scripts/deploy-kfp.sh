@@ -30,6 +30,7 @@ USE_PROXY=false
 CACHE_DISABLED=false
 MULTI_USER=false
 STORAGE_BACKEND="seaweedfs"
+AWF_VERSION=""
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -56,6 +57,16 @@ while [ "$#" -gt 0 ]; do
       STORAGE_BACKEND="$2"
       shift 2
       ;;
+    --argo-version)
+      shift
+      if [[ -n "$1" ]]; then
+        AWF_VERSION="$1"
+        shift
+      else
+        echo "ERROR: --argo-version requires an argument"
+        exit 1
+      fi
+      ;;
   esac
 done
 
@@ -74,7 +85,15 @@ if [ "${STORAGE_BACKEND}" != "minio" ] && [ "${STORAGE_BACKEND}" != "seaweedfs" 
   exit 1
 fi
 
+if [ -n "${AWF_VERSION}"  ]; then
+  echo "NOTE: Argo version ${AWF_VERSION} specified, updating Argo Workflow manifests..."
+  echo "${AWF_VERSION}" > third_party/argo/VERSION
+  make -C ./manifests/kustomize/third-party/argo update
+  echo "Manifests updated for Argo version ${AWF_VERSION}."
+fi
+
 kubectl apply -k "manifests/kustomize/cluster-scoped-resources/" || EXIT_CODE=$?
+
 kubectl wait crd/applications.app.k8s.io --for condition=established --timeout=60s || EXIT_CODE=$?
 if [[ $EXIT_CODE -ne 0 ]]; then
   echo "Failed to deploy cluster-scoped resources."
