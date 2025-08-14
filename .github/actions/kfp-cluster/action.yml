@@ -30,6 +30,9 @@ inputs:
   image_registry:
     required: true
     description: "Image Registry address of the images"
+  argo_version:
+    required: false
+    description: "Argo version to use for the cluster"
 runs:
   using: "composite"
   steps:
@@ -72,6 +75,10 @@ runs:
           ARGS="${ARGS} --cache-disabled"
         elif [ "${{inputs.pipeline_store }}" = "kubernetes" ]; then
           ARGS="${ARGS}  --deploy-k8s-native"
+        fi
+
+        if [ -n "${{ inputs.argo_version }}" ]; then
+          ARGS="${ARGS} --argo-version ${{ inputs.argo_version }}"
         fi
         
         ./.github/resources/scripts/deploy-kfp.sh $ARGS
