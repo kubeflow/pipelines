@@ -113,12 +113,13 @@ if [ "${MULTI_USER}" == "true" ]; then
   echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
   kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml
   
-  echo "Creating KF Profile..."
-  kubectl apply -f test/seaweedfs/test-profiles.yaml
-  
-  echo "Applying network policy to allow user namespace access to kubeflow services..."
-  kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml
+  if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+    echo "Creating KF Profile..."
+    kubectl apply -f test/seaweedfs/test-profiles.yaml
     
+    echo "Applying network policy to allow user namespace access to kubeflow services..."
+    kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml
+  fi
 fi
 
 # Manifests will be deployed according to the flag provided
