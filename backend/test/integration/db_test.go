@@ -50,8 +50,9 @@ func (s *DBTestSuite) TestInitDBClient_MySQL() {
 	// The default port-forwarding IP address that test uses is different compared to production
 	viper.Set("DBConfig.MySQLConfig.Host", "localhost")
 	duration, _ := time.ParseDuration("1m")
-	db := cm.InitDBClient(duration)
+	db, dialect := cm.InitDBClient(duration)
 	assert.NotNil(t, db)
+	assert.Equal(t, "mysql", dialect.Name)
 }
 
 // Test PostgreSQL initializes correctly
@@ -68,8 +69,9 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 	viper.Set("DBConfig.PostgreSQLConfig.User", "user")
 	viper.Set("DBConfig.PostgreSQLConfig.Password", "password")
 	duration, _ := time.ParseDuration("1m")
-	db := cm.InitDBClient(duration)
+	db, dialect := cm.InitDBClient(duration)
 	assert.NotNil(t, db)
+	assert.Equal(t, "pgx", dialect.Name)
 }
 
 func TestDB(t *testing.T) {
