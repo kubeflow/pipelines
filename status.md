@@ -11,6 +11,7 @@
 
 ### What Still Needs to Be Done
 - [ ] This work was done with the help of an AI code assistant. Therefore, we still need to:
+  - [ ] Tests seem to have unnecessary complexity (complex DAG detection, excessive polling, redundant validation levels). Assess the real need of that
   - [ ] Review the test code and make sure its logic is correct
   - [ ] Clean the test code
     - [ ] Some verifications seem very complex. Verify if all of that is necessary and remove unnecessary code.
