@@ -110,8 +110,14 @@ if [ "${MULTI_USER}" == "true" ]; then
   kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master
   kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s
 
+  echo "Creating KF Profile..."
+  kubectl apply -f test/seaweedfs/test-profiles.yaml
+
   echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
   kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml
+
+  echo "Applying network policy to allow user namespace access to kubeflow services..."
+  kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml
 fi
 
 # Manifests will be deployed according to the flag provided
