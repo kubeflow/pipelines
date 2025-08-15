@@ -35,7 +35,7 @@ const (
 
 func initializeTaskStore() (*DB, *TaskStore) {
 	db := NewFakeDBOrFatal()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
 	expStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil)
 	expStore.CreateExperiment(&model.Experiment{Name: "e2", Namespace: "ns2"})
