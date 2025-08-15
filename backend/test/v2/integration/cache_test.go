@@ -28,7 +28,7 @@ type CacheTestSuite struct {
 	namespace            string
 	resourceNamespace    string
 	pipelineClient       *apiServer.PipelineClient
-	pipelineUploadClient *apiServer.PipelineUploadClient
+	pipelineUploadClient apiServer.PipelineUploadInterface
 	runClient            *apiServer.RunClient
 	recurringRunClient   *apiServer.RecurringRunClient
 	mlmdClient           pb.MetadataStoreServiceClient
@@ -59,7 +59,6 @@ func (s *CacheTestSuite) SetupTest() {
 	}
 	s.namespace = *namespace
 
-	var newPipelineUploadClient func() (*apiServer.PipelineUploadClient, error)
 	var newPipelineClient func() (*apiServer.PipelineClient, error)
 	var newRunClient func() (*apiServer.RunClient, error)
 	var newRecurringRunClient func() (*apiServer.RecurringRunClient, error)
@@ -67,9 +66,6 @@ func (s *CacheTestSuite) SetupTest() {
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
-		newPipelineUploadClient = func() (*apiServer.PipelineUploadClient, error) {
-			return apiServer.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
-		}
 		newPipelineClient = func() (*apiServer.PipelineClient, error) {
 			return apiServer.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
 		}
@@ -82,9 +78,6 @@ func (s *CacheTestSuite) SetupTest() {
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
-		newPipelineUploadClient = func() (*apiServer.PipelineUploadClient, error) {
-			return apiServer.NewPipelineUploadClient(clientConfig, *isDebugMode)
-		}
 		newPipelineClient = func() (*apiServer.PipelineClient, error) {
 			return apiServer.NewPipelineClient(clientConfig, *isDebugMode)
 		}
@@ -97,7 +90,13 @@ func (s *CacheTestSuite) SetupTest() {
 	}
 
 	var err error
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*isDebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
