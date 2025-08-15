@@ -28,6 +28,8 @@ TEST_MANIFESTS=".github/resources/manifests/argo"
 PIPELINES_STORE="database"
 USE_PROXY=false
 CACHE_DISABLED=false
+AWF_VERSION=$(cat third_party/argo/VERSION)
+AWF_VERSION=""
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -46,12 +48,29 @@ while [ "$#" -gt 0 ]; do
       CACHE_DISABLED=true
       shift
       ;;
+    --argo-version)
+      shift
+      if [[ -n "$1" ]]; then
+        AWF_VERSION="$1"
+        shift
+      else
+        echo "ERROR: --argo-version requires an argument"
+        exit 1
+      fi
+      ;;
   esac
 done
 
 if [ "${USE_PROXY}" == "true" ] && [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   echo "ERROR: Kubernetes Pipeline store cannot be deployed with proxy support."
   exit 1
+fi
+
+if [ -n "${AWF_VERSION}"  ]; then
+  echo "NOTE: Argo version ${AWF_VERSION} specified, updating Argo Workflow manifests..."
+  echo "${AWF_VERSION}" > third_party/argo/VERSION
+  make -C ./manifests/kustomize/third-party/argo update
+  echo "Manifests updated for Argo version ${AWF_VERSION}."
 fi
 
 kubectl apply -k "manifests/kustomize/cluster-scoped-resources/"
