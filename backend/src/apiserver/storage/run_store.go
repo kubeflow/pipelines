@@ -238,7 +238,7 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 	if len(runs) == 0 {
 		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(runId))
 	}
-	if runs[0].RunDetails.WorkflowRuntimeManifest == "" && runs[0].WorkflowSpecManifest != "" {
+	if string(runs[0].WorkflowRuntimeManifest) == "" && string(runs[0].WorkflowSpecManifest) != "" {
 		// This can only happen when workflow reporting is failed.
 		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
 	}
@@ -389,7 +389,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			StorageState:   model.StorageState(storageState),
 			Namespace:      namespace,
 			ServiceAccount: serviceAccount,
-			Description:    description,
+			Description:    string(description),
 			RecurringRunId: jId,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          createdAtInSec.Int64,
@@ -397,8 +397,8 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				FinishedAtInSec:         finishedAtInSec.Int64,
 				Conditions:              conditions,
 				State:                   model.RuntimeState(state.String),
-				PipelineRuntimeManifest: pipelineRuntimeManifest,
-				WorkflowRuntimeManifest: workflowRuntimeManifest,
+				PipelineRuntimeManifest: model.LargeText(pipelineRuntimeManifest),
+				WorkflowRuntimeManifest: model.LargeText(workflowRuntimeManifest),
 				PipelineContextId:       pipelineContextId.Int64,
 				PipelineRunContextId:    pipelineRunContextId.Int64,
 				TaskDetails:             tasks,
@@ -410,9 +410,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				PipelineId:           pipelineId,
 				PipelineVersionId:    pvId,
 				PipelineName:         pipelineName,
-				PipelineSpecManifest: pipelineSpecManifest,
-				WorkflowSpecManifest: workflowSpecManifest,
-				Parameters:           parameters,
+				PipelineSpecManifest: model.LargeText(pipelineSpecManifest),
+				WorkflowSpecManifest: model.LargeText(workflowSpecManifest),
+				Parameters:           model.LargeText(parameters),
 				RuntimeConfig:        runtimeConfig,
 			},
 		}
@@ -441,7 +441,7 @@ func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullS
 	if pipelineRoot.Valid {
 		pipelineRootString = pipelineRoot.String
 	}
-	return model.RuntimeConfig{Parameters: runtimeParametersString, PipelineRoot: pipelineRootString}
+	return model.RuntimeConfig{Parameters: model.LargeText(runtimeParametersString), PipelineRoot: model.LargeText(pipelineRootString)}
 }
 
 func parseResourceReferences(resourceRefString sql.NullString) ([]*model.ResourceReference, error) {
@@ -787,7 +787,7 @@ func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, err
 				Name:        name,
 				NumberValue: val,
 				Format:      form,
-				Payload:     payload,
+				Payload:     model.LargeText(payload),
 			},
 		)
 	}

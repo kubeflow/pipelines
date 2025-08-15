@@ -202,7 +202,7 @@ func TestScheduledWorkflow(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:           "1",
 			PipelineName:         "pipeline name",
-			PipelineSpecManifest: v2SpecHelloWorldYAML,
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorldYAML),
 			RuntimeConfig: model.RuntimeConfig{
 				Parameters: "{\"y\":\"world\"}",
 			},

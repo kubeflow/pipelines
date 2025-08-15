@@ -113,7 +113,7 @@ func TestCreatePipelineV1_YAML(t *testing.T) {
 	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(pipeline.Id)
 	assert.Nil(t, err)
 	assert.NotNil(t, newPipeline)
-	assert.Equal(t, "pipeline description", newPipeline.Description)
+	assert.Equal(t, "pipeline description", string(newPipeline.Description))
 	assert.Equal(t, newPipeline.UUID, newPipelineVersion.PipelineId)
 }
 
@@ -142,7 +142,7 @@ func TestCreatePipelineV1_LargeFile(t *testing.T) {
 	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(pipeline.Id)
 	assert.Nil(t, err)
 	assert.NotNil(t, newPipeline)
-	assert.Equal(t, "pipeline description", newPipeline.Description)
+	assert.Equal(t, "pipeline description", string(newPipeline.Description))
 	assert.Equal(t, newPipeline.UUID, newPipelineVersion.PipelineId)
 }
 
@@ -172,7 +172,7 @@ func TestCreatePipelineV1_Tarball(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, newPipeline)
 	assert.NotNil(t, newPipelineVersion)
-	assert.Equal(t, "pipeline description", newPipeline.Description)
+	assert.Equal(t, "pipeline description", string(newPipeline.Description))
 	assert.Equal(t, newPipeline.UUID, newPipelineVersion.PipelineId)
 }
 
