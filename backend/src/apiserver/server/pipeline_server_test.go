@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -295,6 +296,31 @@ func TestCreatePipelineV1_ExistingPipeline(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to create a new pipeline. The name argument-parameters already exists")
 	assert.Nil(t, createdPipeline)
+}
+
+func TestCreatePipelineVersionV1_NameTooLong(t *testing.T) {
+	httpServer := getMockServer(t)
+	defer httpServer.Close()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
+
+	longName := strings.Repeat("x", 192) // max valid length is 191
+	_, err := pipelineServer.CreatePipelineVersionV1(
+		context.Background(),
+		&api.CreatePipelineVersionRequest{
+			Version: &api.PipelineVersion{
+				Name:       longName,
+				PackageUrl: &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+				ResourceReferences: []*api.ResourceReference{{
+					Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE, Id: "pipeline"},
+					Relationship: api.Relationship_OWNER,
+				}},
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "PipelineVersion.Name length cannot exceed")
 }
 
 func TestCreatePipelineVersionV1_YAML(t *testing.T) {
@@ -734,6 +760,18 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			true,
 			"name is required",
 		},
+		{
+			name: "Invalid - name too long",
+			id:   DefaultFakeIdOne,
+			arg: &apiv2.Pipeline{
+				Name:        strings.Repeat("a", 129),
+				DisplayName: strings.Repeat("a", 129),
+				Namespace:   "",
+			},
+			want:    nil,
+			wantErr: true,
+			errMsg:  "Pipeline.Name length cannot exceed 128",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -767,6 +805,25 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 		wantErr bool
 		errMsg  string
 	}{
+		{
+			name: "Invalid - name too long",
+			request: &apiv2.CreatePipelineAndVersionRequest{
+				Pipeline: &apiv2.Pipeline{
+					DisplayName: strings.Repeat("a", 129),
+					Description: "pipeline description",
+					Namespace:   "",
+				},
+				PipelineVersion: &apiv2.PipelineVersion{
+					PackageUrl: &apiv2.Url{
+						PipelineUrl: httpServer.URL + "/arguments-parameters.yaml",
+					},
+				},
+			},
+			want:    nil,
+			wantPv:  nil,
+			wantErr: true,
+			errMsg:  "Pipeline.Name length cannot exceed 128",
+		},
 		{
 			"Valid - yaml",
 			&apiv2.CreatePipelineAndVersionRequest{

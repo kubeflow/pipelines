@@ -144,6 +144,16 @@ func TestToModelExperiment(t *testing.T) {
 			"Experiment must have a non-empty name",
 			nil,
 		},
+		{
+			"name too long v1",
+			&apiv1beta1.Experiment{
+				Name:        strings.Repeat("a", 129), // Max is 128
+				Description: "This is an experiment with a very long name",
+			},
+			true,
+			"Experiment.Name length cannot exceed 128",
+			nil,
+		},
 	}
 
 	for _, tc := range tests {
@@ -275,6 +285,35 @@ func TestToModelPipeline(t *testing.T) {
 			},
 		},
 		{
+			name: "name too long v1",
+			pipeline: &apiv1beta1.Pipeline{
+				Name:        strings.Repeat("a", 129), // Max 128
+				Description: "desc",
+			},
+			wantError:             true,
+			errorMessage:          "Pipeline.Name length cannot exceed 128",
+			expectedModelPipeline: nil,
+		},
+		{
+			name: "namespace too long v1",
+			pipeline: &apiv1beta1.Pipeline{
+				Name:        "p1",
+				Description: "desc",
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key: &apiv1beta1.ResourceKey{
+							Type: apiv1beta1.ResourceType_NAMESPACE,
+							Id:   strings.Repeat("n", 64), // Max 63
+						},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+				},
+			},
+			wantError:             true,
+			errorMessage:          "Pipeline.Namespace length cannot exceed 63",
+			expectedModelPipeline: nil,
+		},
+		{
 			"Empty namespace v2",
 			&apiv2beta1.Pipeline{
 				DisplayName: "p6",
@@ -326,6 +365,28 @@ func TestToModelPipeline(t *testing.T) {
 				Namespace:   "ns3",
 			},
 		},
+		{
+			name: "name too long v2",
+			pipeline: &apiv2beta1.Pipeline{
+				DisplayName: strings.Repeat("a", 129), // Max is 128
+				Description: "This is a pipeline with a very long name",
+				Namespace:   "ns",
+			},
+			wantError:             true,
+			errorMessage:          "Pipeline.Name length cannot exceed 128",
+			expectedModelPipeline: nil,
+		},
+		{
+			name: "namespace too long v2",
+			pipeline: &apiv2beta1.Pipeline{
+				DisplayName: "p_long_ns",
+				Description: "This is a pipeline with a very long namespace",
+				Namespace:   strings.Repeat("n", 64), // Max is 63
+			},
+			wantError:             true,
+			errorMessage:          "Pipeline.Namespace length cannot exceed 63",
+			expectedModelPipeline: nil,
+		},
 	}
 
 	for _, tc := range tests {
@@ -369,6 +430,8 @@ func TestToModelRunDetail(t *testing.T) {
 		manifest               string
 		templateType           template.TemplateType
 		expectedModelRunDetail *model.Run
+		wantErr                bool
+		errMsg                 string
 	}{
 		{
 			name: "v1",
@@ -416,6 +479,8 @@ func TestToModelRunDetail(t *testing.T) {
 				},
 				StorageState: model.StorageStateAvailable,
 			},
+			wantErr: false,
+			errMsg:  "",
 		},
 		{
 			name: "v2",
@@ -461,13 +526,88 @@ func TestToModelRunDetail(t *testing.T) {
 				},
 				StorageState: model.StorageStateAvailable,
 			},
+			wantErr: false,
+			errMsg:  "",
+		},
+		{
+			name: "v1 namespace too long",
+			apiRun: &apiv1beta1.Run{
+				Id:          "run1",
+				Name:        "name1",
+				Description: "desc",
+				PipelineSpec: &apiv1beta1.PipelineSpec{
+					Parameters: []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
+				},
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: strings.Repeat("n", 64)},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: "pv1"},
+						Relationship: apiv1beta1.Relationship_CREATOR,
+					},
+				},
+			},
+			workflow: util.NewWorkflow(&v1alpha1.Workflow{
+				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
+				Status:     v1alpha1.WorkflowStatus{Phase: "running"},
+			}),
+			manifest:               "workflow spec",
+			templateType:           template.V1,
+			expectedModelRunDetail: nil,
+			wantErr:                true,
+			errMsg:                 "Run.Namespace length cannot exceed 63",
+		},
+		{
+			name: "v1 experimentId too long",
+			apiRun: &apiv1beta1.Run{
+				Id:          "run1",
+				Name:        "name1",
+				Description: "desc",
+				PipelineSpec: &apiv1beta1.PipelineSpec{
+					Parameters: []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
+				},
+				ResourceReferences: []*apiv1beta1.ResourceReference{
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: strings.Repeat("e", 65)},
+						Relationship: apiv1beta1.Relationship_OWNER,
+					},
+					{
+						Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: "pv1"},
+						Relationship: apiv1beta1.Relationship_CREATOR,
+					},
+				},
+			},
+			workflow: util.NewWorkflow(&v1alpha1.Workflow{
+				ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
+				Status:     v1alpha1.WorkflowStatus{Phase: "running"},
+			}),
+			manifest:               "workflow spec",
+			templateType:           template.V1,
+			expectedModelRunDetail: nil,
+			wantErr:                true,
+			errMsg:                 "Run.ExperimentId length cannot exceed 64",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			modelRunDetail, err := toModelRun(tt.apiRun)
-			assert.Nil(t, err)
-			assert.Equal(t, tt.expectedModelRunDetail, modelRunDetail)
+			if tt.wantErr {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+				assert.Equal(t, tt.expectedModelRunDetail, modelRunDetail)
+			}
 		})
 	}
 }
@@ -676,6 +816,34 @@ func TestToModelRunMetric(t *testing.T) {
 		Format:      "RAW",
 	}
 	assert.Equal(t, expectedModelRunMetric, actualModelRunMetric)
+
+	// Test Name length overflow
+	{
+		longName := strings.Repeat("a", 192)
+		apiRunMetric := &apiv1beta1.RunMetric{
+			Name:   longName,
+			NodeId: "node-1",
+			Value:  &apiv1beta1.RunMetric_NumberValue{NumberValue: 0.88},
+			Format: apiv1beta1.RunMetric_RAW,
+		}
+		_, err := toModelRunMetric(apiRunMetric, "run-1")
+		assert.NotNil(t, err)
+		assert.Contains(t, err.Error(), "RunMetric.Name length cannot exceed 191")
+	}
+
+	// Test NodeID length overflow
+	{
+		longNodeID := strings.Repeat("a", 192)
+		apiRunMetric := &apiv1beta1.RunMetric{
+			Name:   "metric-1",
+			NodeId: longNodeID,
+			Value:  &apiv1beta1.RunMetric_NumberValue{NumberValue: 0.88},
+			Format: apiv1beta1.RunMetric_RAW,
+		}
+		_, err := toModelRunMetric(apiRunMetric, "run-1")
+		assert.NotNil(t, err)
+		assert.Contains(t, err.Error(), "RunMetric.NodeID length cannot exceed 191")
+	}
 }
 
 func TestToModelPipelineVersion(t *testing.T) {
@@ -753,6 +921,19 @@ func TestToModelPipelineVersion(t *testing.T) {
 			},
 			false,
 			"",
+		},
+		{
+			name: "name too long v2",
+			pipeline: &apiv2beta1.PipelineVersion{
+				DisplayName:   strings.Repeat("a", 128), // Max is 127
+				PipelineId:    "pipeline 333",
+				PackageUrl:    &apiv2beta1.Url{PipelineUrl: "http://package/3333"},
+				CodeSourceUrl: "http://repo/3333",
+				Description:   "This is pipeline version 333",
+			},
+			expectedPipelineVersion: nil,
+			isError:                 true,
+			errMsg:                  "PipelineVersion.Name length cannot exceed 127",
 		},
 		{
 			"missing package Url v2",
@@ -3991,6 +4172,103 @@ func TestToModelRun(t *testing.T) {
 			},
 			false,
 			"",
+		},
+		{ // all fields are same as "v2 full pipeline version except invalid ExperimentId
+			"v2 ExperimentId overflow",
+			&apiv2beta1.Run{
+				ExperimentId: strings.Repeat("e", 65),
+				RunId:        "run1",
+				DisplayName:  "name1",
+				Description:  "this is a run",
+				StorageState: apiv2beta1.Run_ARCHIVED,
+				PipelineSource: &apiv2beta1.Run_PipelineVersionReference{
+					PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
+						PipelineId:        "p1",
+						PipelineVersionId: "pv1",
+					},
+				},
+				RuntimeConfig: &apiv2beta1.RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
+				ServiceAccount: "sa1",
+				CreatedAt:      &timestamppb.Timestamp{Seconds: 1},
+				ScheduledAt:    &timestamppb.Timestamp{Seconds: 2},
+				FinishedAt:     &timestamppb.Timestamp{Seconds: 3},
+				State:          apiv2beta1.RuntimeState_FAILED,
+				Error:          util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
+				RunDetails: &apiv2beta1.RunDetails{
+					PipelineContextId:    10,
+					PipelineRunContextId: 11,
+					TaskDetails: []*apiv2beta1.PipelineTaskDetail{
+						{
+							RunId:          "run1",
+							TaskId:         "task1",
+							DisplayName:    "this is task",
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
+							ExecutorDetail: nil,
+							State:          apiv2beta1.RuntimeState_FAILED,
+							ExecutionId:    14,
+							Inputs: map[string]*apiv2beta1.ArtifactList{
+								"a1": {ArtifactIds: []int64{1, 2, 3}},
+							},
+							Outputs: map[string]*apiv2beta1.ArtifactList{
+								"b2": {ArtifactIds: []int64{4, 5, 6}},
+							},
+							StateHistory: []*apiv2beta1.RuntimeStatus{
+								{
+									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
+									State:      apiv2beta1.RuntimeState_FAILED,
+									Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
+								},
+							},
+							ChildTasks: []*apiv2beta1.PipelineTaskDetail_ChildTask{
+								{
+									ChildTask: &apiv2beta1.PipelineTaskDetail_ChildTask_PodName{PodName: "task2"},
+								},
+							},
+						},
+						{
+							RunId:          "run1",
+							TaskId:         "task2",
+							DisplayName:    "this is task 2",
+							CreateTime:     timestamppb.New(time.Unix(11, 0)),
+							StartTime:      timestamppb.New(time.Unix(12, 0)),
+							EndTime:        timestamppb.New(time.Unix(13, 0)),
+							ExecutorDetail: nil,
+							State:          apiv2beta1.RuntimeState_CANCELED,
+							ExecutionId:    14,
+							Inputs: map[string]*apiv2beta1.ArtifactList{
+								"a1": {ArtifactIds: []int64{1, 2, 3}},
+							},
+							Outputs: map[string]*apiv2beta1.ArtifactList{
+								"b2": {ArtifactIds: []int64{4, 5, 6}},
+							},
+							ParentTaskId: "task1",
+							StateHistory: []*apiv2beta1.RuntimeStatus{
+								{
+									UpdateTime: &timestamppb.Timestamp{Seconds: 15},
+									State:      apiv2beta1.RuntimeState_CANCELED,
+								},
+							},
+						},
+					},
+				},
+				RecurringRunId: "job1",
+				StateHistory: []*apiv2beta1.RuntimeStatus{
+					{
+						UpdateTime: &timestamppb.Timestamp{Seconds: 9},
+						State:      apiv2beta1.RuntimeState_FAILED,
+						Error:      util.ToRpcStatus(util.NewInvalidInputError("Input argument is invalid")),
+					},
+				},
+			},
+			nil,
+			true,
+			"Run.ExperimentId length cannot exceed 64",
 		},
 	}
 	for _, tt := range tests {

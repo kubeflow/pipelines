@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -147,6 +148,127 @@ func TestCreateExperimentV1_EmptyName(t *testing.T) {
 	_, err := server.CreateExperimentV1(nil, &apiv1beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Invalid input error: Experiment must have a non-empty name")
+}
+
+func TestCreateExperimentV1_LengthValidation(t *testing.T) {
+	const (
+		maxName = 128 // todo import from validation package
+		maxNS   = 63
+	)
+
+	longName := strings.Repeat("n", maxName+1)
+	longNS := strings.Repeat("s", maxNS+1)
+
+	tests := []struct {
+		multiUser bool
+		name      string
+		namespace string
+		wantErr   bool
+		wantMsg   string
+	}{
+		{false, "good-name", "good_namespace", false, ""},
+		{false, longName, "good_namespace", true, "Experiment.Name length cannot exceed"},
+		{true, "good-name", "good_namespace", false, ""},
+		{true, "good-name", longNS, true, "Experiment.Namespace length cannot exceed"},
+		{true, longName, "good_namespace", true, "Experiment.Name length cannot exceed"},
+	}
+
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("multi=%t_nameLen=%d_nsLen=%d",
+			tc.multiUser, len(tc.name), len(tc.namespace)),
+			func(t *testing.T) {
+				if tc.multiUser {
+					viper.Set(common.MultiUserMode, "true")
+				} else {
+					viper.Set(common.MultiUserMode, "false")
+				}
+				defer viper.Set(common.MultiUserMode, "false")
+
+				md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+				ctx := metadata.NewIncomingContext(context.Background(), md)
+
+				clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+				resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+				server := createExperimentServerV1(resourceManager)
+
+				req := &apiv1beta1.CreateExperimentRequest{
+					Experiment: &apiv1beta1.Experiment{
+						Name: tc.name,
+						ResourceReferences: []*apiv1beta1.ResourceReference{
+							{
+								Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: tc.namespace},
+								Relationship: apiv1beta1.Relationship_OWNER,
+							},
+						},
+					},
+				}
+				_, err := server.CreateExperimentV1(ctx, req)
+				if tc.wantErr {
+					assert.Error(t, err)
+					assert.Contains(t, err.Error(), tc.wantMsg)
+				} else {
+					assert.NoError(t, err)
+				}
+			})
+	}
+}
+
+func TestCreateExperiment_LengthValidation(t *testing.T) {
+	const (
+		maxName = 128
+		maxNS   = 63
+	)
+
+	longName := strings.Repeat("n", maxName+1)
+	longNS := strings.Repeat("s", maxNS+1)
+
+	tests := []struct {
+		multiUser bool
+		name      string
+		namespace string
+		wantErr   bool
+		wantMsg   string
+	}{
+		{false, "good-name", "good_namespace", false, ""},
+		{false, longName, "good_namespace", true, "Experiment.Name length cannot exceed"},
+		{true, "good-name", "good_namespace", false, ""},
+		{true, "good-name", longNS, true, "Experiment.Namespace length cannot exceed"},
+		{true, longName, "good_namespace", true, "Experiment.Name length cannot exceed"},
+	}
+
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("multi=%t_nameLen=%d_nsLen=%d",
+			tc.multiUser, len(tc.name), len(tc.namespace)),
+			func(t *testing.T) {
+				if tc.multiUser {
+					viper.Set(common.MultiUserMode, "true")
+				} else {
+					viper.Set(common.MultiUserMode, "false")
+				}
+				defer viper.Set(common.MultiUserMode, "false")
+
+				md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+				ctx := metadata.NewIncomingContext(context.Background(), md)
+
+				clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+				resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+				server := createExperimentServer(resourceManager)
+
+				req := &apiV2beta1.CreateExperimentRequest{
+					Experiment: &apiV2beta1.Experiment{
+						DisplayName: tc.name,
+						Namespace:   tc.namespace,
+					},
+				}
+				_, err := server.CreateExperiment(ctx, req)
+				if tc.wantErr {
+					assert.Error(t, err)
+					assert.Contains(t, err.Error(), tc.wantMsg)
+				} else {
+					assert.NoError(t, err)
+				}
+			})
+	}
 }
 
 func TestCreateExperimentV1_Unauthorized(t *testing.T) {

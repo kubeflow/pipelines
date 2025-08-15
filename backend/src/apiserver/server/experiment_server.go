@@ -106,6 +106,7 @@ func (s *BaseExperimentServer) createExperiment(ctx context.Context, experiment 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
+
 	return s.resourceManager.CreateExperiment(experiment)
 }
 

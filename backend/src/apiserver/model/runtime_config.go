@@ -16,10 +16,10 @@ package model
 
 type RuntimeConfig struct {
 	// Store parameters key-value pairs as serialized string.
-	Parameters string `gorm:"column:RuntimeParameters; size:65535;"`
+	Parameters string `gorm:"column:RuntimeParameters; type:longtext;"`
 
 	// A path in a object store bucket which will be treated as the root
 	// output directory of the pipeline. It is used by the system to
 	// generate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
-	PipelineRoot string `gorm:"column:PipelineRoot; size:65535;"`
+	PipelineRoot string `gorm:"column:PipelineRoot; type:longtext;"`
 }

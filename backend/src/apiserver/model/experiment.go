@@ -15,16 +15,23 @@
 package model
 
 type Experiment struct {
-	UUID                  string       `gorm:"column:UUID; not null; primary_key;"`
-	Name                  string       `gorm:"column:Name; not null; unique_index:idx_name_namespace;"`
-	Description           string       `gorm:"column:Description; not null;"`
-	CreatedAtInSec        int64        `gorm:"column:CreatedAtInSec; not null;"`
-	LastRunCreatedAtInSec int64        `gorm:"column:LastRunCreatedAtInSec; not null;"`
-	Namespace             string       `gorm:"column:Namespace; not null; unique_index:idx_name_namespace;"`
-	StorageState          StorageState `gorm:"column:StorageState; not null;"`
+	UUID string `gorm:"column:UUID; not null; primaryKey;type:varchar(191);"`
+	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
+	Name                  string `gorm:"column:Name; not null; uniqueIndex:idx_name_namespace; type:varchar(128);"`
+	Description           string `gorm:"column:Description; not null;"`
+	CreatedAtInSec        int64  `gorm:"column:CreatedAtInSec; not null;"`
+	LastRunCreatedAtInSec int64  `gorm:"column:LastRunCreatedAtInSec; not null;"`
+	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
+	Namespace    string       `gorm:"column:Namespace; not null; uniqueIndex:idx_name_namespace; type:varchar(63)"`
+	StorageState StorageState `gorm:"column:StorageState; not null;"`
 }
 
 // Note: Experiment.StorageState can have values: "STORAGE_STATE_UNSPECIFIED", "AVAILABLE" or "ARCHIVED"
+
+// TableName overrides GORM's table name inference.
+func (Experiment) TableName() string {
+	return "experiments"
+}
 
 func (e Experiment) GetValueOfPrimaryKey() string {
 	return e.UUID
