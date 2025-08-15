@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../../../../../manifests/kustomize/env/cert-manager/platform-agnostic-multi-user-tls
+  - ../../../../../../manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls
 
 images:
   - name: ghcr.io/kubeflow/kfp-api-server

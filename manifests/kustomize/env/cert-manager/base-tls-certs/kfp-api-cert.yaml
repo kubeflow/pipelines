@@ -9,6 +9,12 @@ spec:
     - ml-pipeline
     - ml-pipeline.$(kfp-namespace)
     - ml-pipeline.$(kfp-namespace).svc
+    - ml-pipeline-scheduledworkflow
+    - ml-pipeline-scheduledworkflow.$(kfp-namespace)
+    - ml-pipeline-scheduledworkflow.$(kfp-namespace).svc
+    - metadata-envoy
+    - metadata-envoy.$(kfp-namespace)
+    - metadata-envoy.$(kfp-namespace).svc
   issuerRef:
     kind: Issuer
     name: kfp-api-tls-selfsigned-issuer
