@@ -10,21 +10,20 @@
 🎯 **RESULT**: Pipeline users no longer experience hanging pipelines. Core functionality works perfectly with proper status propagation.
 
 ### What Still Needs to Be Done
-- [ ] This work was done with the help of an AI code assistant. Therefore, we still need to:
-  - [x] TestDeeplyNestedPipelineFailurePropagation is currently skipped. It was working before, but now it's failing. Try to enable it again
-  - [ ] Review the test code and make sure its logic is correct
-  - [ ] Clean the test code
-    - [ ] Some verifications seem very complex. Verify if all of that is necessary and remove unnecessary code.
-    - [ ] Break up the test code into smaller functions.
-    - [ ] Remove unused code
-    - [ ] Remove unnecessary comments
-    - [ ] Remove unnecessary logs
-  - [ ] Review the implementation code and make sure its logic is correct
-  - [ ] Clean the implementation code
-    - [ ] Break up big functions into smaller functions.
-    - [ ] Remove unused code
-    - [ ] Remove unnecessary comments
-    - [ ] Remove unnecessary logs
+- [x] TestDeeplyNestedPipelineFailurePropagation is currently skipped. It was working before, but now it's failing. Try to enable it again
+- [ ] Review the test code and make sure its logic is correct
+- [ ] Clean the test code
+  - [ ] Some verifications seem very complex. Verify if all of that is necessary and remove unnecessary code.
+  - [ ] Break up the test code into smaller functions.
+  - [ ] Remove unused code
+  - [ ] Remove unnecessary comments
+  - [ ] Remove unnecessary logs
+- [ ] Review the implementation code and make sure its logic is correct
+- [ ] Clean the implementation code
+  - [ ] Break up big functions into smaller functions.
+  - [ ] Remove unused code
+  - [ ] Remove unnecessary comments
+  - [ ] Remove unnecessary logs
 - [ ] There are some `//TODO: Helber` comments in specific points. Resolve them and remove them.
 - [ ] Squash the commits
 - [ ] Create a separate issue for tracking architectural limitations (ParallelFor container task failure propagation)
