@@ -22,29 +22,28 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test/v2"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 )
 
 const (
 	// recentExecutionTimeWindow defines the time window (in milliseconds) to consider an execution as "recent"
 	recentExecutionTimeWindow = 5 * 60 * 1000 // 5 minutes in milliseconds
+	
+	// Execution type constants
+	ExecutionTypeDAG       = "system.DAGExecution"
+	ExecutionTypeContainer = "system.ContainerExecution"
 )
 
 // Pipeline-specific task name constants
 const (
 	// Nested pipeline task names
-	TaskNameChildPipeline     = "child-pipeline"
-	TaskNameInnerPipeline     = "inner-pipeline"
-	TaskNameInnerPipelineAlt  = "inner__pipeline"
-	
-	// ParallelFor task names
-	TaskNameForLoop2          = "for-loop-2"
-	TaskNameForLoopPrefix     = "for-loop"
-	
-	// Conditional pipeline task names
-	TaskNameConditionBranches1 = "condition-branches-1"
-	TaskNameCondition4         = "condition-4"
+	TaskNameChildPipeline = "child-pipeline"
 )
 
 // DAGTestUtil provides common helper methods for DAG status testing across test suites
@@ -83,24 +82,12 @@ func (h *DAGTestUtil) GetExecutionsForRun(runID string) []*pb.Execution {
 	return executionsByContext.Executions
 }
 
-// GetContextForRun retrieves the context for a specific run ID
-func (h *DAGTestUtil) GetContextForRun(runID string) *pb.Context {
-	contextsFilterQuery := util.StringPointer("name = '" + runID + "'")
-	contexts, err := h.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
-		Options: &pb.ListOperationOptions{
-			FilterQuery: contextsFilterQuery,
-		},
-	})
-	require.NoError(h.t, err)
-	require.NotEmpty(h.t, contexts.Contexts)
-	return contexts.Contexts[0]
-}
 
 // FilterDAGExecutions filters executions to only return DAG executions
 func (h *DAGTestUtil) FilterDAGExecutions(executions []*pb.Execution) []*pb.Execution {
 	var dagExecutions []*pb.Execution
 	for _, execution := range executions {
-		if execution.GetType() == "system.DAGExecution" {
+		if execution.GetType() == ExecutionTypeDAG {
 			dagExecutions = append(dagExecutions, execution)
 		}
 	}
@@ -111,7 +98,7 @@ func (h *DAGTestUtil) FilterDAGExecutions(executions []*pb.Execution) []*pb.Exec
 func (h *DAGTestUtil) FilterContainerExecutions(executions []*pb.Execution) []*pb.Execution {
 	var containerExecutions []*pb.Execution
 	for _, execution := range executions {
-		if execution.GetType() == "system.ContainerExecution" {
+		if execution.GetType() == ExecutionTypeContainer {
 			containerExecutions = append(containerExecutions, execution)
 		}
 	}
@@ -180,41 +167,6 @@ func (h *DAGTestUtil) IsChildPipelineDAG(execution *pb.Execution) bool {
 	return h.GetTaskName(execution) == TaskNameChildPipeline
 }
 
-// IsInnerPipelineDAG checks if the execution is an inner pipeline DAG
-func (h *DAGTestUtil) IsInnerPipelineDAG(execution *pb.Execution) bool {
-	taskName := h.GetTaskName(execution)
-	return taskName == TaskNameInnerPipeline || taskName == TaskNameInnerPipelineAlt
-}
-
-// IsForLoopDAG checks if the execution is a for-loop related DAG
-func (h *DAGTestUtil) IsForLoopDAG(execution *pb.Execution) bool {
-	taskName := h.GetTaskName(execution)
-	return taskName == TaskNameForLoop2 || strings.Contains(taskName, TaskNameForLoopPrefix)
-}
-
-// IsConditionalBranches1DAG checks if the execution is the condition-branches-1 DAG
-func (h *DAGTestUtil) IsConditionalBranches1DAG(execution *pb.Execution) bool {
-	return h.GetTaskName(execution) == TaskNameConditionBranches1
-}
-
-// IsCondition4DAG checks if the execution is the condition-4 DAG
-func (h *DAGTestUtil) IsCondition4DAG(execution *pb.Execution) bool {
-	return h.GetTaskName(execution) == TaskNameCondition4
-}
-
-// FindRootDAG finds the root DAG execution (no parent_dag_id and empty task_name)
-func (h *DAGTestUtil) FindRootDAG(executions []*pb.Execution) *pb.Execution {
-	dagExecutions := h.FilterDAGExecutions(executions)
-	for _, execution := range dagExecutions {
-		parentDagID := h.GetParentDagID(execution)
-
-		// Root DAG has empty task name and no parent
-		if h.IsRootDAG(execution) && parentDagID == 0 {
-			return execution
-		}
-	}
-	return nil
-}
 
 // IsRecentExecution checks if an execution was created within the last 5 minutes
 func (h *DAGTestUtil) IsRecentExecution(execution *pb.Execution) bool {
@@ -245,14 +197,14 @@ func (h *DAGTestUtil) CategorizeExecutionsByType(executions []*pb.Execution) (co
 	for _, execution := range executions {
 		h.LogExecutionSummary(execution, "├──")
 
-		if execution.GetType() == "system.DAGExecution" {
+		if execution.GetType() == ExecutionTypeDAG {
 			// Identify the root DAG (has empty task name)
 			if h.IsRootDAG(execution) {
 				rootDAGID = execution.GetId()
 				h.t.Logf("Found root DAG ID=%d", rootDAGID)
 			}
 
-		} else if execution.GetType() == "system.ContainerExecution" {
+		} else if execution.GetType() == ExecutionTypeContainer {
 			containerExecutions = append(containerExecutions, execution)
 		}
 	}
@@ -265,7 +217,7 @@ func (h *DAGTestUtil) CategorizeExecutionsByType(executions []*pb.Execution) (co
 // GetAllDAGExecutions retrieves all DAG executions from the system (for cross-context searches)
 func (h *DAGTestUtil) GetAllDAGExecutions() []*pb.Execution {
 	allDAGExecutions, err := h.mlmdClient.GetExecutionsByType(context.Background(), &pb.GetExecutionsByTypeRequest{
-		TypeName: util.StringPointer("system.DAGExecution"),
+		TypeName: util.StringPointer(ExecutionTypeDAG),
 	})
 	require.NoError(h.t, err)
 	require.NotNil(h.t, allDAGExecutions)
@@ -273,39 +225,12 @@ func (h *DAGTestUtil) GetAllDAGExecutions() []*pb.Execution {
 	return allDAGExecutions.Executions
 }
 
-// FindExecutionsByTaskNamePrefix finds executions with task names starting with the given prefix
-func (h *DAGTestUtil) FindExecutionsByTaskNamePrefix(executions []*pb.Execution, prefix string) []*pb.Execution {
-	var matchingExecutions []*pb.Execution
-	for _, execution := range executions {
-		taskName := h.GetTaskName(execution)
-		if len(taskName) > 0 && len(prefix) > 0 {
-			if len(taskName) >= len(prefix) && taskName[:len(prefix)] == prefix {
-				matchingExecutions = append(matchingExecutions, execution)
-			}
-		}
-	}
-	return matchingExecutions
-}
-
-// FindChildDAGExecutions finds all child DAG executions for a given parent DAG ID
-func (h *DAGTestUtil) FindChildDAGExecutions(allExecutions []*pb.Execution, parentDAGID int64) []*pb.Execution {
-	var childDAGs []*pb.Execution
-	dagExecutions := h.FilterDAGExecutions(allExecutions)
-
-	for _, execution := range dagExecutions {
-		if h.GetParentDagID(execution) == parentDAGID {
-			childDAGs = append(childDAGs, execution)
-		}
-	}
-
-	return childDAGs
-}
 
 // ConditionalDAGValidationContext holds the context for conditional DAG validation
 type ConditionalDAGValidationContext struct {
 	ContainerExecutions   []*pb.Execution
-	RootDAGID            int64
-	AllConditionalDAGs   []*pb.Execution
+	RootDAGID             int64
+	AllConditionalDAGs    []*pb.Execution
 	ActualConditionalDAGs []*pb.Execution
 }
 
@@ -323,8 +248,8 @@ func (h *DAGTestUtil) GetConditionalDAGContext(runID string) *ConditionalDAGVali
 
 	return &ConditionalDAGValidationContext{
 		ContainerExecutions:   containerExecutions,
-		RootDAGID:            rootDAGID,
-		AllConditionalDAGs:   allConditionalDAGs,
+		RootDAGID:             rootDAGID,
+		AllConditionalDAGs:    allConditionalDAGs,
 		ActualConditionalDAGs: actualConditionalDAGs,
 	}
 }
@@ -382,7 +307,7 @@ func (h *DAGTestUtil) isGrandchildConditionalDAG(taskName string, parentDagID, r
 
 	// Find the parent DAG and check if its parent is our root DAG
 	for _, parentExec := range allExecutions {
-		if parentExec.GetId() == parentDagID && parentExec.GetType() == "system.DAGExecution" {
+		if parentExec.GetId() == parentDagID && parentExec.GetType() == ExecutionTypeDAG {
 			if h.GetParentDagID(parentExec) == rootDAGID {
 				return true
 			}
@@ -411,8 +336,8 @@ func (h *DAGTestUtil) FilterToActualConditionalDAGs(dagExecutions []*pb.Executio
 
 // ParallelForDAGValidationContext holds the context for ParallelFor DAG validation
 type ParallelForDAGValidationContext struct {
-	DAGHierarchy map[int64]*DAGNode
-	RootDAG      *DAGNode
+	DAGHierarchy          map[int64]*DAGNode
+	RootDAG               *DAGNode
 	ParallelForParents    []*DAGNode
 	ParallelForIterations []*DAGNode
 }
@@ -440,7 +365,7 @@ func (h *DAGTestUtil) GetParallelForDAGContext(runID string) *ParallelForDAGVali
 
 	return &ParallelForDAGValidationContext{
 		DAGHierarchy:          dagNodes,
-		RootDAG:              rootDAG,
+		RootDAG:               rootDAG,
 		ParallelForParents:    parallelForParents,
 		ParallelForIterations: parallelForIterations,
 	}
@@ -591,4 +516,73 @@ func (h *DAGTestUtil) mergeDAGExecutions(recentDAGs, contextDAGs []*pb.Execution
 	}
 
 	return merged
+}
+
+// Common Test Helper Functions
+// These functions are shared across all DAG status test suites to eliminate duplication
+
+// CreateRun creates a pipeline run with the given pipeline version and display name
+func CreateRun(runClient *apiserver.RunClient, pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion, displayName, description string) (*run_model.V2beta1Run, error) {
+	return CreateRunWithParams(runClient, pipelineVersion, displayName, description, nil)
+}
+
+// CreateRunWithParams creates a pipeline run with parameters
+func CreateRunWithParams(runClient *apiserver.RunClient, pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion, displayName, description string, params map[string]interface{}) (*run_model.V2beta1Run, error) {
+	createRunRequest := &runparams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
+		DisplayName: displayName,
+		Description: description,
+		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+			PipelineID:        pipelineVersion.PipelineID,
+			PipelineVersionID: pipelineVersion.PipelineVersionID,
+		},
+		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
+			Parameters: params,
+		},
+	}}
+	return runClient.Create(createRunRequest)
+}
+
+// waitForRunCondition is a helper function that waits for a run to meet a condition
+func waitForRunCondition(t *testing.T, runClient *apiserver.RunClient, runID string, conditionCheck func(*run_model.V2beta1Run) bool, timeout time.Duration, message string) {
+	require.Eventually(t, func() bool {
+		runDetail, err := runClient.Get(&runparams.RunServiceGetRunParams{RunID: runID})
+		if err != nil {
+			t.Logf("Error getting run %s: %v", runID, err)
+			return false
+		}
+
+		currentState := "nil"
+		if runDetail.State != nil {
+			currentState = string(*runDetail.State)
+		}
+		t.Logf("Run %s state: %s", runID, currentState)
+		return conditionCheck(runDetail)
+	}, timeout, 10*time.Second, message)
+}
+
+// WaitForRunCompletion waits for a run to complete (any final state)
+func WaitForRunCompletion(t *testing.T, runClient *apiserver.RunClient, runID string) {
+	waitForRunCondition(t, runClient, runID, func(run *run_model.V2beta1Run) bool {
+		return run.State != nil && *run.State != run_model.V2beta1RuntimeStateRUNNING
+	}, 2*time.Minute, "Run did not complete")
+}
+
+// WaitForRunCompletionWithExpectedState waits for a run to reach a specific expected state
+func WaitForRunCompletionWithExpectedState(t *testing.T, runClient *apiserver.RunClient, runID string, expectedState run_model.V2beta1RuntimeState) {
+	waitForRunCondition(t, runClient, runID, func(run *run_model.V2beta1Run) bool {
+		return run.State != nil && *run.State == expectedState
+	}, 5*time.Minute, "Run did not reach expected final state")
+
+	// Allow time for DAG state updates to propagate
+	time.Sleep(5 * time.Second)
+}
+
+// CleanUpTestResources cleans up test resources (runs and pipelines)
+func CleanUpTestResources(runClient *apiserver.RunClient, pipelineClient *apiserver.PipelineClient, resourceNamespace string, t *testing.T) {
+	if runClient != nil {
+		test.DeleteAllRuns(runClient, resourceNamespace, t)
+	}
+	if pipelineClient != nil {
+		test.DeleteAllPipelines(pipelineClient, t)
+	}
 }
