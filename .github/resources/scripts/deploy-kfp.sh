@@ -110,15 +110,14 @@ if [ "${MULTI_USER}" == "true" ]; then
   kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master
   kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s
 
-  echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
-  kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml
-  
   echo "Creating KF Profile..."
   kubectl apply -f test/seaweedfs/test-profiles.yaml
-  
+
+  echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
+  kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml
+
   echo "Applying network policy to allow user namespace access to kubeflow services..."
   kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml
-    
 fi
 
 # Manifests will be deployed according to the flag provided
@@ -130,6 +129,8 @@ elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
 elif [ "${MULTI_USER}" == "true" ] && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user"
+elif [ "${MULTI_USER}" == "true" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user-minio"
 elif [ "${STORAGE_BACKEND}" == "minio" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy-minio"
 else
