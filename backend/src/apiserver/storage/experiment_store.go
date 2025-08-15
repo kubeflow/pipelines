@@ -20,6 +20,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -442,12 +443,12 @@ func (s *ExperimentStore) SetLastRunTimestamp(run *model.Run) error {
 }
 
 // factory function for experiment store.
-func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *ExperimentStore {
+func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface, d dialect.DBDialect) *ExperimentStore {
 	return &ExperimentStore{
 		db:                     db,
 		time:                   time,
 		uuid:                   uuid,
 		resourceReferenceStore: NewResourceReferenceStore(db, nil),
-		defaultExperimentStore: NewDefaultExperimentStore(db),
+		defaultExperimentStore: NewDefaultExperimentStore(db, d),
 	}
 }

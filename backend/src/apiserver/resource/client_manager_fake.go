@@ -19,6 +19,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -65,7 +66,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	// TODO(neuromage): Pass in metadata.Store instance for tests as well.
 	return &FakeClientManager{
 		db:                            db,
-		experimentStore:               storage.NewExperimentStore(db, time, uuid),
+		experimentStore:               storage.NewExperimentStore(db, time, uuid, dialect.NewDBDialect("sqlite")),
 		pipelineStore:                 storage.NewPipelineStore(db, time, uuid),
 		jobStore:                      storage.NewJobStore(db, time, nil),
 		runStore:                      storage.NewRunStore(db, time),
@@ -73,7 +74,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		ExecClientFake:                client.NewFakeExecClient(),
 		resourceReferenceStore:        storage.NewResourceReferenceStore(db, nil),
 		dBStatusStore:                 storage.NewDBStatusStore(db),
-		defaultExperimentStore:        storage.NewDefaultExperimentStore(db),
+		defaultExperimentStore:        storage.NewDefaultExperimentStore(db, dialect.NewDBDialect("sqlite")),
 		objectStore:                   storage.NewFakeObjectStore(),
 		swfClientFake:                 client.NewFakeSwfClient(),
 		k8sCoreClientFake:             client.NewFakeKuberneteCoresClient(),
@@ -192,6 +193,6 @@ func (f *FakeClientManager) Close() error {
 // Update the uuid used in this fake client manager.
 func (f *FakeClientManager) UpdateUUID(uuid util.UUIDGeneratorInterface) {
 	f.uuid = uuid
-	f.experimentStore = storage.NewExperimentStore(f.db, f.time, uuid)
+	f.experimentStore = storage.NewExperimentStore(f.db, f.time, uuid, dialect.NewDBDialect("sqlite"))
 	f.pipelineStore = storage.NewPipelineStore(f.db, f.time, uuid)
 }

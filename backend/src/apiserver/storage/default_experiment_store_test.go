@@ -17,6 +17,7 @@ package storage
 import (
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ import (
 
 func TestInitializeDefaultExperimentTable(t *testing.T) {
 	db := NewFakeDBOrFatal()
-	defaultExperimentStore := NewDefaultExperimentStore(db)
+	defaultExperimentStore := NewDefaultExperimentStore(db, dialect.NewDBDialect("sqlite"))
 
 	// Initialize for the first time
 	err := defaultExperimentStore.initializeDefaultExperimentTable()
@@ -45,7 +46,7 @@ func TestInitializeDefaultExperimentTable(t *testing.T) {
 
 func TestGetAndSetDefaultExperimentId(t *testing.T) {
 	db := NewFakeDBOrFatal()
-	defaultExperimentStore := NewDefaultExperimentStore(db)
+	defaultExperimentStore := NewDefaultExperimentStore(db, dialect.NewDBDialect("sqlite"))
 
 	// Initialize for the first time
 	err := defaultExperimentStore.initializeDefaultExperimentTable()
@@ -74,7 +75,7 @@ func TestGetAndSetDefaultExperimentId(t *testing.T) {
 
 func TestUnsetDefaultExperimentIdIfIdMatches(t *testing.T) {
 	db := NewFakeDBOrFatal()
-	defaultExperimentStore := NewDefaultExperimentStore(db)
+	defaultExperimentStore := NewDefaultExperimentStore(db, dialect.NewDBDialect("sqlite"))
 
 	// Initialize for the first time
 	err := defaultExperimentStore.initializeDefaultExperimentTable()
