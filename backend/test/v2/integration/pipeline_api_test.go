@@ -43,7 +43,7 @@ type PipelineApiTest struct {
 	namespace            string
 	resourceNamespace    string
 	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
+	pipelineUploadClient api_server.PipelineUploadInterface
 }
 
 // Check the namespace have ML job installed and ready
@@ -61,31 +61,30 @@ func (s *PipelineApiTest) SetupTest() {
 	}
 	s.namespace = *namespace
 
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
-		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
-		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
 		}
 	}
 
 	var err error
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*isDebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
@@ -103,20 +102,38 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	test.DeleteAllPipelines(s.pipelineClient, t)
 
 	/* ------ Upload v2 pipeline spec YAML --------*/
-	helloPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", upload_params.NewUploadPipelineParams())
+	helloPipeline, err := s.pipelineUploadClient.UploadFile(
+		"../resources/hello-world.yaml",
+		&upload_params.UploadPipelineParams{
+			Name:        util.StringPointer("hello-world"),
+			DisplayName: util.StringPointer("hello-world.yaml"),
+		},
+	)
 	require.Nil(t, err)
 	assert.Equal(t, "hello-world.yaml", helloPipeline.DisplayName)
 	// Verify that the pipeline name defaults to the display name for backwards compatibility.
-	assert.Equal(t, "hello-world.yaml", helloPipeline.Name)
+	assert.Equal(t, "hello-world", helloPipeline.Name)
 
 	/* ---------- Upload pipelines YAML ---------- */
 	time.Sleep(1 * time.Second)
-	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", upload_params.NewUploadPipelineParams())
+	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile(
+		"../resources/arguments-parameters.yaml",
+		&upload_params.UploadPipelineParams{
+			Name:        util.StringPointer("arguments-parameters"),
+			DisplayName: util.StringPointer("arguments-parameters.yaml"),
+		},
+	)
 	require.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.DisplayName)
 
 	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
-	_, err = s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", upload_params.NewUploadPipelineParams())
+	_, err = s.pipelineUploadClient.UploadFile(
+		"../resources/arguments-parameters.yaml",
+		&upload_params.UploadPipelineParams{
+			Name:        util.StringPointer("arguments-parameters"),
+			DisplayName: util.StringPointer("arguments-parameters.yaml"),
+		},
+	)
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to upload pipeline")
 
@@ -166,7 +183,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineParams{
-		Pipeline: &model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip"},
+		Pipeline: &model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip", Name: "arguments-pipeline-zip"},
 	})
 	require.Nil(t, err)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(
