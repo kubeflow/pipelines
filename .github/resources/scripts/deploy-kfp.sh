@@ -28,6 +28,7 @@ TEST_MANIFESTS=".github/resources/manifests/argo"
 PIPELINES_STORE="database"
 USE_PROXY=false
 CACHE_DISABLED=false
+POD_TO_POD_TLS_ENABLED=false
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -44,6 +45,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --cache-disabled)
       CACHE_DISABLED=true
+      shift
+      ;;
+    --tls-enabled)
+      POD_TO_POD_TLS_ENABLED=true
       shift
       ;;
   esac
@@ -63,7 +68,7 @@ then
 fi
 
 # If pipelines store is set to 'kubernetes', cert-manager must be deployed
-if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+if [ "${PIPELINES_STORE}" == "kubernetes" ] || [ "${POD_TO_POD_TLS_ENABLED}" == "true" ]; then
   #Install cert-manager
   make -C ./backend install-cert-manager || EXIT_CODE=$?
   if [[ $EXIT_CODE -ne 0 ]]
@@ -80,6 +85,8 @@ elif $USE_PROXY; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
 elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
+elif $POD_TO_POD_TLS_ENABLED; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/tls-enabled"
 else
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
 fi

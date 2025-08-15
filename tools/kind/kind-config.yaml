@@ -14,3 +14,5 @@ nodes:
     hostPort: 9000
   - containerPort: 30889
     hostPort: 8889
+networking:
+  ipFamily: dual
