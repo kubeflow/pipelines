@@ -8,6 +8,12 @@ resources:
   - metadata-envoy-deployment.yaml
   - metadata-envoy-service.yaml
   - metadata-grpc-sa.yaml
+configMapGenerator:
+  - name: envoy-config
+    files:
+      - patches/envoy.yaml
 images:
   - name: ghcr.io/kubeflow/kfp-metadata-envoy
     newTag: 2.14.0
+patches:
+

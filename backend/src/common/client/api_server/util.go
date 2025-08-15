@@ -1,6 +1,8 @@
 package api_server
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"os"
@@ -63,12 +65,38 @@ func toWorkflowTestOnly(workflow string) *workflowapi.Workflow {
 	return &result
 }
 
-func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
 	*httptransport.Runtime, error,
 ) {
 	if os.Getenv("LOCAL_API_SERVER") == "true" {
-		httpClient := http.DefaultClient
-		runtime := httptransport.NewWithClient("localhost:8888", "", []string{"http"}, httpClient)
+		var schemes []string
+		var httpClient *http.Client
+		var runtime *httptransport.Runtime
+		if tlsEnabled {
+			schemes = []string{"https"}
+			if caCertPath == "" {
+				return nil, errors.New("CA cert path is empty")
+			}
+
+			caCert, err := os.ReadFile("../../../../" + caCertPath)
+			if err != nil {
+				return nil, errors.Wrap(err, "Encountered error when reading CA cert path for creating a metadata client.")
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(caCert)
+
+			config := &tls.Config{
+				RootCAs: caCertPool,
+			}
+			tr := &http.Transport{
+				TLSClientConfig: config,
+			}
+			httpClient = &http.Client{Transport: tr}
+		} else {
+			schemes = []string{"http"}
+			httpClient = &http.Client{}
+		}
+		runtime = httptransport.NewWithClient("localhost:8888", "", schemes, httpClient)
 		if debug {
 			runtime.SetDebug(true)
 		}
@@ -94,10 +122,27 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	return runtime, err
 }
 
-func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool) *httptransport.Runtime {
-	schemes := []string{"http"}
-	httpClient := http.Client{}
-	runtime := httptransport.NewWithClient(fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, &httpClient)
+func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool, tlsEnabled bool, caCertPath string) *httptransport.Runtime {
+	var schemes []string
+	var httpClient *http.Client
+	if tlsEnabled {
+		schemes = []string{"https"}
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM([]byte(caCertPath))
+
+		config := &tls.Config{
+			RootCAs: caCertPool,
+		}
+		tr := &http.Transport{
+			TLSClientConfig: config,
+		}
+		httpClient = &http.Client{Transport: tr}
+	} else {
+		schemes = []string{"http"}
+		httpClient = &http.Client{}
+	}
+	runtime := httptransport.NewWithClient(
+		fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, httpClient)
 	runtime.SetDebug(debug)
 	return runtime
 }

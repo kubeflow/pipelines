@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"google.golang.org/grpc/credentials"
-	"os"
 
 	"google.golang.org/grpc/credentials/insecure"
 

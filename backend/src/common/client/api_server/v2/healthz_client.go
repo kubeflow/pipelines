@@ -34,8 +34,8 @@ type HealthzClient struct {
 	apiClient *apiclient.Healthz
 }
 
-func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*HealthzClient, error) {
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (*HealthzClient, error) {
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
 	if err != nil {
 		return nil, err
 	}

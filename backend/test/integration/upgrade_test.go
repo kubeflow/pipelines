@@ -111,37 +111,37 @@ func (s *UpgradeTests) SetupSuite() {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newJobClient = func() (*api_server.JobClient, error) {
-			return api_server.NewKubeflowInClusterJobClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterJobClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
+			return api_server.NewExperimentClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRunClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newJobClient = func() (*api_server.JobClient, error) {
-			return api_server.NewJobClient(clientConfig, *isDebugMode)
+			return api_server.NewJobClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	}
 

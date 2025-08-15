@@ -18,6 +18,7 @@ RUN apt-get update -y && \
   apt-get install --no-install-recommends -y -q gettext openssl
 
 COPY third_party/metadata_envoy/envoy.yaml /etc/envoy.yaml
+COPY third_party/metadata_envoy/envoy.yaml /etc/envoy-tls-enabled.yaml
 
 # Copy license files.
 #RUN mkdir -p /third_party

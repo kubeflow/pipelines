@@ -44,10 +44,10 @@ type JobClient struct {
 	authInfoWriter rt.ClientAuthInfoWriter
 }
 
-func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
 	*JobClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
 	}
@@ -60,10 +60,10 @@ func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
-func NewKubeflowInClusterJobClient(namespace string, debug bool) (
+func NewKubeflowInClusterJobClient(namespace string, debug bool, tlsEnabled bool, caCertPath string) (
 	*JobClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsEnabled, caCertPath)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
