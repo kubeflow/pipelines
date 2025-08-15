@@ -16,13 +16,13 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
-
-var defaultExperimentDBValue = sq.Eq{"DefaultExperimentId": ""}
 
 type DefaultExperimentStoreInterface interface {
 	GetDefaultExperimentId() (string, error)
@@ -32,7 +32,8 @@ type DefaultExperimentStoreInterface interface {
 // Implementation of a DefaultExperimentStoreInterface. This stores the default experiment's ID,
 // which is created the first time the API server is initialized.
 type DefaultExperimentStore struct {
-	db *DB
+	db      *DB
+	dialect dialect.DBDialect
 }
 
 func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
@@ -41,7 +42,9 @@ func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to initialize default experiment table")
 	}
-	rows, err := tx.Query("SELECT * FROM default_experiments")
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+	rows, err := tx.Query(fmt.Sprintf("SELECT * FROM %s", q("default_experiments")))
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to get default experiment")
@@ -55,9 +58,11 @@ func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 
 	// If the table is not initialized, then set the default value.
 	if !next {
-		sql, args, queryErr := sq.
-			Insert("default_experiments").
-			SetMap(defaultExperimentDBValue).
+		sql, args, queryErr := qb.
+			Insert(q("default_experiments")).
+			SetMap(map[string]interface{}{
+				q("DefaultExperimentId"): "",
+			}).
 			ToSql()
 
 		if queryErr != nil {
@@ -80,10 +85,16 @@ func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 }
 
 func (s *DefaultExperimentStore) SetDefaultExperimentId(id string) error {
-	sql, args, err := sq.
-		Update("default_experiments").
-		SetMap(sq.Eq{"DefaultExperimentId": id}).
-		Where(sq.Eq{"DefaultExperimentId": ""}).
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+	sql, args, err := qb.
+		Update(q("default_experiments")).
+		SetMap(map[string]interface{}{
+			q("DefaultExperimentId"): id,
+		}).
+		Where(sq.Eq{
+			q("DefaultExperimentId"): "",
+		}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error creating query to set default experiment ID")
@@ -96,8 +107,10 @@ func (s *DefaultExperimentStore) SetDefaultExperimentId(id string) error {
 }
 
 func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
 	var defaultExperimentId string
-	sql, args, err := sq.Select("DefaultExperimentId").From("default_experiments").ToSql()
+	sql, args, err := qb.Select(q("DefaultExperimentId")).From(q("default_experiments")).ToSql()
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Error creating query to get default experiment ID")
 	}
@@ -129,10 +142,16 @@ func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
 // Update is used instead of delete so that we don't need to first check that the experiment ID is
 // there.
 func (s *DefaultExperimentStore) UnsetDefaultExperimentIdIfIdMatches(tx *sql.Tx, id string) error {
-	sql, args, err := sq.
-		Update("default_experiments").
-		SetMap(sq.Eq{"DefaultExperimentId": ""}).
-		Where(sq.Eq{"DefaultExperimentId": id}).
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+	sql, args, err := qb.
+		Update(q("default_experiments")).
+		SetMap(map[string]interface{}{
+			q("DefaultExperimentId"): "",
+		}).
+		Where(sq.Eq{
+			q("DefaultExperimentId"): id,
+		}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create command to clear default experiment with ID: %s", id)
@@ -146,9 +165,8 @@ func (s *DefaultExperimentStore) UnsetDefaultExperimentIdIfIdMatches(tx *sql.Tx,
 }
 
 // factory function for creating default experiment store.
-func NewDefaultExperimentStore(db *DB) *DefaultExperimentStore {
-	s := &DefaultExperimentStore{db: db}
-	// Initialize default experiment table
+func NewDefaultExperimentStore(db *DB, d dialect.DBDialect) *DefaultExperimentStore {
+	s := &DefaultExperimentStore{db: db, dialect: d}
 	s.initializeDefaultExperimentTable()
 	return s
 }

@@ -29,6 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	sqldrv "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
@@ -86,6 +87,7 @@ func init() {
 // Container for all service clients.
 type ClientManager struct {
 	db                        *storage.DB
+	dbDialect                 sqldrv.DBDialect
 	experimentStore           storage.ExperimentStoreInterface
 	pipelineStore             storage.PipelineStoreInterface
 	jobStore                  storage.JobStoreInterface
@@ -196,6 +198,10 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 	return c.authenticators
 }
 
+func (c *ClientManager) DBDialect() sqldrv.DBDialect {
+	return c.dbDialect
+}
+
 func (c *ClientManager) init(options *Options) error {
 	// time
 	c.time = util.NewRealTime()
@@ -264,20 +270,21 @@ func (c *ClientManager) init(options *Options) error {
 
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
-	db, _ := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db, dbDialect := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
+	c.dbDialect = dbDialect
 	glog.Info("DB client initialized successfully")
 
 	c.db = db
 	if !options.UsePipelineKubernetesStorage {
 		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
 	}
-	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid)
+	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid, c.dbDialect)
 	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef)
 	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
-	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
+	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db, c.dbDialect)
 	glog.Info("Initializing Object store client...")
 	c.objectStore = initMinioClient(options.Context, common.GetDurationConfig(initConnectionTimeout))
 	glog.Info("Object store client initialized successfully")
@@ -314,7 +321,7 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, SQLDialect) {
+func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, sqldrv.DBDialect) {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
 	// 2) To use PostgreSQL, use `pgx`
@@ -339,8 +346,8 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, SQLDialect)
 	// and maintains its own pool of idle connections.
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
-
-	dialect := GetDialect(driverName)
+	db = db.Debug() // lyk: temporary for test
+	sqlDialect := sqldrv.NewDBDialect(driverName)
 
 	legacy, err := isLegacySchema(db)
 	if err != nil {
@@ -349,7 +356,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, SQLDialect)
 	if legacy {
 		// Legacy schema (pre-2.15): run the one-time legacy upgrade to shrink columns,
 		// clean up legacy indexes/constraints, and perform backfills.
-		util.TerminateIfError(runLegacyUpgradeFlow(db, dialect))
+		util.TerminateIfError(runLegacyUpgradeFlow(db, sqlDialect))
 	} else {
 		// Non-legacy schema (>=2.15): run autoMigrate for both first-time installs and
 		// upgrades between >=2.15 versions.
@@ -360,7 +367,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, SQLDialect)
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-	return storage.NewDB(newdb, storage.NewMySQLDialect()), dialect
+	return storage.NewDB(newdb, storage.NewMySQLDialect()), sqlDialect
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:
@@ -414,10 +421,10 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	util.TerminateIfError(err)
 
 	// Create database if not exist
-	dialect := GetDialect(driverName)
+	drvDialect := sqldrv.NewDBDialect(driverName)
 	operation = func() error {
 		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", dbName))
-		if ignoreAlreadyExistError(dialect, err) != nil {
+		if ignoreAlreadyExistError(drvDialect, err) != nil {
 			return err
 		}
 		return nil
@@ -465,7 +472,7 @@ func isLegacySchema(db *gorm.DB) (bool, error) {
 	return !ok || length > 64, nil
 }
 
-func runLegacyUpgradeFlow(db *gorm.DB, dialect SQLDialect) error {
+func runLegacyUpgradeFlow(db *gorm.DB, dialect sqldrv.DBDialect) error {
 	glog.Infof("Detected legacy schema. Running upgrade flow.")
 	// Step 1: decide whether to backfill pipeline_versions
 	// If pipeline_versions table is introduced into DB for the first time,
@@ -485,7 +492,7 @@ func runLegacyUpgradeFlow(db *gorm.DB, dialect SQLDialect) error {
 	}
 
 	// Step 3: drop all foreign key constraints which can block shrinking columns
-	if err := dropAllFKConstraints(db, dialect.Name); err != nil {
+	if err := dropAllFKConstraints(db, dialect.Name()); err != nil {
 		return fmt.Errorf("drop foreign key constraints failed: %w", err)
 	}
 
@@ -589,7 +596,7 @@ func getColumnLength(db *gorm.DB, mdl interface{}, column string) (length int64,
 
 // runPreflightLengthChecks scans existing data and aborts upgrade if any row exceeds the new Max length.
 // It must be called BEFORE AutoMigrate/DDL that shrinks column definitions.
-func runPreflightLengthChecks(db *gorm.DB, dialect SQLDialect, specs []validation.ColLenSpec) error {
+func runPreflightLengthChecks(db *gorm.DB, dialect sqldrv.DBDialect, specs []validation.ColLenSpec) error {
 	quote := dialect.QuoteIdentifier
 
 	for _, s := range specs {
@@ -602,7 +609,7 @@ func runPreflightLengthChecks(db *gorm.DB, dialect SQLDialect, specs []validatio
 		}
 
 		var cnt int64
-		lengthFn := dialect.LengthFunc
+		lengthFn := dialect.LengthFunc()
 		where := fmt.Sprintf("%s(%s) > ?", lengthFn, quote(dbCol))
 		if err := db.Table(tableName).Where(where, s.Max).Count(&cnt).Error; err != nil {
 			return fmt.Errorf("preflight length check failed for %s.%s (count): %w", tableName, dbCol, err)
@@ -707,15 +714,15 @@ func dropAllMySQLFKConstraints(db *gorm.DB) error {
 
 // dropLegacyIndexes removes a small, explicit set of legacy indexes that
 // conflict/duplicate with GORM tag definitions. MySQL only; PostgreSQL is no-op.
-func dropLegacyIndexes(db *gorm.DB, dialect SQLDialect) error {
-	switch dialect.Name {
+func dropLegacyIndexes(db *gorm.DB, dialect sqldrv.DBDialect) error {
+	switch dialect.Name() {
 	case "mysql":
 		return dropLegacyIndexesMySQL(db)
 	case "pgx":
 		// No legacy cleanup needed for PostgreSQL per upstream note.
 		return nil
 	default:
-		return fmt.Errorf("dropLegacyIndexes: unsupported dialect %q", dialect.Name)
+		return fmt.Errorf("dropLegacyIndexes: unsupported dialect %q", dialect.Name())
 	}
 }
 
@@ -878,7 +885,7 @@ func ensureColumnLength(db *gorm.DB, spec validation.ColLenSpec) error {
 // addDisplayNameColumn ensures the DisplayName column exists on the given model's table,
 // backfills it from Name where missing, and then enforces NOT NULL.
 // It is safe to call multiple times (idempotent).
-func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) error {
+func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect sqldrv.DBDialect) error {
 
 	table, dbCol, err := FieldMeta(db, mdl, "DisplayName")
 	if err != nil {
@@ -903,7 +910,7 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		var stmts []string
-		switch dialect.Name {
+		switch dialect.Name() {
 		case "mysql":
 			stmts = []string{
 				"ALTER TABLE " + quotedTable + " ADD COLUMN " + q(dbCol) + " VARCHAR(255) NULL;",
@@ -917,7 +924,7 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 				"ALTER TABLE " + quotedTable + " ALTER COLUMN " + q(dbCol) + " SET NOT NULL;",
 			}
 		default:
-			return fmt.Errorf("unsupported driver: %s", dialect.Name)
+			return fmt.Errorf("unsupported driver: %s", dialect.Name())
 		}
 
 		for _, s := range stmts {
@@ -1068,8 +1075,8 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 
 // Returns the same error, if it's not "already exists" related.
 // Otherwise, return nil.
-func ignoreAlreadyExistError(dialect SQLDialect, err error) error {
-	if err != nil && strings.Contains(err.Error(), dialect.ExistDatabaseErrHint) {
+func ignoreAlreadyExistError(dialect sqldrv.DBDialect, err error) error {
+	if err != nil && strings.Contains(err.Error(), (dialect.ExistDatabaseErrHint())) {
 		return nil
 	}
 	return err
