@@ -12,77 +12,77 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package clientmanager
+package dialect
 
 import (
 	"testing"
 )
 
 func TestGetDialect_MySQL(t *testing.T) {
-	d := GetDialect("mysql")
-	if d.Name != "mysql" {
-		t.Errorf("Expected mysql dialect, got %s", d.Name)
+	d := NewDBDialect("mysql")
+	if d.Name() != "mysql" {
+		t.Errorf("Expected mysql dialect, got %s", d.Name())
 	}
 	if d.QuoteIdentifier("abc") != "`abc`" {
 		t.Errorf("MySQL quote failed")
 	}
-	if d.LengthFunc != "CHAR_LENGTH" {
-		t.Errorf("Expected CHAR_LENGTH, got %s", d.LengthFunc)
+	if d.LengthFunc() != "CHAR_LENGTH" {
+		t.Errorf("Expected CHAR_LENGTH, got %s", d.LengthFunc())
 	}
-	sql, _, err := d.StatementBuilder.Select("1").ToSql()
+	sql, _, err := d.QueryBuilder().Select("1").ToSql()
 	if err != nil {
 		t.Errorf("Failed to build SQL: %v", err)
 	}
 	if sql != "SELECT 1" {
 		t.Errorf("Expected 'SELECT 1', got '%s'", sql)
 	}
-	if d.ExistDatabaseErrHint != "database exists" {
-		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint)
+	if d.ExistDatabaseErrHint() != "database exists" {
+		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint())
 	}
 }
 
 func TestGetDialect_Pgx(t *testing.T) {
-	d := GetDialect("pgx")
-	if d.Name != "pgx" {
-		t.Errorf("Expected pgx dialect, got %s", d.Name)
+	d := NewDBDialect("pgx")
+	if d.Name() != "pgx" {
+		t.Errorf("Expected pgx dialect, got %s", d.Name())
 	}
 	if d.QuoteIdentifier("abc") != `"abc"` {
 		t.Errorf("Pgx quote failed")
 	}
-	if d.LengthFunc != "CHAR_LENGTH" {
-		t.Errorf("Expected CHAR_LENGTH, got %s", d.LengthFunc)
+	if d.LengthFunc() != "CHAR_LENGTH" {
+		t.Errorf("Expected CHAR_LENGTH, got %s", d.LengthFunc())
 	}
-	sql, _, err := d.StatementBuilder.Select("1").ToSql()
+	sql, _, err := d.QueryBuilder().Select("1").ToSql()
 	if err != nil {
 		t.Errorf("Failed to build SQL: %v", err)
 	}
 	if sql != "SELECT 1" {
 		t.Errorf("Expected 'SELECT 1', got '%s'", sql)
 	}
-	if d.ExistDatabaseErrHint != "already exists" {
-		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint)
+	if d.ExistDatabaseErrHint() != "already exists" {
+		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint())
 	}
 }
 
 func TestGetDialect_SQLite(t *testing.T) {
-	d := GetDialect("sqlite")
-	if d.Name != "sqlite" {
-		t.Errorf("Expected sqlite dialect, got %s", d.Name)
+	d := NewDBDialect("sqlite")
+	if d.Name() != "sqlite" {
+		t.Errorf("Expected sqlite dialect, got %s", d.Name())
 	}
 	if d.QuoteIdentifier("abc") != `"abc"` {
 		t.Errorf("SQLite quote failed")
 	}
-	if d.LengthFunc != "LENGTH" {
-		t.Errorf("Expected LENGTH, got %s", d.LengthFunc)
+	if d.LengthFunc() != "LENGTH" {
+		t.Errorf("Expected LENGTH, got %s", d.LengthFunc())
 	}
-	sql, _, err := d.StatementBuilder.Select("1").ToSql()
+	sql, _, err := d.QueryBuilder().Select("1").ToSql()
 	if err != nil {
 		t.Errorf("Failed to build SQL: %v", err)
 	}
 	if sql != "SELECT 1" {
 		t.Errorf("Expected 'SELECT 1', got '%s'", sql)
 	}
-	if d.ExistDatabaseErrHint != "" {
-		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint)
+	if d.ExistDatabaseErrHint() != "" {
+		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint())
 	}
 }
