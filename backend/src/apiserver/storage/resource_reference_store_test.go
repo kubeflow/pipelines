@@ -77,7 +77,7 @@ func TestResourceReferenceStore(t *testing.T) {
 	assert.Equal(t, &model.ResourceReference{
 		ResourceUUID: "r1", ResourceType: model.RunResourceType,
 		ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
-		Relationship: model.CreatorRelationship, Payload: string(payload),
+		Relationship: model.CreatorRelationship, Payload: model.LargeText(payload),
 	}, experimentRef)
 
 	// Delete resource references
