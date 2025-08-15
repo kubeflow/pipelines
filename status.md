@@ -10,11 +10,10 @@
 🎯 **RESULT**: Pipeline users no longer experience hanging pipelines. Core functionality works perfectly with proper status propagation.
 
 ### What Still Needs to Be Done
-- [x] TestDeeplyNestedPipelineFailurePropagation is currently skipped. It was working before, but now it's failing. Try to enable it again
 - [ ] Review the test code and make sure its logic is correct
 - [ ] Clean the test code
-  - [ ] Some verifications seem very complex. Verify if all of that is necessary and remove unnecessary code.
-  - [ ] Break up the test code into smaller functions.
+  - [ ] Remove Sleep calls. Replace it with `require.Eventually`
+  - [ ] Break up big functions into smaller functions.
   - [ ] Remove unused code
   - [ ] Remove unnecessary comments
   - [ ] Remove unnecessary logs
