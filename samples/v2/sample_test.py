@@ -150,7 +150,7 @@ def delete_k8s_yaml(namespace: str, yaml_file: str):
         print(f'Exception when deleting from YAML: {e}')
 
 
-def get_auth_token():
+def get_authentication_token():
     """Get authentication token for multi-user mode."""
     if _KFP_MULTI_USER:
         try:
@@ -179,7 +179,7 @@ class SampleTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Initialize client with token if in multi-user mode
-        auth_token = get_auth_token()
+        auth_token = get_authentication_token()
         if auth_token:
             self._client = kfp.Client(
                 host=self._kfp_host_and_port, 
