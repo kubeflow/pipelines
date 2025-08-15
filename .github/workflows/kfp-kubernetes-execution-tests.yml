@@ -44,6 +44,7 @@ jobs:
           df -h
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          ./.github/resources/scripts/free-disk-space.sh
           echo "Disk usage after clean up:"
           df -h
 

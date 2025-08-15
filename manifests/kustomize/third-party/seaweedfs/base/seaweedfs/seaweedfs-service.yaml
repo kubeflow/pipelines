@@ -1,0 +1,33 @@
+# Separate service for new ports of seaweedfs. If we add them to the existing minio-service there will be a problem
+# with the mlpipeline api server because it relies on MINIO_SERVICE_SERVICE_PORT pointing to the S3 port.
+# But with multiple ports on a service that is not really reliable. So we use the existing minio-service for
+# backwards-compatibility, but everything new, seaweedfs related is here.
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs
+  namespace: kubeflow
+spec:
+  ports:
+  - name: http-iam
+    port: 8111
+    protocol: TCP
+    targetPort: 8111
+  - name: http-master
+    port: 9333
+    protocol: TCP
+    targetPort: 9333
+  - name: grpc-master
+    port: 19333
+    protocol: TCP
+    targetPort: 19333
+  - name: grpc-filer
+    port: 18888
+    protocol: TCP
+    targetPort: 18888
+  - name: http-filer
+    port: 8888
+    protocol: TCP
+    targetPort: 8888
+  selector:
+    app: seaweedfs
