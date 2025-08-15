@@ -29,7 +29,8 @@ def component(func: Optional[Callable] = None,
               install_kfp_package: bool = True,
               kfp_package_path: Optional[str] = None,
               pip_trusted_hosts: Optional[List[str]] = None,
-              use_venv: bool = False):
+              use_venv: bool = False,
+              compile_time_imports: bool = False):
     """Decorator for Python-function based components.
 
     A KFP component can either be a lightweight component or a containerized
@@ -79,6 +80,8 @@ def component(func: Optional[Callable] = None,
         use_venv: Specifies if the component should be executed in a virtual environment.
             The environment will be created in a temporary directory and will inherit the system site packages.
             This is useful in restricted environments where most of the system is read-only.
+        compile_time_imports: When true this will include imports in the kfp.dsl package traditionally used only at
+        compile time. Set this value to true when you need compile time imports at runtime. By default, this is false because skipping compile time imports improves component execution times.
 
     Returns:
         A component task factory that can be used in pipeline definitions.
@@ -121,7 +124,9 @@ def component(func: Optional[Callable] = None,
             install_kfp_package=install_kfp_package,
             kfp_package_path=kfp_package_path,
             pip_trusted_hosts=pip_trusted_hosts,
-            use_venv=use_venv)
+            use_venv=use_venv,
+            compile_time_imports=compile_time_imports
+        )
 
     return component_factory.create_component_from_func(
         func,
@@ -133,4 +138,6 @@ def component(func: Optional[Callable] = None,
         install_kfp_package=install_kfp_package,
         kfp_package_path=kfp_package_path,
         pip_trusted_hosts=pip_trusted_hosts,
-        use_venv=use_venv)
+        use_venv=use_venv,
+        compile_time_imports=compile_time_imports,
+    )
