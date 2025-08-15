@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -580,7 +581,7 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 	for {
 		glog.V(4).Info("currentTask: ", currentTask.TaskName())
 		// If the current task is a DAG:
-		if *currentTask.GetExecution().Type == "system.DAGExecution" {
+		if currentTask.GetExecution() != nil && currentTask.GetExecution().Type != nil && *currentTask.GetExecution().Type == "system.DAGExecution" {
 			// Since currentTask is a DAG, we need to deserialize its
 			// output parameter map so that we can look up its
 			// corresponding producer sub-task, reassign currentTask,
@@ -610,7 +611,14 @@ func resolveUpstreamParameters(cfg resolveUpstreamOutputsConfig) (*structpb.Valu
 			// output we need has multiple iterations so we have to gather all
 			// them and fan them in by collecting them into a list i.e.
 			// kfp.dsl.Collected support.
-			parentDAG, err := cfg.mlmd.GetExecution(cfg.ctx, currentTask.GetExecution().GetCustomProperties()["parent_dag_id"].GetIntValue())
+			// Safe access to parent_dag_id
+			var parentDAGID int64
+			if currentTask.GetExecution().GetCustomProperties() != nil && currentTask.GetExecution().GetCustomProperties()["parent_dag_id"] != nil {
+				parentDAGID = currentTask.GetExecution().GetCustomProperties()["parent_dag_id"].GetIntValue()
+			} else {
+				return nil, cfg.err(fmt.Errorf("parent_dag_id not found in task %s", currentTask.TaskName()))
+			}
+			parentDAG, err := cfg.mlmd.GetExecution(cfg.ctx, parentDAGID)
 			if err != nil {
 				return nil, cfg.err(err)
 			}
@@ -705,9 +713,16 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
 	for {
 		glog.V(4).Info("currentTask: ", currentTask.TaskName())
 		// If the current task is a DAG:
-		if *currentTask.GetExecution().Type == "system.DAGExecution" {
+		if currentTask.GetExecution() != nil && currentTask.GetExecution().Type != nil && *currentTask.GetExecution().Type == "system.DAGExecution" {
 			// Get the sub-task.
-			parentDAG, err := cfg.mlmd.GetExecution(cfg.ctx, currentTask.GetExecution().GetCustomProperties()["parent_dag_id"].GetIntValue())
+			// Safe access to parent_dag_id
+			var parentDAGID int64
+			if currentTask.GetExecution().GetCustomProperties() != nil && currentTask.GetExecution().GetCustomProperties()["parent_dag_id"] != nil {
+				parentDAGID = currentTask.GetExecution().GetCustomProperties()["parent_dag_id"].GetIntValue()
+			} else {
+				return nil, cfg.err(fmt.Errorf("parent_dag_id not found in task %s", currentTask.TaskName()))
+			}
+			parentDAG, err := cfg.mlmd.GetExecution(cfg.ctx, parentDAGID)
 			if err != nil {
 				return nil, cfg.err(err)
 			}
@@ -834,7 +849,9 @@ func CollectInputs(
 	outputKey string,
 	isArtifact bool,
 ) (outputParameterList *structpb.Value, outputArtifactList *pipelinespec.ArtifactList, err error) {
-	glog.V(4).Infof("currentTask is a ParallelFor DAG. Attempting to gather all nested producer_subtasks")
+	glog.Infof("DEBUG CollectInputs: ENTRY - parallelForDAGTaskName='%s', outputKey='%s', isArtifact=%v, tasks count=%d", 
+		parallelForDAGTaskName, outputKey, isArtifact, len(tasks))
+	glog.Infof("currentTask is a ParallelFor DAG. Attempting to gather all nested producer_subtasks")
 	// Set some helpers for the start and looping for BFS
 	var currentTask *metadata.Execution
 	var workingSubTaskName string
@@ -845,20 +862,58 @@ func CollectInputs(
 	parallelForParameterList := make([]*structpb.Value, 0)
 	parallelForArtifactList := make([]*pipelinespec.RuntimeArtifact, 0)
 	tasksToResolve := make([]string, 0)
+	// Track visited tasks to prevent infinite loops
+	visitedTasks := make(map[string]bool)
+	// Add safety limit to prevent infinite loops
+	maxIterations := 1000
+	iterationCount := 0
 	// Set up the queue for BFS by setting the parallelFor DAG task as the
 	// initial node. The loop will add the iteration dag task names for us into
 	// the slice/queue.
 	tasksToResolve = append(tasksToResolve, parallelForDAGTaskName)
-	previousTaskName := tasks[tasksToResolve[0]].TaskName()
+	
+	// Safe access to initial task for previousTaskName
+	var previousTaskName string
+	glog.V(4).Infof("DEBUG CollectInputs: Looking up initial task '%s' in tasks map", tasksToResolve[0])
+	if initialTask := tasks[tasksToResolve[0]]; initialTask != nil {
+		previousTaskName = initialTask.TaskName()
+		glog.V(4).Infof("DEBUG CollectInputs: Found initial task, TaskName='%s'", previousTaskName)
+	} else {
+		glog.V(4).Infof("DEBUG CollectInputs: Initial task '%s' not found in tasks map", tasksToResolve[0])
+	}
 
 	for len(tasksToResolve) > 0 {
+		// Safety check to prevent infinite loops
+		iterationCount++
+		if iterationCount > maxIterations {
+			glog.Errorf("DEBUG CollectInputs: INFINITE LOOP DETECTED! Stopping after %d iterations. Queue length=%d", maxIterations, len(tasksToResolve))
+			return nil, nil, fmt.Errorf("infinite loop detected in CollectInputs after %d iterations", maxIterations)
+		}
+		
 		// The starterQueue contains the first set of child DAGs from the
 		// parallelFor, i.e. the iteration dags.
-		glog.V(4).Infof("tasksToResolve: %v", tasksToResolve)
+		glog.Infof("DEBUG CollectInputs: Iteration %d/%d - tasksToResolve queue length=%d, queue=%v", iterationCount, maxIterations, len(tasksToResolve), tasksToResolve)
 		currentTaskName := tasksToResolve[0]
 		tasksToResolve = tasksToResolve[1:]
 
+		// Check if we've already visited this task to prevent infinite loops
+		if visitedTasks[currentTaskName] {
+			glog.Infof("DEBUG CollectInputs: Task '%s' already visited, skipping to prevent infinite loop", currentTaskName)
+			continue
+		}
+		visitedTasks[currentTaskName] = true
+		glog.Infof("DEBUG CollectInputs: Processing task '%s', visited tasks count=%d", currentTaskName, len(visitedTasks))
+
+		glog.V(4).Infof("DEBUG CollectInputs: Looking up task '%s' in tasks map (total tasks: %d)", currentTaskName, len(tasks))
 		currentTask = tasks[currentTaskName]
+		
+		// Safe access to currentTask - check if it exists in the tasks map
+		if currentTask == nil {
+			glog.Warningf("DEBUG CollectInputs: currentTask with name '%s' not found in tasks map, skipping", currentTaskName)
+			continue
+		}
+		
+		glog.V(4).Infof("DEBUG CollectInputs: Successfully found task '%s', proceeding with processing", currentTaskName)
 
 		// We check if these values need to be updated going through the
 		// resolution of dags/tasks Most commonly the subTaskName will change
@@ -883,19 +938,33 @@ func CollectInputs(
 
 		glog.V(4).Infof("currentTask ID: %v", currentTask.GetID())
 		glog.V(4).Infof("currentTask Name: %v", currentTask.TaskName())
-		glog.V(4).Infof("currentTask Type: %v", currentTask.GetExecution().GetType())
+		
+		// Safe access to execution type
+		var taskType string
+		if currentTask.GetExecution() != nil && currentTask.GetExecution().Type != nil {
+			taskType = *currentTask.GetExecution().Type
+			glog.V(4).Infof("currentTask Type: %v", taskType)
+		} else {
+			glog.V(4).Infof("currentTask Type: nil")
+		}
+		
 		glog.V(4).Infof("workingSubTaskName %v", workingSubTaskName)
 		glog.V(4).Infof("workingOutputKey: %v", workingOutputKey)
 
-		iterations := currentTask.GetExecution().GetCustomProperties()["iteration_count"]
-		iterationIndex := currentTask.GetExecution().GetCustomProperties()["iteration_index"]
+		// Safe access to custom properties
+		var iterations *pb.Value
+		var iterationIndex *pb.Value
+		if currentTask.GetExecution() != nil && currentTask.GetExecution().GetCustomProperties() != nil {
+			iterations = currentTask.GetExecution().GetCustomProperties()["iteration_count"]
+			iterationIndex = currentTask.GetExecution().GetCustomProperties()["iteration_index"]
+		}
 
 		// Base cases for handling the task that actually maps to the task that
 		// created the artifact/parameter we are searching for.
 
 		//  Base case 1: currentTask is a ContainerExecution that we can load
 		//  the values off of.
-		if *currentTask.GetExecution().Type == "system.ContainerExecution" {
+		if taskType == "system.ContainerExecution" {
 			glog.V(4).Infof("currentTask, %v, is a ContainerExecution", currentTaskName)
 			paramValue, artifact, err := collectContainerOutput(cfg, currentTask, workingOutputKey, isArtifact)
 			if err != nil {
@@ -920,7 +989,7 @@ func CollectInputs(
 				tempSubTaskName = metadata.GetParallelForTaskName(tempSubTaskName, iterationIndex.GetIntValue())
 				glog.V(4).Infof("subTaskIterationName: %v", tempSubTaskName)
 			}
-			glog.V(4).Infof("tempSubTaskName: %v", tempSubTaskName)
+			glog.Infof("DEBUG CollectInputs: Adding tempSubTaskName '%s' to queue", tempSubTaskName)
 			tasksToResolve = append(tasksToResolve, tempSubTaskName)
 			continue
 		}
@@ -930,10 +999,11 @@ func CollectInputs(
 		// currentTask is in fact a ParallelFor Head DAG, thus we need to add
 		// its iteration DAGs to the queue.
 
+		glog.Infof("DEBUG CollectInputs: Adding %d iteration tasks for ParallelFor DAG", iterations.GetIntValue())
 		for i := range iterations.GetIntValue() {
 			loopName := metadata.GetTaskNameWithDagID(currentTask.TaskName(), currentTask.GetID())
 			loopIterationName := metadata.GetParallelForTaskName(loopName, i)
-			glog.V(4).Infof("loopIterationName: %v", loopIterationName)
+			glog.Infof("DEBUG CollectInputs: Adding loopIterationName '%s' to queue", loopIterationName)
 			tasksToResolve = append(tasksToResolve, loopIterationName)
 		}
 	}
@@ -1071,7 +1141,7 @@ func GetProducerTask(parentTask *metadata.Execution, tasks map[string]*metadata.
 func InferIndexedTaskName(producerTaskName string, dag *metadata.Execution) string {
 	// Check if the DAG in question is a parallelFor iteration DAG. If it is, we need to
 	// update the producerTaskName so the downstream task resolves the appropriate index.
-	if dag.GetExecution().GetCustomProperties()["iteration_index"] != nil {
+	if dag.GetExecution().GetCustomProperties() != nil && dag.GetExecution().GetCustomProperties()["iteration_index"] != nil {
 		task_iteration_index := dag.GetExecution().GetCustomProperties()["iteration_index"].GetIntValue()
 		producerTaskName = metadata.GetParallelForTaskName(producerTaskName, task_iteration_index)
 		glog.V(4).Infof("TaskIteration - ProducerTaskName: %v", producerTaskName)
