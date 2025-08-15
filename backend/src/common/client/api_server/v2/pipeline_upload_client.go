@@ -40,6 +40,8 @@ const (
 
 type PipelineUploadInterface interface {
 	UploadFile(filePath string, parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline, error)
+	UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion, error)
+	Upload(parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline, error)
 }
 
 type PipelineUploadClient struct {
@@ -48,8 +50,8 @@ type PipelineUploadClient struct {
 }
 
 func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
-	*PipelineUploadClient, error) {
-
+	PipelineUploadInterface, error,
+) {
 	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating pipeline upload client: %w", err)
@@ -64,8 +66,8 @@ func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 }
 
 func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool) (
-	*PipelineUploadClient, error) {
-
+	PipelineUploadInterface, error,
+) {
 	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
