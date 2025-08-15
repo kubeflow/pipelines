@@ -26,7 +26,7 @@ import (
 
 // The endpoint uses Kubernetes service DNS name with namespace:
 // https://kubernetes.io/docs/concepts/services-networking/service/#dns
-const defaultMinioEndpointInMultiUserMode = "minio-service.kubeflow:9000"
+const DefaultMinioEndpointInMultiUserMode = "minio-service.kubeflow:9000"
 
 type Config struct {
 	Scheme      string
@@ -158,10 +158,6 @@ func ParseProviderFromPath(uri string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSuffix(bucketConfig.Scheme, "://"), nil
-}
-
-func MinioDefaultEndpoint() string {
-	return defaultMinioEndpointInMultiUserMode
 }
 
 func GetSessionInfoFromString(sessionInfoJSON string) (*SessionInfo, error) {
