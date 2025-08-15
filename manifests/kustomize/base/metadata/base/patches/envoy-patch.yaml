@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-envoy-deployment
+  labels:
+    component: metadata-envoy
+spec:
+  template:
+    spec:
+      containers:
+        - name: container
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy
+              readOnly: true
+          args:  [  "/etc/envoy/envoy.yaml" ]
+      volumes:
+        - name: envoy-config
+          configMap:
+            name: envoy-config

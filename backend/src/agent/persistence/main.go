@@ -48,6 +48,7 @@ var (
 	clientBurst                    int
 	executionType                  string
 	saTokenRefreshIntervalInSecs   int64
+	caCertPath                     string
 )
 
 const (
@@ -68,6 +69,7 @@ const (
 	clientBurstFlagName                   = "clientBurst"
 	executionTypeFlagName                 = "executionType"
 	saTokenRefreshIntervalFlagName        = "saTokenRefreshIntervalInSecs"
+	caCertPathFlagName                    = "caCertPath"
 )
 
 const (
@@ -121,6 +123,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error starting Service Account Token Refresh Ticker due to: %v", err)
 	}
+
 	mlPipelineServiceTLSEnabled, err := strconv.ParseBool(mlPipelineServiceTLSEnabledStr)
 	if err != nil {
 		log.Fatalf("Error parsing boolean flag %s, please provide a valid bool value (true/false). %v", mlPipelineAPIServerTLSEnabled, err)
@@ -134,7 +137,8 @@ func main() {
 		mlPipelineAPIServerName,
 		mlPipelineServiceHttpPort,
 		mlPipelineServiceGRPCPort,
-		mlPipelineServiceTLSEnabled)
+		mlPipelineServiceTLSEnabled,
+		caCertPath)
 	if err != nil {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
@@ -179,5 +183,5 @@ func init() {
 	// TODO use viper/config file instead. Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
 	flag.Int64Var(&saTokenRefreshIntervalInSecs, saTokenRefreshIntervalFlagName, DefaultSATokenRefresherIntervalInSecs, "Persistence agent service account token read interval in seconds. "+
 		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")
-
+	flag.StringVar(&caCertPath, caCertPathFlagName, "", "The path to the CA certificate.")
 }

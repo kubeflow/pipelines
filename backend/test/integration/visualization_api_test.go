@@ -54,13 +54,13 @@ func (s *VisualizationApiTest) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newVisualizationClient = func() (*api_server.VisualizationClient, error) {
-			return api_server.NewKubeflowInClusterVisualizationClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterVisualizationClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
 		newVisualizationClient = func() (*api_server.VisualizationClient, error) {
-			return api_server.NewVisualizationClient(clientConfig, *isDebugMode)
+			return api_server.NewVisualizationClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	}
 

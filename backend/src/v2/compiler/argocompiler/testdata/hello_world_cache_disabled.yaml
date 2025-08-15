@@ -63,14 +63,9 @@ spec:
       - ""
       - --no_proxy
       - ""
-      - "--ml_pipeline_service_tls_enabled"
+      - --ml_pipeline_service_tls_enabled
       - "false"
       - --cache_disabled
-      env:
-        - name: ML_PIPELINE_SERVICE_HOST
-          value: ml-pipeline.kubeflow.svc.cluster.local
-        - name: ML_PIPELINE_SERVICE_PORT_GRPC
-          value: '8887'
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
@@ -139,10 +134,6 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
-      - name: ML_PIPELINE_SERVICE_HOST
-        value: ml-pipeline.kubeflow.svc.cluster.local
-      - name: ML_PIPELINE_SERVICE_PORT_GRPC
-        value: '8887'
       envFrom:
       - configMapRef:
           name: metadata-grpc-configmap
@@ -273,14 +264,7 @@ spec:
       - ""
       - --no_proxy
       - ""
-      - "--ml_pipeline_service_tls_enabled"
-      - "false"
       - --cache_disabled
-      env:
-        - name: ML_PIPELINE_SERVICE_HOST
-          value: ml-pipeline.kubeflow.svc.cluster.local
-        - name: ML_PIPELINE_SERVICE_PORT_GRPC
-          value: '8887'
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver
