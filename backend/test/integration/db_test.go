@@ -52,7 +52,7 @@ func (s *DBTestSuite) TestInitDBClient_MySQL() {
 	duration, _ := time.ParseDuration("1m")
 	db, dialect := cm.InitDBClient(duration)
 	assert.NotNil(t, db)
-	assert.Equal(t, "mysql", dialect.Name)
+	assert.Equal(t, "mysql", dialect.Name())
 }
 
 // Test PostgreSQL initializes correctly
@@ -71,7 +71,7 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 	duration, _ := time.ParseDuration("1m")
 	db, dialect := cm.InitDBClient(duration)
 	assert.NotNil(t, db)
-	assert.Equal(t, "pgx", dialect.Name)
+	assert.Equal(t, "pgx", dialect.Name())
 }
 
 func TestDB(t *testing.T) {
