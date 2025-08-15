@@ -377,7 +377,12 @@ func startHttpProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 			Addr:      *httpPortFlag,
 			Handler:   topMux,
 		}
-		https.ListenAndServeTLS("", "")
+		glog.Info("Executing ListenAndServeTLS")
+		err := https.ListenAndServeTLS(*tlsCertPath, *tlsCertKeyPath)
+		if err != nil {
+			glog.Errorf("Error starting https server: %v", err)
+			return
+		}
 	} else {
 		glog.Info("Starting Http Proxy")
 		http.ListenAndServe(*httpPortFlag, topMux)

@@ -44,7 +44,7 @@ func (s *InitializationTest) SetupTest() {
 	}
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
-	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
+	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false, *tlsEnabled, *caCertPath)
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}

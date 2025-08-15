@@ -60,14 +60,6 @@ var commonEnvs = []k8score.EnvVar{{
 	},
 }}
 
-var MLPipelineServiceEnv = []k8score.EnvVar{{
-	Name:  "ML_PIPELINE_SERVICE_HOST",
-	Value: GetMLPipelineServiceHost(),
-}, {
-	Name:  "ML_PIPELINE_SERVICE_PORT_GRPC",
-	Value: GetMLPipelineServicePortGRPC(),
-}}
-
 func GetMLPipelineServiceTLSEnabled() (bool, error) {
 	mlPipelineServiceTLSEnabledStr := os.Getenv(MLPipelineTLSEnabledEnvVar)
 	if mlPipelineServiceTLSEnabledStr == "" {
@@ -78,22 +70,6 @@ func GetMLPipelineServiceTLSEnabled() (bool, error) {
 		return false, err
 	}
 	return mlPipelineServiceTLSEnabled, nil
-}
-
-func GetMLPipelineServiceHost() string {
-	mlPipelineServiceHost := os.Getenv(MLPipelineServiceHostEnvVar)
-	if mlPipelineServiceHost == "" {
-		return DefaultMLPipelineServiceHost
-	}
-	return mlPipelineServiceHost
-}
-
-func GetMLPipelineServicePortGRPC() string {
-	mlPipelineServicePortGRPC := os.Getenv(MLPipelineServicePortGRPCEnvVar)
-	if mlPipelineServicePortGRPC == "" {
-		return DefaultMLPipelineServicePortGRPC
-	}
-	return mlPipelineServicePortGRPC
 }
 
 // ConfigureCABundle adds CABundle environment variables and volume mounts

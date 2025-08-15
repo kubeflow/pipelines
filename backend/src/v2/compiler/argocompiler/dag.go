@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -571,7 +570,6 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--ml_pipeline_service_tls_enabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
@@ -609,7 +607,6 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		Container: &k8score.Container{
 			Image:     c.driverImage,
 			Command:   c.driverCommand,
-			Env:       MLPipelineServiceEnv,
 			Args:      args,
 			Resources: driverResources,
 		},

@@ -245,7 +245,6 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       MLPipelineServiceEnv,
 		},
 	}
 
@@ -533,7 +532,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 				},
 			},
 			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     append(commonEnvs, MLPipelineServiceEnv...),
+			Env:     commonEnvs,
 		},
 	}
 	// If retry policy is set, add retryStrategy to executor
