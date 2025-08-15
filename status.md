@@ -11,7 +11,7 @@
 
 ### What Still Needs to Be Done
 - [ ] This work was done with the help of an AI code assistant. Therefore, we still need to:
-  - [ ] TestDeeplyNestedPipelineFailurePropagation is currently skipped. It was working before, but now it's failing. Try to enable it again
+  - [x] TestDeeplyNestedPipelineFailurePropagation is currently skipped. It was working before, but now it's failing. Try to enable it again
   - [ ] Review the test code and make sure its logic is correct
   - [ ] Clean the test code
     - [ ] Some verifications seem very complex. Verify if all of that is necessary and remove unnecessary code.

@@ -447,15 +447,12 @@ type NestedDAGValidationContext struct {
 
 // GetNestedDAGContext gets the complete context needed for nested DAG validation
 func (h *DAGTestUtil) GetNestedDAGContext(runID string, testScenario string) *NestedDAGValidationContext {
-	// Get recent DAG executions and context-specific executions
-	recentDAGs := h.getRecentDAGExecutions()
+	// Only get DAG executions from the specific run context
+	// This avoids pollution from other concurrent test runs
 	contextDAGs := h.getContextSpecificDAGExecutions(runID)
 
-	// Merge and deduplicate DAG executions
-	nestedDAGs := h.mergeDAGExecutions(recentDAGs, contextDAGs)
-
 	return &NestedDAGValidationContext{
-		NestedDAGs: nestedDAGs,
+		NestedDAGs: contextDAGs,
 	}
 }
 
