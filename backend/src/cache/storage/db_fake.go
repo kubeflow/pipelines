@@ -18,19 +18,22 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"github.com/jinzhu/gorm"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
-	_ "github.com/mattn/go-sqlite3"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func NewFakeDB() (*DB, error) {
 	// Initialize GORM
-	db, err := gorm.Open("sqlite3", ":memory:")
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("Could not create the GORM database: %v", err)
 	}
 	// Create tables
-	db.AutoMigrate(&model.ExecutionCache{})
+	err = db.AutoMigrate(&model.ExecutionCache{})
+	if err != nil {
+		return nil, fmt.Errorf("AutoMigrate failed: %v", err)
+	}
 
 	return NewDB(db), nil
 }
