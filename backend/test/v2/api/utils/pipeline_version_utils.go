@@ -55,8 +55,15 @@ func DeleteAllPipelineVersions(client *api_server.PipelineClient, pipelineID str
 	logger.Log("Deleting all pipeline versions for pipeline %s", pipelineID)
 	pipelineVersions, _, _, err := ListPipelineVersions(client, pipelineID)
 	Expect(err).NotTo(HaveOccurred(), "Error occurred while listing pipeline versions")
+	logger.Log("Found %d pipeline versions for pipeline %s", len(pipelineVersions), pipelineID)
 	for _, pv := range pipelineVersions {
+		logger.Log("Deleting pipeline version %s", pv.PipelineVersionID)
 		Expect(client.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{PipelineID: pipelineID, PipelineVersionID: pv.PipelineVersionID})).NotTo(HaveOccurred(), fmt.Sprintf("Pipeline version with id=%s of pipelineID=%s failed", pv.PipelineVersionID, pipelineID))
+	}
+	pipelineVersions, _, _, err = ListPipelineVersions(client, pipelineID)
+	Expect(err).NotTo(HaveOccurred(), "Error occurred while listing pipeline versions")
+	if len(pipelineVersions) > 0 {
+		logger.Log("Failed to delete all pipeline versions")
 	}
 }
 
