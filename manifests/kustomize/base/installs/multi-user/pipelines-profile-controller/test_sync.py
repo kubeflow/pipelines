@@ -8,8 +8,8 @@ import pytest
 import requests
 
 # Data sets passed to server
-DATA_INCORRECT_CHILDREN = {
-    "parent": {
+DATA_INCORRECT_ATTACHMENTS = {
+    "object": {
         "metadata": {
             "labels": {
                 "pipelines.kubeflow.org/enabled": "true"
@@ -17,7 +17,7 @@ DATA_INCORRECT_CHILDREN = {
             "name": "myName"
         }
     },
-    "children": {
+    "attachments": {
         "Secret.v1": [],
         "ConfigMap.v1": [],
         "Deployment.apps/v1": [],
@@ -27,8 +27,8 @@ DATA_INCORRECT_CHILDREN = {
     }
 }
 
-DATA_CORRECT_CHILDREN = {
-    "parent": {
+DATA_CORRECT_ATTACHMENTS = {
+    "object": {
         "metadata": {
             "labels": {
                 "pipelines.kubeflow.org/enabled": "true"
@@ -36,7 +36,7 @@ DATA_CORRECT_CHILDREN = {
             "name": "myName"
         }
     },
-    "children": {
+    "attachments": {
         "Secret.v1": [1],
         "ConfigMap.v1": [1],
         "Deployment.apps/v1": [1, 1],
@@ -46,7 +46,7 @@ DATA_CORRECT_CHILDREN = {
     }
 }
 
-DATA_MISSING_PIPELINE_ENABLED = {"parent": {}, "children": {}}
+DATA_MISSING_PIPELINE_ENABLED = {"object": {}, "attachments": {}}
 
 # Default values when environments are not explicit
 DEFAULT_FRONTEND_IMAGE = "ghcr.io/kubeflow/kfp-frontend"
@@ -155,21 +155,21 @@ def sync_server_from_arguments(request):
     [
         (
                 ENV_KFP_VERSION_ONLY,
-                DATA_INCORRECT_CHILDREN,
+                DATA_INCORRECT_ATTACHMENTS,
                 {"kubeflow-pipelines-ready": "False"},
                 generate_image_name(DEFAULT_VISUALIZATION_IMAGE, KFP_VERSION),
                 generate_image_name(DEFAULT_FRONTEND_IMAGE, KFP_VERSION),
         ),
         (
                 ENV_IMAGES_NO_TAGS,
-                DATA_INCORRECT_CHILDREN,
+                DATA_INCORRECT_ATTACHMENTS,
                 {"kubeflow-pipelines-ready": "False"},
                 generate_image_name(ENV_IMAGES_NO_TAGS["VISUALIZATION_SERVER_IMAGE"], KFP_VERSION),
                 generate_image_name(ENV_IMAGES_NO_TAGS["FRONTEND_IMAGE"], KFP_VERSION),
         ),
         (
                 ENV_IMAGES_WITH_TAGS,
-                DATA_INCORRECT_CHILDREN,
+                DATA_INCORRECT_ATTACHMENTS,
                 {"kubeflow-pipelines-ready": "False"},
                 generate_image_name(ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
                                     ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
@@ -177,7 +177,7 @@ def sync_server_from_arguments(request):
         ),
         (
                 ENV_IMAGES_WITH_TAGS,
-                DATA_CORRECT_CHILDREN,
+                DATA_CORRECT_ATTACHMENTS,
                 {"kubeflow-pipelines-ready": "True"},
                 generate_image_name(ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
                                     ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
@@ -192,9 +192,9 @@ def test_sync_server_with_pipeline_enabled(sync_server, data, expected_status,
     Nearly end-to-end test of how Controller serves .sync as a POST
 
     Tests case where metadata.labels.pipelines.kubeflow.org/enabled exists, and thus
-    we should produce children
+    we should produce attachments
 
-    Only does spot checks on children to see if key properties are correct
+    Only does spot checks on attachments to see if key properties are correct
     """
     server, environ = sync_server
 
@@ -206,13 +206,13 @@ def test_sync_server_with_pipeline_enabled(sync_server, data, expected_status,
     x = requests.post(url, data=json.dumps(data))
     results = json.loads(x.text)
 
-    # Test overall status of whether children are ok
+    # Test overall status of whether attachments are ok
     assert results['status'] == expected_status
 
-    # Poke a few children to test things that can vary by environment variable
-    assert results['children'][1]["spec"]["template"]["spec"]["containers"][0][
+    # Poke a few attachments to test things that can vary by environment variable
+    assert results['attachments'][1]["spec"]["template"]["spec"]["containers"][0][
                "image"] == expected_visualization_server_image
-    assert results['children'][5]["spec"]["template"]["spec"]["containers"][0][
+    assert results['attachments'][5]["spec"]["template"]["spec"]["containers"][0][
                "image"] == expected_frontend_server_image
 
 
@@ -222,7 +222,7 @@ def test_sync_server_with_pipeline_enabled(sync_server, data, expected_status,
     [
         (
                 ENV_IMAGES_WITH_TAGS_AND_ISTIO,
-                DATA_CORRECT_CHILDREN,
+                DATA_CORRECT_ATTACHMENTS,
                 {"kubeflow-pipelines-ready": "True"},
                 generate_image_name(ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
                                     ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
@@ -237,7 +237,7 @@ def test_sync_server_with_direct_passing_of_settings(
     """
     Nearly end-to-end test of how Controller serves .sync as a POST, taking variables as arguments
 
-    Only does spot checks on children to see if key properties are correct
+    Only does spot checks on attachments to see if key properties are correct
     """
     server, environ = sync_server_from_arguments
 
@@ -249,25 +249,25 @@ def test_sync_server_with_direct_passing_of_settings(
     x = requests.post(url, data=json.dumps(data))
     results = json.loads(x.text)
 
-    # Test overall status of whether children are ok
+    # Test overall status of whether attachments are ok
     assert results['status'] == expected_status
 
-    # Poke a few children to test things that can vary by environment variable
-    assert results['children'][1]["spec"]["template"]["spec"]["containers"][0][
+    # Poke a few attachments to test things that can vary by environment variable
+    assert results['attachments'][1]["spec"]["template"]["spec"]["containers"][0][
                "image"] == expected_visualization_server_image
-    assert results['children'][5]["spec"]["template"]["spec"]["containers"][0][
+    assert results['attachments'][5]["spec"]["template"]["spec"]["containers"][0][
                "image"] == expected_frontend_server_image
 
 
 @pytest.mark.parametrize(
-    "sync_server, data, expected_status, expected_children",
+    "sync_server, data, expected_status, expected_attachments",
     [
         (ENV_IMAGES_WITH_TAGS, DATA_MISSING_PIPELINE_ENABLED, {}, []),
     ],
     indirect=["sync_server"]
 )
 def test_sync_server_without_pipeline_enabled(sync_server, data, expected_status,
-                                              expected_children):
+                                              expected_attachments):
     """
     Nearly end-to-end test of how Controller serves .sync as a POST
 
@@ -281,6 +281,6 @@ def test_sync_server_without_pipeline_enabled(sync_server, data, expected_status
     x = requests.post(url, data=json.dumps(data))
     results = json.loads(x.text)
 
-    # Test overall status of whether children are ok
+    # Test overall status of whether attachments are ok
     assert results['status'] == expected_status
-    assert results['children'] == expected_children
+    assert results['attachments'] == expected_attachments
