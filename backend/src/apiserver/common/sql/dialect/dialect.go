@@ -84,3 +84,27 @@ func (d DBDialect) QueryBuilder() sq.StatementBuilderType { return d.statementBu
 // ExistDatabaseErrHint returns a backend-specific substring that may appear
 // in errors when attempting to create a database that already exists.
 func (d DBDialect) ExistDatabaseErrHint() string { return d.existDatabaseErrHint }
+
+// ConcatAgg returns a dialect-specific SQL expression for concatenating
+// string values from multiple rows into a single string, using the given
+// separator.
+func (d DBDialect) ConcatAgg(distinct bool, expr, sep string) string {
+	dist := ""
+	if distinct {
+		dist = "DISTINCT "
+	}
+	switch d.name {
+	case "mysql":
+		// GROUP_CONCAT(expr SEPARATOR ',')
+		return "GROUP_CONCAT(" + dist + expr + " SEPARATOR '" + sep + "')"
+	case "pgx":
+		// string_agg(expr, ',')
+		return "string_agg(" + dist + expr + ", '" + sep + "')"
+	case "sqlite":
+		// SQLite ignores DISTINCT: regardless of the distinct value, it should not contain DISTINCT
+		// group_concat(expr, ',')
+		return "GROUP_CONCAT(" + expr + ", '" + sep + "')"
+	default:
+		panic("unsupported dialect: " + d.name)
+	}
+}

@@ -45,7 +45,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 	expStore.CreateExperiment(&model.Experiment{Name: "exp2", Namespace: "n1"})
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
 	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	job1 := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
@@ -468,7 +468,7 @@ func TestCreateJob(t *testing.T) {
 	experiment, _ := expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
 	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	job := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
@@ -523,7 +523,7 @@ func TestCreateJob_V2(t *testing.T) {
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
 	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	job := &model.Job{
 		UUID:        "1",
 		DisplayName: "pp 1",
@@ -576,7 +576,7 @@ func TestCreateJob_V2(t *testing.T) {
 func TestCreateJobError(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defer db.Close()
-	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	db.Close()
 	job := &model.Job{
 		UUID:        "1",

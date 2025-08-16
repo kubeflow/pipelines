@@ -14,6 +14,10 @@
 
 package storage
 
+import "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+
+var testDialect = dialect.NewDBDialect("sqlite")
+
 const (
 	invalidPipelineVersionId   = "not_exist_pipeline_version"
 	DefaultFakeUUID            = "123e4567-e89b-12d3-a456-426655440000"
