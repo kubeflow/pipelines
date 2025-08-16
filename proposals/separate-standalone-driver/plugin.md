@@ -34,3 +34,16 @@ As a result, to enable access to the Kubernetes API:
 1. Create ServiceAccount in each profile namespace with the name `driver-plugin-executor-plugin`. Argo WF [expects](https://github.com/argoproj/argo-workflows/blob/main/workflow/controller/agent.go#L285) the format <plugin-name>-executor-plugin
 2. Add a Role with appropriate Kubernetes API access and bind it to the service account.
 3. Configure `sidecar.automountServiceAccountToken` see [example](plugin.yaml)
+
+### Securing the driver sidecar container
+The driver's sidecar [exposes](https://argo-workflows.readthedocs.io/en/latest/executor_plugins/#example-a-simple-python-plugin) the HTTP `/api/v1/template.execute` API externally. So hypothetically not only Argo WF Controller able to call it.
+To prevent unauthorized access
+
+by default (without extra customization):
+- The Argo Workflow Controller mounts the `/var/run/argo` volume into the executor agent pod (which hosts the plugin sidecar). This volume contains a token.
+- The Argo Workflow Controller includes the same token in the authorization Bearer header of each execution request.
+
+additionally:
+The central driver needs to read the token from `/var/run/argo/token` and compare it with the token from the request header.
+More details are available [here](https://argo-workflows.readthedocs.io/en/latest/executor_plugins/#example-a-simple-python-plugin) 
+

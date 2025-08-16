@@ -151,7 +151,7 @@ Below is a scheme where, instead of creating a pod for the driver's task, we reu
 
 
 To move from the container template to the Executor Plugin template:
-- patch the [Argo compiler](https://github.com/kubeflow/pipelines/tree/a870b1a325dae0c82c8b6f57941468ee1aea960b/backend/src/v2/compiler/argocompiler) to generate a plugin template instead of a container template. Sample: hello-world [adapted](kfp-plugin-flow.png) (see name: system-container-driver)
+- patch the [Argo compiler](https://github.com/kubeflow/pipelines/tree/a870b1a325dae0c82c8b6f57941468ee1aea960b/backend/src/v2/compiler/argocompiler) to generate a plugin template instead of a container template. Sample: hello-world [adapted](hello_world_plugin.yaml) (see name: system-container-driver)
 - Namely, replace the templates used in the [container-driver](https://github.com/kubeflow/pipelines/blob/a870b1a325dae0c82c8b6f57941468ee1aea960b/backend/src/v2/compiler/argocompiler/container.go#L148) and [dag-driver](https://github.com/kubeflow/pipelines/blob/a870b1a325dae0c82c8b6f57941468ee1aea960b/backend/src/v2/compiler/argocompiler/dag.go#L156) section of the compiler
 - Extract the [driver](https://github.com/kubeflow/pipelines/tree/a870b1a325dae0c82c8b6f57941468ee1aea960b/backend/src/v2/driver) component into a standalone server.
 - Implement the [plugin](plugin.md)
