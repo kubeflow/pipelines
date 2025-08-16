@@ -16,7 +16,6 @@ package storage
 
 import (
 	"database/sql"
-	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -44,7 +43,11 @@ func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 	}
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
-	rows, err := tx.Query(fmt.Sprintf("SELECT * FROM %s", q("default_experiments")))
+	sql, args, err := qb.Select("*").From(q("default_experiments")).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to check default experiment table")
+	}
+	rows, err := tx.Query(sql, args...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to get default experiment")
