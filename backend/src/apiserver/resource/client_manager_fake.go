@@ -64,17 +64,18 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	}
 
 	// TODO(neuromage): Pass in metadata.Store instance for tests as well.
+	var testDialect = dialect.NewDBDialect("sqlite")
 	return &FakeClientManager{
 		db:                            db,
-		experimentStore:               storage.NewExperimentStore(db, time, uuid, dialect.NewDBDialect("sqlite")),
+		experimentStore:               storage.NewExperimentStore(db, time, uuid, testDialect),
 		pipelineStore:                 storage.NewPipelineStore(db, time, uuid),
-		jobStore:                      storage.NewJobStore(db, time, nil),
+		jobStore:                      storage.NewJobStore(db, time, nil, testDialect),
 		runStore:                      storage.NewRunStore(db, time),
 		taskStore:                     storage.NewTaskStore(db, time, uuid),
 		ExecClientFake:                client.NewFakeExecClient(),
 		resourceReferenceStore:        storage.NewResourceReferenceStore(db, nil),
 		dBStatusStore:                 storage.NewDBStatusStore(db),
-		defaultExperimentStore:        storage.NewDefaultExperimentStore(db, dialect.NewDBDialect("sqlite")),
+		defaultExperimentStore:        storage.NewDefaultExperimentStore(db, testDialect),
 		objectStore:                   storage.NewFakeObjectStore(),
 		swfClientFake:                 client.NewFakeSwfClient(),
 		k8sCoreClientFake:             client.NewFakeKuberneteCoresClient(),
