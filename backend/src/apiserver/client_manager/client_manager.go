@@ -280,7 +280,7 @@ func (c *ClientManager) init(options *Options) error {
 		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
 	}
 	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid, c.dbDialect)
-	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef)
+	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef, c.dbDialect)
 	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
@@ -367,6 +367,9 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, sqldrv.DBDi
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
+	// TODO(kaikaila):
+	// storage.DB still takes storage.SQLDialect for legacy raw-SQL helpers.
+	// Once all stores use common/sql/dialect + Squirrel, drop this argument and delete storage.SQLDialect.
 	return storage.NewDB(newdb, storage.NewMySQLDialect()), sqlDialect
 }
 

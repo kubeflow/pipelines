@@ -15,6 +15,7 @@
 package dialect
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -84,5 +85,83 @@ func TestGetDialect_SQLite(t *testing.T) {
 	}
 	if d.ExistDatabaseErrHint() != "" {
 		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint())
+	}
+}
+
+// TestConcatAgg_TableDriven verifies the aggregation SQL snippet generation across dialects.
+func TestConcatAgg_TableDriven(t *testing.T) {
+	cases := []struct {
+		name        string
+		dialectName string
+		distinct    bool
+		sep         string
+	}{
+		{"mysql_no_distinct_comma", "mysql", false, ","},
+		{"mysql_distinct_pipe", "mysql", true, "|"},
+		{"pgx_no_distinct_comma", "pgx", false, ","},
+		{"pgx_distinct_empty_sep", "pgx", true, ""},
+		{"sqlite_no_distinct_comma", "sqlite", false, ","},
+		{"sqlite_distinct_ignored", "sqlite", true, ","},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := NewDBDialect(tc.dialectName)
+			q := d.QuoteIdentifier
+			expr := q("r") + "." + q("Payload")
+
+			got := d.ConcatAgg(tc.distinct, expr, tc.sep)
+
+			var want string
+			switch tc.dialectName {
+			case "mysql":
+				if tc.distinct {
+					want = fmt.Sprintf("GROUP_CONCAT(DISTINCT %s SEPARATOR '%s')", expr, tc.sep)
+				} else {
+					want = fmt.Sprintf("GROUP_CONCAT(%s SEPARATOR '%s')", expr, tc.sep)
+				}
+			case "pgx":
+				if tc.distinct {
+					want = fmt.Sprintf("string_agg(DISTINCT %s, '%s')", expr, tc.sep)
+				} else {
+					want = fmt.Sprintf("string_agg(%s, '%s')", expr, tc.sep)
+				}
+			case "sqlite":
+				want = fmt.Sprintf("GROUP_CONCAT(%s, '%s')", expr, tc.sep)
+			default:
+				t.Fatalf("unknown dialect: %s", tc.dialectName)
+			}
+
+			if got != want {
+				t.Fatalf("ConcatAgg mismatch.\n got: %s\nwant: %s", got, want)
+			}
+		})
+	}
+}
+
+// Additional coverage: when the separator is an empty string, ensure it renders as ” (consistent across all dialects)
+func TestConcatAgg_EmptySeparator(t *testing.T) {
+	for _, name := range []string{"mysql", "pgx", "sqlite"} {
+		t.Run(name, func(t *testing.T) {
+			d := NewDBDialect(name)
+			q := d.QuoteIdentifier
+			expr := q("t") + "." + q("col")
+
+			got := d.ConcatAgg(false, expr, "")
+
+			var want string
+			switch name {
+			case "mysql":
+				want = fmt.Sprintf("GROUP_CONCAT(%s SEPARATOR '')", expr)
+			case "pgx":
+				want = fmt.Sprintf("string_agg(%s, '')", expr)
+			case "sqlite":
+				want = fmt.Sprintf("GROUP_CONCAT(%s, '')", expr)
+			}
+
+			if got != want {
+				t.Fatalf("empty sep mismatch for %s.\n got: %s\nwant: %s", name, got, want)
+			}
+		})
 	}
 }
