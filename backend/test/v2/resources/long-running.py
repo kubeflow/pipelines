@@ -16,18 +16,23 @@ from kfp import dsl, compiler
 
 
 @dsl.container_component
-def wait_op():
+def wait_op(
+    duration: int, message: str, output: dsl.OutputPath(str)
+):
     return dsl.ContainerSpec(
         image='alpine:latest',
         command=['sh', '-c'],
-        args=['echo step-1 sleeping for 5m; sleep 300; echo done1'],
+        args=[
+            f'echo {message} sleeping for {duration}s; sleep {duration}; echo done > {output}'
+        ],
     )
 
 
 @dsl.pipeline
-def wait_awhile():
-    task1 = wait_op()
-    task2 = wait_op().after(task1)
+def wait_awhile(duration: int = 300) -> str:
+    task1 = wait_op(duration=duration, message='step-1',)
+    task2 = wait_op(duration=duration, message=task1.outputs['output'])
+    return task2.outputs['output']
 
 
 if __name__ == '__main__':
