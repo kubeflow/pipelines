@@ -12,3 +12,12 @@ data:
     name: driver-plugin
     resources:
       ...
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 1000 # Must run as a non-nobody user to access the token inside the /var/run/argo volume from the sidecar
+
