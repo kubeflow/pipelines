@@ -45,9 +45,9 @@ func (r RunMetricSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
 func initializeRunStore() (*DB, *RunStore) {
 	db := NewFakeDBOrFatal()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
+	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp2"})
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 
@@ -797,7 +797,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	// Checking that the run is not yet in the DB
 	_, err := runStore.GetRun("2000")

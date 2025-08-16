@@ -41,11 +41,11 @@ type Pipeline struct {
 	// Even though Namespace rarely uses its full 63-character capacity in practice,
 	// MySQL calculates index length based on declared size, not actual content.
 	// Therefore, keeping Name at varchar(128) is a safe upper bound.
-	Name        string `gorm:"column:Name; not null; uniqueIndex:namespace_name; type:varchar(128);"` // Index improves performance of the List and Get queries
-	DisplayName string `gorm:"column:DisplayName; not null"`
-	Description string `gorm:"column:Description; type:longtext; not null"`
+	Name        string    `gorm:"column:Name; not null; uniqueIndex:namespace_name; type:varchar(128);"` // Index improves performance of the List and Get queries
+	DisplayName string    `gorm:"column:DisplayName; not null"`
+	Description LargeText `gorm:"column:Description; not null"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
-	Parameters string         `gorm:"column:Parameters; type:longtext;"`
+	Parameters LargeText      `gorm:"column:Parameters;"`
 	Status     PipelineStatus `gorm:"column:Status; not null;"`
 	// TODO(gkcalat): this is deprecated. Consider removing and adding data migration logic at the server startup.
 	DefaultVersionId string `gorm:"column:DefaultVersionId;"` // deprecated

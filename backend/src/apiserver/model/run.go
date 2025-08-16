@@ -317,12 +317,12 @@ type RunDetails struct {
 	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
 	Conditions         string           `gorm:"column:Conditions; type:varchar(125); not null;  index:experimentuuid_conditions_finishedatinsec,priority:2;index:namespace_conditions_finishedatinsec,priority:2"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString string           `gorm:"column:StateHistory; default:null; type: longtext;"`
+	StateHistoryString LargeText        `gorm:"column:StateHistory; default:null;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	// Serialized runtime details of a run in v2beta1
-	PipelineRuntimeManifest string `gorm:"column:PipelineRuntimeManifest; not null; type:longtext;"`
+	PipelineRuntimeManifest LargeText `gorm:"column:PipelineRuntimeManifest; not null;"`
 	// Serialized Argo CRD in v1beta1
-	WorkflowRuntimeManifest string `gorm:"column:WorkflowRuntimeManifest; not null; type:longtext;"`
+	WorkflowRuntimeManifest LargeText `gorm:"column:WorkflowRuntimeManifest; not null;"`
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
 	PipelineContextId int64 `gorm:"column:PipelineContextId; default:0;"`
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
@@ -333,12 +333,12 @@ type RunDetails struct {
 }
 
 type RunMetric struct {
-	RunUUID     string  `gorm:"column:RunUUID; not null; primaryKey; type:varchar(191);"`
-	NodeID      string  `gorm:"column:NodeID; not null; primaryKey; type:varchar(191);"`
-	Name        string  `gorm:"column:Name; not null; primaryKey; type:varchar(191);"`
-	NumberValue float64 `gorm:"column:NumberValue;"`
-	Format      string  `gorm:"column:Format;"`
-	Payload     string  `gorm:"column:Payload; not null; type:longtext;"`
+	RunUUID     string    `gorm:"column:RunUUID; not null; primaryKey; type:varchar(191);"`
+	NodeID      string    `gorm:"column:NodeID; not null; primaryKey; type:varchar(191);"`
+	Name        string    `gorm:"column:Name; not null; primaryKey; type:varchar(191);"`
+	NumberValue float64   `gorm:"column:NumberValue;"`
+	Format      string    `gorm:"column:Format;"`
+	Payload     LargeText `gorm:"column:Payload; not null;"`
 }
 
 type RuntimeStatus struct {

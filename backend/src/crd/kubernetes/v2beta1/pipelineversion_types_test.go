@@ -636,7 +636,7 @@ platforms:
 		Name:         "hello-world-v1",
 		DisplayName:  "Hello World Pipeline v1",
 		Description:  "A simple hello world pipeline with workspace configuration",
-		PipelineSpec: pipelineSpecYAML,
+		PipelineSpec: model.LargeText(pipelineSpecYAML),
 		PipelineId:   "pipeline-123",
 	}
 
@@ -662,7 +662,7 @@ platforms:
 	err = k8syaml.Unmarshal([]byte(originalPipelineSpecSplit[1]), &originalPlatformSpec)
 	require.NoError(t, err)
 
-	roundTripPipelineSpecSplit := strings.Split(roundTripModel.PipelineSpec, "\n---\n")
+	roundTripPipelineSpecSplit := strings.Split(string(roundTripModel.PipelineSpec), "\n---\n")
 	require.Len(t, roundTripPipelineSpecSplit, 2)
 	var roundTripPipelineSpec map[string]interface{}
 	err = k8syaml.Unmarshal([]byte(roundTripPipelineSpecSplit[0]), &roundTripPipelineSpec)
