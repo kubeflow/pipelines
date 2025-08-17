@@ -38,9 +38,9 @@ func NewDB(db *sql.DB, dialect SQLDialect) *DB {
 	return &DB{db, dialect}
 }
 
+// SQLDialect is deprecated: use common/sql/dialect.DBDialect with Squirrel.
 // SQLDialect abstracts common sql queries which vary in different dialect.
-// It is used to bridge the difference between mysql (production) and sqlite
-// (test).
+// It is used to bridge the difference between mysql (production) and sqlite (test).
 type SQLDialect interface {
 	// GroupConcat builds query to group concatenate `expr` in each row and use `separator`
 	// to join rows in a group.

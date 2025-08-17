@@ -98,12 +98,10 @@ func (s *JobStore) ListJobs(
 	if err != nil {
 		return errorF(err)
 	}
-	glog.Errorf("DEBUG rows SQL: %s %#v", rowsSql, rowsArgs) // for debugging
 	sizeSql, sizeArgs, err := s.buildSelectJobsQuery(true, opts, filterContext)
 	if err != nil {
 		return errorF(err)
 	}
-	glog.Errorf("DEBUG size SQL: %s %#v", sizeSql, sizeArgs) // for debugging
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -162,15 +160,15 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	var err error
 
 	refKey := filterContext.ReferenceKey
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+
 	if refKey != nil && refKey.Type == model.ExperimentResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
-		filteredSelectBuilder, err = list.FilterOnExperiment("jobs", jobColumns,
-			selectCount, refKey.ID)
+		filteredSelectBuilder, err = FilterByExperiment(qb, q, "jobs", jobColumns, selectCount, refKey.ID)
 	} else if refKey != nil && refKey.Type == model.NamespaceResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
-		filteredSelectBuilder, err = list.FilterOnNamespace("jobs", jobColumns,
-			selectCount, refKey.ID)
+		filteredSelectBuilder, err = FilterByNamespace(qb, q, "jobs", jobColumns, selectCount, refKey.ID)
 	} else {
-		filteredSelectBuilder, err = list.FilterOnResourceReference("jobs", jobColumns,
-			model.JobResourceType, selectCount, filterContext)
+		filteredSelectBuilder, err = FilterByResourceReference(qb, q, "jobs", jobColumns, model.JobResourceType, selectCount, filterContext)
 	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
@@ -223,12 +221,17 @@ func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
 	agg := s.dialect.ConcatAgg(false, q("r")+"."+q("Payload"), ",")
-	resourceRefConcatQuery := s.db.Concat([]string{`"["`, agg, `"]"`}, "")
+	sub := "SELECT " + agg +
+		" FROM " + q("resource_references") + " AS " + q("r") +
+		" WHERE " + q("r") + "." + q("ResourceType") + "='Job'" +
+		" AND " + q("r") + "." + q("ResourceUUID") + " = " + q("jobs") + "." + q("UUID")
+	refsExpr := s.dialect.ConcatExprs(
+		[]string{"'['", "COALESCE((" + sub + "), '')", "']'"},
+		"",
+	)
 	return qb.
-		Select(q("jobs")+`.*`, resourceRefConcatQuery+" AS "+q("refs")).
-		FromSelect(filteredSelectBuilder, q("jobs")).
-		LeftJoin("(select * from " + q("resource_references") + " where " + q("ResourceType") + `='Job') AS r ON ` + q("jobs") + "." + q("UUID") + "=" + q("r") + "." + q("ResourceUUID")).
-		GroupBy(q("jobs") + "." + q("UUID"))
+		Select(q("jobs")+`.*`, refsExpr+" AS "+q("refs")).
+		FromSelect(filteredSelectBuilder, q("jobs"))
 }
 
 func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
