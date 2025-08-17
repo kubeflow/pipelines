@@ -244,6 +244,7 @@ func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilde
 	return sqlBuilder
 }
 
+// Deprecated: use storage.FilterByResourceReference instead.
 // FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
 // table that match an optional given filter, and returns the rebuilt SelectBuilder.
 func FilterOnResourceReference(tableName string, columns []string, resourceType model.ResourceType,
@@ -271,6 +272,7 @@ func FilterOnResourceReference(tableName string, columns []string, resourceType 
 	return selectBuilder, nil
 }
 
+// Deprecated: use storage.FilterByExperiment instead.
 // FilterOnExperiment filters the given table by rows based on provided experiment ID,
 // and returns the rebuilt SelectBuilder.
 func FilterOnExperiment(
@@ -282,6 +284,7 @@ func FilterOnExperiment(
 	return filterByColumnValue(tableName, columns, selectCount, "ExperimentUUID", experimentID), nil
 }
 
+// Deprecated: use storage.FilterByNamespace instead.
 func FilterOnNamespace(
 	tableName string,
 	columns []string,
@@ -291,6 +294,7 @@ func FilterOnNamespace(
 	return filterByColumnValue(tableName, columns, selectCount, "Namespace", namespace), nil
 }
 
+// Deprecated: the substitute helper function is storage.selectWithQuotedColumns.
 func filterByColumnValue(
 	tableName string,
 	columns []string,
