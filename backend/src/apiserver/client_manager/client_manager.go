@@ -301,7 +301,7 @@ func (c *ClientManager) init(options *Options) error {
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
-	runStore := storage.NewRunStore(db, c.time)
+	runStore := storage.NewRunStore(db, c.time, c.dbDialect)
 	c.runStore = runStore
 
 	// Log archive

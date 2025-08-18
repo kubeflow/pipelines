@@ -475,7 +475,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	experimentStore.CreateExperiment(
 		createExperiment("experiment1"),
 	)
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 	run1 := &model.Run{
 		UUID:         "1",
 		DisplayName:  "run1",
