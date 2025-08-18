@@ -49,7 +49,7 @@ func initializeRunStore() (*DB, *RunStore) {
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp2"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	run1 := &model.Run{
 		UUID:         "1",
