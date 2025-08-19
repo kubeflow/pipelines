@@ -346,7 +346,6 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, sqldrv.DBDi
 	// and maintains its own pool of idle connections.
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
-	db = db.Debug() // lyk: temporary for test
 	sqlDialect := sqldrv.NewDBDialect(driverName)
 
 	legacy, err := isLegacySchema(db)
