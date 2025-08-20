@@ -64,7 +64,7 @@ patches:
         - $patch: replace
         - port: 9000
           protocol: TCP
-          targetPort: 9000
+          targetPort: 8333
           nodePort: 30900
       type: NodePort
 - patch: |-
@@ -164,3 +164,67 @@ patches:
       - ml-pipeline-reverse-proxy
       - ml-pipeline-reverse-proxy.$(kfp-namespace)
       - ml-pipeline-reverse-proxy.$(kfp-namespace).svc
+- patch: |-
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: default-allow-same-namespace
+      namespace: kubeflow
+    spec:
+      podSelector: {}
+      ingress:
+      - from:
+        - podSelector: {}
+      - from:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+        ports:
+        - port: 3000
+          protocol: TCP
+        - port: 3306
+          protocol: TCP
+        - port: 8080
+          protocol: TCP
+        - port: 9000
+          protocol: TCP
+        - port: 8888
+          protocol: TCP
+      policyTypes:
+      - Ingress
+- patch: |-
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: seaweedfs
+      namespace: kubeflow
+    spec:
+      ingress:
+      - from:
+        - namespaceSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/part-of
+              operator: In
+              values:
+              - kubeflow-profile
+        ports:
+        - port: 8333
+      - from:
+        - namespaceSelector:
+            matchExpressions:
+            - key: kubernetes.io/metadata.name
+              operator: In
+              values:
+              - istio-system
+      - from:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+        ports:
+        - port: 8333
+      podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - seaweedfs
+      policyTypes:
+      - Ingress
