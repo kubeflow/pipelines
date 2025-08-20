@@ -22,16 +22,13 @@ import unittest
 from unittest import mock
 
 from absl.testing import parameterized
-from kfp import dsl
 from kfp.dsl import executor
 from kfp.dsl import Input
 from kfp.dsl import Output
+from kfp.dsl.executor import BaseArtifact
 from kfp.dsl.task_final_status import PipelineTaskFinalStatus
 from kfp.dsl.types import artifact_types
-from kfp.dsl.types.artifact_types import Artifact
-from kfp.dsl.types.artifact_types import Dataset
-from kfp.dsl.types.artifact_types import Metrics
-from kfp.dsl.types.artifact_types import Model
+from kfp.dsl.types.artifact_types import Artifact, Dataset, Metrics, Model, get_uri
 from kfp.dsl.types.type_annotations import InputPath
 from kfp.dsl.types.type_annotations import OutputPath
 
@@ -126,7 +123,7 @@ class ExecutorTest(parameterized.TestCase):
         }
         """
 
-        class VertexDataset(dsl.Artifact):
+        class VertexDataset(BaseArtifact):
             schema_title = 'google.VertexDataset'
             schema_version = '0.0.0'
 
@@ -1322,7 +1319,7 @@ class ExecutorTest(parameterized.TestCase):
 
         def test_func() -> Artifact:
             return Artifact(
-                uri=dsl.get_uri(suffix='my_artifact'),
+                uri=get_uri(suffix='my_artifact'),
                 metadata={'data': 123},
             )
 
@@ -1387,11 +1384,11 @@ class ExecutorTest(parameterized.TestCase):
             outputs = NamedTuple('outputs', a=Artifact, d=Dataset)
             return outputs(
                 a=Artifact(
-                    uri=dsl.get_uri(suffix='artifact'),
+                    uri=get_uri(suffix='artifact'),
                     metadata={'data': 123},
                 ),
                 d=Dataset(
-                    uri=dsl.get_uri(suffix='dataset'),
+                    uri=get_uri(suffix='dataset'),
                     metadata={},
                 ))
 
