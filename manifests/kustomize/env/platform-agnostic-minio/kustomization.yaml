@@ -1,0 +1,23 @@
+# Minio deployment manifests in KFP will be removed in 2.16.0, in the future end-users will need to provision their own minio deployments
+# The default will be SeaweedFS (Gateway docs: https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/third-party/seaweedfs/README.md)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../base/installs/generic
+- ../../base/metadata/base
+- ../../third-party/argo/installs/namespace
+- ../../third-party/minio/base
+- ../../third-party/mysql/base
+
+# Identifier for application manager to apply ownerReference.
+# The ownerReference ensures the resources get garbage collected
+# when application is deleted.
+
+# !!! If you want to customize the namespace,
+# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
+namespace: kubeflow
+labels:
+- includeSelectors: true
+  pairs:
+    application-crd-id: kubeflow-pipelines

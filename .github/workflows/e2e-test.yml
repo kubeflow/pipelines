@@ -142,6 +142,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -202,6 +205,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+      
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -265,6 +271,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -326,6 +335,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -448,6 +460,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4

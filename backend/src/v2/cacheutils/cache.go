@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -73,9 +72,8 @@ func NewClient(cacheDisabled bool) (Client, error) {
 		return &disabledCacheClient{}, nil
 	}
 
-	cacheEndPoint := cacheDefaultEndpoint()
-	glog.Infof("Connecting to cache endpoint %s", cacheEndPoint)
-	conn, err := grpc.Dial(cacheEndPoint,
+	glog.Infof("Connecting to cache endpoint %s", defaultKfpApiEndpoint)
+	conn, err := grpc.Dial(defaultKfpApiEndpoint,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -85,22 +83,6 @@ func NewClient(cacheDisabled bool) (Client, error) {
 	return &client{
 		svc: api.NewTaskServiceClient(conn),
 	}, nil
-}
-
-func cacheDefaultEndpoint() string {
-	// Discover ml-pipeline in the same namespace by env var.
-	// https://kubernetes.io/docs/concepts/services-networking/service/#environment-variables
-	cacheHost := os.Getenv("ML_PIPELINE_SERVICE_HOST")
-	cachePort := os.Getenv("ML_PIPELINE_SERVICE_PORT_GRPC")
-	if cacheHost != "" && cachePort != "" {
-		// If there is a ml-pipeline Kubernetes service in the same namespace,
-		// ML_PIPELINE_SERVICE_HOST and ML_PIPELINE_SERVICE_PORT env vars should
-		// exist by default, so we use it as default.
-		return cacheHost + ":" + cachePort
-	}
-	// If the env vars do not exist, use default ml-pipeline grpc endpoint `ml-pipeline.kubeflow:8887`.
-	glog.Infof("Cannot detect ml-pipeline in the same namespace, default to %s as KFP endpoint.", defaultKfpApiEndpoint)
-	return defaultKfpApiEndpoint
 }
 
 func (c *client) GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error) {
