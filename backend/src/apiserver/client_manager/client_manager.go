@@ -264,7 +264,7 @@ func (c *ClientManager) init(options *Options) error {
 
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
-	db := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db, _ := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
 	glog.Info("DB client initialized successfully")
 
@@ -314,7 +314,7 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
+func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, SQLDialect) {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
 	// 2) To use PostgreSQL, use `pgx`
@@ -360,7 +360,7 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-	return storage.NewDB(newdb, storage.NewMySQLDialect())
+	return storage.NewDB(newdb, storage.NewMySQLDialect()), dialect
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:
