@@ -136,7 +136,7 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	pipeline := &model.Pipeline{
 		Name:        pipelineName,
 		DisplayName: displayName,
-		Description: r.URL.Query().Get(DescriptionQueryStringKey),
+		Description: model.LargeText(r.URL.Query().Get(DescriptionQueryStringKey)),
 		Namespace:   pipelineNamespace,
 	}
 
@@ -144,7 +144,7 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		Name:         pipeline.Name,
 		DisplayName:  pipeline.DisplayName,
 		Description:  pipeline.Description,
-		PipelineSpec: string(pipelineFile),
+		PipelineSpec: model.LargeText(pipelineFile),
 	}
 
 	if err := validation.ValidateFieldLength("Pipeline", "Name", pipeline.Name); err != nil {
@@ -271,9 +271,9 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 		&model.PipelineVersion{
 			Name:         pipelineVersionName,
 			DisplayName:  displayName,
-			Description:  r.URL.Query().Get(DescriptionQueryStringKey),
+			Description:  model.LargeText(r.URL.Query().Get(DescriptionQueryStringKey)),
 			PipelineId:   pipelineId,
-			PipelineSpec: string(pipelineFile),
+			PipelineSpec: model.LargeText(pipelineFile),
 		},
 	)
 	if err != nil {

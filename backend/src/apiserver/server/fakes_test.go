@@ -227,7 +227,7 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 		&model.PipelineVersion{
 			Name:         "p1",
 			PipelineId:   p.UUID,
-			PipelineSpec: testWorkflow.ToStringForStore(),
+			PipelineSpec: model.LargeText(testWorkflow.ToStringForStore()),
 		},
 	)
 	assert.Nil(t, err)
