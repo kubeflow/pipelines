@@ -34,6 +34,7 @@ resources:
   - container-builder-sa.yaml
   - viewer-sa.yaml
   - kfp-launcher-configmap.yaml
+  - allow-same-namespace-networkpolicy.yaml
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
     newTag: 2.14.0
