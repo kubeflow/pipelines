@@ -1,0 +1,198 @@
+syntax = "proto3";
+import "artifacts.proto";
+
+// All of the following services must comply to the RBAC of `runs` resource on that particular namespace
+// For example, user can call "CreateTask" if they have the permission verb "update" on the Runs resource
+// in the target namespace.
+// Note: We do "update" instead of "create" for "CreateTask" because creating a "task" is an implicit update
+// to its parent Run. A user that can only "create" a run should not have access to "update" for that
+// the run, without explicitly having that verb.
+service RunService {
+
+  rpc CreateTask(CreateTaskRequest) returns (PipelineTaskDetail) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/task"
+      body: "task"
+    };
+  }
+
+  rpc UpdateTask(UpdateTaskRequest) returns (PipelineTaskDetail) {
+    option (google.api.http) = {
+      patch: "/apis/v2beta1/task/{task_id}"
+      body: "task"
+    };
+  }
+
+  rpc GetTask(GetTaskRequest) returns (PipelineTaskDetail) {
+    option (google.api.http) = {
+      get: "/apis/v2beta1/task/{task_id}"
+    };
+  }
+
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {
+    option (google.api.http) = {
+      get: "/apis/v2beta1/tasks"
+    };
+  }
+}
+
+// Task requests should share the rbac with their parent run
+// Meaning that if you have get/update/create rights on the parent run
+// it should trickle down do that task
+
+// In the create task case, if you have create permissions on the target run
+// you can create the task for that run
+message CreateTaskRequest {
+  PipelineTaskDetail task = 1;
+}
+
+message UpdateTaskRequest {
+  string task_id = 1;
+  PipelineTaskDetail task = 2;
+}
+
+message GetTaskRequest {
+  string task_id = 1;
+}
+
+message ListTasksRequest {
+  // Optional, List all tasks with this parent task.
+  string parent_id = 1;
+  // Optional. List all tasks for this run.
+  string run_id = 2;
+
+  int32 page_size = 3;
+  string page_token = 4;
+  string filter = 5;
+  string order_by = 6;
+}
+
+message ListTasksResponse {
+  repeated PipelineTaskDetail tasks = 1;
+  string next_page_token = 2;
+  int32 total_size = 3;
+}
+
+// The field numbers are re-numbered
+// this can have strong implications
+// please review carefully.
+message PipelineTaskDetail {
+  //--------------------------
+  // Pre-Existing fields
+  //--------------------------
+  // Output only.
+  string task_id = 1;
+  string run_id = 2;
+  string display_name = 3;
+  google.protobuf.Timestamp create_time = 4;
+  google.protobuf.Timestamp start_time = 5;
+  google.protobuf.Timestamp end_time = 6;
+  RuntimeState state = 7;
+  int64 execution_id = 8;
+  google.rpc.Status error = 9;
+  string parent_task_id = 10;
+  repeated RuntimeStatus state_history = 11;
+
+  enum PodType {
+    DRIVER = 0;
+    EXECUTOR = 1;
+  }
+  message PodInfo {
+    string name = 1;
+    string uid = 2;
+    PodType type = 3;
+  }
+  repeated PodInfo pods = 12;
+
+  //--------------------------
+  // Remove these fields
+  //--------------------------
+
+  //  PipelineTaskExecutorDetail executor_detail = 13;
+  //  map<string, ArtifactList> inputs = 14;
+  //  map<string, ArtifactList> outputs = 15;
+  //  repeated ChildTask child_tasks = 16;
+
+  //--------------------------
+  // New fields
+  //--------------------------
+  message ChildTask {
+    string name = 1;
+    string id = 2;
+  }
+  repeated ChildTask child_tasks_ids = 13;
+
+  enum InputType {
+    ResolvedValue = 0;
+    PipelineChannel = 1;
+  }
+
+  message InputOutputs {
+    message Parameter {
+      InputType input_type = 1;
+      string value = 2;
+
+      // Fields for Resolved type
+      string name = 3;
+
+      // Fields for PipelineChannel type
+      string producer_task_name = 4;
+      string producer_parameter_id = 5;
+    }
+    message TaskArtifact {
+      InputType input_type = 1;
+      Artifact value = 2;
+
+      // Fields for ResolvedValue type
+      string name = 3;
+
+      // Fields for PipelineChannel type
+      string producer_task_name = 4;
+      string producer_parameter_id = 5;
+    }
+    repeated Parameter parameters = 1;
+    repeated TaskArtifact artifacts = 2;
+    repeated Metric metrics = 3; // from artifacts.proto
+  }
+
+  InputOutputs inputs = 14;
+  InputOutputs outputs = 15;
+
+  enum TaskType {
+    // Root task replaces Root Execution, it is the top ancestor task to all tasks in the pipeline run
+    ROOT = 0;
+    RUNTIME = 1;
+    CONDITION_BRANCH = 2;
+    CONDITION = 3;
+    LOOP = 4;
+    LOOP_ITERATION = 5;
+    EXIT_HANDLER = 6;
+    // Generic DAG task type for types like Nested Pipelines
+    // where there is no declarative way to detect this within
+    // a driver.
+    DAG = 7;
+  }
+  TaskType type = 16;
+
+  // Optional. Applies to type LOOP_ITERATION
+  int64 iteration_index = 17;
+  // Optional. Applies to type LOOP
+  int64 iteration_count = 18;
+  string name = 19;
+  string cache_fingerprint = 20;
+}
+
+
+message Run {
+  // ...
+  // This will be added
+  // output only
+  string pipeline_id = 18;
+  // output only
+  string pipeline_version_id = 19;
+  repeated PipelineTaskDetail tasks = 20;
+
+
+  // Either remove or deprecate this
+  RunDetails run_details = 15;
+}
