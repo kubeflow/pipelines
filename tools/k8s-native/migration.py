@@ -133,9 +133,9 @@ def convert_to_k8s_format(pipeline, pipeline_versions, add_prefix, namespace):
             "annotations": {
                 "pipelines.kubeflow.org/original-id": original_id,
             },
-            "spec": {
-                "displayName": display_name
-            }
+        },
+        "spec": {
+            "displayName": display_name
         }
     }
     k8s_objects.append(pipeline_obj)
