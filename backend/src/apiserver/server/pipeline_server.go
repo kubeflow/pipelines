@@ -167,7 +167,7 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 	pipelineVersion := &model.PipelineVersion{
 		Name:            pipeline.Name,
 		DisplayName:     pipeline.DisplayName,
-		PipelineSpecURI: pipelineUrlStr,
+		PipelineSpecURI: model.LargeText(pipelineUrlStr),
 		Description:     pipeline.Description,
 		Status:          model.PipelineVersionCreating,
 	}
@@ -188,7 +188,7 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 	if err != nil {
 		return nil, nil, err
 	}
-	pipelineVersion.PipelineSpec = string(pipelineFile)
+	pipelineVersion.PipelineSpec = model.LargeText(pipelineFile)
 
 	// Validate the pipeline version
 	if err := s.validatePipelineVersionBeforeCreating(pipelineVersion); err != nil {
@@ -591,7 +591,7 @@ func (s *BasePipelineServer) validatePipelineVersionBeforeCreating(p *model.Pipe
 		return nil
 	}
 	if p.PipelineSpecURI != "" {
-		if _, err := url.ParseRequestURI(p.PipelineSpecURI); err == nil {
+		if _, err := url.ParseRequestURI(string(p.PipelineSpecURI)); err == nil {
 			return nil
 		}
 	}
@@ -677,7 +677,8 @@ func (s *BasePipelineServer) createPipelineVersion(ctx context.Context, pv *mode
 	}
 
 	// Read pipeline file
-	pipelineUrl, err := url.ParseRequestURI(pv.PipelineSpecURI)
+	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
+	pipelineUrl, err := url.ParseRequestURI(string(pv.PipelineSpecURI))
 	if err != nil {
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to invalid pipeline spec URI. PipelineSpecURI: %v. Please specify a valid URL", pv.PipelineSpecURI)
 	}
@@ -695,7 +696,7 @@ func (s *BasePipelineServer) createPipelineVersion(ctx context.Context, pv *mode
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due error reading the pipeline spec")
 	}
-	pv.PipelineSpec = string(pipelineFile)
+	pv.PipelineSpec = model.LargeText(pipelineFile)
 	if pv.Name == "" {
 		pv.Name = pipelineFileName
 	}

@@ -165,7 +165,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "sequential", sequentialPipelineVersions[0].DisplayName)
 	assert.Equal(t, "sequential pipeline", sequentialPipelineVersions[0].Description)
 	assert.Equal(t, sequentialPipeline.PipelineID, sequentialPipelineVersions[0].PipelineID)
-	assert.Equal(t, "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml", sequentialPipelineVersions[0].PackageURL.PipelineURL)
+	assert.Equal(t, "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml", string(sequentialPipelineVersions[0].PackageURL.PipelineURL))
 
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
@@ -202,7 +202,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "argumenturl-v1", argumentUrlPipelineVersion.DisplayName)
 	assert.Equal(t, "1st version of argument url pipeline", argumentUrlPipelineVersion.Description)
 	assert.Equal(t, argumentUrlPipeline.PipelineID, argumentUrlPipelineVersion.PipelineID)
-	assert.Equal(t, pipelineURL, argumentUrlPipelineVersion.PackageURL.PipelineURL)
+	assert.Equal(t, pipelineURL, string(argumentUrlPipelineVersion.PackageURL.PipelineURL))
 
 	/* ---------- Verify list pipeline works ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{})

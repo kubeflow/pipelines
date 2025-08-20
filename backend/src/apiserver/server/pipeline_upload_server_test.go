@@ -169,7 +169,7 @@ func TestUploadPipeline(t *testing.T) {
 					Parameters:     "[]",
 					Status:         model.PipelineVersionReady,
 					PipelineId:     DefaultFakeUUID,
-					PipelineSpec:   string(test.spec),
+					PipelineSpec:   model.LargeText(test.spec),
 				},
 				{
 					UUID:           fakeVersionUUID,
@@ -180,7 +180,7 @@ func TestUploadPipeline(t *testing.T) {
 					Parameters:     "[]",
 					Status:         model.PipelineVersionReady,
 					PipelineId:     DefaultFakeUUID,
-					PipelineSpec:   string(test.spec),
+					PipelineSpec:   model.LargeText(test.spec),
 				},
 			}
 			// Expect 2 versions, one is created by default when creating pipeline and the other is what we manually created
