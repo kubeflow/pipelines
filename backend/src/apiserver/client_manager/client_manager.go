@@ -360,6 +360,11 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, SQLDialect)
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
+	// TODO(kaikaila):
+	// storage.DB still takes storage.SQLDialect for legacy raw-SQL helpers.
+	// Once dialect becomes an isolated package and
+	// all *_stores use dialect package + Squirrel,
+	// drop this storage.NewMySQLDialect() argument and delete storage.SQLDialect.
 	return storage.NewDB(newdb, storage.NewMySQLDialect()), dialect
 }
 
