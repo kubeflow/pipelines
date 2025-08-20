@@ -130,8 +130,8 @@ server locally:
       "env": {
         "POD_NAMESPACE": "kubeflow",
         "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
-        "MINIO_SERVICE_SERVICE_HOST": "localhost",
-        "MINIO_SERVICE_SERVICE_PORT": "9000",
+        "OBJECTSTORECONFIG_HOST": "localhost",
+        "OBJECTSTORECONFIG_PORT": "9000",
         "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
         "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
         "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
@@ -244,8 +244,8 @@ VSCode configuration:
             "env": {
                 "POD_NAMESPACE": "kubeflow",
                 "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
-                "MINIO_SERVICE_SERVICE_HOST": "localhost",
-                "MINIO_SERVICE_SERVICE_PORT": "9000",
+                "OBJECTSTORECONFIG_HOST": "localhost",
+                "OBJECTSTORECONFIG_PORT": "9000",
                 "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
                 "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
                 "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
@@ -268,8 +268,8 @@ GoLand configuration:
    |----------------------------------------------|-----------|
    | POD_NAMESPACE                                | kubeflow  |
    | DBCONFIG_MYSQLCONFIG_HOST                    | localhost |
-   | MINIO_SERVICE_SERVICE_HOST                   | localhost |
-   | MINIO_SERVICE_SERVICE_PORT                   | 9000      |
+   | OBJECTSTORECONFIG_HOST                       | localhost |
+   | OBJECTSTORECONFIG_PORT                       | 9000      |
    | METADATA_GRPC_SERVICE_SERVICE_HOST           | localhost |
    | METADATA_GRPC_SERVICE_SERVICE_PORT           | 8080      |
    | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST | localhost |
