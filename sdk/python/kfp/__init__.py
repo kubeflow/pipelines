@@ -26,7 +26,10 @@ import warnings
 
 if sys.version_info < (3, 9):
     warnings.warn(
-        ('KFP will drop support for Python 3.9 on Oct 1, 2025. To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.10. See https://devguide.python.org/versions/ for more details.'
+        (
+            'KFP will drop support for Python 3.9 on Oct 1, 2025. '
+            'To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.10. '
+            'See https://devguide.python.org/versions/ for more details.'
         ),
         FutureWarning,
         stacklevel=2,
@@ -34,12 +37,9 @@ if sys.version_info < (3, 9):
 
 TYPE_CHECK = True
 
-import os
-
 # compile-time only dependencies
-if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
-    # make `from kfp import components` and `from kfp import dsl` valid;
-    # related to namespace packaging issue
-    from kfp import components  # noqa: keep unused import
-    from kfp import dsl  # noqa: keep unused import
-    from kfp.client import Client  # noqa: keep unused import
+# make `from kfp import components` and `from kfp import dsl` valid;
+# related to namespace packaging issue
+from kfp import components  # noqa: keep unused import
+from kfp import dsl  # noqa: keep unused import
+from kfp.client import Client  # noqa: keep unused import
