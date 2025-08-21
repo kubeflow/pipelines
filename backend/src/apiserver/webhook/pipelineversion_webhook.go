@@ -155,7 +155,13 @@ func (p *PipelineVersionsWebhook) Default(ctx context.Context, obj runtime.Objec
 
 	// Labels for efficient querying
 	pipelineVersion.Labels["pipelines.kubeflow.org/pipeline-id"] = string(pipeline.UID)
-	pipelineVersion.Labels["pipelines.kubeflow.org/pipeline"] = pipeline.Name
+
+	name := pipeline.Name
+	if len(name) > 63 {
+		name = name[:63]
+	}
+
+	pipelineVersion.Labels["pipelines.kubeflow.org/pipeline"] = name
 
 	trueVal := true
 
