@@ -390,6 +390,16 @@ def _build_component_spec_from_component_spec_structure(
                 component_spec.input_definitions.parameters[
                     input_name].description = input_spec.description
 
+        # Special handling for TaskKubernetesConfig second.
+        elif type_utils.is_task_kubernetes_config_type(input_spec.type):
+            component_spec.input_definitions.parameters[
+                input_name].parameter_type = pipeline_spec_pb2.ParameterType.TASK_KUBERNETES_CONFIG
+            component_spec.input_definitions.parameters[
+                input_name].is_optional = True
+            if input_spec.description:
+                component_spec.input_definitions.parameters[
+                    input_name].description = input_spec.description
+
         elif type_utils.is_parameter_type(input_spec.type):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(

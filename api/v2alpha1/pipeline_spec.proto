@@ -442,6 +442,9 @@ message ParameterType {
     // Indicates that a parameter is a TaskFinalStatus type; these types can only accept inputs
     // specified by InputParameterSpec.task_final_status
     TASK_FINAL_STATUS = 7;
+    // Indicates that a parameter is a TaskKubernetesConfig type; these types are
+    // injected by the backend to provide the Kubernetes configuration set on the task.
+    TASK_KUBERNETES_CONFIG = 8;
   }
 }
 

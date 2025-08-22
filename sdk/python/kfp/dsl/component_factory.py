@@ -32,6 +32,7 @@ from kfp.dsl import placeholders
 from kfp.dsl import python_component
 from kfp.dsl import structures
 from kfp.dsl import task_final_status
+from kfp.dsl.task_kubernetes_config import TaskKubernetesConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import custom_artifact_types
 from kfp.dsl.types import type_annotations
@@ -405,8 +406,12 @@ def make_input_spec(annotation: Any,
     default = None if inspect_param.default == inspect.Parameter.empty or type_annotations.issubclass_of_artifact(
         annotation) else inspect_param.default
 
-    optional = inspect_param.default is not inspect.Parameter.empty or type_utils.is_task_final_status_type(
-        getattr(inspect_param.annotation, '__name__', ''))
+    optional = (
+        inspect_param.default is not inspect.Parameter.empty or
+        type_utils.is_task_final_status_type(
+            getattr(inspect_param.annotation, '__name__', '')) or
+        getattr(inspect_param.annotation, '__name__',
+                '') == TaskKubernetesConfig.__name__)
     return structures.InputSpec(
         **input_output_spec_args,
         default=default,
@@ -665,6 +670,9 @@ def make_input_for_parameterized_container_component_function(
         # small hack to encode the runtime value's type for a custom json.dumps function
         if (annotation == task_final_status.PipelineTaskFinalStatus or
                 type_utils.is_task_final_status_type(annotation)):
+            placeholder._ir_type = 'STRUCT'
+        elif annotation == TaskKubernetesConfig:
+            # Treat as STRUCT for IR and use reserved input name at runtime.
             placeholder._ir_type = 'STRUCT'
         else:
             placeholder._ir_type = type_utils.get_parameter_type_name(

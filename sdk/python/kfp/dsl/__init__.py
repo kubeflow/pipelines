@@ -21,6 +21,7 @@ __all__ = [
     'InputPath',
     'OutputPath',
     'PipelineTaskFinalStatus',
+    'TaskKubernetesConfig',
     'Artifact',
     'ClassificationMetrics',
     'Dataset',
@@ -45,6 +46,7 @@ __all__ = [
 import os
 
 from kfp.dsl.task_final_status import PipelineTaskFinalStatus
+from kfp.dsl.task_kubernetes_config import TaskKubernetesConfig
 from kfp.dsl.types.artifact_types import Artifact
 from kfp.dsl.types.artifact_types import ClassificationMetrics
 from kfp.dsl.types.artifact_types import Dataset

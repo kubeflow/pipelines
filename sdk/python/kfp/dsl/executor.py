@@ -20,6 +20,7 @@ import warnings
 
 from kfp import dsl
 from kfp.dsl import task_final_status
+from kfp.dsl.task_kubernetes_config import TaskKubernetesConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 
@@ -346,6 +347,22 @@ class Executor:
                     pipeline_task_name=value.get(pipeline_task_name),
                     error_code=value.get('error', {}).get('code', None),
                     error_message=value.get('error', {}).get('message', None),
+                )
+
+            elif v == TaskKubernetesConfig:
+                # The backend injects this struct under the actual input parameter name.
+                # If missing, pass an empty structure.
+                value = self.get_input_parameter_value(k)
+                value = value or {}
+                func_kwargs[k] = TaskKubernetesConfig(
+                    affinity=value.get('affinity'),
+                    tolerations=value.get('tolerations'),
+                    node_selector=value.get('nodeSelector'),
+                    image_pull_secrets=value.get('imagePullSecrets'),
+                    env=value.get('env'),
+                    volumes=value.get('volumes'),
+                    volume_mounts=value.get('volumeMounts'),
+                    resources=value.get('resources'),
                 )
 
             elif type_annotations.is_list_of_artifacts(v):

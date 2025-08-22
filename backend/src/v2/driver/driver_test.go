@@ -271,6 +271,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
+				nil,
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -380,6 +381,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -421,6 +423,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		nil,
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -464,6 +467,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		nil,
 	)
 	assert.Nil(t, err)
 
@@ -503,6 +507,7 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"1",
 		"true",
 		"false",
+		nil,
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -513,7 +518,6 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 			assert.Equal(t, cmd[idx+1], "true")
 		}
 	}
-
 }
 
 func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
@@ -624,6 +628,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
@@ -637,6 +642,53 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_initPodSpecPatch_TaskK8sConfig_ForwardsResourcesOnly(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.9",
+		Args:    []string{"--function_to_execute", "add"},
+		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
+			CpuLimit:      2.0,
+			MemoryLimit:   1.5,
+			CpuRequest:    1.0,
+			MemoryRequest: 0.65,
+		},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{}
+	executorInput := &pipelinespec.ExecutorInput{}
+
+	taskCfg := &TaskKubernetesConfig{}
+	podSpec, err := initPodSpecPatch(
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"1",
+		"false",
+		"false",
+		taskCfg,
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, podSpec)
+	assert.Len(t, podSpec.Containers, 1)
+
+	// When TaskKubernetesConfig is used, resources are forwarded to the config only
+	// and not applied to the task pod.
+	assert.Equal(t, 0, len(podSpec.Containers[0].Resources.Requests))
+	assert.Equal(t, 0, len(podSpec.Containers[0].Resources.Limits))
+
+	// Forwarded resources captured in TaskKubernetesConfig
+	res := taskCfg.Resources
+	assert.Equal(t, k8sres.MustParse("1"), res.Requests[k8score.ResourceCPU])
+	assert.Equal(t, k8sres.MustParse("2"), res.Limits[k8score.ResourceCPU])
+	assert.Equal(t, k8sres.MustParse("0.65G"), res.Requests[k8score.ResourceMemory])
+	assert.Equal(t, k8sres.MustParse("1.5G"), res.Limits[k8score.ResourceMemory])
 }
 
 func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
@@ -682,6 +734,7 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		nil,
 	)
 	require.Nil(t, err)
 
@@ -840,7 +893,7 @@ func TestAddWorkspaceMount(t *testing.T) {
 
 	pvcName := "test-workflow-kfp-workspace"
 
-	addWorkspaceMount(podSpec, pvcName)
+	addWorkspaceMount(podSpec, pvcName, nil)
 
 	// Check that volume was added
 	if len(podSpec.Volumes) != 1 {

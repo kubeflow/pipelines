@@ -20,6 +20,7 @@ import warnings
 
 import kfp
 from kfp.dsl import task_final_status
+from kfp.dsl.task_kubernetes_config import TaskKubernetesConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 
@@ -146,6 +147,20 @@ def is_task_final_status_type(type_name: Optional[Union[str, dict]]) -> bool:
         type_name == task_final_status.PipelineTaskFinalStatus.__name__)
 
 
+def is_task_kubernetes_config_type(
+        type_name: Optional[Union[str, dict]]) -> bool:
+    """Check if a ComponentSpec I/O type is TaskKubernetesConfig.
+
+    Args:
+      type_name: type name of the ComponentSpec I/O type.
+
+    Returns:
+      True if the type name is 'TaskKubernetesConfig'.
+    """
+    return isinstance(type_name, str) and (type_name
+                                           == TaskKubernetesConfig.__name__)
+
+
 def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     """Check if a ComponentSpec I/O type is considered as a parameter type.
 
@@ -163,7 +178,8 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
         return False
 
     return type_name.lower(
-    ) in PARAMETER_TYPES_MAPPING or is_task_final_status_type(type_name)
+    ) in PARAMETER_TYPES_MAPPING or is_task_final_status_type(
+        type_name) or is_task_kubernetes_config_type(type_name)
 
 
 def bundled_artifact_to_artifact_proto(
@@ -195,8 +211,9 @@ def get_parameter_type(
     Raises:
       AttributeError: if type_name is not a string type.
     """
-    # Special handling for PipelineTaskFinalStatus, treat it as Dict type.
-    if is_task_final_status_type(param_type):
+    # Special handling for PipelineTaskFinalStatus and TaskKubernetesResources, treat them as Dict type.
+    if is_task_final_status_type(param_type) or is_task_kubernetes_config_type(
+            param_type):
         param_type = 'dict'
     if type(param_type) == type:
         type_name = param_type.__name__
@@ -461,6 +478,7 @@ IR_TYPE_TO_IN_MEMORY_SPEC_TYPE = {
     'STRUCT': 'Dict',
     'BOOLEAN': 'Boolean',
     'TASK_FINAL_STATUS': task_final_status.PipelineTaskFinalStatus.__name__,
+    'TASK_KUBERNETES_CONFIG': TaskKubernetesConfig.__name__,
 }
 
 IR_TYPE_TO_COMMENT_TYPE_STRING = {
@@ -471,6 +489,7 @@ IR_TYPE_TO_COMMENT_TYPE_STRING = {
     'STRUCT': dict.__name__,
     'BOOLEAN': bool.__name__,
     'TASK_FINAL_STATUS': task_final_status.PipelineTaskFinalStatus.__name__,
+    'TASK_KUBERNETES_CONFIG': TaskKubernetesConfig.__name__,
 }
 
 IN_MEMORY_SPEC_TYPE_TO_IR_TYPE = {
