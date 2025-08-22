@@ -27,7 +27,9 @@ from kfp.cli import recurring_run
 from kfp.cli import run
 from kfp.cli.output import OutputFormat
 from kfp.cli.utils import aliased_plurals_group
-from kfp.cli.utils import parsing
+from kfp.cli.utils import parsing 
+from kfp import version as _version
+
 
 COMMANDS = {
     'client': {
@@ -95,7 +97,10 @@ def _install_completion(shell: str) -> None:
     show_default=True,
     help='The formatting style for command output.')
 @click.pass_context
-@click.version_option(version=kfp.__version__, message='%(prog)s %(version)s')
+@click.version_option(version=_version.__version__, message='%(prog)s %(version)s')
+
+
+
 def cli(ctx: click.Context, endpoint: str, iap_client_id: str, namespace: str,
         other_client_id: str, other_client_secret: str, existing_token: str,
         output: OutputFormat, show_completion: str, install_completion: str):

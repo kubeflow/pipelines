@@ -14,12 +14,13 @@
 
 # `kfp` is a namespace package.
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
+
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
 try:
     from .version import __version__
 except ImportError:
-    __version__ = 'dev'
+    __version__ = "0.0.0+dev"
 
 import sys
 import warnings
@@ -28,18 +29,15 @@ if sys.version_info < (3, 9):
     warnings.warn(
         (
             'KFP will drop support for Python 3.9 on Oct 1, 2025. '
-            'To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.10. '
-            'See https://devguide.python.org/versions/ for more details.'
+            'To use new versions of the KFP SDK after that date, you will need to upgrade to Python >= 3.10.'
         ),
         FutureWarning,
         stacklevel=2,
     )
 
-TYPE_CHECK = True
-
 # compile-time only dependencies
-# make `from kfp import components` and `from kfp import dsl` valid;
-# related to namespace packaging issue
-from kfp import components  # noqa: keep unused import
-from kfp import dsl  # noqa: keep unused import
-from kfp.client import Client  # noqa: keep unused import
+from kfp import components  # noqa
+from kfp import dsl  # noqa
+from kfp.client import Client  # noqa
+from . import version
+from .version import __version__  # make top-level __version__ available
