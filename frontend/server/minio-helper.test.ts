@@ -14,7 +14,14 @@
 import * as zlib from 'zlib';
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
-import { createMinioClient, isTarball, maybeTarball, getObjectStream } from './minio-helper';
+import {
+  createMinioClient,
+  isTarball,
+  maybeTarball,
+  getObjectStream,
+  MinioClientOptionsWithOptionalSecrets,
+  Credentials,
+} from './minio-helper';
 const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
 
 jest.mock('minio');
@@ -44,6 +51,34 @@ describe('minio-helper', () => {
         accessKey: 'accesskey',
         endPoint: 'minio.kubeflow:80',
         secretKey: 'secretkey',
+      });
+    });
+
+    it('Builds a client where credentials are resolved using a custom provider.', async () => {
+      const provider = async (): Promise<Credentials> => {
+        return {
+          accessKeyId: 'providedKey',
+          secretAccessKey: 'providedSecret',
+          sessionToken: 'providedToken',
+        };
+      };
+
+      const client = await createMinioClient(
+        {
+          endPoint: 'minio.kubeflow:80',
+        },
+        's3',
+        '',
+        '',
+        provider,
+      );
+
+      expect(client).toBeInstanceOf(MinioClient);
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'providedKey',
+        endPoint: 'minio.kubeflow:80',
+        secretKey: 'providedSecret',
+        sessionToken: 'providedToken',
       });
     });
 
