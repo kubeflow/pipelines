@@ -21,6 +21,7 @@ __all__ = [
     'InputPath',
     'OutputPath',
     'PipelineTaskFinalStatus',
+    'TaskConfig',
     'Artifact',
     'ClassificationMetrics',
     'Dataset',
@@ -44,6 +45,7 @@ __all__ = [
 ]
 import os
 
+from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.task_final_status import PipelineTaskFinalStatus
 from kfp.dsl.types.artifact_types import Artifact
 from kfp.dsl.types.artifact_types import ClassificationMetrics
@@ -283,6 +285,8 @@ Example:
 # compile-time only dependencies
 if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     from kfp.dsl.component_decorator import component
+    from kfp.dsl.component_task_config import TaskConfigField
+    from kfp.dsl.component_task_config import TaskConfigPassthrough
     from kfp.dsl.container_component_decorator import container_component
     # TODO: Collected should be moved to pipeline_channel.py, consistent with OneOf
     from kfp.dsl.for_loop import Collected
@@ -307,5 +311,6 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
         'ContainerSpec', 'Condition', 'If', 'Elif', 'Else', 'OneOf',
         'ExitHandler', 'ParallelFor', 'Collected', 'IfPresentPlaceholder',
         'ConcatPlaceholder', 'PipelineTask', 'PipelineConfig',
-        'WorkspaceConfig', 'KubernetesWorkspaceConfig'
+        'WorkspaceConfig', 'KubernetesWorkspaceConfig', 'TaskConfigField',
+        'TaskConfigPassthrough'
     ])

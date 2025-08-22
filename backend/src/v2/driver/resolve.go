@@ -65,7 +65,6 @@ func getDAGTasks(
 		flattenedTasks[k] = v
 	}
 	for _, v := range currentExecutionTasks {
-
 		if v.GetExecution().GetType() == "system.DAGExecution" {
 			_, ok := v.GetExecution().GetCustomProperties()["iteration_count"]
 			if ok {
@@ -225,7 +224,7 @@ func resolveInputs(
 						return typeMismatch("list")
 					}
 				case *structpb.Value_StructValue:
-					if (spec.GetParameterType() != pipelinespec.ParameterType_STRUCT) && (spec.GetParameterType() != pipelinespec.ParameterType_TASK_FINAL_STATUS) {
+					if (spec.GetParameterType() != pipelinespec.ParameterType_STRUCT) && (spec.GetParameterType() != pipelinespec.ParameterType_TASK_FINAL_STATUS) && (spec.GetParameterType() != pipelinespec.ParameterType_TASK_CONFIG) {
 						return typeMismatch("struct")
 					}
 				default:
@@ -298,12 +297,19 @@ func resolveInputs(
 					inputs.ParameterValues[name] = structpb.NewNullValue()
 					parametersSetNilByDriver[name] = true
 				}
-
 			}
 		}
 	}
 	// Handle parameters.
 	for name, paramSpec := range task.GetInputs().GetParameters() {
+		if compParam := opts.Component.GetInputDefinitions().GetParameters()[name]; compParam != nil {
+			// Skip resolving dsl.TaskConfig because that information is only available after initPodSpecPatch and
+			// extendPodSpecPatch are called.
+			if compParam.GetParameterType() == pipelinespec.ParameterType_TASK_CONFIG {
+				continue
+			}
+		}
+
 		v, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd, paramSpec, inputParams)
 		if err != nil {
 			if !errors.Is(err, ErrResolvedParameterNull) {
@@ -435,7 +441,7 @@ func resolveInputParameter(
 			State:                   producer.GetExecution().GetLastKnownState().String(),
 			PipelineTaskName:        producer.TaskName(),
 			PipelineJobResourceName: opts.RunName,
-			//TODO: Implement fields "Message and "Code" below for Error status.
+			// TODO: Implement fields "Message and "Code" below for Error status.
 			Error: &status.Status{},
 		}
 		finalStatusJSON, err := protojson.Marshal(&finalStatus)

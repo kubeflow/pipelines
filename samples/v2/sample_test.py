@@ -79,6 +79,7 @@ import pipeline_with_pod_metadata
 import pipeline_with_workspace
 from modelcar import modelcar
 import pipeline_with_utils
+import task_config
 
 
 _MINUTE = 60  # seconds
@@ -255,6 +256,7 @@ class SampleTest(unittest.TestCase):
             TestCase(pipeline_func=pipeline_with_pod_metadata.pipeline_with_pod_metadata),
             TestCase(pipeline_func=pipeline_with_workspace.pipeline_with_workspace),
             TestCase(pipeline_func=pipeline_with_utils.pipeline_with_utils),
+            TestCase(pipeline_func=task_config.pipeline_task_config),
         ]
 
         with ThreadPoolExecutor() as executor:
