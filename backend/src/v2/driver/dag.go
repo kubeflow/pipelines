@@ -115,9 +115,10 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	ecfg.OutputArtifacts = opts.Component.GetDag().GetOutputs().GetArtifacts()
 	glog.V(4).Info("outputArtifacts: ", ecfg.OutputArtifacts)
 
+	// Initial totalDagTasks calculation based on compile-time component tasks
 	totalDagTasks := len(opts.Component.GetDag().GetTasks())
 	ecfg.TotalDagTasks = &totalDagTasks
-	glog.V(4).Info("totalDagTasks: ", *ecfg.TotalDagTasks)
+	glog.V(4).Info("initial totalDagTasks: ", *ecfg.TotalDagTasks)
 
 	if opts.Task.GetArtifactIterator() != nil {
 		return execution, fmt.Errorf("ArtifactIterator is not implemented")
@@ -162,6 +163,22 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		count := len(items)
 		ecfg.IterationCount = &count
 		execution.IterationCount = &count
+		
+		// FIX: For ParallelFor, total_dag_tasks should equal iteration_count
+		totalDagTasks = count
+		ecfg.TotalDagTasks = &totalDagTasks
+		glog.Infof("ParallelFor: Updated totalDagTasks=%d to match iteration_count", totalDagTasks)
+	} else if opts.IterationIndex >= 0 {
+		// FIX: For individual ParallelFor iteration DAGs, inherit iteration_count from parent
+		// Get parent DAG to find the iteration_count
+		parentExecution, err := mlmd.GetExecution(ctx, dag.Execution.GetID())
+		if err == nil && parentExecution.GetExecution().GetCustomProperties()["iteration_count"] != nil {
+			parentIterationCount := int(parentExecution.GetExecution().GetCustomProperties()["iteration_count"].GetIntValue())
+			totalDagTasks = parentIterationCount
+			ecfg.IterationCount = &parentIterationCount
+			ecfg.TotalDagTasks = &totalDagTasks
+			glog.Infof("ParallelFor iteration %d: Set totalDagTasks=%d from parent iteration_count", opts.IterationIndex, totalDagTasks)
+		}
 	}
 
 	glog.V(4).Info("pipeline: ", pipeline)

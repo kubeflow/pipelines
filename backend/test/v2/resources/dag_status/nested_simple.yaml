@@ -1,0 +1,307 @@
+# PIPELINE DEFINITION
+# Name: nested-simple
+# Description: Real nested pipeline: parent calls child pipeline to test hierarchical DAG status updates
+components:
+  comp-child-finalizer:
+    executorLabel: exec-child-finalizer
+    inputDefinitions:
+      parameters:
+        setup_result:
+          parameterType: STRING
+        worker_result:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-child-pipeline:
+    dag:
+      outputs:
+        parameters:
+          Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: child-finalizer
+      tasks:
+        child-finalizer:
+          cachingOptions: {}
+          componentRef:
+            name: comp-child-finalizer
+          dependentTasks:
+          - child-setup
+          - child-worker
+          inputs:
+            parameters:
+              setup_result:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: child-setup
+              worker_result:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: child-worker
+          taskInfo:
+            name: child-finalizer
+        child-setup:
+          cachingOptions: {}
+          componentRef:
+            name: comp-child-setup
+          taskInfo:
+            name: child-setup
+        child-worker:
+          cachingOptions: {}
+          componentRef:
+            name: comp-child-worker
+          dependentTasks:
+          - child-setup
+          inputs:
+            parameters:
+              input_data:
+                componentInputParameter: input_value
+          taskInfo:
+            name: child-worker
+    inputDefinitions:
+      parameters:
+        input_value:
+          defaultValue: default_input
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-child-setup:
+    executorLabel: exec-child-setup
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-child-worker:
+    executorLabel: exec-child-worker
+    inputDefinitions:
+      parameters:
+        input_data:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-parent-finalize:
+    executorLabel: exec-parent-finalize
+    inputDefinitions:
+      parameters:
+        child_input:
+          parameterType: STRING
+        parent_input:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-parent-setup:
+    executorLabel: exec-parent-setup
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-child-finalizer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - child_finalizer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef child_finalizer(setup_result: str, worker_result: str) -> str:\n\
+          \    \"\"\"Finalizer task in child pipeline.\"\"\"\n    print(f\"Child finalizer:\
+          \ {setup_result} + {worker_result}\")\n    return \"child_pipeline_complete\"\
+          \n\n"
+        image: python:3.9
+    exec-child-setup:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - child_setup
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef child_setup() -> str:\n    \"\"\"Setup task in child pipeline.\"\
+          \"\"\n    print(\"Child pipeline setup\")\n    return \"child_setup_complete\"\
+          \n\n"
+        image: python:3.9
+    exec-child-worker:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - child_worker
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef child_worker(input_data: str) -> str:\n    \"\"\"Worker task\
+          \ in child pipeline.\"\"\"\n    print(f\"Child worker processing: {input_data}\"\
+          )\n    return f\"child_processed_{input_data}\"\n\n"
+        image: python:3.9
+    exec-parent-finalize:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - parent_finalize
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef parent_finalize(parent_input: str, child_input: str) -> str:\n\
+          \    \"\"\"Finalization task in parent context.\"\"\"\n    print(f\"Finalizing\
+          \ parent with inputs: {parent_input}, {child_input}\")\n    return \"parent_finalize_complete\"\
+          \n\n"
+        image: python:3.9
+    exec-parent-setup:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - parent_setup
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef parent_setup() -> str:\n    \"\"\"Setup task in parent context.\"\
+          \"\"\n    print(\"Setting up parent pipeline\")\n    return \"parent_setup_complete\"\
+          \n\n"
+        image: python:3.9
+pipelineInfo:
+  description: 'Real nested pipeline: parent calls child pipeline to test hierarchical
+    DAG status updates'
+  name: nested-simple
+root:
+  dag:
+    tasks:
+      child-pipeline:
+        cachingOptions: {}
+        componentRef:
+          name: comp-child-pipeline
+        dependentTasks:
+        - parent-setup
+        inputs:
+          parameters:
+            input_value:
+              runtimeValue:
+                constant: data_from_parent
+        taskInfo:
+          name: child-pipeline
+      parent-finalize:
+        cachingOptions: {}
+        componentRef:
+          name: comp-parent-finalize
+        dependentTasks:
+        - child-pipeline
+        - parent-setup
+        inputs:
+          parameters:
+            child_input:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: child-pipeline
+            parent_input:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: parent-setup
+        taskInfo:
+          name: parent-finalize
+      parent-setup:
+        cachingOptions: {}
+        componentRef:
+          name: comp-parent-setup
+        taskInfo:
+          name: parent-setup
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

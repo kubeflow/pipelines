@@ -16,6 +16,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -40,25 +41,72 @@ import (
 )
 
 func WaitForReady(initializeTimeout time.Duration) error {
+	glog.Infof("WaitForReady: Starting health check with timeout %v", initializeTimeout)
+	glog.Infof("WaitForReady: Environment info - attempting to connect to KFP API server")
+	
+	// Log some environment info that might help diagnose CI issues
+	if os.Getenv("CI") != "" {
+		glog.Infof("WaitForReady: Running in CI environment")
+	}
+	if os.Getenv("GITHUB_ACTIONS") != "" {
+		glog.Infof("WaitForReady: Running in GitHub Actions")
+	}
+	
 	operation := func() error {
+		glog.V(2).Infof("WaitForReady: Attempting to connect to http://localhost:8888/apis/v2beta1/healthz")
 		response, err := http.Get("http://localhost:8888/apis/v2beta1/healthz")
 		if err != nil {
+			glog.V(2).Infof("WaitForReady: Connection failed: %v", err)
 			return err
 		}
+		defer response.Body.Close()
 
+		glog.V(2).Infof("WaitForReady: Received HTTP %d", response.StatusCode)
+		
 		// If we get a 503 service unavailable, it's a non-retriable error.
 		if response.StatusCode == 503 {
+			glog.Errorf("WaitForReady: Received 503 Service Unavailable - permanent failure")
 			return backoff.Permanent(errors.Wrapf(
 				err, "Waiting for ml pipeline API server failed with non retriable error."))
 		}
 
+		if response.StatusCode != 200 {
+			glog.V(2).Infof("WaitForReady: Received non-200 status: %d", response.StatusCode)
+			return errors.New(fmt.Sprintf("received HTTP %d", response.StatusCode))
+		}
+
+		glog.Infof("WaitForReady: Health check successful (HTTP 200)")
 		return nil
 	}
 
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initializeTimeout
-	err := backoff.Retry(operation, b)
-	return errors.Wrapf(err, "Waiting for ml pipeline API server failed after all attempts.")
+	glog.Infof("WaitForReady: Starting retry loop with max elapsed time %v", b.MaxElapsedTime)
+	
+	// Add a progress indicator for long waits
+	startTime := time.Now()
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	
+	done := make(chan error, 1)
+	go func() {
+		done <- backoff.Retry(operation, b)
+	}()
+	
+	for {
+		select {
+		case err := <-done:
+			if err != nil {
+				glog.Errorf("WaitForReady: Failed after all attempts: %v", err)
+				return errors.Wrapf(err, "Waiting for ml pipeline API server failed after all attempts.")
+			}
+			glog.Infof("WaitForReady: Successfully connected to KFP API server")
+			return nil
+		case <-ticker.C:
+			elapsed := time.Since(startTime)
+			glog.Infof("WaitForReady: Still waiting for KFP API server... (elapsed: %v, timeout: %v)", elapsed, initializeTimeout)
+		}
+	}
 }
 
 func GetClientConfig(namespace string) clientcmd.ClientConfig {

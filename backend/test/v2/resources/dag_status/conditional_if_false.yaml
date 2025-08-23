@@ -1,0 +1,130 @@
+# PIPELINE DEFINITION
+# Name: conditional-if-false
+# Description: Simple If condition that is False to test DAG status updates
+components:
+  comp-check-condition:
+    executorLabel: exec-check-condition
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: BOOLEAN
+  comp-condition-1:
+    dag:
+      tasks:
+        execute-if-task:
+          cachingOptions: {}
+          componentRef:
+            name: comp-execute-if-task
+          inputs:
+            parameters:
+              message:
+                runtimeValue:
+                  constant: this should not execute
+          taskInfo:
+            name: execute-if-task
+    inputDefinitions:
+      parameters:
+        pipelinechannel--check-condition-Output:
+          parameterType: BOOLEAN
+  comp-execute-if-task:
+    executorLabel: exec-execute-if-task
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-check-condition:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - check_condition
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef check_condition() -> bool:\n    \"\"\"Component that returns\
+          \ False to skip the If branch.\"\"\"\n    print(\"Checking condition: always\
+          \ returns False\")\n    return False\n\n"
+        image: python:3.9
+    exec-execute-if-task:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - execute_if_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef execute_if_task(message: str) -> str:\n    \"\"\"Component that\
+          \ should NOT execute when If condition is False.\"\"\"\n    print(f\"If\
+          \ branch executed: {message}\")\n    return f\"If result: {message}\"\n\n"
+        image: python:3.9
+pipelineInfo:
+  description: Simple If condition that is False to test DAG status updates
+  name: conditional-if-false
+root:
+  dag:
+    tasks:
+      check-condition:
+        cachingOptions: {}
+        componentRef:
+          name: comp-check-condition
+        taskInfo:
+          name: check-condition
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        dependentTasks:
+        - check-condition
+        inputs:
+          parameters:
+            pipelinechannel--check-condition-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: check-condition
+        taskInfo:
+          name: condition-1
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--check-condition-Output']
+            == true
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

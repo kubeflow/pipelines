@@ -1,0 +1,667 @@
+# PIPELINE DEFINITION
+# Name: nested-deep
+# Description: Deep nested pipeline testing 5-level hierarchical DAG status updates with mixed ParallelFor and conditional constructs
+components:
+  comp-condition-1:
+    dag:
+      tasks:
+        for-loop-3:
+          componentRef:
+            name: comp-for-loop-3
+          inputs:
+            parameters:
+              pipelinechannel--level2-controller-Output:
+                componentInputParameter: pipelinechannel--level2-controller-Output
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-2
+            items:
+              raw: '["batch_a", "batch_b"]'
+          taskInfo:
+            name: for-loop-3
+        level2-finalizer:
+          cachingOptions: {}
+          componentRef:
+            name: comp-level2-finalizer
+          inputs:
+            parameters:
+              aggregated_result:
+                runtimeValue:
+                  constant: all_batches_complete
+              controller_result:
+                componentInputParameter: pipelinechannel--level2-controller-Output
+          taskInfo:
+            name: level2-finalizer
+    inputDefinitions:
+      parameters:
+        pipelinechannel--level2-controller-Output:
+          parameterType: STRING
+  comp-condition-7:
+    dag:
+      tasks:
+        level4-processor:
+          cachingOptions: {}
+          componentRef:
+            name: comp-level4-processor
+          inputs:
+            parameters:
+              condition_value:
+                componentInputParameter: pipelinechannel--get-deep-condition-Output
+              worker_result:
+                componentInputParameter: pipelinechannel--level3-worker-Output
+          taskInfo:
+            name: level4-processor
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-deep-condition-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--level2-controller-Output:
+          parameterType: STRING
+        pipelinechannel--level3-worker-Output:
+          parameterType: STRING
+  comp-condition-8:
+    dag:
+      tasks:
+        level4-processor-2:
+          cachingOptions: {}
+          componentRef:
+            name: comp-level4-processor-2
+          inputs:
+            parameters:
+              condition_value:
+                runtimeValue:
+                  constant: 0.0
+              worker_result:
+                componentInputParameter: pipelinechannel--level3-worker-Output
+          taskInfo:
+            name: level4-processor-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-deep-condition-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--level2-controller-Output:
+          parameterType: STRING
+        pipelinechannel--level3-worker-Output:
+          parameterType: STRING
+  comp-condition-branches-6:
+    dag:
+      tasks:
+        condition-7:
+          componentRef:
+            name: comp-condition-7
+          inputs:
+            parameters:
+              pipelinechannel--get-deep-condition-Output:
+                componentInputParameter: pipelinechannel--get-deep-condition-Output
+              pipelinechannel--level2-controller-Output:
+                componentInputParameter: pipelinechannel--level2-controller-Output
+              pipelinechannel--level3-worker-Output:
+                componentInputParameter: pipelinechannel--level3-worker-Output
+          taskInfo:
+            name: condition-7
+          triggerPolicy:
+            condition: int(inputs.parameter_values['pipelinechannel--get-deep-condition-Output'])
+              == 1
+        condition-8:
+          componentRef:
+            name: comp-condition-8
+          inputs:
+            parameters:
+              pipelinechannel--get-deep-condition-Output:
+                componentInputParameter: pipelinechannel--get-deep-condition-Output
+              pipelinechannel--level2-controller-Output:
+                componentInputParameter: pipelinechannel--level2-controller-Output
+              pipelinechannel--level3-worker-Output:
+                componentInputParameter: pipelinechannel--level3-worker-Output
+          taskInfo:
+            name: condition-8
+          triggerPolicy:
+            condition: '!(int(inputs.parameter_values[''pipelinechannel--get-deep-condition-Output''])
+              == 1)'
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-deep-condition-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--level2-controller-Output:
+          parameterType: STRING
+        pipelinechannel--level3-worker-Output:
+          parameterType: STRING
+  comp-for-loop-3:
+    dag:
+      tasks:
+        for-loop-5:
+          componentRef:
+            name: comp-for-loop-5
+          inputs:
+            parameters:
+              pipelinechannel--level2-controller-Output:
+                componentInputParameter: pipelinechannel--level2-controller-Output
+              pipelinechannel--loop-item-param-2:
+                componentInputParameter: pipelinechannel--loop-item-param-2
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-4
+            items:
+              raw: '["task_1", "task_2", "task_3"]'
+          taskInfo:
+            name: for-loop-5
+        level3-aggregator:
+          cachingOptions: {}
+          componentRef:
+            name: comp-level3-aggregator
+          inputs:
+            parameters:
+              level:
+                componentInputParameter: pipelinechannel--loop-item-param-2
+          taskInfo:
+            name: level3-aggregator
+    inputDefinitions:
+      parameters:
+        pipelinechannel--level2-controller-Output:
+          parameterType: STRING
+        pipelinechannel--loop-item-param-2:
+          parameterType: STRING
+  comp-for-loop-5:
+    dag:
+      tasks:
+        condition-branches-6:
+          componentRef:
+            name: comp-condition-branches-6
+          dependentTasks:
+          - get-deep-condition
+          - level3-worker
+          inputs:
+            parameters:
+              pipelinechannel--get-deep-condition-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-deep-condition
+              pipelinechannel--level2-controller-Output:
+                componentInputParameter: pipelinechannel--level2-controller-Output
+              pipelinechannel--level3-worker-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: level3-worker
+          taskInfo:
+            name: condition-branches-6
+        get-deep-condition:
+          cachingOptions: {}
+          componentRef:
+            name: comp-get-deep-condition
+          taskInfo:
+            name: get-deep-condition
+        level3-worker:
+          cachingOptions: {}
+          componentRef:
+            name: comp-level3-worker
+          inputs:
+            parameters:
+              batch:
+                componentInputParameter: pipelinechannel--loop-item-param-2
+              task:
+                componentInputParameter: pipelinechannel--loop-item-param-4
+          taskInfo:
+            name: level3-worker
+    inputDefinitions:
+      parameters:
+        pipelinechannel--level2-controller-Output:
+          parameterType: STRING
+        pipelinechannel--loop-item-param-2:
+          parameterType: STRING
+        pipelinechannel--loop-item-param-4:
+          parameterType: STRING
+  comp-get-deep-condition:
+    executorLabel: exec-get-deep-condition
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-level1-finalizer:
+    executorLabel: exec-level1-finalizer
+    inputDefinitions:
+      parameters:
+        level2_result:
+          parameterType: STRING
+        setup_result:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-level1-setup:
+    executorLabel: exec-level1-setup
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-level2-controller:
+    executorLabel: exec-level2-controller
+    inputDefinitions:
+      parameters:
+        input_from_level1:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-level2-finalizer:
+    executorLabel: exec-level2-finalizer
+    inputDefinitions:
+      parameters:
+        aggregated_result:
+          parameterType: STRING
+        controller_result:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-level3-aggregator:
+    executorLabel: exec-level3-aggregator
+    inputDefinitions:
+      parameters:
+        level:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-level3-worker:
+    executorLabel: exec-level3-worker
+    inputDefinitions:
+      parameters:
+        batch:
+          parameterType: STRING
+        task:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-level4-processor:
+    executorLabel: exec-level4-processor
+    inputDefinitions:
+      parameters:
+        condition_value:
+          parameterType: NUMBER_INTEGER
+        worker_result:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-level4-processor-2:
+    executorLabel: exec-level4-processor-2
+    inputDefinitions:
+      parameters:
+        condition_value:
+          parameterType: NUMBER_INTEGER
+        worker_result:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-get-deep-condition:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_deep_condition
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_deep_condition() -> int:\n    \"\"\"\n    CONDITION PROVIDER:\
+          \ Returns condition for deep nested branching.\n\n    Always returns 1,\
+          \ ensuring all 6 workers take the same conditional path.\n    This creates\
+          \ predictable behavior for testing DAG status calculation.\n    \"\"\"\n\
+          \    print(\"LEVEL 5: Deep condition check (always returns 1)\")\n    return\
+          \ 1\n\n"
+        image: python:3.9
+    exec-level1-finalizer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - level1_finalizer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef level1_finalizer(setup_result: str, level2_result: str) -> str:\n\
+          \    \"\"\"\n    ROOT FINALIZER: Completes the entire pipeline hierarchy.\n\
+          \n    This is the final task that should execute only after all 23 other\n\
+          \    tasks across all 5 levels have completed successfully.\n    \"\"\"\n\
+          \    print(f\"LEVEL 1: Root finalizer - {setup_result} + {level2_result}\"\
+          )\n    return \"deep_nesting_complete\"\n\n"
+        image: python:3.9
+    exec-level1-setup:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - level1_setup
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef level1_setup() -> str:\n    \"\"\"\n    ROOT LEVEL: Initialize\
+          \ the entire pipeline hierarchy.\n\n    This represents the entry point\
+          \ for the most complex nested structure.\n    Sets up the foundation for\
+          \ 4 additional levels of nesting below.\n    \"\"\"\n    print(\"LEVEL 1:\
+          \ Setting up root pipeline context\")\n    return \"level1_ready\"\n\n"
+        image: python:3.9
+    exec-level2-controller:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - level2_controller
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef level2_controller(input_from_level1: str) -> str:\n    \"\"\"\
+          \n    CONTROLLER LEVEL: Orchestrates nested batch processing.\n\n    Takes\
+          \ input from root level and decides whether to proceed with\n    the complex\
+          \ nested batch and task processing in levels 3-5.\n    \"\"\"\n    print(f\"\
+          LEVEL 2: Controller received '{input_from_level1}' - initiating nested processing\"\
+          )\n    return \"level2_ready\"\n\n"
+        image: python:3.9
+    exec-level2-finalizer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - level2_finalizer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef level2_finalizer(controller_result: str, aggregated_result: str)\
+          \ -> str:\n    \"\"\"\n    CONTROLLER FINALIZER: Completes nested batch\
+          \ processing context.\n\n    Runs after all batch processing (levels 3-5)\
+          \ completes.\n    Represents the exit point from the nested conditional\
+          \ context.\n    \"\"\"\n    print(f\"LEVEL 2: Finalizing controller - {controller_result}\
+          \ + {aggregated_result}\")\n    return \"level2_finalized\"\n\n"
+        image: python:3.9
+    exec-level3-aggregator:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - level3_aggregator
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef level3_aggregator(level: str) -> str:\n    \"\"\"\n    BATCH\
+          \ AGGREGATOR: Collects results from all tasks within a batch.\n\n    Each\
+          \ batch (batch_a, batch_b) gets its own aggregator instance,\n    creating\
+          \ 2 aggregator tasks that summarize the work done in levels 4-5.\n    \"\
+          \"\"\n    print(f\"LEVEL 3: Aggregating results for batch '{level}'\")\n\
+          \    return f\"level3_aggregated_{level}\"\n\n"
+        image: python:3.9
+    exec-level3-worker:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - level3_worker
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef level3_worker(batch: str, task: str) -> str:\n    \"\"\"\n  \
+          \  WORKER LEVEL: Individual task execution within batch context.\n\n   \
+          \ Each worker processes one task within one batch. With 2 batches \xD7 3\
+          \ tasks,\n    this creates 6 parallel worker instances, each feeding into\
+          \ level 5 conditionals.\n    \"\"\"\n    print(f\"LEVEL 4: Worker executing\
+          \ batch='{batch}', task='{task}'\")\n    return f\"level3_result_{batch}_{task}\"\
+          \n\n"
+        image: python:3.9
+    exec-level4-processor:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - level4_processor
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef level4_processor(worker_result: str, condition_value: int) ->\
+          \ str:\n    \"\"\"\n    PROCESSOR LEVEL: Conditional processing of worker\
+          \ results.\n\n    Applies different processing logic based on condition\
+          \ value.\n    Each of the 6 workers feeds into this, creating 6 processor\
+          \ instances\n    (all using branch A since condition always == 1).\n   \
+          \ \"\"\"\n    branch = \"A\" if condition_value == 1 else \"B\"\n    print(f\"\
+          LEVEL 5: Processor {branch} handling '{worker_result}' (condition={condition_value})\"\
+          )\n    return f\"level4_processed_{worker_result}_branch_{branch}\"\n\n"
+        image: python:3.9
+    exec-level4-processor-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - level4_processor
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef level4_processor(worker_result: str, condition_value: int) ->\
+          \ str:\n    \"\"\"\n    PROCESSOR LEVEL: Conditional processing of worker\
+          \ results.\n\n    Applies different processing logic based on condition\
+          \ value.\n    Each of the 6 workers feeds into this, creating 6 processor\
+          \ instances\n    (all using branch A since condition always == 1).\n   \
+          \ \"\"\"\n    branch = \"A\" if condition_value == 1 else \"B\"\n    print(f\"\
+          LEVEL 5: Processor {branch} handling '{worker_result}' (condition={condition_value})\"\
+          )\n    return f\"level4_processed_{worker_result}_branch_{branch}\"\n\n"
+        image: python:3.9
+pipelineInfo:
+  description: Deep nested pipeline testing 5-level hierarchical DAG status updates
+    with mixed ParallelFor and conditional constructs
+  name: nested-deep
+root:
+  dag:
+    tasks:
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        dependentTasks:
+        - level2-controller
+        inputs:
+          parameters:
+            pipelinechannel--level2-controller-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: level2-controller
+        taskInfo:
+          name: condition-1
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--level2-controller-Output']
+            == 'level2_ready'
+      level1-finalizer:
+        cachingOptions: {}
+        componentRef:
+          name: comp-level1-finalizer
+        dependentTasks:
+        - level1-setup
+        inputs:
+          parameters:
+            level2_result:
+              runtimeValue:
+                constant: level2_context_complete
+            setup_result:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: level1-setup
+        taskInfo:
+          name: level1-finalizer
+      level1-setup:
+        cachingOptions: {}
+        componentRef:
+          name: comp-level1-setup
+        taskInfo:
+          name: level1-setup
+      level2-controller:
+        cachingOptions: {}
+        componentRef:
+          name: comp-level2-controller
+        dependentTasks:
+        - level1-setup
+        inputs:
+          parameters:
+            input_from_level1:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: level1-setup
+        taskInfo:
+          name: level2-controller
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

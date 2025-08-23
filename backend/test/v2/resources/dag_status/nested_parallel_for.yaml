@@ -1,0 +1,343 @@
+# PIPELINE DEFINITION
+# Name: nested-parallel-for
+# Description: Nested pipeline with ParallelFor to test hierarchical DAG status updates
+components:
+  comp-condition-1:
+    dag:
+      tasks:
+        for-loop-3:
+          componentRef:
+            name: comp-for-loop-3
+          inputs:
+            parameters:
+              pipelinechannel--parent-setup-Output:
+                componentInputParameter: pipelinechannel--parent-setup-Output
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-2
+            items:
+              raw: '["batch1", "batch2", "batch3"]'
+          taskInfo:
+            name: for-loop-3
+        nested-aggregator-2:
+          cachingOptions: {}
+          componentRef:
+            name: comp-nested-aggregator-2
+          inputs:
+            parameters:
+              context:
+                runtimeValue:
+                  constant: all_batches
+          taskInfo:
+            name: nested-aggregator-2
+        parent-finalize:
+          cachingOptions: {}
+          componentRef:
+            name: comp-parent-finalize
+          dependentTasks:
+          - nested-aggregator-2
+          inputs:
+            parameters:
+              nested_result:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: nested-aggregator-2
+              setup_result:
+                componentInputParameter: pipelinechannel--parent-setup-Output
+          taskInfo:
+            name: parent-finalize
+    inputDefinitions:
+      parameters:
+        pipelinechannel--parent-setup-Output:
+          parameterType: STRING
+  comp-for-loop-3:
+    dag:
+      tasks:
+        for-loop-5:
+          componentRef:
+            name: comp-for-loop-5
+          inputs:
+            parameters:
+              pipelinechannel--loop-item-param-2:
+                componentInputParameter: pipelinechannel--loop-item-param-2
+              pipelinechannel--parent-setup-Output:
+                componentInputParameter: pipelinechannel--parent-setup-Output
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-4
+            items:
+              raw: '["task-a", "task-b"]'
+          taskInfo:
+            name: for-loop-5
+        nested-aggregator:
+          cachingOptions: {}
+          componentRef:
+            name: comp-nested-aggregator
+          inputs:
+            parameters:
+              context:
+                componentInputParameter: pipelinechannel--loop-item-param-2
+          taskInfo:
+            name: nested-aggregator
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-2:
+          parameterType: STRING
+        pipelinechannel--parent-setup-Output:
+          parameterType: STRING
+  comp-for-loop-5:
+    dag:
+      tasks:
+        parallel-worker:
+          cachingOptions: {}
+          componentRef:
+            name: comp-parallel-worker
+          inputs:
+            parameters:
+              context:
+                componentInputParameter: pipelinechannel--loop-item-param-2
+              item:
+                componentInputParameter: pipelinechannel--loop-item-param-4
+          taskInfo:
+            name: parallel-worker
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-2:
+          parameterType: STRING
+        pipelinechannel--loop-item-param-4:
+          parameterType: STRING
+        pipelinechannel--parent-setup-Output:
+          parameterType: STRING
+  comp-nested-aggregator:
+    executorLabel: exec-nested-aggregator
+    inputDefinitions:
+      parameters:
+        context:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-nested-aggregator-2:
+    executorLabel: exec-nested-aggregator-2
+    inputDefinitions:
+      parameters:
+        context:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-parallel-worker:
+    executorLabel: exec-parallel-worker
+    inputDefinitions:
+      parameters:
+        context:
+          parameterType: STRING
+        item:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-parent-finalize:
+    executorLabel: exec-parent-finalize
+    inputDefinitions:
+      parameters:
+        nested_result:
+          parameterType: STRING
+        setup_result:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-parent-setup:
+    executorLabel: exec-parent-setup
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-nested-aggregator:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - nested_aggregator
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef nested_aggregator(context: str) -> str:\n    \"\"\"Aggregates\
+          \ results from nested parallel execution.\"\"\"\n    print(f\"Aggregating\
+          \ results in {context} context\")\n    return f\"Aggregated results for\
+          \ {context}\"\n\n"
+        image: python:3.9
+    exec-nested-aggregator-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - nested_aggregator
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef nested_aggregator(context: str) -> str:\n    \"\"\"Aggregates\
+          \ results from nested parallel execution.\"\"\"\n    print(f\"Aggregating\
+          \ results in {context} context\")\n    return f\"Aggregated results for\
+          \ {context}\"\n\n"
+        image: python:3.9
+    exec-parallel-worker:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - parallel_worker
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef parallel_worker(item: str, context: str) -> str:\n    \"\"\"\
+          Worker component for parallel execution.\"\"\"\n    print(f\"Processing\
+          \ {item} in {context} context\")\n    return f\"Processed {item}\"\n\n"
+        image: python:3.9
+    exec-parent-finalize:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - parent_finalize
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef parent_finalize(setup_result: str, nested_result: str) -> str:\n\
+          \    \"\"\"Final task in parent context.\"\"\"\n    print(f\"Finalizing:\
+          \ {setup_result} + {nested_result}\")\n    return \"nested_parallel_complete\"\
+          \n\n"
+        image: python:3.9
+    exec-parent-setup:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - parent_setup
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef parent_setup() -> str:\n    \"\"\"Setup task in parent context.\"\
+          \"\"\n    print(\"Setting up parent pipeline for nested ParallelFor\")\n\
+          \    return \"parent_ready_for_parallel\"\n\n"
+        image: python:3.9
+pipelineInfo:
+  description: Nested pipeline with ParallelFor to test hierarchical DAG status updates
+  name: nested-parallel-for
+root:
+  dag:
+    tasks:
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        dependentTasks:
+        - parent-setup
+        inputs:
+          parameters:
+            pipelinechannel--parent-setup-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: parent-setup
+        taskInfo:
+          name: condition-1
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--parent-setup-Output']
+            == 'parent_ready_for_parallel'
+      parent-setup:
+        cachingOptions: {}
+        componentRef:
+          name: comp-parent-setup
+        taskInfo:
+          name: parent-setup
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

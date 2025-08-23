@@ -1,0 +1,590 @@
+# PIPELINE DEFINITION
+# Name: nested-conditional
+# Description: Nested pipeline with complex conditionals to test hierarchical DAG status updates
+# Inputs:
+#    execution_mode: str [Default: 'development']
+components:
+  comp-condition-1:
+    dag:
+      tasks:
+        condition-branches-2:
+          componentRef:
+            name: comp-condition-branches-2
+          dependentTasks:
+          - get-condition-value
+          inputs:
+            parameters:
+              pipelinechannel--get-condition-value-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: get-condition-value
+              pipelinechannel--parent-setup-Output:
+                componentInputParameter: pipelinechannel--parent-setup-Output
+          taskInfo:
+            name: condition-branches-2
+        get-condition-value:
+          cachingOptions: {}
+          componentRef:
+            name: comp-get-condition-value
+          inputs:
+            parameters:
+              mode:
+                componentInputParameter: pipelinechannel--parent-setup-Output
+          taskInfo:
+            name: get-condition-value
+        parent-finalize:
+          cachingOptions: {}
+          componentRef:
+            name: comp-parent-finalize
+          inputs:
+            parameters:
+              nested_result:
+                runtimeValue:
+                  constant: nested_branch_complete
+              setup_result:
+                componentInputParameter: pipelinechannel--parent-setup-Output
+          taskInfo:
+            name: parent-finalize
+    inputDefinitions:
+      parameters:
+        pipelinechannel--parent-setup-Output:
+          parameterType: STRING
+  comp-condition-3:
+    dag:
+      tasks:
+        development-task:
+          cachingOptions: {}
+          componentRef:
+            name: comp-development-task
+          taskInfo:
+            name: development-task
+        nested-conditional-task:
+          cachingOptions: {}
+          componentRef:
+            name: comp-nested-conditional-task
+          dependentTasks:
+          - development-task
+          inputs:
+            parameters:
+              branch_result:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: development-task
+          taskInfo:
+            name: nested-conditional-task
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-condition-value-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--parent-setup-Output:
+          parameterType: STRING
+  comp-condition-4:
+    dag:
+      tasks:
+        nested-conditional-task-2:
+          cachingOptions: {}
+          componentRef:
+            name: comp-nested-conditional-task-2
+          dependentTasks:
+          - staging-task
+          inputs:
+            parameters:
+              branch_result:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: staging-task
+          taskInfo:
+            name: nested-conditional-task-2
+        staging-task:
+          cachingOptions: {}
+          componentRef:
+            name: comp-staging-task
+          taskInfo:
+            name: staging-task
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-condition-value-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--parent-setup-Output:
+          parameterType: STRING
+  comp-condition-5:
+    dag:
+      tasks:
+        nested-conditional-task-3:
+          cachingOptions: {}
+          componentRef:
+            name: comp-nested-conditional-task-3
+          dependentTasks:
+          - production-task
+          inputs:
+            parameters:
+              branch_result:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: production-task
+          taskInfo:
+            name: nested-conditional-task-3
+        production-task:
+          cachingOptions: {}
+          componentRef:
+            name: comp-production-task
+          taskInfo:
+            name: production-task
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-condition-value-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--parent-setup-Output:
+          parameterType: STRING
+  comp-condition-branches-2:
+    dag:
+      tasks:
+        condition-3:
+          componentRef:
+            name: comp-condition-3
+          inputs:
+            parameters:
+              pipelinechannel--get-condition-value-Output:
+                componentInputParameter: pipelinechannel--get-condition-value-Output
+              pipelinechannel--parent-setup-Output:
+                componentInputParameter: pipelinechannel--parent-setup-Output
+          taskInfo:
+            name: condition-3
+          triggerPolicy:
+            condition: int(inputs.parameter_values['pipelinechannel--get-condition-value-Output'])
+              == 1
+        condition-4:
+          componentRef:
+            name: comp-condition-4
+          inputs:
+            parameters:
+              pipelinechannel--get-condition-value-Output:
+                componentInputParameter: pipelinechannel--get-condition-value-Output
+              pipelinechannel--parent-setup-Output:
+                componentInputParameter: pipelinechannel--parent-setup-Output
+          taskInfo:
+            name: condition-4
+          triggerPolicy:
+            condition: '!(int(inputs.parameter_values[''pipelinechannel--get-condition-value-Output''])
+              == 1) && int(inputs.parameter_values[''pipelinechannel--get-condition-value-Output''])
+              == 2'
+        condition-5:
+          componentRef:
+            name: comp-condition-5
+          inputs:
+            parameters:
+              pipelinechannel--get-condition-value-Output:
+                componentInputParameter: pipelinechannel--get-condition-value-Output
+              pipelinechannel--parent-setup-Output:
+                componentInputParameter: pipelinechannel--parent-setup-Output
+          taskInfo:
+            name: condition-5
+          triggerPolicy:
+            condition: '!(int(inputs.parameter_values[''pipelinechannel--get-condition-value-Output''])
+              == 1) && !(int(inputs.parameter_values[''pipelinechannel--get-condition-value-Output''])
+              == 2)'
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-condition-value-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--parent-setup-Output:
+          parameterType: STRING
+  comp-development-task:
+    executorLabel: exec-development-task
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-get-condition-value:
+    executorLabel: exec-get-condition-value
+    inputDefinitions:
+      parameters:
+        mode:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-nested-conditional-task:
+    executorLabel: exec-nested-conditional-task
+    inputDefinitions:
+      parameters:
+        branch_result:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-nested-conditional-task-2:
+    executorLabel: exec-nested-conditional-task-2
+    inputDefinitions:
+      parameters:
+        branch_result:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-nested-conditional-task-3:
+    executorLabel: exec-nested-conditional-task-3
+    inputDefinitions:
+      parameters:
+        branch_result:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-parent-finalize:
+    executorLabel: exec-parent-finalize
+    inputDefinitions:
+      parameters:
+        nested_result:
+          parameterType: STRING
+        setup_result:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-parent-setup:
+    executorLabel: exec-parent-setup
+    inputDefinitions:
+      parameters:
+        mode:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-production-task:
+    executorLabel: exec-production-task
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-staging-task:
+    executorLabel: exec-staging-task
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-development-task:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - development_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef development_task() -> str:\n    \"\"\"Task executed in development\
+          \ mode.\"\"\"\n    print(\"Executing development-specific task\")\n    return\
+          \ \"dev_task_complete\"\n\n"
+        image: python:3.9
+    exec-get-condition-value:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_condition_value
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_condition_value(mode: str) -> int:\n    \"\"\"Returns a value\
+          \ based on mode for conditional testing.\"\"\"\n    if mode == \"development\"\
+          :\n        value = 1\n    elif mode == \"staging\":\n        value = 2\n\
+          \    else:  # production\n        value = 3\n    print(f\"Condition value\
+          \ for {mode}: {value}\")\n    return value\n\n"
+        image: python:3.9
+    exec-nested-conditional-task:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - nested_conditional_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef nested_conditional_task(branch_result: str) -> str:\n    \"\"\
+          \"Task that runs within nested conditional context.\"\"\"\n    print(f\"\
+          Running nested task with: {branch_result}\")\n    return f\"nested_processed_{branch_result}\"\
+          \n\n"
+        image: python:3.9
+    exec-nested-conditional-task-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - nested_conditional_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef nested_conditional_task(branch_result: str) -> str:\n    \"\"\
+          \"Task that runs within nested conditional context.\"\"\"\n    print(f\"\
+          Running nested task with: {branch_result}\")\n    return f\"nested_processed_{branch_result}\"\
+          \n\n"
+        image: python:3.9
+    exec-nested-conditional-task-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - nested_conditional_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef nested_conditional_task(branch_result: str) -> str:\n    \"\"\
+          \"Task that runs within nested conditional context.\"\"\"\n    print(f\"\
+          Running nested task with: {branch_result}\")\n    return f\"nested_processed_{branch_result}\"\
+          \n\n"
+        image: python:3.9
+    exec-parent-finalize:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - parent_finalize
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef parent_finalize(setup_result: str, nested_result: str) -> str:\n\
+          \    \"\"\"Final task in parent context.\"\"\"\n    print(f\"Finalizing:\
+          \ {setup_result} + {nested_result}\")\n    return \"nested_conditional_complete\"\
+          \n\n"
+        image: python:3.9
+    exec-parent-setup:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - parent_setup
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef parent_setup(mode: str) -> str:\n    \"\"\"Setup task that determines\
+          \ execution mode.\"\"\"\n    print(f\"Setting up parent pipeline in {mode}\
+          \ mode\")\n    return mode\n\n"
+        image: python:3.9
+    exec-production-task:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - production_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef production_task() -> str:\n    \"\"\"Task executed in production\
+          \ mode.\"\"\"\n    print(\"Executing production-specific task\")\n    return\
+          \ \"prod_task_complete\"\n\n"
+        image: python:3.9
+    exec-staging-task:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - staging_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef staging_task() -> str:\n    \"\"\"Task executed in staging mode.\"\
+          \"\"\n    print(\"Executing staging-specific task\")\n    return \"staging_task_complete\"\
+          \n\n"
+        image: python:3.9
+pipelineInfo:
+  description: Nested pipeline with complex conditionals to test hierarchical DAG
+    status updates
+  name: nested-conditional
+root:
+  dag:
+    tasks:
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        dependentTasks:
+        - parent-setup
+        inputs:
+          parameters:
+            pipelinechannel--parent-setup-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: parent-setup
+        taskInfo:
+          name: condition-1
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--parent-setup-Output']
+            != ''
+      parent-setup:
+        cachingOptions: {}
+        componentRef:
+          name: comp-parent-setup
+        inputs:
+          parameters:
+            mode:
+              componentInputParameter: execution_mode
+        taskInfo:
+          name: parent-setup
+  inputDefinitions:
+    parameters:
+      execution_mode:
+        defaultValue: development
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
