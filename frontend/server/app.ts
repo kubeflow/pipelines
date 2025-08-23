@@ -261,7 +261,7 @@ function createUIServer(options: UIConfigs) {
     app.use,
     [
       // Original API endpoint is /runs/{run_id}:reportMetrics, but ':reportMetrics' means a url parameter, so we don't use : here.
-      `/${apiVersion1Prefix}/runs/*reportMetrics`,
+      `/${apiVersion1Prefix}/runs/:reportMetrics`,
       `/${apiVersion1Prefix}/workflows`,
       `/${apiVersion1Prefix}/scheduledworkflows`,
       `/${apiVersion2Prefix}/workflows`,
