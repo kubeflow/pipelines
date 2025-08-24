@@ -27,28 +27,47 @@ jobs:
     needs: build
     strategy:
       matrix:
-        run: [1, 2, 3, 4, 5]
         include:
           - k8s_version: "v1.29.2"
             mode: "multi-user"
             storage: "seaweedfs"
+            run: 1
           - k8s_version: "v1.29.2"
             mode: "standalone"
             storage: "seaweedfs"
+            run: 1
+
+          - k8s_version: "v1.29.2"
+            mode: "multi-user"
+            storage: "seaweedfs"
+            run: 2
+          - k8s_version: "v1.29.2"
+            mode: "multi-user"
+            storage: "seaweedfs"
+            run: 2
+
+          - k8s_version: "v1.29.2"
+            mode: "multi-user"
+            storage: "seaweedfs"
+            run: 3
+          - k8s_version: "v1.29.2"
+            mode: "multi-user"
+            storage: "seaweedfs"
+            run: 3
 
           - k8s_version: "v1.31.0"
             mode: "multi-user"
             storage: "seaweedfs"
-          # - k8s_version: "v1.31.0"
-          #   mode: "multi-user"
-          #   storage: "minio"
-          # - k8s_version: "v1.31.0"
-          #   mode: "standalone"
-          #   storage: "minio"
+          - k8s_version: "v1.31.0"
+            mode: "multi-user"
+            storage: "minio"
+          - k8s_version: "v1.31.0"
+            mode: "standalone"
+            storage: "minio"
           - k8s_version: "v1.31.0"
             mode: "standalone"
             storage: "seaweedfs"
-    name: KFP Samples - Run ${{ matrix.run }} - K8s ${{ matrix.k8s_version }} - ${{ matrix.mode }} - ${{ matrix.storage }}
+    name: KFP Samples - K8s ${{ matrix.k8s_version }} - ${{ matrix.mode }} - ${{ matrix.storage }}
 
     steps:
       - name: Checkout code
@@ -128,5 +147,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kfp-samples-tests-artifacts-k8s-${{ matrix.run }}-${{ matrix.k8s_version }}-${{ matrix.mode }}-${{ matrix.storage }}
+          name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.mode }}-${{ matrix.storage }}
           path: /tmp/tmp*/*
