@@ -490,7 +490,7 @@ CONTAINERIZED_PYTHON_COMPONENT_COMMAND = [
 
 
 def _get_command_and_args_for_lightweight_component(
-        func: Callable) -> Tuple[List[str], List[str]]:
+        func: Callable, include_compile_time_imports: bool = False) -> Tuple[List[str], List[str]]:
     imports_source = [
         'import kfp',
         'from kfp import dsl',
@@ -511,7 +511,7 @@ def _get_command_and_args_for_lightweight_component(
                     program_path=$(mktemp -d)
 
                     printf "%s" "$0" > "$program_path/ephemeral_component.py"
-                    _KFP_RUNTIME=true python3 -m {EXECUTOR_MODULE} \
+                    _KFP_RUNTIME={'false' if include_compile_time_imports else 'true'} python3 -m {EXECUTOR_MODULE} \
                         --component_module_path \
                         "$program_path/ephemeral_component.py" \
                         "$@"
@@ -552,6 +552,7 @@ def create_component_from_func(
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
+    compile_time_imports: bool = False,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
@@ -588,7 +589,7 @@ def create_component_from_func(
             function_name=func.__name__,)
     else:
         command, args = _get_command_and_args_for_lightweight_component(
-            func=func)
+            func=func, include_compile_time_imports=compile_time_imports)
 
     component_spec = extract_component_interface(func)
     component_spec.implementation = structures.Implementation(
