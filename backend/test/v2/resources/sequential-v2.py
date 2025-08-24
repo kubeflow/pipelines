@@ -25,17 +25,19 @@ def download(url: str, downloaded: dsl.OutputPath(str)):
 
 
 @dsl.container_component
-def echo(downloaded: str):
+def echo(downloaded: str, output: dsl.OutputPath(str)):
     return dsl.ContainerSpec(
         image='library/bash',
         command=['sh', '-c'],
-        args=[f'echo {downloaded}'],
+        args=[f'echo {downloaded} > {output}'],
     )
 
 
 @dsl.pipeline
-def sequential(url: str):
-    echo(downloaded=download(url=url).outputs['downloaded'])
+def sequential(url: str) -> str:
+    downloaded_file = download(url=url)
+    echoed = echo(downloaded=downloaded_file.outputs['downloaded'])
+    return echoed.outputs['output']
 
 
 if __name__ == '__main__':

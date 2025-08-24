@@ -3,6 +3,8 @@
 # Inputs:
 #    param1: str
 #    param2: str
+# Outputs:
+#    Output: str
 components:
   comp-echo:
     executorLabel: exec-echo
@@ -10,18 +12,26 @@ components:
       parameters:
         message:
           parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output:
+          parameterType: STRING
   comp-echo-2:
     executorLabel: exec-echo-2
     inputDefinitions:
       parameters:
         message:
           parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output:
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-echo:
       container:
         args:
-        - echo {{$.inputs.parameters['message']}}
+        - echo {{$.inputs.parameters['message']}} > {{$.outputs.parameters['output'].output_file}}
         command:
         - sh
         - -c
@@ -29,7 +39,7 @@ deploymentSpec:
     exec-echo-2:
       container:
         args:
-        - echo {{$.inputs.parameters['message']}}
+        - echo {{$.inputs.parameters['message']}} > {{$.outputs.parameters['output'].output_file}}
         command:
         - sh
         - -c
@@ -38,6 +48,12 @@ pipelineInfo:
   name: sequential
 root:
   dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: output
+            producerSubtask: echo-2
     tasks:
       echo:
         cachingOptions:
@@ -55,10 +71,14 @@ root:
           enableCache: true
         componentRef:
           name: comp-echo-2
+        dependentTasks:
+        - echo
         inputs:
           parameters:
             message:
-              componentInputParameter: param2
+              taskOutputParameter:
+                outputParameterKey: output
+                producerTask: echo
         taskInfo:
           name: echo-2
   inputDefinitions:
@@ -67,5 +87,9 @@ root:
         parameterType: STRING
       param2:
         parameterType: STRING
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.12.2
+sdkVersion: kfp-2.13.0
