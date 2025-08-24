@@ -48,7 +48,7 @@ jobs:
           - k8s_version: "v1.31.0"
             mode: "standalone"
             storage: "seaweedfs"
-    name: KFP Samples - K8s ${{ matrix.k8s_version }} - ${{ matrix.mode }} - ${{ matrix.storage }}
+    name: KFP Samples - Run ${{ matrix.run }} - K8s ${{ matrix.k8s_version }} - ${{ matrix.mode }} - ${{ matrix.storage }}
 
     steps:
       - name: Checkout code
@@ -128,5 +128,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.mode }}-${{ matrix.storage }}
+          name: kfp-samples-tests-artifacts-k8s-${{ matrix.run }}-${{ matrix.k8s_version }}-${{ matrix.mode }}-${{ matrix.storage }}
           path: /tmp/tmp*/*
