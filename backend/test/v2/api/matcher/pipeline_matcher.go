@@ -1,0 +1,45 @@
+package matcher
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
+	"github.com/onsi/ginkgo/v2"
+
+	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	. "github.com/onsi/gomega"
+)
+
+func MatchPipelines(actual *model.V2beta1Pipeline, expected *model.V2beta1Pipeline, isKubeflowMode bool) {
+	ginkgo.GinkgoHelper()
+	Expect(actual.PipelineID).To(Not(BeEmpty()), "Pipeline ID is empty")
+	actualTime := time.Time(actual.CreatedAt).UTC()
+	expectedTime := time.Time(expected.CreatedAt).UTC()
+	if !(actualTime.Equal(expectedTime) || actualTime.After(expectedTime)) {
+		logger.Log("Pipeline creation time %v is expected to be after test start time %v", actual.CreatedAt, expected.CreatedAt)
+		ginkgo.Fail(fmt.Sprintf("Pipeline creation time %v is before the test start time %v", actual.CreatedAt, expected.CreatedAt))
+	}
+	Expect(actual.DisplayName).To(Equal(expected.DisplayName), "Pipeline Display name not matching")
+	if isKubeflowMode {
+		// Validate namespace only if the mode is kubeflow otherwise everything is in the same namespace and
+		// pipeline object in the response does not even have namespace
+		Expect(actual.Namespace).To(Equal(expected.Namespace), "Pipeline Namespace not matching")
+	}
+	Expect(actual.Description).To(Equal(expected.Description), "Pipeline Description not matching")
+
+}
+
+func MatchPipelineVersions(actual *model.V2beta1PipelineVersion, expected *model.V2beta1PipelineVersion) {
+	ginkgo.GinkgoHelper()
+	Expect(actual.PipelineVersionID).To(Not(BeEmpty()), "Pipeline Version ID is empty")
+	actualTime := time.Time(actual.CreatedAt).UTC()
+	expectedTime := time.Time(expected.CreatedAt).UTC()
+	if !(actualTime.Equal(expectedTime) || actualTime.After(expectedTime)) {
+		logger.Log("Pipeline Version creation time %v is expected to be after test start time %v", actual.CreatedAt, expected.CreatedAt)
+		ginkgo.Fail(fmt.Sprintf("Pipeline Version creation time %v is expected to be after test start time %v", actual.CreatedAt, expected.CreatedAt))
+	}
+	Expect(actual.DisplayName).To(Equal(expected.DisplayName), "Pipeline Display Name not matching")
+	Expect(actual.Description).To(Equal(expected.Description), "Pipeline Description not matching")
+	MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
+}
