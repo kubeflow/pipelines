@@ -2,6 +2,9 @@
 
 ## Features
 
+* Allow sharing utility functions across components via the `additional_funcs` argument to the `component` decorator;
+  functions are embedded into the generated component code before the main function (#12178).
+
 ## Breaking changes
 
 ## Deprecations
