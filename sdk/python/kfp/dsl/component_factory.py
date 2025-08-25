@@ -490,7 +490,9 @@ CONTAINERIZED_PYTHON_COMPONENT_COMMAND = [
 
 
 def _get_command_and_args_for_lightweight_component(
-        func: Callable) -> Tuple[List[str], List[str]]:
+    func: Callable,
+    additional_funcs: Optional[List[Callable]] = None
+) -> Tuple[List[str], List[str]]:
     imports_source = [
         'import kfp',
         'from kfp import dsl',
@@ -499,11 +501,17 @@ def _get_command_and_args_for_lightweight_component(
     ] + custom_artifact_types.get_custom_artifact_type_import_statements(func)
 
     func_source = _get_function_source_definition(func)
+    additional_funcs_source = ''
+    if additional_funcs:
+        additional_funcs_source = '\n\n' + '\n\n'.join(
+            _get_function_source_definition(_f) for _f in additional_funcs)
     source = textwrap.dedent('''
-        {imports_source}
+        {imports_source}{additional_funcs_source}
 
         {func_source}\n''').format(
-        imports_source='\n'.join(imports_source), func_source=func_source)
+        imports_source='\n'.join(imports_source),
+        additional_funcs_source=additional_funcs_source,
+        func_source=func_source)
     command = [
         'sh',
         '-ec',
@@ -552,6 +560,7 @@ def create_component_from_func(
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
+    additional_funcs: Optional[List[Callable]] = None,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
@@ -588,7 +597,7 @@ def create_component_from_func(
             function_name=func.__name__,)
     else:
         command, args = _get_command_and_args_for_lightweight_component(
-            func=func)
+            func=func, additional_funcs=additional_funcs)
 
     component_spec = extract_component_interface(func)
     component_spec.implementation = structures.Implementation(
