@@ -78,6 +78,7 @@ import nested_pipeline_opt_input_child_level
 import pipeline_with_pod_metadata
 import pipeline_with_workspace
 from modelcar import modelcar
+import pipeline_with_utils
 
 
 _MINUTE = 60  # seconds
@@ -253,6 +254,7 @@ class SampleTest(unittest.TestCase):
             TestCase(pipeline_func=nested_pipeline_opt_inputs_nil.nested_pipeline_opt_inputs_nil),
             TestCase(pipeline_func=pipeline_with_pod_metadata.pipeline_with_pod_metadata),
             TestCase(pipeline_func=pipeline_with_workspace.pipeline_with_workspace),
+            TestCase(pipeline_func=pipeline_with_utils.pipeline_with_utils),
         ]
 
         with ThreadPoolExecutor() as executor:
