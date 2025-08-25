@@ -28,20 +28,21 @@ type PipelineSpec struct {
 
 	// Pipeline YAML definition. This is the pipeline interface for creating a pipeline.
 	// Stored as longtext to support large manifests (up to 4GB in MySQL).
+	// Stored as text in PostgreSQL.
 	// https://dev.mysql.com/doc/refman/8.0/en/blob.html
 	// TODO(kaikaila): consider enforcing a soft limit if needed for performance.
-	PipelineSpecManifest string `gorm:"column:PipelineSpecManifest; type:longtext;"`
+	PipelineSpecManifest LargeText `gorm:"column:PipelineSpecManifest;"`
 
 	// Argo workflow YAML definition. This is the Argo Spec converted from Pipeline YAML.
 	// This is deprecated. Use the pipeline ID, pipeline version ID, or pipeline spec manifest.
-	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; type:longtext;"`
+	WorkflowSpecManifest LargeText `gorm:"column:WorkflowSpecManifest;"`
 
 	// Store parameters key-value pairs as serialized string.
 	// This field is only used for V1 API. For V2, use the `Parameters` field in RuntimeConfig.
 	// At most one of the fields `Parameters` and `RuntimeConfig` can be non-empty
 	// This string stores an array of map[string]value. For example:
 	//  {"param1": Value1} will be stored as [{"name": "param1", "value":"value1"}].
-	Parameters string `gorm:"column:Parameters; type:longtext;"`
+	Parameters LargeText `gorm:"column:Parameters;"`
 
 	// Runtime config of the pipeline, only used for v2 template in API v1beta1 API.
 	RuntimeConfig

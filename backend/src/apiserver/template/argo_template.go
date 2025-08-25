@@ -40,7 +40,7 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
 
 	// Convert parameters
-	parameters, err := modelToParametersMap(modelRun.PipelineSpec.Parameters)
+	parameters, err := modelToParametersMap(string(modelRun.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert parameters")
 	}
@@ -105,7 +105,7 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	if modelJob.Namespace != "" {
 		workflow.SetExecutionNamespace(modelJob.Namespace)
 	}
-	parameters, err := modelToParametersMap(modelJob.PipelineSpec.Parameters)
+	parameters, err := modelToParametersMap(string(modelJob.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert parameters")
 	}
@@ -124,7 +124,7 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	workflow.PatchTemplateOutputArtifacts()
 
 	// We assume that v1 Argo template use v1 parameters ignoring runtime config
-	swfParameters, err := stringArrayToCRDParameters(modelJob.Parameters)
+	swfParameters, err := stringArrayToCRDParameters(string(modelJob.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert v1 parameters to CRD parameters")
 	}

@@ -398,9 +398,9 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version as template is broken")
 	}
-	pv.PipelineSpec = string(pipelineSpecBytes)
+	pv.PipelineSpec = model.LargeText(string(pipelineSpecBytes))
 	if pipelineSpecURI != "" {
-		pv.PipelineSpecURI = pipelineSpecURI
+		pv.PipelineSpecURI = model.LargeText(pipelineSpecURI)
 	}
 	tmpl, err := template.New(pipelineSpecBytes, r.options.CacheDisabled, r.options.DefaultWorkspace)
 	if err != nil {
@@ -441,8 +441,8 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to error converting parameters to json")
 	}
-	pv.Parameters = paramsJSON
-	pv.PipelineSpec = string(tmpl.Bytes())
+	pv.Parameters = model.LargeText(paramsJSON)
+	pv.PipelineSpec = model.LargeText(string(tmpl.Bytes()))
 
 	// Create records in KFP DB (both pipelines and pipeline_versions tables)
 	newPipeline, newVersion, err := r.pipelineStore.CreatePipelineAndPipelineVersion(p, pv)
@@ -586,13 +586,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	// TODO(gkcalat): consider to avoid updating runtime manifest at create time and let
 	// persistence agent update the runtime data.
 	if tmpl.GetTemplateType() == template.V1 && run.RunDetails.WorkflowRuntimeManifest == "" {
-		run.RunDetails.WorkflowRuntimeManifest = newExecSpec.ToStringForStore()
-		run.PipelineSpec.WorkflowSpecManifest = manifest
+		run.WorkflowRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
+		run.WorkflowSpecManifest = model.LargeText(manifest)
 	} else if tmpl.GetTemplateType() == template.V2 {
-		run.RunDetails.PipelineRuntimeManifest = newExecSpec.ToStringForStore()
-		run.PipelineSpec.PipelineSpecManifest = manifest
+		run.PipelineRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
+		run.PipelineSpecManifest = model.LargeText(manifest)
 	} else {
-		run.PipelineSpec.PipelineSpecManifest = manifest
+		run.PipelineSpecManifest = model.LargeText(manifest)
 	}
 	// Assign the scheduled at time
 	if run.RunDetails.ScheduledAtInSec == 0 {
@@ -951,7 +951,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		newExecSpec = newCreatedWorkflow
 	}
 	condition := string(newExecSpec.ExecutionStatus().Condition())
-	err = r.runStore.UpdateRun(&model.Run{UUID: runId, RunDetails: model.RunDetails{Conditions: condition, FinishedAtInSec: 0, WorkflowRuntimeManifest: newExecSpec.ToStringForStore(), State: model.RuntimeState(condition).ToV2()}})
+	err = r.runStore.UpdateRun(&model.Run{UUID: runId, RunDetails: model.RunDetails{Conditions: condition, FinishedAtInSec: 0, WorkflowRuntimeManifest: model.LargeText(newExecSpec.ToStringForStore()), State: model.RuntimeState(condition).ToV2()}})
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
@@ -973,7 +973,7 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	}
 	err = r.readRunLogFromPod(ctx, namespace, nodeId, follow, dst)
 	if err != nil && r.logArchive != nil {
-		err = r.readRunLogFromArchive(run.WorkflowRuntimeManifest, nodeId, dst)
+		err = r.readRunLogFromArchive(string(run.WorkflowRuntimeManifest), nodeId, dst)
 		if err != nil {
 			return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
 		}
@@ -1150,13 +1150,13 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 		}
 
-		parameters, err := template.StringMapToCRDParameters(job.RuntimeConfig.Parameters)
+		parameters, err := template.StringMapToCRDParameters(string(job.RuntimeConfig.Parameters))
 		if err != nil {
 			return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 		}
 
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
-			Parameters: parameters, PipelineRoot: job.PipelineRoot,
+			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
 		}
 	}
 
@@ -1190,10 +1190,10 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			}
 		}
 		job.ServiceAccount = serviceAccount
-		job.PipelineSpec.WorkflowSpecManifest = manifest
+		job.WorkflowSpecManifest = model.LargeText(manifest)
 	} else {
 		job.ServiceAccount = newScheduledWorkflow.Spec.ServiceAccount
-		job.PipelineSpec.PipelineSpecManifest = manifest
+		job.PipelineSpecManifest = model.LargeText(manifest)
 	}
 	return r.jobStore.CreateJob(job)
 }
@@ -1319,7 +1319,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		run.State = state
 		run.Conditions = string(state.ToV1())
 		run.FinishedAtInSec = execStatus.FinishedAt()
-		run.WorkflowRuntimeManifest = execSpec.ToStringForStore()
+		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 		if updateError = r.runStore.UpdateRun(run); updateError != nil {
 			return nil, util.Wrapf(updateError, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted", runId)
 		}
@@ -1361,7 +1361,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		experimentId := existingJob.ExperimentId
 		namespace := existingJob.Namespace
 		pipelineSpec := existingJob.PipelineSpec
-		pipelineSpec.WorkflowSpecManifest = execSpec.GetExecutionSpec().ToStringForStore()
+		pipelineSpec.WorkflowSpecManifest = model.LargeText(execSpec.GetExecutionSpec().ToStringForStore())
 
 		// Try to fetch experiment id from resource references if it is missing.
 		if experimentId == "" {
@@ -1407,7 +1407,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			Namespace:      namespace,
 			PipelineSpec:   pipelineSpec,
 			RunDetails: model.RunDetails{
-				WorkflowRuntimeManifest: execSpec.ToStringForStore(),
+				WorkflowRuntimeManifest: model.LargeText(execSpec.ToStringForStore()),
 				CreatedAtInSec:          objMeta.CreationTimestamp.Unix(),
 				ScheduledAtInSec:        scheduledTimeInSec,
 				FinishedAtInSec:         execStatus.FinishedAt(),
@@ -1513,9 +1513,9 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 		manifest = string(tempBytes)
 	} else {
 		// Read the provided manifest and fail if it is empty
-		manifest = pipelineSpec.PipelineSpecManifest
+		manifest = string(pipelineSpec.PipelineSpecManifest)
 		if manifest == "" {
-			manifest = pipelineSpec.WorkflowSpecManifest
+			manifest = string(pipelineSpec.WorkflowSpecManifest)
 		}
 		if manifest == "" {
 			return nil, "", util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
@@ -1539,10 +1539,11 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 	if len(pipelineVersion.PipelineSpec) != 0 {
 		// Check pipeline spec string first
 		bytes := []byte(pipelineVersion.PipelineSpec)
-		return bytes, pipelineVersion.PipelineSpecURI, nil
+		return bytes, string(pipelineVersion.PipelineSpecURI), nil
 	} else {
 		// Try reading object store from pipeline_spec_uri
-		template, errUri := r.objectStore.GetFile(context.TODO(), pipelineVersion.PipelineSpecURI)
+		// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
+		template, errUri := r.objectStore.GetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
 		if errUri != nil {
 			// Try reading object store from pipeline_version_id
 			template, errUUID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
@@ -1674,9 +1675,9 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version as template is broken")
 	}
-	pv.PipelineSpec = string(pipelineSpecBytes)
+	pv.PipelineSpec = model.LargeText(string(pipelineSpecBytes))
 	if pipelineSpecURI != "" {
-		pv.PipelineSpecURI = pipelineSpecURI
+		pv.PipelineSpecURI = model.LargeText(pipelineSpecURI)
 	}
 
 	// Create a template
@@ -1710,9 +1711,9 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to error converting parameters to json")
 	}
-	pv.Parameters = paramsJSON
+	pv.Parameters = model.LargeText(paramsJSON)
 	pv.Status = model.PipelineVersionCreating
-	pv.PipelineSpec = string(tmpl.Bytes())
+	pv.PipelineSpec = model.LargeText(string(tmpl.Bytes()))
 
 	// Create a record in DB
 	version, err := r.pipelineStore.CreatePipelineVersion(pv)

@@ -181,7 +181,7 @@ func (s *ResourceReferenceStore) scanRows(r *sql.Rows) ([]model.ResourceReferenc
 			ReferenceName: referenceName,
 			ReferenceType: model.ResourceType(referenceType),
 			Relationship:  model.Relationship(relationship),
-			Payload:       payload,
+			Payload:       model.LargeText(payload),
 		})
 	}
 	return references, nil

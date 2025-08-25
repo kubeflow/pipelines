@@ -146,7 +146,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	}
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	parameters, err := StringMapToCRDParameters(modelJob.RuntimeConfig.Parameters)
+	parameters, err := StringMapToCRDParameters(string(modelJob.RuntimeConfig.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 	}

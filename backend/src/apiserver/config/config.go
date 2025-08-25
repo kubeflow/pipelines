@@ -141,7 +141,7 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 				p, configErr = resourceManager.CreatePipeline(&model.Pipeline{
 					Name:        cfg.Name,
 					DisplayName: pipelineDisplayName,
-					Description: cfg.Description,
+					Description: model.LargeText(cfg.Description),
 				})
 				if configErr != nil {
 					// Log the error but not fail. The API Server pod can restart and it could potentially cause
@@ -191,9 +191,9 @@ func LoadSamples(resourceManager *resource.ResourceManager, sampleConfigPath str
 					&model.PipelineVersion{
 						Name:         pvName,
 						DisplayName:  pvDisplayName,
-						Description:  pvDescription,
+						Description:  model.LargeText(pvDescription),
 						PipelineId:   p.UUID,
-						PipelineSpec: string(pipelineFile),
+						PipelineSpec: model.LargeText(string(pipelineFile)),
 					},
 				)
 				if configErr != nil {
