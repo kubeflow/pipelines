@@ -119,7 +119,7 @@ dev-kind-cluster:
 .PHONY: kind-load-driver-debug
 kind-load-driver-debug:
 	@if [ "${CONTAINER_ENGINE}" = "docker" ]; then \
-		kind --name ${KIND_NAME} load docker-image ${IMG_TAG_DRIVER}:debug
+		kind --name ${KIND_NAME} load docker-image ${IMG_TAG_DRIVER}:debug; \
 	else \
 		bash -c "kind load --name ${KIND_NAME} image-archive <( ${CONTAINER_ENGINE} save ${IMG_TAG_DRIVER})"; \
 	fi
