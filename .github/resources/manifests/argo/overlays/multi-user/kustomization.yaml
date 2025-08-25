@@ -17,3 +17,4 @@ images:
 
 patchesStrategicMerge:
 - apiserver-env.yaml
+- seaweedfs-disable-preallocation.yaml
