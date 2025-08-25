@@ -1,0 +1,15 @@
+from kfp.dsl import type_utils
+
+def test_is_parameter_type_annotation_str():
+    assert type_utils.is_parameter_type_annotation(str) is True
+
+def test_is_parameter_type_annotation_list_str():
+    assert type_utils.is_parameter_type_annotation(list[str]) is True
+
+def test_is_parameter_type_annotation_string_literal():
+    assert type_utils.is_parameter_type_annotation('list[str]') is True
+
+def test_is_artifact_type_annotation_custom_object():
+    class MyArtifact: pass
+    assert type_utils.is_artifact_type_annotation(MyArtifact) is True
+
