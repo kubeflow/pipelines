@@ -44,10 +44,10 @@ type RunClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
 	*RunClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating run client: %w", err)
 	}
@@ -60,10 +60,10 @@ func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
-func NewKubeflowInClusterRunClient(namespace string, debug bool) (
+func NewKubeflowInClusterRunClient(namespace string, debug bool, tlsEnabled bool, caCertPath string) (
 	*RunClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsEnabled, caCertPath)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

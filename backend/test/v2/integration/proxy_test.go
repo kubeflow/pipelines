@@ -64,31 +64,31 @@ func (s *ProxyTestSuite) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
+			return apiserver.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
-			return apiserver.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+			return apiserver.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return apiserver.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return apiserver.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewExperimentClient(clientConfig, *isDebugMode)
+			return apiserver.NewExperimentClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
-			return apiserver.NewPipelineUploadClient(clientConfig, *isDebugMode)
+			return apiserver.NewPipelineUploadClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewPipelineClient(clientConfig, *isDebugMode)
+			return apiserver.NewPipelineClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewRunClient(clientConfig, *isDebugMode)
+			return apiserver.NewRunClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	}
 

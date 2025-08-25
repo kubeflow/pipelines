@@ -63,6 +63,8 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_service_tls_enabled
+      - "false"
       - --cache_disabled
       command:
       - driver

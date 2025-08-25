@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-grpc-deployment
+  labels:
+    component: metadata-grpc-server
+spec:
+  template:
+    spec:
+      containers:
+        - name: container
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /etc/tls
+              readOnly: true
+            - name: grpc-tls-enabled
+              mountPath: /etc/grpc
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: kfp-api-tls-cert
+        - name: grpc-tls-enabled
+          configMap:
+            name: grpc-tls-config

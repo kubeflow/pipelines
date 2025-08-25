@@ -47,10 +47,10 @@ type PipelineUploadClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
 	*PipelineUploadClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating pipeline upload client: %w", err)
 	}
@@ -63,10 +63,9 @@ func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
-func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool) (
+func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool, tlsEnabled bool, caCertPath string) (
 	*PipelineUploadClient, error) {
-
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsEnabled, caCertPath)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

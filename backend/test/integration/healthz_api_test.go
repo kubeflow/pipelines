@@ -53,13 +53,13 @@ func (s *HealthzApiTest) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newHealthzClient = func() (*api_server.HealthzClient, error) {
-			return api_server.NewKubeflowInClusterHealthzClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterHealthzClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
 		newHealthzClient = func() (*api_server.HealthzClient, error) {
-			return api_server.NewHealthzClient(clientConfig, *isDebugMode)
+			return api_server.NewHealthzClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	}
 

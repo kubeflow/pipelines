@@ -1,0 +1,15 @@
+config.proto: |-
+  connection_config {
+    mysql {
+      host: "$(MYSQL_HOST)"
+      port: "$(MYSQL_PORT)"
+      database: "$(MYSQL_DATABASE)"
+      user: "$(DBCONFIG_USER)"
+      password: "$(DBCONFIG_PASSWORD)"
+    }
+  }
+  ssl_config {
+    server_cert: /etc/tls/tls.crt
+    server_key: /etc/tls/tls.crt
+    client_verify: false
+  }

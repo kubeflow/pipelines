@@ -47,7 +47,7 @@ func (s *HealthzApiTest) SetupTest() {
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
 	var err error
-	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false)
+	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false, *tlsEnabled, *caCertPath)
 	if err != nil {
 		glog.Exitf("Failed to get healthz client. Error: %v", err)
 	}
