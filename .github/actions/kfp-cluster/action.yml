@@ -85,6 +85,8 @@ runs:
         for app in "${APPS[@]}"; do
           docker image load -i ${{ inputs.image_path }}/$app/$app.tar
           docker push ${{ inputs.image_registry }}/$app:${{ inputs.IMAGE_TAG }}
+          rm ${{ inputs.image_path }}/$app/$app.tar
+          docker image rm ${{ inputs.image_registry }}/$app:${{ inputs.IMAGE_TAG }}
         done  
 
     - name: Deploy KFP
