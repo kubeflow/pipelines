@@ -312,6 +312,9 @@ VSCode configuration:
             "remotePath": "/go/src/github.com/kubeflow/pipelines",
             "port": 2345,
             "host": "127.0.0.1",
+            "substitutePath": [
+                { "from": "${workspaceFolder}", "to": "/go/src/github.com/kubeflow/pipelines" }
+            ]
         }
     ]
 }
