@@ -1,0 +1,120 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-metrics-outputs
+components:
+  comp-for-loop-2:
+    dag:
+      tasks:
+        output-metrics-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-output-metrics-2
+          taskInfo:
+            name: output-metrics-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_INTEGER
+  comp-output-metrics:
+    executorLabel: exec-output-metrics
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+  comp-output-metrics-2:
+    executorLabel: exec-output-metrics-2
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-output-metrics:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - output_metrics
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef output_metrics(metrics: Output[Metrics]):\n    \"\"\"Dummy component\
+          \ that outputs metrics with a random accuracy.\"\"\"\n    import random\n\
+          \    result = random.randint(0, 100)\n    metrics.log_metric('accuracy',\
+          \ result)\n\n"
+        image: python:3.9
+    exec-output-metrics-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - output_metrics
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef output_metrics(metrics: Output[Metrics]):\n    \"\"\"Dummy component\
+          \ that outputs metrics with a random accuracy.\"\"\"\n    import random\n\
+          \    result = random.randint(0, 100)\n    metrics.log_metric('accuracy',\
+          \ result)\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-metrics-outputs
+root:
+  dag:
+    tasks:
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '[1, 2]'
+        taskInfo:
+          name: for-loop-2
+      output-metrics:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-output-metrics
+        taskInfo:
+          name: output-metrics
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.9.0
