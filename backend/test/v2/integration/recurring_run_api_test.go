@@ -55,7 +55,7 @@ type RecurringRunApiTestSuite struct {
 	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
+	pipelineUploadClient api_server.PipelineUploadInterface
 	runClient            *api_server.RunClient
 	recurringRunClient   *api_server.RecurringRunClient
 	swfClient            client.SwfClientInterface
@@ -77,7 +77,6 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 	s.namespace = *namespace
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var newRunClient func() (*api_server.RunClient, error)
 	var newRecurringRunClient func() (*api_server.RecurringRunClient, error)
@@ -87,9 +86,6 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
 			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
@@ -105,9 +101,6 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
 			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
@@ -125,7 +118,13 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*isDebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
