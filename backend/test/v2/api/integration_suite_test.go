@@ -2,15 +2,17 @@ package api
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"k8s.io/client-go/kubernetes"
 	"log"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"k8s.io/client-go/kubernetes"
+
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"github.com/kubeflow/pipelines/backend/test/v2"
 	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -23,9 +25,11 @@ var testContext TestContext
 var pipelineFilesRootDir = utils.GetPipelineFilesDir()
 
 // API Client Objects
-var k8Client *kubernetes.Clientset
-var pipelineUploadClient *api_server.PipelineUploadClient
-var pipelineClient *api_server.PipelineClient
+var (
+	k8Client             *kubernetes.Clientset
+	pipelineUploadClient api_server.PipelineUploadInterface
+	pipelineClient       *api_server.PipelineClient
+)
 
 // Test Reporting Variables
 var testLogsDirectory = "logs"
@@ -38,14 +42,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Error creating Logs Directory: %s", testLogsDirectory))
 	err = os.MkdirAll(testReportDirectory, 0755)
 	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Error creating Reports Directory: %s", testReportDirectory))
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 
 	if *isKubeflowMode {
 		logger.Log("Creating API Clients for Multi User Mode")
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(*namespace, *isDebugMode)
-		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewKubeflowInClusterPipelineClient(*namespace, *isDebugMode)
 		}
@@ -53,15 +53,19 @@ var _ = BeforeSuite(func() {
 		logger.Log("Creating API Clients for Single User Mode")
 		clientConfig := utils.GetClientConfig(*namespace)
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
-		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
 		}
 	}
 
-	pipelineUploadClient, err = newPipelineUploadClient()
+	pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*isDebugMode,
+		*namespace,
+		utils.GetClientConfig(*namespace),
+	)
+
 	Expect(err).To(BeNil(), "Failed to get Pipeline Upload Client")
 	pipelineClient, err = newPipelineClient()
 	Expect(err).To(BeNil(), "Failed to get Pipeline Client")
