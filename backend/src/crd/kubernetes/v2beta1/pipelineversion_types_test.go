@@ -404,6 +404,67 @@ func TestToModel_PipelineAndPlatformSpecs(t *testing.T) {
 	assert.Contains(t, result.PipelineSpec, "---")
 }
 
+func TestToModel_PipelineAndPlatformSpecs_WithNonKubernetesPlatform(t *testing.T) {
+	pipelineVersion := &PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-version",
+			Namespace: "default",
+			UID:       "version-456",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: GroupVersion.String(),
+					Kind:       "Pipeline",
+					UID:        "pipeline-123",
+					Name:       "test-pipeline",
+				},
+			},
+		},
+		Spec: PipelineVersionSpec{
+			DisplayName:     "Test Version",
+			Description:     "A test version",
+			PipelineName:    "test-pipeline",
+			CodeSourceURL:   "https://github.com/test/pipeline",
+			PipelineSpecURI: "gs://bucket/pipeline.yaml",
+			PipelineSpec: IRSpec{
+				Value: map[string]interface{}{
+					"pipelineInfo": map[string]interface{}{
+						"name":        "test-pipeline",
+						"displayName": "Test Pipeline",
+					},
+					"root": map[string]interface{}{
+						"dag": map[string]interface{}{
+							"tasks": map[string]interface{}{},
+						},
+					},
+					"schemaVersion": "2.1.0",
+					"sdkVersion":    "kfp-2.13.0",
+				},
+			},
+			PlatformSpec: &IRSpec{
+				Value: map[string]interface{}{
+					"platforms": map[string]interface{}{
+						"not-kubernetes": map[string]interface{}{
+							"pipelineConfig": map[string]interface{}{
+								"workspace": map[string]interface{}{
+									"size": "10Gi",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := pipelineVersion.ToModel()
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Check that the platform spec is not included
+	assert.NotContains(t, result.PipelineSpec, "platforms:")
+	assert.NotContains(t, result.PipelineSpec, "---")
+}
+
 func TestToModel_WithStatus(t *testing.T) {
 	pipelineVersion := &PipelineVersion{
 		ObjectMeta: metav1.ObjectMeta{
@@ -425,6 +486,11 @@ func TestToModel_WithStatus(t *testing.T) {
 				Value: map[string]interface{}{
 					"pipelineInfo": map[string]interface{}{
 						"name": "test-pipeline",
+					},
+					"root": map[string]interface{}{
+						"dag": map[string]interface{}{
+							"tasks": map[string]interface{}{},
+						},
 					},
 					"schemaVersion": "2.1.0",
 				},
@@ -471,6 +537,11 @@ func TestToModel_DisplayNameFallback(t *testing.T) {
 					"pipelineInfo": map[string]interface{}{
 						"name": "test-pipeline",
 					},
+					"root": map[string]interface{}{
+						"dag": map[string]interface{}{
+							"tasks": map[string]interface{}{},
+						},
+					},
 					"schemaVersion": "2.1.0",
 				},
 			},
@@ -497,6 +568,11 @@ func TestToModel_InvalidPipelineSpec(t *testing.T) {
 				Value: map[string]interface{}{
 					"pipelineInfo": map[string]interface{}{
 						"name": "test-pipeline",
+					},
+					"root": map[string]interface{}{
+						"dag": map[string]interface{}{
+							"tasks": map[string]interface{}{},
+						},
 					},
 					"schemaVersion": "2.1.0",
 				},
@@ -525,6 +601,11 @@ func TestToModel_InvalidPlatformSpec(t *testing.T) {
 				Value: map[string]interface{}{
 					"pipelineInfo": map[string]interface{}{
 						"name": "test-pipeline",
+					},
+					"root": map[string]interface{}{
+						"dag": map[string]interface{}{
+							"tasks": map[string]interface{}{},
+						},
 					},
 					"schemaVersion": "2.1.0",
 				},
