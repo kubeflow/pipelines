@@ -1,0 +1,676 @@
+# PIPELINE DEFINITION
+# Name: collected-artifact-pipeline
+components:
+  comp-collecting-artifacts:
+    dag:
+      outputs:
+        artifacts:
+          Output:
+            artifactSelectors:
+            - outputArtifactKey: pipelinechannel--read-single-dataset-generate-model-results
+              producerSubtask: for-loop-1
+      tasks:
+        for-loop-1:
+          componentRef:
+            name: comp-for-loop-1
+          dependentTasks:
+          - split-chars
+          - split-ids
+          inputs:
+            parameters:
+              pipelinechannel--split-chars-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: split-chars
+              pipelinechannel--split-ids-Output:
+                taskOutputParameter:
+                  outputParameterKey: Output
+                  producerTask: split-ids
+          parameterIterator:
+            itemInput: pipelinechannel--split-ids-Output-loop-item
+            items:
+              inputParameter: pipelinechannel--split-ids-Output
+          taskInfo:
+            name: for-loop-1
+        split-chars:
+          cachingOptions: {}
+          componentRef:
+            name: comp-split-chars
+          inputs:
+            parameters:
+              model_ids:
+                componentInputParameter: model_chars
+          taskInfo:
+            name: split-chars
+        split-ids:
+          cachingOptions: {}
+          componentRef:
+            name: comp-split-ids
+          inputs:
+            parameters:
+              model_ids:
+                componentInputParameter: model_ids
+          taskInfo:
+            name: split-ids
+    inputDefinitions:
+      parameters:
+        model_chars:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        model_ids:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-create-dataset:
+    executorLabel: exec-create-dataset
+    inputDefinitions:
+      parameters:
+        content:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-create-file:
+    executorLabel: exec-create-file
+    inputDefinitions:
+      parameters:
+        content:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        file:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-for-loop-1:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--read-single-dataset-generate-model-results:
+            artifactSelectors:
+            - outputArtifactKey: pipelinechannel--read-single-dataset-generate-model-results
+              producerSubtask: for-loop-2
+      tasks:
+        create-file:
+          cachingOptions: {}
+          componentRef:
+            name: comp-create-file
+          inputs:
+            parameters:
+              content:
+                componentInputParameter: pipelinechannel--split-ids-Output-loop-item
+          taskInfo:
+            name: create-file
+        for-loop-2:
+          componentRef:
+            name: comp-for-loop-2
+          inputs:
+            parameters:
+              pipelinechannel--split-chars-Output:
+                componentInputParameter: pipelinechannel--split-chars-Output
+              pipelinechannel--split-ids-Output-loop-item:
+                componentInputParameter: pipelinechannel--split-ids-Output-loop-item
+          parameterIterator:
+            itemInput: pipelinechannel--split-chars-Output-loop-item
+            items:
+              inputParameter: pipelinechannel--split-chars-Output
+          taskInfo:
+            name: for-loop-2
+        read-datasets:
+          cachingOptions: {}
+          componentRef:
+            name: comp-read-datasets
+          dependentTasks:
+          - for-loop-2
+          inputs:
+            artifacts:
+              data:
+                taskOutputArtifact:
+                  outputArtifactKey: pipelinechannel--single-node-dag-Output
+                  producerTask: for-loop-2
+          taskInfo:
+            name: read-datasets
+        read-models:
+          cachingOptions: {}
+          componentRef:
+            name: comp-read-models
+          dependentTasks:
+          - for-loop-2
+          inputs:
+            artifacts:
+              models:
+                taskOutputArtifact:
+                  outputArtifactKey: pipelinechannel--read-single-dataset-generate-model-results
+                  producerTask: for-loop-2
+          taskInfo:
+            name: read-models
+        read-single-file:
+          cachingOptions: {}
+          componentRef:
+            name: comp-read-single-file
+          dependentTasks:
+          - create-file
+          inputs:
+            artifacts:
+              file:
+                taskOutputArtifact:
+                  outputArtifactKey: file
+                  producerTask: create-file
+          taskInfo:
+            name: read-single-file
+    inputDefinitions:
+      parameters:
+        pipelinechannel--split-chars-Output:
+          parameterType: LIST
+        pipelinechannel--split-ids-Output:
+          parameterType: LIST
+        pipelinechannel--split-ids-Output-loop-item:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--read-single-dataset-generate-model-results:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-for-loop-2:
+    dag:
+      outputs:
+        artifacts:
+          pipelinechannel--read-single-dataset-generate-model-results:
+            artifactSelectors:
+            - outputArtifactKey: results
+              producerSubtask: read-single-dataset-generate-model
+          pipelinechannel--single-node-dag-Output:
+            artifactSelectors:
+            - outputArtifactKey: Output
+              producerSubtask: single-node-dag
+      tasks:
+        read-single-dataset-generate-model:
+          cachingOptions: {}
+          componentRef:
+            name: comp-read-single-dataset-generate-model
+          dependentTasks:
+          - single-node-dag
+          inputs:
+            artifacts:
+              data:
+                taskOutputArtifact:
+                  outputArtifactKey: Output
+                  producerTask: single-node-dag
+            parameters:
+              id:
+                componentInputParameter: pipelinechannel--split-ids-Output-loop-item
+          taskInfo:
+            name: read-single-dataset-generate-model
+        single-node-dag:
+          cachingOptions: {}
+          componentRef:
+            name: comp-single-node-dag
+          inputs:
+            parameters:
+              char:
+                componentInputParameter: pipelinechannel--split-chars-Output-loop-item
+          taskInfo:
+            name: single-node-dag
+    inputDefinitions:
+      parameters:
+        pipelinechannel--split-chars-Output:
+          parameterType: LIST
+        pipelinechannel--split-chars-Output-loop-item:
+          parameterType: STRING
+        pipelinechannel--split-ids-Output-loop-item:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        pipelinechannel--read-single-dataset-generate-model-results:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          isArtifactList: true
+        pipelinechannel--single-node-dag-Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+  comp-read-datasets:
+    executorLabel: exec-read-datasets
+    inputDefinitions:
+      artifacts:
+        data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+          isArtifactList: true
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-read-models:
+    executorLabel: exec-read-models
+    inputDefinitions:
+      artifacts:
+        models:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          isArtifactList: true
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-read-models-2:
+    executorLabel: exec-read-models-2
+    inputDefinitions:
+      artifacts:
+        models:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+          isArtifactList: true
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-read-single-dataset-generate-model:
+    executorLabel: exec-read-single-dataset-generate-model
+    inputDefinitions:
+      artifacts:
+        data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        id:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        results:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-read-single-file:
+    executorLabel: exec-read-single-file
+    inputDefinitions:
+      artifacts:
+        file:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-single-node-dag:
+    dag:
+      outputs:
+        artifacts:
+          Output:
+            artifactSelectors:
+            - outputArtifactKey: data
+              producerSubtask: create-dataset
+      tasks:
+        create-dataset:
+          cachingOptions: {}
+          componentRef:
+            name: comp-create-dataset
+          inputs:
+            parameters:
+              content:
+                componentInputParameter: char
+          taskInfo:
+            name: create-dataset
+    inputDefinitions:
+      parameters:
+        char:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-split-chars:
+    executorLabel: exec-split-chars
+    inputDefinitions:
+      parameters:
+        model_ids:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-split-ids:
+    executorLabel: exec-split-ids
+    inputDefinitions:
+      parameters:
+        model_ids:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+deploymentSpec:
+  executors:
+    exec-create-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - create_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef create_dataset(data: Output[Dataset], content: str):\n    print(f'Creating\
+          \ file with content: {content}')\n    with open(data.path, 'w') as f:\n\
+          \        f.write(content)\n\n"
+        image: python:3.9
+    exec-create-file:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - create_file
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef create_file(file: Output[Artifact], content: str):\n    print(f'Creating\
+          \ file with content: {content}')\n    with open(file.path, 'w') as f:\n\
+          \        f.write(content)\n\n"
+        image: python:3.9
+    exec-read-datasets:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_datasets
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_datasets(data: List[Dataset]) -> str:\n    for d in data:\n\
+          \        print(f'Reading dataset {d.name} file: {d.path}')\n        with\
+          \ open(d.path, 'r') as f:\n            print(f.read())\n\n    return 'files\
+          \ read'\n\n"
+        image: python:3.9
+    exec-read-models:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_models
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_models(models: List[Model],) -> str:\n    for m in models:\n\
+          \        print(f'Reading model {m.name} file: {m.path}')\n        with open(m.path,\
+          \ 'r') as f:\n            info = f.read()\n            print(f\"Model raw\
+          \ data: {info}\")\n            print(f\"Model metadata: {m.metadata}\")\n\
+          \    return 'models read'\n\n"
+        image: python:3.9
+    exec-read-models-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_models
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_models(models: List[Model],) -> str:\n    for m in models:\n\
+          \        print(f'Reading model {m.name} file: {m.path}')\n        with open(m.path,\
+          \ 'r') as f:\n            info = f.read()\n            print(f\"Model raw\
+          \ data: {info}\")\n            print(f\"Model metadata: {m.metadata}\")\n\
+          \    return 'models read'\n\n"
+        image: python:3.9
+    exec-read-single-dataset-generate-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_single_dataset_generate_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_single_dataset_generate_model(data: Dataset, id: str, results:Output[Model]):\n\
+          \    print(f'Reading file: {data.path}')\n    with open(data.path, 'r')\
+          \ as f:\n        info = f.read()\n        with open(results.path, 'w') as\
+          \ f2:\n            f2.write(f\"{info}-{id}\")\n            results.metadata['model']\
+          \ = info\n            results.metadata['model_name'] = f\"model-artifact-inner-iteration-{info}-{id}\"\
+          \n\n"
+        image: python:3.9
+    exec-read-single-file:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_single_file
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_single_file(file: Artifact) -> str:\n    print(f'Reading\
+          \ file: {file.path}')\n    with open(file.path, 'r') as f:\n        print(f.read())\n\
+          \n    return file.uri\n\n"
+        image: python:3.9
+    exec-split-chars:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - split_chars
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef split_chars(model_ids: str) -> list:\n    return model_ids.split(',')\n\
+          \n"
+        image: python:3.9
+    exec-split-ids:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - split_ids
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef split_ids(model_ids: str) -> list:\n    return model_ids.split(',')\n\
+          \n"
+        image: python:3.9
+pipelineInfo:
+  name: collected-artifact-pipeline
+root:
+  dag:
+    tasks:
+      collecting-artifacts:
+        cachingOptions: {}
+        componentRef:
+          name: comp-collecting-artifacts
+        inputs:
+          parameters:
+            model_chars:
+              runtimeValue:
+                constant: x,y,z
+            model_ids:
+              runtimeValue:
+                constant: s1,s2,s3
+        taskInfo:
+          name: collecting-artifacts
+      read-models:
+        cachingOptions: {}
+        componentRef:
+          name: comp-read-models-2
+        dependentTasks:
+        - collecting-artifacts
+        inputs:
+          artifacts:
+            models:
+              taskOutputArtifact:
+                outputArtifactKey: Output
+                producerTask: collecting-artifacts
+        taskInfo:
+          name: read-models
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

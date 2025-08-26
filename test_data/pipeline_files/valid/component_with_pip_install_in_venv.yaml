@@ -1,0 +1,55 @@
+# PIPELINE DEFINITION
+# Name: component-with-pip-install
+components:
+  comp-component-with-pip-install:
+    executorLabel: exec-component-with-pip-install
+deploymentSpec:
+  executors:
+    exec-component-with-pip-install:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_with_pip_install
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ \nexport PIP_DISABLE_PIP_VERSION_CHECK=1\ntmp=$(mktemp -d)\npython3 -m\
+          \ venv \"$tmp/venv\" --system-site-packages\n. \"$tmp/venv/bin/activate\"\
+          \n python3 -m pip install --quiet --no-warn-script-location --index-url\
+          \ https://pypi.org/simple --trusted-host https://pypi.org/simple 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location --index-url\
+          \ https://pypi.org/simple --trusted-host https://pypi.org/simple 'yapf'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_with_pip_install():\n    import yapf\n\n    print(dir(yapf))\n\
+          \n"
+        image: python:3.9
+pipelineInfo:
+  name: component-with-pip-install
+root:
+  dag:
+    tasks:
+      component-with-pip-install:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-with-pip-install
+        taskInfo:
+          name: component-with-pip-install
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.9.0

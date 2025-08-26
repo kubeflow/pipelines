@@ -1,0 +1,73 @@
+# PIPELINE DEFINITION
+# Name: output-metrics
+# Description: Dummy component that outputs metrics with a random accuracy.
+# Outputs:
+#    metrics: system.Metrics
+components:
+  comp-output-metrics:
+    executorLabel: exec-output-metrics
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-output-metrics:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - output_metrics
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef output_metrics(metrics: Output[Metrics]):\n    \"\"\"Dummy component\
+          \ that outputs metrics with a random accuracy.\"\"\"\n    import random\n\
+          \    result = random.randint(0, 100)\n    metrics.log_metric('accuracy',\
+          \ result)\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: output-metrics
+root:
+  dag:
+    outputs:
+      artifacts:
+        metrics:
+          artifactSelectors:
+          - outputArtifactKey: metrics
+            producerSubtask: output-metrics
+    tasks:
+      output-metrics:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-output-metrics
+        taskInfo:
+          name: output-metrics
+  outputDefinitions:
+    artifacts:
+      metrics:
+        artifactType:
+          schemaTitle: system.Metrics
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.9.0

@@ -1,0 +1,80 @@
+# PIPELINE DEFINITION
+# Name: test-env-exists
+# Inputs:
+#    env_var: str
+# Outputs:
+#    Output: str
+components:
+  comp-comp:
+    executorLabel: exec-comp
+    inputDefinitions:
+      parameters:
+        env_var:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-comp:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - comp
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.12.1'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef comp(env_var: str) -> str:\n    import os\n\n    value = os.getenv(env_var,\
+          \ \"\")\n\n    if value == \"\":\n        raise Exception(\"Env var is not\
+          \ set\")\n\n    return value\n\n"
+        image: public.ecr.aws/docker/library/python:3.12
+pipelineInfo:
+  name: test-env-exists
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: comp
+    tasks:
+      comp:
+        cachingOptions: {}
+        componentRef:
+          name: comp-comp
+        inputs:
+          parameters:
+            env_var:
+              componentInputParameter: env_var
+        taskInfo:
+          name: comp
+  inputDefinitions:
+    parameters:
+      env_var:
+        parameterType: STRING
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.12.1
