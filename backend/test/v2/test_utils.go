@@ -218,3 +218,21 @@ func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 		assert.True(t, isRemoved)
 	}
 }
+
+func GetPipelineUploadClient(
+	uploadPipelinesWithKubernetes bool,
+	isKubeflowMode bool,
+	isDebugMode bool,
+	namespace string,
+	clientConfig clientcmd.ClientConfig,
+) (api_server.PipelineUploadInterface, error) {
+	if uploadPipelinesWithKubernetes {
+		return api_server.NewPipelineUploadClientKubernetes(clientConfig, namespace)
+	}
+
+	if isKubeflowMode {
+		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode)
+	}
+
+	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode)
+}

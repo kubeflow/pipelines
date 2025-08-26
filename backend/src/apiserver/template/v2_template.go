@@ -181,11 +181,11 @@ func NewV2SpecTemplate(template []byte, cacheDisabled bool, defaultWorkspace *co
 		if errors.Is(err, io.EOF) {
 			break
 		}
-		if value == nil {
-			continue
-		}
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to decode yaml document: %s", err.Error()))
+		}
+		if value == nil {
+			continue
 		}
 		valueBytes, err := goyaml.Marshal(&value)
 		if err != nil {

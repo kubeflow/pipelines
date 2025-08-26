@@ -44,7 +44,7 @@ type PipelineVersionApiTest struct {
 	suite.Suite
 	namespace            string
 	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
+	pipelineUploadClient api_server.PipelineUploadInterface
 }
 
 // Check the namespace have ML job installed and ready
@@ -61,31 +61,30 @@ func (s *PipelineVersionApiTest) SetupTest() {
 		}
 	}
 
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 
-	if *isKubeflowMode {
-		s.namespace = *namespace
+	s.namespace = *namespace
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
-		}
+	if *isKubeflowMode {
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
-		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
 		}
 	}
 
 	var err error
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*isDebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
