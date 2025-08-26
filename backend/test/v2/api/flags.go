@@ -20,13 +20,14 @@ import (
 )
 
 var (
-	namespace                   = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
-	initializeTimeout           = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
-	runIntegrationTests         = flag.Bool("runIntegrationTests", true, "Whether to also run integration tests that call the service")
-	runK8sStoreIntegrationTests = flag.Bool("runK8sStoreIntegrationTests", false, "Whether to run integration tests with K8s Native API Support")
-	runUpgradeTests             = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
-	useProxy                    = flag.Bool("useProxy", false, "Whether to run the proxy tests")
-	cacheEnabled                = flag.Bool("cacheEnabled", true, "Whether cache is enabled tests")
+	namespace                     = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
+	initializeTimeout             = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
+	runIntegrationTests           = flag.Bool("runIntegrationTests", true, "Whether to also run integration tests that call the service")
+	runK8sStoreIntegrationTests   = flag.Bool("runK8sStoreIntegrationTests", false, "Whether to run integration tests with K8s Native API Support")
+	runUpgradeTests               = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
+	useProxy                      = flag.Bool("useProxy", false, "Whether to run the proxy tests")
+	cacheEnabled                  = flag.Bool("cacheEnabled", true, "Whether cache is enabled tests")
+	uploadPipelinesWithKubernetes = flag.Bool("uploadPipelinesWithKubernetes", false, "Whether to use Kubernetes for uploading pipelines or use the REST API")
 )
 
 var isDebugMode = flag.Bool("isDebugMode", false, "Whether to enable debug mode. Debug mode will log more diagnostics messages.")
