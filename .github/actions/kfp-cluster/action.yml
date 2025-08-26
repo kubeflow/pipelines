@@ -38,7 +38,9 @@ inputs:
     description: "Storage backend to use (minio or seaweedfs)"
     required: false
     default: 'seaweedfs'
-
+  argo_version:
+    required: false
+    description: "Argo version to use for the cluster"
 runs:
   using: "composite"
   steps:
@@ -112,6 +114,10 @@ runs:
         
         if [ "${{ inputs.storage_backend }}" != "seaweedfs" ]; then
           ARGS="${ARGS} --storage ${{ inputs.storage_backend }}"
+        fi
+
+        if [ -n "${{ inputs.argo_version }}" ]; then
+          ARGS="${ARGS} --argo-version ${{ inputs.argo_version }}"
         fi
         
         ./.github/resources/scripts/deploy-kfp.sh $ARGS
