@@ -32,23 +32,32 @@ jobs:
           - k8s_version: "v1.29.2"
             mode: "multi-user"
             storage: "seaweedfs"
+            argo_version: "v3.6.7"
           - k8s_version: "v1.29.2"
             mode: "standalone"
             storage: "seaweedfs"
-
+            argo_version: "v3.6.7"
           - k8s_version: "v1.31.0"
             mode: "multi-user"
             storage: "seaweedfs"
+            argo_version: "v3.6.7"
           - k8s_version: "v1.31.0"
             mode: "multi-user"
             storage: "minio"
+            argo_version: "v3.6.7"
           - k8s_version: "v1.31.0"
             mode: "standalone"
             storage: "minio"
+            argo_version: "v3.6.7"
           - k8s_version: "v1.31.0"
             mode: "standalone"
             storage: "seaweedfs"
-    name: KFP Samples - K8s ${{ matrix.k8s_version }} - ${{ matrix.mode }} - ${{ matrix.storage }}
+            argo_version: "v3.6.7"
+          - k8s_version: "v1.31.0"
+            mode: "standalone"
+            storage: "minio"
+            argo_version: "v3.5.14"
+    name: KFP Samples - K8s ${{ matrix.k8s_version }} - AWF ${{ matrix.argo_version }} - ${{ matrix.mode }} - ${{ matrix.storage }} 
 
     steps:
       - name: Checkout code
@@ -76,6 +85,7 @@ jobs:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          argo_version: ${{ matrix.argo_version }}
         continue-on-error: true
 
       - name: Build and upload the sample Modelcar image to Kind
@@ -128,5 +138,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.mode }}-${{ matrix.storage }}
+          name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}-awf-${{ matrix.argo_version }}-${{ matrix.mode }}-${{ matrix.storage }}
           path: /tmp/tmp*/*
