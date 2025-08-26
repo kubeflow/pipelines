@@ -179,6 +179,15 @@ func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
 		piplineSpecAndPlatformSpec = append(piplineSpecAndPlatformSpec, platformSpecBytes...)
 	}
 
+	// The pipeline spec in model.PipelineVersion ignores platform specs that don't have a "kubernetes" platform.
+	// This additional parsing filters out platform specs that normally are excluded when the pipeline version is
+	// created through the REST API. This is done rather than modifying the mutating webhook to remove these
+	// platform specs so that GitOps tools don't see a diff from what is in Git and what is on the cluster.
+	v2Spec, err := template.NewV2SpecTemplate(piplineSpecAndPlatformSpec, false, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse the pipeline spec: %w", err)
+	}
+
 	pipelineVersionStatus := model.PipelineVersionCreating
 
 	for _, condition := range p.Status.Conditions {
@@ -214,7 +223,7 @@ func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
 		Status:          pipelineVersionStatus,
 		CodeSourceUrl:   p.Spec.CodeSourceURL,
 		Description:     p.Spec.Description,
-		PipelineSpec:    string(piplineSpecAndPlatformSpec),
+		PipelineSpec:    string(v2Spec.Bytes()),
 		PipelineSpecURI: p.Spec.PipelineSpecURI,
 	}, nil
 }

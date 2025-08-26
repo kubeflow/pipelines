@@ -2121,9 +2121,12 @@ def _write_kubernetes_manifest_to_file(
             'displayName': pipeline_version_display_name,
             'pipelineName': pipeline_name,
             'pipelineSpec': pipeline_spec_dict,
-            'platformSpec': platform_spec_dict,
         },
     }
+
+    if platform_spec_dict:
+        pipeline_version_manifest['spec']['platformSpec'] = platform_spec_dict
+
     if pipeline_description:
         pipeline_version_manifest['spec']['description'] = pipeline_description
     documents.append(pipeline_version_manifest)
