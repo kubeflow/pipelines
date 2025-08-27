@@ -10,6 +10,8 @@ on:
       - ".github/workflows/kfp-backend-postgres-tests.yml"
       - "!**/*.md"
       - "!**/OWNERS"
+env:
+  NAMESPACE: kfp-pgx-test
 jobs:
   postgres-pgx:
     name: Backend Postgres (pgx via Kustomize+KinD)
@@ -18,98 +20,24 @@ jobs:
 
     steps:
       - name: Checkout target code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v5
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.22"
           cache: true
 
-      - name: Create KinD cluster
-        uses: helm/kind-action@v1
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
         with:
-          cluster_name: kfp-ci
-          wait: 300s
-
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: "latest"
-
-      - name: Install kustomize
-        uses: imranismail/setup-kustomize@v2
-        with:
-          kustomize-version: "5.4.2"
-
-      - name: Install utils (psql, nc, jq)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client netcat-openbsd jq
-
-      - name: Create namespace
-        env:
-          NAMESPACE: kfp-pgx-test
-        run: kubectl create namespace "$NAMESPACE" || true
-
-      - name: Install default StorageClass for KinD (local-path)
-        run: |
-          set -euo pipefail
-
-          # 1) Install local-path-provisioner (idempotent)
-          kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
-
-          # 2) Detect its namespace (usually local-path-storage)
-          LPP_NS=$(kubectl get deploy -A -o jsonpath='{range .items[?(@.metadata.name=="local-path-provisioner")]}{.metadata.namespace}{"\n"}{end}')
-          if [ -z "${LPP_NS:-}" ]; then
-            echo "Failed to locate local-path-provisioner deployment"
-            kubectl get deploy -A
-            exit 1
-          fi
-          echo "local-path-provisioner namespace: $LPP_NS"
-
-          # 3) Wait for controller to be ready
-          kubectl -n "$LPP_NS" rollout status deploy/local-path-provisioner --timeout=180s
-
-          # 4) Mark StorageClass as default (idempotent)
-          if ! kubectl get storageclass local-path >/dev/null 2>&1; then
-            echo "StorageClass 'local-path' not found, listing SCs:"
-            kubectl get storageclass -o wide
-            exit 1
-          fi
-          kubectl annotate storageclass local-path storageclass.kubernetes.io/is-default-class="true" --overwrite
-
-          echo "StorageClasses:"
-          kubectl get storageclass
-
-          # 5) Verify default StorageClass exists
-          kubectl get storageclass | tee /dev/stderr | grep "(default)"
-
+          pipeline_store: "database"
+          deploy_postgres: "true"
+          postgres_namespace: ${{ env.NAMESPACE }}
       - name: Wait for default StorageClass present
         run: |
           # Sanity check: ensure there is a default StorageClass before deploying PG
           kubectl get storageclass | tee /dev/stderr | grep "(default)" >/dev/null
-
-      - name: Deploy Postgres via Kustomize
-        working-directory: manifests/kustomize/third-party/postgresql
-        env:
-          NAMESPACE: kfp-pgx-test
-        run: |
-          kustomize build ./base | kubectl -n "$NAMESPACE" apply -f -
-          kubectl -n "$NAMESPACE" get all
-
-      - name: Wait for Postgres pod ready
-        env:
-          NAMESPACE: kfp-pgx-test
-        run: |
-          # Wait until pods with label=app=postgres are Ready
-          kubectl -n "$NAMESPACE" wait --for=condition=ready pod -l app=postgres --timeout=300s
-          kubectl -n "$NAMESPACE" get pods -l app=postgres -o wide
-
       - name: Port-forward Postgres (bind to 127.0.0.3)
-        env:
-          NAMESPACE: kfp-pgx-test
         run: |
           set -euo pipefail
 
@@ -135,8 +63,6 @@ jobs:
           PGPASSWORD=kubeflow psql -h 127.0.0.3 -p "${SVC_PORT}" -U kubeflow -d kubeflow -c "SELECT 1;" || true
 
       - name: Bootstrap PG objects for tests (discover superuser & create user/db)
-        env:
-          NAMESPACE: kfp-pgx-test
         run: |
           set -euo pipefail
 
