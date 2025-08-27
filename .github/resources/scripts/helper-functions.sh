@@ -55,6 +55,22 @@ wait_for_namespace () {
     return 1
 }
 
+# Wait for all pods that match a label selector to become Ready in a namespace.
+# Usage: wait_for_selector_ready <namespace> <label-selector> [timeout]
+wait_for_selector_ready () {
+    if [[ $# -lt 2 ]]; then
+        echo "Usage: wait_for_selector_ready <namespace> <label-selector> [timeout]"
+        return 1
+    fi
+    local namespace="$1"
+    local selector="$2"
+    local timeout="${3:-300s}"
+
+    # Use built-in kubectl wait on pods with the given selector
+    kubectl -n "$namespace" wait --for=condition=Ready pod -l "$selector" --timeout="$timeout"
+}
+
+
 wait_for_pods () {
     C_DIR="${BASH_SOURCE%/*}"
     pip install -r "${C_DIR}"/kfp-readiness/requirements.txt
@@ -66,13 +82,13 @@ deploy_with_retries () {
     then
         echo "Usage: deploy_with_retries (-f FILENAME | -k DIRECTORY) manifest max_retries sleep_time"
         return 1
-    fi 
+    fi
 
     local flag="$1"
     local manifest="$2"
     local max_retries="$3"
     local sleep_time="$4"
-    
+
     local i=0
 
     while [[ $i -lt $max_retries ]]
@@ -85,7 +101,7 @@ deploy_with_retries () {
         then
             return 0
         fi
-        
+
         echo "Deploy unsuccessful with error code $exit_code. Trying again in ${sleep_time}s."
         sleep "$sleep_time"
         i=$((i+1))

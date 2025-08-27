@@ -31,6 +31,8 @@ CACHE_DISABLED=false
 MULTI_USER=false
 STORAGE_BACKEND="seaweedfs"
 AWF_VERSION=""
+DEPLOY_POSTGRES=false
+POSTGRES_NS="${POSTGRES_NS:-kfp-pgx-test}"
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -64,6 +66,20 @@ while [ "$#" -gt 0 ]; do
         shift
       else
         echo "ERROR: --argo-version requires an argument"
+        exit 1
+      fi
+      ;;
+    --deploy-postgres)
+      DEPLOY_POSTGRES=true
+      shift
+      ;;
+    --postgres-namespace)
+      shift
+      if [[ -n "$1" ]]; then
+        POSTGRES_NS="$1"
+        shift
+      else
+        echo "ERROR: --postgres-namespace requires an argument"
         exit 1
       fi
       ;;
@@ -184,5 +200,39 @@ if [ "${MULTI_USER}" == "true" ]; then
 fi
 
 collect_artifacts kubeflow
+
+# ----------------------------------------------------------------------
+# Optional: Deploy Postgres for PGX CI and wait for readiness
+# Encapsulates: ensure namespace -> apply (with retries) -> wait by label
+# ----------------------------------------------------------------------
+if [[ "${DEPLOY_POSTGRES}" == "true" ]]; then
+  echo "[deploy-kfp] Deploying Postgres to namespace: ${POSTGRES_NS}"
+
+  # Ensure namespace exists (idempotent). If we had to create it, make sure it shows up.
+  if ! kubectl get ns "${POSTGRES_NS}" >/dev/null 2>&1; then
+    kubectl create namespace "${POSTGRES_NS}"
+    wait_for_namespace "${POSTGRES_NS}" 30 2 || {
+      echo "[deploy-kfp] Namespace ${POSTGRES_NS} did not appear in time."
+      exit 1
+    }
+  fi
+
+  # Apply Postgres manifests with retries via helper (kustomize dir)
+  if ! deploy_with_retries -k "manifests/kustomize/third-party/postgresql/base" 5 10; then
+    echo "[deploy-kfp] Failed to apply Postgres manifests after retries."
+    exit 1
+  fi
+
+  # Wait until all Postgres pods are Ready (by label)
+  if ! wait_for_selector_ready "${POSTGRES_NS}" "app=postgres" "300s"; then
+    echo "[deploy-kfp] Postgres pods did not become Ready in namespace ${POSTGRES_NS}."
+    kubectl -n "${POSTGRES_NS}" get pods -o wide || true
+    kubectl -n "${POSTGRES_NS}" get events --sort-by=.metadata.creationTimestamp | tail -n 200 || true
+    exit 1
+  fi
+
+  echo "[deploy-kfp] Postgres is Ready in ${POSTGRES_NS}."
+fi
+
 
 echo "Finished KFP deployment."
