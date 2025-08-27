@@ -82,22 +82,24 @@ func (p *Pipeline) ToModel() *model.Pipeline {
 
 func (p *Pipeline) GetField(name string) interface{} {
 	switch name {
-	case "pipelines.id":
+	case "pipelines.UUID":
 		return p.UID
 	case "pipelines.pipeline_id":
 		return p.UID
 	case "pipelines.Name":
 		return p.Name
-	case "pipelines.display_name":
+	case "pipelines.DisplayName":
 		return p.Spec.DisplayName
-	case "pipelines.created_at":
-		return p.CreationTimestamp
-	case "description":
+	case "pipelines.CreatedAtInSec":
+		return p.CreationTimestamp.Unix()
+	case "pipelines.Description":
 		return p.Spec.Description
 	case "pipelines.namespace":
 		return p.Namespace
+	case "pipelines.Namespace":
+		return p.Namespace
 	default:
-		return ""
+		return nil
 	}
 }
 
