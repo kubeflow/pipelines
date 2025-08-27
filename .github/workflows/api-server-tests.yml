@@ -45,7 +45,6 @@ jobs:
     uses: ./.github/workflows/image-builds-with-cache.yml
 
   api-test:
-    if: github.event.pull_request.draft == false
     needs: build
     runs-on: ubuntu-latest
     strategy:
