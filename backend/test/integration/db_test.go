@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -61,12 +62,21 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 		return
 	}
 	t := s.T()
+
+	getenv := func(k, def string) string {
+		if v := os.Getenv(k); v != "" {
+			return v
+		}
+		return def
+	}
+
 	viper.Set("DBDriverName", "pgx")
-	viper.Set("DBConfig.PostgreSQLConfig.DBName", "mlpipeline")
-	// The default port-forwarding IP address that test uses is different compared to production
-	viper.Set("DBConfig.PostgreSQLConfig.Host", "127.0.0.3")
-	viper.Set("DBConfig.PostgreSQLConfig.User", "user")
-	viper.Set("DBConfig.PostgreSQLConfig.Password", "password")
+	viper.Set("DBConfig.PostgreSQLConfig.Host", getenv("DB_HOST", "postgres-service"))
+	viper.Set("DBConfig.PostgreSQLConfig.Port", getenv("DB_PORT", "5432"))
+	viper.Set("DBConfig.PostgreSQLConfig.User", getenv("DB_USER", "user"))
+	viper.Set("DBConfig.PostgreSQLConfig.Password", getenv("DB_PASSWORD", "kubeflow"))
+	viper.Set("DBConfig.PostgreSQLConfig.DBName", getenv("DB_NAME", "postgres"))
+
 	duration, _ := time.ParseDuration("1m")
 	db := cm.InitDBClient(duration)
 	assert.NotNil(t, db)

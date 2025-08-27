@@ -227,7 +227,6 @@ if [[ "${DEPLOY_POSTGRES}" == "true" ]]; then
     exit 1
   fi
 
-
   # Apply Postgres manifests with retries via helper (kustomize dir)
   if ! deploy_with_retries -k "manifests/kustomize/third-party/postgresql/base" 5 10; then
     echo "[deploy-kfp] Failed to apply Postgres manifests after retries."
