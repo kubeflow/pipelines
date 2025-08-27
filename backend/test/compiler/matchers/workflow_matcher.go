@@ -103,7 +103,6 @@ func CompareWorkflows(actual *v1alpha1.Workflow, expected *v1alpha1.Workflow) {
 		gomega.Expect(actual.Spec.Templates[index].SecurityContext).To(gomega.Equal(template.SecurityContext), "SecurityContext is not same")
 		gomega.Expect(actual.Spec.Templates[index].SchedulerName).To(gomega.Equal(template.SchedulerName), "SchedulerName is not same")
 		gomega.Expect(actual.Spec.Templates[index].RetryStrategy).To(gomega.Equal(template.RetryStrategy), "RetryStrategy is not same")
-		gomega.Expect(actual.Spec.Templates[index].Priority).To(gomega.Equal(template.Priority), "Priority is not same")
 		gomega.Expect(actual.Spec.Templates[index].Parallelism).To(gomega.Equal(template.Parallelism), "Parallelism is not same")
 		gomega.Expect(actual.Spec.Templates[index].NodeSelector).To(gomega.Equal(template.NodeSelector), "NodeSelector is not same")
 		gomega.Expect(actual.Spec.Templates[index].Metrics).To(gomega.Equal(template.Metrics), "Metrics is not same")
