@@ -33,36 +33,8 @@ jobs:
           pipeline_store: "database"
           deploy_postgres: "true"
           postgres_namespace: ${{ env.NAMESPACE }}
-      - name: Wait for default StorageClass present
-        run: |
-          # Sanity check: ensure there is a default StorageClass before deploying PG
-          kubectl get storageclass | tee /dev/stderr | grep "(default)" >/dev/null
-      - name: Port-forward Postgres (bind to 127.0.0.3)
-        run: |
-          set -euo pipefail
 
-          kubectl -n "$NAMESPACE" get svc postgres-service -o wide
-          SVC_PORT=$(kubectl -n "$NAMESPACE" get svc postgres-service -o jsonpath='{.spec.ports[0].port}')
-
-          kubectl -n "$NAMESPACE" port-forward svc/postgres-service ${SVC_PORT}:${SVC_PORT} --address=127.0.0.3 >/tmp/pf.log 2>&1 &
-          echo $! > pf.pid
-
-          # Wait until endpoints are ready
-          for i in {1..150}; do
-            EP=$(kubectl -n "$NAMESPACE" get endpoints postgres-service -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null || true)
-            [ -n "$EP" ] && break
-            sleep 2
-          done
-          [ -n "${EP:-}" ] || { echo "no endpoints"; cat /tmp/pf.log || true; exit 1; }
-
-          # Wait until local port is open
-          for i in {1..60}; do nc -z 127.0.0.3 "${SVC_PORT}" && break; sleep 2; done
-          nc -z 127.0.0.3 "${SVC_PORT}" || { echo "local port not open"; cat /tmp/pf.log || true; exit 1; }
-
-          # Optional: psql probe (not fatal; default db/user may not exist)
-          PGPASSWORD=kubeflow psql -h 127.0.0.3 -p "${SVC_PORT}" -U kubeflow -d kubeflow -c "SELECT 1;" || true
-
-      - name: Bootstrap PG objects for tests (discover superuser & create user/db)
+      - name: Bootstrap PG objects for tests (discover superuser & create user/db, in-cluster)
         run: |
           set -euo pipefail
 
@@ -102,54 +74,61 @@ jobs:
             fi
           fi
 
-          # --- Candidate superuser usernames (discovered first, then common fallbacks) ---
-          CAND_USERS=()
-          [ -n "${PG_SUPER_USER:-}" ] && CAND_USERS+=("$PG_SUPER_USER")
-          CAND_USERS+=("postgres" "kubeflow")
-
-          # --- Try connecting with each candidate until success ---
-          CONNECTED=false
-          for U in "${CAND_USERS[@]}"; do
-            if [ -n "${PG_SUPER_PW:-}" ]; then
-              PGPASSWORD="$PG_SUPER_PW" psql -h 127.0.0.3 -p 5432 -U "$U" -d postgres -c "SELECT 1;" >/dev/null 2>&1 \
-                && { PG_SUPER_USER="$U"; CONNECTED=true; break; }
-            else
-              psql -h 127.0.0.3 -p 5432 -U "$U" -d postgres -c "SELECT 1;" >/dev/null 2>&1 \
-                && { PG_SUPER_USER="$U"; CONNECTED=true; break; }
+           # --- Choose a superuser (prefer discovered, then fallbacks) ---
+          PG_SUPER_USER="${PG_SUPER_USER:-}"
+          if [ -z "${PG_SUPER_USER:-}" ]; then
+            for U in postgres kubeflow; do
+              if kubectl -n "$NAMESPACE" run psql-probe --rm -i --restart=Never \
+                   --image=bitnami/postgresql:17 \
+                   --env="PGPASSWORD=${PG_SUPER_PW:-}" -- \
+                   psql -h postgres-service -p 5432 -U "$U" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+                PG_SUPER_USER="$U"; break
+              fi
+            done
+          else
+            # verify discovered user works; if not, fallback
+            if ! kubectl -n "$NAMESPACE" run psql-probe --rm -i --restart=Never \
+                 --image=bitnami/postgresql:17 \
+                 --env="PGPASSWORD=${PG_SUPER_PW:-}" -- \
+                 psql -h postgres-service -p 5432 -U "$PG_SUPER_USER" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+              PG_SUPER_USER=""
             fi
-          done
-          if [ "$CONNECTED" != true ]; then
-            echo "Failed to connect as a superuser. Tried: ${CAND_USERS[*]}"
-            echo "Secrets in namespace:"
+          fi
+          if [ -z "${PG_SUPER_USER:-}" ]; then
+            echo "Failed to connect as a superuser (tried discovered, postgres, kubeflow)."
             kubectl -n "$NAMESPACE" get secret
             exit 2
           fi
           echo "Using superuser: $PG_SUPER_USER"
 
           # --- Create test user/password & db (idempotent) ---
-          [ -n "${PG_SUPER_PW:-}" ] && export PGPASSWORD="$PG_SUPER_PW" || true
-
-          # Create role
-          psql -h 127.0.0.3 -p 5432 -U "$PG_SUPER_USER" -d postgres -v ON_ERROR_STOP=1 -q -c \
-            "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user') THEN CREATE ROLE \"user\" LOGIN PASSWORD 'password'; END IF; END \$\$;"
-
-          # Create database (cannot be inside DO/transaction)
-          psql -h 127.0.0.3 -p 5432 -U "$PG_SUPER_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='mlpipeline'" \
-            | grep -q 1 || psql -h 127.0.0.3 -p 5432 -U "$PG_SUPER_USER" -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE mlpipeline OWNER \"user\";"
-
-          # --- Verify new user can log in ---
-          PGPASSWORD=password psql -h 127.0.0.3 -p 5432 -U user -d mlpipeline -c "SELECT current_database(), current_user;"
+          kubectl -n "$NAMESPACE" run psql-bootstrap --rm -i --restart=Never \
+            --image=bitnami/postgresql:17 -- \
+            bash -lc "
+              export PGPASSWORD='${PG_SUPER_PW:-}';
+              psql -h postgres-service -p 5432 -U '$PG_SUPER_USER' -d postgres -v ON_ERROR_STOP=1 -q -c \"
+                DO \$\$ BEGIN
+                  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user') THEN
+                    CREATE ROLE \\\"user\\\" LOGIN PASSWORD 'password';
+                  END IF;
+                END \$\$;\"
+              psql -h postgres-service -p 5432 -U '$PG_SUPER_USER' -d postgres -tAc \"
+                SELECT 1 FROM pg_database WHERE datname='mlpipeline'\" | grep -q 1 || \
+              psql -h postgres-service -p 5432 -U '$PG_SUPER_USER' -d postgres -v ON_ERROR_STOP=1 -c \"
+                CREATE DATABASE mlpipeline OWNER \\\"user\\\";\"
+              PGPASSWORD='password' psql -h postgres-service -p 5432 -U user -d mlpipeline -c \"
+                SELECT current_database(), current_user;\"
+            "
 
       - name: Run backend integration tests (pgx)
         env:
           DB_TYPE: postgres
           DB_DRIVER: pgx
-          DB_HOST: 127.0.0.3
+          DB_HOST: postgres-service
           DB_PORT: "5432"
           DB_USER: user
           DB_PASSWORD: password
           DB_NAME: mlpipeline
-          NAMESPACE: kfp-pgx-test
         run: |
           go test -v ./... -namespace "$NAMESPACE" -args -runIntegrationTests=true -isDevMode=true -runPostgreSQLTests=true -localTest=true || true
 
@@ -157,7 +136,6 @@ jobs:
         if: always()
         run: |
           echo "==== PG Pods ===="
-          kubectl -n kfp-pgx-test get pods -o wide || true
+          kubectl -n "$NAMESPACE" get pods -o wide || true
           echo "==== PG Events ===="
-          kubectl -n kfp-pgx-test get events --sort-by=.lastTimestamp | tail -n 100 || true
-          if [ -f pf.pid ]; then kill -9 "$(cat pf.pid)" || true; fi
+          kubectl -n "$NAMESPACE" get events --sort-by=.lastTimestamp | tail -n 100 || true
