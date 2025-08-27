@@ -26,6 +26,7 @@ import (
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	v2beta1crd "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -628,6 +629,288 @@ func TestUnmarshalJSON(t *testing.T) {
 	err := json.Unmarshal([]byte(in), got)
 	if err != nil || !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(Filter{})) {
 		t.Errorf("json.Unmarshal(%+v):\nGot: %v, Error: %v\nWant:\n%+v, Error: nil\nDiff:%s\n", in, got, err, want, cmp.Diff(want, got, cmp.AllowUnexported(Filter{})))
+	}
+}
+
+func TestFilterK8sPipelines_EQ_NEQ(t *testing.T) {
+	// Build a simple Kubernetes Pipeline object
+	k8sPipeline := v2beta1crd.Pipeline{}
+	k8sPipeline.Name = "my-pipeline"
+	k8sPipeline.Spec.DisplayName = "Display"
+	k8sPipeline.Namespace = "ns1"
+
+	// EQ against pipelines.Name
+	eqFilter := &Filter{eq: map[string][]interface{}{"pipelines.Name": {"my-pipeline"}}}
+	found, err := eqFilter.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for EQ: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected EQ filter to match")
+	}
+
+	// NEQ against pipelines.Name with different value (no NEQ values match actual field)
+	neqFilter := &Filter{neq: map[string][]interface{}{"pipelines.Name": {"other"}}}
+	found, err = neqFilter.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for NEQ: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected NEQ filter to match when value differs")
+	}
+
+	// NEQ should not match when equal (the field equals one of the NEQ values)
+	neqNoMatch := &Filter{neq: map[string][]interface{}{"pipelines.Name": {"my-pipeline"}}}
+	found, err = neqNoMatch.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for NEQ equal case: %v", err)
+	}
+	if found {
+		t.Fatalf("expected NEQ filter not to match when value equals")
+	}
+
+	// EQ should not match when not equal
+	eqNoMatch := &Filter{eq: map[string][]interface{}{"pipelines.Name": {"other"}}}
+	found, err = eqNoMatch.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for EQ unequal case: %v", err)
+	}
+	if found {
+		t.Fatalf("expected EQ filter not to match when value differs")
+	}
+	// NEQ with multiple values: should match only if field is not equal to any provided
+	neqMulti := &Filter{neq: map[string][]interface{}{"pipelines.Name": {"x", "y"}}}
+	found, err = neqMulti.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for NEQ multi: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected NEQ multi to match when none equal")
+	}
+
+	// NEQ multi where one equals should not match
+	neqMultiNo := &Filter{neq: map[string][]interface{}{"pipelines.Name": {"x", "my-pipeline"}}}
+	found, err = neqMultiNo.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for NEQ multi equal case: %v", err)
+	}
+	if found {
+		t.Fatalf("expected NEQ multi not to match when one equals")
+	}
+
+	// AND parity across keys: both predicates must hold
+	andFilter := &Filter{
+		eq:  map[string][]interface{}{"pipelines.Name": {"my-pipeline"}},
+		neq: map[string][]interface{}{"pipelines.namespace": {"other-ns"}},
+	}
+	found, err = andFilter.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for AND filter: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected AND filter to match when both predicates hold")
+	}
+
+	andFail := &Filter{
+		eq:  map[string][]interface{}{"pipelines.Name": {"my-pipeline"}},
+		neq: map[string][]interface{}{"pipelines.namespace": {"ns1"}},
+	}
+	found, err = andFail.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for AND fail: %v", err)
+	}
+	if found {
+		t.Fatalf("expected AND filter not to match when one predicate fails")
+	}
+}
+
+func TestFilterK8sPipelines_IN(t *testing.T) {
+	k8sPipeline := v2beta1crd.Pipeline{}
+	k8sPipeline.Name = "my-pipeline"
+	k8sPipeline.Namespace = "ns1"
+
+	// IN with string list should match
+	inFilter := &Filter{in: map[string][]interface{}{"pipelines.Name": {[]string{"a", "my-pipeline", "b"}}}}
+	found, err := inFilter.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for IN: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected IN filter to match when value in list")
+	}
+
+	// IN with non-matching list should not match
+	inNo := &Filter{in: map[string][]interface{}{"pipelines.Name": {[]string{"x", "y"}}}}
+	found, err = inNo.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for IN non-match: %v", err)
+	}
+	if found {
+		t.Fatalf("expected IN filter not to match when value not in list")
+	}
+
+	// IN with multiple lists (AND semantics across lists): must be in all lists -> impossible here
+	inMulti := &Filter{in: map[string][]interface{}{"pipelines.Name": {[]string{"my-pipeline"}, []string{"x"}}}}
+	found, err = inMulti.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for IN multi: %v", err)
+	}
+	if found {
+		t.Fatalf("expected IN multi not to match when not in all lists")
+	}
+
+	// IN with multiple lists where value is in all lists should match
+	inMultiOK := &Filter{in: map[string][]interface{}{"pipelines.Name": {[]string{"a", "my-pipeline"}, []string{"my-pipeline", "b"}}}}
+	found, err = inMultiOK.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for IN multi ok: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected IN multi to match when present in all lists")
+	}
+}
+
+func TestFilterK8sPipelines_SUBSTRING(t *testing.T) {
+	k8sPipeline := v2beta1crd.Pipeline{}
+	k8sPipeline.Name = "my-pipeline"
+	k8sPipeline.Spec.DisplayName = "My Display"
+
+	// All substrings must be present
+	subOK := &Filter{substring: map[string][]interface{}{"pipelines.Name": {"my", "pipe"}}}
+	found, err := subOK.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for substring ok: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected substring filter to match when all substrings present")
+	}
+
+	// One substring missing -> no match
+	subNo := &Filter{substring: map[string][]interface{}{"pipelines.Name": {"my", "zzz"}}}
+	found, err = subNo.FilterK8sPipelines(k8sPipeline)
+	if err != nil {
+		t.Fatalf("unexpected error for substring no: %v", err)
+	}
+	if found {
+		t.Fatalf("expected substring filter not to match when a substring missing")
+	}
+}
+
+func TestFilterK8sPipelines_UnsupportedOps(t *testing.T) {
+	k8sPipeline := v2beta1crd.Pipeline{}
+	k8sPipeline.Name = "p"
+	// Using gt should return an error
+	f := &Filter{gt: map[string][]interface{}{"pipelines.Name": {"x"}}}
+	_, err := f.FilterK8sPipelines(k8sPipeline)
+	if err == nil {
+		t.Fatalf("expected error for unsupported gt operator in K8s filter")
+	}
+}
+
+func TestFilterK8sPipelineVersions_EQ_NEQ_IN(t *testing.T) {
+	// Build a simple Kubernetes PipelineVersion object
+	k8sPv := v2beta1crd.PipelineVersion{}
+	k8sPv.Name = "v1"
+	k8sPv.Spec.DisplayName = "Version One"
+	k8sPv.Namespace = "ns1"
+
+	// EQ on name
+	eq := &Filter{eq: map[string][]interface{}{"pipeline_versions.Name": {"v1"}}}
+	found, err := eq.FilterK8sPipelineVersions(k8sPv)
+	if err != nil {
+		t.Fatalf("unexpected error EQ: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected EQ to match for versions")
+	}
+
+	// NEQ non-matching
+	neq := &Filter{neq: map[string][]interface{}{"pipeline_versions.Name": {"other"}}}
+	found, err = neq.FilterK8sPipelineVersions(k8sPv)
+	if err != nil {
+		t.Fatalf("unexpected error NEQ: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected NEQ to match when not equal for versions")
+	}
+
+	// NEQ equal should fail
+	neqFail := &Filter{neq: map[string][]interface{}{"pipeline_versions.Name": {"v1"}}}
+	found, err = neqFail.FilterK8sPipelineVersions(k8sPv)
+	if err != nil {
+		t.Fatalf("unexpected error NEQ equal: %v", err)
+	}
+	if found {
+		t.Fatalf("expected NEQ not to match when equal for versions")
+	}
+
+	// IN match
+	inMatch := &Filter{in: map[string][]interface{}{"pipeline_versions.Name": {[]string{"a", "v1"}}}}
+	found, err = inMatch.FilterK8sPipelineVersions(k8sPv)
+	if err != nil {
+		t.Fatalf("unexpected error IN match: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected IN to match for versions")
+	}
+
+	// IN non-match
+	inNo := &Filter{in: map[string][]interface{}{"pipeline_versions.Name": {[]string{"x", "y"}}}}
+	found, err = inNo.FilterK8sPipelineVersions(k8sPv)
+	if err != nil {
+		t.Fatalf("unexpected error IN non-match: %v", err)
+	}
+	if found {
+		t.Fatalf("expected IN not to match for versions when not in list")
+	}
+
+	// IN with two lists requires membership in both (AND semantics across lists) -> should fail
+	inMulti := &Filter{in: map[string][]interface{}{"pipeline_versions.Name": {[]string{"v1"}, []string{"z"}}}}
+	found, err = inMulti.FilterK8sPipelineVersions(k8sPv)
+	if err != nil {
+		t.Fatalf("unexpected error IN multi: %v", err)
+	}
+	if found {
+		t.Fatalf("expected IN multi not to match when not in all lists for versions")
+	}
+
+	// IN with two lists where both contain value -> should match
+	inMultiOK := &Filter{in: map[string][]interface{}{"pipeline_versions.Name": {[]string{"v1", "x"}, []string{"y", "v1"}}}}
+	found, err = inMultiOK.FilterK8sPipelineVersions(k8sPv)
+	if err != nil {
+		t.Fatalf("unexpected error IN multi ok for versions: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected IN multi ok to match when present in all lists for versions")
+	}
+}
+
+func TestFilterK8sPipelineVersions_SUBSTRING_AND(t *testing.T) {
+	k8sPv := v2beta1crd.PipelineVersion{}
+	k8sPv.Name = "v1"
+	k8sPv.Spec.DisplayName = "Version One"
+
+	// Substring on display name
+	subOK := &Filter{substring: map[string][]interface{}{"pipeline_versions.DisplayName": {"Version", "One"}}}
+	found, err := subOK.FilterK8sPipelineVersions(k8sPv)
+	if err != nil {
+		t.Fatalf("unexpected error substring versions ok: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected substring to match on versions display name")
+	}
+
+	// AND across keys: EQ name and substring display name
+	andFilter := &Filter{
+		eq:        map[string][]interface{}{"pipeline_versions.Name": {"v1"}},
+		substring: map[string][]interface{}{"pipeline_versions.DisplayName": {"Version"}},
+	}
+	found, err = andFilter.FilterK8sPipelineVersions(k8sPv)
+	if err != nil {
+		t.Fatalf("unexpected error versions AND: %v", err)
+	}
+	if !found {
+		t.Fatalf("expected versions AND filter to match")
 	}
 }
 
