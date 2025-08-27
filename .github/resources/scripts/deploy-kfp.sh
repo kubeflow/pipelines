@@ -217,6 +217,17 @@ if [[ "${DEPLOY_POSTGRES}" == "true" ]]; then
     }
   fi
 
+  # Sanity check: ensure there is a default StorageClass before deploying PG
+  if ! kubectl get storageclass | grep -q "(default)"; then
+    echo "[deploy-kfp] ERROR: No default StorageClass found."
+    echo "Existing StorageClasses:"
+    kubectl get storageclass -o wide || true
+    echo "Hint: kfp-cluster action should provision a default SC on KinD;"
+    echo "      if you're running on a different environment, please ensure a default SC exists."
+    exit 1
+  fi
+
+
   # Apply Postgres manifests with retries via helper (kustomize dir)
   if ! deploy_with_retries -k "manifests/kustomize/third-party/postgresql/base" 5 10; then
     echo "[deploy-kfp] Failed to apply Postgres manifests after retries."
