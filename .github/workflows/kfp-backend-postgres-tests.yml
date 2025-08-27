@@ -1,21 +1,15 @@
 name: KFP Backend Postgres Tests
 
 on:
-  workflow_dispatch:
-    inputs:
-      test_repository:
-        description: "owner/repo to checkout (empty = upstream)"
-        required: false
-        default: ""
-      test_ref:
-        description: "Git ref (branch/tag/SHA) to test"
-        required: true
-        default: "master"
-      test_paths:
-        description: "Go package paths"
-        required: true
-        default: "./backend/test/initialization"
-
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - "backend/**"
+      - "manifests/kustomize/third-party/postgresql/**"
+      - ".github/workflows/kfp-backend-postgres-tests.yml"
+      - "!**/*.md"
+      - "!**/OWNERS"
 jobs:
   postgres-pgx:
     name: Backend Postgres (pgx via Kustomize+KinD)
@@ -26,8 +20,6 @@ jobs:
       - name: Checkout target code
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.event.inputs.test_repository || github.repository }}
-          ref: ${{ github.event.inputs.test_ref }}
           fetch-depth: 0
       - name: Set up Go
         uses: actions/setup-go@v5
