@@ -7,14 +7,19 @@ resources:
 - ../../cache-deployer
 - pipeline-install-config.yaml
 - mysql-secret.yaml
-vars:
-- fieldref:
-    fieldPath: data.defaultPipelineRoot
-  name: kfp-default-pipeline-root
-  objref:
-    apiVersion: v1
-    kind: ConfigMap
-    name: pipeline-install-config
 
 configurations:
-  - params.yaml
+- params.yaml
+replacements:
+- source:
+    fieldPath: data.defaultPipelineRoot
+    kind: ConfigMap
+    name: pipeline-install-config
+    version: v1
+  targets:
+  - fieldPaths:
+    - data.defaultPipelineRoot
+    select:
+      kind: ConfigMap
+      name: kfp-launcher
+      version: v1
