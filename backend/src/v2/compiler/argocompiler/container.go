@@ -29,6 +29,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	k8score "k8s.io/api/core/v1"
@@ -205,14 +206,25 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--ml_pipeline_service_tls_enabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
 	if c.mlPipelineServiceTLSEnabled {
-		args = append(args, "--ml_pipeline_service_tls_enabled")
+		args = append(args, "--mlPipelineServiceTLSEnabled", "true")
 	}
+	if common.GetMetadataTLSEnabled() {
+		args = append(args, "--metadataTLSEnabled", "true")
+	}
+	if common.GetCaCertPath() != "" {
+		args = append(args, "--ca_cert_path", common.GetCaCertPath())
+	}
+	//if common.GetMetadataGrpcServiceServiceHost() != "" {
+	//	args = append(args, "--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost())
+	//}
+	//if common.GetMetadataGrpcServiceServicePort() != "" {
+	//	args = append(args, "--mlmd_server_port", common.GetMetadataGrpcServiceServicePort())
+	//}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -245,6 +257,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
+			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
 
@@ -407,9 +420,6 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
-	if c.mlPipelineServiceTLSEnabled {
-		args = append(args, "--ml_pipeline_service_tls_enabled")
-	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -535,6 +545,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 			Env:     commonEnvs,
 		},
 	}
+	ConfigureCABundle(executor)
 	// If retry policy is set, add retryStrategy to executor
 	if taskRetrySpec != nil {
 		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
@@ -599,7 +610,6 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		executor.Container.VolumeMounts = append(executor.Container.VolumeMounts, volumeMount)
 
 	}
-	ConfigureCABundle(executor)
 	c.templates[nameContainerImpl] = executor
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)
 	return nameContainerExecutor

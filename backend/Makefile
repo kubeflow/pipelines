@@ -14,16 +14,14 @@ CONTAINER_ENGINE ?= $(shell \
 )
 
 # IMG_REGISTRY can be used to automatically prepend registry details. e.g. "quay.io/kubeflow/"
-IMG_REGISTRY ?=
-IMG_TAG_APISERVER         ?= apiserver
-IMG_TAG_PERSISTENCEAGENT  ?= persistence-agent
-IMG_TAG_CACHESERVER       ?= cache-server
-IMG_TAG_SCHEDULEDWORKFLOW ?= scheduledworkflow
-IMG_TAG_VIEWERCONTROLLER  ?= viewercontroller
-IMG_TAG_VISUALIZATION     ?= visualization
-IMG_TAG_DRIVER            ?= kfp-driver
-IMG_TAG_LAUNCHER          ?= kfp-launcher
-IMG_TAG_WEBHOOK_PROXY     ?= domain.local/kfp/webhook-proxy:latest
+IMG_REGISTRY 			  ?= kind-registry:5000/
+IMG_TAG_APISERVER         ?= apiserver:v2.14.0
+IMG_TAG_PERSISTENCEAGENT  ?= persistence-agent:v2.14.5
+IMG_TAG_CACHESERVER       ?= cache-server:v2.14.0
+IMG_TAG_SCHEDULEDWORKFLOW ?= scheduledworkflow:v2.14.0
+
+IMG_TAG_DRIVER            ?= kfp-driver:v2.14.1
+IMG_TAG_LAUNCHER          ?= kfp-launcher:v2.14.0
 
 # Whenever build command for any of the binaries change, we should update them both here and in backend/Dockerfiles.
 
@@ -35,14 +33,14 @@ clean:
 	rm -rf $(BUILD)
 
 .PHONY: image_all
-image_all: image_apiserver image_persistence_agent image_cache image_swf image_viewer image_visualization image_driver image_launcher
+image_all: image_apiserver image_persistence_agent image_cache image_swf  image_driver image_launcher
 
 .PHONY: image_apiserver
 image_apiserver:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_APISERVER} -f backend/Dockerfile .
 .PHONY: image_persistence_agent
 image_persistence_agent:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_PERSISTENCEAGENT} -f backend/Dockerfile.persistenceagent .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --no-cache --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_PERSISTENCEAGENT} -f backend/Dockerfile.persistenceagent .
 .PHONY: image_cache
 image_cache:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_CACHESERVER} -f backend/Dockerfile.cacheserver .
@@ -51,13 +49,13 @@ image_swf:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_SCHEDULEDWORKFLOW} -f backend/Dockerfile.scheduledworkflow .
 .PHONY: image_viewer
 image_viewer:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMGdocke_REGISTRY}${IMG_TAG_VIEWERCONTROLLER} -f backend/Dockerfile.viewercontroller .
 .PHONY: image_visualization
 image_visualization:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_VISUALIZATION} -f backend/Dockerfile.visualization .
 .PHONY: image_driver
 image_driver:
-	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_DRIVER} -f backend/Dockerfile.driver .
+	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --no-cache --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_DRIVER} -f backend/Dockerfile.driver .
 .PHONY: image_driver_debug
 image_driver_debug:
 	cd $(MOD_ROOT) && sed -e '/RUN .*go mod download/a\
@@ -71,6 +69,15 @@ image_driver_debug:
 .PHONY: image_launcher
 image_launcher:
 	cd $(MOD_ROOT) && ${CONTAINER_ENGINE} build --platform linux/amd64 -t ${IMG_REGISTRY}${IMG_TAG_LAUNCHER} -f backend/Dockerfile.launcher .
+
+.PHONY: load_all_images
+load_all_images:
+	kind load docker-image ${IMG_REGISTRY}apiserver:v2.14.0 --name=dev-pipelines-api
+	kind load docker-image ${IMG_REGISTRY}persistence-agent:v2.14.5 --name=dev-pipelines-api
+	kind load docker-image ${IMG_REGISTRY}cache-server:v2.14.0 --name=dev-pipelines-api
+	kind load docker-image ${IMG_REGISTRY}scheduledworkflow:v2.14.0 --name=dev-pipelines-api
+	kind load docker-image ${IMG_REGISTRY}kfp-driver:v2.14.1 --name=dev-pipelines-api
+	kind load docker-image ${IMG_REGISTRY}kfp-launcher:v2.14.0 --name=dev-pipelines-api
 
 .PHONY: install-cert-manager
 install-cert-manager:
@@ -97,7 +104,7 @@ kind-cluster-agnostic:
 	# Switch to Kubeflow namespace context
 	kubectl config set-context --current --namespace=kubeflow
 
-# Pod-to-pod TLS-enabled manifests
+#todo: add explanatory comment
 .PHONY: kind-cluster-agnostic-tls
 kind-cluster-agnostic-tls:
 	# Deploy Kind Cluster
@@ -110,6 +117,32 @@ kind-cluster-agnostic-tls:
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
 	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
 	# Deploy KFP
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls
+	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
+	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
+	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/ml-pipeline
+	# Switch to Kubeflow namespace context
+	kubectl config set-context --current --namespace=kubeflow
+
+.PHONY: create-kind-cluster
+create-kind-cluster:
+	# Deploy Kind Cluster
+	kind create cluster --name $(KIND_NAME)
+	kubectl config use-context kind-$(KIND_NAME)
+	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
+
+# make -C backend image_all (with the tags, don't commit the tags)
+# make -C backend load_all_images
+
+# Just for development
+.PHONY: kind-cluster-agnostic-tls-dev
+kind-cluster-agnostic-tls-dev:
+	$(MAKE) install-cert-manager
+	# Deploy cluster resources required by KFP
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
+	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
+	# Deploy KFP
+	# (Humair): Don't commit the image pathcs
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls
 	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment

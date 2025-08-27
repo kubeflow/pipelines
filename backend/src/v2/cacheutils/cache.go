@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"google.golang.org/grpc/credentials"
-
 	"google.golang.org/grpc/credentials/insecure"
 
 	"google.golang.org/grpc"
@@ -74,6 +73,7 @@ func NewClient(cacheDisabled bool, mlPipelineServiceTLSEnabled bool) (Client, er
 	if cacheDisabled {
 		return &disabledCacheClient{}, nil
 	}
+
 	creds := insecure.NewCredentials()
 	if mlPipelineServiceTLSEnabled {
 		config := &tls.Config{
@@ -82,7 +82,8 @@ func NewClient(cacheDisabled bool, mlPipelineServiceTLSEnabled bool) (Client, er
 		creds = credentials.NewTLS(config)
 	}
 	glog.Infof("Connecting to cache endpoint %s", defaultKfpApiEndpoint)
-	conn, err := grpc.Dial(defaultKfpApiEndpoint,
+	conn, err := grpc.Dial(
+		defaultKfpApiEndpoint,
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(MaxClientGRPCMessageSize)),
 		grpc.WithTransportCredentials(creds),
 	)

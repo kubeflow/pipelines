@@ -40,7 +40,7 @@ func TestCache(t *testing.T) {
 
 func (s *CacheTestSuite) SetupSuite() {
 	var err error
-	s.mlmdClient, err = testutils.NewTestMlmdClient("127.0.0.1", metadata.DefaultConfig().Port)
+	s.mlmdClient, err = testutils.NewTestMlmdClient("127.0.0.1", metadata.DefaultConfig().Port, *tlsEnabled, *caCertPath)
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), s.mlmdClient)
 }
@@ -93,6 +93,8 @@ func (s *CacheTestSuite) SetupTest() {
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
+		*tlsEnabled,
+		*caCertPath,
 		*isDebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),

@@ -124,7 +124,7 @@ runs:
         if [ -n "${{ inputs.argo_version }}" ]; then
           ARGS="${ARGS} --argo-version ${{ inputs.argo_version }}"
         fi
-        if[ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
+        if [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
           ARGS="${ARGS} --tls-enabled"
         fi
         

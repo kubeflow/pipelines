@@ -17,11 +17,17 @@ spec:
     - metadata-envoy.$(kfp-namespace)
     - metadata-envoy.$(kfp-namespace).svc
     - metadata-grpc
+    - metadata-grpc-deployment
+    - metadata-grpc-service
+    - metadata-grpc-service.kubeflow
+    - metadata-grpc-service.kubeflow.svc
     - metadata-grpc.$(kfp-namespace)
     - metadata-grpc.$(kfp-namespace).svc
     - localhost
+    - ml-pipeline.kubeflow
   ipAddresses:
     - 127.0.0.1
+    - 10.96.53.44
   issuerRef:
     kind: Issuer
     name: kfp-api-tls-selfsigned-issuer

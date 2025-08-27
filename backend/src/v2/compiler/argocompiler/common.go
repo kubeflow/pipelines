@@ -16,21 +16,17 @@ package argocompiler
 
 import (
 	"fmt"
+	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	k8score "k8s.io/api/core/v1"
 	"os"
 	"strconv"
 	"strings"
-
-	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	k8score "k8s.io/api/core/v1"
 )
 
 const (
-	DefaultMLPipelineServiceHost     = "ml-pipeline.kubeflow.svc.cluster.local"
-	DefaultMLPipelineServicePortGRPC = "8887"
-	MLPipelineServiceHostEnvVar      = "ML_PIPELINE_SERVICE_HOST"
-	MLPipelineServicePortGRPCEnvVar  = "ML_PIPELINE_SERVICE_PORT_GRPC"
-	MLPipelineTLSEnabledEnvVar       = "ML_PIPELINE_TLS_ENABLED"
-	DefaultMLPipelineTLSEnabled      = false
+	MLPipelineTLSEnabledEnvVar  = "ML_PIPELINE_TLS_ENABLED"
+	DefaultMLPipelineTLSEnabled = false
 )
 
 // env vars in metadata-grpc-configmap is defined in component package
@@ -75,13 +71,12 @@ func GetMLPipelineServiceTLSEnabled() (bool, error) {
 // ConfigureCABundle adds CABundle environment variables and volume mounts
 // if CA Bundle env vars are specified.
 func ConfigureCABundle(tmpl *wfapi.Template) {
-	caBundleCfgMapName := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_NAME")
-	caBundleCfgMapKey := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_KEY")
-	caBundleMountPath := os.Getenv("ARTIFACT_COPY_STEP_CABUNDLE_MOUNTPATH")
-	if caBundleCfgMapName != "" && caBundleCfgMapKey != "" {
-		caFile := fmt.Sprintf("%s/%s", caBundleMountPath, caBundleCfgMapKey)
+	caCert := os.Getenv(common.CaBundleCertName)
+	caSecretName := os.Getenv(common.CaBundleSecretName)
+	caCertMountPath := os.Getenv(common.CaBundleMountPath)
+	if caCert != "" && caCertMountPath != "" {
+		caFile := fmt.Sprintf("%s/%s", caCertMountPath, caCert)
 		var certDirectories = []string{
-			caBundleMountPath,
 			"/etc/ssl/certs",
 			"/etc/pki/tls/certs",
 		}
@@ -115,12 +110,10 @@ func ConfigureCABundle(tmpl *wfapi.Template) {
 			Value: sslCertDir,
 		})
 		volume := k8score.Volume{
-			Name: volumeNameCABundle,
+			Name: "ca-secret",
 			VolumeSource: k8score.VolumeSource{
-				ConfigMap: &k8score.ConfigMapVolumeSource{
-					LocalObjectReference: k8score.LocalObjectReference{
-						Name: caBundleCfgMapName,
-					},
+				Secret: &k8score.SecretVolumeSource{
+					SecretName: caSecretName,
 				},
 			},
 		}
@@ -128,13 +121,11 @@ func ConfigureCABundle(tmpl *wfapi.Template) {
 		tmpl.Volumes = append(tmpl.Volumes, volume)
 
 		volumeMount := k8score.VolumeMount{
-			Name:      volumeNameCABundle,
-			MountPath: caFile,
-			SubPath:   caBundleCfgMapKey,
+			Name:      "ca-secret",
+			MountPath: caCertMountPath,
 		}
 
 		tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, volumeMount)
-
 	}
 }
 

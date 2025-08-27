@@ -47,12 +47,6 @@ func (s *ProxyTestSuite) SetupTest() {
 		return
 	}
 
-	// Do not run proxy tests when pod-to-pod TLS enabled
-	if *tlsEnabled {
-		s.T().SkipNow()
-		return
-	}
-
 	if !*isDevMode {
 		err := test.WaitForReady(*initializeTimeout)
 		if err != nil {
@@ -100,6 +94,8 @@ func (s *ProxyTestSuite) SetupTest() {
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
+		*tlsEnabled,
+		*caCertPath,
 		*isDebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),

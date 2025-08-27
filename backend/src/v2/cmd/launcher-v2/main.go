@@ -46,7 +46,9 @@ var (
 	logLevel                       = flag.String("log_level", "1", "The verbosity level to log.")
 	publishLogs                    = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 	cacheDisabledFlag              = flag.Bool("cache_disabled", false, "Disable cache globally.")
-	mlPipelineServiceTLSEnabledStr = flag.String("ml_pipeline_service_tls_enabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
+	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
+	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
+	caCertPath                     = flag.String("ca_cert_path", "", "The path to the CA certificate.")
 )
 
 func main() {
@@ -81,6 +83,12 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	metadataServiceTLSEnabled, err := strconv.ParseBool(*metadataTLSEnabledStr)
+	if err != nil {
+		return err
+	}
+
 	launcherV2Opts := &component.LauncherV2Options{
 		Namespace:            namespace,
 		PodName:              *podName,
@@ -92,6 +100,8 @@ func run() error {
 		PublishLogs:          *publishLogs,
 		CacheDisabled:        *cacheDisabledFlag,
 		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
+		MetadataTLSEnabled:   metadataServiceTLSEnabled,
+		CaCertPath:           *caCertPath,
 	}
 
 	switch *executorType {
@@ -115,6 +125,7 @@ func run() error {
 			MLMDServerPort:       launcherV2Opts.MLMDServerPort,
 			CacheDisabled:        launcherV2Opts.CacheDisabled,
 			MLPipelineTLSEnabled: launcherV2Opts.MLPipelineTLSEnabled,
+			CaCertPath:           launcherV2Opts.CaCertPath,
 		}
 		clientManager, err := client_manager.NewClientManager(clientOptions)
 		if err != nil {

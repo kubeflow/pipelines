@@ -7,20 +7,15 @@ resources:
   - ../base-tls-certs/
   - patches/cluster-role-scheduledworkflow.yaml
   - patches/cluster-rolebinding-scheduledworkflow.yaml
+  - patches/grpc-tls-config.yaml
+  - patches/grpc-config-writer.yaml
 
-
-# !!! If you want to customize the namespace,
-# please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
 namespace: kubeflow
 
 configMapGenerator:
   - name: envoy-tls-config
     files:
       - patches/envoy-tls-enabled.yaml
-  - name: grpc-tls-config
-    files:
-      - patches/grpc-tls-enabled.yaml
-
 patches:
   - path: patches/apiserver-deployment.yaml
     target:
@@ -46,3 +41,10 @@ patches:
     target:
       kind: Service
       name: ml-pipeline
+  - target:
+      kind: Deployment
+      name: metadata-grpc-deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: "--metadata_store_server_config_file=/etc/grpc/config.proto"

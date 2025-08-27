@@ -87,9 +87,6 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
 			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
-		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
@@ -104,9 +101,6 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
 			return api_server.NewExperimentClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewPipelineClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
@@ -127,6 +121,8 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
+		*tlsEnabled,
+		*caCertPath,
 		*isDebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),
