@@ -1,6 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: argo # This namespace must match the namespace in the parent kustomization.yaml.
+
 # This kustomization.yaml mirrors the upstream Argo Workflows namespace-install configuration with remote references.
 # The differences:
 # * this does not include argo server.
@@ -8,7 +10,7 @@ kind: Kustomization
 
 resources:
 - ../../base
-- https://github.com/argoproj/argo-workflows/manifests/namespace-install/workflow-controller-rbac?ref=v3.6.7
+- https://github.com/argoproj/argo-workflows/manifests/namespace-install/workflow-controller-rbac?ref=v3.7.0
 patches:
 - path: workflow-controller-deployment-patch.json
   target:

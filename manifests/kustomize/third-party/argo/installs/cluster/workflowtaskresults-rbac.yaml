@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argo-workflowtaskresults-role
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflowtaskresults"]
+    verbs: ["create","get","list","watch","update","patch","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argo-workflowtaskresults-role-binding
+subjects:
+  - kind: ServiceAccount
+    name: default        # workflow pods जे service account वापरत आहेत
+    namespace: argo      # argo namespace मध्ये
+roleRef:
+  kind: ClusterRole
+  name: argo-workflowtaskresults-role
+  apiGroup: rbac.authorization.k8s.io
