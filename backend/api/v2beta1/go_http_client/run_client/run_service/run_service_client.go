@@ -241,7 +241,6 @@ func (a *Client) RunServiceListRuns(params *RunServiceListRunsParams, authInfo r
 		PathPattern:        "/apis/v2beta1/runs",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
-		//todo: should just be https?
 		Schemes:            []string{"http", "https"},
 		Params:             params,
 		Reader:             &RunServiceListRunsReader{formats: a.formats},

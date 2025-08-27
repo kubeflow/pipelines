@@ -100,6 +100,8 @@ func (s *ProxyTestSuite) SetupTest() {
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
+		*tlsEnabled,
+		*caCertPath,
 		*isDebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),

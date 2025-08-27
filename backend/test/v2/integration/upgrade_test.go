@@ -145,6 +145,8 @@ func (s *UpgradeTests) SetupSuite() {
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
+		*tlsEnabled,
+		*caCertPath,
 		*isDebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),

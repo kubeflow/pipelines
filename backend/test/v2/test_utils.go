@@ -222,6 +222,8 @@ func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 func GetPipelineUploadClient(
 	uploadPipelinesWithKubernetes bool,
 	isKubeflowMode bool,
+	tlsEnabled bool,
+	caCertPath string,
 	isDebugMode bool,
 	namespace string,
 	clientConfig clientcmd.ClientConfig,
@@ -231,8 +233,8 @@ func GetPipelineUploadClient(
 	}
 
 	if isKubeflowMode {
-		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode)
+		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode, tlsEnabled, caCertPath)
 	}
 
-	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode)
+	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode, tlsEnabled, caCertPath)
 }
