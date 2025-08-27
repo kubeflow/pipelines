@@ -212,16 +212,16 @@ func replaceMapKeys(m map[string][]interface{}, keyMap map[string]string, prefix
 }
 
 func (f *Filter) FilterK8sPipelines(pipeline v2beta1.Pipeline) (bool, error) {
-	return f.filterK8sObject(func(k string) interface{} { return pipeline.GetField(k) })
+	return f.matchesFilter(func(k string) interface{} { return pipeline.GetField(k) })
 }
 
 func (f *Filter) FilterK8sPipelineVersions(pipelineVersion v2beta1.PipelineVersion) (bool, error) {
-	return f.filterK8sObject(func(k string) interface{} { return pipelineVersion.GetField(k) })
+	return f.matchesFilter(func(k string) interface{} { return pipelineVersion.GetField(k) })
 }
 
-// filterK8sObject applies client-side filtering with AND semantics across predicate groups.
+// matchesFilter applies client-side filtering with AND semantics across predicate groups.
 // The getField function should return the value of the given key on the object being filtered.
-func (f *Filter) filterK8sObject(getField func(string) interface{}) (bool, error) {
+func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) {
 	// EQ: all specified equals must hold.
 	for k := range f.eq {
 		fieldVal := fmt.Sprint(getField(k))
