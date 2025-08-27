@@ -27,7 +27,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     strategy:
-      fail-fast: false
       matrix:
         include:
           - k8s_version: "v1.29.2"
