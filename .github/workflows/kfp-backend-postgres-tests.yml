@@ -30,105 +30,19 @@ jobs:
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
+          k8s_version: "v1.30.2"
           pipeline_store: "database"
           deploy_postgres: "true"
           postgres_namespace: ${{ env.NAMESPACE }}
-
-      - name: Bootstrap PG objects for tests (discover superuser & create user/db, in-cluster)
-        run: |
-          set -euo pipefail
-
-          # --- helper: decode secret value ---
-          get_secret_val () {
-            local ns="$1" name="$2" key="$3"
-            kubectl -n "$ns" get secret "$name" -o jsonpath="{.data.$key}" | base64 -d 2>/dev/null || true
-          }
-
-          # --- Detect superuser username from Pod env/secretKeyRef ---
-          RAW_USER=$(kubectl -n "$NAMESPACE" get pod -l app=postgres -o json \
-            | jq -r '
-                .items[0].spec.containers[0].env // []
-                | map(select(.name|test("(?i)^POSTGRES(_QL)?_(USER|USERNAME)$")))
-                | .[0] // {}')
-          PG_SUPER_USER=$(printf '%s' "$RAW_USER" | jq -r '.value // empty')
-          if [ -z "${PG_SUPER_USER:-}" ]; then
-            USN=$(printf '%s' "$RAW_USER" | jq -r '.valueFrom.secretKeyRef.name // empty')
-            UKY=$(printf '%s' "$RAW_USER" | jq -r '.valueFrom.secretKeyRef.key // empty')
-            if [ -n "${USN:-}" ] && [ -n "${UKY:-}" ]; then
-              PG_SUPER_USER="$(get_secret_val "$NAMESPACE" "$USN" "$UKY" || true)"
-            fi
-          fi
-
-          # --- Detect superuser password from Pod env/secretKeyRef ---
-          RAW_PW=$(kubectl -n "$NAMESPACE" get pod -l app=postgres -o json \
-            | jq -r '
-                .items[0].spec.containers[0].env // []
-                | map(select(.name|test("(?i)^POSTGRES(_QL)?_PASSWORD$|^POSTGRES-PASSWORD$")))
-                | .[0] // {}')
-          PG_SUPER_PW=$(printf '%s' "$RAW_PW" | jq -r '.value // empty')
-          if [ -z "${PG_SUPER_PW:-}" ]; then
-            PWN=$(printf '%s' "$RAW_PW" | jq -r '.valueFrom.secretKeyRef.name // empty')
-            PWK=$(printf '%s' "$RAW_PW" | jq -r '.valueFrom.secretKeyRef.key // empty')
-            if [ -n "${PWN:-}" ] && [ -n "${PWK:-}" ]; then
-              PG_SUPER_PW="$(get_secret_val "$NAMESPACE" "$PWN" "$PWK" || true)"
-            fi
-          fi
-
-           # --- Choose a superuser (prefer discovered, then fallbacks) ---
-          PG_SUPER_USER="${PG_SUPER_USER:-}"
-          if [ -z "${PG_SUPER_USER:-}" ]; then
-            for U in postgres kubeflow; do
-              if kubectl -n "$NAMESPACE" run psql-probe --rm -i --restart=Never \
-                   --image=bitnami/postgresql:17 \
-                   --env="PGPASSWORD=${PG_SUPER_PW:-}" -- \
-                   psql -h postgres-service -p 5432 -U "$U" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
-                PG_SUPER_USER="$U"; break
-              fi
-            done
-          else
-            # verify discovered user works; if not, fallback
-            if ! kubectl -n "$NAMESPACE" run psql-probe --rm -i --restart=Never \
-                 --image=bitnami/postgresql:17 \
-                 --env="PGPASSWORD=${PG_SUPER_PW:-}" -- \
-                 psql -h postgres-service -p 5432 -U "$PG_SUPER_USER" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
-              PG_SUPER_USER=""
-            fi
-          fi
-          if [ -z "${PG_SUPER_USER:-}" ]; then
-            echo "Failed to connect as a superuser (tried discovered, postgres, kubeflow)."
-            kubectl -n "$NAMESPACE" get secret
-            exit 2
-          fi
-          echo "Using superuser: $PG_SUPER_USER"
-
-          # --- Create test user/password & db (idempotent) ---
-          kubectl -n "$NAMESPACE" run psql-bootstrap --rm -i --restart=Never \
-            --image=bitnami/postgresql:17 -- \
-            bash -lc "
-              export PGPASSWORD='${PG_SUPER_PW:-}';
-              psql -h postgres-service -p 5432 -U '$PG_SUPER_USER' -d postgres -v ON_ERROR_STOP=1 -q -c \"
-                DO \$\$ BEGIN
-                  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user') THEN
-                    CREATE ROLE \\\"user\\\" LOGIN PASSWORD 'password';
-                  END IF;
-                END \$\$;\"
-              psql -h postgres-service -p 5432 -U '$PG_SUPER_USER' -d postgres -tAc \"
-                SELECT 1 FROM pg_database WHERE datname='mlpipeline'\" | grep -q 1 || \
-              psql -h postgres-service -p 5432 -U '$PG_SUPER_USER' -d postgres -v ON_ERROR_STOP=1 -c \"
-                CREATE DATABASE mlpipeline OWNER \\\"user\\\";\"
-              PGPASSWORD='password' psql -h postgres-service -p 5432 -U user -d mlpipeline -c \"
-                SELECT current_database(), current_user;\"
-            "
-
       - name: Run backend integration tests (pgx)
         env:
           DB_TYPE: postgres
           DB_DRIVER: pgx
           DB_HOST: postgres-service
           DB_PORT: "5432"
-          DB_USER: user
-          DB_PASSWORD: password
-          DB_NAME: mlpipeline
+          DB_USER: kubeflow
+          DB_PASSWORD: kubeflow
+          DB_NAME: postgres
         run: |
           go test -v ./... -namespace "$NAMESPACE" -args -runIntegrationTests=true -isDevMode=true -runPostgreSQLTests=true -localTest=true || true
 

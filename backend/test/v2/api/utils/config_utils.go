@@ -15,11 +15,12 @@
 package test
 
 import (
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 	"io"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 
 	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
