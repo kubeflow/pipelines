@@ -287,15 +287,26 @@ func (p *PipelineVersion) GetField(name string) interface{} {
 	case "pipeline_versions.UUID":
 		return p.UID
 	case "pipeline_versions.pipeline_version_id":
-		return p.OwnerReferences[0].UID
+		return p.UID
 	case "pipeline_versions.Name":
 		return p.Name
+	case "pipeline_versions.Status":
+		if len(p.Status.Conditions) > 0 {
+			return p.Status.Conditions[0].Reason
+		}
+		return nil
 	case "pipeline_versions.CreatedAtInSec":
-		return p.CreationTimestamp
+		return p.CreationTimestamp.Unix()
 	case "pipeline_versions.DisplayName":
 		return p.Spec.DisplayName
 	case "pipeline_versions.Description":
 		return p.Spec.Description
+	case "pipeline_versions.PipelineSpec":
+		return p.Spec.PipelineSpec
+	case "pipeline_versions.CodeSourceUrl":
+		return p.Spec.CodeSourceURL
+	case "pipeline_versions.PipelineSpecURI":
+		return p.Spec.PipelineSpecURI
 	default:
 		return nil
 	}

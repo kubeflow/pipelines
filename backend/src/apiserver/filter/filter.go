@@ -19,6 +19,7 @@ package filter
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/Masterminds/squirrel"
@@ -29,7 +30,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 )
 
-const filterMessage = "Filter %v is not implemented for Kubernetes pipeline store. Only substring is supported."
+const filterMessage = "Filter %v is not implemented for Kubernetes pipeline store. Supported filters are eq, neq, in, and substring."
 
 // Internal representation of a predicate.
 type Predicate struct {
@@ -212,83 +213,85 @@ func replaceMapKeys(m map[string][]interface{}, keyMap map[string]string, prefix
 }
 
 func (f *Filter) FilterK8sPipelines(pipeline v2beta1.Pipeline) (bool, error) {
-	if len(f.eq) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "eq"))
-	}
-
-	if len(f.neq) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "neq"))
-	}
-
-	if len(f.gt) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gt"))
-	}
-
-	if len(f.gte) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gte"))
-	}
-
-	if len(f.lt) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lt"))
-	}
-
-	if len(f.lte) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lte"))
-	}
-
-	if len(f.in) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "in"))
-	}
-
-	for k := range f.substring {
-		for _, v := range f.substring[k] {
-			if strings.Contains(fmt.Sprint(pipeline.GetField(k)), fmt.Sprint(v)) {
-				return true, nil
-			}
-		}
-	}
-
-	return false, nil
+	return f.matchesFilter(func(k string) interface{} { return pipeline.GetField(k) })
 }
 
 func (f *Filter) FilterK8sPipelineVersions(pipelineVersion v2beta1.PipelineVersion) (bool, error) {
-	if len(f.eq) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "eq"))
-	}
+	return f.matchesFilter(func(k string) interface{} { return pipelineVersion.GetField(k) })
+}
 
-	if len(f.neq) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "neq"))
-	}
-
-	if len(f.gt) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gt"))
-	}
-
-	if len(f.gte) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "gte"))
-	}
-
-	if len(f.lt) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lt"))
-	}
-
-	if len(f.lte) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "lte"))
-	}
-
-	if len(f.in) > 0 {
-		return false, util.NewInvalidInputError(fmt.Sprintf(filterMessage, "in"))
-	}
-
-	for k := range f.substring {
-		for _, v := range f.substring[k] {
-			if strings.Contains(fmt.Sprint(pipelineVersion.GetField(k)), fmt.Sprint(v)) {
-				return true, nil
+// matchesFilter applies client-side filtering with AND semantics across predicate groups.
+// The getField function should return the value of the given key on the object being filtered.
+func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) {
+	// EQ: all specified equals must hold.
+	for k := range f.eq {
+		fieldVal := fmt.Sprint(getField(k))
+		for _, v := range f.eq[k] {
+			if fieldVal != fmt.Sprint(v) {
+				return false, nil
 			}
 		}
 	}
 
-	return false, nil
+	// NEQ: none of the specified values may match (NOT IN semantics).
+	for k := range f.neq {
+		fieldVal := fmt.Sprint(getField(k))
+		for _, v := range f.neq[k] {
+			if fieldVal == fmt.Sprint(v) {
+				return false, nil
+			}
+		}
+	}
+
+	if len(f.gt) > 0 {
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "gt"))
+	}
+
+	if len(f.gte) > 0 {
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "gte"))
+	}
+
+	if len(f.lt) > 0 {
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "lt"))
+	}
+
+	if len(f.lte) > 0 {
+		return false, util.NewInvalidInputError("%s", fmt.Sprintf(filterMessage, "lte"))
+	}
+
+	// IN: field must be a member of all provided IN lists for the same key (AND semantics across lists)
+	for k := range f.in {
+		fieldVal := fmt.Sprint(getField(k))
+		for _, list := range f.in[k] {
+			inOne := false
+			rv := reflect.ValueOf(list)
+			if rv.Kind() != reflect.Slice && rv.Kind() != reflect.Array {
+				return false, nil
+			}
+			for i := 0; i < rv.Len(); i++ {
+				if fieldVal == fmt.Sprint(rv.Index(i).Interface()) {
+					inOne = true
+					break
+				}
+			}
+			if !inOne {
+				return false, nil
+			}
+		}
+	}
+
+	// SUBSTRING: all specified substrings must be present.
+	for k := range f.substring {
+		fieldVal := fmt.Sprint(getField(k))
+		for _, v := range f.substring[k] {
+			if !strings.Contains(fieldVal, fmt.Sprint(v)) {
+				return false, nil
+			}
+		}
+	}
+
+	// If no checks failed, the item matches the filter.
+	return true, nil
 }
 
 // AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied
