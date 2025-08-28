@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """A pipeline using workspace functionality."""
-from kfp import dsl
+from kfp import dsl, compiler
 
 
 @dsl.component
@@ -75,3 +75,9 @@ def pipeline_with_workspace() -> str:
     )
     
     return read_task.output
+
+
+if __name__ == '__main__':
+    compiler.Compiler().compile(
+        pipeline_func=pipeline_with_workspace,
+        package_path=__file__.replace('.py', '.yaml'))

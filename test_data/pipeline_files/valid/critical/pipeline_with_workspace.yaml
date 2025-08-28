@@ -1,0 +1,150 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-workspace
+# Description: A pipeline that demonstrates workspace functionality
+# Outputs:
+#    Output: str
+components:
+  comp-read-from-workspace:
+    executorLabel: exec-read-from-workspace
+    inputDefinitions:
+      parameters:
+        file_path:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-write-to-workspace:
+    executorLabel: exec-write-to-workspace
+    inputDefinitions:
+      parameters:
+        workspace_path:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-read-from-workspace:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_from_workspace
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_from_workspace(file_path: str) -> str:\n    \"\"\"Read a\
+          \ file from the workspace using the provided file path.\"\"\"    \n    import\
+          \ os\n\n    if os.path.exists(file_path):\n        with open(file_path,\
+          \ \"r\") as f:\n            content = f.read()\n        print(f\"Read content\
+          \ from: {file_path}\")\n        print(f\"Content: {content}\")\n       \
+          \ assert content == \"Hello from workspace!\"\n        return content\n\
+          \    else:\n        print(f\"File not found at: {file_path}\")\n       \
+          \ return \"File not found\"\n\n"
+        image: python:3.9
+    exec-write-to-workspace:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - write_to_workspace
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef write_to_workspace(workspace_path: str) -> str:\n    \"\"\"Write\
+          \ a file to the workspace.\"\"\"   \n    import os\n\n    # Create a file\
+          \ in the workspace\n    file_path = os.path.join(workspace_path, \"data\"\
+          , \"test_file.txt\")\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n\
+          \n    with open(file_path, \"w\") as f:\n        f.write(\"Hello from workspace!\"\
+          )\n\n    print(f\"Wrote file to: {file_path}\")\n    return file_path\n\n"
+        image: python:3.9
+pipelineInfo:
+  description: A pipeline that demonstrates workspace functionality
+  name: pipeline-with-workspace
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: read-from-workspace
+    tasks:
+      read-from-workspace:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-read-from-workspace
+        dependentTasks:
+        - write-to-workspace
+        inputs:
+          parameters:
+            file_path:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: write-to-workspace
+        taskInfo:
+          name: read-from-workspace
+      write-to-workspace:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-write-to-workspace
+        inputs:
+          parameters:
+            workspace_path:
+              runtimeValue:
+                constant: '{{$.workspace_path}}'
+        taskInfo:
+          name: write-to-workspace
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.3
+---
+platforms:
+  kubernetes:
+    pipelineConfig:
+      workspace:
+        kubernetes:
+          pvcSpecPatch:
+            storageClassName: standard
+        size: 1Gi

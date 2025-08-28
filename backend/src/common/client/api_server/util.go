@@ -1,6 +1,7 @@
 package api_server
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -63,12 +64,31 @@ func toWorkflowTestOnly(workflow string) *workflowapi.Workflow {
 	return &result
 }
 
+func TokenToAuthInfo(userToken string) runtime.ClientAuthInfoWriter {
+	return runtime.ClientAuthInfoWriterFunc(
+		func(r runtime.ClientRequest, _ strfmt.Registry) error {
+			r.SetHeaderParam("Authorization", "Bearer "+userToken)
+			return nil
+		})
+}
+
 func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	*httptransport.Runtime, error,
 ) {
 	if os.Getenv("LOCAL_API_SERVER") == "true" {
 		httpClient := http.DefaultClient
-		runtime := httptransport.NewWithClient("localhost:8888", "", []string{"http"}, httpClient)
+		scheme := []string{"http"}
+		useSsl, ok := os.LookupEnv("HTTP_USE_SSL")
+		if ok {
+			scheme = append(scheme, "https")
+			if useSsl == "false" {
+				tr := &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				}
+				httpClient = &http.Client{Transport: tr}
+			}
+		}
+		runtime := httptransport.NewWithClient("localhost:8888", "", scheme, httpClient)
 		if debug {
 			runtime.SetDebug(true)
 		}
