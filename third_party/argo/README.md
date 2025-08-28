@@ -23,6 +23,10 @@ Instructions:
 
     NOTE: At this time, release.sh is a no-op included only for maintaining consistency with other third-party dependencies
 
+1. Update the versions listed in the compatibility matrix in [README.md](../../README.md).
+
+1. Consider bumping the minimum Argo version used in the GitHub workflows to match the prior version.
+
 1. Update [manifests](../../manifests) and other places in the code base that still uses the old argo image tag.
     * Upgrade [Argo upstream manifests](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/third-party/argo/README.md#upgrade-argo).
     * Search for the old argo versions in the repo and update them to new versions based on the reference.

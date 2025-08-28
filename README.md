@@ -25,6 +25,13 @@ The Kubeflow pipelines service has the following goals:
 
 * The Docker container runtime has been deprecated on Kubernetes 1.20+. Kubeflow Pipelines has switched to use [Emissary Executor](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/installation/choose-executor/#emissary-executor) by default from Kubeflow Pipelines 1.8. Emissary executor is Container runtime agnostic, meaning you are able to run Kubeflow Pipelines on Kubernetes cluster with any [Container runtimes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/).
 
+### Dependencies Compatibility Matrix
+
+| Dependency     | Versions    |
+| -------------- | ----------  |
+| Argo Workflows | v3.5, v3.6  |
+| MySQL          | v8          |
+
 ## Documentation
 
 Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/components/pipelines/overview/).
