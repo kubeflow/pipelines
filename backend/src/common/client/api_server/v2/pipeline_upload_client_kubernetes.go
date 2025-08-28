@@ -141,7 +141,7 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 		Name:        name,
 		Namespace:   c.namespace,
 		DisplayName: displayName,
-		Description: description,
+		Description: apimodel.LargeText(description),
 	}
 	pipeline := k8sapi.FromPipelineModel(pipelineModel)
 
@@ -158,8 +158,8 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 	pipelineVersionModel := apimodel.PipelineVersion{
 		Name:         name,
 		DisplayName:  displayName,
-		Description:  description,
-		PipelineSpec: string(piplineSpec),
+		Description:  apimodel.LargeText(description),
+		PipelineSpec: apimodel.LargeText(piplineSpec),
 	}
 
 	pipelineVersion, err := k8sapi.FromPipelineVersionModel(pipelineModel, pipelineVersionModel)
@@ -249,9 +249,9 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 
 	modelPipelineVersion := apimodel.PipelineVersion{
 		Name:         name,
-		PipelineSpec: string(processedFile),
+		PipelineSpec: apimodel.LargeText(processedFile),
 		DisplayName:  displayName,
-		Description:  description,
+		Description:  apimodel.LargeText(description),
 		PipelineId:   modelPipeline.UUID,
 	}
 
@@ -278,7 +278,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 
 	rv := &model.V2beta1PipelineVersion{
 		CreatedAt:         strfmt.DateTime(pipelineVersion.CreationTimestamp.Time),
-		Description:       pipelineVersionModel.Description,
+		Description:       string(pipelineVersionModel.Description),
 		DisplayName:       pipelineVersionModel.DisplayName,
 		Name:              pipelineVersionModel.Name,
 		PipelineID:        modelPipeline.UUID,
@@ -288,7 +288,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 	}
 
 	// Handles the case where there is a platform spec in the pipeline spec.
-	if spec, err := server.YamlStringToPipelineSpecStruct(pipelineVersionModel.PipelineSpec); err == nil && spec != nil {
+	if spec, err := server.YamlStringToPipelineSpecStruct(string(pipelineVersionModel.PipelineSpec)); err == nil && spec != nil {
 		rv.PipelineSpec = spec.AsMap()
 	} else if err != nil {
 		return nil, util.NewUserError(err,
