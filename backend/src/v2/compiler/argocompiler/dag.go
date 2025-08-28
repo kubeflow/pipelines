@@ -574,6 +574,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	if c.mlPipelineServiceTLSEnabled {
+		args = append(args, "--ml_pipeline_service_tls_enabled")
+	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -606,9 +609,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
+	ConfigureCABundle(t)
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name

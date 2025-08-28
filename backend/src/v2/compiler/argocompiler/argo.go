@@ -167,6 +167,11 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		spec:            spec,
 		executors:       deploy.GetExecutors(),
 	}
+	mlPipelineTLSEnabled, err := GetMLPipelineServiceTLSEnabled()
+	if err != nil {
+		return nil, err
+	}
+	c.mlPipelineServiceTLSEnabled = mlPipelineTLSEnabled
 	if opts != nil {
 		c.cacheDisabled = opts.CacheDisabled
 		c.defaultWorkspace = opts.DefaultWorkspace
@@ -198,14 +203,15 @@ type workflowCompiler struct {
 	spec      *pipelinespec.PipelineSpec
 	executors map[string]*pipelinespec.PipelineDeploymentConfig_ExecutorSpec
 	// state
-	wf               *wfapi.Workflow
-	templates        map[string]*wfapi.Template
-	driverImage      string
-	driverCommand    []string
-	launcherImage    string
-	launcherCommand  []string
-	cacheDisabled    bool
-	defaultWorkspace *k8score.PersistentVolumeClaimSpec
+	wf                          *wfapi.Workflow
+	templates                   map[string]*wfapi.Template
+	driverImage                 string
+	driverCommand               []string
+	launcherImage               string
+	launcherCommand             []string
+	cacheDisabled               bool
+	defaultWorkspace            *k8score.PersistentVolumeClaimSpec
+	mlPipelineServiceTLSEnabled bool
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {

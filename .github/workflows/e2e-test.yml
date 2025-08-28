@@ -245,6 +245,7 @@ jobs:
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
+          LOCAL_API_SERVER: "true"
         continue-on-error: true
 
       - name: Collect failed logs
@@ -388,6 +389,72 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kfp-api-integration-tests-v2-with-proxy-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*
+
+  api-integration-tests-v2-with-tls-enabled:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.31.0" ]
+    name: API integration tests v2 with TLS enabled - K8s ${{  matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          pod_to_pod_tls_enabled: true
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Forward MLMD port
+        id: forward-mlmd-port
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
+        continue-on-error: true
+
+        # Create CA cert file on runner
+      - name: Extract cluster CA cert
+        run: |
+          kubectl -n kubeflow get secret kfp-api-tls-cert  -o jsonpath='{.data.ca\.crt}' | base64 -d > cluster-ca.crt
+      - name: API integration tests v2
+        id: tests
+        if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
+        working-directory: ./backend/test/v2/integration
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -tlsEnabled=true -caCertPath=../../../../cluster-ca.crt -isDebugMode
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          LOCAL_API_SERVER: true
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v2-with-tls-enabled-artifacts-k8s-${{ matrix.k8s_version }}
           path: /tmp/tmp*/*
 
   api-integration-tests-v2-with-cache-disabled:

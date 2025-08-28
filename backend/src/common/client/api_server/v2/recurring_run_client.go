@@ -44,10 +44,10 @@ type RecurringRunClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewRecurringRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewRecurringRunClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
 	*RecurringRunClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
 	}
@@ -60,10 +60,10 @@ func NewRecurringRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
-func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool) (
+func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool, tlsEnabled bool, caCertPath string) (
 	*RecurringRunClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsEnabled, caCertPath)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

@@ -82,6 +82,8 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_service_tls_enabled
+      - "false"
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver

@@ -67,13 +67,13 @@ func (s *PipelineVersionApiTest) SetupTest() {
 
 	if *isKubeflowMode {
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
 		}
 	}
 
@@ -81,6 +81,8 @@ func (s *PipelineVersionApiTest) SetupTest() {
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
+		*tlsEnabled,
+		*caCertPath,
 		*isDebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),

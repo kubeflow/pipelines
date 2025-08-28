@@ -1,0 +1,28 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kfp-api-tls-cert
+spec:
+  commonName: kfp-api-tls-cert
+  isCA: true
+  dnsNames:
+    - ml-pipeline
+    - ml-pipeline.kubeflow.svc.cluster.local
+    - ml-pipeline.$(kfp-namespace)
+    - ml-pipeline.$(kfp-namespace).svc
+    - ml-pipeline-scheduledworkflow
+    - ml-pipeline-scheduledworkflow.$(kfp-namespace)
+    - ml-pipeline-scheduledworkflow.$(kfp-namespace).svc
+    - metadata-envoy
+    - metadata-envoy.$(kfp-namespace)
+    - metadata-envoy.$(kfp-namespace).svc
+    - metadata-grpc
+    - metadata-grpc.$(kfp-namespace)
+    - metadata-grpc.$(kfp-namespace).svc
+    - localhost
+  ipAddresses:
+    - 127.0.0.1
+  issuerRef:
+    kind: Issuer
+    name: kfp-api-tls-selfsigned-issuer
+  secretName: kfp-api-tls-cert

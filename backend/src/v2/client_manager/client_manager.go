@@ -26,9 +26,10 @@ type ClientManager struct {
 }
 
 type Options struct {
-	MLMDServerAddress string
-	MLMDServerPort    string
-	CacheDisabled     bool
+	MLMDServerAddress    string
+	MLMDServerPort       string
+	CacheDisabled        bool
+	MLPipelineTLSEnabled bool
 }
 
 // NewClientManager creates and Init a new instance of ClientManager.
@@ -63,7 +64,7 @@ func (cm *ClientManager) init(opts *Options) error {
 	if err != nil {
 		return err
 	}
-	cacheClient, err := initCacheClient(opts.CacheDisabled)
+	cacheClient, err := initCacheClient(opts.CacheDisabled, opts.MLPipelineTLSEnabled)
 	if err != nil {
 		return err
 	}
@@ -89,6 +90,6 @@ func initMetadataClient(address string, port string) (metadata.ClientInterface, 
 	return metadata.NewClient(address, port)
 }
 
-func initCacheClient(cacheDisabled bool) (cacheutils.Client, error) {
-	return cacheutils.NewClient(cacheDisabled)
+func initCacheClient(cacheDisabled bool, mlPipelineServiceTLSEnabled bool) (cacheutils.Client, error) {
+	return cacheutils.NewClient(cacheDisabled, mlPipelineServiceTLSEnabled)
 }
