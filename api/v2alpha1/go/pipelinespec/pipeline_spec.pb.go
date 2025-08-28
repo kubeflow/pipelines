@@ -110,6 +110,9 @@ const (
 	// Indicates that a parameter is a TaskFinalStatus type; these types can only accept inputs
 	// specified by InputParameterSpec.task_final_status
 	ParameterType_TASK_FINAL_STATUS ParameterType_ParameterTypeEnum = 7
+	// Indicates that a parameter is a TaskKubernetesConfig type; these types are
+	// injected by the backend to provide the Kubernetes configuration set on the task.
+	ParameterType_TASK_KUBERNETES_CONFIG ParameterType_ParameterTypeEnum = 8
 )
 
 // Enum value maps for ParameterType_ParameterTypeEnum.
@@ -123,6 +126,7 @@ var (
 		5: "LIST",
 		6: "STRUCT",
 		7: "TASK_FINAL_STATUS",
+		8: "TASK_KUBERNETES_CONFIG",
 	}
 	ParameterType_ParameterTypeEnum_value = map[string]int32{
 		"PARAMETER_TYPE_ENUM_UNSPECIFIED": 0,
@@ -133,6 +137,7 @@ var (
 		"LIST":                            5,
 		"STRUCT":                          6,
 		"TASK_FINAL_STATUS":               7,
+		"TASK_KUBERNETES_CONFIG":          8,
 	}
 )
 
@@ -5642,8 +5647,8 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\n" +
 	"\x06DOUBLE\x10\x02\x12\n" +
 	"\n" +
-	"\x06STRING\x10\x03\x1a\x02\x18\x01:\x02\x18\x01\"\xb7\x01\n" +
-	"\rParameterType\"\xa5\x01\n" +
+	"\x06STRING\x10\x03\x1a\x02\x18\x01:\x02\x18\x01\"\xd3\x01\n" +
+	"\rParameterType\"\xc1\x01\n" +
 	"\x11ParameterTypeEnum\x12#\n" +
 	"\x1fPARAMETER_TYPE_ENUM_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rNUMBER_DOUBLE\x10\x01\x12\x12\n" +
@@ -5654,7 +5659,8 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\x04LIST\x10\x05\x12\n" +
 	"\n" +
 	"\x06STRUCT\x10\x06\x12\x15\n" +
-	"\x11TASK_FINAL_STATUS\x10\a\"\xfe\n" +
+	"\x11TASK_FINAL_STATUS\x10\a\x12\x1a\n" +
+	"\x16TASK_KUBERNETES_CONFIG\x10\b\"\xfe\n" +
 	"\n" +
 	"\x10PipelineTaskSpec\x12;\n" +
 	"\ttask_info\x18\x01 \x01(\v2\x1e.ml_pipelines.PipelineTaskInfoR\btaskInfo\x124\n" +

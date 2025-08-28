@@ -28,6 +28,7 @@ from kfp.dsl import utils
 from kfp.dsl import v1_structures
 from kfp.dsl.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
+from kfp.dsl.task_kubernetes_config import TaskKubernetesConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
@@ -223,7 +224,9 @@ def spec_type_is_parameter(type_: str) -> bool:
     in_memory_type = type_annotations.maybe_strip_optional_from_annotation_string(
         type_utils.get_canonical_name_for_outer_generic(type_))
 
-    return in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE or in_memory_type == 'PipelineTaskFinalStatus'
+    return (in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE or
+            in_memory_type == 'PipelineTaskFinalStatus' or
+            in_memory_type == TaskKubernetesConfig.__name__)
 
 
 @dataclasses.dataclass

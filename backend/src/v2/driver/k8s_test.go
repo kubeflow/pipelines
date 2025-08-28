@@ -222,6 +222,7 @@ func Test_makePodSpecPatch_nodeSelector(t *testing.T) {
 				nil,
 				nil,
 				tt.inputParams,
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.NotNil(t, got)
@@ -609,6 +610,7 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 				nil,
 				nil,
 				tt.inputParams,
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expected, tt.podSpec)
@@ -703,7 +705,8 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 						VolumeSource: k8score.VolumeSource{
 							ConfigMap: &k8score.ConfigMapVolumeSource{
 								LocalObjectReference: k8score.LocalObjectReference{Name: "cm1"},
-								Optional:             &[]bool{false}[0]},
+								Optional:             &[]bool{false}[0],
+							},
 						},
 					},
 				},
@@ -856,7 +859,8 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 						VolumeSource: k8score.VolumeSource{
 							ConfigMap: &k8score.ConfigMapVolumeSource{
 								LocalObjectReference: k8score.LocalObjectReference{Name: "cm-name"},
-								Optional:             &[]bool{true}[0]},
+								Optional:             &[]bool{true}[0],
+							},
 						},
 					},
 				},
@@ -1009,6 +1013,7 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 				nil,
 				nil,
 				tt.inputParams,
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expected, tt.podSpec)
@@ -1176,6 +1181,7 @@ func Test_extendPodSpecPatch_EmptyVolumeMount(t *testing.T) {
 				nil,
 				nil,
 				map[string]*structpb.Value{},
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expected, tt.podSpec)
@@ -1298,6 +1304,7 @@ func Test_extendPodSpecPatch_ImagePullSecrets(t *testing.T) {
 				nil,
 				nil,
 				tt.inputParams,
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.NotNil(t, got)
@@ -1734,6 +1741,7 @@ func Test_extendPodSpecPatch_Tolerations(t *testing.T) {
 				nil,
 				nil,
 				tt.inputParams,
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.NotNil(t, got)
@@ -1836,6 +1844,7 @@ func Test_extendPodSpecPatch_FieldPathAsEnv(t *testing.T) {
 				nil,
 				nil,
 				map[string]*structpb.Value{},
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.NotNil(t, got)
@@ -1906,6 +1915,7 @@ func Test_extendPodSpecPatch_ActiveDeadlineSeconds(t *testing.T) {
 				nil,
 				nil,
 				map[string]*structpb.Value{},
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.NotNil(t, got)
@@ -1995,6 +2005,7 @@ func Test_extendPodSpecPatch_ImagePullPolicy(t *testing.T) {
 				nil,
 				nil,
 				map[string]*structpb.Value{},
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expected, tt.podSpec)
@@ -2190,6 +2201,7 @@ func Test_extendPodSpecPatch_GenericEphemeralVolume(t *testing.T) {
 				nil,
 				nil,
 				map[string]*structpb.Value{},
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expected, tt.podSpec)
@@ -2488,6 +2500,7 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T) {
 				nil,
 				nil,
 				tt.inputParams,
+				nil,
 			)
 			assert.NoError(t, err)
 
@@ -2507,6 +2520,160 @@ func Test_extendPodSpecPatch_NodeAffinity(t *testing.T) {
 				assert.Nil(t, got.Affinity)
 			}
 		})
+	}
+}
+
+func Test_extendPodSpecPatch_TaskK8sConfig_CapturesAndApplies(t *testing.T) {
+	podSpec := &k8score.PodSpec{Containers: []k8score.Container{{Name: "main"}}}
+	cfg := &kubernetesplatform.KubernetesExecutorConfig{
+		NodeSelector: &kubernetesplatform.NodeSelector{Labels: map[string]string{"disktype": "ssd"}},
+		Tolerations: []*kubernetesplatform.Toleration{{
+			Key:               "example-key",
+			Operator:          "Exists",
+			Effect:            "NoExecute",
+			TolerationSeconds: int64Ptr(3600),
+		}},
+		ImagePullSecret: []*kubernetesplatform.ImagePullSecret{{SecretName: "pull-secret"}},
+		SecretAsVolume: []*kubernetesplatform.SecretAsVolume{{
+			SecretName: "secret1",
+			MountPath:  "/data/secret",
+		}},
+		PvcMount: []*kubernetesplatform.PvcMount{{
+			MountPath:        "/data",
+			PvcNameParameter: inputParamConstant("kubernetes-task-config-pvc"),
+		}},
+		SecretAsEnv: []*kubernetesplatform.SecretAsEnv{{
+			SecretName: "my-secret",
+			KeyToEnv: []*kubernetesplatform.SecretAsEnv_SecretKeyToEnvMap{{
+				SecretKey: "password",
+				EnvVar:    "SECRET_VAR",
+			}},
+		}},
+		FieldPathAsEnv: []*kubernetesplatform.FieldPathAsEnv{{
+			Name:      "KFP_RUN_NAME",
+			FieldPath: "metadata.annotations['pipelines.kubeflow.org/run_name']",
+		}},
+		NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{{
+			MatchExpressions: []*kubernetesplatform.SelectorRequirement{{
+				Key:      "disktype",
+				Operator: "In",
+				Values:   []string{"ssd"},
+			}},
+		}},
+	}
+
+	taskCfg := &TaskKubernetesConfig{}
+	err := extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		Options{KubernetesExecutorConfig: cfg},
+		nil,
+		nil,
+		nil,
+		map[string]*structpb.Value{},
+		taskCfg,
+	)
+	assert.NoError(t, err)
+
+	// Applied to pod: image pull secrets, volumes/mounts, env
+	assert.Nil(t, podSpec.NodeSelector)
+	assert.Len(t, podSpec.Tolerations, 0)
+	assert.Len(t, podSpec.ImagePullSecrets, 1)
+	assert.Equal(t, "pull-secret", podSpec.ImagePullSecrets[0].Name)
+	assert.Empty(t, podSpec.Containers[0].Resources.Limits)
+	assert.Empty(t, podSpec.Containers[0].Resources.Requests)
+	// volume from SecretAsVolume is mounted
+	if assert.GreaterOrEqual(t, len(podSpec.Containers[0].VolumeMounts), 1) {
+		foundSecretMount := false
+		foundPvcMount := false
+		for _, m := range podSpec.Containers[0].VolumeMounts {
+			if m.Name == "secret1" && m.MountPath == "/data/secret" {
+				foundSecretMount = true
+			}
+			if m.Name == "kubernetes-task-config-pvc" && m.MountPath == "/data" {
+				foundPvcMount = true
+			}
+		}
+		assert.True(t, foundSecretMount)
+		assert.True(t, foundPvcMount)
+	}
+	// env from secret and field path
+	foundSecretEnv := false
+	foundFieldPathEnv := false
+	for _, e := range podSpec.Containers[0].Env {
+		if e.Name == "SECRET_VAR" && e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil {
+			if e.ValueFrom.SecretKeyRef.Name == "my-secret" && e.ValueFrom.SecretKeyRef.Key == "password" {
+				foundSecretEnv = true
+			}
+		}
+		if e.Name == "KFP_RUN_NAME" && e.ValueFrom != nil && e.ValueFrom.FieldRef != nil {
+			if e.ValueFrom.FieldRef.FieldPath == "metadata.annotations['pipelines.kubeflow.org/run_name']" {
+				foundFieldPathEnv = true
+			}
+		}
+	}
+	assert.True(t, foundSecretEnv)
+	assert.True(t, foundFieldPathEnv)
+
+	// Captured in TaskKubernetesConfig: node selector, tolerations, image pull secrets, volumes/mounts, env, affinity
+	assert.Equal(t, map[string]string{"disktype": "ssd"}, taskCfg.NodeSelector)
+	assert.Len(t, taskCfg.Tolerations, 1)
+	assert.Equal(t, "example-key", taskCfg.Tolerations[0].Key)
+	assert.Equal(t, "NoExecute", string(taskCfg.Tolerations[0].Effect))
+	assert.Equal(t, int64(3600), *taskCfg.Tolerations[0].TolerationSeconds)
+	assert.Len(t, taskCfg.ImagePullSecrets, 1)
+	assert.Equal(t, "pull-secret", taskCfg.ImagePullSecrets[0].Name)
+	// volumes and volume mounts are captured
+	if assert.NotEmpty(t, taskCfg.Volumes) && assert.NotEmpty(t, taskCfg.VolumeMounts) {
+		foundSecretVol := false
+		foundPvcVol := false
+		for _, v := range taskCfg.Volumes {
+			if v.Name == "secret1" && v.Secret != nil {
+				foundSecretVol = true
+			}
+			if v.Name == "kubernetes-task-config-pvc" && v.PersistentVolumeClaim != nil && v.PersistentVolumeClaim.ClaimName == "kubernetes-task-config-pvc" {
+				foundPvcVol = true
+			}
+		}
+		assert.True(t, foundSecretVol)
+		assert.True(t, foundPvcVol)
+
+		foundSecretMount := false
+		foundPvcMount := false
+		for _, m := range taskCfg.VolumeMounts {
+			if m.Name == "secret1" && m.MountPath == "/data/secret" {
+				foundSecretMount = true
+			}
+			if m.Name == "kubernetes-task-config-pvc" && m.MountPath == "/data" {
+				foundPvcMount = true
+			}
+		}
+		assert.True(t, foundSecretMount)
+		assert.True(t, foundPvcMount)
+	}
+	// env captured
+	foundSecretEnv = false
+	foundFieldPathEnv = false
+	for _, e := range taskCfg.Env {
+		if e.Name == "SECRET_VAR" && e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil {
+			if e.ValueFrom.SecretKeyRef.Name == "my-secret" && e.ValueFrom.SecretKeyRef.Key == "password" {
+				foundSecretEnv = true
+			}
+		}
+		if e.Name == "KFP_RUN_NAME" && e.ValueFrom != nil && e.ValueFrom.FieldRef != nil {
+			if e.ValueFrom.FieldRef.FieldPath == "metadata.annotations['pipelines.kubeflow.org/run_name']" {
+				foundFieldPathEnv = true
+			}
+		}
+	}
+	assert.True(t, foundSecretEnv)
+	assert.True(t, foundFieldPathEnv)
+	// affinity captured
+	if assert.NotNil(t, taskCfg.Affinity) && assert.NotNil(t, taskCfg.Affinity.NodeAffinity) {
+		// Either required or preferred should be populated
+		req := taskCfg.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+		pref := taskCfg.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution
+		assert.True(t, req != nil || len(pref) > 0)
 	}
 }
 

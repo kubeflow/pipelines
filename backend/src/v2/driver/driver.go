@@ -72,6 +72,17 @@ type Options struct {
 	TaskName string // the original name of the task, used for input resolution
 }
 
+type TaskKubernetesConfig struct {
+	Affinity         *k8score.Affinity              `json:"affinity"`
+	Tolerations      []k8score.Toleration           `json:"tolerations"`
+	NodeSelector     map[string]string              `json:"nodeSelector"`
+	ImagePullSecrets []k8score.LocalObjectReference `json:"imagePullSecrets"`
+	Env              []k8score.EnvVar               `json:"env"`
+	Volumes          []k8score.Volume               `json:"volumes"`
+	VolumeMounts     []k8score.VolumeMount          `json:"volumeMounts"`
+	Resources        k8score.ResourceRequirements   `json:"resources"`
+}
+
 // Identifying information used for error messages
 func (o Options) info() string {
 	msg := fmt.Sprintf("pipelineName=%v, runID=%v", o.PipelineName, o.RunID)
@@ -163,6 +174,7 @@ func initPodSpecPatch(
 	pipelineLogLevel string,
 	publishLogs string,
 	cacheDisabled string,
+	taskK8sConfig *TaskKubernetesConfig,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -180,6 +192,10 @@ func initPodSpecPatch(
 	}
 
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
+
+	if taskK8sConfig != nil {
+		taskK8sConfig.Env = userEnvVar
+	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)
@@ -308,15 +324,21 @@ func initPodSpecPatch(
 	if err != nil {
 		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
+
 	podSpec := &k8score.PodSpec{
 		Containers: []k8score.Container{{
-			Name:      "main", // argo task user container is always called "main"
-			Command:   launcherCmd,
-			Args:      userCmdArgs,
-			Image:     containerImage,
-			Resources: res,
-			Env:       userEnvVar,
+			Name:    "main", // argo task user container is always called "main"
+			Command: launcherCmd,
+			Args:    userCmdArgs,
+			Image:   containerImage,
+			Env:     userEnvVar,
 		}},
+	}
+
+	if taskK8sConfig != nil {
+		taskK8sConfig.Resources = res
+	} else {
+		podSpec.Containers[0].Resources = res
 	}
 
 	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), userEnvVar, podSpec)
@@ -331,7 +353,7 @@ func initPodSpecPatch(
 		// Argo resolves {{workflow.name}}-kfp-workspace to the actual PVC name at runtime
 		pvcName := "{{workflow.name}}-" + component.WorkspaceVolumeName
 
-		addWorkspaceMount(podSpec, pvcName)
+		addWorkspaceMount(podSpec, pvcName, taskK8sConfig)
 	}
 
 	return podSpec, nil
@@ -372,7 +394,7 @@ func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
 }
 
 // addWorkspaceMount adds the workspace volume mount to the pod spec if needed.
-func addWorkspaceMount(podSpec *k8score.PodSpec, pvcName string) {
+func addWorkspaceMount(podSpec *k8score.PodSpec, pvcName string, taskK8sConfig *TaskKubernetesConfig) {
 	workspaceVolume := k8score.Volume{
 		Name: component.WorkspaceVolumeName,
 		VolumeSource: k8score.VolumeSource{
@@ -389,6 +411,11 @@ func addWorkspaceMount(podSpec *k8score.PodSpec, pvcName string) {
 
 	podSpec.Volumes = append(podSpec.Volumes, workspaceVolume)
 	podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, workspaceVolumeMount)
+
+	if taskK8sConfig != nil {
+		taskK8sConfig.Volumes = append(taskK8sConfig.Volumes, workspaceVolume)
+		taskK8sConfig.VolumeMounts = append(taskK8sConfig.VolumeMounts, workspaceVolumeMount)
+	}
 }
 
 // addModelcarsToPodSpec will patch the pod spec if there are any input artifacts in the Modelcar format.
