@@ -72,7 +72,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		pipelineStore:                 storage.NewPipelineStore(db, time, uuid, testDialect),
 		jobStore:                      storage.NewJobStore(db, time, nil, testDialect),
 		runStore:                      storage.NewRunStore(db, time, testDialect),
-		taskStore:                     storage.NewTaskStore(db, time, uuid),
+		taskStore:                     storage.NewTaskStore(db, time, uuid, testDialect),
 		ExecClientFake:                client.NewFakeExecClient(),
 		resourceReferenceStore:        storage.NewResourceReferenceStore(db, nil, testDialect),
 		dBStatusStore:                 storage.NewDBStatusStore(db),
