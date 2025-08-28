@@ -277,7 +277,7 @@ func (c *ClientManager) init(options *Options) error {
 
 	c.db = db
 	if !options.UsePipelineKubernetesStorage {
-		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
+		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid, c.dbDialect)
 	}
 	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid, c.dbDialect)
 	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef, c.dbDialect)
