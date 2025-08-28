@@ -1,0 +1,441 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: functions-with-outputs-
+spec:
+  arguments:
+    parameters:
+    - name: components-8870f0a2f68d8cd4568555a23e74ba662d25e8d5d7206d8c0b3d03e9d3afce64
+      value: '{"executorLabel":"exec-add-numbers","inputDefinitions":{"parameters":{"first":{"parameterType":"NUMBER_INTEGER"},"second":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: implementations-8870f0a2f68d8cd4568555a23e74ba662d25e8d5d7206d8c0b3d03e9d3afce64
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","add_numbers"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.9.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        add_numbers(first: int, second: int) -\u003e int:\n    return first + second\n\n"],"image":"python:3.9"}'
+    - name: components-f927c43072fb8baf32c3241fad2cbf970008046a26a48f20f75c4226e4a16cd8
+      value: '{"executorLabel":"exec-concat-message","inputDefinitions":{"parameters":{"first":{"parameterType":"STRING"},"second":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-f927c43072fb8baf32c3241fad2cbf970008046a26a48f20f75c4226e4a16cd8
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","concat_message"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.9.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        concat_message(first: str, second: str) -\u003e str:\n    return first + second\n\n"],"image":"python:3.9"}'
+    - name: components-057891112980ba235e08bd912537a46f32f24c44d2eadd1f97e1f5f4ea3094c2
+      value: '{"executorLabel":"exec-output-artifact","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"},"number":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-057891112980ba235e08bd912537a46f32f24c44d2eadd1f97e1f5f4ea3094c2
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","output_artifact"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.9.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        output_artifact(number: int, message: str) -\u003e Dataset:\n    result =
+        [message for _ in range(number)]\n    return ''\\n''.join(result)\n\n"],"image":"python:3.9"}'
+    - name: components-88a0f7f1dfae7eede46c958ca3094899fb994cfa854fd93e13a067becc26bac6
+      value: '{"executorLabel":"exec-output-named-tuple","inputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.Metrics","schemaVersion":"0.0.1"}},"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}},"parameters":{"scalar":{"parameterType":"STRING"}}}}'
+    - name: implementations-88a0f7f1dfae7eede46c958ca3094899fb994cfa854fd93e13a067becc26bac6
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","output_named_tuple"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.9.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        output_named_tuple(\n    artifact: Input[Dataset]\n) -\u003e NamedTuple(''Outputs'',
+        [\n    (''scalar'', str),\n    (''metrics'', Metrics),\n    (''model'', Model),\n]):\n    scalar
+        = ''123''\n\n    import json\n    metrics = json.dumps({\n        ''metrics'':
+        [{\n            ''name'': ''accuracy'',\n            ''numberValue'': 0.9,\n            ''format'':
+        ''PERCENTAGE'',\n        }]\n    })\n\n    with open(artifact.path) as f:\n        artifact_contents
+        = f.read()\n    model = ''Model contents: '' + artifact_contents\n\n    from
+        collections import namedtuple\n    output = namedtuple(''Outputs'', [''scalar'',
+        ''metrics'', ''model''])\n    return output(scalar, metrics, model)\n\n"],"image":"python:3.9"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"add-numbers":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers"},"inputs":{"parameters":{"first":{"componentInputParameter":"first_number"},"second":{"componentInputParameter":"second_number"}}},"taskInfo":{"name":"add-numbers"}},"concat-message":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-concat-message"},"inputs":{"parameters":{"first":{"componentInputParameter":"first_message"},"second":{"componentInputParameter":"second_message"}}},"taskInfo":{"name":"concat-message"}},"output-artifact":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-output-artifact"},"dependentTasks":["add-numbers","concat-message"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"concat-message"}},"number":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"add-numbers"}}}},"taskInfo":{"name":"output-artifact"}},"output-named-tuple":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-output-named-tuple"},"dependentTasks":["output-artifact"],"inputs":{"artifacts":{"artifact":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"output-artifact"}}}},"taskInfo":{"name":"output-named-tuple"}}}},"inputDefinitions":{"parameters":{"first_message":{"parameterType":"STRING"},"first_number":{"parameterType":"NUMBER_INTEGER"},"second_message":{"parameterType":"STRING"},"second_number":{"parameterType":"NUMBER_INTEGER"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - functions-with-outputs
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-8870f0a2f68d8cd4568555a23e74ba662d25e8d5d7206d8c0b3d03e9d3afce64}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers"},"inputs":{"parameters":{"first":{"componentInputParameter":"first_number"},"second":{"componentInputParameter":"second_number"}}},"taskInfo":{"name":"add-numbers"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-8870f0a2f68d8cd4568555a23e74ba662d25e8d5d7206d8c0b3d03e9d3afce64}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: add-numbers-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.add-numbers-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.add-numbers-driver.outputs.parameters.cached-decision}}'
+        depends: add-numbers-driver.Succeeded
+        name: add-numbers
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-f927c43072fb8baf32c3241fad2cbf970008046a26a48f20f75c4226e4a16cd8}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-concat-message"},"inputs":{"parameters":{"first":{"componentInputParameter":"first_message"},"second":{"componentInputParameter":"second_message"}}},"taskInfo":{"name":"concat-message"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-f927c43072fb8baf32c3241fad2cbf970008046a26a48f20f75c4226e4a16cd8}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: concat-message-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.concat-message-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.concat-message-driver.outputs.parameters.cached-decision}}'
+        depends: concat-message-driver.Succeeded
+        name: concat-message
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-057891112980ba235e08bd912537a46f32f24c44d2eadd1f97e1f5f4ea3094c2}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-output-artifact"},"dependentTasks":["add-numbers","concat-message"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"concat-message"}},"number":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"add-numbers"}}}},"taskInfo":{"name":"output-artifact"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-057891112980ba235e08bd912537a46f32f24c44d2eadd1f97e1f5f4ea3094c2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: add-numbers.Succeeded && concat-message.Succeeded
+        name: output-artifact-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.output-artifact-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.output-artifact-driver.outputs.parameters.cached-decision}}'
+        depends: output-artifact-driver.Succeeded
+        name: output-artifact
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-88a0f7f1dfae7eede46c958ca3094899fb994cfa854fd93e13a067becc26bac6}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-output-named-tuple"},"dependentTasks":["output-artifact"],"inputs":{"artifacts":{"artifact":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"output-artifact"}}}},"taskInfo":{"name":"output-named-tuple"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-88a0f7f1dfae7eede46c958ca3094899fb994cfa854fd93e13a067becc26bac6}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: output-artifact.Succeeded
+        name: output-named-tuple-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.output-named-tuple-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.output-named-tuple-driver.outputs.parameters.cached-decision}}'
+        depends: output-named-tuple-driver.Succeeded
+        name: output-named-tuple
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - functions-with-outputs
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

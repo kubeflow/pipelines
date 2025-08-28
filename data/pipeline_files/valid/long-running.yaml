@@ -1,0 +1,48 @@
+# PIPELINE DEFINITION
+# Name: wait-awhile
+components:
+  comp-wait-op:
+    executorLabel: exec-wait-op
+  comp-wait-op-2:
+    executorLabel: exec-wait-op-2
+deploymentSpec:
+  executors:
+    exec-wait-op:
+      container:
+        args:
+        - echo step-1 sleeping for 5m; sleep 300; echo done1
+        command:
+        - sh
+        - -c
+        image: alpine:latest
+    exec-wait-op-2:
+      container:
+        args:
+        - echo step-1 sleeping for 5m; sleep 300; echo done1
+        command:
+        - sh
+        - -c
+        image: alpine:latest
+pipelineInfo:
+  name: wait-awhile
+root:
+  dag:
+    tasks:
+      wait-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-wait-op
+        taskInfo:
+          name: wait-op
+      wait-op-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-wait-op-2
+        dependentTasks:
+        - wait-op
+        taskInfo:
+          name: wait-op-2
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.13

@@ -106,3 +106,41 @@ func ParseFileToSpecs(pipelineFilePath string, cacheEnabled bool, defaultWorkspa
 	gomega.Expect(templateErr).To(gomega.BeNil(), "Failed to parse spec bytes into a spec object")
 	return specs
 }
+
+func CreateFile(filePath string, fileContents [][]byte) *os.File {
+		file, err := os.Create(filePath)
+		if err != nil {
+		logger.Log("Failed to create file &s due to %s", filePath, err.Error())
+	}
+		defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+		logger.Log("Failed to close file: %s", err.Error())
+	}
+	}(file)
+		for _, content := range fileContents {
+		_, err = file.Write(content)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to write contents to a file")
+	}
+		return file
+	}
+
+	func CreateTempFile(fileContents [][]byte) *os.File {
+		tmpFile, err := os.CreateTemp("", "pipeline-*.yaml")
+		if err != nil {
+		logger.Log("Failed to create temporary file: %s", err.Error())
+	}
+		defer func(tmpFile *os.File) {
+		err := tmpFile.Close()
+		if err != nil {
+		logger.Log("Failed to close temporary file: %s", err.Error())
+	}
+	}(tmpFile)
+		for _, content := range fileContents {
+		_, err = tmpFile.Write(content)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to write contents to a temporary file")
+	}
+		return tmpFile
+	}
+
+

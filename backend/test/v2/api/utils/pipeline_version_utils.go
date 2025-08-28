@@ -51,6 +51,22 @@ func DeletePipelineVersion(client *api_server.PipelineClient, pipelineID string,
 	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Pipeline version with id=%s of pipelineID=%s failed", pipelineVersionID, pipelineID))
 }
 
+// GetLatestPipelineVersion - list all pipeline versions of a pipeline by ID and return the one with the latest createdAt date
+func GetLatestPipelineVersion(pipelineClient *api_server.PipelineClient, pipelineID *string) *pipeline_model.V2beta1PipelineVersion {
+	createPipelineVersions, _, _, listPipelineVersionErr := ListPipelineVersions(pipelineClient, *pipelineID)
+	Expect(listPipelineVersionErr).NotTo(HaveOccurred(), "Failed to list pipeline versions for pipeline with id="+*pipelineID)
+	if len(createPipelineVersions) > 0 {
+		sort.Slice(createPipelineVersions, func(i, j int) bool {
+			return time.Time(createPipelineVersions[i].CreatedAt).After(time.Time(createPipelineVersions[j].CreatedAt))
+		})
+		return createPipelineVersions[0]
+	} else {
+		logger.Log("No pipeline versions found for pipeline with id=" + *pipelineID)
+		return nil
+	}
+}
+
+// DeleteAllPipelineVersions - Delete all pipeline versions of a pipeline by ID
 func DeleteAllPipelineVersions(client *api_server.PipelineClient, pipelineID string) {
 	logger.Log("Deleting all pipeline versions for pipeline %s", pipelineID)
 	pipelineVersions, _, _, err := ListPipelineVersions(client, pipelineID)
