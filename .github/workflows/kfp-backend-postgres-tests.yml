@@ -30,8 +30,7 @@ jobs:
       - name: Create KFP cluster
         uses: ./.github/actions/kfp-cluster
         with:
-          cluster_name: ${{ inputs.cluser_name }}
-          node_image: kindest/node:${{ inputs.k8s_version }}
+          k8s_version: "v1.30.2"
           pipeline_store: "database"
           deploy_postgres: "true"
           postgres_namespace: ${{ env.NAMESPACE }}
