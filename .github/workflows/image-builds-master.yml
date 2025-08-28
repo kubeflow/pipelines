@@ -58,3 +58,4 @@ jobs:
       app_to_build: ${{ matrix.image }}
       image_context: ${{ matrix.context }}
       docker_file: ${{ matrix.dockerfile }}
+      push: true
