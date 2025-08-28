@@ -252,7 +252,7 @@ When performing these releases, you should adhere to the order presented below.
 
     !!! The file name must contain the version. See <https://github.com/kubeflow/pipelines/issues/1292>
 
-** Update Readthedocs **
+**Update Readthedocs**
 
 * Create a GitHub release for KFP SDK release. [Here's an example](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.14.1) reference for a template.
   * When creating a release create a new tag `sdk-x.y.z`
@@ -287,7 +287,8 @@ When performing these releases, you should adhere to the order presented below.
 > Note that kfp-kubernetes package has a separate readthedocs site and requires that a new branch be pushed for readthedocs to be able to host multiple pages from the same repo. 
 > Every new patch version for this package requires us to create a new release branch purely for readthedocs purposes. However always cut this branch from the `release-X.Y` branch.
 
-** Update Readthedocs ** 
+**Update Readthedocs** 
+
 Once the branch is updated, you need to add this version to readthedocs. Follow these steps: 
 
 * Navigate to the package section on the readthedocs website [here](https://app.readthedocs.org/projects/kfp-kubernetes/). 
