@@ -38,12 +38,18 @@ func ListPipelines(client *api_server.PipelineClient) (
 Delete a pipeline by id
 */
 func DeletePipeline(client *api_server.PipelineClient, pipelineId string) {
-	logger.Log("Deleting all pipeline version of pipeline with id=%s", pipelineId)
-	DeleteAllPipelineVersions(client, pipelineId)
-	logger.Log("Deleting pipeline with id=%s", pipelineId)
-	err := client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineId})
-	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineId))
-	logger.Log("Pipeline with id=%s, DELETED", pipelineId)
+	_, err := client.Get(&pipeline_params.PipelineServiceGetPipelineParams{PipelineID: pipelineId})
+	if err != nil {
+		logger.Log("Deleting all pipeline version of pipeline with id=%s", pipelineId)
+		DeleteAllPipelineVersions(client, pipelineId)
+		logger.Log("Deleting pipeline with id=%s", pipelineId)
+		err = client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineId})
+		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineId))
+		logger.Log("Pipeline with id=%s, DELETED", pipelineId)
+	} else {
+		logger.Log("Pipeline with id=%s does not exist, so skipping deleting it", pipelineId)
+	}
+
 }
 
 /*

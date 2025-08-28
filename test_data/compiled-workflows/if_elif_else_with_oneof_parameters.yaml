@@ -1,0 +1,607 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: outer-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646
+      value: '{"executorLabel":"exec-print-and-return-3","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_and_return"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        print_and_return(text: str) -\u003e str:\n    print(text)\n    return text\n\n"],"image":"python:3.9"}'
+    - name: components-comp-condition-2
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--print-and-return-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"print-and-return"}}}},"tasks":{"print-and-return":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+        heads!"}}}},"taskInfo":{"name":"print-and-return"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--print-and-return-Output":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-3
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--print-and-return-2-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"print-and-return-2"}}}},"tasks":{"print-and-return-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-2"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+        tails!"}}}},"taskInfo":{"name":"print-and-return-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--print-and-return-2-Output":{"parameterType":"STRING"}}}}'
+    - name: components-14710b1b9b18d4ef6e7aa084e4b2fb9400188853273013cd36af5ee93fccfa12
+      value: '{"executorLabel":"exec-special-print-and-return","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"output_key":{"parameterType":"STRING"}}}}'
+    - name: implementations-14710b1b9b18d4ef6e7aa084e4b2fb9400188853273013cd36af5ee93fccfa12
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","special_print_and_return"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        special_print_and_return(text: str, output_key: dsl.OutputPath(str)):\n    print(''Got
+        the special state:'', text)\n    with open(output_key, ''w'') as f:\n        f.write(text)\n\n"],"image":"python:3.9"}'
+    - name: components-comp-condition-4
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--special-print-and-return-output_key":{"valueFromParameter":{"outputParameterKey":"output_key","producerSubtask":"special-print-and-return"}}}},"tasks":{"special-print-and-return":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-special-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Draw!"}}}},"taskInfo":{"name":"special-print-and-return"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--special-print-and-return-output_key":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-branches-1
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--condition-branches-1-oneof-1":{"valueFromOneof":{"parameterSelectors":[{"outputParameterKey":"pipelinechannel--print-and-return-Output","producerSubtask":"condition-2"},{"outputParameterKey":"pipelinechannel--print-and-return-2-Output","producerSubtask":"condition-3"},{"outputParameterKey":"pipelinechannel--special-print-and-return-output_key","producerSubtask":"condition-4"}]}}}},"tasks":{"condition-2":{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"componentInputParameter":"pipelinechannel--flip-three-sided-die-Output"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+        == ''heads''"}},"condition-3":{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"componentInputParameter":"pipelinechannel--flip-three-sided-die-Output"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+        == ''heads'') \u0026\u0026 inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+        == ''tails''"}},"condition-4":{"componentRef":{"name":"comp-condition-4"},"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"componentInputParameter":"pipelinechannel--flip-three-sided-die-Output"}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+        == ''heads'') \u0026\u0026 !(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+        == ''tails'')"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--condition-branches-1-oneof-1":{"parameterType":"STRING"}}}}'
+    - name: components-8f4b82a1870a5c546119675bd6220ebf4d0e8048252e9c36cd77b487db207964
+      value: '{"executorLabel":"exec-flip-three-sided-die","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-8f4b82a1870a5c546119675bd6220ebf4d0e8048252e9c36cd77b487db207964
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_three_sided_die"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        flip_three_sided_die() -\u003e str:\n    import random\n    val = random.randint(0,
+        2)\n\n    if val == 0:\n        return ''heads''\n    elif val == 1:\n        return
+        ''tails''\n    else:\n        return ''draw''\n\n"],"image":"python:3.9"}'
+    - name: components-comp-roll-die-pipeline
+      value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"pipelinechannel--condition-branches-1-oneof-1","producerSubtask":"condition-branches-1"}}}},"tasks":{"condition-branches-1":{"componentRef":{"name":"comp-condition-branches-1"},"dependentTasks":["flip-three-sided-die"],"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-three-sided-die"}}}},"taskInfo":{"name":"condition-branches-1"}},"flip-three-sided-die":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-three-sided-die"},"taskInfo":{"name":"flip-three-sided-die"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: components-root
+      value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"print-and-return"}}}},"tasks":{"print-and-return":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-3"},"dependentTasks":["roll-die-pipeline"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"roll-die-pipeline"}}}},"taskInfo":{"name":"print-and-return"}},"roll-die-pipeline":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-roll-die-pipeline"},"taskInfo":{"name":"roll-die-pipeline"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - outer-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+              heads!"}}}},"taskInfo":{"name":"print-and-return"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-and-return-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-driver.Succeeded
+        name: print-and-return
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-2
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-2"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+              tails!"}}}},"taskInfo":{"name":"print-and-return-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-and-return-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-2-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-2-driver.Succeeded
+        name: print-and-return-2
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-3
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-14710b1b9b18d4ef6e7aa084e4b2fb9400188853273013cd36af5ee93fccfa12}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-special-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Draw!"}}}},"taskInfo":{"name":"special-print-and-return"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-14710b1b9b18d4ef6e7aa084e4b2fb9400188853273013cd36af5ee93fccfa12}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: special-print-and-return-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.special-print-and-return-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.special-print-and-return-driver.outputs.parameters.cached-decision}}'
+        depends: special-print-and-return-driver.Succeeded
+        name: special-print-and-return
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-4
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - outer-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"componentInputParameter":"pipelinechannel--flip-three-sided-die-Output"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+              == ''heads''"}}'
+        name: condition-2-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-2-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-2-driver.outputs.parameters.condition}}'
+        depends: condition-2-driver.Succeeded
+        name: condition-2
+        template: comp-condition-2
+        when: '{{tasks.condition-2-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-3}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"componentInputParameter":"pipelinechannel--flip-three-sided-die-Output"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+              == ''heads'') \u0026\u0026 inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+              == ''tails''"}}'
+        name: condition-3-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-3-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-3-driver.outputs.parameters.condition}}'
+        depends: condition-3-driver.Succeeded
+        name: condition-3
+        template: comp-condition-3
+        when: '{{tasks.condition-3-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-4}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-4"},"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"componentInputParameter":"pipelinechannel--flip-three-sided-die-Output"}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+              == ''heads'') \u0026\u0026 !(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
+              == ''tails'')"}}'
+        name: condition-4-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-4-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-4-driver.outputs.parameters.condition}}'
+        depends: condition-4-driver.Succeeded
+        name: condition-4
+        template: comp-condition-4
+        when: '{{tasks.condition-4-driver.outputs.parameters.condition}} != false'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-branches-1
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-branches-1}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-branches-1"},"dependentTasks":["flip-three-sided-die"],"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-three-sided-die"}}}},"taskInfo":{"name":"condition-branches-1"}}'
+        depends: flip-three-sided-die.Succeeded
+        name: condition-branches-1-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-branches-1-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-branches-1-driver.outputs.parameters.condition}}'
+        depends: condition-branches-1-driver.Succeeded
+        name: condition-branches-1
+        template: comp-condition-branches-1
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-8f4b82a1870a5c546119675bd6220ebf4d0e8048252e9c36cd77b487db207964}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-three-sided-die"},"taskInfo":{"name":"flip-three-sided-die"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-8f4b82a1870a5c546119675bd6220ebf4d0e8048252e9c36cd77b487db207964}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: flip-three-sided-die-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.flip-three-sided-die-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.flip-three-sided-die-driver.outputs.parameters.cached-decision}}'
+        depends: flip-three-sided-die-driver.Succeeded
+        name: flip-three-sided-die
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-roll-die-pipeline
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-3"},"dependentTasks":["roll-die-pipeline"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"roll-die-pipeline"}}}},"taskInfo":{"name":"print-and-return"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: roll-die-pipeline.Succeeded
+        name: print-and-return-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-driver.Succeeded
+        name: print-and-return
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-roll-die-pipeline}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-roll-die-pipeline"},"taskInfo":{"name":"roll-die-pipeline"}}'
+        name: roll-die-pipeline-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.roll-die-pipeline-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.roll-die-pipeline-driver.outputs.parameters.condition}}'
+        depends: roll-die-pipeline-driver.Succeeded
+        name: roll-die-pipeline
+        template: comp-roll-die-pipeline
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

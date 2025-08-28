@@ -1,0 +1,344 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: pipeline-with-various-types-
+spec:
+  arguments:
+    parameters:
+    - name: components-47f8556d9d5209135f0475cec07f23896de64558ee7eb4299cc3ebffcad12306
+      value: '{"executorLabel":"exec-downstream","inputDefinitions":{"artifacts":{"input_b":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}},"input_c":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}},"input_d":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}},"input_e":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}},"input_f":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}},"input_g":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}},"input_h":{"artifactType":{"schemaTitle":"system.HTML","schemaVersion":"0.0.1"}},"input_i":{"artifactType":{"schemaTitle":"google.BQMLModel","schemaVersion":"0.0.1"}}},"parameters":{"input_a":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: implementations-47f8556d9d5209135f0475cec07f23896de64558ee7eb4299cc3ebffcad12306
+      value: '{"args":["{{$.inputs.parameters[''input_a'']}}","{{$.inputs.artifacts[''input_b''].uri}}","{{$.inputs.artifacts[''input_c''].path}}","{{$.inputs.artifacts[''input_d''].uri}}","{{$.inputs.artifacts[''input_e''].uri}}","{{$.inputs.artifacts[''input_f''].path}}","{{$.inputs.artifacts[''input_g''].path}}","{{$.inputs.artifacts[''input_h''].path}}"],"image":"gcr.io/image"}'
+    - name: components-3dd78b16c97f19cec3a05c91c163d2ef6f3cdee55ffd014e9fc805751d9f2ace
+      value: '{"executorLabel":"exec-upstream","inputDefinitions":{"artifacts":{"input_3":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}},"parameters":{"input_1":{"parameterType":"STRING"},"input_2":{"parameterType":"NUMBER_DOUBLE"},"input_4":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"output_2":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}},"output_3":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}},"output_4":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}},"output_5":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}},"output_6":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}},"output_7":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}},"output_8":{"artifactType":{"schemaTitle":"system.HTML","schemaVersion":"0.0.1"}},"output_9":{"artifactType":{"schemaTitle":"google.BQMLModel","schemaVersion":"0.0.1"}}},"parameters":{"output_1":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: implementations-3dd78b16c97f19cec3a05c91c163d2ef6f3cdee55ffd014e9fc805751d9f2ace
+      value: '{"args":["{{$.inputs.parameters[''input_1'']}}","{{$.inputs.parameters[''input_2'']}}","{{$.inputs.artifacts[''input_3''].path}}","{{$.inputs.parameters[''input_4'']}}","{{$.outputs.parameters[''output_1''].output_file}}","{{$.outputs.artifacts[''output_2''].uri}}","{{$.outputs.artifacts[''output_3''].path}}","{{$.outputs.artifacts[''output_4''].uri}}","{{$.outputs.artifacts[''output_5''].uri}}","{{$.outputs.artifacts[''output_6''].path}}","{{$.outputs.artifacts[''output_7''].path}}","{{$.outputs.artifacts[''output_8''].path}}"],"image":"gcr.io/image"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"downstream":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-downstream"},"dependentTasks":["upstream"],"inputs":{"artifacts":{"input_b":{"taskOutputArtifact":{"outputArtifactKey":"output_2","producerTask":"upstream"}},"input_c":{"taskOutputArtifact":{"outputArtifactKey":"output_3","producerTask":"upstream"}},"input_d":{"taskOutputArtifact":{"outputArtifactKey":"output_4","producerTask":"upstream"}},"input_e":{"taskOutputArtifact":{"outputArtifactKey":"output_5","producerTask":"upstream"}},"input_f":{"taskOutputArtifact":{"outputArtifactKey":"output_6","producerTask":"upstream"}},"input_g":{"taskOutputArtifact":{"outputArtifactKey":"output_7","producerTask":"upstream"}},"input_h":{"taskOutputArtifact":{"outputArtifactKey":"output_8","producerTask":"upstream"}},"input_i":{"taskOutputArtifact":{"outputArtifactKey":"output_9","producerTask":"upstream"}}},"parameters":{"input_a":{"taskOutputParameter":{"outputParameterKey":"output_1","producerTask":"upstream"}}}},"taskInfo":{"name":"downstream"}},"upstream":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-upstream"},"inputs":{"artifacts":{"input_3":{"componentInputArtifact":"input3"}},"parameters":{"input_1":{"componentInputParameter":"input1"},"input_2":{"runtimeValue":{"constant":3.1415926}},"input_4":{"componentInputParameter":"input4"}}},"taskInfo":{"name":"upstream"}}}},"inputDefinitions":{"artifacts":{"input3":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}},"parameters":{"input1":{"parameterType":"STRING"},"input4":{"defaultValue":"","isOptional":true,"parameterType":"STRING"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-various-types
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-47f8556d9d5209135f0475cec07f23896de64558ee7eb4299cc3ebffcad12306}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-downstream"},"dependentTasks":["upstream"],"inputs":{"artifacts":{"input_b":{"taskOutputArtifact":{"outputArtifactKey":"output_2","producerTask":"upstream"}},"input_c":{"taskOutputArtifact":{"outputArtifactKey":"output_3","producerTask":"upstream"}},"input_d":{"taskOutputArtifact":{"outputArtifactKey":"output_4","producerTask":"upstream"}},"input_e":{"taskOutputArtifact":{"outputArtifactKey":"output_5","producerTask":"upstream"}},"input_f":{"taskOutputArtifact":{"outputArtifactKey":"output_6","producerTask":"upstream"}},"input_g":{"taskOutputArtifact":{"outputArtifactKey":"output_7","producerTask":"upstream"}},"input_h":{"taskOutputArtifact":{"outputArtifactKey":"output_8","producerTask":"upstream"}},"input_i":{"taskOutputArtifact":{"outputArtifactKey":"output_9","producerTask":"upstream"}}},"parameters":{"input_a":{"taskOutputParameter":{"outputParameterKey":"output_1","producerTask":"upstream"}}}},"taskInfo":{"name":"downstream"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-47f8556d9d5209135f0475cec07f23896de64558ee7eb4299cc3ebffcad12306}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: upstream.Succeeded
+        name: downstream-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.downstream-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.downstream-driver.outputs.parameters.cached-decision}}'
+        depends: downstream-driver.Succeeded
+        name: downstream
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-3dd78b16c97f19cec3a05c91c163d2ef6f3cdee55ffd014e9fc805751d9f2ace}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-upstream"},"inputs":{"artifacts":{"input_3":{"componentInputArtifact":"input3"}},"parameters":{"input_1":{"componentInputParameter":"input1"},"input_2":{"runtimeValue":{"constant":3.1415926}},"input_4":{"componentInputParameter":"input4"}}},"taskInfo":{"name":"upstream"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-3dd78b16c97f19cec3a05c91c163d2ef6f3cdee55ffd014e9fc805751d9f2ace}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: upstream-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.upstream-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.upstream-driver.outputs.parameters.cached-decision}}'
+        depends: upstream-driver.Succeeded
+        name: upstream
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - pipeline-with-various-types
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{"parameterValues":{"input4":""}}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

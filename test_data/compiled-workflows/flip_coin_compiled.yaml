@@ -1,0 +1,703 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: conditional-execution-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: components-cbb3b6da9f5c3653e38939c95d0c209abdbad7b5bff0bb6a3f650cc4ae288c83
+      value: '{"executorLabel":"exec-print-msg","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}}}'
+    - name: implementations-cbb3b6da9f5c3653e38939c95d0c209abdbad7b5bff0bb6a3f650cc4ae288c83
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_msg"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        print_msg(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+    - name: components-comp-condition-2
+      value: '{"dag":{"tasks":{"print-msg":{"cachingOptions":{},"componentRef":{"name":"comp-print-msg"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
+        and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}} \u003e
+        5!"}},"pipelinechannel--random-num-Output":{"componentInputParameter":"pipelinechannel--random-num-Output"}}},"taskInfo":{"name":"print-msg"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"},"pipelinechannel--random-num-Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: components-comp-condition-3
+      value: '{"dag":{"tasks":{"print-msg-2":{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-2"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
+        and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}} \u003c=
+        5!"}},"pipelinechannel--random-num-Output":{"componentInputParameter":"pipelinechannel--random-num-Output"}}},"taskInfo":{"name":"print-msg-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"},"pipelinechannel--random-num-Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: components-275731c07d6fd6afaa8fb6011b8093ceb80cb2a053556f2e79e547e3da116e00
+      value: '{"executorLabel":"exec-random-num","inputDefinitions":{"parameters":{"high":{"parameterType":"NUMBER_INTEGER"},"low":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: implementations-275731c07d6fd6afaa8fb6011b8093ceb80cb2a053556f2e79e547e3da116e00
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","random_num"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        random_num(low: int, high: int) -\u003e int:\n    \"\"\"Generate a random
+        number between low and high.\"\"\"\n    import random  # noqa: PLC0415\n\n    result
+        = random.randint(low, high)\n    print(result)\n    return result\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+    - name: components-comp-condition-1
+      value: '{"dag":{"tasks":{"condition-2":{"componentRef":{"name":"comp-condition-2"},"dependentTasks":["random-num"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num"}}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-Output''])
+        \u003e 5"}},"condition-3":{"componentRef":{"name":"comp-condition-3"},"dependentTasks":["random-num"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num"}}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-Output''])
+        \u003c= 5"}},"random-num":{"cachingOptions":{},"componentRef":{"name":"comp-random-num"},"inputs":{"parameters":{"high":{"runtimeValue":{"constant":9}},"low":{"runtimeValue":{"constant":0}}}},"taskInfo":{"name":"random-num"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-5
+      value: '{"dag":{"tasks":{"print-msg-3":{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-3"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"tails
+        and {{$.inputs.parameters[''pipelinechannel--random-num-2-Output'']}} \u003e
+        15!"}},"pipelinechannel--random-num-2-Output":{"componentInputParameter":"pipelinechannel--random-num-2-Output"}}},"taskInfo":{"name":"print-msg-3"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"},"pipelinechannel--random-num-2-Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: components-comp-condition-6
+      value: '{"dag":{"tasks":{"print-msg-4":{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-4"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"tails
+        and {{$.inputs.parameters[''pipelinechannel--random-num-2-Output'']}} \u003c=
+        15!"}},"pipelinechannel--random-num-2-Output":{"componentInputParameter":"pipelinechannel--random-num-2-Output"}}},"taskInfo":{"name":"print-msg-4"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"},"pipelinechannel--random-num-2-Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: components-comp-condition-4
+      value: '{"dag":{"tasks":{"condition-5":{"componentRef":{"name":"comp-condition-5"},"dependentTasks":["random-num-2"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num-2"}}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-2-Output''])
+        \u003e 15"}},"condition-6":{"componentRef":{"name":"comp-condition-6"},"dependentTasks":["random-num-2"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num-2"}}}},"taskInfo":{"name":"condition-6"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-2-Output''])
+        \u003c= 15"}},"random-num-2":{"cachingOptions":{},"componentRef":{"name":"comp-random-num-2"},"inputs":{"parameters":{"high":{"runtimeValue":{"constant":19}},"low":{"runtimeValue":{"constant":10}}}},"taskInfo":{"name":"random-num-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}}}'
+    - name: components-6b7e76c0dde77ff425db8bcc9e7f2d517864d315ac7061c132b535e4f77fbe8f
+      value: '{"executorLabel":"exec-flip-coin","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-6b7e76c0dde77ff425db8bcc9e7f2d517864d315ac7061c132b535e4f77fbe8f
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_coin"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        flip_coin() -\u003e str:\n    \"\"\"Flip a coin and output heads or tails
+        randomly.\"\"\"\n    import random  # noqa: PLC0415\n\n    result = \"heads\"
+        if random.randint(0, 1) == 0 else \"tails\"\n    print(result)\n    return
+        result\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"condition-1":{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
+        == ''heads''"}},"condition-4":{"componentRef":{"name":"comp-condition-4"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
+        == ''tails''"}},"flip-coin":{"cachingOptions":{},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - conditional-execution-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-cbb3b6da9f5c3653e38939c95d0c209abdbad7b5bff0bb6a3f650cc4ae288c83}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
+              and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}}
+              \u003e 5!"}},"pipelinechannel--random-num-Output":{"componentInputParameter":"pipelinechannel--random-num-Output"}}},"taskInfo":{"name":"print-msg"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-cbb3b6da9f5c3653e38939c95d0c209abdbad7b5bff0bb6a3f650cc4ae288c83}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-msg-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-msg-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-msg-driver.outputs.parameters.cached-decision}}'
+        depends: print-msg-driver.Succeeded
+        name: print-msg
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-2
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-cbb3b6da9f5c3653e38939c95d0c209abdbad7b5bff0bb6a3f650cc4ae288c83}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-2"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
+              and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}}
+              \u003c= 5!"}},"pipelinechannel--random-num-Output":{"componentInputParameter":"pipelinechannel--random-num-Output"}}},"taskInfo":{"name":"print-msg-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-cbb3b6da9f5c3653e38939c95d0c209abdbad7b5bff0bb6a3f650cc4ae288c83}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-msg-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-msg-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-msg-2-driver.outputs.parameters.cached-decision}}'
+        depends: print-msg-2-driver.Succeeded
+        name: print-msg-2
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-3
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - conditional-execution-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-2"},"dependentTasks":["random-num"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num"}}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-Output''])
+              \u003e 5"}}'
+        depends: random-num.Succeeded
+        name: condition-2-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-2-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-2-driver.outputs.parameters.condition}}'
+        depends: condition-2-driver.Succeeded
+        name: condition-2
+        template: comp-condition-2
+        when: '{{tasks.condition-2-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-3}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-3"},"dependentTasks":["random-num"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num"}}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-Output''])
+              \u003c= 5"}}'
+        depends: random-num.Succeeded
+        name: condition-3-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-3-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-3-driver.outputs.parameters.condition}}'
+        depends: condition-3-driver.Succeeded
+        name: condition-3
+        template: comp-condition-3
+        when: '{{tasks.condition-3-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-275731c07d6fd6afaa8fb6011b8093ceb80cb2a053556f2e79e547e3da116e00}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-random-num"},"inputs":{"parameters":{"high":{"runtimeValue":{"constant":9}},"low":{"runtimeValue":{"constant":0}}}},"taskInfo":{"name":"random-num"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-275731c07d6fd6afaa8fb6011b8093ceb80cb2a053556f2e79e547e3da116e00}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: random-num-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.random-num-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.random-num-driver.outputs.parameters.cached-decision}}'
+        depends: random-num-driver.Succeeded
+        name: random-num
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-1
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-cbb3b6da9f5c3653e38939c95d0c209abdbad7b5bff0bb6a3f650cc4ae288c83}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-3"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"tails
+              and {{$.inputs.parameters[''pipelinechannel--random-num-2-Output'']}}
+              \u003e 15!"}},"pipelinechannel--random-num-2-Output":{"componentInputParameter":"pipelinechannel--random-num-2-Output"}}},"taskInfo":{"name":"print-msg-3"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-cbb3b6da9f5c3653e38939c95d0c209abdbad7b5bff0bb6a3f650cc4ae288c83}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-msg-3-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-msg-3-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-msg-3-driver.outputs.parameters.cached-decision}}'
+        depends: print-msg-3-driver.Succeeded
+        name: print-msg-3
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-5
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-cbb3b6da9f5c3653e38939c95d0c209abdbad7b5bff0bb6a3f650cc4ae288c83}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-4"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"tails
+              and {{$.inputs.parameters[''pipelinechannel--random-num-2-Output'']}}
+              \u003c= 15!"}},"pipelinechannel--random-num-2-Output":{"componentInputParameter":"pipelinechannel--random-num-2-Output"}}},"taskInfo":{"name":"print-msg-4"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-cbb3b6da9f5c3653e38939c95d0c209abdbad7b5bff0bb6a3f650cc4ae288c83}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-msg-4-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-msg-4-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-msg-4-driver.outputs.parameters.cached-decision}}'
+        depends: print-msg-4-driver.Succeeded
+        name: print-msg-4
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-6
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-5}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-5"},"dependentTasks":["random-num-2"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num-2"}}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-2-Output''])
+              \u003e 15"}}'
+        depends: random-num-2.Succeeded
+        name: condition-5-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-5-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-5-driver.outputs.parameters.condition}}'
+        depends: condition-5-driver.Succeeded
+        name: condition-5
+        template: comp-condition-5
+        when: '{{tasks.condition-5-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-6}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-6"},"dependentTasks":["random-num-2"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num-2"}}}},"taskInfo":{"name":"condition-6"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-2-Output''])
+              \u003c= 15"}}'
+        depends: random-num-2.Succeeded
+        name: condition-6-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-6-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-6-driver.outputs.parameters.condition}}'
+        depends: condition-6-driver.Succeeded
+        name: condition-6
+        template: comp-condition-6
+        when: '{{tasks.condition-6-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-275731c07d6fd6afaa8fb6011b8093ceb80cb2a053556f2e79e547e3da116e00}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-random-num-2"},"inputs":{"parameters":{"high":{"runtimeValue":{"constant":19}},"low":{"runtimeValue":{"constant":10}}}},"taskInfo":{"name":"random-num-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-275731c07d6fd6afaa8fb6011b8093ceb80cb2a053556f2e79e547e3da116e00}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: random-num-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.random-num-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.random-num-2-driver.outputs.parameters.cached-decision}}'
+        depends: random-num-2-driver.Succeeded
+        name: random-num-2
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-4
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-1}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
+              == ''heads''"}}'
+        depends: flip-coin.Succeeded
+        name: condition-1-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-1-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-1-driver.outputs.parameters.condition}}'
+        depends: condition-1-driver.Succeeded
+        name: condition-1
+        template: comp-condition-1
+        when: '{{tasks.condition-1-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-4}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-4"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
+              == ''tails''"}}'
+        depends: flip-coin.Succeeded
+        name: condition-4-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-4-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-4-driver.outputs.parameters.condition}}'
+        depends: condition-4-driver.Succeeded
+        name: condition-4
+        template: comp-condition-4
+        when: '{{tasks.condition-4-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-6b7e76c0dde77ff425db8bcc9e7f2d517864d315ac7061c132b535e4f77fbe8f}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-6b7e76c0dde77ff425db8bcc9e7f2d517864d315ac7061c132b535e4f77fbe8f}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: flip-coin-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.flip-coin-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.flip-coin-driver.outputs.parameters.cached-decision}}'
+        depends: flip-coin-driver.Succeeded
+        name: flip-coin
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

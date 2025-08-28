@@ -1,0 +1,540 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: components-bd65112bbc0d0923fa0ea45c093bd74f6f773ae9d69864eeca1ebf5b3e0d2dcb
+      value: '{"executorLabel":"exec-accelerator-count","outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: implementations-bd65112bbc0d0923fa0ea45c093bd74f6f773ae9d69864eeca1ebf5b3e0d2dcb
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","accelerator_count"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        accelerator_count() -\u003e int:\n    return 1\n\n"],"image":"python:3.9"}'
+    - name: components-a906e47ab9ae1c7250e454d3466ecfd04e1bdaad95ff8373292249509aef84f0
+      value: '{"executorLabel":"exec-accelerator-type","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-a906e47ab9ae1c7250e454d3466ecfd04e1bdaad95ff8373292249509aef84f0
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","accelerator_type"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.9"}'
+    - name: components-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871
+      value: '{"executorLabel":"exec-custom-training-job","inputDefinitions":{"parameters":{"base_output_directory":{"defaultValue":"","description":"The
+        Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob.
+        See [more information ](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination).","isOptional":true,"parameterType":"STRING"},"display_name":{"description":"The
+        name of the CustomJob.","parameterType":"STRING"},"enable_web_access":{"defaultValue":false,"description":"Whether
+        you want Vertex AI to enable [interactive shell access ](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
+        to training containers. If `True`, you can access interactive shells at the
+        URIs given by [CustomJob.web_access_uris][].","isOptional":true,"parameterType":"BOOLEAN"},"encryption_spec_key_name":{"defaultValue":"","description":"Customer-managed
+        encryption key options for the CustomJob. If this is set, then all resources
+        created by the CustomJob will be encrypted with the provided encryption key.","isOptional":true,"parameterType":"STRING"},"labels":{"defaultValue":{},"description":"The
+        labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).","isOptional":true,"parameterType":"STRUCT"},"location":{"defaultValue":"us-central1","description":"Location
+        for creating the custom training job. If not set, default to us-central1.","isOptional":true,"parameterType":"STRING"},"network":{"defaultValue":"","description":"The
+        full name of the Compute Engine network to which the job should be peered.
+        For example, `projects/12345/global/networks/myVPC`. Format is of the form
+        `projects/{project}/global/networks/{network}`. Where `{project}` is a project
+        number, as in `12345`, and `{network}` is a network name. Private services
+        access must already be configured for the network. If left unspecified, the
+        job is not peered with any network.","isOptional":true,"parameterType":"STRING"},"project":{"defaultValue":"{{$.pipeline_google_cloud_project_id}}","description":"Project
+        to create the custom training job in. Defaults to the project in which the
+        PipelineJob is run.","isOptional":true,"parameterType":"STRING"},"reserved_ip_ranges":{"defaultValue":[],"description":"A
+        list of names for the reserved IP ranges under the VPC network that can be
+        used for this job. If set, we will deploy the job within the provided IP ranges.
+        Otherwise, the job will be deployed to any IP ranges under the provided VPC
+        network.","isOptional":true,"parameterType":"LIST"},"restart_job_on_worker_restart":{"defaultValue":false,"description":"Restarts
+        the entire CustomJob if a worker gets restarted. This feature can be used
+        by distributed training jobs that are not resilient to workers leaving and
+        joining a job.","isOptional":true,"parameterType":"BOOLEAN"},"service_account":{"defaultValue":"","description":"Sets
+        the default service account for workload run-as account. The [service account
+        ](https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
+        running the pipeline submitting jobs must have act-as permission on this run-as
+        account. If unspecified, the Vertex AI Custom Code [Service Agent ](https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
+        for the CustomJob''s project.","isOptional":true,"parameterType":"STRING"},"tensorboard":{"defaultValue":"","description":"The
+        name of a Vertex AI TensorBoard resource to which this CustomJob will upload
+        TensorBoard logs.","isOptional":true,"parameterType":"STRING"},"timeout":{"defaultValue":"604800s","description":"The
+        maximum job running time. The default is 7 days. A duration in seconds with
+        up to nine fractional digits, terminated by ''s'', for example: \"3.5s\".","isOptional":true,"parameterType":"STRING"},"worker_pool_specs":{"defaultValue":[],"description":"Serialized
+        json spec of the worker pools including machine type and Docker image. All
+        worker pools except the first one are optional and can be skipped by providing
+        an empty value. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec).","isOptional":true,"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"gcp_resources":{"description":"Serialized
+        JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
+        which tracks the CustomJob.","parameterType":"STRING"}}}}'
+    - name: implementations-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871
+      value: '{"args":["--type","CustomJob","--payload","{\"display_name\": \"{{$.inputs.parameters[''display_name'']}}\",
+        \"job_spec\": {\"worker_pool_specs\": {{$.inputs.parameters[''worker_pool_specs'']}},
+        \"scheduling\": {\"timeout\": \"{{$.inputs.parameters[''timeout'']}}\", \"restart_job_on_worker_restart\":
+        {{$.inputs.parameters[''restart_job_on_worker_restart'']}}}, \"service_account\":
+        \"{{$.inputs.parameters[''service_account'']}}\", \"tensorboard\": \"{{$.inputs.parameters[''tensorboard'']}}\",
+        \"enable_web_access\": {{$.inputs.parameters[''enable_web_access'']}}, \"network\":
+        \"{{$.inputs.parameters[''network'']}}\", \"reserved_ip_ranges\": {{$.inputs.parameters[''reserved_ip_ranges'']}},
+        \"base_output_directory\": {\"output_uri_prefix\": \"{{$.inputs.parameters[''base_output_directory'']}}\"}},
+        \"labels\": {{$.inputs.parameters[''labels'']}}, \"encryption_spec\": {\"kms_key_name\":
+        \"{{$.inputs.parameters[''encryption_spec_key_name'']}}\"}}","--project","{{$.inputs.parameters[''project'']}}","--location","{{$.inputs.parameters[''location'']}}","--gcp_resources","{{$.outputs.parameters[''gcp_resources''].output_file}}"],"command":["python3","-u","-m","google_cloud_pipeline_components.container.v1.custom_job.launcher"],"image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.14.1"}'
+    - name: components-comp-condition-1
+      value: '{"dag":{"tasks":{"custom-training-job":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-training-job"},"inputs":{"parameters":{"display_name":{"runtimeValue":{"constant":"add-numbers"}},"encryption_spec_key_name":{"componentInputParameter":"pipelinechannel--encryption_spec_key_name"},"location":{"componentInputParameter":"pipelinechannel--location"},"pipelinechannel--accelerator-count-Output":{"componentInputParameter":"pipelinechannel--accelerator-count-Output"},"pipelinechannel--accelerator-type-Output":{"componentInputParameter":"pipelinechannel--accelerator-type-Output"},"pipelinechannel--machine-type-Output":{"componentInputParameter":"pipelinechannel--machine-type-Output"},"project":{"componentInputParameter":"pipelinechannel--project"},"worker_pool_specs":{"runtimeValue":{"constant":[{"container_spec":{"args":["foo"],"command":["echo"],"image_uri":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0"},"machine_spec":{"accelerator_count":"{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}","accelerator_type":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}","machine_type":"{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}"},"replica_count":1}]}}}},"taskInfo":{"name":"custom-training-job"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--accelerator-count-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--accelerator-type-Output":{"parameterType":"STRING"},"pipelinechannel--encryption_spec_key_name":{"parameterType":"STRING"},"pipelinechannel--flip-biased-coin-op-Output":{"parameterType":"STRING"},"pipelinechannel--location":{"parameterType":"STRING"},"pipelinechannel--machine-type-Output":{"parameterType":"STRING"},"pipelinechannel--project":{"parameterType":"STRING"}}}}'
+    - name: components-a34b14897c3c729b01d4f83a2c66d05293087d32e806433b5fbf5133ae8d3a33
+      value: '{"executorLabel":"exec-flip-biased-coin-op","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-a34b14897c3c729b01d4f83a2c66d05293087d32e806433b5fbf5133ae8d3a33
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_biased_coin_op"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        flip_biased_coin_op() -\u003e str:\n    \"\"\"Flip a coin and output heads.\"\"\"\n    return
+        ''heads''\n\n"],"image":"python:3.9"}'
+    - name: components-7e26d83a9218730385ce7df0a9ef1cfbe837bc3a801aafd136c5266bdb0a50f4
+      value: '{"executorLabel":"exec-machine-type","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-7e26d83a9218730385ce7df0a9ef1cfbe837bc3a801aafd136c5266bdb0a50f4
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","machine_type"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        machine_type() -\u003e str:\n    return ''n1-standard-4''\n\n"],"image":"python:3.9"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"accelerator-count":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-count"},"taskInfo":{"name":"accelerator-count"}},"accelerator-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}},"condition-1":{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["accelerator-count","accelerator-type","flip-biased-coin-op","machine-type"],"inputs":{"parameters":{"pipelinechannel--accelerator-count-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-count"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--encryption_spec_key_name":{"componentInputParameter":"encryption_spec_key_name"},"pipelinechannel--flip-biased-coin-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-biased-coin-op"}},"pipelinechannel--location":{"componentInputParameter":"location"},"pipelinechannel--machine-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"machine-type"}},"pipelinechannel--project":{"componentInputParameter":"project"}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-biased-coin-op-Output'']
+        == ''heads''"}},"flip-biased-coin-op":{"cachingOptions":{},"componentRef":{"name":"comp-flip-biased-coin-op"},"taskInfo":{"name":"flip-biased-coin-op"}},"machine-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-machine-type"},"taskInfo":{"name":"machine-type"}}}},"inputDefinitions":{"parameters":{"encryption_spec_key_name":{"defaultValue":"","isOptional":true,"parameterType":"STRING"},"location":{"parameterType":"STRING"},"project":{"parameterType":"STRING"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-training-job"},"inputs":{"parameters":{"display_name":{"runtimeValue":{"constant":"add-numbers"}},"encryption_spec_key_name":{"componentInputParameter":"pipelinechannel--encryption_spec_key_name"},"location":{"componentInputParameter":"pipelinechannel--location"},"pipelinechannel--accelerator-count-Output":{"componentInputParameter":"pipelinechannel--accelerator-count-Output"},"pipelinechannel--accelerator-type-Output":{"componentInputParameter":"pipelinechannel--accelerator-type-Output"},"pipelinechannel--machine-type-Output":{"componentInputParameter":"pipelinechannel--machine-type-Output"},"project":{"componentInputParameter":"pipelinechannel--project"},"worker_pool_specs":{"runtimeValue":{"constant":[{"container_spec":{"args":["foo"],"command":["echo"],"image_uri":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0"},"machine_spec":{"accelerator_count":"{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}","accelerator_type":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}","machine_type":"{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}"},"replica_count":1}]}}}},"taskInfo":{"name":"custom-training-job"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: custom-training-job-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.custom-training-job-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.custom-training-job-driver.outputs.parameters.cached-decision}}'
+        depends: custom-training-job-driver.Succeeded
+        name: custom-training-job
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-1
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-bd65112bbc0d0923fa0ea45c093bd74f6f773ae9d69864eeca1ebf5b3e0d2dcb}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-count"},"taskInfo":{"name":"accelerator-count"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-bd65112bbc0d0923fa0ea45c093bd74f6f773ae9d69864eeca1ebf5b3e0d2dcb}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: accelerator-count-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.accelerator-count-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.accelerator-count-driver.outputs.parameters.cached-decision}}'
+        depends: accelerator-count-driver.Succeeded
+        name: accelerator-count
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-a906e47ab9ae1c7250e454d3466ecfd04e1bdaad95ff8373292249509aef84f0}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-a906e47ab9ae1c7250e454d3466ecfd04e1bdaad95ff8373292249509aef84f0}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: accelerator-type-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.accelerator-type-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.accelerator-type-driver.outputs.parameters.cached-decision}}'
+        depends: accelerator-type-driver.Succeeded
+        name: accelerator-type
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-1}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["accelerator-count","accelerator-type","flip-biased-coin-op","machine-type"],"inputs":{"parameters":{"pipelinechannel--accelerator-count-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-count"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--encryption_spec_key_name":{"componentInputParameter":"encryption_spec_key_name"},"pipelinechannel--flip-biased-coin-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-biased-coin-op"}},"pipelinechannel--location":{"componentInputParameter":"location"},"pipelinechannel--machine-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"machine-type"}},"pipelinechannel--project":{"componentInputParameter":"project"}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-biased-coin-op-Output'']
+              == ''heads''"}}'
+        depends: accelerator-count.Succeeded && accelerator-type.Succeeded && flip-biased-coin-op.Succeeded
+          && machine-type.Succeeded
+        name: condition-1-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-1-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-1-driver.outputs.parameters.condition}}'
+        depends: condition-1-driver.Succeeded
+        name: condition-1
+        template: comp-condition-1
+        when: '{{tasks.condition-1-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-a34b14897c3c729b01d4f83a2c66d05293087d32e806433b5fbf5133ae8d3a33}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-flip-biased-coin-op"},"taskInfo":{"name":"flip-biased-coin-op"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-a34b14897c3c729b01d4f83a2c66d05293087d32e806433b5fbf5133ae8d3a33}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: flip-biased-coin-op-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.flip-biased-coin-op-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.flip-biased-coin-op-driver.outputs.parameters.cached-decision}}'
+        depends: flip-biased-coin-op-driver.Succeeded
+        name: flip-biased-coin-op
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-7e26d83a9218730385ce7df0a9ef1cfbe837bc3a801aafd136c5266bdb0a50f4}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-machine-type"},"taskInfo":{"name":"machine-type"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-7e26d83a9218730385ce7df0a9ef1cfbe837bc3a801aafd136c5266bdb0a50f4}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: machine-type-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.machine-type-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.machine-type-driver.outputs.parameters.cached-decision}}'
+        depends: machine-type-driver.Succeeded
+        name: machine-type
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{"parameterValues":{"encryption_spec_key_name":""}}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

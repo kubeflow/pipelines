@@ -1,0 +1,1215 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: lucky-number-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646
+      value: '{"executorLabel":"exec-print-and-return","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_and_return"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        print_and_return(text: str) -\u003e str:\n    print(text)\n    return text\n\n"],"image":"python:3.9"}'
+    - name: components-comp-condition-3
+      value: '{"dag":{"tasks":{"print-and-return":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Adding
+        drumroll on last trial!"}}}},"taskInfo":{"name":"print-and-return"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--add_drumroll":{"parameterType":"BOOLEAN"},"pipelinechannel--trials-loop-item":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: components-comp-condition-2
+      value: '{"dag":{"tasks":{"condition-3":{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"pipelinechannel--add_drumroll"},"pipelinechannel--trials-loop-item":{"componentInputParameter":"pipelinechannel--trials-loop-item"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--trials-loop-item''])
+        == 3"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--add_drumroll":{"parameterType":"BOOLEAN"},"pipelinechannel--trials-loop-item":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: components-comp-for-loop-16
+      value: '{"dag":{"tasks":{"print-and-return-9":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-9"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Announcing
+        again: Got the lucky number 5000! A one in 10,000 chance."}}}},"taskInfo":{"name":"print-and-return-9"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--loop-item-param-15":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--repeat_if_lucky_number":{"parameterType":"BOOLEAN"}}}}'
+    - name: components-comp-condition-14
+      value: '{"dag":{"tasks":{"for-loop-16":{"componentRef":{"name":"comp-for-loop-16"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-15","items":{"raw":"[1,
+        2]"}},"taskInfo":{"name":"for-loop-16"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--repeat_if_lucky_number":{"parameterType":"BOOLEAN"}}}}'
+    - name: components-comp-condition-13
+      value: '{"dag":{"tasks":{"condition-14":{"componentRef":{"name":"comp-condition-14"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"taskInfo":{"name":"condition-14"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--repeat_if_lucky_number'']
+        == true"}},"print-and-return-8":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-8"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Announcing:
+        Got the lucky number 5000! A one in 10,000 chance."}}}},"taskInfo":{"name":"print-and-return-8"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--repeat_if_lucky_number":{"parameterType":"BOOLEAN"}}}}'
+    - name: components-comp-condition-6
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--print-and-return-2-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"print-and-return-2"}}}},"tasks":{"print-and-return-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-2"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+        a low even number!"}}}},"taskInfo":{"name":"print-and-return-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--is-even-or-odd-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--print-and-return-2-Output":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-7
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--print-and-return-3-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"print-and-return-3"}}}},"tasks":{"print-and-return-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-3"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+        a low odd number!"}}}},"taskInfo":{"name":"print-and-return-3"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--is-even-or-odd-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--print-and-return-3-Output":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-branches-5
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--condition-branches-5-oneof-1":{"valueFromOneof":{"parameterSelectors":[{"outputParameterKey":"pipelinechannel--print-and-return-2-Output","producerSubtask":"condition-6"},{"outputParameterKey":"pipelinechannel--print-and-return-3-Output","producerSubtask":"condition-7"}]}}}},"tasks":{"condition-6":{"componentRef":{"name":"comp-condition-6"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-Output":{"componentInputParameter":"pipelinechannel--is-even-or-odd-Output"}}},"taskInfo":{"name":"condition-6"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--is-even-or-odd-Output'']
+        == ''even''"}},"condition-7":{"componentRef":{"name":"comp-condition-7"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-Output":{"componentInputParameter":"pipelinechannel--is-even-or-odd-Output"}}},"taskInfo":{"name":"condition-7"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--is-even-or-odd-Output'']
+        == ''even'')"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--is-even-or-odd-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--condition-branches-5-oneof-1":{"parameterType":"STRING"}}}}'
+    - name: components-d60d1f0f56c77dd5eea1f9da168482c305f6d2efc0d1b4c5445eabb1c04ec331
+      value: '{"executorLabel":"exec-is-even-or-odd","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-d60d1f0f56c77dd5eea1f9da168482c305f6d2efc0d1b4c5445eabb1c04ec331
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","is_even_or_odd"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        is_even_or_odd(num: int) -\u003e str:\n    return ''odd'' if num % 2 else
+        ''even''\n\n"],"image":"python:3.9"}'
+    - name: components-comp-condition-8
+      value: '{"dag":{"tasks":{"condition-branches-5":{"componentRef":{"name":"comp-condition-branches-5"},"dependentTasks":["is-even-or-odd"],"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"is-even-or-odd"}}}},"taskInfo":{"name":"condition-branches-5"}},"is-even-or-odd":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-is-even-or-odd"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"is-even-or-odd"}},"print-and-return-4":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-4"},"dependentTasks":["condition-branches-5"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-5-oneof-1","producerTask":"condition-branches-5"}}}},"taskInfo":{"name":"print-and-return-4"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: components-comp-condition-11
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--print-and-return-5-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"print-and-return-5"}}}},"tasks":{"print-and-return-5":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-5"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+        a high even number!"}}}},"taskInfo":{"name":"print-and-return-5"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--is-even-or-odd-2-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--print-and-return-5-Output":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-12
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--print-and-return-6-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"print-and-return-6"}}}},"tasks":{"print-and-return-6":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-6"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+        a high odd number!"}}}},"taskInfo":{"name":"print-and-return-6"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--is-even-or-odd-2-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--print-and-return-6-Output":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-branches-10
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--condition-branches-10-oneof-1":{"valueFromOneof":{"parameterSelectors":[{"outputParameterKey":"pipelinechannel--print-and-return-5-Output","producerSubtask":"condition-11"},{"outputParameterKey":"pipelinechannel--print-and-return-6-Output","producerSubtask":"condition-12"}]}}}},"tasks":{"condition-11":{"componentRef":{"name":"comp-condition-11"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-2-Output":{"componentInputParameter":"pipelinechannel--is-even-or-odd-2-Output"}}},"taskInfo":{"name":"condition-11"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--is-even-or-odd-2-Output'']
+        == ''even''"}},"condition-12":{"componentRef":{"name":"comp-condition-12"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-2-Output":{"componentInputParameter":"pipelinechannel--is-even-or-odd-2-Output"}}},"taskInfo":{"name":"condition-12"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--is-even-or-odd-2-Output'']
+        == ''even'')"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--is-even-or-odd-2-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--condition-branches-10-oneof-1":{"parameterType":"STRING"}}}}'
+    - name: components-comp-condition-9
+      value: '{"dag":{"tasks":{"condition-branches-10":{"componentRef":{"name":"comp-condition-branches-10"},"dependentTasks":["is-even-or-odd-2"],"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"is-even-or-odd-2"}}}},"taskInfo":{"name":"condition-branches-10"}},"is-even-or-odd-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-is-even-or-odd-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"is-even-or-odd-2"}},"print-and-return-7":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-7"},"dependentTasks":["condition-branches-10"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-10-oneof-1","producerTask":"condition-branches-10"}}}},"taskInfo":{"name":"print-and-return-7"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: components-comp-condition-branches-4
+      value: '{"dag":{"tasks":{"condition-13":{"componentRef":{"name":"comp-condition-13"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"taskInfo":{"name":"condition-13"},"triggerPolicy":{"condition":"!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+        \u003c 5000) \u0026\u0026 !(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+        \u003e 5000)"}},"condition-8":{"componentRef":{"name":"comp-condition-8"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"condition-8"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+        \u003c 5000"}},"condition-9":{"componentRef":{"name":"comp-condition-9"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"condition-9"},"triggerPolicy":{"condition":"!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+        \u003c 5000) \u0026\u0026 int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+        \u003e 5000"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--repeat_if_lucky_number":{"parameterType":"BOOLEAN"}}}}'
+    - name: components-6976b4a82d9ea123a66ba23ebaab18fc26cf51099d60948162ca4de7ec4c23f4
+      value: '{"executorLabel":"exec-int-0-to-9999","outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: implementations-6976b4a82d9ea123a66ba23ebaab18fc26cf51099d60948162ca4de7ec4c23f4
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","int_0_to_9999"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        int_0_to_9999() -\u003e int:\n    import random\n    return random.randint(0,
+        9999)\n\n"],"image":"python:3.9"}'
+    - name: components-comp-for-loop-1
+      value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"int-0-to-9999"}}}},"tasks":{"condition-2":{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"pipelinechannel--add_drumroll"},"pipelinechannel--trials-loop-item":{"componentInputParameter":"pipelinechannel--trials-loop-item"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--add_drumroll'']
+        == true"}},"condition-branches-4":{"componentRef":{"name":"comp-condition-branches-4"},"dependentTasks":["int-0-to-9999"],"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"int-0-to-9999"}},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"taskInfo":{"name":"condition-branches-4"}},"int-0-to-9999":{"cachingOptions":{},"componentRef":{"name":"comp-int-0-to-9999"},"taskInfo":{"name":"int-0-to-9999"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--add_drumroll":{"parameterType":"BOOLEAN"},"pipelinechannel--repeat_if_lucky_number":{"parameterType":"BOOLEAN"},"pipelinechannel--trials":{"parameterType":"LIST"},"pipelinechannel--trials-loop-item":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"parameterType":"LIST"}}}}'
+    - name: components-8365c1f301941da00b93793d5892425bec1af8a9fe569f0f1bcd73eb6b5ebb79
+      value: '{"executorLabel":"exec-print-ints","inputDefinitions":{"parameters":{"ints":{"parameterType":"LIST"}}}}'
+    - name: implementations-8365c1f301941da00b93793d5892425bec1af8a9fe569f0f1bcd73eb6b5ebb79
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_ints"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        print_ints(ints: List[int]):\n    print(ints)\n\n"],"image":"python:3.9"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"add_drumroll"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"repeat_if_lucky_number"},"pipelinechannel--trials":{"componentInputParameter":"trials"}}},"parameterIterator":{"itemInput":"pipelinechannel--trials-loop-item","items":{"inputParameter":"pipelinechannel--trials"}},"taskInfo":{"name":"for-loop-1"}},"print-ints":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-ints"},"dependentTasks":["for-loop-1"],"inputs":{"parameters":{"ints":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--int-0-to-9999-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"print-ints"}}}},"inputDefinitions":{"parameters":{"add_drumroll":{"defaultValue":true,"isOptional":true,"parameterType":"BOOLEAN"},"repeat_if_lucky_number":{"defaultValue":true,"isOptional":true,"parameterType":"BOOLEAN"},"trials":{"defaultValue":[1,2,3],"isOptional":true,"parameterType":"LIST"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - lucky-number-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Adding
+              drumroll on last trial!"}}}},"taskInfo":{"name":"print-and-return"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-and-return-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-driver.Succeeded
+        name: print-and-return
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-3
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - lucky-number-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-3}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"pipelinechannel--add_drumroll"},"pipelinechannel--trials-loop-item":{"componentInputParameter":"pipelinechannel--trials-loop-item"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--trials-loop-item''])
+              == 3"}}'
+        name: condition-3-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-3-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-3-driver.outputs.parameters.condition}}'
+        depends: condition-3-driver.Succeeded
+        name: condition-3
+        template: comp-condition-3
+        when: '{{tasks.condition-3-driver.outputs.parameters.condition}} != false'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-2
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-9"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Announcing
+              again: Got the lucky number 5000! A one in 10,000 chance."}}}},"taskInfo":{"name":"print-and-return-9"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-and-return-9-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-9-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-9-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-9-driver.Succeeded
+        name: print-and-return-9
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-16
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-16}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-16"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-15","items":{"raw":"[1,
+              2]"}},"taskInfo":{"name":"for-loop-16"}}'
+        name: iteration-item-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+        depends: iteration-item-driver.Succeeded
+        name: iteration-item
+        template: comp-for-loop-16
+    inputs:
+      parameters:
+      - name: parent-dag-id
+      - name: iteration-index
+    metadata: {}
+    name: comp-for-loop-16-iteration
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-16}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-16"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-15","items":{"raw":"[1,
+              2]"}},"taskInfo":{"name":"for-loop-16"}}'
+        name: iteration-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: iteration-index
+            value: '{{item}}'
+        depends: iteration-driver.Succeeded
+        name: iteration-iterations
+        template: comp-for-loop-16-iteration
+        withSequence:
+          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-16-for-loop-16-iterator
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: for-loop-16
+        template: comp-for-loop-16-for-loop-16-iterator
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-14
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-14}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-14"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"taskInfo":{"name":"condition-14"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--repeat_if_lucky_number'']
+              == true"}}'
+        name: condition-14-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-14-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-14-driver.outputs.parameters.condition}}'
+        depends: condition-14-driver.Succeeded
+        name: condition-14
+        template: comp-condition-14
+        when: '{{tasks.condition-14-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-8"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Announcing:
+              Got the lucky number 5000! A one in 10,000 chance."}}}},"taskInfo":{"name":"print-and-return-8"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-and-return-8-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-8-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-8-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-8-driver.Succeeded
+        name: print-and-return-8
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-13
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-2"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+              a low even number!"}}}},"taskInfo":{"name":"print-and-return-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-and-return-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-2-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-2-driver.Succeeded
+        name: print-and-return-2
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-6
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-3"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+              a low odd number!"}}}},"taskInfo":{"name":"print-and-return-3"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-and-return-3-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-3-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-3-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-3-driver.Succeeded
+        name: print-and-return-3
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-7
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-6}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-6"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-Output":{"componentInputParameter":"pipelinechannel--is-even-or-odd-Output"}}},"taskInfo":{"name":"condition-6"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--is-even-or-odd-Output'']
+              == ''even''"}}'
+        name: condition-6-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-6-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-6-driver.outputs.parameters.condition}}'
+        depends: condition-6-driver.Succeeded
+        name: condition-6
+        template: comp-condition-6
+        when: '{{tasks.condition-6-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-7}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-7"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-Output":{"componentInputParameter":"pipelinechannel--is-even-or-odd-Output"}}},"taskInfo":{"name":"condition-7"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--is-even-or-odd-Output'']
+              == ''even'')"}}'
+        name: condition-7-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-7-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-7-driver.outputs.parameters.condition}}'
+        depends: condition-7-driver.Succeeded
+        name: condition-7
+        template: comp-condition-7
+        when: '{{tasks.condition-7-driver.outputs.parameters.condition}} != false'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-branches-5
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-branches-5}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-branches-5"},"dependentTasks":["is-even-or-odd"],"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"is-even-or-odd"}}}},"taskInfo":{"name":"condition-branches-5"}}'
+        depends: is-even-or-odd.Succeeded
+        name: condition-branches-5-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-branches-5-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-branches-5-driver.outputs.parameters.condition}}'
+        depends: condition-branches-5-driver.Succeeded
+        name: condition-branches-5
+        template: comp-condition-branches-5
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-d60d1f0f56c77dd5eea1f9da168482c305f6d2efc0d1b4c5445eabb1c04ec331}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-is-even-or-odd"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"is-even-or-odd"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-d60d1f0f56c77dd5eea1f9da168482c305f6d2efc0d1b4c5445eabb1c04ec331}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: is-even-or-odd-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.is-even-or-odd-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.is-even-or-odd-driver.outputs.parameters.cached-decision}}'
+        depends: is-even-or-odd-driver.Succeeded
+        name: is-even-or-odd
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-4"},"dependentTasks":["condition-branches-5"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-5-oneof-1","producerTask":"condition-branches-5"}}}},"taskInfo":{"name":"print-and-return-4"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: condition-branches-5.Succeeded
+        name: print-and-return-4-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-4-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-4-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-4-driver.Succeeded
+        name: print-and-return-4
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-8
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-5"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+              a high even number!"}}}},"taskInfo":{"name":"print-and-return-5"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-and-return-5-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-5-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-5-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-5-driver.Succeeded
+        name: print-and-return-5
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-11
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-6"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
+              a high odd number!"}}}},"taskInfo":{"name":"print-and-return-6"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: print-and-return-6-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-6-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-6-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-6-driver.Succeeded
+        name: print-and-return-6
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-12
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-11}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-11"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-2-Output":{"componentInputParameter":"pipelinechannel--is-even-or-odd-2-Output"}}},"taskInfo":{"name":"condition-11"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--is-even-or-odd-2-Output'']
+              == ''even''"}}'
+        name: condition-11-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-11-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-11-driver.outputs.parameters.condition}}'
+        depends: condition-11-driver.Succeeded
+        name: condition-11
+        template: comp-condition-11
+        when: '{{tasks.condition-11-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-12}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-12"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-2-Output":{"componentInputParameter":"pipelinechannel--is-even-or-odd-2-Output"}}},"taskInfo":{"name":"condition-12"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--is-even-or-odd-2-Output'']
+              == ''even'')"}}'
+        name: condition-12-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-12-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-12-driver.outputs.parameters.condition}}'
+        depends: condition-12-driver.Succeeded
+        name: condition-12
+        template: comp-condition-12
+        when: '{{tasks.condition-12-driver.outputs.parameters.condition}} != false'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-branches-10
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-branches-10}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-branches-10"},"dependentTasks":["is-even-or-odd-2"],"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--is-even-or-odd-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"is-even-or-odd-2"}}}},"taskInfo":{"name":"condition-branches-10"}}'
+        depends: is-even-or-odd-2.Succeeded
+        name: condition-branches-10-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-branches-10-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-branches-10-driver.outputs.parameters.condition}}'
+        depends: condition-branches-10-driver.Succeeded
+        name: condition-branches-10
+        template: comp-condition-branches-10
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-d60d1f0f56c77dd5eea1f9da168482c305f6d2efc0d1b4c5445eabb1c04ec331}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-is-even-or-odd-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"is-even-or-odd-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-d60d1f0f56c77dd5eea1f9da168482c305f6d2efc0d1b4c5445eabb1c04ec331}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: is-even-or-odd-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.is-even-or-odd-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.is-even-or-odd-2-driver.outputs.parameters.cached-decision}}'
+        depends: is-even-or-odd-2-driver.Succeeded
+        name: is-even-or-odd-2
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-7"},"dependentTasks":["condition-branches-10"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-10-oneof-1","producerTask":"condition-branches-10"}}}},"taskInfo":{"name":"print-and-return-7"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: condition-branches-10.Succeeded
+        name: print-and-return-7-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-and-return-7-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-and-return-7-driver.outputs.parameters.cached-decision}}'
+        depends: print-and-return-7-driver.Succeeded
+        name: print-and-return-7
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-9
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-13}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-13"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"taskInfo":{"name":"condition-13"},"triggerPolicy":{"condition":"!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+              \u003c 5000) \u0026\u0026 !(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+              \u003e 5000)"}}'
+        name: condition-13-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-13-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-13-driver.outputs.parameters.condition}}'
+        depends: condition-13-driver.Succeeded
+        name: condition-13
+        template: comp-condition-13
+        when: '{{tasks.condition-13-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-8}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-8"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"condition-8"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+              \u003c 5000"}}'
+        name: condition-8-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-8-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-8-driver.outputs.parameters.condition}}'
+        depends: condition-8-driver.Succeeded
+        name: condition-8
+        template: comp-condition-8
+        when: '{{tasks.condition-8-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-9}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-9"},"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"componentInputParameter":"pipelinechannel--int-0-to-9999-Output"}}},"taskInfo":{"name":"condition-9"},"triggerPolicy":{"condition":"!(int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+              \u003c 5000) \u0026\u0026 int(inputs.parameter_values[''pipelinechannel--int-0-to-9999-Output''])
+              \u003e 5000"}}'
+        name: condition-9-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-9-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-9-driver.outputs.parameters.condition}}'
+        depends: condition-9-driver.Succeeded
+        name: condition-9
+        template: comp-condition-9
+        when: '{{tasks.condition-9-driver.outputs.parameters.condition}} != false'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-condition-branches-4
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"pipelinechannel--add_drumroll"},"pipelinechannel--trials-loop-item":{"componentInputParameter":"pipelinechannel--trials-loop-item"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--add_drumroll'']
+              == true"}}'
+        name: condition-2-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-2-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-2-driver.outputs.parameters.condition}}'
+        depends: condition-2-driver.Succeeded
+        name: condition-2
+        template: comp-condition-2
+        when: '{{tasks.condition-2-driver.outputs.parameters.condition}} != false'
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-condition-branches-4}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-condition-branches-4"},"dependentTasks":["int-0-to-9999"],"inputs":{"parameters":{"pipelinechannel--int-0-to-9999-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"int-0-to-9999"}},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"pipelinechannel--repeat_if_lucky_number"}}},"taskInfo":{"name":"condition-branches-4"}}'
+        depends: int-0-to-9999.Succeeded
+        name: condition-branches-4-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.condition-branches-4-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.condition-branches-4-driver.outputs.parameters.condition}}'
+        depends: condition-branches-4-driver.Succeeded
+        name: condition-branches-4
+        template: comp-condition-branches-4
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-6976b4a82d9ea123a66ba23ebaab18fc26cf51099d60948162ca4de7ec4c23f4}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-int-0-to-9999"},"taskInfo":{"name":"int-0-to-9999"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-6976b4a82d9ea123a66ba23ebaab18fc26cf51099d60948162ca4de7ec4c23f4}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: int-0-to-9999-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.int-0-to-9999-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.int-0-to-9999-driver.outputs.parameters.cached-decision}}'
+        depends: int-0-to-9999-driver.Succeeded
+        name: int-0-to-9999
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-1
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-1}}'
+          - name: iteration-index
+            value: '{{inputs.parameters.iteration-index}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"add_drumroll"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"repeat_if_lucky_number"},"pipelinechannel--trials":{"componentInputParameter":"trials"}}},"parameterIterator":{"itemInput":"pipelinechannel--trials-loop-item","items":{"inputParameter":"pipelinechannel--trials"}},"taskInfo":{"name":"for-loop-1"}}'
+        name: iteration-item-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-item-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.iteration-item-driver.outputs.parameters.condition}}'
+        depends: iteration-item-driver.Succeeded
+        name: iteration-item
+        template: comp-for-loop-1
+    inputs:
+      parameters:
+      - name: parent-dag-id
+      - name: iteration-index
+    metadata: {}
+    name: comp-for-loop-1-iteration
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-for-loop-1}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--add_drumroll":{"componentInputParameter":"add_drumroll"},"pipelinechannel--repeat_if_lucky_number":{"componentInputParameter":"repeat_if_lucky_number"},"pipelinechannel--trials":{"componentInputParameter":"trials"}}},"parameterIterator":{"itemInput":"pipelinechannel--trials-loop-item","items":{"inputParameter":"pipelinechannel--trials"}},"taskInfo":{"name":"for-loop-1"}}'
+        name: iteration-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.iteration-driver.outputs.parameters.execution-id}}'
+          - name: iteration-index
+            value: '{{item}}'
+        depends: iteration-driver.Succeeded
+        name: iteration-iterations
+        template: comp-for-loop-1-iteration
+        withSequence:
+          count: '{{tasks.iteration-driver.outputs.parameters.iteration-count}}'
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-for-loop-1-for-loop-1-iterator
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: for-loop-1
+        template: comp-for-loop-1-for-loop-1-iterator
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-8365c1f301941da00b93793d5892425bec1af8a9fe569f0f1bcd73eb6b5ebb79}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-ints"},"dependentTasks":["for-loop-1"],"inputs":{"parameters":{"ints":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--int-0-to-9999-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"print-ints"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-8365c1f301941da00b93793d5892425bec1af8a9fe569f0f1bcd73eb6b5ebb79}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: for-loop-1.Succeeded
+        name: print-ints-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-ints-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-ints-driver.outputs.parameters.cached-decision}}'
+        depends: print-ints-driver.Succeeded
+        name: print-ints
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{"parameterValues":{"add_drumroll":true,"repeat_if_lucky_number":true,"trials":[1,2,3]}}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

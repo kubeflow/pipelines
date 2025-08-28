@@ -30,6 +30,13 @@ var (
 	uploadPipelinesWithKubernetes = flag.Bool("uploadPipelinesWithKubernetes", false, "Whether to use Kubernetes for uploading pipelines or use the REST API")
 )
 
+/**
+ * Differences in dev mode:
+ * 1. Resources are not cleaned up when a test finishes, so that developer can debug manually.
+ * 2. One step that doesn't work locally is skipped.
+ */
+var isDevMode = flag.Bool("isDevMode", false, "Dev mode helps local development of integration tests")
+
 var isDebugMode = flag.Bool("isDebugMode", false, "Whether to enable debug mode. Debug mode will log more diagnostics messages.")
 var podLogLimit = flag.Int64("podLogLimit", 50000000, "Limit the pod logs size to this limit")
 

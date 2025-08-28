@@ -1,0 +1,425 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: iris-training-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: components-b26b080b3c4176dfc1e7cf9fca246c814f8f63b974e9189566cf209e39bd1c5d
+      value: '{"executorLabel":"exec-create-dataset","outputDefinitions":{"artifacts":{"iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-b26b080b3c4176dfc1e7cf9fca246c814f8f63b974e9189566cf209e39bd1c5d
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_dataset"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''pandas==2.2.0'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        create_dataset(iris_dataset: Output[Dataset]):\n    from io import StringIO  #
+        noqa: PLC0415\n\n    import pandas as pd  # noqa: PLC0415\n\n    data = \"\"\"\n    5.1,3.5,1.4,0.2,Iris-setosa\n    4.9,3.0,1.4,0.2,Iris-setosa\n    4.7,3.2,1.3,0.2,Iris-setosa\n    4.6,3.1,1.5,0.2,Iris-setosa\n    5.0,3.6,1.4,0.2,Iris-setosa\n    5.7,3.8,1.7,0.3,Iris-setosa\n    5.1,3.8,1.5,0.3,Iris-setosa\n    5.4,3.4,1.7,0.2,Iris-setosa\n    5.1,3.7,1.5,0.4,Iris-setosa\n    5.1,3.4,1.5,0.2,Iris-setosa\n    5.0,3.5,1.3,0.3,Iris-setosa\n    4.5,2.3,1.3,0.3,Iris-setosa\n    4.4,3.2,1.3,0.2,Iris-setosa\n    5.0,3.5,1.6,0.6,Iris-setosa\n    5.1,3.8,1.9,0.4,Iris-setosa\n    4.8,3.0,1.4,0.3,Iris-setosa\n    5.1,3.8,1.6,0.2,Iris-setosa\n    4.6,3.2,1.4,0.2,Iris-setosa\n    5.3,3.7,1.5,0.2,Iris-setosa\n    5.0,3.3,1.4,0.2,Iris-setosa\n    7.0,3.2,4.7,1.4,Iris-versicolor\n    6.4,3.2,4.5,1.5,Iris-versicolor\n    6.9,3.1,4.9,1.5,Iris-versicolor\n    5.5,2.3,4.0,1.3,Iris-versicolor\n    6.5,2.8,4.6,1.5,Iris-versicolor\n    6.2,2.2,4.5,1.5,Iris-versicolor\n    5.6,2.5,3.9,1.1,Iris-versicolor\n    5.9,3.2,4.8,1.8,Iris-versicolor\n    6.1,2.8,4.0,1.3,Iris-versicolor\n    6.3,2.5,4.9,1.5,Iris-versicolor\n    6.1,2.8,4.7,1.2,Iris-versicolor\n    6.4,2.9,4.3,1.3,Iris-versicolor\n    6.6,3.0,4.4,1.4,Iris-versicolor\n    5.6,2.7,4.2,1.3,Iris-versicolor\n    5.7,3.0,4.2,1.2,Iris-versicolor\n    5.7,2.9,4.2,1.3,Iris-versicolor\n    6.2,2.9,4.3,1.3,Iris-versicolor\n    5.1,2.5,3.0,1.1,Iris-versicolor\n    5.7,2.8,4.1,1.3,Iris-versicolor\n    6.3,3.3,6.0,2.5,Iris-virginica\n    5.8,2.7,5.1,1.9,Iris-virginica\n    7.1,3.0,5.9,2.1,Iris-virginica\n    6.3,2.9,5.6,1.8,Iris-virginica\n    6.5,3.0,5.8,2.2,Iris-virginica\n    6.9,3.1,5.1,2.3,Iris-virginica\n    5.8,2.7,5.1,1.9,Iris-virginica\n    6.8,3.2,5.9,2.3,Iris-virginica\n    6.7,3.3,5.7,2.5,Iris-virginica\n    6.7,3.0,5.2,2.3,Iris-virginica\n    6.3,2.5,5.0,1.9,Iris-virginica\n    6.5,3.0,5.2,2.0,Iris-virginica\n    6.2,3.4,5.4,2.3,Iris-virginica\n    5.9,3.0,5.1,1.8,Iris-virginica\n    \"\"\"\n    col_names
+        = [\"Sepal_Length\", \"Sepal_Width\", \"Petal_Length\", \"Petal_Width\", \"Labels\"]\n    df
+        = pd.read_csv(StringIO(data), names=col_names)\n\n    with open(iris_dataset.path,
+        \"w\") as f:\n        df.to_csv(f)\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+    - name: components-723b4ded8cc27d85b0ef902a3957ae49516f5bce7b8f10176f08758508127e13
+      value: '{"executorLabel":"exec-normalize-dataset","inputDefinitions":{"artifacts":{"input_iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"standard_scaler":{"parameterType":"BOOLEAN"}}},"outputDefinitions":{"artifacts":{"normalized_iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-723b4ded8cc27d85b0ef902a3957ae49516f5bce7b8f10176f08758508127e13
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","normalize_dataset"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''pandas==2.2.0'' ''scikit-learn==1.4.0''
+        \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf
+        \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true
+        python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        normalize_dataset(\n    input_iris_dataset: Input[Dataset],\n    normalized_iris_dataset:
+        Output[Dataset],\n    standard_scaler: bool,\n):\n    import pandas as pd  #
+        noqa: PLC0415\n    from sklearn.preprocessing import MinMaxScaler, StandardScaler  #
+        noqa: PLC0415\n\n    with open(input_iris_dataset.path) as f:\n        df
+        = pd.read_csv(f)\n    labels = df.pop(\"Labels\")\n\n    scaler = StandardScaler()
+        if standard_scaler else MinMaxScaler()\n\n    df = pd.DataFrame(scaler.fit_transform(df))\n    df[\"Labels\"]
+        = labels\n    normalized_iris_dataset.metadata[\"state\"] = \"Normalized\"\n    with
+        open(normalized_iris_dataset.path, \"w\") as f:\n        df.to_csv(f)\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+    - name: components-c5b164d82de5045c4c489b94027e6efd59cc7dfadb947dac90c76eb85e7190c4
+      value: '{"executorLabel":"exec-train-model","inputDefinitions":{"artifacts":{"normalized_iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"n_neighbors":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.ClassificationMetrics","schemaVersion":"0.0.1"}},"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-c5b164d82de5045c4c489b94027e6efd59cc7dfadb947dac90c76eb85e7190c4
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","train_model"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''pandas==2.2.0'' ''scikit-learn==1.4.0''
+        \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf
+        \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true
+        python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        train_model(\n    normalized_iris_dataset: Input[Dataset],\n    model: Output[Model],\n    metrics:
+        Output[ClassificationMetrics],\n    n_neighbors: int,\n):\n    import pickle  #
+        noqa: PLC0415\n\n    import pandas as pd  # noqa: PLC0415\n    from sklearn.metrics
+        import confusion_matrix  # noqa: PLC0415\n    from sklearn.model_selection
+        import cross_val_predict, train_test_split  # noqa: PLC0415\n    from sklearn.neighbors
+        import KNeighborsClassifier  # noqa: PLC0415\n\n    with open(normalized_iris_dataset.path)
+        as f:\n        df = pd.read_csv(f)\n\n    y = df.pop(\"Labels\")\n    X =
+        df\n\n    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)  #
+        noqa: F841\n\n    clf = KNeighborsClassifier(n_neighbors=n_neighbors)\n    clf.fit(X_train,
+        y_train)\n\n    predictions = cross_val_predict(clf, X_train, y_train, cv=3)\n    metrics.log_confusion_matrix(\n        [\"Iris-Setosa\",
+        \"Iris-Versicolour\", \"Iris-Virginica\"],\n        confusion_matrix(y_train,
+        predictions).tolist(),  # .tolist() to convert np array to list.\n    )\n\n    model.metadata[\"framework\"]
+        = \"scikit-learn\"\n    with open(model.path, \"wb\") as f:\n        pickle.dump(clf,
+        f)\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"create-dataset":{"cachingOptions":{},"componentRef":{"name":"comp-create-dataset"},"taskInfo":{"name":"create-dataset"}},"normalize-dataset":{"cachingOptions":{},"componentRef":{"name":"comp-normalize-dataset"},"dependentTasks":["create-dataset"],"inputs":{"artifacts":{"input_iris_dataset":{"taskOutputArtifact":{"outputArtifactKey":"iris_dataset","producerTask":"create-dataset"}}},"parameters":{"standard_scaler":{"componentInputParameter":"standard_scaler"}}},"taskInfo":{"name":"normalize-dataset"}},"train-model":{"cachingOptions":{},"componentRef":{"name":"comp-train-model"},"dependentTasks":["normalize-dataset"],"inputs":{"artifacts":{"normalized_iris_dataset":{"taskOutputArtifact":{"outputArtifactKey":"normalized_iris_dataset","producerTask":"normalize-dataset"}}},"parameters":{"n_neighbors":{"componentInputParameter":"neighbors"}}},"taskInfo":{"name":"train-model"}}}},"inputDefinitions":{"parameters":{"neighbors":{"defaultValue":3,"isOptional":true,"parameterType":"NUMBER_INTEGER"},"standard_scaler":{"defaultValue":true,"isOptional":true,"parameterType":"BOOLEAN"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - iris-training-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-b26b080b3c4176dfc1e7cf9fca246c814f8f63b974e9189566cf209e39bd1c5d}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-dataset"},"taskInfo":{"name":"create-dataset"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-b26b080b3c4176dfc1e7cf9fca246c814f8f63b974e9189566cf209e39bd1c5d}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: create-dataset-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.create-dataset-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.create-dataset-driver.outputs.parameters.cached-decision}}'
+        depends: create-dataset-driver.Succeeded
+        name: create-dataset
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-723b4ded8cc27d85b0ef902a3957ae49516f5bce7b8f10176f08758508127e13}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-normalize-dataset"},"dependentTasks":["create-dataset"],"inputs":{"artifacts":{"input_iris_dataset":{"taskOutputArtifact":{"outputArtifactKey":"iris_dataset","producerTask":"create-dataset"}}},"parameters":{"standard_scaler":{"componentInputParameter":"standard_scaler"}}},"taskInfo":{"name":"normalize-dataset"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-723b4ded8cc27d85b0ef902a3957ae49516f5bce7b8f10176f08758508127e13}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: create-dataset.Succeeded
+        name: normalize-dataset-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.normalize-dataset-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.normalize-dataset-driver.outputs.parameters.cached-decision}}'
+        depends: normalize-dataset-driver.Succeeded
+        name: normalize-dataset
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-c5b164d82de5045c4c489b94027e6efd59cc7dfadb947dac90c76eb85e7190c4}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-train-model"},"dependentTasks":["normalize-dataset"],"inputs":{"artifacts":{"normalized_iris_dataset":{"taskOutputArtifact":{"outputArtifactKey":"normalized_iris_dataset","producerTask":"normalize-dataset"}}},"parameters":{"n_neighbors":{"componentInputParameter":"neighbors"}}},"taskInfo":{"name":"train-model"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-c5b164d82de5045c4c489b94027e6efd59cc7dfadb947dac90c76eb85e7190c4}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: normalize-dataset.Succeeded
+        name: train-model-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.train-model-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.train-model-driver.outputs.parameters.cached-decision}}'
+        depends: train-model-driver.Succeeded
+        name: train-model
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - iris-training-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{"parameterValues":{"neighbors":3,"standard_scaler":true}}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

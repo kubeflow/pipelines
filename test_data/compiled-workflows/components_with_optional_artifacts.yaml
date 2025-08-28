@@ -1,0 +1,532 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: optional-artifact-pipeline-
+spec:
+  arguments:
+    parameters:
+    - name: components-950ab2ff916de191d4701d45acbc5dce7cd1edca6fa6b0226245176343e4af97
+      value: '{"executorLabel":"exec-custom-artifact-printer","inputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"},"isOptional":true}}}}'
+    - name: implementations-950ab2ff916de191d4701d45acbc5dce7cd1edca6fa6b0226245176343e4af97
+      value: '{"command":["{\"IfPresent\": {\"InputName\": \"artifact\", \"Then\":
+        [\"echo\", \"{{$.inputs.artifacts[''artifact''].uri}}\"], \"Else\": [\"echo\",
+        \"No artifact provided!\"]}}"],"image":"alpine"}'
+    - name: components-comp-importer
+      value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-comp-importer
+      value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
+    - name: components-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde
+      value: '{"executorLabel":"exec-python-artifact-printer","inputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"},"isOptional":true}}}}'
+    - name: implementations-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","python_artifact_printer"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        python_artifact_printer(artifact: Optional[Input[Artifact]] = None):\n    if
+        artifact is not None:\n        print(artifact.name)\n        print(artifact.uri)\n        print(artifact.metadata)\n    else:\n        print(''No
+        artifact provided!'')\n\n"],"image":"python:3.9"}'
+    - name: components-comp-inner-pipeline
+      value: '{"dag":{"tasks":{"python-artifact-printer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-python-artifact-printer"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset"}}},"taskInfo":{"name":"python-artifact-printer"}}}},"inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isOptional":true}}}}'
+    - name: components-comp-inner-pipeline-2
+      value: '{"dag":{"tasks":{"python-artifact-printer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-python-artifact-printer-2"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset"}}},"taskInfo":{"name":"python-artifact-printer"}}}},"inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isOptional":true}}}}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"custom-artifact-printer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-artifact-printer"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset1"}}},"taskInfo":{"name":"custom-artifact-printer"}},"custom-artifact-printer-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-artifact-printer-2"},"taskInfo":{"name":"custom-artifact-printer-2"}},"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"}}}},"taskInfo":{"name":"importer"}},"inner-pipeline":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-inner-pipeline"},"dependentTasks":["importer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"inner-pipeline"}},"inner-pipeline-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-inner-pipeline-2"},"taskInfo":{"name":"inner-pipeline-2"}}}},"inputDefinitions":{"artifacts":{"dataset1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isOptional":true}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - optional-artifact-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-python-artifact-printer"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset"}}},"taskInfo":{"name":"python-artifact-printer"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: python-artifact-printer-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.python-artifact-printer-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.python-artifact-printer-driver.outputs.parameters.cached-decision}}'
+        depends: python-artifact-printer-driver.Succeeded
+        name: python-artifact-printer
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-inner-pipeline
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-python-artifact-printer-2"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset"}}},"taskInfo":{"name":"python-artifact-printer"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: python-artifact-printer-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.python-artifact-printer-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.python-artifact-printer-driver.outputs.parameters.cached-decision}}'
+        depends: python-artifact-printer-driver.Succeeded
+        name: python-artifact-printer
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: comp-inner-pipeline-2
+    outputs: {}
+  - container:
+      args:
+      - --executor_type
+      - importer
+      - --task_spec
+      - '{{inputs.parameters.task}}'
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --importer_spec
+      - '{{inputs.parameters.importer}}'
+      - --pipeline_name
+      - optional-artifact-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --parent_dag_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --mlmd_server_address
+      - $(METADATA_GRPC_SERVICE_HOST)
+      - --mlmd_server_port
+      - $(METADATA_GRPC_SERVICE_PORT)
+      command:
+      - launcher-v2
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: task
+      - name: component
+      - name: importer
+      - name: parent-dag-id
+    metadata: {}
+    name: system-importer
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - optional-artifact-pipeline
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-950ab2ff916de191d4701d45acbc5dce7cd1edca6fa6b0226245176343e4af97}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-artifact-printer"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset1"}}},"taskInfo":{"name":"custom-artifact-printer"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-950ab2ff916de191d4701d45acbc5dce7cd1edca6fa6b0226245176343e4af97}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: custom-artifact-printer-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.custom-artifact-printer-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.custom-artifact-printer-driver.outputs.parameters.cached-decision}}'
+        depends: custom-artifact-printer-driver.Succeeded
+        name: custom-artifact-printer
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-950ab2ff916de191d4701d45acbc5dce7cd1edca6fa6b0226245176343e4af97}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-artifact-printer-2"},"taskInfo":{"name":"custom-artifact-printer-2"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-950ab2ff916de191d4701d45acbc5dce7cd1edca6fa6b0226245176343e4af97}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: custom-artifact-printer-2-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.custom-artifact-printer-2-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.custom-artifact-printer-2-driver.outputs.parameters.cached-decision}}'
+        depends: custom-artifact-printer-2-driver.Succeeded
+        name: custom-artifact-printer-2
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"}}}},"taskInfo":{"name":"importer"}}'
+          - name: component
+            value: '{{workflow.parameters.components-comp-importer}}'
+          - name: importer
+            value: '{{workflow.parameters.implementations-comp-importer}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: importer
+        template: system-importer
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-inner-pipeline}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-inner-pipeline"},"dependentTasks":["importer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"inner-pipeline"}}'
+        depends: importer.Succeeded
+        name: inner-pipeline-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.inner-pipeline-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.inner-pipeline-driver.outputs.parameters.condition}}'
+        depends: inner-pipeline-driver.Succeeded
+        name: inner-pipeline
+        template: comp-inner-pipeline
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-comp-inner-pipeline-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-inner-pipeline-2"},"taskInfo":{"name":"inner-pipeline-2"}}'
+        name: inner-pipeline-2-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.inner-pipeline-2-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: '{{tasks.inner-pipeline-2-driver.outputs.parameters.condition}}'
+        depends: inner-pipeline-2-driver.Succeeded
+        name: inner-pipeline-2
+        template: comp-inner-pipeline-2
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null
