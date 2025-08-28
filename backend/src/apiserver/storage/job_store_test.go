@@ -43,7 +43,7 @@ func initializeDbAndStore() (*DB, *JobStore) {
 	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp2", Namespace: "n1"})
 	expStore.CreateExperiment(&model.Experiment{Name: "exp2", Namespace: "n1"})
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
 	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	job1 := &model.Job{
@@ -466,7 +466,7 @@ func TestCreateJob(t *testing.T) {
 	defer db.Close()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	experiment, _ := expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	job := &model.Job{
@@ -521,7 +521,7 @@ func TestCreateJob_V2(t *testing.T) {
 	defer db.Close()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	pipelineStore := NewPipelineStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	pipeline, _ := pipelineStore.CreatePipeline(&model.Pipeline{Name: "p1"})
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	job := &model.Job{
