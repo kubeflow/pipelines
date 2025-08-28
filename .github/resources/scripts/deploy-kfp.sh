@@ -115,9 +115,9 @@ fi
 # Deploy multi-user prerequisites if multi-user mode is enabled
 if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Istio..."
-  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-crds/base?ref=master
-  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-namespace/base?ref=master
-  kubectl apply -k https://github.com/kubeflow/manifests//common/istio/istio-install/base?ref=master
+  kubectl apply -k https://github.com/kubeflow/manifests/common/istio/istio-crds/base?ref=master
+  kubectl apply -k https://github.com/kubeflow/manifests/common/istio/istio-namespace/base?ref=master
+  kubectl apply -k https://github.com/kubeflow/manifests/common/istio/istio-install/base?ref=master
   echo "Waiting for all Istio Pods to become ready..."
   kubectl wait --for=condition=Ready pods --all -n istio-system --timeout=300s
 
@@ -140,20 +140,37 @@ if [ "${MULTI_USER}" == "true" ]; then
 fi
 
 # Manifests will be deployed according to the flag provided
-if $CACHE_DISABLED; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/cache-disabled"
-elif $USE_PROXY; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/proxy"
-elif [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/standalone"
+  if $CACHE_DISABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
+  elif $USE_PROXY; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/proxy"
+  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
+  elif $CACHE_DISABLED && $USE_PROXY; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
+  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
+  elif $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
+  elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
+  fi
+elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
-elif [ "${MULTI_USER}" == "true" ] && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user"
-elif [ "${MULTI_USER}" == "true" ] && [ "${STORAGE_BACKEND}" == "minio" ]; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multi-user-minio"
-elif [ "${STORAGE_BACKEND}" == "minio" ]; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy-minio"
-else
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/no-proxy"
+  if $CACHE_DISABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
+  fi
+elif [ "${MULTI_USER}" == "true" ]; then
+  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multiuser"
+  if [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
+  elif $CACHE_DISABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
+  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
+  fi
 fi
 
 echo "Deploying ${TEST_MANIFESTS}..."
