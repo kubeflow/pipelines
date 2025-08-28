@@ -74,7 +74,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		runStore:                      storage.NewRunStore(db, time, testDialect),
 		taskStore:                     storage.NewTaskStore(db, time, uuid),
 		ExecClientFake:                client.NewFakeExecClient(),
-		resourceReferenceStore:        storage.NewResourceReferenceStore(db, nil),
+		resourceReferenceStore:        storage.NewResourceReferenceStore(db, nil, testDialect),
 		dBStatusStore:                 storage.NewDBStatusStore(db),
 		defaultExperimentStore:        storage.NewDefaultExperimentStore(db, testDialect),
 		objectStore:                   storage.NewFakeObjectStore(),

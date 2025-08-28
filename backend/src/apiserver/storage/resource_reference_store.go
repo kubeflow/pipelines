@@ -16,10 +16,9 @@ package storage
 
 import (
 	"database/sql"
-	"errors"
-	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -39,15 +38,22 @@ type ResourceReferenceStoreInterface interface {
 type ResourceReferenceStore struct {
 	db            *DB
 	pipelineStore PipelineStoreInterface
+	dialect       dialect.DBDialect
 }
 
 // Create a resource reference.
 // This is always in company with creating a parent resource so a transaction is needed as input.
 func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*model.ResourceReference) error {
 	if len(refs) > 0 {
-		resourceRefSqlBuilder := sq.
-			Insert("resource_references").
-			Columns("ResourceUUID", "ResourceType", "ReferenceUUID", "ReferenceName", "ReferenceType", "Relationship", "Payload")
+		q := s.dialect.QuoteIdentifier
+		qb := s.dialect.QueryBuilder()
+		resourceRefSQLBuilder := qb.
+			Insert(q("resource_references")).
+			Columns(
+				q("ResourceUUID"), q("ResourceType"), q("ReferenceUUID"),
+				q("ReferenceName"), q("ReferenceType"), q("Relationship"),
+				q("Payload"),
+			)
 		for _, ref := range refs {
 			if !s.checkReferenceExist(tx, ref.ReferenceUUID, ref.ReferenceType) {
 				return util.NewResourceNotFoundError(string(ref.ReferenceType), ref.ReferenceUUID)
@@ -56,14 +62,14 @@ func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*mo
 			if err != nil {
 				return util.NewInternalServerError(err, "Failed to stream resource reference model to a json payload")
 			}
-			resourceRefSqlBuilder = resourceRefSqlBuilder.Values(
+			resourceRefSQLBuilder = resourceRefSQLBuilder.Values(
 				ref.ResourceUUID, ref.ResourceType, ref.ReferenceUUID, ref.ReferenceName, ref.ReferenceType, ref.Relationship, string(payload))
 		}
-		refSql, refArgs, err := resourceRefSqlBuilder.ToSql()
+		refSQL, refArgs, err := resourceRefSQLBuilder.ToSql()
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to create query to store resource references")
 		}
-		_, err = tx.Exec(refSql, refArgs...)
+		_, err = tx.Exec(refSQL, refArgs...)
 		if err != nil {
 			return util.NewInternalServerError(err, "Failed to store resource references")
 		}
@@ -72,26 +78,28 @@ func (s *ResourceReferenceStore) CreateResourceReferences(tx *sql.Tx, refs []*mo
 }
 
 func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId string, referenceType model.ResourceType) bool {
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
 	var selectBuilder sq.SelectBuilder
 	switch referenceType {
 	case model.JobResourceType:
-		selectBuilder = sq.Select("1").From("jobs").Where(sq.Eq{"uuid": referenceId})
+		selectBuilder = qb.Select("1").From(q("jobs")).Where(sq.Eq{q("UUID"): referenceId})
 	case model.ExperimentResourceType:
-		selectBuilder = sq.Select("1").From("experiments").Where(sq.Eq{"uuid": referenceId})
+		selectBuilder = qb.Select("1").From(q("experiments")).Where(sq.Eq{q("UUID"): referenceId})
 	case model.PipelineVersionResourceType:
 		if s.pipelineStore != nil {
 			pv, _ := s.pipelineStore.GetPipelineVersion(referenceId)
 
 			return pv != nil
 		}
-		selectBuilder = sq.Select("1").From("pipeline_versions").Where(sq.Eq{"uuid": referenceId})
+		selectBuilder = qb.Select("1").From(q("pipeline_versions")).Where(sq.Eq{q("UUID"): referenceId})
 	case model.PipelineResourceType:
 		if s.pipelineStore != nil {
 			p, _ := s.pipelineStore.GetPipeline(referenceId)
 
 			return p != nil
 		}
-		selectBuilder = sq.Select("1").From("pipelines").Where(sq.Eq{"uuid": referenceId})
+		selectBuilder = qb.Select("1").From(q("pipelines")).Where(sq.Eq{q("UUID"): referenceId})
 	case model.NamespaceResourceType:
 		// This function is called to check the data validity when the data are transformed according to the DB schema.
 		// Since there is not a separate table to store the namespace data, thus always returning true.
@@ -103,28 +111,30 @@ func (s *ResourceReferenceStore) checkReferenceExist(tx *sql.Tx, referenceId str
 	if err != nil {
 		return false
 	}
-	var exists bool
-	err = tx.QueryRow(fmt.Sprintf("SELECT exists (%s)", query), args...).Scan(&exists)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	rows, err := tx.Query(query, args...)
+	if err != nil {
 		return false
 	}
-	return exists
+	defer rows.Close()
+	return rows.Next()
 }
 
 // Delete all resource references for a specific resource.
 // This is always in company with creating a parent resource so a transaction is needed as input.
 func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string, resourceType model.ResourceType) error {
-	refSql, refArgs, err := sq.
-		Delete("resource_references").
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+	refSQL, refArgs, err := qb.
+		Delete(q("resource_references")).
 		Where(sq.Or{
-			sq.Eq{"ResourceUUID": id, "ResourceType": resourceType},
-			sq.Eq{"ReferenceUUID": id, "ReferenceType": resourceType},
+			sq.Eq{q("ResourceUUID"): id, q("ResourceType"): resourceType},
+			sq.Eq{q("ReferenceUUID"): id, q("ReferenceType"): resourceType},
 		}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to delete resource references for %s %s due to SQL syntax error", resourceType, id)
 	}
-	_, err = tx.Exec(refSql, refArgs...)
+	_, err = tx.Exec(refSQL, refArgs...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to delete resource references for %s %s due to SQL execution error", resourceType, id)
 	}
@@ -134,12 +144,18 @@ func (s *ResourceReferenceStore) DeleteResourceReferences(tx *sql.Tx, id string,
 func (s *ResourceReferenceStore) GetResourceReference(resourceId string, resourceType model.ResourceType,
 	referenceType model.ResourceType,
 ) (*model.ResourceReference, error) {
-	sql, args, err := sq.Select(resourceReferenceColumns...).
-		From("resource_references").
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+	quotedCols := make([]string, len(resourceReferenceColumns))
+	for i, c := range resourceReferenceColumns {
+		quotedCols[i] = q(c)
+	}
+	sql, args, err := qb.Select(quotedCols...).
+		From(q("resource_references")).
 		Where(sq.Eq{
-			"ResourceUUID":  resourceId,
-			"ResourceType":  resourceType,
-			"ReferenceType": referenceType,
+			q("ResourceUUID"):  resourceId,
+			q("ResourceType"):  resourceType,
+			q("ReferenceType"): referenceType,
 		}).
 		Limit(1).ToSql()
 	if err != nil {
@@ -187,8 +203,8 @@ func (s *ResourceReferenceStore) scanRows(r *sql.Rows) ([]model.ResourceReferenc
 	return references, nil
 }
 
-func NewResourceReferenceStore(db *DB, pipelineStore PipelineStoreInterface) *ResourceReferenceStore {
+func NewResourceReferenceStore(db *DB, pipelineStore PipelineStoreInterface, d dialect.DBDialect) *ResourceReferenceStore {
 	// If pipelineStore is specified and it is not nil, it will be used instead of the DB.
 	// This will make pipelines and pipeline versions to get stored in K8s instead of Database.
-	return &ResourceReferenceStore{db: db, pipelineStore: pipelineStore}
+	return &ResourceReferenceStore{db: db, pipelineStore: pipelineStore, dialect: d}
 }
