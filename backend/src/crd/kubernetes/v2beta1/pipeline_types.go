@@ -56,7 +56,7 @@ func FromPipelineModel(pipeline model.Pipeline) Pipeline {
 		},
 		Spec: PipelineSpec{
 			DisplayName: pipeline.DisplayName,
-			Description: pipeline.Description,
+			Description: string(pipeline.Description),
 		},
 	}
 }
@@ -72,7 +72,7 @@ func (p *Pipeline) ToModel() *model.Pipeline {
 	return &model.Pipeline{
 		Name:           p.Name,
 		DisplayName:    displayName,
-		Description:    p.Spec.Description,
+		Description:    model.LargeText(p.Spec.Description),
 		Namespace:      p.Namespace,
 		UUID:           string(p.UID),
 		CreatedAtInSec: p.CreationTimestamp.Unix(),
