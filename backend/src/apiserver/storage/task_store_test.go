@@ -94,7 +94,7 @@ func initializeTaskStore() (*DB, *TaskStore) {
 	runStore.CreateRun(run2)
 	runStore.CreateRun(run3)
 
-	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeTaskId, nil))
+	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeTaskId, nil), testDialect)
 	task1 := &model.Task{
 		Namespace:         "ns1",
 		PodName:           "pod1",

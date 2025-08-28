@@ -21,6 +21,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -65,17 +66,19 @@ type TaskStoreInterface interface {
 }
 
 type TaskStore struct {
-	db   *DB
-	time util.TimeInterface
-	uuid util.UUIDGeneratorInterface
+	db      *DB
+	time    util.TimeInterface
+	uuid    util.UUIDGeneratorInterface
+	dialect dialect.DBDialect
 }
 
 // NewTaskStore creates a new TaskStore.
-func NewTaskStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *TaskStore {
+func NewTaskStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface, d dialect.DBDialect) *TaskStore {
 	return &TaskStore{
-		db:   db,
-		time: time,
-		uuid: uuid,
+		db:      db,
+		time:    time,
+		uuid:    uuid,
+		dialect: d,
 	}
 }
 
@@ -112,28 +115,30 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 		return nil, util.NewInternalServerError(err, "Failed to marshal children pods in a new run")
 	}
 
-	sql, args, err := sq.
-		Insert(table_name).
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+	sql, args, err := qb.
+		Insert(q(table_name)).
 		SetMap(
 			sq.Eq{
-				"UUID":              newTask.UUID,
-				"Namespace":         newTask.Namespace,
-				"PipelineName":      newTask.PipelineName,
-				"RunUUID":           newTask.RunId,
-				"PodName":           newTask.PodName,
-				"MLMDExecutionID":   newTask.MLMDExecutionID,
-				"CreatedTimestamp":  newTask.CreatedTimestamp,
-				"StartedTimestamp":  newTask.StartedTimestamp,
-				"FinishedTimestamp": newTask.FinishedTimestamp,
-				"Fingerprint":       newTask.Fingerprint,
-				"Name":              newTask.Name,
-				"ParentTaskUUID":    newTask.ParentTaskId,
-				"State":             newTask.State.ToString(),
-				"StateHistory":      stateHistoryString,
-				"MLMDInputs":        newTask.MLMDInputs,
-				"MLMDOutputs":       newTask.MLMDOutputs,
-				"ChildrenPods":      childrenPodsString,
-				"Payload":           newTask.ToString(),
+				q("UUID"):              newTask.UUID,
+				q("Namespace"):         newTask.Namespace,
+				q("PipelineName"):      newTask.PipelineName,
+				q("RunUUID"):           newTask.RunId,
+				q("PodName"):           newTask.PodName,
+				q("MLMDExecutionID"):   newTask.MLMDExecutionID,
+				q("CreatedTimestamp"):  newTask.CreatedTimestamp,
+				q("StartedTimestamp"):  newTask.StartedTimestamp,
+				q("FinishedTimestamp"): newTask.FinishedTimestamp,
+				q("Fingerprint"):       newTask.Fingerprint,
+				q("Name"):              newTask.Name,
+				q("ParentTaskUUID"):    newTask.ParentTaskId,
+				q("State"):             newTask.State.ToString(),
+				q("StateHistory"):      stateHistoryString,
+				q("MLMDInputs"):        newTask.MLMDInputs,
+				q("MLMDOutputs"):       newTask.MLMDOutputs,
+				q("ChildrenPods"):      childrenPodsString,
+				q("Payload"):           newTask.ToString(),
 			},
 		).
 		ToSql()
@@ -216,13 +221,16 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list tasks: %v", err)
 	}
 
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+
 	// SQL for getting the filtered and paginated rows
-	sqlBuilder := sq.Select(taskColumns...).From("tasks")
+	sqlBuilder := qb.Select(taskColumns...).From(q("tasks"))
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("PipelineName"): filterContext.ID})
 	}
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ID})
 	}
 	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
 
@@ -233,12 +241,12 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
-	sqlBuilder = sq.Select("count(*)").From("tasks")
+	sqlBuilder = qb.Select("count(*)").From(q("tasks"))
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("PipelineName"): filterContext.ID})
 	}
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{"RunUUID": filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ID})
 	}
 	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
 	if err != nil {
@@ -299,10 +307,12 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 }
 
 func (s *TaskStore) GetTask(id string) (*model.Task, error) {
-	sql, args, err := sq.
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+	sql, args, err := qb.
 		Select(taskColumns...).
-		From("tasks").
-		Where(sq.Eq{"tasks.uuid": id}).
+		From(q("tasks")).
+		Where(sq.Eq{q("tasks") + "." + q("uuid"): id}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get task: %v", err.Error())
@@ -329,10 +339,12 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task) error {
 	for _, task := range tasks {
 		podNames = append(podNames, task.PodName)
 	}
-	sql, args, err := sq.
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+	sql, args, err := qb.
 		Select(taskColumns...).
-		From("tasks").
-		Where(sq.Eq{"PodName": podNames}).
+		From(q("tasks")).
+		Where(sq.Eq{q("PodName"): podNames}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to check existing tasks")
@@ -361,7 +373,9 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task) error {
 // Creates new entries or updates existing ones.
 func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, error) {
 	buildQuery := func(ts []*model.Task) (string, []interface{}, error) {
-		sqlInsert := sq.Insert("tasks").Columns(taskColumnsWithPayload...)
+		q := s.dialect.QuoteIdentifier
+		qb := s.dialect.QueryBuilder()
+		sqlInsert := qb.Insert(q("tasks")).Columns(taskColumnsWithPayload...)
 		for _, t := range ts {
 			childrenPodsString := ""
 			if len(t.ChildrenPods) > 0 {

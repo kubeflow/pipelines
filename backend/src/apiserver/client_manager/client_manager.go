@@ -281,7 +281,7 @@ func (c *ClientManager) init(options *Options) error {
 	}
 	c.experimentStore = storage.NewExperimentStore(db, c.time, c.uuid, c.dbDialect)
 	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef, c.dbDialect)
-	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid)
+	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid, c.dbDialect)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef, c.dbDialect)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db, c.dbDialect)
