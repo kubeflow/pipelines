@@ -2035,6 +2035,7 @@ def write_pipeline_spec_to_file(
             opts=opts,
             pipeline_spec=pipeline_spec,
             platform_spec=platform_spec,
+            pipeline_description=pipeline_description,
         )
         return
 
@@ -2077,6 +2078,7 @@ def _write_kubernetes_manifest_to_file(
     opts: KubernetesManifestOptions,
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     platform_spec: pipeline_spec_pb2.PlatformSpec,
+    pipeline_description: Union[str, None] = None,
 ) -> None:
     pipeline_name = opts.pipeline_name
     pipeline_display_name = opts.pipeline_display_name
@@ -2103,6 +2105,8 @@ def _write_kubernetes_manifest_to_file(
                 'displayName': pipeline_display_name,
             },
         }
+        if pipeline_description:
+            pipeline_manifest['spec']['description'] = pipeline_description
         documents.append(pipeline_manifest)
 
     # PipelineVersion manifest
@@ -2117,9 +2121,14 @@ def _write_kubernetes_manifest_to_file(
             'displayName': pipeline_version_display_name,
             'pipelineName': pipeline_name,
             'pipelineSpec': pipeline_spec_dict,
-            'platformSpec': platform_spec_dict,
         },
     }
+
+    if platform_spec_dict:
+        pipeline_version_manifest['spec']['platformSpec'] = platform_spec_dict
+
+    if pipeline_description:
+        pipeline_version_manifest['spec']['description'] = pipeline_description
     documents.append(pipeline_version_manifest)
 
     with open(package_path, 'w') as yaml_file:

@@ -1039,7 +1039,8 @@ implementation:
     def test_compile_with_kubernetes_manifest_format(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            @dsl.pipeline(name='my-pipeline')
+            @dsl.pipeline(
+                name='my-pipeline', description='A simple test pipeline')
             def my_pipeline(input1: str):
                 print_op(message=input1)
 
@@ -1080,6 +1081,8 @@ implementation:
                              pipeline_name)
             self.assertEqual(pipeline_manifest['spec']['displayName'],
                              pipeline_display_name)
+            self.assertEqual(pipeline_manifest['spec']['description'],
+                             'A simple test pipeline')
             self.assertEqual(pipeline_manifest['metadata']['namespace'],
                              namespace)
 
@@ -1091,12 +1094,24 @@ implementation:
                              pipeline_version_name)
             self.assertEqual(pipeline_version_manifest['spec']['displayName'],
                              pipeline_version_display_name)
+            self.assertEqual(pipeline_version_manifest['spec']['description'],
+                             'A simple test pipeline')
             self.assertEqual(pipeline_version_manifest['spec']['pipelineName'],
                              pipeline_name)
             self.assertEqual(pipeline_version_manifest['metadata']['namespace'],
                              namespace)
+            self.assertNotIn('platformSpec', pipeline_version_manifest['spec'])
 
-            # Test with include_pipeline_manifest=False
+            # Test with include_pipeline_manifest=False and has a platform spec
+            @dsl.pipeline(
+                name='my-pipeline',
+                description='A simple test pipeline with platform spec',
+                pipeline_config=dsl.PipelineConfig(
+                    workspace=dsl.WorkspaceConfig(size='25Gi'),),
+            )
+            def my_pipeline(input1: str):
+                print_op(message=input1)
+
             package_path2 = os.path.join(tmpdir, 'pipeline2.yaml')
             kubernetes_manifest_options2 = KubernetesManifestOptions(
                 pipeline_name=pipeline_name,
@@ -1131,6 +1146,21 @@ implementation:
                              pipeline_name)
             self.assertEqual(
                 pipeline_version_manifest2['metadata']['namespace'], namespace)
+            self.assertEqual(
+                pipeline_version_manifest2['spec']['platformSpec'], {
+                    'platforms': {
+                        'kubernetes': {
+                            'pipelineConfig': {
+                                'workspace': {
+                                    'kubernetes': {
+                                        'pvcSpecPatch': {}
+                                    },
+                                    'size': '25Gi'
+                                }
+                            }
+                        }
+                    }
+                })
 
 
 class TestCompilePipelineCaching(unittest.TestCase):
