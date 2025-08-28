@@ -16,6 +16,7 @@ package api_server_v2
 
 import (
 	"fmt"
+	httptransport "github.com/go-openapi/runtime/client"
 
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client"
@@ -44,12 +45,12 @@ type ExperimentClient struct {
 func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*ExperimentClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating experiment client: %w", err)
 	}
 
-	apiClient := apiclient.New(runtime, strfmt.Default)
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
 
 	// Creating experiment client
 	return &ExperimentClient{
@@ -60,9 +61,25 @@ func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
 	*ExperimentClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	httpRuntime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
-	apiClient := apiclient.New(runtime, strfmt.Default)
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
+
+	// Creating experiment client
+	return &ExperimentClient{
+		apiClient: apiClient,
+	}, nil
+}
+
+func NewMultiUserExperimentClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool) (
+	*ExperimentClient, error) {
+
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	if err != nil {
+		return nil, fmt.Errorf("error occurred when creating experiment client: %w", err)
+	}
+	httpRuntime.DefaultAuthentication = httptransport.BearerToken(userToken)
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
 
 	// Creating experiment client
 	return &ExperimentClient{

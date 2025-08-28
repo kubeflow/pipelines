@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	recurringRunParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
@@ -17,11 +16,13 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
+	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/v2"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-
 	v1 "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,7 +63,7 @@ func (s *CacheTestSuite) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
 	}
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
 	var newPipelineClient func() (*apiServer.PipelineClient, error)
 	var newRunClient func() (*apiServer.RunClient, error)
@@ -72,25 +73,25 @@ func (s *CacheTestSuite) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newPipelineClient = func() (*apiServer.PipelineClient, error) {
-			return apiServer.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return apiServer.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 		newRunClient = func() (*apiServer.RunClient, error) {
-			return apiServer.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return apiServer.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
 		}
 		newRecurringRunClient = func() (*apiServer.RecurringRunClient, error) {
-			return apiServer.NewKubeflowInClusterRecurringRunClient(s.namespace, *isDebugMode)
+			return apiServer.NewKubeflowInClusterRecurringRunClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newPipelineClient = func() (*apiServer.PipelineClient, error) {
-			return apiServer.NewPipelineClient(clientConfig, *isDebugMode)
+			return apiServer.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 		newRunClient = func() (*apiServer.RunClient, error) {
-			return apiServer.NewRunClient(clientConfig, *isDebugMode)
+			return apiServer.NewRunClient(clientConfig, *config.DebugMode)
 		}
 		newRecurringRunClient = func() (*apiServer.RecurringRunClient, error) {
-			return apiServer.NewRecurringRunClient(clientConfig, *isDebugMode)
+			return apiServer.NewRecurringRunClient(clientConfig, *config.DebugMode)
 		}
 	}
 
@@ -98,7 +99,7 @@ func (s *CacheTestSuite) SetupTest() {
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
-		*isDebugMode,
+		*config.DebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),
 	)

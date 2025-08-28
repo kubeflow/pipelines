@@ -18,9 +18,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/golang/glog"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"github.com/kubeflow/pipelines/backend/test/config"
 	test "github.com/kubeflow/pipelines/backend/test/v2"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -44,8 +46,8 @@ func (s *HealthzApiTest) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %v", err)
 		}
 	}
-	s.namespace = *namespace
-	clientConfig := test.GetClientConfig(*namespace)
+	s.namespace = *config.Namespace
+	clientConfig := test.GetClientConfig(*config.Namespace)
 	var err error
 	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false)
 	if err != nil {

@@ -1,0 +1,39 @@
+name: "Set up KFP on KinD"
+description: "Step to start and configure KFP on Kind"
+
+inputs:
+  k8s_version:
+    description: "The Kubernetes version to use for the Kind cluster"
+    required: true
+  cluster_name:
+    description: "Provide kind cluster name if you want to name it other than kfp"
+    required: false
+    default: 'kfp'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Prepare host storage directory
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo mkdir -p /mnt/local-path-provisioner
+
+    - name: Create k8s Kind Cluster
+      uses: container-tools/kind-action@v2
+      with:
+        cluster_name: ${{ inputs.cluster_name }}
+        kubectl_version: ${{ inputs.k8s_version }}
+        version: v0.25.0
+        node_image: kindest/node:${{ inputs.k8s_version }}
+        config: .github/actions/create-cluster/kind-config.yaml
+
+    - name: Configure Local Path Provisioner to use /mnt and root
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Patch local-path-provisioner config to prefer /mnt, but allow default root path
+        kubectl -n local-path-storage patch configmap local-path-config --type merge \
+          -p '{"data":{"config.json":"{\"nodePathMap\":[{\"node\":\"DEFAULT_PATH_FOR_NON_LISTED_NODES\",\"paths\":[\"/mnt/local-path-provisioner\",\"/var/local-path-provisioner\"]}]}"}}'
+        # Restart local-path-provisioner to pick up the new config
+        kubectl -n local-path-storage rollout restart deploy/local-path-provisioner
