@@ -510,7 +510,7 @@ func TestCreateJob(t *testing.T) {
 	assert.Equal(t, jobExpected, newJob.ToV1(), "Got unexpected jobs")
 
 	// Check resource reference exists
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
@@ -567,7 +567,7 @@ func TestCreateJob_V2(t *testing.T) {
 	assert.Equal(t, jobExpected, job.ToV1(), "Got unexpected jobs")
 
 	// Check resource reference exists
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
@@ -936,7 +936,7 @@ func TestUpdateJob_InternalError(t *testing.T) {
 func TestDeleteJob(t *testing.T) {
 	db, jobStore := initializeDbAndStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)

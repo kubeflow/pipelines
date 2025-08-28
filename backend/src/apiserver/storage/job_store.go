@@ -512,7 +512,7 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 func NewJobStore(db *DB, time util.TimeInterface, pipelineStore PipelineStoreInterface, d dialect.DBDialect) *JobStore {
 	return &JobStore{
 		db:                     db,
-		resourceReferenceStore: NewResourceReferenceStore(db, pipelineStore),
+		resourceReferenceStore: NewResourceReferenceStore(db, pipelineStore, d),
 		time:                   time,
 		dialect:                d,
 	}

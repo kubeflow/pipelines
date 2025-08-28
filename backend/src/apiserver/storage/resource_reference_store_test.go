@@ -48,7 +48,7 @@ func TestResourceReferenceStore(t *testing.T) {
 	expStore.CreateExperiment(&model.Experiment{Name: "e1"})
 	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "e2"})
-	store := NewResourceReferenceStore(db, nil)
+	store := NewResourceReferenceStore(db, nil, testDialect)
 
 	// Create resource reference
 	tx, _ := db.Begin()

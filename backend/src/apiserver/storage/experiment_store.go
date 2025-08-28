@@ -532,7 +532,7 @@ func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGenerator
 		db:                     db,
 		time:                   time,
 		uuid:                   uuid,
-		resourceReferenceStore: NewResourceReferenceStore(db, nil),
+		resourceReferenceStore: NewResourceReferenceStore(db, nil, d),
 		defaultExperimentStore: NewDefaultExperimentStore(db, d),
 		dialect:                d,
 	}
