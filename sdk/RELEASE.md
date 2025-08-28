@@ -10,6 +10,13 @@
 
 ## Documentation updates
 
+# 2.14.3
+
+## Bug Fixes
+
+* **backend/sdk:** Fix REST API outputs for pipeline versions with invalid platform specs ([\#12183](https://github.com/kubeflow/pipelines/issues/12183)) ([0cafb3d](https://github.com/kubeflow/pipelines/commit/0cafb3db99fdcea38fc37d0aef2f7dd237559065))
+* **sdk:** Set spec.description when compiling to Kubernetes manifests ([\#12132](https://github.com/kubeflow/pipelines/issues/12132)) ([5ffddad](https://github.com/kubeflow/pipelines/commit/5ffddad045db75e9e5fb2957226b4a28706637bd))
+
 # 2.14.0
 
 ## Features

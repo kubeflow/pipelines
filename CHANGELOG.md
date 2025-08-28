@@ -1,5 +1,24 @@
 # Changelog
 
+### [2.14.3](https://github.com/kubeflow/pipelines/compare/2.14.0...2.14.3) (2025-08-28)
+
+
+### Bug Fixes
+
+* **backend:** Add support for additional filters on the Kubernetes native API ([\#12189](https://github.com/kubeflow/pipelines/issues/12189)) ([8bb97be](https://github.com/kubeflow/pipelines/commit/8bb97be463a99c9abfa1d6d824ebedbe2957c077))
+* **backend:** Fix mutating webhook when pipeline name label value is too long ([\#12162](https://github.com/kubeflow/pipelines/issues/12162)) ([1b6fd87](https://github.com/kubeflow/pipelines/commit/1b6fd87f851fb31e7b81d55f6c6ff1206ef43d18))
+* **backend:** Return from pipeline deletions after the cache is updated ([\#12153](https://github.com/kubeflow/pipelines/issues/12153)) ([df79a7a](https://github.com/kubeflow/pipelines/commit/df79a7ac2574dde0130fa665e9ac72c51aa05304))
+* **backend/sdk:** Fix REST API outputs for pipeline versions with invalid platform specs ([\#12183](https://github.com/kubeflow/pipelines/issues/12183)) ([0cafb3d](https://github.com/kubeflow/pipelines/commit/0cafb3db99fdcea38fc37d0aef2f7dd237559065))
+* **sdk:** Set spec.description when compiling to Kubernetes manifests ([\#12132](https://github.com/kubeflow/pipelines/issues/12132)) ([5ffddad](https://github.com/kubeflow/pipelines/commit/5ffddad045db75e9e5fb2957226b4a28706637bd))
+* **tools:** Fix a typo in convert_to_k8s_format ([\#12161](https://github.com/kubeflow/pipelines/issues/12161)) ([9984fb7](https://github.com/kubeflow/pipelines/commit/9984fb79cd6371e8fa58c23bb4a8b0fc1ee57465))
+
+
+### Other Pull Requests
+
+* Cherry-Pick 2.14.2 SDK changes  ([\#12123](https://github.com/kubeflow/pipelines/issues/12123)) ([ec00fa3](https://github.com/kubeflow/pipelines/commit/ec00fa3ca34492c92271835fa87764cd1883ebda))
+* ignore adding pb2.py files for kfp-k8s docs ([3fad4df](https://github.com/kubeflow/pipelines/commit/3fad4df5dfa2246d6d52fd43f12b4802704a760a))
+* update sphinx deps ([25805b8](https://github.com/kubeflow/pipelines/commit/25805b8d352631b17bba334e98bdd00911ee8cb5))
+
 ## [2.14.0](https://github.com/kubeflow/pipelines/compare/2.5.0...2.14.0) (2025-08-05)
 
 
