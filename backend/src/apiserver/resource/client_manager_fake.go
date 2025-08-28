@@ -24,6 +24,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
+var testDialect = dialect.NewDBDialect("sqlite")
+
 type FakeClientManager struct {
 	db                            *storage.DB
 	experimentStore               storage.ExperimentStoreInterface
@@ -64,11 +66,10 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	}
 
 	// TODO(neuromage): Pass in metadata.Store instance for tests as well.
-	var testDialect = dialect.NewDBDialect("sqlite")
 	return &FakeClientManager{
 		db:                            db,
 		experimentStore:               storage.NewExperimentStore(db, time, uuid, testDialect),
-		pipelineStore:                 storage.NewPipelineStore(db, time, uuid),
+		pipelineStore:                 storage.NewPipelineStore(db, time, uuid, testDialect),
 		jobStore:                      storage.NewJobStore(db, time, nil, testDialect),
 		runStore:                      storage.NewRunStore(db, time, testDialect),
 		taskStore:                     storage.NewTaskStore(db, time, uuid),
@@ -194,6 +195,6 @@ func (f *FakeClientManager) Close() error {
 // Update the uuid used in this fake client manager.
 func (f *FakeClientManager) UpdateUUID(uuid util.UUIDGeneratorInterface) {
 	f.uuid = uuid
-	f.experimentStore = storage.NewExperimentStore(f.db, f.time, uuid, dialect.NewDBDialect("sqlite"))
-	f.pipelineStore = storage.NewPipelineStore(f.db, f.time, uuid)
+	f.experimentStore = storage.NewExperimentStore(f.db, f.time, uuid, testDialect)
+	f.pipelineStore = storage.NewPipelineStore(f.db, f.time, uuid, testDialect)
 }
