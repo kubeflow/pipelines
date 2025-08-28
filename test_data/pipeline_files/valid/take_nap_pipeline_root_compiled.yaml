@@ -1,0 +1,123 @@
+# PIPELINE DEFINITION
+# Name: take-nap-pipeline
+# Description: Pipeline that sleeps for 15 mins (900 secs)
+# Inputs:
+#    naptime_secs: int [Default: 900.0]
+components:
+  comp-take-nap:
+    executorLabel: exec-take-nap
+    inputDefinitions:
+      parameters:
+        naptime_secs:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-wake-up:
+    executorLabel: exec-wake-up
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+defaultPipelineRoot: s3://change/me
+deploymentSpec:
+  executors:
+    exec-take-nap:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - take_nap
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef take_nap(naptime_secs: int) -> str:\n    \"\"\"Sleeps for secs\"\
+          \"\"\n    from time import sleep  # noqa: PLC0415\n\n    print(f\"Sleeping\
+          \ for {naptime_secs} seconds: Zzzzzz ...\")\n    sleep(naptime_secs)\n \
+          \   return \"I'm awake now. Did I snore?\"\n\n"
+        image: registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168
+    exec-wake-up:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - wake_up
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef wake_up(message: str):\n    \"\"\"Wakes up from nap printing\
+          \ a message\"\"\"\n    print(message)\n\n"
+        image: registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168
+pipelineInfo:
+  description: Pipeline that sleeps for 15 mins (900 secs)
+  name: take-nap-pipeline
+root:
+  dag:
+    tasks:
+      take-nap:
+        cachingOptions: {}
+        componentRef:
+          name: comp-take-nap
+        inputs:
+          parameters:
+            naptime_secs:
+              componentInputParameter: naptime_secs
+        taskInfo:
+          name: take-nap
+      wake-up:
+        cachingOptions: {}
+        componentRef:
+          name: comp-wake-up
+        dependentTasks:
+        - take-nap
+        inputs:
+          parameters:
+            message:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: take-nap
+        taskInfo:
+          name: wake-up
+  inputDefinitions:
+    parameters:
+      naptime_secs:
+        defaultValue: 900.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

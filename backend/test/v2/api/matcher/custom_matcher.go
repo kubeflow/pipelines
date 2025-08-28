@@ -1,4 +1,3 @@
-// Package matcher
 // Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,10 +23,13 @@ import (
 )
 
 // MatchMaps - Iterate over 2 maps and compare if they are same or not
+//
+// param mapType - string value to append to the assertion error message
 func MatchMaps(actual interface{}, expected interface{}, mapType string) {
 	ginkgo.GinkgoHelper()
 	expectedMap, _ := expected.(map[any]interface{})
 	actualMap, _ := actual.(map[any]interface{})
+	gomega.Expect(len(actualMap)).To(gomega.Equal(len(expectedMap)), "The map length should be equal")
 	for key, value := range expectedMap {
 		if reflect.TypeOf(value).Kind() == reflect.Map {
 			expectedMapFromValue, _ := value.(map[any]interface{})
