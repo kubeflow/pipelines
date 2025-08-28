@@ -6,6 +6,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -20,6 +21,8 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 )
+
+const deletionPollTimeout = 3 * time.Second
 
 var (
 	ErrNoV1             = errors.New("the v1 API is not available for the Kubernetes pipeline store")
@@ -175,7 +178,7 @@ func (k *PipelineStoreKubernetes) DeletePipeline(pipelineId string) error {
 		return util.NewInternalServerError(err, "Failed to delete the pipeline")
 	}
 
-	return nil
+	return k.deleteWithTimeout(k8sPipeline.Namespace, k8sPipeline.Name, &v2beta1.Pipeline{})
 }
 
 func (k *PipelineStoreKubernetes) CreatePipelineAndPipelineVersion(pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) (*model.Pipeline, *model.PipelineVersion, error) {
@@ -447,7 +450,30 @@ func (k *PipelineStoreKubernetes) DeletePipelineVersion(pipelineVersionId string
 		return util.NewInternalServerError(err, "Failed to delete the pipeline version")
 	}
 
-	return nil
+	return k.deleteWithTimeout(k8sPipelineVersion.Namespace, k8sPipelineVersion.Name, &v2beta1.PipelineVersion{})
+}
+
+// deleteWithTimeout polls until the given namespaced resource is NotFound or the timeout expires.
+func (k *PipelineStoreKubernetes) deleteWithTimeout(namespace string, name string, exampleObject ctrlclient.Object) error {
+	ctx, cancel := context.WithTimeout(context.Background(), deletionPollTimeout)
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// No need to return an error here, because the resource is deleted, it's just the cache hasn't updated yet.
+			return nil
+		default:
+			err := k.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, exampleObject)
+			if k8serrors.IsNotFound(err) {
+				return nil
+			}
+			if err != nil {
+				return util.NewInternalServerError(err, "failed to check deletion status")
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
 }
 
 func (k *PipelineStoreKubernetes) getK8sPipeline(pipelineId string) (*v2beta1.Pipeline, error) {
