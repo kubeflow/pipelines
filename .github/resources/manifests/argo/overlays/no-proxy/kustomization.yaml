@@ -17,4 +17,3 @@ images:
 
 patches:
 - path: apiserver-env.yaml
-- path: seaweedfs-disable-preallocation.yaml
