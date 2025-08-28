@@ -203,7 +203,7 @@ If not, contact the KFP team to determine if the failure(s) would block the rele
 > [!Note]
 > If you see error "docker.sock: connect: permission error", you need to [allow managing docker as a non-root user](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user).
 
-1. Build the release images by using the [Build images from sources](https://github.com/kubeflow/pipelines/actions/workflows/image-builds.yml).
+1. Build the release images by using the [Build images from sources](https://github.com/kubeflow/pipelines/actions/workflows/image-builds-release.yml).
 
 The target tag should be `$VERSION`. 
 
