@@ -1,5 +1,5 @@
 # Introduction
-This repo has bare minimum code to run a SparkPipeline on Kubeflow through Kubeflow Pipelines and the spark pipelines run in `default` namespace
+This repository contains the bare minimum code to run a SparkPipeline on Kubeflow through Kubeflow Pipelines and the spark pipelines run in `default` namespace
 Please note that this repo uses an old version of KFP SDK to use `ResourceOp` which is deprecated in the KFP SDK v2 onwards.
 The code in the repo has been tested on a local  cluster running on `kind` that runs both `Kubeflow Piplines` and `Kubeflow SparkOperator`
 
