@@ -137,7 +137,7 @@ func (s *BasePipelineServer) createPipeline(ctx context.Context, pipeline *model
 		Name:      pipeline.Name,
 		Verb:      common.RbacResourceVerbCreate,
 	}
-	err := s.canAccessPipeline(ctx, "", resourceAttributes)
+	err = s.canAccessPipeline(ctx, "", resourceAttributes)
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to create a pipeline due to authorization error. Check if you have write permissions to namespace %s", pipeline.Namespace)
 	}
@@ -167,7 +167,7 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 		Name:      pipeline.Name,
 		Verb:      common.RbacResourceVerbCreate,
 	}
-	err := s.canAccessPipeline(ctx, "", resourceAttributes)
+	err = s.canAccessPipeline(ctx, "", resourceAttributes)
 	if err != nil {
 		return nil, nil, err
 	}
