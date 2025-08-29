@@ -1,0 +1,94 @@
+name: KFP API Integration v1 tests - Postgres
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    paths:
+      - "backend/**"
+      - "manifests/kustomize/third-party/postgresql/**"
+      - ".github/resources/manifests/standalone/**"
+      - ".github/workflows/kfp-backend-v1-posgres-tests.yml"
+      - "!**/*.md"
+      - "!**/OWNERS"
+env:
+  NAMESPACE: kubeflow
+  POSTGRES_NAMESPACE: kubeflow
+  DB_TYPE: postgres
+  DB_DRIVER: pgx
+  DB_PORT: "5432"
+  # The IP address for port-forwarding the database. Go tests will connect to this IP.
+  # This should be kept in sync with other postgres test workflows and local test scripts.
+  # Using 127.0.0.1 to match MySQL workflow behavior and Kind local development setup.
+  DB_FORWARD_IP: 127.0.0.1
+  DB_USER: user
+  DB_PASSWORD: password
+  DB_NAME: mlpipeline
+jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+  postgres-pgx:
+    name: KFP Backend V1 Postgres Tests
+    runs-on: ubuntu-latest
+    needs: build
+    continue-on-error: false
+
+    steps:
+      - name: Checkout target code
+        uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/create-cluster
+        with:
+          k8s_version: "v1.30.2"
+
+      - name: Deploy KFP with Postgres
+        uses: ./.github/actions/deploy
+        with:
+          db_type: "pgx"
+          pipeline_store: "database"
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          forward_port: "true"
+
+      - name: Port-forward Postgres
+        run: |
+          kubectl -n "$POSTGRES_NAMESPACE" port-forward svc/postgres-service ${{ env.DB_PORT }}:${{ env.DB_PORT }} --address=${{ env.DB_FORWARD_IP }} &
+          sleep 10
+
+      - name: Wait for API server readiness
+        run: kubectl -n "$NAMESPACE" wait --for=condition=available deploy/ml-pipeline --timeout=300s
+
+      - name: Initialization tests v1
+        id: initialization-tests
+        working-directory: ./backend/test/initialization
+        run: go test -v ./... -namespace="$NAMESPACE" -args -runIntegrationTests=true
+        continue-on-error: true
+
+      - name: API integration tests v1
+        id: integration-tests
+        working-directory: ./backend/test/integration
+        run: go test -v ./... -skip TestUpgrade -args -namespace="$NAMESPACE" -runIntegrationTests=true -runPostgreSQLTests=true
+        env:
+          DBCONFIG_POSTGRESQLCONFIG_HOST: ${{ env.DB_FORWARD_IP }}
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns "$NAMESPACE" --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-tests-v1-postgres-artifacts
+          path: /tmp/tmp*/*

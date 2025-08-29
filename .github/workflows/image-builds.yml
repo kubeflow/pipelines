@@ -3,13 +3,13 @@ on:
   workflow_call:
     outputs:
       IMAGE_PATH:
-        description: 'A description of my output'
+        description: "A description of my output"
         value: ${{ jobs.image-build.outputs.image_path }}
       IMAGE_TAG:
-        description: 'A description of my output'
+        description: "A description of my output"
         value: ${{ jobs.image-build.outputs.image_tag }}
       IMAGE_REGISTRY:
-        description: 'A description of my output'
+        description: "A description of my output"
         value: ${{ jobs.image-build.outputs.registry }}
 
 env:
