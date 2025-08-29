@@ -23,7 +23,7 @@ import (
 func TestInitializeDBStatusTable(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defer db.Close()
-	dBStatusStore := NewDBStatusStore(db)
+	dBStatusStore := NewDBStatusStore(db, testDialect)
 
 	// Initialize for the first time
 	err := dBStatusStore.InitializeDBStatusTable()
@@ -43,7 +43,7 @@ func TestInitializeDBStatusTable(t *testing.T) {
 func TestMarkSampleLoaded(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defer db.Close()
-	dBStatusStore := NewDBStatusStore(db)
+	dBStatusStore := NewDBStatusStore(db, testDialect)
 
 	// Initialize for the first time
 	err := dBStatusStore.InitializeDBStatusTable()

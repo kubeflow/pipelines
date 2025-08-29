@@ -283,7 +283,7 @@ func (c *ClientManager) init(options *Options) error {
 	c.jobStore = storage.NewJobStore(db, c.time, pipelineStoreForRef, c.dbDialect)
 	c.taskStore = storage.NewTaskStore(db, c.time, c.uuid, c.dbDialect)
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef, c.dbDialect)
-	c.dBStatusStore = storage.NewDBStatusStore(db)
+	c.dBStatusStore = storage.NewDBStatusStore(db, c.dbDialect)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db, c.dbDialect)
 	glog.Info("Initializing Object store client...")
 	c.objectStore = initMinioClient(options.Context, common.GetDurationConfig(initConnectionTimeout))
