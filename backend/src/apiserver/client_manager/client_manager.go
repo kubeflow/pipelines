@@ -86,7 +86,7 @@ func init() {
 
 // Container for all service clients.
 type ClientManager struct {
-	db                        *storage.DB
+	db                        *sql.DB
 	dbDialect                 sqldrv.DBDialect
 	experimentStore           storage.ExperimentStoreInterface
 	pipelineStore             storage.PipelineStoreInterface
@@ -268,7 +268,6 @@ func (c *ClientManager) init(options *Options) error {
 		pipelineStoreForRef = c.pipelineStore
 	}
 
-	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
 	db, dbDialect := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
@@ -321,7 +320,7 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, sqldrv.DBDialect) {
+func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialect) {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
 	// 2) To use PostgreSQL, use `pgx`
@@ -369,7 +368,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, sqldrv.DBDi
 	// TODO(kaikaila):
 	// storage.DB still takes storage.SQLDialect for legacy raw-SQL helpers.
 	// Once all stores use common/sql/dialect + Squirrel, drop this argument and delete storage.SQLDialect.
-	return storage.NewDB(newdb, storage.NewMySQLDialect()), sqlDialect
+	return newdb, sqlDialect
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:

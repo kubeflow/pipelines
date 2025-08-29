@@ -78,7 +78,7 @@ type JobStoreInterface interface {
 }
 
 type JobStore struct {
-	db                     *DB
+	db                     *sql.DB
 	resourceReferenceStore *ResourceReferenceStore
 	time                   util.TimeInterface
 	dialect                dialect.DBDialect
@@ -509,7 +509,7 @@ func (s *JobStore) UpdateJob(swf *util.ScheduledWorkflow) error {
 
 // If pipelineStore is provided, it will be used instead of direct database queries for getting pipelines
 // and pipeline versions.
-func NewJobStore(db *DB, time util.TimeInterface, pipelineStore PipelineStoreInterface, d dialect.DBDialect) *JobStore {
+func NewJobStore(db *sql.DB, time util.TimeInterface, pipelineStore PipelineStoreInterface, d dialect.DBDialect) *JobStore {
 	return &JobStore{
 		db:                     db,
 		resourceReferenceStore: NewResourceReferenceStore(db, pipelineStore, d),

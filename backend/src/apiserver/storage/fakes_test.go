@@ -14,9 +14,9 @@
 
 package storage
 
-import "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+// import "github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 
-var testDialect = dialect.NewDBDialect("sqlite")
+// var testDialect = dialect.NewDBDialect("sqlite")
 
 const (
 	invalidPipelineVersionId   = "not_exist_pipeline_version"

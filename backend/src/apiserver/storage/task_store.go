@@ -66,14 +66,14 @@ type TaskStoreInterface interface {
 }
 
 type TaskStore struct {
-	db      *DB
+	db      *sql.DB
 	time    util.TimeInterface
 	uuid    util.UUIDGeneratorInterface
 	dialect dialect.DBDialect
 }
 
 // NewTaskStore creates a new TaskStore.
-func NewTaskStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface, d dialect.DBDialect) *TaskStore {
+func NewTaskStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface, d dialect.DBDialect) *TaskStore {
 	return &TaskStore{
 		db:      db,
 		time:    time,
@@ -373,9 +373,8 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task) error {
 // Creates new entries or updates existing ones.
 func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, error) {
 	buildQuery := func(ts []*model.Task) (string, []interface{}, error) {
-		q := s.dialect.QuoteIdentifier
-		qb := s.dialect.QueryBuilder()
-		sqlInsert := qb.Insert(q("tasks")).Columns(taskColumnsWithPayload...)
+		sqlInsert := insertUpsert(s.dialect, table_name, []string{"UUID"}, true, taskColumnsWithPayload)
+		sqlInsert = sqlInsert.Columns(taskColumnsWithPayload...)
 		for _, t := range ts {
 			childrenPodsString := ""
 			if len(t.ChildrenPods) > 0 {
@@ -446,7 +445,6 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to build query to update or insert tasks")
 	}
-	sql = s.db.Upsert(sql, "UUID", true, taskColumnsWithPayload...)
 	_, err = s.db.Exec(sql, arg...)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to update or insert tasks. Query: %v. Args: %v", sql, arg)

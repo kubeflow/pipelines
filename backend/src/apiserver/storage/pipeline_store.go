@@ -116,7 +116,7 @@ type PipelineStoreInterface interface {
 }
 
 type PipelineStore struct {
-	db      *DB
+	db      *sql.DB
 	time    util.TimeInterface
 	uuid    util.UUIDGeneratorInterface
 	dialect dialect.DBDialect
@@ -630,7 +630,7 @@ func (s *PipelineStore) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *
 
 	_, err = tx.Exec(pipelineSql, pipelineArgs...)
 	if err != nil {
-		if s.db.IsDuplicateError(err) {
+		if isDuplicateError(s.dialect, err) {
 			tx.Rollback()
 			return nil, nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline. The name %v already exists. Please specify a new name", p.Name)
@@ -695,7 +695,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	}
 	_, err = tx.Exec(sql, args...)
 	if err != nil {
-		if s.db.IsDuplicateError(err) {
+		if isDuplicateError(s.dialect, err) {
 			tx.Rollback()
 			return nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline. The name %v already exist. Please specify a new name", p.Name)
@@ -738,7 +738,7 @@ func (s *PipelineStore) UpdatePipelineVersionStatus(id string, status model.Pipe
 }
 
 // Factory function for pipeline store.
-func NewPipelineStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface, d dialect.DBDialect) *PipelineStore {
+func NewPipelineStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface, d dialect.DBDialect) *PipelineStore {
 	return &PipelineStore{db: db, time: time, uuid: uuid, dialect: d}
 }
 
@@ -791,7 +791,7 @@ func (s *PipelineStore) CreatePipelineVersion(pv *model.PipelineVersion) (*model
 	_, err = tx.Exec(versionSql, versionArgs...)
 	if err != nil {
 		tx.Rollback()
-		if s.db.IsDuplicateError(err) {
+		if isDuplicateError(s.dialect, err) {
 			return nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline version. The name %v already exist. Specify a new name", pv.Name)
 		}

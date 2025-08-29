@@ -99,7 +99,7 @@ type RunStoreInterface interface {
 }
 
 type RunStore struct {
-	db                     *DB
+	db                     *sql.DB
 	resourceReferenceStore *ResourceReferenceStore
 	time                   util.TimeInterface
 	dialect                dialect.DBDialect
@@ -583,7 +583,7 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
 
-	tx, err := s.db.DB.Begin()
+	tx, err := s.db.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "transaction creation failed")
 	}
@@ -747,7 +747,7 @@ func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		if s.db.IsDuplicateError(err) {
+		if isDuplicateError(s.dialect, err) {
 			return util.NewAlreadyExistError(
 				"Failed to create a run metric. Same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
 		}
@@ -757,7 +757,7 @@ func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
 }
 
 // Returns a new RunStore.
-func NewRunStore(db *DB, time util.TimeInterface, d dialect.DBDialect) *RunStore {
+func NewRunStore(db *sql.DB, time util.TimeInterface, d dialect.DBDialect) *RunStore {
 	return &RunStore{
 		db:                     db,
 		resourceReferenceStore: NewResourceReferenceStore(db, nil, d),
