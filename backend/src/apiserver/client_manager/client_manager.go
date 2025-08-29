@@ -345,7 +345,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	// and maintains its own pool of idle connections.
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
-	sqlDialect := sqldrv.NewDBDialect(driverName)
+	dbDialect := sqldrv.NewDBDialect(driverName)
 
 	legacy, err := isLegacySchema(db)
 	if err != nil {
@@ -354,7 +354,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	if legacy {
 		// Legacy schema (pre-2.15): run the one-time legacy upgrade to shrink columns,
 		// clean up legacy indexes/constraints, and perform backfills.
-		util.TerminateIfError(runLegacyUpgradeFlow(db, sqlDialect))
+		util.TerminateIfError(runLegacyUpgradeFlow(db, dbDialect))
 	} else {
 		// Non-legacy schema (>=2.15): run autoMigrate for both first-time installs and
 		// upgrades between >=2.15 versions.
@@ -365,10 +365,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-	// TODO(kaikaila):
-	// storage.DB still takes storage.SQLDialect for legacy raw-SQL helpers.
-	// Once all stores use common/sql/dialect + Squirrel, drop this argument and delete storage.SQLDialect.
-	return newdb, sqlDialect
+	return newdb, dbDialect
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:
