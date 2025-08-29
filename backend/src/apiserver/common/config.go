@@ -32,10 +32,15 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+	RequireNamespaceForPipelines            string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
 	return GetBoolConfigWithDefault(UpdatePipelineVersionByDefault, true)
+}
+
+func IsNamespaceRequiredForPipelines() bool {
+	return GetBoolConfigWithDefault(RequireNamespaceForPipelines, false)
 }
 
 func GetStringConfig(configName string) string {
