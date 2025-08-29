@@ -42,9 +42,9 @@ func createExecutionCache(cacheKey string, cacheOutput string) *model.ExecutionC
 }
 
 func TestCreateExecutionCache(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheExpected := model.ExecutionCache{
 		ID:                1,
 		ExecutionCacheKey: "test",
@@ -75,9 +75,9 @@ func TestCreateExecutionCacheWithDuplicateRecord(t *testing.T) {
 		StartedAtInSec:    1,
 		EndedAtInSec:      1,
 	}
-	db := NewFakeDBOrFatal()
+	db, d := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), d)
 	executionCacheStore.CreateExecutionCache(executionCache)
 	cache, err := executionCacheStore.CreateExecutionCache(executionCache)
 	assert.Nil(t, cache)
@@ -85,9 +85,9 @@ func TestCreateExecutionCacheWithDuplicateRecord(t *testing.T) {
 }
 
 func TestGetExecutionCache(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))
 	executionCacheExpected := model.ExecutionCache{
@@ -107,9 +107,9 @@ func TestGetExecutionCache(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithEmptyCacheEntry(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))
 	var executionCache *model.ExecutionCache
@@ -119,9 +119,9 @@ func TestGetExecutionCacheWithEmptyCacheEntry(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput2"))
@@ -142,9 +142,9 @@ func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheToPersist := &model.ExecutionCache{
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
@@ -160,9 +160,9 @@ func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheToPersist := &model.ExecutionCache{
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
@@ -180,9 +180,9 @@ func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
 }
 
 func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, dialect := NewFakeDBOrFatal()
 	defer closeDB(t, db)
-	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheToPersist := &model.ExecutionCache{
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",

@@ -15,18 +15,23 @@
 package storage
 
 import (
+	"database/sql"
+
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-func NewFakeDB() (*DB, error) {
+// NewFakeDB creates an in-memory SQLite database for tests and returns
+// the raw *sql.DB along with a dialect.DBDialect configured for SQLite.
+func NewFakeDB() (*sql.DB, dialect.DBDialect, error) {
 	// Initialize GORM
 	dbInstance, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		return nil, util.Wrap(err, "Could not create the GORM database")
+		return nil, dialect.DBDialect{}, util.Wrap(err, "Could not create the GORM database")
 	}
 	// Create tables
 	if err := dbInstance.AutoMigrate(
@@ -41,20 +46,21 @@ func NewFakeDB() (*DB, error) {
 		&model.DBStatus{},
 		&model.DefaultExperiment{},
 	); err != nil {
-		return nil, util.Wrap(err, "Failed to automigrate models")
+		return nil, dialect.DBDialect{}, util.Wrap(err, "Failed to automigrate models")
 	}
 
 	sqlDB, err := dbInstance.DB()
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to get generic database object from GORM DB")
+		return nil, dialect.DBDialect{}, util.Wrap(err, "Failed to get generic database object from GORM DB")
 	}
-	return NewDB(sqlDB, NewSQLiteDialect()), nil
+	return sqlDB, dialect.NewDBDialect("sqlite"), nil
 }
 
-func NewFakeDBOrFatal() *DB {
-	db, err := NewFakeDB()
+// NewFakeDBOrFatal is a convenience for tests that prefer fatal on setup error.
+func NewFakeDBOrFatal() (*sql.DB, dialect.DBDialect) {
+	db, d, err := NewFakeDB()
 	if err != nil {
-		glog.Fatalf("The fake DB doesn't create successfully. Fail fast")
+		glog.Fatalf("Failed to create the fake DB: %v", err)
 	}
-	return db
+	return db, d
 }
