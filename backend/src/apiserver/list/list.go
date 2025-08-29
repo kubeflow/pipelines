@@ -27,9 +27,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -242,74 +240,6 @@ func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilde
 	}
 
 	return sqlBuilder
-}
-
-// Deprecated: use storage.FilterByResourceReference instead.
-// FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
-// table that match an optional given filter, and returns the rebuilt SelectBuilder.
-func FilterOnResourceReference(tableName string, columns []string, resourceType model.ResourceType,
-	selectCount bool, filterContext *model.FilterContext,
-) (sq.SelectBuilder, error) {
-	selectBuilder := sq.Select(columns...)
-	if selectCount {
-		selectBuilder = sq.Select("count(*)")
-	}
-	selectBuilder = selectBuilder.From(tableName)
-	if filterContext.ReferenceKey != nil && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
-		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
-			From("resource_references as rf").
-			Where(sq.And{
-				sq.Eq{"rf.ResourceType": resourceType},
-				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
-				sq.Eq{"rf.ReferenceType": filterContext.Type},
-			}).ToSql()
-		if err != nil {
-			return selectBuilder, util.NewInternalServerError(
-				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
-		}
-		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
-	}
-	return selectBuilder, nil
-}
-
-// Deprecated: use storage.FilterByExperiment instead.
-// FilterOnExperiment filters the given table by rows based on provided experiment ID,
-// and returns the rebuilt SelectBuilder.
-func FilterOnExperiment(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	experimentID string,
-) (sq.SelectBuilder, error) {
-	return filterByColumnValue(tableName, columns, selectCount, "ExperimentUUID", experimentID), nil
-}
-
-// Deprecated: use storage.FilterByNamespace instead.
-func FilterOnNamespace(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	namespace string,
-) (sq.SelectBuilder, error) {
-	return filterByColumnValue(tableName, columns, selectCount, "Namespace", namespace), nil
-}
-
-// Deprecated: the substitute helper function is storage.selectWithQuotedColumns.
-func filterByColumnValue(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	columnName string,
-	filterValue interface{},
-) sq.SelectBuilder {
-	selectBuilder := sq.Select(columns...)
-	if selectCount {
-		selectBuilder = sq.Select("count(*)")
-	}
-	selectBuilder = selectBuilder.From(tableName).Where(
-		sq.Eq{columnName: filterValue},
-	)
-	return selectBuilder
 }
 
 // Scans the one given row into a number, and returns the number.
