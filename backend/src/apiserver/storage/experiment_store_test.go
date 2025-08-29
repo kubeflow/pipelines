@@ -49,7 +49,7 @@ func createExperimentInNamespace(name string, namespace string) *model.Experimen
 }
 
 func TestListExperiments_Pagination(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -115,7 +115,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 }
 
 func TestListExperiments_Pagination_Descend(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -178,7 +178,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 }
 
 func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -202,7 +202,7 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestListExperimentsError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	db.Close()
@@ -214,7 +214,7 @@ func TestListExperimentsError(t *testing.T) {
 }
 
 func TestGetExperiment(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -232,7 +232,7 @@ func TestGetExperiment(t *testing.T) {
 }
 
 func TestGetExperiment_NotFoundError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 
@@ -242,7 +242,7 @@ func TestGetExperiment_NotFoundError(t *testing.T) {
 }
 
 func TestGetExperiment_InternalError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	db.Close()
@@ -252,7 +252,7 @@ func TestGetExperiment_InternalError(t *testing.T) {
 }
 
 func TestCreateExperiment(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentExpected := model.Experiment{
@@ -270,7 +270,7 @@ func TestCreateExperiment(t *testing.T) {
 }
 
 func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentExpected := model.Experiment{
@@ -304,7 +304,7 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 }
 
 func TestCreateExperiment_DuplicatedKey(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experiment := createExperiment("experiment1")
@@ -319,7 +319,7 @@ func TestCreateExperiment_DuplicatedKey(t *testing.T) {
 
 func TestCreateExperiment_InternalServerError(t *testing.T) {
 	experiment := &model.Experiment{Name: "Experiment123"}
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	db.Close()
@@ -331,7 +331,7 @@ func TestCreateExperiment_InternalServerError(t *testing.T) {
 
 func TestCreateExperiment_CreateUUIDFailure(t *testing.T) {
 	experiment := &model.Experiment{Name: "Experiment123"}
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, errors.New("error")), testDialect)
 	db.Close()
@@ -342,7 +342,7 @@ func TestCreateExperiment_CreateUUIDFailure(t *testing.T) {
 }
 
 func TestDeleteExperiment(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -358,7 +358,7 @@ func TestDeleteExperiment(t *testing.T) {
 }
 
 func TestDeleteExperiment_InternalError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -373,7 +373,7 @@ func TestDeleteExperiment_InternalError(t *testing.T) {
 }
 
 func TestListExperiments_Filtering(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
@@ -449,7 +449,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 }
 
 func TestArchiveExperiment_InternalError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	experimentStore.CreateExperiment(createExperiment("experiment1"))
 	db.Close()
@@ -460,7 +460,7 @@ func TestArchiveExperiment_InternalError(t *testing.T) {
 }
 
 func TestArchiveAndUnarchiveExperiment(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 
 	// Initial state: 1 experiment and 2 runs in it.
@@ -599,7 +599,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 }
 
 func TestUnarchiveExperiment_InternalError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	experimentStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(fakeID, nil), testDialect)
 	db.Close()
 

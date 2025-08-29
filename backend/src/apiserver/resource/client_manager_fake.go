@@ -15,6 +15,8 @@
 package resource
 
 import (
+	"database/sql"
+
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
@@ -27,7 +29,8 @@ import (
 var testDialect = dialect.NewDBDialect("sqlite")
 
 type FakeClientManager struct {
-	db                            *storage.DB
+	db                            *sql.DB
+	dialect                       dialect.DBDialect
 	experimentStore               storage.ExperimentStoreInterface
 	pipelineStore                 storage.PipelineStoreInterface
 	jobStore                      storage.JobStoreInterface
@@ -60,7 +63,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 	}
 
 	// Initialize GORM
-	db, err := storage.NewFakeDB()
+	db, _, err := storage.NewFakeDB()
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +139,7 @@ func (f *FakeClientManager) UUID() util.UUIDGeneratorInterface {
 	return f.uuid
 }
 
-func (f *FakeClientManager) DB() *storage.DB {
+func (f *FakeClientManager) DB() *sql.DB {
 	return f.db
 }
 

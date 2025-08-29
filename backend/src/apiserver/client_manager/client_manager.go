@@ -86,7 +86,7 @@ func init() {
 
 // Container for all service clients.
 type ClientManager struct {
-	db                        *storage.DB
+	db                        *sql.DB
 	dbDialect                 sqldrv.DBDialect
 	experimentStore           storage.ExperimentStoreInterface
 	pipelineStore             storage.PipelineStoreInterface
@@ -268,7 +268,6 @@ func (c *ClientManager) init(options *Options) error {
 		pipelineStoreForRef = c.pipelineStore
 	}
 
-	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
 	db, dbDialect := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
@@ -321,7 +320,7 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, sqldrv.DBDialect) {
+func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialect) {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
 	// 2) To use PostgreSQL, use `pgx`
@@ -346,7 +345,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, sqldrv.DBDi
 	// and maintains its own pool of idle connections.
 	db, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
-	sqlDialect := sqldrv.NewDBDialect(driverName)
+	dbDialect := sqldrv.NewDBDialect(driverName)
 
 	legacy, err := isLegacySchema(db)
 	if err != nil {
@@ -355,7 +354,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, sqldrv.DBDi
 	if legacy {
 		// Legacy schema (pre-2.15): run the one-time legacy upgrade to shrink columns,
 		// clean up legacy indexes/constraints, and perform backfills.
-		util.TerminateIfError(runLegacyUpgradeFlow(db, sqlDialect))
+		util.TerminateIfError(runLegacyUpgradeFlow(db, dbDialect))
 	} else {
 		// Non-legacy schema (>=2.15): run autoMigrate for both first-time installs and
 		// upgrades between >=2.15 versions.
@@ -366,10 +365,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, sqldrv.DBDi
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-	// TODO(kaikaila):
-	// storage.DB still takes storage.SQLDialect for legacy raw-SQL helpers.
-	// Once all stores use common/sql/dialect + Squirrel, drop this argument and delete storage.SQLDialect.
-	return storage.NewDB(newdb, storage.NewMySQLDialect()), sqlDialect
+	return newdb, dbDialect
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:

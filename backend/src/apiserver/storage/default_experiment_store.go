@@ -31,7 +31,7 @@ type DefaultExperimentStoreInterface interface {
 // Implementation of a DefaultExperimentStoreInterface. This stores the default experiment's ID,
 // which is created the first time the API server is initialized.
 type DefaultExperimentStore struct {
-	db      *DB
+	db      *sql.DB
 	dialect dialect.DBDialect
 }
 
@@ -168,7 +168,7 @@ func (s *DefaultExperimentStore) UnsetDefaultExperimentIdIfIdMatches(tx *sql.Tx,
 }
 
 // factory function for creating default experiment store.
-func NewDefaultExperimentStore(db *DB, d dialect.DBDialect) *DefaultExperimentStore {
+func NewDefaultExperimentStore(db *sql.DB, d dialect.DBDialect) *DefaultExperimentStore {
 	s := &DefaultExperimentStore{db: db, dialect: d}
 	s.initializeDefaultExperimentTable()
 	return s

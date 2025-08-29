@@ -69,6 +69,7 @@ require (
 )
 
 require (
+	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
