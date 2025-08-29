@@ -15,50 +15,19 @@
 package compiler
 
 import (
-	"flag"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	"os"
 	"path/filepath"
-	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	matcher "github.com/kubeflow/pipelines/backend/test/compiler/matchers"
-	workflow_utils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
-	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
+	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 )
-
-// var update = flag.Bool("update", false, "update golden files")
-var projectDataDir = utils.GetProjectDataDir()
-var pipelineFilesRootDir = utils.GetPipelineFilesDir()
-var pipelineDirectory = "valid"
-var argoYAMLDir = filepath.Join(projectDataDir, "compiled-workflows")
-var testReportDirectory = "reports"
-var junitReportFilename = "compiler.xml"
-var jsonReportFilename = "compiler.json"
-var updateGoldenFiles = flag.Bool("updateCompiledFiles", false, "update golden/expected compiled workflow files")
-var createMissingGoldenFiles = flag.Bool("createGoldenFiles", false, "create missing golden/expected compiled workflow files")
-
-var _ = ReportAfterEach(func(specReport types.SpecReport) {
-	if specReport.Failed() {
-		logger.Log("Test failed... Capturing test logs")
-		AddReportEntry("Test Log", specReport.CapturedGinkgoWriterOutput)
-	}
-})
-
-func TestCompilation(t *testing.T) {
-	RegisterFailHandler(Fail)
-	suiteConfig, reporterConfig := GinkgoConfiguration()
-	suiteConfig.FailFast = false
-	reporterConfig.GithubOutput = true
-	reporterConfig.JUnitReport = filepath.Join(testReportDirectory, junitReportFilename)
-	reporterConfig.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
-	RunSpecs(t, "API Tests Suite", suiteConfig, reporterConfig)
-}
 
 var _ = BeforeEach(func() {
 	logger.Log("Initializing proxy...")
@@ -66,7 +35,7 @@ var _ = BeforeEach(func() {
 })
 
 var _ = Describe("Verify Spec Compilation to Workflow >", Label("Positive", "WorkflowCompiler"), func() {
-	pipelineFiles := utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
+	pipelineFiles := test_utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
 
 	testParams := []struct {
 		compilerOptions argocompiler.Options
@@ -107,26 +76,26 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label("Positive", "Wor
 					}
 				}()
 				It(fmt.Sprintf("When I compile %s pipeline spec, then the compiled yaml should be =%s", pipelineSpecFileName, compiledWorkflowFilePath), func() {
-					pipelineSpecs, platformSpec := workflow_utils.LoadSpecsFromIR(pipelineFilesRootDir, pipelineDirectory, pipelineSpecFileName)
-					compiledWorflow := workflow_utils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &argocompiler.Options{})
+					pipelineSpecs, platformSpec := workflowutils.LoadSpecsFromIR(pipelineFilesRootDir, pipelineDirectory, pipelineSpecFileName)
+					compiledWorflow := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &argocompiler.Options{})
 					if *updateGoldenFiles {
-						logger.Log(fmt.Sprintf("Updating golden file %s", compiledWorkflowFilePath))
+						logger.Log("Updating golden file %s", compiledWorkflowFilePath)
 						_, err := os.Stat(compiledWorkflowFilePath)
 						if err != nil {
 							logger.Log("File %s does not exist, but if you want to create the missing workflow file, please set 'createGoldenFiles' flag to true", compiledWorkflowFilePath)
 						} else {
-							workflow_utils.CreateCompiledWorkflowFile(compiledWorflow, compiledWorkflowFilePath)
+							workflowutils.CreateCompiledWorkflowFile(compiledWorflow, compiledWorkflowFilePath)
 						}
 					} else if *createMissingGoldenFiles {
 						_, err := os.Stat(compiledWorkflowFilePath)
 						if err == nil {
 							logger.Log("Creating Compiled Workflow File '%s'", compiledWorkflowFilePath)
-							workflow_utils.CreateCompiledWorkflowFile(compiledWorflow, compiledWorkflowFilePath)
+							workflowutils.CreateCompiledWorkflowFile(compiledWorflow, compiledWorkflowFilePath)
 						} else {
 							logger.Log("Compiled Workflow File '%s' already exists", compiledWorkflowFilePath)
 						}
 					} else {
-						expectedWorkflow := workflow_utils.UnmarshallWorkflowYAML(compiledWorkflowFilePath)
+						expectedWorkflow := workflowutils.UnmarshallWorkflowYAML(compiledWorkflowFilePath)
 						matcher.CompareWorkflows(compiledWorflow, expectedWorkflow)
 					}
 

@@ -17,11 +17,11 @@ limitations under the License.
 package matchers
 
 import (
+	"github.com/kubeflow/pipelines/backend/test/logger"
 	"reflect"
 	"sort"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 	matcher "github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"

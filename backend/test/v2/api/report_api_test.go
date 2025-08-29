@@ -16,14 +16,16 @@ package api
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/test/config"
+	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	"path/filepath"
 
-	. "github.com/kubeflow/pipelines/backend/test/v2/api/constants"
-	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
+	utils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	. "github.com/onsi/ginkgo/v2"
 )
 
-var projectDataDir = utils.GetProjectDataDir()
+var projectDataDir = utils.GetTestDataDir()
 var workflowsDir = filepath.Join(projectDataDir, "compiled-workflows")
 
 // ####################################################################################################################################################################
@@ -43,7 +45,7 @@ var workflowsDir = filepath.Join(projectDataDir, "compiled-workflows")
 // ################################################################################################################
 
 var _ = Describe("Create Workflow API Tests >", Label("Positive", "Report", FullRegression), func() {
-	workflowFiles := utils.GetListOfFileInADir(workflowsDir)
+	workflowFiles := test_utils.GetListOfFileInADir(workflowsDir)
 	Context("Create Workflow >", func() {
 		for _, workflowFile := range workflowFiles {
 			It(fmt.Sprintf("Create a workflow from: %s", workflowFile), func() {
@@ -62,7 +64,7 @@ var _ = Describe("Create Workflow Negative Tests >", Label("Negative", "Report",
 	Context("Create workflow >", func() {
 		It("With invalid workflow schema", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -73,7 +75,7 @@ var _ = Describe("Create Workflow Negative Tests >", Label("Negative", "Report",
 		})
 		It("With valid workflow schema but invalid cron", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}

@@ -1,15 +1,13 @@
-package api
+package end2end
 
 import (
 	"fmt"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
@@ -19,21 +17,19 @@ import (
 
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/v2"
+	apitests "github.com/kubeflow/pipelines/backend/test/v2/api"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 )
 
 // Test Context
-var testContext TestContext
-var randomName string
-var pipelineFilesRootDir = test_utils.GetPipelineFilesDir()
+var testContext apitests.TestContext
 
 var (
 	pipelineUploadClient apiserver.PipelineUploadInterface
 	pipelineClient       *apiserver.PipelineClient
 	runClient            *apiserver.RunClient
-	experimentClient     *apiserver.ExperimentClient
 	k8Client             *kubernetes.Clientset
 )
 
@@ -41,8 +37,8 @@ var (
 var (
 	testLogsDirectory   = "logs"
 	testReportDirectory = "reports"
-	junitReportFilename = "api_junit.xml"
-	jsonReportFilename  = "api.json"
+	junitReportFilename = "e2e_junit.xml"
+	jsonReportFilename  = "e2e.json"
 )
 
 var _ = BeforeSuite(func() {
@@ -52,15 +48,11 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Error creating Reports Directory: %s", testReportDirectory))
 	var newPipelineClient func() (*apiserver.PipelineClient, error)
 	var newRunClient func() (*apiserver.RunClient, error)
-	var newExperimentClient func() (*apiserver.ExperimentClient, error)
 
 	if *config.IsKubeflowMode {
 		logger.Log("Creating API Clients for Multi User Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewKubeflowInClusterPipelineClient(*config.Namespace, *config.IsDebugMode)
-		}
-		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewKubeflowInClusterExperimentClient(*config.Namespace, *config.IsDebugMode)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
 			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.IsDebugMode)
@@ -71,9 +63,6 @@ var _ = BeforeSuite(func() {
 
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewPipelineClient(clientConfig, *config.IsDebugMode)
-		}
-		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewExperimentClient(clientConfig, *config.IsDebugMode)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
 			return apiserver.NewRunClient(clientConfig, *config.IsDebugMode)
@@ -91,8 +80,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).To(BeNil(), "Failed to get Pipeline Upload Client")
 	pipelineClient, err = newPipelineClient()
 	Expect(err).To(BeNil(), "Failed to get Pipeline Client")
-	experimentClient, err = newExperimentClient()
-	Expect(err).To(BeNil(), "Failed to get Experiment client")
 	runClient, err = newRunClient()
 	Expect(err).To(BeNil(), "Failed to get Pipeline Run client")
 	k8Client, err = initK8sClient()
@@ -101,11 +88,9 @@ var _ = BeforeSuite(func() {
 
 var _ = BeforeEach(func() {
 	logger.Log("################### Global Setup before each test #####################")
-	testContext = TestContext{
+	testContext = apitests.TestContext{
 		TestStartTimeUTC: time.Now(),
 	}
-	randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
-	testContext.Pipeline.UploadParams = upload_params.NewUploadPipelineParams()
 	testContext.PipelineRun.CreatedRunIds = make([]string, 0)
 	testContext.Experiment.CreatedExperimentIds = make([]string, 0)
 })
@@ -119,12 +104,6 @@ var _ = AfterEach(func() {
 		test_utils.TerminatePipelineRun(runClient, runID)
 		test_utils.DeletePipelineRun(runClient, runID)
 	}
-	logger.Log("Deleting %d experiment(s)", len(testContext.Experiment.CreatedExperimentIds))
-	if len(testContext.Experiment.CreatedExperimentIds) > 0 {
-		for _, experimentID := range testContext.Experiment.CreatedExperimentIds {
-			test_utils.DeleteExperiment(experimentClient, experimentID)
-		}
-	}
 	logger.Log("Deleting %d pipeline(s)", len(testContext.Pipeline.CreatedPipelines))
 	for _, pipeline := range testContext.Pipeline.CreatedPipelines {
 		test_utils.DeletePipeline(pipelineClient, pipeline.PipelineID)
@@ -133,9 +112,7 @@ var _ = AfterEach(func() {
 
 var _ = ReportAfterEach(func(specReport types.SpecReport) {
 	if specReport.Failed() {
-		logger.Log("Test failed... Capturing pod logs from %v to %v", testContext.TestStartTimeUTC, time.Now().UTC())
-		podLogs := test_utils.ReadContainerLogs(k8Client, *config.Namespace, "pipeline-api-server", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
-		AddReportEntry("Pod Log", podLogs)
+		logger.Log("Test failed... Capturing logs")
 		AddReportEntry("Test Log", specReport.CapturedGinkgoWriterOutput)
 		writeLogFile(specReport)
 	} else {

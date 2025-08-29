@@ -12,10 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api
+package end2end
 
 import (
 	"fmt"
+	"github.com/go-openapi/strfmt"
+	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/test/config"
+	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/onsi/gomega"
 	"maps"
 	"path/filepath"
@@ -27,12 +32,11 @@ import (
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	workflow_utils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
 
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	. "github.com/kubeflow/pipelines/backend/test/v2/api/constants"
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
-	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // ####################################################################################################################################################################
@@ -41,8 +45,8 @@ import (
 
 var _ = BeforeEach(func() {
 	logger.Log("################### Setup before each Pipeline Upload test #####################")
-	expectedPipeline = new(model.V2beta1Pipeline)
-	expectedPipeline.CreatedAt = testStartTime
+	testContext.Pipeline.ExpectedPipeline = new(model.V2beta1Pipeline)
+	testContext.Pipeline.ExpectedPipeline.CreatedAt = strfmt.DateTime(testContext.TestStartTimeUTC)
 })
 
 // ####################################################################################################################################################################
@@ -58,24 +62,25 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label("Positive", "E2E", Fu
 	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", func() {
 		var pipelineDir = "valid"
 		var compiledWorkflowsDir = "compiled-workflows"
-		criticalPipelineFiles := utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
+		criticalPipelineFiles := test_utils.GetListOfFileInADir(filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range criticalPipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
-				pipelineFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineFile)
+				pipelineFilePath := filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir, pipelineFile)
 				logger.Log("Uploading pipeline file %s", pipelineFile)
-				uploadedPipeline := uploadPipelineAndVerify(pipelineDir, pipelineFile, &pipelineGeneratedName)
+				uploadedPipeline, uploadErr := uploadPipeline(pipelineDir, pipelineFile, &testContext.Pipeline.PipelineGeneratedName, nil)
+				Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
 				logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
-				uploadedPipelineVersion := utils.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
-				pipelineRuntimeInputs := utils.GetPipelineRunTimeInputs(pipelineFilePath)
+				uploadedPipelineVersion := test_utils.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+				pipelineRuntimeInputs := test_utils.GetPipelineRunTimeInputs(pipelineFilePath)
 				logger.Log("Create run for pipeline with id: '%s' and name: '%s'", uploadedPipeline.PipelineID, uploadedPipeline.DisplayName)
 				uploadedPipelineRun := createPipelineRun(&uploadedPipeline.PipelineID, &uploadedPipelineVersion.PipelineVersionID, nil, pipelineRuntimeInputs)
 				logger.Log("Created Pipeline Run with id: %s for pipeline with id: %s", uploadedPipelineRun.RunID, uploadedPipeline.PipelineID)
-				utils.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING}, nil)
+				test_utils.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING}, nil)
 				logger.Log("Created Pipeline Run with id: %s for pipeline with id: %s is now RUNNING", uploadedPipelineRun.RunID, uploadedPipeline.PipelineID)
 				timeToWait := time.Duration(300)
-				utils.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateCANCELED}, &timeToWait)
+				test_utils.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateCANCELED}, &timeToWait)
 				logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
-				compiledWorkflow := workflow_utils.UnmarshallWorkflowYAML(filepath.Join(utils.GetProjectDataDir(), compiledWorkflowsDir, pipelineFile))
+				compiledWorkflow := workflow_utils.UnmarshallWorkflowYAML(filepath.Join(test_utils.GetTestDataDir(), compiledWorkflowsDir, pipelineFile))
 				validateComponentStatuses(uploadedPipelineRun.RunID, compiledWorkflow)
 			})
 		}
@@ -86,9 +91,51 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label("Positive", "E2E", Fu
 // ################################################################### UTILITY METHODS ################################################################################
 // ####################################################################################################################################################################
 
+func uploadPipeline(pipelineDir string, pipelineFileName string, pipelineName *string, pipelineDisplayName *string) (*model.V2beta1Pipeline, error) {
+	pipelineFile := filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir, pipelineFileName)
+	testContext.Pipeline.UploadParams.SetName(pipelineName)
+	if pipelineDisplayName != nil {
+		testContext.Pipeline.ExpectedPipeline.DisplayName = *pipelineDisplayName
+		testContext.Pipeline.UploadParams.SetDisplayName(pipelineDisplayName)
+	} else {
+		testContext.Pipeline.ExpectedPipeline.DisplayName = *pipelineName
+	}
+	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
+	return pipelineUploadClient.UploadFile(pipelineFile, testContext.Pipeline.UploadParams)
+}
+
+func createPipelineRun(pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2beta1Run {
+	runName := fmt.Sprintf("E2e Test Run-%v", testContext.TestStartTimeUTC)
+	runDescription := fmt.Sprintf("Run for %s", runName)
+	logger.Log("Create a pipeline run for pipeline with id=%s and versionId=%s", pipelineID, pipelineVersionID)
+	createRunRequest := &run_params.RunServiceCreateRunParams{Run: createPipelineRunPayload(runName, runDescription, pipelineID, pipelineVersionID, experimentID, inputParams)}
+	createdRun, createRunError := runClient.Create(createRunRequest)
+	Expect(createRunError).NotTo(HaveOccurred(), "Failed to create run for pipeline with id="+*pipelineID)
+	testContext.PipelineRun.CreatedRunIds = append(testContext.PipelineRun.CreatedRunIds, createdRun.RunID)
+	logger.Log("Created Pipeline Run successfully with runId=%s", createdRun.RunID)
+	return createdRun
+}
+
+func createPipelineRunPayload(runName string, runDescription string, pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2beta1Run {
+	logger.Log("Create a pipeline run body")
+	return &run_model.V2beta1Run{
+		DisplayName:    runName,
+		Description:    runDescription,
+		ExperimentID:   test_utils.ParsePointersToString(experimentID),
+		ServiceAccount: test_utils.GetDefaultPipelineRunnerServiceAccount(*config.IsKubeflowMode),
+		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+			PipelineID:        test_utils.ParsePointersToString(pipelineID),
+			PipelineVersionID: test_utils.ParsePointersToString(pipelineVersionID),
+		},
+		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
+			Parameters: inputParams,
+		},
+	}
+}
+
 func validateComponentStatuses(runID string, compiledWorkflow *v1alpha1.Workflow) {
 	logger.Log("Fetching updated pipeline run details for run with id=%s", runID)
-	updatedRun := utils.GetPipelineRun(runClient, &runID)
+	updatedRun := test_utils.GetPipelineRun(runClient, &runID)
 	actualTaskDetails := updatedRun.RunDetails.TaskDetails
 	lengthOfActualTasks := len(actualTaskDetails)
 	for _, actualTask := range actualTaskDetails {
@@ -106,7 +153,7 @@ func validateComponentStatuses(runID string, compiledWorkflow *v1alpha1.Workflow
 			lengthOfExpectedTasks = lengthOfExpectedTasks + 1
 		}
 	}
-	if updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
+	if *updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
 		logger.Log("Looks like the run %s FAILED, so capture pod logs for the failed task", runID)
 		capturePodLogsForUnsuccessfulTasks(actualTaskDetails)
 		Fail("Failing test because the pipeline run is not a SUCCESS")
@@ -123,7 +170,7 @@ func capturePodLogsForUnsuccessfulTasks(taskDetails []*run_model.V2beta1Pipeline
 		return time.Time(taskDetails[i].EndTime).After(time.Time(taskDetails[j].EndTime)) // Sort Tasks by End Time in descending order
 	})
 	for _, task := range taskDetails {
-		switch task.State {
+		switch *task.State {
 		case run_model.V2beta1RuntimeStateSUCCEEDED:
 			{
 				logger.Log("SUCCEEDED - Task %s for run %s has finished successfully", task.DisplayName, task.RunID)
@@ -148,14 +195,14 @@ func capturePodLogsForUnsuccessfulTasks(taskDetails []*run_model.V2beta1Pipeline
 					podName := childTask.PodName
 					if podName != "" {
 						logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
-						podLog := utils.ReadPodLogs(k8Client, *namespace, podName, nil, &testStartTimeUTC, podLogLimit)
+						podLog := test_utils.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
 						logger.Log("Pod logs captured for pod %s", task.DisplayName, podName)
 						logger.Log("Attaching pod logs to the report")
 						AddReportEntry(fmt.Sprintf("Failing '%s' Component Log", task.DisplayName), podLog)
 						logger.Log("Attached pod logs to the report")
 					}
 				}
-				failedTasks[task.DisplayName] = string(task.State)
+				failedTasks[task.DisplayName] = string(*task.State)
 			}
 		default:
 			{

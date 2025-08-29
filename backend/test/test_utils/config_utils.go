@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package test
+package test_utils
 
 import (
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
+	"github.com/kubeflow/pipelines/backend/test/logger"
 	"io"
 	"net/http"
 	"os"

@@ -3,16 +3,16 @@ package matcher
 import (
 	"fmt"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	utils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 	"github.com/onsi/ginkgo/v2"
 
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/gomega"
 )
 

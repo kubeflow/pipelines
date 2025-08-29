@@ -12,18 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package test
+package test_utils
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/onsi/ginkgo/v2"
 
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 )
 
 func ListPipelines(client *api_server.PipelineClient) (
@@ -38,13 +39,14 @@ func ListPipelines(client *api_server.PipelineClient) (
 Delete a pipeline by id
 */
 func DeletePipeline(client *api_server.PipelineClient, pipelineId string) {
+	ginkgo.GinkgoHelper()
 	_, err := client.Get(&pipeline_params.PipelineServiceGetPipelineParams{PipelineID: pipelineId})
 	if err != nil {
 		logger.Log("Deleting all pipeline version of pipeline with id=%s", pipelineId)
 		DeleteAllPipelineVersions(client, pipelineId)
 		logger.Log("Deleting pipeline with id=%s", pipelineId)
 		err = client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineId})
-		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineId))
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineId))
 		logger.Log("Pipeline with id=%s, DELETED", pipelineId)
 	} else {
 		logger.Log("Pipeline with id=%s does not exist, so skipping deleting it", pipelineId)
@@ -56,8 +58,9 @@ func DeletePipeline(client *api_server.PipelineClient, pipelineId string) {
 Delete all pipelines
 */
 func DeleteAllPipelines(client *api_server.PipelineClient) {
+	ginkgo.GinkgoHelper()
 	pipelines, _, _, err := ListPipelines(client)
-	Expect(err).NotTo(HaveOccurred(), "Error occurred while listing pipelines")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Error occurred while listing pipelines")
 	deletedPipelines := make(map[string]bool)
 	for _, p := range pipelines {
 		deletedPipelines[p.PipelineID] = false
@@ -68,10 +71,10 @@ func DeleteAllPipelines(client *api_server.PipelineClient) {
 			deletedPipelines[pId] = true
 		}
 		logger.Log("Deleting pipeline with id=%s", pId)
-		Expect(client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pId})).NotTo(HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pId))
+		gomega.Expect(client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pId})).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pId))
 	}
 	for _, isRemoved := range deletedPipelines {
-		Expect(isRemoved).To(BeTrue())
+		gomega.Expect(isRemoved).To(gomega.BeTrue())
 	}
 }
 
@@ -79,11 +82,12 @@ func DeleteAllPipelines(client *api_server.PipelineClient) {
 Get pipeline via GET pipeline end point call, so that we retreive the values from DB
 */
 func GetPipeline(client *api_server.PipelineClient, pipelineId string) model.V2beta1Pipeline {
+	ginkgo.GinkgoHelper()
 	params := new(pipeline_params.PipelineServiceGetPipelineParams)
 	params.PipelineID = pipelineId
 	logger.Log("Get pipeline with id=%s", pipelineId)
 	pipeline, err := client.Get(params)
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return model.V2beta1Pipeline{
 		DisplayName: pipeline.DisplayName,
 		Description: pipeline.Description,
@@ -98,12 +102,13 @@ func GetPipeline(client *api_server.PipelineClient, pipelineId string) model.V2b
 Get all pipelines (upto 1000) and filter by name, if the pipeline exists, return true otherwise false
 */
 func FindPipelineByName(client *api_server.PipelineClient, pipelineName string) bool {
+	ginkgo.GinkgoHelper()
 	requestedNumberOfPipelinesPerPage := 1000
 	params := new(pipeline_params.PipelineServiceListPipelinesParams)
 	params.PageSize = util.Int32Pointer(int32(requestedNumberOfPipelinesPerPage))
 	logger.Log("Get all pipelines")
 	pipelines, size, _, err := client.List(params)
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	logger.Log("Finding pipeline with name=%s", pipelineName)
 	if size < requestedNumberOfPipelinesPerPage {
 		for _, pipeline := range pipelines {

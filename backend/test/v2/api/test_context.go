@@ -1,7 +1,7 @@
 package api
 
 import (
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	"time"
 )
@@ -11,12 +11,23 @@ type TestContext struct {
 	TestStartTimeUTC time.Time
 
 	// Pipeline Context
+	Pipeline Pipeline
+
+	PipelineRun PipelineRun
+	Experiment  Experiment
+}
+
+type Pipeline struct {
 	PipelineGeneratedName string
-	UploadParams          *upload_params.UploadPipelineParams
+	UploadParams          *uploadparams.UploadPipelineParams
 	ExpectedPipeline      *pipeline_upload_model.V2beta1Pipeline
 	CreatedPipelines      []*pipeline_upload_model.V2beta1Pipeline
 }
 
-type Pipeline struct {
-	pipelineName string
+type PipelineRun struct {
+	CreatedRunIds []string
+}
+
+type Experiment struct {
+	CreatedExperimentIds []string
 }

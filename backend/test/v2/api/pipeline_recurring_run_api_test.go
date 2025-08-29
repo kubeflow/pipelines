@@ -15,7 +15,8 @@
 package api
 
 import (
-	. "github.com/kubeflow/pipelines/backend/test/v2/api/constants"
+	"github.com/kubeflow/pipelines/backend/test/config"
+	. "github.com/kubeflow/pipelines/backend/test/constants"
 	. "github.com/onsi/ginkgo/v2"
 )
 
@@ -108,6 +109,10 @@ var _ = Describe("List Recurring Pipeline Runs >", Label("Positive", "PipelineRu
 	Context("Filtering >", func() {
 		It("By run id", func() {
 		})
+		It("By run 'name' EQUALS", func() {
+		})
+		It("By run 'name' NOT EQUALS", func() {
+		})
 		It("By display name containing", func() {
 		})
 		It("By creation date", func() {
@@ -137,7 +142,18 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pipe
 	Context("Create reccurring pipeline run >", func() {
 		It("Create a Pipeline Run with invalid cron", func() {
 		})
+		if *config.IsKubeflowMode {
+			It("In a namespace you don;t have access to", func() {
+			})
+		}
 	})
+
+	if *config.IsKubeflowMode {
+		Context("List reccurring pipeline runs in kubeflow mode >", func() {
+			It("List reccurring pipeline runs in a namespace you don't have access to", func() {})
+		})
+	}
+
 	Context("Disable a recurring pipeline run >", func() {
 		It("Disable a deleted recurring run", func() {
 		})
@@ -145,6 +161,10 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pipe
 		})
 		It("Disable already disabled recurring run", func() {
 		})
+		if *config.IsKubeflowMode {
+			It("In a namespace you don;t have access to", func() {
+			})
+		}
 	})
 	Context("Enable a recurring pipeline run >", func() {
 		It("Enable a deleted recurring run", func() {
@@ -157,6 +177,10 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pipe
 		})
 		It("Enable an recurring run for a run that's associated with an archived experiment", func() {
 		})
+		if *config.IsKubeflowMode {
+			It("In a namespace you don;t have access to", func() {
+			})
+		}
 	})
 	Context("Delete a recurring pipeline run >", func() {
 		It("Delete a deleted recurring run", func() {
@@ -181,6 +205,10 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pipe
 		})
 		It("Get Recurring pipeline Run for a non recurring run i.e. one-off run", func() {
 		})
+		if *config.IsKubeflowMode {
+			It("In a namespace you don;t have access to", func() {
+			})
+		}
 	})
 })
 

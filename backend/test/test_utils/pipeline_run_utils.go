@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package test
+package test_utils
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/test/logger"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -29,7 +31,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 )
 
 func DeletePipelineRun(client *api_server.RunClient, runID string) {
@@ -81,7 +82,7 @@ func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *strin
 	}
 	waitTime := time.After(maxTimeToWait * time.Second)
 	currentPipelineRunState := GetPipelineRun(runClient, pipelineRunID).State
-	for !slices.Contains(expectedStates, currentPipelineRunState) {
+	for !slices.Contains(expectedStates, *currentPipelineRunState) {
 		logger.Log("Waiting for pipeline run with id=%s to be in one of %s", *pipelineRunID, expectedStates)
 		time.Sleep(pollTime * time.Second)
 		select {
@@ -97,48 +98,41 @@ func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *strin
 
 func GetPipelineRunTimeInputs(pipelineSpecFile string) map[string]interface{} {
 	logger.Log("Get the pipeline run time inputs from pipeline spec file %s", pipelineSpecFile)
-	pipelineSpec := ReadYamlFile(pipelineSpecFile).(map[string]interface{})
+	pipelineSpec := ParseFileToSpecs(pipelineSpecFile, false, nil).PipelineSpec()
 	pipelineInputMap := make(map[string]interface{})
-	var pipelineRoot map[string]interface{}
-	if _, platformSpecExists := pipelineSpec["platform_spec"]; platformSpecExists {
-		pipelineRoot = pipelineSpec["pipeline_spec"].(map[string]interface{})["root"].(map[string]interface{})
-	} else {
-		pipelineRoot = pipelineSpec["root"].(map[string]interface{})
-	}
-	if pipelineInputDef, pipelineInputParamsExists := pipelineRoot["inputDefinitions"]; pipelineInputParamsExists {
-		if pipelineInput, pipelineInputExists := pipelineInputDef.(map[string]interface{})["parameters"]; pipelineInputExists {
-			for input, value := range pipelineInput.(map[string]interface{}) {
-				valueMap := value.(map[string]interface{})
-				_, defaultValExists := valueMap["defaultValue"]
-				optional, optionalExists := valueMap["isOptional"]
-				if optionalExists && optional.(bool) {
-					continue
+	if pipelineSpec.Root.InputDefinitions != nil {
+		if pipelineSpec.Root.InputDefinitions.Parameters != nil {
+			for name, parameterSpec := range pipelineSpec.Root.InputDefinitions.Parameters {
+				defaultValExists := false
+				if parameterSpec.DefaultValue != nil {
+					defaultValExists = true
 				}
-				if !defaultValExists || !optionalExists {
-					valueType := valueMap["parameterType"].(string)
-					switch valueType {
-					case "NUMBER_INTEGER":
-						pipelineInputMap[input] = rand.Int()
-					case "STRING":
-						pipelineInputMap[input] = GetRandomString(20)
-					case "STRUCT":
-						pipelineInputMap[input] = map[string]interface{}{
+				if !defaultValExists || !parameterSpec.IsOptional {
+					switch parameterSpec.ParameterType {
+					case pipelinespec.ParameterType_NUMBER_INTEGER:
+						pipelineInputMap[name] = rand.Int()
+					case pipelinespec.ParameterType_STRING:
+						pipelineInputMap[name] = GetRandomString(20)
+					case pipelinespec.ParameterType_STRUCT:
+						pipelineInputMap[name] = map[string]interface{}{
 							"A": strconv.FormatFloat(rand.Float64(), 'g', -1, 64),
 							"B": strconv.FormatFloat(rand.Float64(), 'g', -1, 64),
 						}
-					case "LIST":
-						pipelineInputMap[input] = []string{GetRandomString(20)}
-					case "BOOLEAN":
-						pipelineInputMap[input] = true
+					case pipelinespec.ParameterType_LIST:
+						pipelineInputMap[name] = []string{GetRandomString(20)}
+					case pipelinespec.ParameterType_BOOLEAN:
+						pipelineInputMap[name] = true
+					case pipelinespec.ParameterType_NUMBER_DOUBLE:
+						pipelineInputMap[name] = rand.Float64()
 					default:
-						pipelineInputMap[input] = GetRandomString(20)
+						pipelineInputMap[name] = GetRandomString(20)
 					}
 				}
 
 			}
 		}
 	}
-	logger.Log("Returining pipeline run time inputs %v", pipelineInputMap)
+	logger.Log("Returning pipeline run time inputs %v", pipelineInputMap)
 	return pipelineInputMap
 }
 

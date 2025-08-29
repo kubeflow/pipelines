@@ -19,13 +19,15 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	"os"
+	"path/filepath"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
-	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
+	utils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	"github.com/onsi/gomega"
 	"google.golang.org/protobuf/encoding/protojson"
 	"sigs.k8s.io/yaml"
@@ -33,28 +35,22 @@ import (
 
 // LoadSpecsFromIR - Unmarshall Pipeline Spec IR into a tuple of (pipelinespec.PipelineJob, pipelinespec.SinglePlatformSpec)
 func LoadSpecsFromIR(pipelineIRRootDir, pipelineIRDirectory, pipelineIRFileName string) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
-	pipelineSpecsFromFile := utils.PipelineSpecFromFile(pipelineIRRootDir, pipelineIRDirectory, pipelineIRFileName)
+	pipelineSpecFilePath := filepath.Join(pipelineIRRootDir, pipelineIRDirectory, pipelineIRFileName)
+	pipelineSpecsFromFile := utils.ParseFileToSpecs(pipelineSpecFilePath, true, nil)
+	platformSpec := pipelineSpecsFromFile.PlatformSpec()
 	var singlePlatformSpec *pipelinespec.SinglePlatformSpec = nil
-	pipelineSpecsYaml := make(map[string]interface{})
-	if _, platformSpecExists := pipelineSpecsFromFile["platform_spec"]; platformSpecExists {
-		pipelineSpecsYaml["pipelineSpec"] = pipelineSpecsFromFile["pipeline_spec"]
-		platformSpecBytes, platformMarshallingError := json.Marshal(pipelineSpecsFromFile["platform_spec"])
-		gomega.Expect(platformMarshallingError).NotTo(gomega.HaveOccurred(), "Failed to marshall platform spec map")
-		platformSpecs := &pipelinespec.PlatformSpec{}
-		err := protojson.Unmarshal(platformSpecBytes, platformSpecs)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to unmarshall platform spec %s", string(platformSpecBytes)))
-		for _, spec := range platformSpecs.Platforms {
-			singlePlatformSpec = spec
+	if platformSpec != nil {
+		for _, platform := range platformSpec.Platforms {
+			singlePlatformSpec = platform
+			break
 		}
-	} else {
-		pipelineSpecsYaml["pipelineSpec"] = pipelineSpecsFromFile
 	}
-	pipelineSpecBytes, marshallingError := json.Marshal(pipelineSpecsYaml)
+	pipelineSpecBytes, marshallingError := json.Marshal(pipelineSpecsFromFile.PipelineSpec())
 	gomega.Expect(marshallingError).NotTo(gomega.HaveOccurred(), "Failed to marshall pipeline spec map")
-	pipelineSpecs := &pipelinespec.PipelineJob{}
-	err := protojson.Unmarshal(pipelineSpecBytes, pipelineSpecs)
+	pipelineJob := &pipelinespec.PipelineJob{}
+	err := protojson.Unmarshal(pipelineSpecBytes, pipelineJob)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to unmarshal pipeline spec\n %s", string(pipelineSpecBytes)))
-	return pipelineSpecs, singlePlatformSpec
+	return pipelineJob, singlePlatformSpec
 }
 
 // GetCompiledArgoWorkflow - Compile pipeline and platform specs into a workflow and return an instance of v1alpha1.Workflow
@@ -68,12 +64,11 @@ func GetCompiledArgoWorkflow(pipelineSpecs *pipelinespec.PipelineJob, platformSp
 // UnmarshallWorkflowYAML - Unmarshall compiler workflow YAML into a v1alpha1.Workflow object
 func UnmarshallWorkflowYAML(filePath string) *v1alpha1.Workflow {
 	logger.Log("Unmarshalling Expected Workflow YAML")
-	workflowFromFile := utils.ReadYamlFile(filePath)
-	workflowFromFileBytes, marshallingError := json.Marshal(workflowFromFile)
-	gomega.Expect(marshallingError).NotTo(gomega.HaveOccurred(), "Failed to marshall workflow map")
+	workflowFromFileBytes, err := os.ReadFile(filePath)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to read workflow yaml file")
 	workflow := v1alpha1.Workflow{}
-	err := yaml.Unmarshal(workflowFromFileBytes, &workflow)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to unmarshall workflow map")
+	err = yaml.Unmarshal(workflowFromFileBytes, &workflow)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to unmarshall workflow")
 	logger.Log("Unmarshalled Expected Workflow YAML")
 	return &workflow
 }
@@ -82,5 +77,5 @@ func UnmarshallWorkflowYAML(filePath string) *v1alpha1.Workflow {
 func CreateCompiledWorkflowFile(compiledWorflow *v1alpha1.Workflow, compiledWorkflowFilePath string) *os.File {
 	fileContents, err := yaml.Marshal(compiledWorflow)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return utils.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
+	return test_utils.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
 }

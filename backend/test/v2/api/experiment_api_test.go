@@ -15,7 +15,8 @@
 package api
 
 import (
-	. "github.com/kubeflow/pipelines/backend/test/v2/api/constants"
+	"github.com/kubeflow/pipelines/backend/test/config"
+	. "github.com/kubeflow/pipelines/backend/test/constants"
 	. "github.com/onsi/ginkgo/v2"
 )
 
@@ -160,7 +161,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Experime
 		})
 		It("With 10000k char description", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -170,7 +171,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Experime
 		})
 		It("Delete by ID containing ASCII characters", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -182,7 +183,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Experime
 		})
 		It("Archive an archived experiment", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -194,7 +195,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Experime
 		})
 		It("UnArchive by ID containing ASCII characters", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -208,7 +209,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Experime
 		})
 		It("By invalid ID containing ASCII characters", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}

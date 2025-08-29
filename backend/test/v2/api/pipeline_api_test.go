@@ -16,10 +16,11 @@ package api
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/test/config"
+	. "github.com/kubeflow/pipelines/backend/test/constants"
+	utils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	"path/filepath"
 
-	. "github.com/kubeflow/pipelines/backend/test/v2/api/constants"
-	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
 	. "github.com/onsi/ginkgo/v2"
 )
 
@@ -224,7 +225,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Pipeline
 		})
 		It("With a valid pipeline and pipeline version name but invalid pipeline spec url", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -234,7 +235,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Pipeline
 		})
 		It("With CJK characters in the name", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -244,7 +245,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Pipeline
 		})
 		It("By ID containing ASCII characters", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -256,7 +257,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Pipeline
 		})
 		It("By valid version ID but with the pipeline ID that does not contain this version", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -268,7 +269,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Pipeline
 		})
 		It("Delete by ID containing ASCII characters", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -280,7 +281,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Pipeline
 		})
 		It("Delete by ID containing ASCII characters", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}
@@ -294,7 +295,7 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Pipeline
 		})
 		It("By invalid ID containing ASCII characters", func() {
 		})
-		if *isKubeflowMode {
+		if *config.IsKubeflowMode {
 			It("In a namespace you don;t have access to", func() {
 			})
 		}

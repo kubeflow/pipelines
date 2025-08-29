@@ -1,9 +1,9 @@
-package test
+package test_utils
 
 import (
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
+	"github.com/kubeflow/pipelines/backend/test/logger"
 )
 
 func DeleteExperiment(experimentClient *api_server.ExperimentClient, experimentID string) {
