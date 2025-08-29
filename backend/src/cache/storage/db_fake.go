@@ -18,30 +18,31 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-func NewFakeDB() (*DB, error) {
+func NewFakeDB() (*DB, dialect.DBDialect, error) {
 	// Initialize GORM
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("Could not create the GORM database: %v", err)
+		return nil, dialect.DBDialect{}, fmt.Errorf("could not create the GORM database: %v", err)
 	}
 	// Create tables
 	err = db.AutoMigrate(&model.ExecutionCache{})
 	if err != nil {
-		return nil, fmt.Errorf("AutoMigrate failed: %v", err)
+		return nil, dialect.DBDialect{}, fmt.Errorf("AutoMigrate failed: %v", err)
 	}
 
-	return NewDB(db), nil
+	return NewDB(db), dialect.NewDBDialect("sqlite"), nil
 }
 
-func NewFakeDBOrFatal() *DB {
-	db, err := NewFakeDB()
+func NewFakeDBOrFatal() (*DB, dialect.DBDialect) {
+	db, dialect, err := NewFakeDB()
 	if err != nil {
 		glog.Fatalf("The fake DB doesn't create successfully. Fail fast.")
 	}
-	return db
+	return db, dialect
 }
