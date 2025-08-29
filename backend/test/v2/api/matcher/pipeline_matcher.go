@@ -2,8 +2,9 @@ package matcher
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
 	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 	"github.com/onsi/ginkgo/v2"

@@ -15,16 +15,17 @@
 package test
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	v1 "k8s.io/api/core/v1"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/yaml"
-	"strings"
 
 	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
 	"github.com/onsi/gomega"
