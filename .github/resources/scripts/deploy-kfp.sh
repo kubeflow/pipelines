@@ -133,14 +133,40 @@ fi
 # Manifests will be deployed according to the flag provided
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
-  if $CACHE_DISABLED && $USE_PROXY; then
+
+  # Priority 1: TLS-enabled (mutually exclusive with other options)
+  if $POD_TO_POD_TLS_ENABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
+
+  # Priority 2: PostgreSQL (mutually exclusive with default MySQL setup)
+  elif [ "${DB_TYPE}" == "pgx" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
+
+  # Priority 3: Check for cache-disabled + proxy + minio combination
+  elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
+
+  # Priority 4: Check for cache-disabled + proxy combination
+  elif $CACHE_DISABLED && $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
+
+  # Priority 5: Check for cache-disabled + minio combination
+  elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
+
+  # Priority 6: Check for proxy + minio combination
+  elif $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
+
+  # Priority 7: Check for single flags (cache-disabled, proxy, or minio)
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy"
-  elif $POD_TO_POD_TLS_ENABLED; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
+  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
+
+  # Default: seaweedfs with cache enabled
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
