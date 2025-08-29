@@ -115,6 +115,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -149,6 +151,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -283,6 +286,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-language-model"},"dependentTasks":["importer"],"inputs":{"artifacts":{"text_dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"make-language-model"}}'
           - name: container
             value: '{{workflow.parameters.implementations-df76e661981c011f500d6b9d0ea8ef578644ed9edefe4199648d9b383ca340f6}}'
+          - name: task-name
+            value: make-language-model
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: importer.Succeeded
@@ -322,6 +327,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -356,6 +363,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

@@ -63,6 +63,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -97,6 +99,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -219,6 +222,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-python-artifact-printer"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset"}}},"taskInfo":{"name":"python-artifact-printer"}}'
           - name: container
             value: '{{workflow.parameters.implementations-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde}}'
+          - name: task-name
+            value: python-artifact-printer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: python-artifact-printer-driver
@@ -249,6 +254,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-python-artifact-printer-2"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset"}}},"taskInfo":{"name":"python-artifact-printer"}}'
           - name: container
             value: '{{workflow.parameters.implementations-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde}}'
+          - name: task-name
+            value: python-artifact-printer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: python-artifact-printer-driver
@@ -344,6 +351,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -378,6 +387,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -409,6 +420,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-artifact-printer"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset1"}}},"taskInfo":{"name":"custom-artifact-printer"}}'
           - name: container
             value: '{{workflow.parameters.implementations-950ab2ff916de191d4701d45acbc5dce7cd1edca6fa6b0226245176343e4af97}}'
+          - name: task-name
+            value: custom-artifact-printer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: custom-artifact-printer-driver
@@ -431,6 +444,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-artifact-printer-2"},"taskInfo":{"name":"custom-artifact-printer-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-950ab2ff916de191d4701d45acbc5dce7cd1edca6fa6b0226245176343e4af97}}'
+          - name: task-name
+            value: custom-artifact-printer-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: custom-artifact-printer-2-driver
@@ -465,6 +480,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-inner-pipeline"},"dependentTasks":["importer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"inner-pipeline"}}'
+          - name: task-name
+            value: inner-pipeline
         depends: importer.Succeeded
         name: inner-pipeline-driver
         template: system-dag-driver
@@ -485,6 +502,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-inner-pipeline-2"},"taskInfo":{"name":"inner-pipeline-2"}}'
+          - name: task-name
+            value: inner-pipeline-2
         name: inner-pipeline-2-driver
         template: system-dag-driver
       - arguments:

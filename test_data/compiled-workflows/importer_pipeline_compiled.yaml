@@ -116,6 +116,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -150,6 +152,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -284,6 +287,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-normalize-dataset"},"dependentTasks":["importer"],"inputs":{"artifacts":{"input_iris_dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}},"parameters":{"standard_scaler":{"componentInputParameter":"standard_scaler"}}},"taskInfo":{"name":"normalize-dataset"}}'
           - name: container
             value: '{{workflow.parameters.implementations-b60ee6f268a8ee9187eb910106d9907ed76dedc1d5ac9ba7d2fb96a2ff132456}}'
+          - name: task-name
+            value: normalize-dataset
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: importer.Succeeded
@@ -323,6 +328,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -357,6 +364,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

@@ -158,6 +158,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -192,6 +194,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -314,6 +317,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-dataset"},"inputs":{"parameters":{"content":{"componentInputParameter":"char"}}},"taskInfo":{"name":"create-dataset"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8c57e292746a6301673dcdfc50c4289c97a08082f15ac6f9e8215ead71099b18}}'
+          - name: task-name
+            value: create-dataset
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: create-dataset-driver
@@ -352,6 +357,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -386,6 +393,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -417,6 +426,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-single-dataset-generate-model"},"dependentTasks":["single-node-dag"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"single-node-dag"}}},"parameters":{"id":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"read-single-dataset-generate-model"}}'
           - name: container
             value: '{{workflow.parameters.implementations-330143e75e6de608064ea1aab586d91afe83cfb638c5c91e719b47d1cddc5b65}}'
+          - name: task-name
+            value: read-single-dataset-generate-model
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: single-node-dag.Succeeded
@@ -440,6 +451,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-single-node-dag"},"inputs":{"parameters":{"char":{"componentInputParameter":"pipelinechannel--split-chars-Output-loop-item"}}},"taskInfo":{"name":"single-node-dag"}}'
+          - name: task-name
+            value: single-node-dag
         name: single-node-dag-driver
         template: system-dag-driver
       - arguments:
@@ -526,6 +539,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"create-file"}}'
           - name: container
             value: '{{workflow.parameters.implementations-3a290ddc9c638535321b797c886ea8bcbb5beeb812e2a3ed23be856479a7ec52}}'
+          - name: task-name
+            value: create-file
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: create-file-driver
@@ -554,6 +569,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-datasets"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--single-node-dag-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-datasets"}}'
           - name: container
             value: '{{workflow.parameters.implementations-692cd36c12688cd3555cc750d3dd85ccd6fe3c1b375494fce3d573c931910974}}'
+          - name: task-name
+            value: read-datasets
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: for-loop-2.Succeeded
@@ -577,6 +594,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-models"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"models":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-models"}}'
           - name: container
             value: '{{workflow.parameters.implementations-2f4a9b4d21c95933dbabfaa4c537c9b7618d4a182ad6cd380aa2be378219f890}}'
+          - name: task-name
+            value: read-models
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: for-loop-2.Succeeded
@@ -600,6 +619,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-single-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"read-single-file"}}'
           - name: container
             value: '{{workflow.parameters.implementations-dc99ee2df9d6ea766c5f4f3ed0004827afcd75d5cf8c2e322790332d7d55ed68}}'
+          - name: task-name
+            value: read-single-file
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: create-file.Succeeded
@@ -697,6 +718,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-split-chars"},"inputs":{"parameters":{"model_ids":{"componentInputParameter":"model_chars"}}},"taskInfo":{"name":"split-chars"}}'
           - name: container
             value: '{{workflow.parameters.implementations-428bc786363b9064b8bf43e0468e0f847dc303bd0cfb6fb87e76af1bbbfaae11}}'
+          - name: task-name
+            value: split-chars
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: split-chars-driver
@@ -719,6 +742,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-split-ids"},"inputs":{"parameters":{"model_ids":{"componentInputParameter":"model_ids"}}},"taskInfo":{"name":"split-ids"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8f003b8bc279fb91300275bcb0f32e655c2a9f5192dab9be9eb36b14b085e753}}'
+          - name: task-name
+            value: split-ids
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: split-ids-driver
@@ -749,6 +774,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-collecting-artifacts"},"inputs":{"parameters":{"model_chars":{"runtimeValue":{"constant":"x,y,z"}},"model_ids":{"runtimeValue":{"constant":"s1,s2,s3"}}}},"taskInfo":{"name":"collecting-artifacts"}}'
+          - name: task-name
+            value: collecting-artifacts
         name: collecting-artifacts-driver
         template: system-dag-driver
       - arguments:
@@ -768,6 +795,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-models-2"},"dependentTasks":["collecting-artifacts"],"inputs":{"artifacts":{"models":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"collecting-artifacts"}}}},"taskInfo":{"name":"read-models"}}'
           - name: container
             value: '{{workflow.parameters.implementations-2f4a9b4d21c95933dbabfaa4c537c9b7618d4a182ad6cd380aa2be378219f890}}'
+          - name: task-name
+            value: read-models
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: collecting-artifacts.Succeeded

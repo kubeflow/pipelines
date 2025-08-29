@@ -66,6 +66,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -100,6 +102,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -222,6 +225,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1b448d8700f1af7ecebf0d5b47c96c95fd831c03586af16ac2fb3e7478f081e1}}'
+          - name: task-name
+            value: core-comp
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: core-comp-driver
@@ -260,6 +265,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -294,6 +301,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -325,6 +334,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-core"},"taskInfo":{"name":"core"}}'
+          - name: task-name
+            value: core
         name: core-driver
         template: system-dag-driver
       - arguments:
@@ -352,6 +363,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"artifacts":{"input":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}}'
           - name: container
             value: '{{workflow.parameters.implementations-eeb59a2dbac5373b0713b02eabada5ee95398f70f8a1980755b51b8578844ab1}}'
+          - name: task-name
+            value: crust-comp
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: mantle.Succeeded
@@ -375,6 +388,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-mantle"},"taskInfo":{"name":"mantle"}}'
+          - name: task-name
+            value: mantle
         name: mantle-driver
         template: system-dag-driver
       - arguments:

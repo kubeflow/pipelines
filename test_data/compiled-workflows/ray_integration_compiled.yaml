@@ -61,6 +61,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -95,6 +97,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -217,6 +220,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-ray-fn"},"taskInfo":{"name":"ray-fn"}}'
           - name: container
             value: '{{workflow.parameters.implementations-29f61a857d0f74c1cbab4a54ffbad583ce0c76e6c96c748f2f4c2187b655b691}}'
+          - name: task-name
+            value: ray-fn
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: ray-fn-driver
@@ -255,6 +260,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -289,6 +296,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

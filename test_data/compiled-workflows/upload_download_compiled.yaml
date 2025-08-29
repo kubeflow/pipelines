@@ -102,6 +102,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -136,6 +138,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -258,6 +261,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-receive-file"},"dependentTasks":["send-file"],"inputs":{"artifacts":{"incomingfile":{"taskOutputArtifact":{"outputArtifactKey":"outgoingfile","producerTask":"send-file"}}}},"taskInfo":{"name":"receive-file"}}'
           - name: container
             value: '{{workflow.parameters.implementations-c01495e21d217ae913182dd9283a72555ef91dc7c7a2bc3fbf4dd22950466aa3}}'
+          - name: task-name
+            value: receive-file
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: send-file.Succeeded
@@ -281,6 +286,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-send-file"},"inputs":{"parameters":{"file_size_bytes":{"runtimeValue":{"constant":20971520}}}},"taskInfo":{"name":"send-file"}}'
           - name: container
             value: '{{workflow.parameters.implementations-590ff27193b35519f53bd3d75d32212943985553335c7caba53e824197932a4f}}'
+          - name: task-name
+            value: send-file
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: send-file-driver
@@ -303,6 +310,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-test-uploaded-artifact"},"dependentTasks":["receive-file"],"inputs":{"artifacts":{"previous_step":{"taskOutputArtifact":{"outputArtifactKey":"saveartifact","producerTask":"receive-file"}}},"parameters":{"bucket_name":{"componentInputParameter":"bucket_name"},"file_size_bytes":{"runtimeValue":{"constant":20971520}},"mlpipeline_minio_artifact_secret":{"componentInputParameter":"mlpipeline_minio_artifact_secret"}}},"taskInfo":{"name":"test-uploaded-artifact"}}'
           - name: container
             value: '{{workflow.parameters.implementations-735e81a293005791f0f89efc89c25679643fe71b9d5d20ce46ef03cc92225ef8}}'
+          - name: task-name
+            value: test-uploaded-artifact
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: receive-file.Succeeded
@@ -342,6 +351,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -376,6 +387,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

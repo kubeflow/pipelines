@@ -68,6 +68,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -102,6 +104,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -224,6 +227,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-coin-op-4"},"taskInfo":{"name":"flip-coin-op-4"}}'
           - name: container
             value: '{{workflow.parameters.implementations-f40bcfdc0998c51bee91ebc764414104c663e062a789a29dbb3f6eebb2122259}}'
+          - name: task-name
+            value: flip-coin-op-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: flip-coin-op-4-driver
@@ -246,6 +251,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-4"},"dependentTasks":["flip-coin-op-4"],"inputs":{"parameters":{"msg":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin-op-4"}}}},"taskInfo":{"name":"print-op-4"}}'
           - name: container
             value: '{{workflow.parameters.implementations-205f6494bb19fb641fdaf8222f5121f1c9dc646a60b4f9a9aac82b58efef0db6}}'
+          - name: task-name
+            value: print-op-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: flip-coin-op-4.Succeeded
@@ -285,6 +292,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -319,6 +328,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -351,6 +362,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-2"},"dependentTasks":["flip-coin-op-3"],"inputs":{"parameters":{"pipelinechannel--flip-coin-op-2-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-2-Output"},"pipelinechannel--flip-coin-op-3-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin-op-3"}},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-op-2-Output'']
               == inputs.parameter_values[''pipelinechannel--flip-coin-op-3-Output'']"}}'
+          - name: task-name
+            value: condition-2
         depends: flip-coin-op-3.Succeeded
         name: condition-2-driver
         template: system-dag-driver
@@ -372,6 +385,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-coin-op-3"},"taskInfo":{"name":"flip-coin-op-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-f40bcfdc0998c51bee91ebc764414104c663e062a789a29dbb3f6eebb2122259}}'
+          - name: task-name
+            value: flip-coin-op-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: flip-coin-op-3-driver
@@ -394,6 +409,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-3"},"dependentTasks":["flip-coin-op-3"],"inputs":{"parameters":{"msg":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin-op-3"}}}},"taskInfo":{"name":"print-op-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-205f6494bb19fb641fdaf8222f5121f1c9dc646a60b4f9a9aac82b58efef0db6}}'
+          - name: task-name
+            value: print-op-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: flip-coin-op-3.Succeeded
@@ -426,6 +443,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["flip-coin-op","flip-coin-op-2"],"inputs":{"parameters":{"pipelinechannel--flip-coin-op-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin-op-2"}},"pipelinechannel--flip-coin-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin-op"}}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-op-Output'']
               != ''no-such-result''"}}'
+          - name: task-name
+            value: condition-1
         depends: flip-coin-op.Succeeded && flip-coin-op-2.Succeeded
         name: condition-1-driver
         template: system-dag-driver
@@ -447,6 +466,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-coin-op"},"taskInfo":{"name":"flip-coin-op"}}'
           - name: container
             value: '{{workflow.parameters.implementations-f40bcfdc0998c51bee91ebc764414104c663e062a789a29dbb3f6eebb2122259}}'
+          - name: task-name
+            value: flip-coin-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: flip-coin-op-driver
@@ -469,6 +490,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-coin-op-2"},"taskInfo":{"name":"flip-coin-op-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-f40bcfdc0998c51bee91ebc764414104c663e062a789a29dbb3f6eebb2122259}}'
+          - name: task-name
+            value: flip-coin-op-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: flip-coin-op-2-driver
@@ -491,6 +514,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"dependentTasks":["flip-coin-op"],"inputs":{"parameters":{"msg":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin-op"}}}},"taskInfo":{"name":"print-op"}}'
           - name: container
             value: '{{workflow.parameters.implementations-205f6494bb19fb641fdaf8222f5121f1c9dc646a60b4f9a9aac82b58efef0db6}}'
+          - name: task-name
+            value: print-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: flip-coin-op.Succeeded
@@ -514,6 +539,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"dependentTasks":["flip-coin-op-2"],"inputs":{"parameters":{"msg":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin-op-2"}}}},"taskInfo":{"name":"print-op-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-205f6494bb19fb641fdaf8222f5121f1c9dc646a60b4f9a9aac82b58efef0db6}}'
+          - name: task-name
+            value: print-op-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: flip-coin-op-2.Succeeded

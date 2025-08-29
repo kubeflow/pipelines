@@ -125,6 +125,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -159,6 +161,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -281,6 +284,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-count"},"taskInfo":{"name":"accelerator-count"}}'
           - name: container
             value: '{{workflow.parameters.implementations-bd65112bbc0d0923fa0ea45c093bd74f6f773ae9d69864eeca1ebf5b3e0d2dcb}}'
+          - name: task-name
+            value: accelerator-count
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: accelerator-count-driver
@@ -303,6 +308,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}}'
           - name: container
             value: '{{workflow.parameters.implementations-a906e47ab9ae1c7250e454d3466ecfd04e1bdaad95ff8373292249509aef84f0}}'
+          - name: task-name
+            value: accelerator-type
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: accelerator-type-driver
@@ -325,6 +332,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-training-job"},"dependentTasks":["accelerator-count","accelerator-type","machine-type"],"inputs":{"parameters":{"display_name":{"runtimeValue":{"constant":"add-numbers"}},"encryption_spec_key_name":{"componentInputParameter":"encryption_spec_key_name"},"location":{"componentInputParameter":"location"},"pipelinechannel--accelerator-count-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-count"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--machine-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"machine-type"}},"project":{"componentInputParameter":"project"},"worker_pool_specs":{"runtimeValue":{"constant":[{"container_spec":{"args":["foo"],"command":["echo"],"image_uri":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0"},"machine_spec":{"accelerator_count":"{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}","accelerator_type":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}","machine_type":"{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}"},"replica_count":1}]}}}},"taskInfo":{"name":"custom-training-job"}}'
           - name: container
             value: '{{workflow.parameters.implementations-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871}}'
+          - name: task-name
+            value: custom-training-job
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: accelerator-count.Succeeded && accelerator-type.Succeeded && machine-type.Succeeded
@@ -348,6 +357,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-machine-type"},"taskInfo":{"name":"machine-type"}}'
           - name: container
             value: '{{workflow.parameters.implementations-7e26d83a9218730385ce7df0a9ef1cfbe837bc3a801aafd136c5266bdb0a50f4}}'
+          - name: task-name
+            value: machine-type
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: machine-type-driver
@@ -386,6 +397,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -420,6 +433,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

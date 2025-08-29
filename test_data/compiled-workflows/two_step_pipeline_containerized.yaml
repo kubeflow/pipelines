@@ -43,6 +43,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -77,6 +79,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -199,6 +202,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component1"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"component1"}}'
           - name: container
             value: '{{workflow.parameters.implementations-475bac6023d1f786e45ff58ef0f9941e93c80c64a148e28d3506f4a41ec6e102}}'
+          - name: task-name
+            value: component1
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: component1-driver
@@ -221,6 +226,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component2"},"dependentTasks":["component1"],"inputs":{"artifacts":{"input_gcs":{"taskOutputArtifact":{"outputArtifactKey":"output_gcs","producerTask":"component1"}}}},"taskInfo":{"name":"component2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-a251b98b01e63019fbe86cccecda6133320b517f80c2594d7119857a86df7195}}'
+          - name: task-name
+            value: component2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: component1.Succeeded
@@ -260,6 +267,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -294,6 +303,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

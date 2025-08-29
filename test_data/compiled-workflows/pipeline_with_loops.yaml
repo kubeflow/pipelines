@@ -81,6 +81,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -115,6 +117,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -237,6 +240,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"taskInfo":{"name":"print-text"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-driver
@@ -267,6 +272,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"}}},"taskInfo":{"name":"print-struct"}}'
           - name: container
             value: '{{workflow.parameters.implementations-4dc8b1cfc0cd7462c57e3e19f3a4b3a20937ffb560cb0e895c36d95ef8733121}}'
+          - name: task-name
+            value: print-struct
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-struct-driver
@@ -289,6 +296,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-2-driver
@@ -311,6 +320,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-3"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-3-driver
@@ -341,6 +352,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct-2"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"print-struct-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-4dc8b1cfc0cd7462c57e3e19f3a4b3a20937ffb560cb0e895c36d95ef8733121}}'
+          - name: task-name
+            value: print-struct-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-struct-2-driver
@@ -363,6 +376,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-4"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-4-driver
@@ -385,6 +400,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-5"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text-5
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-5-driver
@@ -423,6 +440,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -457,6 +476,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -667,6 +688,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-args-generator-op"},"taskInfo":{"name":"args-generator-op"}}'
           - name: container
             value: '{{workflow.parameters.implementations-e80d56377a852cac693ec2909631faad13fae54aa43e36c77d55a0066c51c309}}'
+          - name: task-name
+            value: args-generator-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: args-generator-op-driver

@@ -139,6 +139,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -173,6 +175,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -295,6 +298,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-digit-classification"},"taskInfo":{"name":"digit-classification"}}'
           - name: container
             value: '{{workflow.parameters.implementations-5d57f3661ffacea68fb758af193f78cb33b96450ae1aa7e8704ae71b0fdefd9b}}'
+          - name: task-name
+            value: digit-classification
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: digit-classification-driver
@@ -317,6 +322,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-html-visualization"},"taskInfo":{"name":"html-visualization"}}'
           - name: container
             value: '{{workflow.parameters.implementations-0581169170ca764662238032dd8903cf4be1a77922d37769255923e57a528904}}'
+          - name: task-name
+            value: html-visualization
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: html-visualization-driver
@@ -339,6 +346,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-iris-sgdclassifier"},"inputs":{"parameters":{"test_samples_fraction":{"runtimeValue":{"constant":0.3}}}},"taskInfo":{"name":"iris-sgdclassifier"}}'
           - name: container
             value: '{{workflow.parameters.implementations-629d07db004137846330952fd16e8bc24fd6d1a385fdb23c7ab4499cc383c03a}}'
+          - name: task-name
+            value: iris-sgdclassifier
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: iris-sgdclassifier-driver
@@ -361,6 +370,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-markdown-visualization"},"taskInfo":{"name":"markdown-visualization"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1a3050a08062fcb9e4f3953db46546e5092493def4b246f7ca0491a6a5ce5751}}'
+          - name: task-name
+            value: markdown-visualization
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: markdown-visualization-driver
@@ -383,6 +394,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-wine-classification"},"taskInfo":{"name":"wine-classification"}}'
           - name: container
             value: '{{workflow.parameters.implementations-e6699a20c7e91d278c364b7ecb0df13c1d43e7ab0cbb48e0473d577d8e9c035e}}'
+          - name: task-name
+            value: wine-classification
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: wine-classification-driver
@@ -421,6 +434,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -455,6 +470,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

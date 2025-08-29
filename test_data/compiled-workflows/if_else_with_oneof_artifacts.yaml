@@ -85,6 +85,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -119,6 +121,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -241,6 +244,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-param-to-artifact"},"inputs":{"parameters":{"val":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"param-to-artifact"}}'
           - name: container
             value: '{{workflow.parameters.implementations-32b1184b5895bf9f8285e7032a94deeb81c8981fafc7f6ac52eff5e3d7441485}}'
+          - name: task-name
+            value: param-to-artifact
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: param-to-artifact-driver
@@ -271,6 +276,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-param-to-artifact-2"},"inputs":{"parameters":{"val":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"param-to-artifact-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-32b1184b5895bf9f8285e7032a94deeb81c8981fafc7f6ac52eff5e3d7441485}}'
+          - name: task-name
+            value: param-to-artifact-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: param-to-artifact-2-driver
@@ -309,6 +316,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -343,6 +352,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -375,6 +386,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
               == ''heads''"}}'
+          - name: task-name
+            value: condition-2
         name: condition-2-driver
         template: system-dag-driver
       - arguments:
@@ -396,6 +409,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
               == ''heads'')"}}'
+          - name: task-name
+            value: condition-3
         name: condition-3-driver
         template: system-dag-driver
       - arguments:
@@ -424,6 +439,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-condition-branches-1"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-branches-1"}}'
+          - name: task-name
+            value: condition-branches-1
         depends: flip-coin.Succeeded
         name: condition-branches-1-driver
         template: system-dag-driver
@@ -444,6 +461,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}}'
           - name: container
             value: '{{workflow.parameters.implementations-6c2c106fa6033cd7ff2ef59eaa38e74162d751f14228f3a6ee0fb80af867772c}}'
+          - name: task-name
+            value: flip-coin
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: flip-coin-driver
@@ -466,6 +485,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-artifact"},"dependentTasks":["condition-branches-1"],"inputs":{"artifacts":{"a":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--condition-branches-1-oneof-1","producerTask":"condition-branches-1"}}}},"taskInfo":{"name":"print-artifact"}}'
           - name: container
             value: '{{workflow.parameters.implementations-9e6d8d5a082a9007666a823fc12b378fbcd6d817bdd4e80f93a646e3100857dc}}'
+          - name: task-name
+            value: print-artifact
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: condition-branches-1.Succeeded
@@ -497,6 +518,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-coin-pipeline"},"taskInfo":{"name":"flip-coin-pipeline"}}'
+          - name: task-name
+            value: flip-coin-pipeline
         name: flip-coin-pipeline-driver
         template: system-dag-driver
       - arguments:
@@ -516,6 +539,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-artifact-2"},"dependentTasks":["flip-coin-pipeline"],"inputs":{"artifacts":{"a":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"flip-coin-pipeline"}}}},"taskInfo":{"name":"print-artifact"}}'
           - name: container
             value: '{{workflow.parameters.implementations-9e6d8d5a082a9007666a823fc12b378fbcd6d817bdd4e80f93a646e3100857dc}}'
+          - name: task-name
+            value: print-artifact
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: flip-coin-pipeline.Succeeded

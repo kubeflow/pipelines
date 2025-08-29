@@ -68,6 +68,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -102,6 +104,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -224,6 +227,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
             value: '{{workflow.parameters.implementations-eac334af3cd97aaa38a6512600ea92b21b9b07bc4be8394ced883d6aa2f8901e}}'
+          - name: task-name
+            value: double
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: double-driver
@@ -262,6 +267,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -296,6 +303,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -388,6 +397,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add"}}'
           - name: container
             value: '{{workflow.parameters.implementations-58bc9fd82606891f02593765e8d9e8a89c1e2e8f2b4d817adf9d85193a682f82}}'
+          - name: task-name
+            value: add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: for-loop-2.Succeeded
@@ -411,6 +422,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-container"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add-container"}}'
           - name: container
             value: '{{workflow.parameters.implementations-a84a92e43cc5061b9721809172326190f017aa27a15f7b894c7be7cb01d2e7e4}}'
+          - name: task-name
+            value: add-container
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: for-loop-2.Succeeded

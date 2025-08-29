@@ -47,6 +47,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -81,6 +83,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -229,6 +232,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"componentInputParameter":"b"}}},"retryPolicy":{"backoffDuration":"0s","backoffFactor":2,"backoffMaxDuration":"3600s","maxRetryCount":3},"taskInfo":{"name":"add"}}'
           - name: container
             value: '{{workflow.parameters.implementations-62058920104d06f6598e1f362b4f472c032ae975974c53220cb2e6751d18dfd6}}'
+          - name: task-name
+            value: add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: add-driver
@@ -275,6 +280,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -309,6 +316,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

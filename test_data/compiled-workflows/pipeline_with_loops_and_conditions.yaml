@@ -127,6 +127,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -161,6 +163,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -283,6 +286,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1034b436eab062e26152a0a093bfb085b6be95db3310f689a1490bcc679aec4d}}'
+          - name: task-name
+            value: print-text-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-2-driver
@@ -313,6 +318,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-3"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1034b436eab062e26152a0a093bfb085b6be95db3310f689a1490bcc679aec4d}}'
+          - name: task-name
+            value: print-text-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-3-driver
@@ -343,6 +350,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--loop-item-param-6"}}},"taskInfo":{"name":"print-struct"}}'
           - name: container
             value: '{{workflow.parameters.implementations-90bde55eb820ac878b1e9d49ec04c26ec162868f5f844e4d4ee8635af3d31f29}}'
+          - name: task-name
+            value: print-struct
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-struct-driver
@@ -381,6 +390,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -415,6 +426,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -521,6 +534,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-8"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"1"}}}},"taskInfo":{"name":"print-text-8"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1034b436eab062e26152a0a093bfb085b6be95db3310f689a1490bcc679aec4d}}'
+          - name: task-name
+            value: print-text-8
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-8-driver
@@ -552,6 +567,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-13"},"inputs":{"parameters":{"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"},"pipelinechannel--loop-item-param-11":{"componentInputParameter":"pipelinechannel--loop-item-param-11"}}},"taskInfo":{"name":"condition-13"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--loop-item-param-11'']
               == ''1''"}}'
+          - name: task-name
+            value: condition-13
         name: condition-13-driver
         template: system-dag-driver
       - arguments:
@@ -572,6 +589,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-7"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-11"}}},"taskInfo":{"name":"print-text-7"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1034b436eab062e26152a0a093bfb085b6be95db3310f689a1490bcc679aec4d}}'
+          - name: task-name
+            value: print-text-7
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-7-driver
@@ -602,6 +621,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item-subvar-B_b-loop-item"}}},"taskInfo":{"name":"print-text-4"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1034b436eab062e26152a0a093bfb085b6be95db3310f689a1490bcc679aec4d}}'
+          - name: task-name
+            value: print-text-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-4-driver
@@ -632,6 +653,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-6"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"},"msg2":{"componentInputParameter":"pipelinechannel--args-generator-op-2-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-6"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1034b436eab062e26152a0a093bfb085b6be95db3310f689a1490bcc679aec4d}}'
+          - name: task-name
+            value: print-text-6
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-6-driver
@@ -727,6 +750,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"taskInfo":{"name":"print-text-5"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1034b436eab062e26152a0a093bfb085b6be95db3310f689a1490bcc679aec4d}}'
+          - name: task-name
+            value: print-text-5
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-5-driver
@@ -937,6 +962,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"},"pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a'']
               == ''heads''"}}'
+          - name: task-name
+            value: condition-3
         name: condition-3-driver
         template: system-dag-driver
       - arguments:
@@ -958,6 +985,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-4"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-op-Output'']
               == ''heads''"}}'
+          - name: task-name
+            value: condition-4
         name: condition-4-driver
         template: system-dag-driver
       - arguments:
@@ -979,6 +1008,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-5"},"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item"},"pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"},"pipelinechannel--flip-coin-op-Output":{"componentInputParameter":"pipelinechannel--flip-coin-op-Output"}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a'']
               == ''tails''"}}'
+          - name: task-name
+            value: condition-5
         name: condition-5-driver
         template: system-dag-driver
       - arguments:
@@ -1017,6 +1048,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--msg"}}},"taskInfo":{"name":"print-text"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1034b436eab062e26152a0a093bfb085b6be95db3310f689a1490bcc679aec4d}}'
+          - name: task-name
+            value: print-text
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-driver
@@ -1106,6 +1139,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-args-generator-op-2"},"taskInfo":{"name":"args-generator-op-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-97d84e32a9336290fe8bc8310368c1c2800d198ac227a30b5ec515507a75e596}}'
+          - name: task-name
+            value: args-generator-op-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: args-generator-op-2-driver
@@ -1143,6 +1178,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-9"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item-subvar-B_b-loop-item"}}},"taskInfo":{"name":"print-text-9"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1034b436eab062e26152a0a093bfb085b6be95db3310f689a1490bcc679aec4d}}'
+          - name: task-name
+            value: print-text-9
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-9-driver
@@ -1247,6 +1284,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-15"},"inputs":{"parameters":{"pipelinechannel--loop_parameter-loop-item":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"},"pipelinechannel--loop_parameter-loop-item-subvar-A_a":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"condition-15"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--loop_parameter-loop-item-subvar-A_a'']
               == ''heads''"}}'
+          - name: task-name
+            value: condition-15
         name: condition-15-driver
         template: system-dag-driver
       - arguments:
@@ -1334,6 +1373,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-args-generator-op"},"taskInfo":{"name":"args-generator-op"}}'
           - name: container
             value: '{{workflow.parameters.implementations-97d84e32a9336290fe8bc8310368c1c2800d198ac227a30b5ec515507a75e596}}'
+          - name: task-name
+            value: args-generator-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: args-generator-op-driver
@@ -1357,6 +1398,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["args-generator-op","flip-coin-op"],"inputs":{"parameters":{"pipelinechannel--args-generator-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"args-generator-op"}},"pipelinechannel--flip-coin-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin-op"}},"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"},"pipelinechannel--msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-op-Output'']
               != ''no-such-result''"}}'
+          - name: task-name
+            value: condition-1
         depends: args-generator-op.Succeeded && flip-coin-op.Succeeded
         name: condition-1-driver
         template: system-dag-driver
@@ -1378,6 +1421,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-coin-op"},"taskInfo":{"name":"flip-coin-op"}}'
           - name: container
             value: '{{workflow.parameters.implementations-f40bcfdc0998c51bee91ebc764414104c663e062a789a29dbb3f6eebb2122259}}'
+          - name: task-name
+            value: flip-coin-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: flip-coin-op-driver

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/onsi/ginkgo/v2"
 	"os"
 	"path/filepath"
 
@@ -45,16 +46,23 @@ func LoadSpecsFromIR(pipelineIRRootDir, pipelineIRDirectory, pipelineIRFileName 
 			break
 		}
 	}
-	pipelineSpecBytes, marshallingError := json.Marshal(pipelineSpecsFromFile.PipelineSpec())
+	pipelineSpecMap := make(map[string]interface{})
+	pipelineSpecBytes, marshallingError := protojson.Marshal(pipelineSpecsFromFile.PipelineSpec())
+	gomega.Expect(marshallingError).NotTo(gomega.HaveOccurred(), "Failed to marshall pipeline spec")
+	err := json.Unmarshal(pipelineSpecBytes, &pipelineSpecMap)
+	pipelineSpecMapNew := make(map[string]interface{})
+	pipelineSpecMapNew["pipelineSpec"] = pipelineSpecMap
+	pipelineSpecBytes, marshallingError = json.Marshal(pipelineSpecMapNew)
 	gomega.Expect(marshallingError).NotTo(gomega.HaveOccurred(), "Failed to marshall pipeline spec map")
 	pipelineJob := &pipelinespec.PipelineJob{}
-	err := protojson.Unmarshal(pipelineSpecBytes, pipelineJob)
+	err = protojson.Unmarshal(pipelineSpecBytes, pipelineJob)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to unmarshal pipeline spec\n %s", string(pipelineSpecBytes)))
 	return pipelineJob, singlePlatformSpec
 }
 
 // GetCompiledArgoWorkflow - Compile pipeline and platform specs into a workflow and return an instance of v1alpha1.Workflow
 func GetCompiledArgoWorkflow(pipelineSpecs *pipelinespec.PipelineJob, platformSpec *pipelinespec.SinglePlatformSpec, compilerOptions *argocompiler.Options) *v1alpha1.Workflow {
+	ginkgo.GinkgoHelper()
 	logger.Log("Compiling Argo Workflow for provided pipeline job and platform spec")
 	compiledWorflow, err := argocompiler.Compile(pipelineSpecs, platformSpec, compilerOptions)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to compile Argo workflow")
@@ -63,6 +71,7 @@ func GetCompiledArgoWorkflow(pipelineSpecs *pipelinespec.PipelineJob, platformSp
 
 // UnmarshallWorkflowYAML - Unmarshall compiler workflow YAML into a v1alpha1.Workflow object
 func UnmarshallWorkflowYAML(filePath string) *v1alpha1.Workflow {
+	ginkgo.GinkgoHelper()
 	logger.Log("Unmarshalling Expected Workflow YAML")
 	workflowFromFileBytes, err := os.ReadFile(filePath)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to read workflow yaml file")
@@ -75,6 +84,7 @@ func UnmarshallWorkflowYAML(filePath string) *v1alpha1.Workflow {
 
 // CreateCompiledWorkflowFile - Marshall v1alpha1.Workflow into a yaml file and save the file to the path provided as `compiledWorkflowFilePath`
 func CreateCompiledWorkflowFile(compiledWorflow *v1alpha1.Workflow, compiledWorkflowFilePath string) *os.File {
+	ginkgo.GinkgoHelper()
 	fileContents, err := yaml.Marshal(compiledWorflow)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return test_utils.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})

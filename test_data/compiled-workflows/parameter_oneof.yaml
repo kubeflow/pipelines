@@ -103,6 +103,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -137,6 +139,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -260,6 +263,8 @@ spec:
               heads!"}}}},"taskInfo":{"name":"core-comp"}}'
           - name: container
             value: '{{workflow.parameters.implementations-ab33a83b93454ce3d2aaf2cae2440bc7dd213c96638a015b0f9bd905412612b6}}'
+          - name: task-name
+            value: core-comp
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: core-comp-driver
@@ -291,6 +296,8 @@ spec:
               tails!"}}}},"taskInfo":{"name":"core-output-comp"}}'
           - name: container
             value: '{{workflow.parameters.implementations-a240600c851a66d5ff25e885663b201936874f062058071f77c0bf7578d1c092}}'
+          - name: task-name
+            value: core-output-comp
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: core-output-comp-driver
@@ -329,6 +336,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -363,6 +372,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -395,6 +406,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
               == ''heads''"}}'
+          - name: task-name
+            value: condition-2
         name: condition-2-driver
         template: system-dag-driver
       - arguments:
@@ -416,6 +429,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
               == ''heads'')"}}'
+          - name: task-name
+            value: condition-3
         name: condition-3-driver
         template: system-dag-driver
       - arguments:
@@ -444,6 +459,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-condition-branches-1"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-branches-1"}}'
+          - name: task-name
+            value: condition-branches-1
         depends: flip-coin.Succeeded
         name: condition-branches-1-driver
         template: system-dag-driver
@@ -464,6 +481,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}}'
           - name: container
             value: '{{workflow.parameters.implementations-6c2c106fa6033cd7ff2ef59eaa38e74162d751f14228f3a6ee0fb80af867772c}}'
+          - name: task-name
+            value: flip-coin
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: flip-coin-driver
@@ -494,6 +513,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-core"},"taskInfo":{"name":"core"}}'
+          - name: task-name
+            value: core
         name: core-driver
         template: system-dag-driver
       - arguments:
@@ -521,6 +542,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"parameters":{"input":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}}'
           - name: container
             value: '{{workflow.parameters.implementations-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3}}'
+          - name: task-name
+            value: crust-comp
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: mantle.Succeeded
@@ -544,6 +567,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-mantle"},"taskInfo":{"name":"mantle"}}'
+          - name: task-name
+            value: mantle
         name: mantle-driver
         template: system-dag-driver
       - arguments:

@@ -42,6 +42,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -76,6 +78,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -198,6 +201,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-ingestion"},"inputs":{"parameters":{"input_location":{"componentInputParameter":"input_location"}}},"taskInfo":{"name":"ingestion"}}'
           - name: container
             value: '{{workflow.parameters.implementations-312eb15f363a7eaefbd0dd2c67c93d175c581d4d8bb249b46e70662b3f716438}}'
+          - name: task-name
+            value: ingestion
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: ingestion-driver
@@ -220,6 +225,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-trainer"},"dependentTasks":["ingestion"],"inputs":{"artifacts":{"examples":{"taskOutputArtifact":{"outputArtifactKey":"examples","producerTask":"ingestion"}}},"parameters":{"n_epochs":{"componentInputParameter":"n_epochs"},"optimizer":{"componentInputParameter":"optimizer"}}},"taskInfo":{"name":"trainer"}}'
           - name: container
             value: '{{workflow.parameters.implementations-ac1de21245dca832c760f7ca5cbccf287a7a157a77c5cbf887b38ab49b94bd1d}}'
+          - name: task-name
+            value: trainer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: ingestion.Succeeded
@@ -259,6 +266,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -293,6 +302,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

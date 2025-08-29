@@ -43,6 +43,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -77,6 +79,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -199,6 +202,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-from-gcs"},"dependentTasks":["write-to-gcs"],"inputs":{"artifacts":{"input_gcs_path":{"taskOutputArtifact":{"outputArtifactKey":"output_gcs_path","producerTask":"write-to-gcs"}}}},"taskInfo":{"name":"Consumer"}}'
           - name: container
             value: '{{workflow.parameters.implementations-27a1ed0385660429e07f843557e4216aa3a45bcf5cf5dc468af6aab6e63d1c5e}}'
+          - name: task-name
+            value: read-from-gcs
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: write-to-gcs.Succeeded
@@ -222,6 +227,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-to-gcs"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"Producer"}}'
           - name: container
             value: '{{workflow.parameters.implementations-b290238f9f93331c1d7d9f765948cdc6af4420f14f5ebd4ee26539c3055a1493}}'
+          - name: task-name
+            value: write-to-gcs
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: write-to-gcs-driver
@@ -260,6 +267,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -294,6 +303,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

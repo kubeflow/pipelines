@@ -67,6 +67,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -101,6 +103,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -223,6 +226,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-op"},"inputs":{"parameters":{"input_str1":{"runtimeValue":{"constant":"Hello"}},"input_str2":{"runtimeValue":{"constant":"World"}},"input_str4_from_pipeline":{"componentInputParameter":"input_str4"},"input_str5_from_pipeline":{"componentInputParameter":"input_str5"},"input_str6_from_pipeline":{"componentInputParameter":"input_str6"}}},"taskInfo":{"name":"component-op"}}'
           - name: container
             value: '{{workflow.parameters.implementations-70b42d8402b896d5c6a80c33abe526393cf8da3dded9b8d46055850a5fcdc440}}'
+          - name: task-name
+            value: component-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: component-op-driver
@@ -261,6 +266,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -295,6 +302,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

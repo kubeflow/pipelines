@@ -42,6 +42,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -76,6 +78,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -198,6 +201,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-downstream"},"dependentTasks":["upstream"],"inputs":{"artifacts":{"input_b":{"taskOutputArtifact":{"outputArtifactKey":"output_2","producerTask":"upstream"}},"input_c":{"taskOutputArtifact":{"outputArtifactKey":"output_3","producerTask":"upstream"}},"input_d":{"taskOutputArtifact":{"outputArtifactKey":"output_4","producerTask":"upstream"}},"input_e":{"taskOutputArtifact":{"outputArtifactKey":"output_5","producerTask":"upstream"}},"input_f":{"taskOutputArtifact":{"outputArtifactKey":"output_6","producerTask":"upstream"}},"input_g":{"taskOutputArtifact":{"outputArtifactKey":"output_7","producerTask":"upstream"}},"input_h":{"taskOutputArtifact":{"outputArtifactKey":"output_8","producerTask":"upstream"}},"input_i":{"taskOutputArtifact":{"outputArtifactKey":"output_9","producerTask":"upstream"}}},"parameters":{"input_a":{"taskOutputParameter":{"outputParameterKey":"output_1","producerTask":"upstream"}}}},"taskInfo":{"name":"downstream"}}'
           - name: container
             value: '{{workflow.parameters.implementations-47f8556d9d5209135f0475cec07f23896de64558ee7eb4299cc3ebffcad12306}}'
+          - name: task-name
+            value: downstream
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: upstream.Succeeded
@@ -221,6 +226,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-upstream"},"inputs":{"artifacts":{"input_3":{"componentInputArtifact":"input3"}},"parameters":{"input_1":{"componentInputParameter":"input1"},"input_2":{"runtimeValue":{"constant":3.1415926}},"input_4":{"componentInputParameter":"input4"}}},"taskInfo":{"name":"upstream"}}'
           - name: container
             value: '{{workflow.parameters.implementations-3dd78b16c97f19cec3a05c91c163d2ef6f3cdee55ffd014e9fc805751d9f2ace}}'
+          - name: task-name
+            value: upstream
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: upstream-driver
@@ -259,6 +266,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -293,6 +302,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

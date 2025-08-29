@@ -94,6 +94,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -128,6 +130,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -250,6 +253,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers"},"inputs":{"parameters":{"first":{"componentInputParameter":"first_number"},"second":{"componentInputParameter":"second_number"}}},"taskInfo":{"name":"add-numbers"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8870f0a2f68d8cd4568555a23e74ba662d25e8d5d7206d8c0b3d03e9d3afce64}}'
+          - name: task-name
+            value: add-numbers
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: add-numbers-driver
@@ -272,6 +277,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-concat-message"},"inputs":{"parameters":{"first":{"componentInputParameter":"first_message"},"second":{"componentInputParameter":"second_message"}}},"taskInfo":{"name":"concat-message"}}'
           - name: container
             value: '{{workflow.parameters.implementations-f927c43072fb8baf32c3241fad2cbf970008046a26a48f20f75c4226e4a16cd8}}'
+          - name: task-name
+            value: concat-message
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: concat-message-driver
@@ -294,6 +301,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-output-artifact"},"dependentTasks":["add-numbers","concat-message"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"concat-message"}},"number":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"add-numbers"}}}},"taskInfo":{"name":"output-artifact"}}'
           - name: container
             value: '{{workflow.parameters.implementations-057891112980ba235e08bd912537a46f32f24c44d2eadd1f97e1f5f4ea3094c2}}'
+          - name: task-name
+            value: output-artifact
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: add-numbers.Succeeded && concat-message.Succeeded
@@ -317,6 +326,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-output-named-tuple"},"dependentTasks":["output-artifact"],"inputs":{"artifacts":{"artifact":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"output-artifact"}}}},"taskInfo":{"name":"output-named-tuple"}}'
           - name: container
             value: '{{workflow.parameters.implementations-88a0f7f1dfae7eede46c958ca3094899fb994cfa854fd93e13a067becc26bac6}}'
+          - name: task-name
+            value: output-named-tuple
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: output-artifact.Succeeded
@@ -356,6 +367,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -390,6 +403,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

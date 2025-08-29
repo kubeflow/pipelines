@@ -72,6 +72,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -106,6 +108,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -228,6 +231,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-dataset-splitter"},"inputs":{"artifacts":{"in_dataset":{"componentInputArtifact":"in_dataset"}}},"taskInfo":{"name":"dataset-splitter"}}'
           - name: container
             value: '{{workflow.parameters.implementations-3647c4e3ac0608e15a53ca89d7c872357aaf0a774319e981dd81c76898c55d93}}'
+          - name: task-name
+            value: dataset-splitter
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: dataset-splitter-driver
@@ -266,6 +271,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -300,6 +307,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -331,6 +340,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-dataset"},"taskInfo":{"name":"make-dataset"}}'
           - name: container
             value: '{{workflow.parameters.implementations-ab6ce40f1e73209b0db2b5f4da3d4985df64dd8eef2d73f10b565dc4ca02bf22}}'
+          - name: task-name
+            value: make-dataset
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: make-dataset-driver
@@ -353,6 +364,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-splitter-pipeline"},"dependentTasks":["make-dataset"],"inputs":{"artifacts":{"in_dataset":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"make-dataset"}}}},"taskInfo":{"name":"splitter-pipeline"}}'
+          - name: task-name
+            value: splitter-pipeline
         depends: make-dataset.Succeeded
         name: splitter-pipeline-driver
         template: system-dag-driver

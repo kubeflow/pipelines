@@ -47,6 +47,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -81,6 +83,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -203,6 +206,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-dict-input"},"inputs":{"parameters":{"struct":{"componentInputParameter":"struct"}}},"taskInfo":{"name":"dict-input"}}'
           - name: container
             value: '{{workflow.parameters.implementations-ad34ccfb38dd37789911de71149bcf7f9c413a59602a851919d36e4da8d5a0c5}}'
+          - name: task-name
+            value: dict-input
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: dict-input-driver
@@ -241,6 +246,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -275,6 +282,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

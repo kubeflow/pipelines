@@ -25,18 +25,29 @@ import (
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
+	"slices"
 	"strings"
 
 	"github.com/onsi/gomega"
 )
 
 // GetProjectRoot Get project root directory
+// GetProjectRoot Get project root directory
 func GetProjectRoot() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		logger.Log("Failed to get current directory, due to %s", err.Error())
+	dirFiles := make([]string, 0)
+	dir, _ := os.Getwd()
+	for !slices.Contains(dirFiles, "backend") && !slices.Contains(dirFiles, "sdk") {
+		dirFiles = make([]string, 0)
+		dir = filepath.Join(dir, "..")
+		files, err := os.ReadDir(dir)
+		if err != nil {
+			logger.Log("Failed to read directory '%s', due to %s", err.Error())
+		}
+		for _, file := range files {
+			dirFiles = append(dirFiles, file.Name())
+		}
 	}
-	return filepath.Join(dir, "..", "..", "..", "../")
+	return dir
 }
 
 // GetTestDataDir Get the directory location for all the test data

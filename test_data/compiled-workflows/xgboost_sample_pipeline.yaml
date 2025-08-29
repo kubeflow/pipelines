@@ -306,6 +306,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -340,6 +342,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -463,6 +466,8 @@ spec:
               \u003e= \"2019-01-01\" AND trip_start_timestamp \u003c \"2019-02-01\""}}}},"taskInfo":{"name":"chicago-taxi-trips-dataset"}}'
           - name: container
             value: '{{workflow.parameters.implementations-7ad329a2ac89be6e1debabcd3d4912ec1f9f56f8d4b9fe479da5dd1ed4fc45e2}}'
+          - name: task-name
+            value: chicago-taxi-trips-dataset
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: chicago-taxi-trips-dataset-driver
@@ -485,6 +490,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-convert-csv-to-apache-parquet"},"dependentTasks":["chicago-taxi-trips-dataset"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"table","producerTask":"chicago-taxi-trips-dataset"}}}},"taskInfo":{"name":"convert-csv-to-apache-parquet"}}'
           - name: container
             value: '{{workflow.parameters.implementations-4c133da6a0e29aa7910d0718119ec596bd6681678360ab60e38dae9339b3efb9}}'
+          - name: task-name
+            value: convert-csv-to-apache-parquet
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: chicago-taxi-trips-dataset.Succeeded
@@ -508,6 +515,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-xgboost-predict"},"dependentTasks":["chicago-taxi-trips-dataset","xgboost-train"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"table","producerTask":"chicago-taxi-trips-dataset"}},"model":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"xgboost-train"}}},"parameters":{"label_column":{"runtimeValue":{"constant":0}}}},"taskInfo":{"name":"xgboost-predict"}}'
           - name: container
             value: '{{workflow.parameters.implementations-d1f109ba389501999e4d468354015c7d3a7947affcf7e4697c201c9c1bd6f88b}}'
+          - name: task-name
+            value: xgboost-predict
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: chicago-taxi-trips-dataset.Succeeded && xgboost-train.Succeeded
@@ -531,6 +540,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-xgboost-predict-2"},"dependentTasks":["convert-csv-to-apache-parquet","xgboost-train-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"output_data","producerTask":"convert-csv-to-apache-parquet"}},"model":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"xgboost-train-2"}}},"parameters":{"label_column_name":{"runtimeValue":{"constant":"tips"}}}},"taskInfo":{"name":"xgboost-predict-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-c62f35abca448022418477855ae1839ecc171d48bb1830ab69e1f75c0649519a}}'
+          - name: task-name
+            value: xgboost-predict-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: convert-csv-to-apache-parquet.Succeeded && xgboost-train-2.Succeeded
@@ -554,6 +565,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-xgboost-predict-3"},"dependentTasks":["convert-csv-to-apache-parquet","xgboost-train"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"output_data","producerTask":"convert-csv-to-apache-parquet"}},"model":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"xgboost-train"}}},"parameters":{"label_column_name":{"runtimeValue":{"constant":"tips"}}}},"taskInfo":{"name":"xgboost-predict-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-c62f35abca448022418477855ae1839ecc171d48bb1830ab69e1f75c0649519a}}'
+          - name: task-name
+            value: xgboost-predict-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: convert-csv-to-apache-parquet.Succeeded && xgboost-train.Succeeded
@@ -577,6 +590,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-xgboost-predict-4"},"dependentTasks":["chicago-taxi-trips-dataset","xgboost-train-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"table","producerTask":"chicago-taxi-trips-dataset"}},"model":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"xgboost-train-2"}}},"parameters":{"label_column":{"runtimeValue":{"constant":0}}}},"taskInfo":{"name":"xgboost-predict-4"}}'
           - name: container
             value: '{{workflow.parameters.implementations-d1f109ba389501999e4d468354015c7d3a7947affcf7e4697c201c9c1bd6f88b}}'
+          - name: task-name
+            value: xgboost-predict-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: chicago-taxi-trips-dataset.Succeeded && xgboost-train-2.Succeeded
@@ -600,6 +615,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-xgboost-train"},"dependentTasks":["chicago-taxi-trips-dataset"],"inputs":{"artifacts":{"training_data":{"taskOutputArtifact":{"outputArtifactKey":"table","producerTask":"chicago-taxi-trips-dataset"}}},"parameters":{"label_column":{"runtimeValue":{"constant":0}},"num_iterations":{"runtimeValue":{"constant":200}},"objective":{"runtimeValue":{"constant":"reg:squarederror"}}}},"taskInfo":{"name":"xgboost-train"}}'
           - name: container
             value: '{{workflow.parameters.implementations-0543e77f07b487833b7b7adaedea608d72a11fd2a76cfe13a80ea1431ce92901}}'
+          - name: task-name
+            value: xgboost-train
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: chicago-taxi-trips-dataset.Succeeded
@@ -623,6 +640,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-xgboost-train-2"},"dependentTasks":["convert-csv-to-apache-parquet"],"inputs":{"artifacts":{"training_data":{"taskOutputArtifact":{"outputArtifactKey":"output_data","producerTask":"convert-csv-to-apache-parquet"}}},"parameters":{"label_column_name":{"runtimeValue":{"constant":"tips"}},"num_iterations":{"runtimeValue":{"constant":200}},"objective":{"runtimeValue":{"constant":"reg:squarederror"}}}},"taskInfo":{"name":"xgboost-train-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-0c2f0a07f4057d4f8388562ccd9bbf6ea50c2603b7efb45cadb1ddc872a26cb3}}'
+          - name: task-name
+            value: xgboost-train-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: convert-csv-to-apache-parquet.Succeeded
@@ -662,6 +681,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -696,6 +717,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

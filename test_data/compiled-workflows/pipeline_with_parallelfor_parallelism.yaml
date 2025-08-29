@@ -145,6 +145,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -179,6 +181,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -301,6 +304,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"taskInfo":{"name":"print-text-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-2-driver
@@ -339,6 +344,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -373,6 +380,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -469,6 +478,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"taskInfo":{"name":"print-text"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-driver
@@ -499,6 +510,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-int-3"},"inputs":{"parameters":{"x":{"componentInputParameter":"pipelinechannel--list-dict-maker-1-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"a\"]"}}},"taskInfo":{"name":"print-int-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-962a80d3b6aab60b44d6f94ec579a5d3d511736bbeb73c97bd37810bb30b7f58}}'
+          - name: task-name
+            value: print-int-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-int-3-driver
@@ -529,6 +542,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-int-4"},"inputs":{"parameters":{"x":{"componentInputParameter":"pipelinechannel--list-dict-maker-2-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"a\"]"}}},"taskInfo":{"name":"print-int-4"}}'
           - name: container
             value: '{{workflow.parameters.implementations-962a80d3b6aab60b44d6f94ec579a5d3d511736bbeb73c97bd37810bb30b7f58}}'
+          - name: task-name
+            value: print-int-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-int-4-driver
@@ -559,6 +574,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-int-5"},"inputs":{"parameters":{"x":{"componentInputParameter":"pipelinechannel--list-dict-maker-3-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"a\"]"}}},"taskInfo":{"name":"print-int-5"}}'
           - name: container
             value: '{{workflow.parameters.implementations-962a80d3b6aab60b44d6f94ec579a5d3d511736bbeb73c97bd37810bb30b7f58}}'
+          - name: task-name
+            value: print-int-5
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-int-5-driver
@@ -589,6 +606,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-int-6"},"inputs":{"parameters":{"x":{"componentInputParameter":"pipelinechannel--list-dict-maker-1-2-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"a\"]"}}},"taskInfo":{"name":"print-int-6"}}'
           - name: container
             value: '{{workflow.parameters.implementations-962a80d3b6aab60b44d6f94ec579a5d3d511736bbeb73c97bd37810bb30b7f58}}'
+          - name: task-name
+            value: print-int-6
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-int-6-driver
@@ -619,6 +638,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-5"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-5","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-5"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text-5
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-5-driver
@@ -641,6 +662,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-6"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-5","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-6"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text-6
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-6-driver
@@ -739,6 +762,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-3"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"A_a\"]"}}},"taskInfo":{"name":"print-text-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-3-driver
@@ -761,6 +786,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-4"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop-item-param-3","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-4"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8b19db2f66755bb18d65af5ac00a5043ce835ec3e4bb6ecc29674dc529a768da}}'
+          - name: task-name
+            value: print-text-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-4-driver
@@ -791,6 +818,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-int"},"inputs":{"parameters":{"x":{"componentInputParameter":"pipelinechannel--loop-item-param-7","parameterExpressionSelector":"parseJson(string_value)[\"a\"]"}}},"taskInfo":{"name":"print-int"}}'
           - name: container
             value: '{{workflow.parameters.implementations-962a80d3b6aab60b44d6f94ec579a5d3d511736bbeb73c97bd37810bb30b7f58}}'
+          - name: task-name
+            value: print-int
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-int-driver
@@ -821,6 +850,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-int-2"},"inputs":{"parameters":{"x":{"componentInputParameter":"pipelinechannel--list-dict-maker-0-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"a\"]"}}},"taskInfo":{"name":"print-int-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-962a80d3b6aab60b44d6f94ec579a5d3d511736bbeb73c97bd37810bb30b7f58}}'
+          - name: task-name
+            value: print-int-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-int-2-driver
@@ -1382,6 +1413,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-list-dict-maker-0"},"taskInfo":{"name":"list-dict-maker-0"}}'
           - name: container
             value: '{{workflow.parameters.implementations-b98e2740c309c77f93f9af97028f913bc2a4a8a4b45ca442ef0f795cf0c080c1}}'
+          - name: task-name
+            value: list-dict-maker-0
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: list-dict-maker-0-driver
@@ -1404,6 +1437,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-list-dict-maker-1"},"taskInfo":{"name":"list-dict-maker-1"}}'
           - name: container
             value: '{{workflow.parameters.implementations-d089359483b0a4b7e504d7faa26ccb7a0b065df797ca065418253186d3d4dccb}}'
+          - name: task-name
+            value: list-dict-maker-1
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: list-dict-maker-1-driver
@@ -1426,6 +1461,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-list-dict-maker-1-2"},"taskInfo":{"name":"list-dict-maker-1-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-d089359483b0a4b7e504d7faa26ccb7a0b065df797ca065418253186d3d4dccb}}'
+          - name: task-name
+            value: list-dict-maker-1-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: list-dict-maker-1-2-driver
@@ -1448,6 +1485,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-list-dict-maker-2"},"taskInfo":{"name":"list-dict-maker-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-f5851da39a9dee32873dea6bffe7884395aa0066834d4836c16aac349d67b16a}}'
+          - name: task-name
+            value: list-dict-maker-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: list-dict-maker-2-driver
@@ -1470,6 +1509,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-list-dict-maker-3"},"taskInfo":{"name":"list-dict-maker-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-ec57ec5415df2970b987337f79b139a02ea7cb2a541fd7eccf01e1f3afc86fd2}}'
+          - name: task-name
+            value: list-dict-maker-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: list-dict-maker-3-driver

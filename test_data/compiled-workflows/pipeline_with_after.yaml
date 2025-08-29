@@ -41,6 +41,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -75,6 +77,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -198,6 +201,8 @@ spec:
               task"}}}},"taskInfo":{"name":"print-text"}}'
           - name: container
             value: '{{workflow.parameters.implementations-e9d96c084390adff2ea878debaa8ca2fd68a3c14c3349e300ea0c5deac669806}}'
+          - name: task-name
+            value: print-text
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-text-driver
@@ -221,6 +226,8 @@ spec:
               task"}}}},"taskInfo":{"name":"print-text-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-e9d96c084390adff2ea878debaa8ca2fd68a3c14c3349e300ea0c5deac669806}}'
+          - name: task-name
+            value: print-text-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: print-text.Succeeded
@@ -245,6 +252,8 @@ spec:
               task"}}}},"taskInfo":{"name":"print-text-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-e9d96c084390adff2ea878debaa8ca2fd68a3c14c3349e300ea0c5deac669806}}'
+          - name: task-name
+            value: print-text-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: print-text.Succeeded && print-text-2.Succeeded
@@ -284,6 +293,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -318,6 +329,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

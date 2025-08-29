@@ -38,6 +38,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -72,6 +74,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -194,6 +197,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-wait-op"},"taskInfo":{"name":"wait-op"}}'
           - name: container
             value: '{{workflow.parameters.implementations-50416a9fa23210403fe0e780d1dbd6667e4f73dfed854d15c7319fdd6ce87af8}}'
+          - name: task-name
+            value: wait-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: wait-op-driver
@@ -216,6 +221,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-wait-op-2"},"dependentTasks":["wait-op"],"taskInfo":{"name":"wait-op-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-50416a9fa23210403fe0e780d1dbd6667e4f73dfed854d15c7319fdd6ce87af8}}'
+          - name: task-name
+            value: wait-op-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: wait-op.Succeeded
@@ -255,6 +262,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -289,6 +298,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

@@ -120,6 +120,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -154,6 +156,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -288,6 +291,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train-2"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"train-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-b23ebe0331daf42830eac46314b8371e34fd512846d2beec41211c1afdad7726}}'
+          - name: task-name
+            value: train-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: importer-2.Succeeded
@@ -327,6 +332,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -361,6 +368,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -393,6 +402,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["train"],"inputs":{"parameters":{"pipelinechannel--dataset2":{"componentInputParameter":"dataset2"},"pipelinechannel--train-scalar":{"taskOutputParameter":{"outputParameterKey":"scalar","producerTask":"train"}}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--train-scalar'']
               == ''123''"}}'
+          - name: task-name
+            value: condition-1
         depends: train.Succeeded
         name: condition-1-driver
         template: system-dag-driver
@@ -426,6 +437,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train"},"dependentTasks":["importer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"train"}}'
           - name: container
             value: '{{workflow.parameters.implementations-b23ebe0331daf42830eac46314b8371e34fd512846d2beec41211c1afdad7726}}'
+          - name: task-name
+            value: train
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: importer.Succeeded

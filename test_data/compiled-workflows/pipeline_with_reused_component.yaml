@@ -39,6 +39,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -73,6 +75,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -195,6 +198,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"op2":{"runtimeValue":{"constant":3}},"op_1":{"componentInputParameter":"a"}}},"taskInfo":{"name":"add"}}'
           - name: container
             value: '{{workflow.parameters.implementations-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad}}'
+          - name: task-name
+            value: add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: add-driver
@@ -217,6 +222,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"dependentTasks":["add"],"inputs":{"parameters":{"op2":{"componentInputParameter":"b"},"op_1":{"taskOutputParameter":{"outputParameterKey":"sum","producerTask":"add"}}}},"taskInfo":{"name":"add-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad}}'
+          - name: task-name
+            value: add-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: add.Succeeded
@@ -240,6 +247,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-3"},"dependentTasks":["add-2"],"inputs":{"parameters":{"op2":{"runtimeValue":{"constant":7}},"op_1":{"taskOutputParameter":{"outputParameterKey":"sum","producerTask":"add-2"}}}},"taskInfo":{"name":"add-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad}}'
+          - name: task-name
+            value: add-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: add-2.Succeeded
@@ -279,6 +288,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -313,6 +324,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

@@ -95,6 +95,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -129,6 +131,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -251,6 +254,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["createpvc","producer"],"taskInfo":{"name":"consumer"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1b522aee8fb5d61c1a9a7ebfad504ce69d5c2b2ff71daa757e89c8723c9de172}}'
+          - name: task-name
+            value: consumer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
@@ -276,6 +281,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Mi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}}'
           - name: container
             value: '{{workflow.parameters.implementations-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767}}'
+          - name: task-name
+            value: createpvc
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: createpvc
@@ -288,6 +295,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["consumer","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}}'
           - name: container
             value: '{{workflow.parameters.implementations-ecfc655dce17b0d317707d37fc226fb7de858cc93d45916945122484a13ef725}}'
+          - name: task-name
+            value: deletepvc
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: consumer.Succeeded && createpvc.Succeeded
@@ -301,6 +310,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"dependentTasks":["createpvc"],"taskInfo":{"name":"producer"}}'
           - name: container
             value: '{{workflow.parameters.implementations-d69d67847cbabf54bbdf7ec9203928694d6d34b235766b1f662b2ce1c8440032}}'
+          - name: task-name
+            value: producer
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: kubernetes-config
@@ -342,6 +353,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -376,6 +389,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

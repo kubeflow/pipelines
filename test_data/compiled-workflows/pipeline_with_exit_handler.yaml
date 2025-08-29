@@ -65,6 +65,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -99,6 +101,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -222,6 +225,8 @@ spec:
               failed."}}}},"taskInfo":{"name":"fail-op"}}'
           - name: container
             value: '{{workflow.parameters.implementations-73aa41a182947039e1bae4bb36fe13a58b2239d2987abbba8f4a51fcc3938390}}'
+          - name: task-name
+            value: fail-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: fail-op-driver
@@ -244,6 +249,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-18f176747f4732647de818c82c01b4b7352850ea1bacc9c3fe36676a8fca6e05}}'
+          - name: task-name
+            value: print-op-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op-2-driver
@@ -275,6 +282,8 @@ spec:
               handler has worked!"}}}},"taskInfo":{"name":"print-op"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}'
           - name: container
             value: '{{workflow.parameters.implementations-18f176747f4732647de818c82c01b4b7352850ea1bacc9c3fe36676a8fca6e05}}'
+          - name: task-name
+            value: print-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op-driver
@@ -313,6 +322,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -347,6 +358,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -378,6 +391,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-exit-handler-1"},"inputs":{"parameters":{"pipelinechannel--message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"exit-handler-1"}}'
+          - name: task-name
+            value: exit-handler-1
         name: exit-handler-1-driver
         template: system-dag-driver
       - arguments:

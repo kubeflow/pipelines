@@ -72,6 +72,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -106,6 +108,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -285,6 +288,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-build-model-car"},"taskInfo":{"name":"build-model-car"}}'
           - name: container
             value: '{{workflow.parameters.implementations-131df221fce32e2a7c3852ddbb922b0f610952db284dca3392295b32bb64b5e6}}'
+          - name: task-name
+            value: build-model-car
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: build-model-car-driver
@@ -307,6 +312,8 @@ spec:
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-get-model-files-list"},"dependentTasks":["importer"],"inputs":{"artifacts":{"input_model":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"get-model-files-list"}}'
           - name: container
             value: '{{workflow.parameters.implementations-6731b27a08f2a091a78016072b3844d244a95a9fd699a6f42dabde477cf94d40}}'
+          - name: task-name
+            value: get-model-files-list
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: importer.Succeeded
@@ -358,6 +365,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -392,6 +401,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

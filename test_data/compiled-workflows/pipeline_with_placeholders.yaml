@@ -52,6 +52,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -86,6 +88,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -209,6 +212,8 @@ spec:
               name:"}},"value":{"runtimeValue":{"constant":"{{$.pipeline_job_name}}"}}}},"taskInfo":{"name":"print-op"}}'
           - name: container
             value: '{{workflow.parameters.implementations-bea7c91da877954e9180f9d747d8ec6e277f9fef7404304d8d46dc8462cde47c}}'
+          - name: task-name
+            value: print-op
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op-driver
@@ -232,6 +237,8 @@ spec:
               resource name:"}},"value":{"runtimeValue":{"constant":"{{$.pipeline_job_resource_name}}"}}}},"taskInfo":{"name":"print-op-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-bea7c91da877954e9180f9d747d8ec6e277f9fef7404304d8d46dc8462cde47c}}'
+          - name: task-name
+            value: print-op-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op-2-driver
@@ -255,6 +262,8 @@ spec:
               id:"}},"value":{"runtimeValue":{"constant":"{{$.pipeline_job_uuid}}"}}}},"taskInfo":{"name":"print-op-3"}}'
           - name: container
             value: '{{workflow.parameters.implementations-bea7c91da877954e9180f9d747d8ec6e277f9fef7404304d8d46dc8462cde47c}}'
+          - name: task-name
+            value: print-op-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op-3-driver
@@ -278,6 +287,8 @@ spec:
               name:"}},"value":{"runtimeValue":{"constant":"{{$.pipeline_task_name}}"}}}},"taskInfo":{"name":"print-op-4"}}'
           - name: container
             value: '{{workflow.parameters.implementations-bea7c91da877954e9180f9d747d8ec6e277f9fef7404304d8d46dc8462cde47c}}'
+          - name: task-name
+            value: print-op-4
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op-4-driver
@@ -301,6 +312,8 @@ spec:
               id:"}},"value":{"runtimeValue":{"constant":"{{$.pipeline_task_uuid}}"}}}},"taskInfo":{"name":"print-op-5"}}'
           - name: container
             value: '{{workflow.parameters.implementations-bea7c91da877954e9180f9d747d8ec6e277f9fef7404304d8d46dc8462cde47c}}'
+          - name: task-name
+            value: print-op-5
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op-5-driver
@@ -339,6 +352,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -373,6 +388,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

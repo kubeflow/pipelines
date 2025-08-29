@@ -54,6 +54,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -88,6 +90,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -210,6 +213,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op1-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"print-op1"}}'
           - name: container
             value: '{{workflow.parameters.implementations-49a7b98eaa82c6aa3d7c3b771b3e28115ed08a84f99a772799da35aeba399db6}}'
+          - name: task-name
+            value: print-op1
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op1-driver
@@ -232,6 +237,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op2"},"dependentTasks":["print-op1"],"inputs":{"parameters":{"msg":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"print-op1"}}}},"taskInfo":{"name":"print-op2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-3f2ba2471e2638f8b27a01f4563316e6e3e8c02bae402875e95b5b86e8de1ddc}}'
+          - name: task-name
+            value: print-op2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: print-op1.Succeeded
@@ -271,6 +278,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -305,6 +314,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -336,6 +347,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-inner-pipeline"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"world"}}}},"taskInfo":{"name":"inner-pipeline"}}'
+          - name: task-name
+            value: inner-pipeline
         name: inner-pipeline-driver
         template: system-dag-driver
       - arguments:
@@ -355,6 +368,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op1"},"inputs":{"parameters":{"msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"print-op1"}}'
           - name: container
             value: '{{workflow.parameters.implementations-49a7b98eaa82c6aa3d7c3b771b3e28115ed08a84f99a772799da35aeba399db6}}'
+          - name: task-name
+            value: print-op1
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-op1-driver

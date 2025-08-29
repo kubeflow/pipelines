@@ -97,6 +97,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -131,6 +133,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -253,6 +256,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"double-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-eac334af3cd97aaa38a6512600ea92b21b9b07bc4be8394ced883d6aa2f8901e}}'
+          - name: task-name
+            value: double-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: double-2-driver
@@ -291,6 +296,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -325,6 +332,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -417,6 +426,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
             value: '{{workflow.parameters.implementations-eac334af3cd97aaa38a6512600ea92b21b9b07bc4be8394ced883d6aa2f8901e}}'
+          - name: task-name
+            value: double
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: double-driver
@@ -445,6 +456,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-simple-add"},"dependentTasks":["for-loop-4"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-2-Output","producerTask":"for-loop-4"}}}},"taskInfo":{"name":"simple-add"}}'
           - name: container
             value: '{{workflow.parameters.implementations-39e4787bf388337333de2c98ffba775effb4fd8cafd3be006a4f658b98aa8bb2}}'
+          - name: task-name
+            value: simple-add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: for-loop-4.Succeeded
@@ -476,6 +489,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-nested-add-2"},"inputs":{"parameters":{"nums":{"componentInputParameter":"pipelinechannel--for-loop-2-pipelinechannel--double-2-Output"}}},"taskInfo":{"name":"nested-add-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-5a2bbe8be71f627e90ebcc330ae160f8eafbd8a2bace73d582b36494f88d0626}}'
+          - name: task-name
+            value: nested-add-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: nested-add-2-driver
@@ -498,6 +513,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-simple-add-2"},"inputs":{"parameters":{"nums":{"componentInputParameter":"pipelinechannel--for-loop-2-pipelinechannel--double-Output"}}},"taskInfo":{"name":"simple-add-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-39e4787bf388337333de2c98ffba775effb4fd8cafd3be006a4f658b98aa8bb2}}'
+          - name: task-name
+            value: simple-add-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: simple-add-2-driver
@@ -650,6 +667,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-numbers"},"dependentTasks":["for-loop-6"],"inputs":{"parameters":{"x":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--simple-add-2-Output","producerTask":"for-loop-6"}},"y":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--nested-add-2-Output","producerTask":"for-loop-6"}}}},"taskInfo":{"name":"add-two-numbers"}}'
           - name: container
             value: '{{workflow.parameters.implementations-5fb04c2f46a7cfcf3e0bdfdb115ee12bb9d5ec0c0455c6a231eb1ed6a136e307}}'
+          - name: task-name
+            value: add-two-numbers
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: for-loop-6.Succeeded
@@ -686,6 +705,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-nested-add"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-2-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"nested-add"}}'
           - name: container
             value: '{{workflow.parameters.implementations-5a2bbe8be71f627e90ebcc330ae160f8eafbd8a2bace73d582b36494f88d0626}}'
+          - name: task-name
+            value: nested-add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: for-loop-2.Succeeded

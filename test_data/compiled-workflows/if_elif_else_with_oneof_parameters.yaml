@@ -93,6 +93,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -127,6 +129,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -250,6 +253,8 @@ spec:
               heads!"}}}},"taskInfo":{"name":"print-and-return"}}'
           - name: container
             value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task-name
+            value: print-and-return
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-and-return-driver
@@ -281,6 +286,8 @@ spec:
               tails!"}}}},"taskInfo":{"name":"print-and-return-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task-name
+            value: print-and-return-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: print-and-return-2-driver
@@ -311,6 +318,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-special-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Draw!"}}}},"taskInfo":{"name":"special-print-and-return"}}'
           - name: container
             value: '{{workflow.parameters.implementations-14710b1b9b18d4ef6e7aa084e4b2fb9400188853273013cd36af5ee93fccfa12}}'
+          - name: task-name
+            value: special-print-and-return
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: special-print-and-return-driver
@@ -349,6 +358,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -383,6 +394,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -415,6 +428,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"componentInputParameter":"pipelinechannel--flip-three-sided-die-Output"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
               == ''heads''"}}'
+          - name: task-name
+            value: condition-2
         name: condition-2-driver
         template: system-dag-driver
       - arguments:
@@ -437,6 +452,8 @@ spec:
             value: '{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"componentInputParameter":"pipelinechannel--flip-three-sided-die-Output"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
               == ''heads'') \u0026\u0026 inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
               == ''tails''"}}'
+          - name: task-name
+            value: condition-3
         name: condition-3-driver
         template: system-dag-driver
       - arguments:
@@ -459,6 +476,8 @@ spec:
             value: '{"componentRef":{"name":"comp-condition-4"},"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"componentInputParameter":"pipelinechannel--flip-three-sided-die-Output"}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
               == ''heads'') \u0026\u0026 !(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
               == ''tails'')"}}'
+          - name: task-name
+            value: condition-4
         name: condition-4-driver
         template: system-dag-driver
       - arguments:
@@ -487,6 +506,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"componentRef":{"name":"comp-condition-branches-1"},"dependentTasks":["flip-three-sided-die"],"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-three-sided-die"}}}},"taskInfo":{"name":"condition-branches-1"}}'
+          - name: task-name
+            value: condition-branches-1
         depends: flip-three-sided-die.Succeeded
         name: condition-branches-1-driver
         template: system-dag-driver
@@ -507,6 +528,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-three-sided-die"},"taskInfo":{"name":"flip-three-sided-die"}}'
           - name: container
             value: '{{workflow.parameters.implementations-8f4b82a1870a5c546119675bd6220ebf4d0e8048252e9c36cd77b487db207964}}'
+          - name: task-name
+            value: flip-three-sided-die
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: flip-three-sided-die-driver
@@ -537,6 +560,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-3"},"dependentTasks":["roll-die-pipeline"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"roll-die-pipeline"}}}},"taskInfo":{"name":"print-and-return"}}'
           - name: container
             value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+          - name: task-name
+            value: print-and-return
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: roll-die-pipeline.Succeeded
@@ -560,6 +585,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-roll-die-pipeline"},"taskInfo":{"name":"roll-die-pipeline"}}'
+          - name: task-name
+            value: roll-die-pipeline
         name: roll-die-pipeline-driver
         template: system-dag-driver
       - arguments:

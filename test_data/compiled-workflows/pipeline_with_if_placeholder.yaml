@@ -41,6 +41,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -75,6 +77,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -197,6 +200,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-optional-inputs"},"inputs":{"parameters":{"optional_input_1":{"componentInputParameter":"input1"},"required_input":{"componentInputParameter":"input0"}}},"taskInfo":{"name":"component-with-optional-inputs"}}'
           - name: container
             value: '{{workflow.parameters.implementations-dda2bbb66865190670a6d4e53a02fd0ce79f408bf3a330dcf76777f2ccb4416d}}'
+          - name: task-name
+            value: component-with-optional-inputs
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: component-with-optional-inputs-driver
@@ -235,6 +240,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -269,6 +276,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

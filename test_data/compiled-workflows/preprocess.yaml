@@ -69,6 +69,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -103,6 +105,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -225,6 +228,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-preprocess"},"inputs":{"parameters":{"input_dict_parameter":{"componentInputParameter":"input_dict_parameter"},"input_list_parameter":{"componentInputParameter":"input_list_parameter"},"message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"preprocess"}}'
           - name: container
             value: '{{workflow.parameters.implementations-114550b1dc6922b33b559dceebebe33803b403878f84a0a6782a607f7e175502}}'
+          - name: task-name
+            value: preprocess
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: preprocess-driver
@@ -263,6 +268,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -297,6 +304,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

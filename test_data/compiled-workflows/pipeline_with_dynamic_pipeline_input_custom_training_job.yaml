@@ -86,6 +86,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -120,6 +122,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -242,6 +245,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-training-job"},"inputs":{"parameters":{"display_name":{"runtimeValue":{"constant":"add-numbers"}},"encryption_spec_key_name":{"componentInputParameter":"encryption_spec_key_name"},"location":{"componentInputParameter":"location"},"pipelinechannel--accelerator_count":{"componentInputParameter":"accelerator_count"},"pipelinechannel--accelerator_type":{"componentInputParameter":"accelerator_type"},"pipelinechannel--machine_type":{"componentInputParameter":"machine_type"},"project":{"componentInputParameter":"project"},"worker_pool_specs":{"runtimeValue":{"constant":[{"container_spec":{"args":["foo"],"command":["echo"],"image_uri":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0"},"machine_spec":{"accelerator_count":"{{$.inputs.parameters[''pipelinechannel--accelerator_count'']}}","accelerator_type":"{{$.inputs.parameters[''pipelinechannel--accelerator_type'']}}","machine_type":"{{$.inputs.parameters[''pipelinechannel--machine_type'']}}"},"replica_count":1}]}}}},"taskInfo":{"name":"custom-training-job"}}'
           - name: container
             value: '{{workflow.parameters.implementations-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871}}'
+          - name: task-name
+            value: custom-training-job
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: custom-training-job-driver
@@ -280,6 +285,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -314,6 +321,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

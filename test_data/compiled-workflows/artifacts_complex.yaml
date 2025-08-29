@@ -92,6 +92,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -126,6 +128,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -248,6 +251,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets1"}}},"taskInfo":{"name":"add"}}'
           - name: container
             value: '{{workflow.parameters.implementations-05cc7879dda54acb1442ca0ba39eab566ca8f0cf4a0910c44d00a57a4875003a}}'
+          - name: task-name
+            value: add
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: add-driver
@@ -270,6 +275,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets2"}}},"taskInfo":{"name":"add-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-05cc7879dda54acb1442ca0ba39eab566ca8f0cf4a0910c44d00a57a4875003a}}'
+          - name: task-name
+            value: add-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: add-2-driver
@@ -292,6 +299,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-ints"},"dependentTasks":["add","add-2"],"inputs":{"artifacts":{"in_dataset1":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add"}},"in_dataset2":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add-2"}}}},"taskInfo":{"name":"add-two-ints"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1fa80ad1cc58676a28011c7c46f36b9debfc94b31b570a0c5b461e034a332297}}'
+          - name: task-name
+            value: add-two-ints
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: add.Succeeded && add-2.Succeeded
@@ -323,6 +332,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"double-2"}}'
           - name: container
             value: '{{workflow.parameters.implementations-5129ed0b01511503291d8e98a37a8effe4525e9409af6a839e1fe6208fad86c1}}'
+          - name: task-name
+            value: double-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: double-2-driver
@@ -361,6 +372,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -395,6 +408,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -427,6 +442,8 @@ spec:
           - name: task
             value: '{"componentRef":{"name":"comp-condition-5"},"inputs":{"parameters":{"pipelinechannel--loop-item-param-3":{"componentInputParameter":"pipelinechannel--loop-item-param-3"},"pipelinechannel--threshold":{"componentInputParameter":"pipelinechannel--threshold"}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--loop-item-param-3''])
               \u003e= int(inputs.parameter_values[''pipelinechannel--threshold''])"}}'
+          - name: task-name
+            value: condition-5
         name: condition-5-driver
         template: system-dag-driver
       - arguments:
@@ -516,6 +533,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
             value: '{{workflow.parameters.implementations-5129ed0b01511503291d8e98a37a8effe4525e9409af6a839e1fe6208fad86c1}}'
+          - name: task-name
+            value: double
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: double-driver
@@ -613,6 +632,8 @@ spec:
             value: '{{inputs.parameters.parent-dag-id}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-lists-of-datasets"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"in_datasets1":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-out_dataset","producerTask":"for-loop-2"}},"in_datasets2":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-2-out_dataset","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add-two-lists-of-datasets"}}'
+          - name: task-name
+            value: add-two-lists-of-datasets
         depends: for-loop-2.Succeeded
         name: add-two-lists-of-datasets-driver
         template: system-dag-driver

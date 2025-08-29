@@ -40,6 +40,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -74,6 +76,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -197,6 +200,8 @@ spec:
               prefix:"}}}},"taskInfo":{"name":"component-with-concat-placeholder"}}'
           - name: container
             value: '{{workflow.parameters.implementations-880cc364a5119d2f7bad110b0f7f3ff6d19e329c98e5fa65fbf14f9c7ca72701}}'
+          - name: task-name
+            value: component-with-concat-placeholder
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: component-with-concat-placeholder-driver
@@ -235,6 +240,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -269,6 +276,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"

@@ -67,6 +67,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --container
       - '{{inputs.parameters.container}}'
       - --iteration_index
@@ -101,6 +103,7 @@ spec:
       - name: component
       - name: task
       - name: container
+      - name: task-name
       - name: parent-dag-id
       - default: "-1"
         name: iteration-index
@@ -223,6 +226,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-dataset"},"inputs":{"parameters":{"text":{"componentInputParameter":"pipelinechannel--texts-loop-item"}}},"taskInfo":{"name":"make-dataset"}}'
           - name: container
             value: '{{workflow.parameters.implementations-31e0fd7cd37146a0ca2d733a32698d2bed1b50115e671c3e7ebb80290406237a}}'
+          - name: task-name
+            value: make-dataset
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: make-dataset-driver
@@ -261,6 +266,8 @@ spec:
       - '{{inputs.parameters.component}}'
       - --task
       - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
       - --runtime_config
       - '{{inputs.parameters.runtime-config}}'
       - --iteration_index
@@ -295,6 +302,8 @@ spec:
         name: runtime-config
       - default: ""
         name: task
+      - default: ""
+        name: task-name
       - default: "0"
         name: parent-dag-id
       - default: "-1"
@@ -391,6 +400,8 @@ spec:
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-join-datasets"},"dependentTasks":["for-loop-1"],"inputs":{"artifacts":{"datasets":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--make-dataset-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"join-datasets"}}'
           - name: container
             value: '{{workflow.parameters.implementations-1e5aa4becf0c0bccdf6fa46ca75408d12195c5e26a4bb486410cfbbfd5ebe4e1}}'
+          - name: task-name
+            value: join-datasets
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         depends: for-loop-1.Succeeded
