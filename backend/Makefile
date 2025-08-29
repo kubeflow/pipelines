@@ -129,6 +129,18 @@ dev-kind-cluster:
 	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
 
+.PHONY: dev-kind-cluster-pg
+dev-kind-cluster-pg:
+	-kind create cluster --name $(KIND_NAME) --config $(CURDIR)/../tools/kind/kind-config-pg.yaml
+	kubectl config use-context kind-$(KIND_NAME)
+	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
+	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind-postgresql
+	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/postgres
+	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
+	kubectl config set-context --current --namespace=kubeflow
+
 .PHONY: kind-load-driver-debug
 kind-load-driver-debug:
 	@if [ "${CONTAINER_ENGINE}" = "docker" ]; then \
