@@ -1,0 +1,132 @@
+name: KFP Backend V1 Postgres Tests
+
+on:
+  push:
+    branches:
+      - master
+      - feature/replace-str-with-largetext-WIP # temporarily for Github Actions on for repo
+  pull_request:
+    paths:
+      - "backend/**"
+      - "manifests/kustomize/third-party/postgresql/**"
+      - ".github/workflows/kfp-backend-v1-posgres-tests.yml"
+      - "!**/*.md"
+      - "!**/OWNERS"
+env:
+  NAMESPACE: kubeflow
+  POSTGRES_NAMESPACE: kfp-pgx-test
+  DB_TYPE: postgres
+  DB_DRIVER: pgx
+  DB_HOST: 127.0.0.3
+  DB_PORT: "5432"
+  DB_USER: user
+  DB_PASSWORD: password
+  DB_NAME: mlpipeline
+jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+  postgres-pgx:
+    name: Backend Postgres (pgx via Kustomize+KinD)
+    runs-on: ubuntu-latest
+    needs: build
+    continue-on-error: false
+
+    steps:
+      - name: Checkout target code
+        uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: "v1.30.2"
+          pipeline_store: "database"
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+      - name: Deploy Postgres via Kustomize
+        working-directory: manifests/kustomize/third-party/postgresql
+        run: |
+          kubectl create namespace $POSTGRES_NAMESPACE || true
+          kustomize build ./base | kubectl -n $POSTGRES_NAMESPACE apply -f -
+          kubectl -n $POSTGRES_NAMESPACE rollout status deploy/postgres --timeout=300s
+          kubectl -n $POSTGRES_NAMESPACE get pods -o wide
+      - name: Port-forward Postgres
+        run: |
+          kubectl -n $POSTGRES_NAMESPACE port-forward svc/postgres-service 5432:5432 --address=127.0.0.3 &
+          sleep 20
+
+      - name: Sanity check Postgres connection
+        run: |
+          for i in {1..30}; do
+            if PGPASSWORD=password psql -h 127.0.0.3 -U user -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+              echo "✅ Postgres connection is ready"
+              break
+            fi
+            echo "waiting for Postgres..."
+            sleep 2
+          done
+
+      - name: Bootstrap PG objects
+        run: |
+          echo "Ensuring role 'user' exists..."
+          PGPASSWORD=password psql -h 127.0.0.3 -U user -d postgres -c \
+            "DO \$\$ BEGIN
+              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user') THEN
+                CREATE ROLE \"user\" LOGIN PASSWORD 'password';
+              END IF;
+            END \$\$;"
+          echo "Ensuring database 'mlpipeline' exists..."
+          PGPASSWORD=password psql -h 127.0.0.3 -U user -d postgres -tAc \
+            "SELECT 'CREATE DATABASE mlpipeline OWNER \"user\"'
+             WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname='mlpipeline');" \
+            | PGPASSWORD=password psql -h 127.0.0.3 -U user -d postgres || true
+          echo "✅ Database 'mlpipeline' is ready"
+
+      - name: Wait for API server readiness
+        run: |
+          echo "Waiting for KFP API server (ml-pipeline) to be Ready..."
+          kubectl -n "$NAMESPACE" rollout status deploy/ml-pipeline --timeout=300s
+          kubectl -n "$NAMESPACE" wait --for=condition=available deploy/ml-pipeline --timeout=60s
+          echo "✅ KFP API server (ml-pipeline) is Ready"
+          echo "=== ml-pipeline Logs (last 50 lines) ==="
+          kubectl -n "$NAMESPACE" logs deploy/ml-pipeline --tail=200 || true
+      - name: Port-forward KFP API server
+        run: |
+          kubectl -n "$NAMESPACE" port-forward svc/ml-pipeline 8888:8888 &
+          sleep 20
+          echo "✅ Port-forwarding for ml-pipeline is active."
+
+      - name: Run initialization tests
+        run: |
+          go test -v ./backend/test/initialization/... \
+          -args -namespace="$NAMESPACE" \
+          -runIntegrationTests=true
+
+      - name: Run backend integration tests
+        run: |
+          go test -v ./backend/test/integration/... \
+          -args -namespace="$NAMESPACE" \
+          -runIntegrationTests=true \
+          -runPostgreSQLTests=true \
+          -localTest=true
+
+      - name: Run proto tests
+        run: |
+          go test -v ./backend/test/proto_tests/...
+
+      - name: Cleanup
+        if: always()
+        run: |
+          echo "==== KFP Pods ($NAMESPACE) ===="
+          kubectl -n "$NAMESPACE" get pods -o wide || true
+          echo "==== KFP Events ($NAMESPACE) ===="
+          kubectl -n "$NAMESPACE" get events --sort-by=.lastTimestamp | tail -n 100 || true
+          echo "==== Postgres Pods ($POSTGRES_NAMESPACE) ===="
+          kubectl -n "$POSTGRES_NAMESPACE" get pods -o wide || true
+          echo "==== Postgres Events ($POSTGRES_NAMESPACE) ===="
+          kubectl -n "$POSTGRES_NAMESPACE" get events --sort-by=.lastTimestamp | tail -n 100 || true
