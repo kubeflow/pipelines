@@ -22,6 +22,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -43,8 +44,8 @@ func (r RunMetricSorter) Len() int           { return len(r) }
 func (r RunMetricSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
 func (r RunMetricSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
-func initializeRunStore() (*DB, *RunStore) {
-	db := NewFakeDBOrFatal()
+func initializeRunStore() (*sql.DB, dialect.DBDialect, *RunStore) {
+	db, testDialect := NewFakeDBOrFatal()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
@@ -136,11 +137,11 @@ func initializeRunStore() (*DB, *RunStore) {
 	runStore.CreateMetric(metric1)
 	runStore.CreateMetric(metric2)
 
-	return db, runStore
+	return db, testDialect, runStore
 }
 
 func TestListRuns_Pagination(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedFirstPageRuns := []*model.Run{
@@ -246,7 +247,7 @@ func TestListRuns_Pagination(t *testing.T) {
 }
 
 func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedFirstPageRuns := []*model.Run{
@@ -374,7 +375,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 }
 
 func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
@@ -387,7 +388,7 @@ func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
 }
 
 func TestListRuns_TotalSizeWithFilter(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// Add a filter
@@ -413,7 +414,7 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 }
 
 func TestListRuns_Pagination_Descend(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedFirstPageRuns := []*model.Run{
@@ -521,7 +522,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 }
 
 func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedRuns := []*model.Run{
@@ -617,7 +618,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestListRunsError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
@@ -628,7 +629,7 @@ func TestListRunsError(t *testing.T) {
 }
 
 func TestGetRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedRun := &model.Run{
@@ -674,7 +675,7 @@ func TestGetRun(t *testing.T) {
 }
 
 func TestGetRun_NotFoundError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	_, err := runStore.GetRun("notfound")
@@ -683,7 +684,7 @@ func TestGetRun_NotFoundError(t *testing.T) {
 }
 
 func TestGetRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	_, err := runStore.GetRun("1")
@@ -692,7 +693,7 @@ func TestGetRun_InternalError(t *testing.T) {
 }
 
 func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedRun := &model.Run{
@@ -795,7 +796,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 }
 
 func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
@@ -853,7 +854,7 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 }
 
 func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	run := &model.Run{
@@ -872,7 +873,7 @@ func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
 }
 
 func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	runDetail := &model.Run{
@@ -895,7 +896,7 @@ func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
 }
 
 func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	runDetail := &model.Run{
@@ -928,7 +929,7 @@ func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
 }
 
 func TestUpdateRun_RunNotExist(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.UpdateRun(&model.Run{UUID: "not-exist", RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded}})
@@ -938,7 +939,7 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 }
 
 func TestTerminateRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.TerminateRun("1")
@@ -987,7 +988,7 @@ func TestTerminateRun(t *testing.T) {
 }
 
 func TestTerminateRun_RunDoesNotExist(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.TerminateRun("does-not-exist")
@@ -996,7 +997,7 @@ func TestTerminateRun_RunDoesNotExist(t *testing.T) {
 }
 
 func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.TerminateRun("2")
@@ -1005,7 +1006,7 @@ func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
 }
 
 func TestCreateMetric_Success(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	metric := &model.RunMetric{
@@ -1033,7 +1034,7 @@ func TestCreateMetric_Success(t *testing.T) {
 }
 
 func TestCreateMetric_DupReports_Fail(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	metric1 := &model.RunMetric{
@@ -1058,7 +1059,7 @@ func TestCreateMetric_DupReports_Fail(t *testing.T) {
 }
 
 func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 	sql, args, _ := sq.
 		Insert("run_metrics").
@@ -1078,7 +1079,7 @@ func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
 }
 
 func TestListRuns_WithMetrics(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 	metric1 := &model.RunMetric{
 		RunUUID:     "1",
@@ -1203,7 +1204,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 }
 
 func TestArchiveRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
 	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
@@ -1224,7 +1225,7 @@ func TestArchiveRun(t *testing.T) {
 }
 
 func TestArchiveRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	db.Close()
@@ -1235,7 +1236,7 @@ func TestArchiveRun_InternalError(t *testing.T) {
 }
 
 func TestUnarchiveRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
 	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
@@ -1263,7 +1264,7 @@ func TestUnarchiveRun(t *testing.T) {
 }
 
 func TestUnarchiveRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	db.Close()
@@ -1274,7 +1275,7 @@ func TestUnarchiveRun_InternalError(t *testing.T) {
 }
 
 func TestArchiveRun_IncludedInRunList(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// Archive run
@@ -1335,7 +1336,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 }
 
 func TestDeleteRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
 	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
@@ -1357,7 +1358,7 @@ func TestDeleteRun(t *testing.T) {
 }
 
 func TestDeleteRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	err := runStore.DeleteRun("1")

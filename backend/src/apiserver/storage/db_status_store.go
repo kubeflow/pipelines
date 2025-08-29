@@ -15,6 +15,8 @@
 package storage
 
 import (
+	"database/sql"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
@@ -33,7 +35,7 @@ var dbStatusStoreColumns = []string{
 // Implementation of a DBStatusStoreInterface. This store read/write state of the database.
 // For now we store status like whether sample is loaded.
 type DBStatusStore struct {
-	db      *DB
+	db      *sql.DB
 	dialect dialect.DBDialect
 }
 
@@ -135,7 +137,7 @@ func (s *DBStatusStore) MarkSampleLoaded() error {
 }
 
 // factory function for database status store.
-func NewDBStatusStore(db *DB, d dialect.DBDialect) *DBStatusStore {
+func NewDBStatusStore(db *sql.DB, d dialect.DBDialect) *DBStatusStore {
 	s := &DBStatusStore{db: db, dialect: d}
 	// Initialize database status table
 	s.InitializeDBStatusTable()

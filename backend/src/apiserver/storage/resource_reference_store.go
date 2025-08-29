@@ -36,7 +36,7 @@ type ResourceReferenceStoreInterface interface {
 }
 
 type ResourceReferenceStore struct {
-	db            *DB
+	db            *sql.DB
 	pipelineStore PipelineStoreInterface
 	dialect       dialect.DBDialect
 }
@@ -203,7 +203,7 @@ func (s *ResourceReferenceStore) scanRows(r *sql.Rows) ([]model.ResourceReferenc
 	return references, nil
 }
 
-func NewResourceReferenceStore(db *DB, pipelineStore PipelineStoreInterface, d dialect.DBDialect) *ResourceReferenceStore {
+func NewResourceReferenceStore(db *sql.DB, pipelineStore PipelineStoreInterface, d dialect.DBDialect) *ResourceReferenceStore {
 	// If pipelineStore is specified and it is not nil, it will be used instead of the DB.
 	// This will make pipelines and pipeline versions to get stored in K8s instead of Database.
 	return &ResourceReferenceStore{db: db, pipelineStore: pipelineStore, dialect: d}

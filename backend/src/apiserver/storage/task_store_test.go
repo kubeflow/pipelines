@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"database/sql"
 	"reflect"
 	"testing"
 
@@ -33,8 +34,8 @@ const (
 	defaultFakeTaskIdSix   = "123e4567-e89b-12d3-a456-426655440016"
 )
 
-func initializeTaskStore() (*DB, *TaskStore) {
-	db := NewFakeDBOrFatal()
+func initializeTaskStore() (*sql.DB, *TaskStore) {
+	db, testDialect := NewFakeDBOrFatal()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
 	expStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil)

@@ -21,7 +21,7 @@ import (
 )
 
 func TestInitializeDBStatusTable(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	dBStatusStore := NewDBStatusStore(db, testDialect)
 
@@ -41,7 +41,7 @@ func TestInitializeDBStatusTable(t *testing.T) {
 }
 
 func TestMarkSampleLoaded(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	dBStatusStore := NewDBStatusStore(db, testDialect)
 

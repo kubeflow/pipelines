@@ -15,12 +15,14 @@
 package storage
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -36,8 +38,8 @@ const (
 	defaultFakeExpIdTwo = "123e4567-e89b-12d3-a456-426655440001"
 )
 
-func initializeDbAndStore() (*DB, *JobStore) {
-	db := NewFakeDBOrFatal()
+func initializeDbAndStore() (*sql.DB, dialect.DBDialect, *JobStore) {
+	db, testDialect := NewFakeDBOrFatal()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1", Namespace: "n1"})
 	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
@@ -93,11 +95,11 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		ExperimentId:   defaultFakeExpIdTwo,
 	}
 	jobStore.CreateJob(job2.ToV1())
-	return db, jobStore
+	return db, testDialect, jobStore
 }
 
 func TestListJobs_Pagination(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	jobsExpected := []*model.Job{
@@ -173,7 +175,7 @@ func TestListJobs_Pagination(t *testing.T) {
 }
 
 func TestListJobs_TotalSizeWithNoFilter(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	opts, _ := list.NewOptions(&model.Job{}, 4, "name", nil)
@@ -186,7 +188,7 @@ func TestListJobs_TotalSizeWithNoFilter(t *testing.T) {
 }
 
 func TestListJobs_TotalSizeWithFilter(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	// Add a filter
@@ -212,7 +214,7 @@ func TestListJobs_TotalSizeWithFilter(t *testing.T) {
 }
 
 func TestListJobs_Pagination_Descent(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	jobsExpected := []*model.Job{
@@ -287,7 +289,7 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 }
 
 func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	jobsExpected := []*model.Job{
@@ -351,7 +353,7 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 }
 
 func TestListJobs_FilterByReferenceKey(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	jobsExpected := []*model.Job{
@@ -398,7 +400,7 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 }
 
 func TestListJobsError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	db.Close()
@@ -411,7 +413,7 @@ func TestListJobsError(t *testing.T) {
 }
 
 func TestGetJob(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	jobExpected := &model.Job{
@@ -443,7 +445,7 @@ func TestGetJob(t *testing.T) {
 }
 
 func TestGetJob_NotFoundError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	_, err := jobStore.GetJob("notexist")
@@ -452,7 +454,7 @@ func TestGetJob_NotFoundError(t *testing.T) {
 }
 
 func TestGetJob_InternalError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	db.Close()
@@ -462,7 +464,7 @@ func TestGetJob_InternalError(t *testing.T) {
 }
 
 func TestCreateJob(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	experiment, _ := expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
@@ -517,7 +519,7 @@ func TestCreateJob(t *testing.T) {
 }
 
 func TestCreateJob_V2(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
@@ -574,7 +576,7 @@ func TestCreateJob_V2(t *testing.T) {
 }
 
 func TestCreateJobError(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil, testDialect)
 	db.Close()
@@ -597,7 +599,7 @@ func TestCreateJobError(t *testing.T) {
 }
 
 func TestEnableJob(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	err := jobStore.ChangeJobMode("1", false)
@@ -662,7 +664,7 @@ func TestEnableJob(t *testing.T) {
 }
 
 func TestEnableJob_SkipUpdate(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	err := jobStore.ChangeJobMode("1", true)
@@ -697,7 +699,7 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 }
 
 func TestEnableJob_DatabaseError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	db.Close()
@@ -708,7 +710,7 @@ func TestEnableJob_DatabaseError(t *testing.T) {
 }
 
 func TestUpdateJob_Success(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	jobExpected := &model.Job{
@@ -823,7 +825,7 @@ func TestUpdateJob_Success(t *testing.T) {
 }
 
 func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	jobExpected := &model.Job{
@@ -898,7 +900,7 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 }
 
 func TestUpdateJob_RecordNotFound(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
@@ -916,7 +918,7 @@ func TestUpdateJob_RecordNotFound(t *testing.T) {
 }
 
 func TestUpdateJob_InternalError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	db.Close()
 	swf := util.NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -934,7 +936,7 @@ func TestUpdateJob_InternalError(t *testing.T) {
 }
 
 func TestDeleteJob(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, testDialect, jobStore := initializeDbAndStore()
 	defer db.Close()
 	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
@@ -956,7 +958,7 @@ func TestDeleteJob(t *testing.T) {
 }
 
 func TestDeleteJob_InternalError(t *testing.T) {
-	db, jobStore := initializeDbAndStore()
+	db, _, jobStore := initializeDbAndStore()
 	defer db.Close()
 
 	db.Close()

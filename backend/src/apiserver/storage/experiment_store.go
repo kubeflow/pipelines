@@ -38,7 +38,7 @@ type ExperimentStoreInterface interface {
 }
 
 type ExperimentStore struct {
-	db                     *DB
+	db                     *sql.DB
 	time                   util.TimeInterface
 	uuid                   util.UUIDGeneratorInterface
 	resourceReferenceStore *ResourceReferenceStore
@@ -279,7 +279,7 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		if s.db.IsDuplicateError(err) {
+		if isDuplicateError(s.dialect, err) {
 			return nil, util.NewAlreadyExistError(
 				"Failed to create a new experiment. The name %v already exists. Please specify a new name", experiment.Name)
 		}
@@ -342,47 +342,32 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 			"Failed to create query to archive experiment %s. error: '%v'", expId, err.Error())
 	}
 
-	var updateRunsArgs []interface{}
-	updateRunsArgs = append(updateRunsArgs, model.StorageStateArchived.ToString(), model.RunResourceType, expId, model.ExperimentResourceType)
-	// TODO(gkcalat): deprecate resource_references table once we migrate to v2beta1 and switch to filtering on Run's 'experiment_id' instead.
-	var updateRunsSQL string
+	// Build a subquery to select ResourceUUIDs of runs that belong to the experiment via resource_references.
+	// This works across dialects (Postgres/MySQL/SQLite) and removes the need for the legacy UpdateWithJointOrFrom().
+	subSel, subArgs, err := qb.
+		Select(q("ResourceUUID")).
+		From(q("resource_references")).
+		Where(sq.Eq{
+			q("ResourceType"):  model.RunResourceType,
+			q("ReferenceUUID"): expId,
+			q("ReferenceType"): model.ExperimentResourceType,
+		}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create subquery to archive runs with experiment reference being %s. error: '%v'", expId, err.Error())
+	}
 
-	switch s.dialect.Name() {
-	case "pgx", "sqlite":
-		// Build a subquery to select ResourceUUIDs of runs that belong to the experiment via resource_references.
-		subSel, subArgs, err := qb.
-			Select(q("ResourceUUID")).
-			From(q("resource_references")).
-			Where(sq.Eq{
-				q("ResourceType"):  model.RunResourceType,
-				q("ReferenceUUID"): expId,
-				q("ReferenceType"): model.ExperimentResourceType,
-			}).
-			ToSql()
-		if err != nil {
-			return util.NewInternalServerError(err,
-				"Failed to create subquery to archive runs with experiment reference being %s. error: '%v'", expId, err.Error())
-		}
+	// UPDATE run_details SET StorageState = 'ARCHIVED' WHERE UUID IN (subSel)
+	b := qb.
+		Update(q("run_details")).
+		SetMap(sq.Eq{q("StorageState"): model.StorageStateArchived.ToString()}).
+		Where(sq.Expr(fmt.Sprintf("%s IN (%s)", q("UUID"), subSel), subArgs...))
 
-		// UPDATE run_details SET StorageState = 'ARCHIVED' WHERE UUID IN (subSel)
-		b := qb.
-			Update(q("run_details")).
-			SetMap(sq.Eq{q("StorageState"): model.StorageStateArchived.ToString()}).
-			Where(sq.Expr(fmt.Sprintf("%s IN (%s)", q("UUID"), subSel), subArgs...))
-
-		updateRunsSQL, updateRunsArgs, err = b.ToSql()
-		if err != nil {
-			return util.NewInternalServerError(err,
-				"Failed to create query to archive runs with experiment reference being %s. error: '%v'", expId, err.Error())
-		}
-	default:
-		// Fallback to legacy helper for MySQL (UPDATE ... JOIN ... SET ... WHERE ...)
-		updateRunsSQL = s.db.UpdateWithJointOrFrom(
-			"run_details",
-			"resource_references",
-			"StorageState = ?",
-			"run_details.UUID = resource_references.ResourceUUID",
-			"resource_references.ResourceType = ? AND resource_references.ReferenceUUID = ? AND resource_references.ReferenceType = ?")
+	updateRunsSQL, updateRunsArgs, err := b.ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to archive runs with experiment reference being %s. error: '%v'", expId, err.Error())
 	}
 
 	updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs, err := qb.
@@ -527,7 +512,7 @@ func (s *ExperimentStore) SetLastRunTimestamp(run *model.Run) error {
 }
 
 // factory function for experiment store.
-func NewExperimentStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface, d dialect.DBDialect) *ExperimentStore {
+func NewExperimentStore(db *sql.DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface, d dialect.DBDialect) *ExperimentStore {
 	return &ExperimentStore{
 		db:                     db,
 		time:                   time,
