@@ -17,10 +17,9 @@ package storage
 import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
-
-var defaultDBStatus = sq.Eq{"HaveSamplesLoaded": false}
 
 type DBStatusStoreInterface interface {
 	HaveSamplesLoaded() (bool, error)
@@ -34,16 +33,23 @@ var dbStatusStoreColumns = []string{
 // Implementation of a DBStatusStoreInterface. This store read/write state of the database.
 // For now we store status like whether sample is loaded.
 type DBStatusStore struct {
-	db *DB
+	db      *DB
+	dialect dialect.DBDialect
 }
 
 func (s *DBStatusStore) InitializeDBStatusTable() error {
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
 	tx, err := s.db.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to initialize database status")
 	}
 
-	rows, err := tx.Query("SELECT * FROM db_statuses")
+	sqlSelect, argsSelect, err := qb.Select("*").From(q("db_statuses")).ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to check db_statuses table")
+	}
+	rows, err := tx.Query(sqlSelect, argsSelect...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to load database status")
@@ -57,9 +63,9 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 
 	// The table is not initialized
 	if !next {
-		sql, args, queryErr := sq.
-			Insert("db_statuses").
-			SetMap(defaultDBStatus).
+		sqlInsert, argsInsert, queryErr := qb.
+			Insert(q("db_statuses")).
+			SetMap(sq.Eq{q("HaveSamplesLoaded"): false}).
 			ToSql()
 
 		if queryErr != nil {
@@ -67,7 +73,7 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 			return util.NewInternalServerError(queryErr, "Error creating query to initialize database status table")
 		}
 
-		_, err = tx.Exec(sql, args...)
+		_, err = tx.Exec(sqlInsert, argsInsert...)
 		if err != nil {
 			tx.Rollback()
 			return util.NewInternalServerError(err, "Error initializing the database status table")
@@ -83,7 +89,13 @@ func (s *DBStatusStore) InitializeDBStatusTable() error {
 
 func (s *DBStatusStore) HaveSamplesLoaded() (bool, error) {
 	var haveSamplesLoaded bool
-	sql, args, err := sq.Select(dbStatusStoreColumns...).From("db_statuses").ToSql()
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+	quotedCols := make([]string, len(dbStatusStoreColumns))
+	for i, c := range dbStatusStoreColumns {
+		quotedCols[i] = q(c)
+	}
+	sql, args, err := qb.Select(quotedCols...).From(q("db_statuses")).ToSql()
 	if err != nil {
 		return false, util.NewInternalServerError(err, "Error creating query to get load sample status")
 	}
@@ -106,9 +118,11 @@ func (s *DBStatusStore) HaveSamplesLoaded() (bool, error) {
 }
 
 func (s *DBStatusStore) MarkSampleLoaded() error {
-	sql, args, err := sq.
-		Update("db_statuses").
-		SetMap(sq.Eq{"HaveSamplesLoaded": true}).
+	q := s.dialect.QuoteIdentifier
+	qb := s.dialect.QueryBuilder()
+	sql, args, err := qb.
+		Update(q("db_statuses")).
+		SetMap(sq.Eq{q("HaveSamplesLoaded"): true}).
 		ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err, "Error creating query to mark samples as loaded")
@@ -121,8 +135,8 @@ func (s *DBStatusStore) MarkSampleLoaded() error {
 }
 
 // factory function for database status store.
-func NewDBStatusStore(db *DB) *DBStatusStore {
-	s := &DBStatusStore{db: db}
+func NewDBStatusStore(db *DB, d dialect.DBDialect) *DBStatusStore {
+	s := &DBStatusStore{db: db, dialect: d}
 	// Initialize database status table
 	s.InitializeDBStatusTable()
 	return s
