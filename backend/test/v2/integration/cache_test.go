@@ -129,6 +129,8 @@ func (s *CacheTestSuite) SetupTest() {
 		glog.Exitf("Failed to get recurring run client. Error: %s", err.Error())
 	}
 
+	// Clean up before each test to ensure test isolation.
+	// See comments on s.cleanUp() in run_api_test.go
 	s.cleanUp()
 }
 
@@ -169,18 +171,30 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		}
 
 		if len(allRuns) >= 2 {
-			for _, run := range allRuns {
+			// Only check the first 2 runs, not all runs (recurring run keeps creating new ones)
+			firstTwoSucceeded := true
+			for i := 0; i < 2 && i < len(allRuns); i++ {
+				run := allRuns[i]
 				if *run.State != *run_model.V2beta1RuntimeStateSUCCEEDED.Pointer() {
-					return false
+					firstTwoSucceeded = false
 				}
 			}
-			return true
+			if firstTwoSucceeded {
+				return true
+			}
 		}
 
 		return false
 	}, 4*time.Minute, 5*time.Second)
 
+	// Wait a bit more to ensure the first run's launcher has finished writing cache to database
+	// The run state becomes SUCCEEDED when the user container finishes, but launcher still needs
+	// time to publish results and create cache entry in the database
+	time.Sleep(15 * time.Second)
+
 	state := s.getContainerExecutionState(t, allRuns[1].RunID)
+
+	// The second run should use cache from the first run
 	if *cacheEnabled {
 		require.Equal(t, pb.Execution_CACHED, state)
 	} else {

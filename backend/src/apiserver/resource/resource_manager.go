@@ -1479,7 +1479,24 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			if execStatus.Condition() == exec.ExecutionSucceeded {
 				workflowSuccessCounter.WithLabelValues(execNamespace, execName).Inc()
 			} else {
-				glog.Errorf("pipeline '%s' finished with an error", execName)
+				errorMsg := execStatus.Message()
+				// If workflow-level message is empty, try to get error from failed nodes
+				if errorMsg == "" {
+					if wf, ok := execSpec.(*util.Workflow); ok {
+						for nodeID, node := range wf.Status.Nodes {
+							if node.Phase == "Failed" || node.Phase == "Error" {
+								if node.Message != "" {
+									errorMsg = fmt.Sprintf("Node '%s' failed: %s", nodeID, node.Message)
+									break
+								}
+							}
+						}
+					}
+				}
+				if errorMsg == "" {
+					errorMsg = "(no error message available)"
+				}
+				glog.Errorf("pipeline '%s' finished with an error: %s", execName, errorMsg)
 
 				// also collects counts regarding retries
 				workflowFailedCounter.WithLabelValues(execNamespace, execName).Inc()
