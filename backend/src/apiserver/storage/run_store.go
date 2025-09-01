@@ -119,6 +119,7 @@ func (s *RunStore) ListRuns(
 	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
+	opts.SetQuote(s.dialect.QuoteIdentifier)
 
 	rowsSql, rowsArgs, err := s.buildSelectRunsQuery(false, opts, filterContext)
 	if err != nil {
@@ -281,11 +282,19 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
 		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+q(opts.SortByFieldName))
 	}
-	subQ := qb.
-		Select(columnsAfterJoiningResourceReferences...).
-		FromSelect(filteredSelectBuilder, "rd").
-		LeftJoin(q("resource_references") + " AS rr ON rr." + q("ResourceType") + "='Run' AND rd." + q("UUID") + "=rr." + q("ResourceUUID")).
-		GroupBy("rd." + q("UUID"))
+	subQ := func() sq.SelectBuilder {
+		sb := qb.
+			Select(columnsAfterJoiningResourceReferences...).
+			FromSelect(filteredSelectBuilder, "rd").
+			LeftJoin(q("resource_references") + " AS rr ON rr." + q("ResourceType") + "='Run' AND rd." + q("UUID") + "=rr." + q("ResourceUUID"))
+		// In Postgres, every selected non-aggregated column must appear in GROUP BY.
+		// Group by all rd.* columns that we selected above (and optional sort metric column if present).
+		groupCols := apply(func(column string) string { return "rd." + q(column) }, runColumns)
+		if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
+			groupCols = append(groupCols, "rd."+q(opts.SortByFieldName))
+		}
+		return sb.GroupBy(groupCols...)
+	}()
 	// tasks
 	tasksConcatQuery := s.dialect.ConcatExprs(
 		[]string{
@@ -299,11 +308,19 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
 		columnsAfterJoiningTasks = append(columnsAfterJoiningTasks, "rdref."+q(opts.SortByFieldName))
 	}
-	subQ = qb.
-		Select(columnsAfterJoiningTasks...).
-		FromSelect(subQ, "rdref").
-		LeftJoin(q("tasks") + " AS tasks ON rdref." + q("UUID") + "=tasks." + q("RunUUID")).
-		GroupBy("rdref." + q("UUID"))
+	subQ = func() sq.SelectBuilder {
+		sb := qb.
+			Select(columnsAfterJoiningTasks...).
+			FromSelect(subQ, "rdref").
+			LeftJoin(q("tasks") + " AS tasks ON rdref." + q("UUID") + "=tasks." + q("RunUUID"))
+		// Group by all rdref.* columns we selected (plus refs and optional sort metric column).
+		groupCols := apply(func(column string) string { return "rdref." + q(column) }, runColumns)
+		groupCols = append(groupCols, "rdref."+q("refs"))
+		if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
+			groupCols = append(groupCols, "rdref."+q(opts.SortByFieldName))
+		}
+		return sb.GroupBy(groupCols...)
+	}()
 
 	// metrics
 	metricConcatQuery := s.dialect.ConcatExprs(
@@ -316,11 +333,19 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		"subq."+q("refs"),
 		"subq."+q("taskDetails"),
 		metricConcatQuery+" AS "+q("metrics"))
-	return qb.
-		Select(columnsAfterJoiningRunMetrics...).
-		FromSelect(subQ, "subq").
-		LeftJoin(q("run_metrics") + " AS rm ON subq." + q("UUID") + "=rm." + q("RunUUID")).
-		GroupBy("subq." + q("UUID"))
+	return func() sq.SelectBuilder {
+		// Final grouping: group by all base columns plus refs and taskDetails (both are selected as non-aggregates here).
+		groupCols := apply(func(column string) string { return "subq." + q(column) }, runColumns)
+		groupCols = append(groupCols, "subq."+q("refs"), "subq."+q("taskDetails"))
+		if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
+			groupCols = append(groupCols, "subq."+q(opts.SortByFieldName))
+		}
+		return qb.
+			Select(columnsAfterJoiningRunMetrics...).
+			FromSelect(subQ, "subq").
+			LeftJoin(q("run_metrics") + " AS rm ON subq." + q("UUID") + "=rm." + q("RunUUID")).
+			GroupBy(groupCols...)
+	}()
 }
 
 func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {

@@ -94,12 +94,18 @@ func (t *token) marshal() (string, error) {
 type Options struct {
 	PageSize int
 	*token
+	quoteIdentifier func(string) string
+}
+
+func (o *Options) SetQuote(q func(string) string) {
+	o.quoteIdentifier = q
 }
 
 func EmptyOptions() *Options {
 	return &Options{
 		math.MaxInt32,
 		&token{},
+		func(s string) string { return s },
 	}
 }
 
@@ -191,25 +197,33 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBu
 
 // AddSortingToSelect adds Order By clause.
 func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+	quote := func(s string) string { return s }
+	if o.quoteIdentifier != nil {
+		quote = o.quoteIdentifier
+	}
+
+	sortByFieldNameWithPrefix := o.SortByFieldPrefix + quote(o.SortByFieldName)
+	keyFieldNameWithPrefix := o.KeyFieldPrefix + quote(o.KeyFieldName)
+
 	// When sorting by a direct field in the listable model (i.e., name in Run or uuid in Pipeline), a sortByFieldPrefix can be specified; when sorting by a field in an array-typed dictionary (i.e., a run metric inside the metrics in Run), a sortByFieldPrefix is not needed.
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{
-					sq.Lt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.Lt{sortByFieldNameWithPrefix: o.SortByFieldValue},
 					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.LtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
+						sq.Eq{sortByFieldNameWithPrefix: o.SortByFieldValue},
+						sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
 					},
 				})
 		} else {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{
-					sq.Gt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.Gt{sortByFieldNameWithPrefix: o.SortByFieldValue},
 					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.GtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
+						sq.Eq{sortByFieldNameWithPrefix: o.SortByFieldValue},
+						sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
 					},
 				})
 		}
@@ -221,11 +235,11 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 	}
 
 	if o.SortByFieldName != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortByFieldName, order))
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortByFieldNameWithPrefix, order))
 	}
 
 	if o.KeyFieldName != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.KeyFieldPrefix+o.KeyFieldName, order))
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", keyFieldNameWithPrefix, order))
 	}
 
 	return sqlBuilder
@@ -236,7 +250,7 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 // containing these.
 func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	if o.Filter != nil {
-		sqlBuilder = o.Filter.AddToSelect(sqlBuilder)
+		sqlBuilder = o.Filter.AddToSelect(sqlBuilder, o.quoteIdentifier)
 	}
 
 	return sqlBuilder
