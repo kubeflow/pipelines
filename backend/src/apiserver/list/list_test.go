@@ -629,7 +629,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					Filter:            f,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (SortField > ? OR (SortField = ? AND KeyField >= ?)) AND Name = ? ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  "SELECT * FROM MyTable WHERE (SortField > ? OR (SortField = ? AND KeyField >= ?)) AND (Name = ?) ORDER BY SortField ASC, KeyField ASC LIMIT 124",
 			wantArgs: []interface{}{"value", "value", 1111, "SomeName"},
 		},
 		{
@@ -680,7 +680,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					Filter:            f,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE Name = ? ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  "SELECT * FROM MyTable WHERE (Name = ?) ORDER BY SortField ASC, KeyField ASC LIMIT 124",
 			wantArgs: []interface{}{"SomeName"},
 		},
 	}
@@ -913,7 +913,7 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	sqlBuilder := sq.Select("*").From("run_details")
 	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
 	assert.Nil(t, err)
-	assert.Contains(t, sql, "WHERE Conditions = ?") // filtering on status, aka Conditions in db
+	assert.Contains(t, sql, "WHERE (Conditions = ?)") // filtering on status, aka Conditions in db
 	assert.Contains(t, args, "Succeeded")
 
 	notEqualProtoFilter := &api.Filter{}
@@ -930,6 +930,6 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	sqlBuilder = sq.Select("*").From("run_details")
 	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
 	assert.Nil(t, err)
-	assert.Contains(t, sql, "WHERE Conditions <> ?") // filtering on status, aka Conditions in db
+	assert.Contains(t, sql, "WHERE (Conditions <> ?)") // filtering on status, aka Conditions in db
 	assert.Contains(t, args, "somevalue")
 }

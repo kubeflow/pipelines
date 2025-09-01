@@ -62,6 +62,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 	errorF := func(err error) ([]*model.Experiment, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
+	opts.SetQuote(s.dialect.QuoteIdentifier)
 
 	q := s.dialect.QuoteIdentifier
 	// SQL for getting the filtered and paginated rows
@@ -98,7 +99,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 		glog.Errorf("Failed to start transaction to list jobs")
 		return errorF(err)
 	}
-
+	glog.Infof("ListExperiments SQL=%s ARGS=%v", rowsSql, rowsArgs)
 	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		tx.Rollback()

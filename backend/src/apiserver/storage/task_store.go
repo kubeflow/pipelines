@@ -220,6 +220,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	errorF := func(err error) ([]*model.Task, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list tasks: %v", err)
 	}
+	opts.SetQuote(s.dialect.QuoteIdentifier)
 
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()

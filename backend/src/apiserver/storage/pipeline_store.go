@@ -213,6 +213,7 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 // total_size. The total_size does not reflect the page size. Total_size reflects the number of pipeline_versions (not pipelines).
 // This supports v1beta1 behavior.
 func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
+	opts.SetQuote(s.dialect.QuoteIdentifier)
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
 	subQuery := qb.Select("t1.pvid, t1.pid").FromSelect(
@@ -312,6 +313,7 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 // total_size. The total_size does not reflect the page size.
 // This will not join with `pipeline_versions` table, hence, total_size is the size of pipelines, not pipeline_versions.
 func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
+	opts.SetQuote(s.dialect.QuoteIdentifier)
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
@@ -1008,6 +1010,7 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 
 // Fetches pipeline versions for a specified pipeline id.
 func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Options) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
+	opts.SetQuote(s.dialect.QuoteIdentifier)
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {

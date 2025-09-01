@@ -93,6 +93,7 @@ func (s *JobStore) ListJobs(
 	errorF := func(err error) ([]*model.Job, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
+	opts.SetQuote(s.dialect.QuoteIdentifier)
 
 	rowsSql, rowsArgs, err := s.buildSelectJobsQuery(false, opts, filterContext)
 	if err != nil {
