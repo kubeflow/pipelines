@@ -1,5 +1,7 @@
 ## Upcoming release
 
+* Deprecate AutoML XGBoost trainer.
+
 ## Release 2.21.0
 
 * Add psc_interface_config to v1 GCPC custom job components/utils
