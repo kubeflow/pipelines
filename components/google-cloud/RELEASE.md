@@ -1,6 +1,6 @@
 ## Upcoming release
 
-* Add `autotuning_config` and `cohort` parameters to Dataproc v1 batch components.
+* Deprecate AutoML XGBoost trainer.
 
 ## Release 2.21.0
 
