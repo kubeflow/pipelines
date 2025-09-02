@@ -1,10 +1,9 @@
 ## Upcoming release
 
-* Bump image for Structured Data pipelines.
-
 ## Release 2.21.0
 
 * Add psc_interface_config to v1 GCPC custom job components/utils
+* Bump image for Structured Data pipelines.
 
 ## Release 2.20.1
 
