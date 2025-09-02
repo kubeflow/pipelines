@@ -41,7 +41,7 @@ type RunApiTestSuite struct {
 	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
+	pipelineUploadClient api_server.PipelineUploadInterface
 	runClient            *api_server.RunClient
 }
 
@@ -61,7 +61,6 @@ func (s *RunApiTestSuite) SetupTest() {
 	s.namespace = *namespace
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var newRunClient func() (*api_server.RunClient, error)
 
@@ -70,9 +69,6 @@ func (s *RunApiTestSuite) SetupTest() {
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
 			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
@@ -85,9 +81,6 @@ func (s *RunApiTestSuite) SetupTest() {
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
 			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
@@ -102,7 +95,13 @@ func (s *RunApiTestSuite) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*isDebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
@@ -136,11 +135,11 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world run by specifying pipeline version ID ---------- */
-	createRunRequest := &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -160,7 +159,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest := &experiment_params.ExperimentServiceCreateExperimentParams{
-		Body: test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace),
+		Experiment: test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace),
 	}
 	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
 	assert.Nil(t, err)
@@ -172,7 +171,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
 	assert.Nil(t, err)
 
-	createRunRequest = &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest = &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "argument parameter",
 		Description:  "this is argument parameter",
 		PipelineSpec: pipeline_spec,
@@ -266,7 +265,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
 	// Create a new run
-	createRunRequest.Body.DisplayName = "argument parameter 2"
+	createRunRequest.Run.DisplayName = "argument parameter 2"
 	_, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	// Check total number of runs is 3
@@ -299,7 +298,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, "hello world", runs[0].DisplayName)
-	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, runs[0].StorageState)
+	assert.Equal(t, run_model.V2beta1RunStorageStateARCHIVED, *runs[0].StorageState)
 
 	/* ---------- Upload long-running pipeline YAML ---------- */
 	longRunningPipeline, err := s.pipelineUploadClient.UploadFile("../resources/long-running.yaml", upload_params.NewUploadPipelineParamsWithTimeout(10*time.Second))
@@ -314,7 +313,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new long-running run by specifying pipeline ID ---------- */
-	createLongRunningRunRequest := &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createLongRunningRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "long running",
 		Description:  "this pipeline will run long enough for us to manually terminate it before it finishes",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -344,7 +343,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.
 		RunID:          run.RunID,
 		DisplayName:    "long running",
 		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
-		State:          run_model.V2beta1RuntimeStateCANCELING,
+		State:          run_model.V2beta1RuntimeStateCANCELING.Pointer(),
 		StateHistory:   run.StateHistory,
 		StorageState:   run.StorageState,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),

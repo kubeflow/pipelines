@@ -93,7 +93,7 @@ func (c *PipelineClient) Create(parameters *params.PipelineServiceCreatePipeline
 
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create pipeline. Params: '%v'", parameters),
-			fmt.Sprintf("Failed to create pipeline '%v'", parameters.Body.DisplayName))
+			fmt.Sprintf("Failed to create pipeline '%v'", parameters.Pipeline.DisplayName))
 	}
 
 	return response.Payload, nil

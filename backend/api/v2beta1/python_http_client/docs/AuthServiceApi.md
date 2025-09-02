@@ -46,9 +46,9 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.AuthServiceApi(api_client)
-    namespace = 'namespace_example' # str |  (optional)
-resources = 'UNASSIGNED_RESOURCES' # str |  (optional) (default to 'UNASSIGNED_RESOURCES')
-verb = 'UNASSIGNED_VERB' # str |  (optional) (default to 'UNASSIGNED_VERB')
+    namespace = 'namespace_example' # str | Namespace the resource belongs to. (optional)
+resources = 'UNASSIGNED_RESOURCES' # str | Resource type asking for authorization. (optional) (default to 'UNASSIGNED_RESOURCES')
+verb = 'UNASSIGNED_VERB' # str | Verb on the resource asking for authorization. (optional) (default to 'UNASSIGNED_VERB')
 
     try:
         api_response = api_instance.auth_service_authorize(namespace=namespace, resources=resources, verb=verb)
@@ -61,9 +61,9 @@ verb = 'UNASSIGNED_VERB' # str |  (optional) (default to 'UNASSIGNED_VERB')
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **namespace** | **str**|  | [optional] 
- **resources** | **str**|  | [optional] [default to &#39;UNASSIGNED_RESOURCES&#39;]
- **verb** | **str**|  | [optional] [default to &#39;UNASSIGNED_VERB&#39;]
+ **namespace** | **str**| Namespace the resource belongs to. | [optional] 
+ **resources** | **str**| Resource type asking for authorization. | [optional] [default to &#39;UNASSIGNED_RESOURCES&#39;]
+ **verb** | **str**| Verb on the resource asking for authorization. | [optional] [default to &#39;UNASSIGNED_VERB&#39;]
 
 ### Return type
 

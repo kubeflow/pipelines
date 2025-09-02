@@ -85,8 +85,8 @@ func (c *RecurringRunClient) Create(parameters *params.RecurringRunServiceCreate
 	response, err := c.apiClient.RecurringRunService.RecurringRunServiceCreateRecurringRun(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
-			fmt.Sprintf("Failed to create job '%v'", parameters.Body.DisplayName))
+			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.RecurringRun),
+			fmt.Sprintf("Failed to create job '%v'", parameters.RecurringRun.DisplayName))
 	}
 
 	return response.Payload, nil

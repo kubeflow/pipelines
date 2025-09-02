@@ -14,7 +14,7 @@ jobs:
       PR_SHA: ${{ steps.fetch-pr-sha.outputs.PR_SHA }}
     steps:
       - name: Checkout Main Branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.DEFAULT_BRANCH }}
       - name: Check if the author is a member or Owner
@@ -63,7 +63,7 @@ jobs:
     if: contains(github.event.comment.body, '/ok-to-test')
     steps:
       - name: Checkout Main Branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.DEFAULT_BRANCH }}
       - name: Approve Runs

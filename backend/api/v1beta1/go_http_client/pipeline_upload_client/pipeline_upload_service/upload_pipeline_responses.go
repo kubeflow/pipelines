@@ -6,14 +6,14 @@ package pipeline_upload_service
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	pipeline_upload_model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_model"
 )
 
 // UploadPipelineReader is a Reader for the UploadPipeline structure.
@@ -24,14 +24,12 @@ type UploadPipelineReader struct {
 // ReadResponse reads a server response into the received o.
 func (o *UploadPipelineReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
-
 	case 200:
 		result := NewUploadPipelineOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
 		return result, nil
-
 	default:
 		result := NewUploadPipelineDefault(response.Code())
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -49,7 +47,8 @@ func NewUploadPipelineOK() *UploadPipelineOK {
 	return &UploadPipelineOK{}
 }
 
-/*UploadPipelineOK handles this case with default header values.
+/*
+UploadPipelineOK describes a response with status code 200, with default header values.
 
 UploadPipelineOK upload pipeline o k
 */
@@ -57,8 +56,48 @@ type UploadPipelineOK struct {
 	Payload *pipeline_upload_model.APIPipeline
 }
 
+// IsSuccess returns true when this upload pipeline o k response has a 2xx status code
+func (o *UploadPipelineOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this upload pipeline o k response has a 3xx status code
+func (o *UploadPipelineOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this upload pipeline o k response has a 4xx status code
+func (o *UploadPipelineOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this upload pipeline o k response has a 5xx status code
+func (o *UploadPipelineOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this upload pipeline o k response a status code equal to that given
+func (o *UploadPipelineOK) IsCode(code int) bool {
+	return code == 200
+}
+
+// Code gets the status code for the upload pipeline o k response
+func (o *UploadPipelineOK) Code() int {
+	return 200
+}
+
 func (o *UploadPipelineOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/upload][%d] uploadPipelineOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/upload][%d] uploadPipelineOK %s", 200, payload)
+}
+
+func (o *UploadPipelineOK) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/upload][%d] uploadPipelineOK %s", 200, payload)
+}
+
+func (o *UploadPipelineOK) GetPayload() *pipeline_upload_model.APIPipeline {
+	return o.Payload
 }
 
 func (o *UploadPipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -80,7 +119,8 @@ func NewUploadPipelineDefault(code int) *UploadPipelineDefault {
 	}
 }
 
-/*UploadPipelineDefault handles this case with default header values.
+/*
+UploadPipelineDefault describes a response with status code -1, with default header values.
 
 UploadPipelineDefault upload pipeline default
 */
@@ -90,13 +130,48 @@ type UploadPipelineDefault struct {
 	Payload *pipeline_upload_model.APIStatus
 }
 
+// IsSuccess returns true when this upload pipeline default response has a 2xx status code
+func (o *UploadPipelineDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this upload pipeline default response has a 3xx status code
+func (o *UploadPipelineDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this upload pipeline default response has a 4xx status code
+func (o *UploadPipelineDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this upload pipeline default response has a 5xx status code
+func (o *UploadPipelineDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this upload pipeline default response a status code equal to that given
+func (o *UploadPipelineDefault) IsCode(code int) bool {
+	return o._statusCode == code
+}
+
 // Code gets the status code for the upload pipeline default response
 func (o *UploadPipelineDefault) Code() int {
 	return o._statusCode
 }
 
 func (o *UploadPipelineDefault) Error() string {
-	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/upload][%d] UploadPipeline default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/upload][%d] UploadPipeline default %s", o._statusCode, payload)
+}
+
+func (o *UploadPipelineDefault) String() string {
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /apis/v1beta1/pipelines/upload][%d] UploadPipeline default %s", o._statusCode, payload)
+}
+
+func (o *UploadPipelineDefault) GetPayload() *pipeline_upload_model.APIStatus {
+	return o.Payload
 }
 
 func (o *UploadPipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

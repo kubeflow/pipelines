@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for pipeline_orchestrator.py."""
-
+import functools
 import io as stdlib_io
 import os
 from typing import NamedTuple
@@ -27,8 +27,28 @@ from kfp.dsl import Model
 from kfp.dsl import Output
 from kfp.dsl import pipeline_task
 from kfp.local import testing_utilities
+import pytest
 
 ROOT_FOR_TESTING = './testing_root'
+
+
+@pytest.fixture(autouse=True)
+def set_packages_for_test_classes(monkeypatch, request):
+    if request.cls.__name__ in {
+            'TestRunLocalPipeline',
+            'TestFstringContainerComponent',
+    }:
+        root_dir = os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+        kfp_pipeline_spec_path = os.path.join(root_dir, 'api', 'v2alpha1',
+                                              'python')
+        original_dsl_component = dsl.component
+        monkeypatch.setattr(
+            dsl, 'component',
+            functools.partial(
+                original_dsl_component,
+                packages_to_install=[kfp_pipeline_spec_path]))
 
 
 class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
@@ -76,7 +96,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
     def test_no_io(self):
         local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
 
-        @dsl.component
+        @dsl.component()
         def pass_op():
             pass
 
@@ -656,6 +676,47 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
 
         task = my_pipeline()
         self.assertEqual(task.output, 'foo-bar-baz')
+
+    def test_workspace_functionality(self):
+        import tempfile
+
+        # Create temporary directory for workspace
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_root = os.path.join(temp_dir, 'workspace')
+            os.makedirs(workspace_root, exist_ok=True)
+
+            local.init(
+                local.SubprocessRunner(),
+                pipeline_root=ROOT_FOR_TESTING,
+                workspace_root=workspace_root)
+
+            @dsl.component
+            def write_to_workspace(text: str, workspace_path: str) -> str:
+                import os
+                output_file = os.path.join(workspace_path, 'output.txt')
+                with open(output_file, 'w') as f:
+                    f.write(text)
+                return output_file
+
+            @dsl.component
+            def read_from_workspace(file_path: str) -> str:
+                with open(file_path, 'r') as f:
+                    return f.read()
+
+            @dsl.pipeline
+            def my_pipeline(text: str = 'Hello workspace!') -> str:
+                # Write to workspace
+                write_task = write_to_workspace(
+                    text=text, workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+
+                # Read from workspace
+                read_task = read_from_workspace(file_path=write_task.output)
+
+                return read_task.output
+
+            task = my_pipeline(text='Test workspace functionality!')
+            self.assertEqual(task.output, 'Test workspace functionality!')
+            self.assert_output_dir_contents(1, 2)
 
 
 class TestFstringContainerComponent(

@@ -57,9 +57,9 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
                     code = 56, 
                     message = '0', 
                     details = [
-                        kfp_server_api.models.protobuf_any.protobufAny(
-                            type_url = '0', 
-                            value = 'YQ==', )
+                        {
+                            'key' : None
+                            }
                         ], ), 
                 inputs = {
                     'key' : kfp_server_api.models.v2beta1_artifact_list.v2beta1ArtifactList(
@@ -82,9 +82,9 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
                             code = 56, 
                             message = '0', 
                             details = [
-                                kfp_server_api.models.protobuf_any.protobufAny(
-                                    type_url = '0', 
-                                    value = 'YQ==', )
+                                {
+                                    'key' : None
+                                    }
                                 ], ), )
                     ], 
                 pod_name = '0', 

@@ -37,7 +37,7 @@ type ProxyTestSuite struct {
 	resourceNamespace    string
 	experimentClient     *apiserver.ExperimentClient
 	pipelineClient       *apiserver.PipelineClient
-	pipelineUploadClient *apiserver.PipelineUploadClient
+	pipelineUploadClient apiserver.PipelineUploadInterface
 	runClient            *apiserver.RunClient
 }
 
@@ -56,7 +56,6 @@ func (s *ProxyTestSuite) SetupTest() {
 	s.namespace = *namespace
 
 	var newExperimentClient func() (*apiserver.ExperimentClient, error)
-	var newPipelineUploadClient func() (*apiserver.PipelineUploadClient, error)
 	var newPipelineClient func() (*apiserver.PipelineClient, error)
 	var newRunClient func() (*apiserver.RunClient, error)
 
@@ -65,9 +64,6 @@ func (s *ProxyTestSuite) SetupTest() {
 
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
 			return apiserver.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
-			return apiserver.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
 		}
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
@@ -80,9 +76,6 @@ func (s *ProxyTestSuite) SetupTest() {
 
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
 			return apiserver.NewExperimentClient(clientConfig, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*apiserver.PipelineUploadClient, error) {
-			return apiserver.NewPipelineUploadClient(clientConfig, *isDebugMode)
 		}
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewPipelineClient(clientConfig, *isDebugMode)
@@ -97,7 +90,13 @@ func (s *ProxyTestSuite) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*isDebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
@@ -131,11 +130,11 @@ func (s *ProxyTestSuite) TestEnvVar() {
 
 	/* ---------- Create a new env var experiment ---------- */
 	experiment := test.MakeExperiment("env var experiment", "", s.resourceNamespace)
-	envVarExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentParams{Body: experiment})
+	envVarExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	require.Nil(t, err)
 
 	/* ---------- Create a new env var run by specifying pipeline version ID ---------- */
-	createRunRequest := &runparams.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &runparams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "env var",
 		Description:  "this is env var",
 		ExperimentID: envVarExperiment.ExperimentID,
@@ -159,8 +158,8 @@ func (s *ProxyTestSuite) TestEnvVar() {
 
 	assert.Eventually(t, func() bool {
 		envVarRunDetail, err = s.runClient.Get(&runparams.RunServiceGetRunParams{RunID: envVarRunDetail.RunID})
-		t.Logf("Pipeline state: %v", envVarRunDetail.State)
-		return err == nil && envVarRunDetail.State == expectedState
+		t.Logf("Pipeline state: %v", *envVarRunDetail.State)
+		return err == nil && *envVarRunDetail.State == expectedState
 	}, 2*time.Minute, 10*time.Second)
 }
 

@@ -1,0 +1,113 @@
+{
+  "pipeline_info":  {
+    "name":  "sample-pipeline",
+    "display_name":  "",
+    "description":  "Sample pipeline for testing"
+  },
+  "deployment_spec":  {},
+  "sdk_version":  "",
+  "schema_version":  "",
+  "components":  {
+    "comp-1":  {
+      "input_definitions":  {
+        "artifacts":  {},
+        "parameters":  {
+          "param1":  {
+            "type":  "PRIMITIVE_TYPE_UNSPECIFIED",
+            "parameter_type":  "STRING",
+            "default_value":  null,
+            "is_optional":  false,
+            "description":  ""
+          }
+        }
+      },
+      "output_definitions":  {
+        "artifacts":  {},
+        "parameters":  {
+          "output1":  {
+            "type":  "PRIMITIVE_TYPE_UNSPECIFIED",
+            "parameter_type":  "STRING",
+            "description":  ""
+          }
+        }
+      },
+      "dag":  {
+        "tasks":  {
+          "task1":  {
+            "task_info":  {
+              "name":  "task1"
+            },
+            "inputs":  {
+              "parameters":  {
+                "param1":  {
+                  "component_input_parameter":  "param1",
+                  "parameter_expression_selector":  ""
+                }
+              },
+              "artifacts":  {}
+            },
+            "dependent_tasks":  [],
+            "caching_options":  null,
+            "component_ref":  {
+              "name":  "comp-1"
+            },
+            "trigger_policy":  null,
+            "retry_policy":  null,
+            "iterator_policy":  null
+          }
+        },
+        "outputs":  {
+          "artifacts":  {},
+          "parameters":  {
+            "output1":  {
+              "value_from_parameter":  {
+                "producer_subtask":  "foo",
+                "output_parameter_key":  "bar"
+              }
+            }
+          }
+        }
+      },
+      "single_platform_specs":  []
+    }
+  },
+  "root":  {
+    "input_definitions":  {
+      "artifacts":  {},
+      "parameters":  {
+        "input1":  {
+          "type":  "PRIMITIVE_TYPE_UNSPECIFIED",
+          "parameter_type":  "STRING",
+          "default_value":  "foo",
+          "is_optional":  false,
+          "description":  ""
+        },
+        "input2":  {
+          "type":  "PRIMITIVE_TYPE_UNSPECIFIED",
+          "parameter_type":  "STRING",
+          "default_value":  null,
+          "is_optional":  false,
+          "description":  ""
+        }
+      }
+    },
+    "output_definitions":  {
+      "artifacts":  {},
+      "parameters":  {
+        "output1":  {
+          "type":  "PRIMITIVE_TYPE_UNSPECIFIED",
+          "parameter_type":  "STRING",
+          "description":  ""
+        },
+        "output2":  {
+          "type":  "PRIMITIVE_TYPE_UNSPECIFIED",
+          "parameter_type":  "NUMBER_INTEGER",
+          "description":  ""
+        }
+      }
+    },
+    "executor_label":  "root-executor",
+    "single_platform_specs":  []
+  },
+  "default_pipeline_root":  ""
+}

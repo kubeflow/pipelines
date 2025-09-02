@@ -13,63 +13,78 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
-
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 )
 
-// NewRunServiceUnarchiveRunV1Params creates a new RunServiceUnarchiveRunV1Params object
-// with the default values initialized.
+// NewRunServiceUnarchiveRunV1Params creates a new RunServiceUnarchiveRunV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRunServiceUnarchiveRunV1Params() *RunServiceUnarchiveRunV1Params {
-	var ()
 	return &RunServiceUnarchiveRunV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRunServiceUnarchiveRunV1ParamsWithTimeout creates a new RunServiceUnarchiveRunV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRunServiceUnarchiveRunV1ParamsWithTimeout(timeout time.Duration) *RunServiceUnarchiveRunV1Params {
-	var ()
 	return &RunServiceUnarchiveRunV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewRunServiceUnarchiveRunV1ParamsWithContext creates a new RunServiceUnarchiveRunV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRunServiceUnarchiveRunV1ParamsWithContext(ctx context.Context) *RunServiceUnarchiveRunV1Params {
-	var ()
 	return &RunServiceUnarchiveRunV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewRunServiceUnarchiveRunV1ParamsWithHTTPClient creates a new RunServiceUnarchiveRunV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRunServiceUnarchiveRunV1ParamsWithHTTPClient(client *http.Client) *RunServiceUnarchiveRunV1Params {
-	var ()
 	return &RunServiceUnarchiveRunV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*RunServiceUnarchiveRunV1Params contains all the parameters to send to the API endpoint
-for the run service unarchive run v1 operation typically these are written to a http.Request
+/*
+RunServiceUnarchiveRunV1Params contains all the parameters to send to the API endpoint
+
+	for the run service unarchive run v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type RunServiceUnarchiveRunV1Params struct {
 
-	/*ID
-	  The ID of the run to be restored.
+	/* ID.
 
+	   The ID of the run to be restored.
 	*/
 	ID string
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the run service unarchive run v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceUnarchiveRunV1Params) WithDefaults() *RunServiceUnarchiveRunV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the run service unarchive run v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceUnarchiveRunV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the run service unarchive run v1 params

@@ -31,6 +31,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // This test suit tests various methods to import pipeline to pipeline system, including
@@ -122,7 +123,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineV1Params{
-		Body: &model.APIPipeline{Name: "sequential", URL: &model.APIURL{
+		Pipeline: &model.APIPipeline{Name: "sequential", URL: &model.APIURL{
 			PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
 		}},
 	})
@@ -145,7 +146,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineV1Params{
-		Body: &model.APIPipeline{
+		Pipeline: &model.APIPipeline{
 			URL: &model.APIURL{
 				PipelineURL: pipelineURL,
 			},
@@ -243,14 +244,20 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, _ := pipelinetemplate.New(bytes, true)
+	defaultPVC := &corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteMany,
+		},
+		StorageClassName: util.StringPointer("my-storage"),
+	}
+	expected, _ := pipelinetemplate.New(bytes, true, defaultPVC)
 	assert.Equal(t, expected, template)
 
 	template, err = s.pipelineClient.GetTemplate(&params.PipelineServiceGetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
 	bytes, err = os.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, _ = pipelinetemplate.New(bytes, true)
+	expected, _ = pipelinetemplate.New(bytes, true, nil)
 	assert.Equal(t, expected, template)
 }
 
@@ -274,8 +281,8 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 				{Name: "param2"},
 			},
 			ResourceReferences: []*model.APIResourceReference{{
-				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE},
-				Relationship: model.APIRelationshipOWNER,
+				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE.Pointer()},
+				Relationship: model.APIRelationshipOWNER.Pointer(),
 			}},
 		},
 	}

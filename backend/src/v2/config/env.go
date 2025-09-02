@@ -166,7 +166,7 @@ func getDefaultMinioSessionInfo() (objectstore.SessionInfo, error) {
 		Provider: "minio",
 		Params: map[string]string{
 			"region":     "minio",
-			"endpoint":   objectstore.MinioDefaultEndpoint(),
+			"endpoint":   objectstore.DefaultMinioEndpointInMultiUserMode,
 			"disableSSL": strconv.FormatBool(true),
 			"fromEnv":    strconv.FormatBool(false),
 			"secretName": minioArtifactSecretName,

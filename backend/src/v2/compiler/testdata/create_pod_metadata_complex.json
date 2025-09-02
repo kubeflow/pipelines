@@ -1,0 +1,293 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-validate-no-pod-metadata": {
+        "executorLabel": "exec-validate-no-pod-metadata",
+        "inputDefinitions": {
+          "parameters": {
+            "annotation_path": {
+              "parameterType": "STRING"
+            },
+            "label_path": {
+              "parameterType": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "parameterType": "BOOLEAN"
+            }
+          }
+        }
+      },
+      "comp-validate-pod-metadata": {
+        "executorLabel": "exec-validate-pod-metadata",
+        "inputDefinitions": {
+          "parameters": {
+            "annotation_exp_val_1": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "annotation_exp_val_2": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "annotation_path_1": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "annotation_path_2": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "label_exp_val_1": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "label_exp_val_2": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "label_path_1": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "label_path_2": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "parameterType": "BOOLEAN"
+            }
+          }
+        }
+      },
+      "comp-validate-pod-metadata-2": {
+        "executorLabel": "exec-validate-pod-metadata-2",
+        "inputDefinitions": {
+          "parameters": {
+            "annotation_exp_val_1": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "annotation_exp_val_2": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "annotation_path_1": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "annotation_path_2": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "label_exp_val_1": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "label_exp_val_2": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "label_path_1": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            },
+            "label_path_2": {
+              "isOptional": true,
+              "parameterType": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "parameterType": "BOOLEAN"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-validate-no-pod-metadata": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "validate_no_pod_metadata"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef validate_no_pod_metadata(annotation_path: str, label_path: str) -> bool:\n    import os\n    annotation = os.getenv(annotation_path)\n    if annotation != \"\":\n        raise ValueError(\n            f\"Pod annotation is {annotation} but is supposed to be None.\"\n        )\n    label = os.getenv(label_path)\n    if label != \"\":\n        raise ValueError(\n            f\"Pod label is {label} but is supposed to be None.\"\n        )\n    return True\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        },
+        "exec-validate-pod-metadata": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "validate_pod_metadata"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef validate_pod_metadata(annotation_path_1: str = None,\n                          annotation_exp_val_1: str = None,\n                          annotation_path_2: str = None,\n                          annotation_exp_val_2: str = None,\n                          label_path_1: str = None,\n                          label_exp_val_1: str = None,\n                          label_path_2: str = None,\n                          label_exp_val_2: str = None) -> bool:\n    import os\n\n    validated_metadata_count = 0\n    if annotation_path_1 is not None:\n        annotation_val_1 = os.getenv(annotation_path_1)\n        if annotation_val_1 is not None and annotation_val_1 != annotation_exp_val_1:\n            raise ValueError(\n                f\"Pod annotation is {annotation_val_1} but is supposed to be {annotation_exp_val_1}.\"\n            )\n        validated_metadata_count+=1\n    if annotation_path_2 is not None:\n        annotation_val_2 = os.getenv(annotation_path_2)\n        if annotation_val_2 is not None and annotation_val_2 != annotation_exp_val_2:\n            raise ValueError(\n                f\"Pod annotation is {annotation_val_2} but is supposed to be {annotation_exp_val_2}.\"\n            )\n        validated_metadata_count+=1\n    if label_path_1 is not None:\n        label_val_1 = os.getenv(label_path_1)\n        if label_val_1 is not None and label_val_1 != label_exp_val_1:\n            raise ValueError(\n                f\"Pod label is {label_val_1} but is supposed to be {label_exp_val_1}.\"\n            )\n        validated_metadata_count+=1\n    if label_path_2 is not None:\n        label_val_2 = os.getenv(label_path_2)\n        if label_val_2 is not None and label_val_2 != label_exp_val_2:\n            raise ValueError(\n                f\"Pod label is {label_val_2} but is supposed to be {label_exp_val_2}.\"\n            )\n        validated_metadata_count+=1\n    if validated_metadata_count <1:\n        raise RuntimeError(f\"No pod metadata found to validate.\")\n    return True\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        },
+        "exec-validate-pod-metadata-2": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "validate_pod_metadata"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef validate_pod_metadata(annotation_path_1: str = None,\n                          annotation_exp_val_1: str = None,\n                          annotation_path_2: str = None,\n                          annotation_exp_val_2: str = None,\n                          label_path_1: str = None,\n                          label_exp_val_1: str = None,\n                          label_path_2: str = None,\n                          label_exp_val_2: str = None) -> bool:\n    import os\n\n    validated_metadata_count = 0\n    if annotation_path_1 is not None:\n        annotation_val_1 = os.getenv(annotation_path_1)\n        if annotation_val_1 is not None and annotation_val_1 != annotation_exp_val_1:\n            raise ValueError(\n                f\"Pod annotation is {annotation_val_1} but is supposed to be {annotation_exp_val_1}.\"\n            )\n        validated_metadata_count+=1\n    if annotation_path_2 is not None:\n        annotation_val_2 = os.getenv(annotation_path_2)\n        if annotation_val_2 is not None and annotation_val_2 != annotation_exp_val_2:\n            raise ValueError(\n                f\"Pod annotation is {annotation_val_2} but is supposed to be {annotation_exp_val_2}.\"\n            )\n        validated_metadata_count+=1\n    if label_path_1 is not None:\n        label_val_1 = os.getenv(label_path_1)\n        if label_val_1 is not None and label_val_1 != label_exp_val_1:\n            raise ValueError(\n                f\"Pod label is {label_val_1} but is supposed to be {label_exp_val_1}.\"\n            )\n        validated_metadata_count+=1\n    if label_path_2 is not None:\n        label_val_2 = os.getenv(label_path_2)\n        if label_val_2 is not None and label_val_2 != label_exp_val_2:\n            raise ValueError(\n                f\"Pod label is {label_val_2} but is supposed to be {label_exp_val_2}.\"\n            )\n        validated_metadata_count+=1\n    if validated_metadata_count <1:\n        raise RuntimeError(f\"No pod metadata found to validate.\")\n    return True\n\n"
+            ],
+            "image": "python:3.9"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "pipeline-with-pod-metadata"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "validate-no-pod-metadata": {
+            "cachingOptions": {},
+            "componentRef": {
+              "name": "comp-validate-no-pod-metadata"
+            },
+            "inputs": {
+              "parameters": {
+                "annotation_path": {
+                  "runtimeValue": {
+                    "constant": "POD_TASK_ANNOTATION"
+                  }
+                },
+                "label_path": {
+                  "runtimeValue": {
+                    "constant": "POD_TASK_LABEL"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "validate-no-pod-metadata"
+            }
+          },
+          "validate-pod-metadata": {
+            "cachingOptions": {},
+            "componentRef": {
+              "name": "comp-validate-pod-metadata"
+            },
+            "inputs": {
+              "parameters": {
+                "annotation_exp_val_1": {
+                  "runtimeValue": {
+                    "constant": "annotation"
+                  }
+                },
+                "annotation_path_1": {
+                  "runtimeValue": {
+                    "constant": "POD_TASK_ANNOTATION"
+                  }
+                },
+                "label_exp_val_1": {
+                  "runtimeValue": {
+                    "constant": "label-1"
+                  }
+                },
+                "label_exp_val_2": {
+                  "runtimeValue": {
+                    "constant": "label-2"
+                  }
+                },
+                "label_path_1": {
+                  "runtimeValue": {
+                    "constant": "POD_TASK_LABEL_1"
+                  }
+                },
+                "label_path_2": {
+                  "runtimeValue": {
+                    "constant": "POD_TASK_LABEL_2"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "validate-pod-metadata"
+            }
+          },
+          "validate-pod-metadata-2": {
+            "cachingOptions": {},
+            "componentRef": {
+              "name": "comp-validate-pod-metadata-2"
+            },
+            "inputs": {
+              "parameters": {
+                "annotation_exp_val_1": {
+                  "runtimeValue": {
+                    "constant": "annotation-1"
+                  }
+                },
+                "annotation_exp_val_2": {
+                  "runtimeValue": {
+                    "constant": "annotation-2"
+                  }
+                },
+                "annotation_path_1": {
+                  "runtimeValue": {
+                    "constant": "POD_TASK_ANNOTATION_1"
+                  }
+                },
+                "annotation_path_2": {
+                  "runtimeValue": {
+                    "constant": "POD_TASK_ANNOTATION_2"
+                  }
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "validate-pod-metadata-2"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.1.0",
+    "sdkVersion": "kfp-2.13.0"
+  }
+}
+

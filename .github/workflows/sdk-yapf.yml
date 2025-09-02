@@ -6,6 +6,7 @@ on:
 
   pull_request:
     paths:
+      - 'api/**'
       - 'sdk/python/**'
       - 'test/presubmit-yapf-sdk.sh'
       - '.github/workflows/sdk-yapf.yml'
@@ -18,7 +19,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v5
 
     - name: Set up Python
       uses: actions/setup-python@v4

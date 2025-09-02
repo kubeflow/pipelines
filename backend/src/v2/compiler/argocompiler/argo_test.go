@@ -74,6 +74,11 @@ func Test_argo_compiler(t *testing.T) {
 			argoYAMLPath:     "testdata/create_pod_metadata.yaml",
 		},
 		{
+			jobPath:          "../testdata/create_pod_metadata_complex.json",
+			platformSpecPath: "../testdata/create_pod_metadata_complex_platform.json",
+			argoYAMLPath:     "testdata/create_pod_metadata_complex.yaml",
+		},
+		{
 			jobPath:          "../testdata/exit_handler.json",
 			platformSpecPath: "",
 			argoYAMLPath:     "testdata/exit_handler.yaml",
@@ -100,6 +105,11 @@ func Test_argo_compiler(t *testing.T) {
 			platformSpecPath: "",
 			argoYAMLPath:     "testdata/hello_world_cache_disabled.yaml",
 			compilerOptions:  argocompiler.Options{CacheDisabled: true},
+		},
+		{
+			jobPath:          "../testdata/hello_world.json",
+			platformSpecPath: "../testdata/hello_world_pvc_workspace.json",
+			argoYAMLPath:     "testdata/hello_world_pvc_workspace.yaml",
 		},
 		// retry set at pipeline level only.
 		{

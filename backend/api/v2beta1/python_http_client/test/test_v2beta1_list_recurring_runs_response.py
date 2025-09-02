@@ -70,9 +70,9 @@ class TestV2beta1ListRecurringRunsResponse(unittest.TestCase):
                             code = 56, 
                             message = '0', 
                             details = [
-                                kfp_server_api.models.protobuf_any.protobufAny(
-                                    type_url = '0', 
-                                    value = 'YQ==', )
+                                {
+                                    'key' : None
+                                    }
                                 ], ), 
                         no_catchup = True, 
                         namespace = '0', 

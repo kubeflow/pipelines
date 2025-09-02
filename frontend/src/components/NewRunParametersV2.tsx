@@ -242,7 +242,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       <div className={commonCss.header}>Pipeline Root</div>
       <div>
         Pipeline Root represents an artifact repository, refer to{' '}
-        <ExternalLink href='https://www.kubeflow.org/docs/components/pipelines/overview/pipeline-root/'>
+        <ExternalLink href='https://www.kubeflow.org/docs/components/pipelines/concepts/pipeline-root/'>
           Pipeline Root Documentation
         </ExternalLink>
         .

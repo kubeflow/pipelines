@@ -18,7 +18,7 @@ from typing import List, NamedTuple
 from kfp import dsl
 
 
-@dsl.component
+@dsl.component(base_image='python:3.9')
 def set_dataprep_args(
     model_blocks: List[str],
     ts_identifier_columns: List[str],

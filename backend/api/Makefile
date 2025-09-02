@@ -15,14 +15,14 @@
 # Makefile to generate KFP api clients from proto.
 
 IMAGE_TAG=kfp-api-generator
-# Contact chensun or zijianjoy if this remote image needs an update.
+# Contact chensun or HumairAK if this remote image needs an update.
 REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator
 # Assume the latest API version by default.
 API_VERSION ?= v2beta1
 
 # Keep in sync with the version used in test/release/Dockerfile.release
-PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:1.1
-
+PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:1.2
+RELEASE_IMAGE=ghcr.io/kubeflow/kfp-release:1.2.1
 CONTAINER_ENGINE ?= docker
 
 # Generate clients using a pre-built api-generator image.
@@ -34,11 +34,21 @@ generate: fetch-dependencies hack/generator.sh $(API_VERSION)/*.proto
 		--mount type=bind,source="$$(pwd)/../..",target=/go/src/github.com/kubeflow/pipelines \
 		$(PREBUILT_REMOTE_IMAGE) /go/src/github.com/kubeflow/pipelines/backend/api/hack/generator.sh
 
+# Use the release image since it has some additional dependencies
+# required by kfp-pipeline-ser generation
+.PHONY: generate-kfp-server-api-package
+generate-kfp-server-api-package:
+	${CONTAINER_ENGINE} run --interactive --rm \
+		-e API_VERSION=$(API_VERSION) \
+		--user $$(id -u):$$(id -g) \
+		--mount type=bind,source="$$(pwd)/../..",target=/go/src/github.com/kubeflow/pipelines \
+		$(RELEASE_IMAGE) /go/src/github.com/kubeflow/pipelines/backend/api/build_kfp_server_api_python_package.sh
+
+
 # Fetch dependency proto
 .PHONY: fetch-dependencies
 fetch-dependencies: v2beta1/google/rpc/status.proto
 
-# TODO(gkcalat): add this as a submodule?
 v2beta1/google/rpc/status.proto:
 	mkdir -p v2beta1/google/rpc
 	wget -O v2beta1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto

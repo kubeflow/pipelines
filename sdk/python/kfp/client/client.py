@@ -475,7 +475,7 @@ class Client:
                 namespace=namespace,
             )
             experiment = self._experiment_api.experiment_service_create_experiment(
-                body=experiment)
+                experiment=experiment)
 
         link = f'{self._get_url_prefix()}/#/experiments/details/{experiment.experiment_id}'
         if auth.is_ipython():
@@ -736,7 +736,7 @@ class Client:
             runtime_config=job_config.runtime_config,
             service_account=service_account)
 
-        response = self._run_api.run_service_create_run(body=run_body)
+        response = self._run_api.run_service_create_run(run=run_body)
 
         link = f'{self._get_url_prefix()}/#/runs/details/{response.run_id}'
         if auth.is_ipython():
@@ -907,7 +907,7 @@ class Client:
             max_concurrency=max_concurrency,
             service_account=service_account)
         return self._recurring_run_api.recurring_run_service_create_recurring_run(
-            body=job_body)
+            recurring_run=job_body)
 
     def _create_job_config(
         self,

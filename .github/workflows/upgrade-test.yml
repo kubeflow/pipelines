@@ -14,7 +14,11 @@ on:
       - '!**/OWNERS'
 
 jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+
   upgrade-test:
+    needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -23,7 +27,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -35,6 +42,9 @@ jobs:
         uses: ./.github/actions/kfp-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
         continue-on-error: true
 
       - name: Forward API port

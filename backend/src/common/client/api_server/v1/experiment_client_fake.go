@@ -43,11 +43,11 @@ func NewExperimentClientFake() *ExperimentClientFake {
 
 func (c *ExperimentClientFake) Create(params *experimentparams.ExperimentServiceCreateExperimentV1Params) (
 	*experimentmodel.APIExperiment, error) {
-	switch params.Body.Name {
+	switch params.Experiment.Name {
 	case ExperimentForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
 	default:
-		return getDefaultExperiment("500", params.Body.Name), nil
+		return getDefaultExperiment("500", params.Experiment.Name), nil
 	}
 }
 

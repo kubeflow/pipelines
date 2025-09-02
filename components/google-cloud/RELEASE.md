@@ -2,9 +2,14 @@
 
 * Bump image for Structured Data pipelines.
 
+## Release 2.21.0
+
+* Add psc_interface_config to v1 GCPC custom job components/utils
+
 ## Release 2.20.1
 
 * Apply latest GCPC image vulnerability resolutions (base OS and software updates).
+* Explicitly set default python version to 3.9 on Starry Net dsl components to avoid future breaking changes.
 
 ## Release 2.20.0
 

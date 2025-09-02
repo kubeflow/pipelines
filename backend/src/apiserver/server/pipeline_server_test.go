@@ -17,10 +17,12 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -35,6 +37,37 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+func createPipelineServerV1(resourceManager *resource.ResourceManager, httpClient *http.Client) *PipelineServerV1 {
+	return &PipelineServerV1{
+		BasePipelineServer: &BasePipelineServer{
+			resourceManager: resourceManager, httpClient: httpClient, options: &PipelineServerOptions{CollectMetrics: false},
+		},
+	}
+}
+
+func createPipelineServer(resourceManager *resource.ResourceManager, httpClient *http.Client) *PipelineServer {
+	return &PipelineServer{
+		BasePipelineServer: &BasePipelineServer{
+			resourceManager: resourceManager, httpClient: httpClient, options: &PipelineServerOptions{CollectMetrics: false},
+		},
+	}
+}
+
+func setupLargePipelineURL() string {
+	// Set up the environment variables for the pipeline URL.
+	// The URL points to a sample pipeline YAML file in the Kubeflow Pipelines repository.
+	// The branch and repo can be overridden by environment variables for testing purposes.
+	branch := os.Getenv("GIT_BRANCH")
+	repo := os.Getenv("GIT_REPO")
+	if repo == "" {
+		repo = "kubeflow/pipelines"
+	}
+	if branch == "" {
+		branch = "master"
+	}
+	largePipelineURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml", repo, branch)
+	return largePipelineURL
+}
 func TestBuildPipelineName_QueryStringNotEmpty(t *testing.T) {
 	pipelineName := buildPipelineName("pipeline one", "", "file one")
 	assert.Equal(t, "pipeline one", pipelineName)
@@ -63,7 +96,7 @@ func TestCreatePipelineV1_YAML(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
@@ -80,7 +113,7 @@ func TestCreatePipelineV1_YAML(t *testing.T) {
 	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(pipeline.Id)
 	assert.Nil(t, err)
 	assert.NotNil(t, newPipeline)
-	assert.Equal(t, "pipeline description", newPipeline.Description)
+	assert.Equal(t, "pipeline description", string(newPipeline.Description))
 	assert.Equal(t, newPipeline.UUID, newPipelineVersion.PipelineId)
 }
 
@@ -92,10 +125,10 @@ func TestCreatePipelineV1_LargeFile(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
-			Url:         &api.Url{PipelineUrl: "https://raw.githubusercontent.com/kubeflow/pipelines/master/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml"},
+			Url:         &api.Url{PipelineUrl: setupLargePipelineURL()},
 			Name:        "xgboost-url",
 			Description: "pipeline description",
 		},
@@ -109,7 +142,7 @@ func TestCreatePipelineV1_LargeFile(t *testing.T) {
 	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(pipeline.Id)
 	assert.Nil(t, err)
 	assert.NotNil(t, newPipeline)
-	assert.Equal(t, "pipeline description", newPipeline.Description)
+	assert.Equal(t, "pipeline description", string(newPipeline.Description))
 	assert.Equal(t, newPipeline.UUID, newPipelineVersion.PipelineId)
 }
 
@@ -121,7 +154,7 @@ func TestCreatePipelineV1_Tarball(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"},
@@ -139,7 +172,7 @@ func TestCreatePipelineV1_Tarball(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, newPipeline)
 	assert.NotNil(t, newPipelineVersion)
-	assert.Equal(t, "pipeline description", newPipeline.Description)
+	assert.Equal(t, "pipeline description", string(newPipeline.Description))
 	assert.Equal(t, newPipeline.UUID, newPipelineVersion.PipelineId)
 }
 
@@ -151,7 +184,7 @@ func TestCreatePipelineV1_InvalidYAML(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	createdPipeline, err := pipelineServer.CreatePipelineV1(
 		context.Background(), &api.CreatePipelineRequest{
 			Pipeline: &api.Pipeline{
@@ -173,7 +206,7 @@ func TestCreatePipelineV1_InvalidURL(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	createdPipeline, err := pipelineServer.CreatePipelineV1(
 		context.Background(), &api.CreatePipelineRequest{
 			Pipeline: &api.Pipeline{
@@ -195,7 +228,7 @@ func TestCreatePipelineV1_MissingUrl(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	createdPipeline, err := pipelineServer.CreatePipelineV1(
 		context.Background(), &api.CreatePipelineRequest{
 			Pipeline: &api.Pipeline{
@@ -225,7 +258,7 @@ func TestCreatePipelineV1_ExistingPipeline(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipelineServer.CreatePipelineV1(
 		context.Background(), &api.CreatePipelineRequest{
 			Pipeline: &api.Pipeline{
@@ -265,6 +298,31 @@ func TestCreatePipelineV1_ExistingPipeline(t *testing.T) {
 	assert.Nil(t, createdPipeline)
 }
 
+func TestCreatePipelineVersionV1_NameTooLong(t *testing.T) {
+	httpServer := getMockServer(t)
+	defer httpServer.Close()
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
+
+	longName := strings.Repeat("x", 192) // max valid length is 191
+	_, err := pipelineServer.CreatePipelineVersionV1(
+		context.Background(),
+		&api.CreatePipelineVersionRequest{
+			Version: &api.PipelineVersion{
+				Name:       longName,
+				PackageUrl: &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
+				ResourceReferences: []*api.ResourceReference{{
+					Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE, Id: "pipeline"},
+					Relationship: api.Relationship_OWNER,
+				}},
+			},
+		},
+	)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "PipelineVersion.Name length cannot exceed")
+}
+
 func TestCreatePipelineVersionV1_YAML(t *testing.T) {
 	httpServer := getMockServer(t)
 	// Close the server when test finishes
@@ -274,9 +332,7 @@ func TestCreatePipelineVersionV1_YAML(t *testing.T) {
 		util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{
-		resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false},
-	}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipelineVersion, err := pipelineServer.CreatePipelineVersionV1(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
@@ -319,7 +375,7 @@ func TestCreatePipelineVersion_InvalidYAML(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	_, err := pipelineServer.CreatePipelineVersionV1(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
@@ -351,7 +407,7 @@ func TestCreatePipelineVersion_Tarball(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipelineVersion, err := pipelineServer.CreatePipelineVersionV1(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
@@ -393,7 +449,7 @@ func TestCreatePipelineVersion_InvalidURL(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	_, err := pipelineServer.CreatePipelineVersionV1(context.Background(), &api.CreatePipelineVersionRequest{
 		Version: &api.PipelineVersion{
 			PackageUrl: &api.Url{
@@ -424,7 +480,7 @@ func TestListPipelineVersion_NoResourceKey(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 
 	_, err := pipelineServer.ListPipelineVersionsV1(context.Background(), &api.ListPipelineVersionsRequest{
 		ResourceKey: nil,
@@ -440,7 +496,7 @@ func TestListPipelinesPublic(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	_, err := pipelineServer.ListPipelinesV1(context.Background(),
 		&api.ListPipelinesRequest{
 			PageSize: 20,
@@ -458,7 +514,7 @@ func TestGetPipelineByName_OK(t *testing.T) {
 	defer httpServer.Close()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
@@ -491,7 +547,7 @@ func TestGetPipelineByName_Shared_OK(t *testing.T) {
 	defer httpServer.Close()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
@@ -519,7 +575,7 @@ func TestGetPipelineByName_NotFound(t *testing.T) {
 	defer httpServer.Close()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	_, err := pipelineServer.GetPipelineByNameV1(context.Background(),
 		&api.GetPipelineByNameRequest{
 			Name: "foo",
@@ -533,7 +589,7 @@ func TestGetPipelineByName_WrongNameSpace(t *testing.T) {
 	defer httpServer.Close()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
@@ -570,7 +626,7 @@ func TestCreatePipelineVersionAndCheckLatestVersion(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServerV1(resourceManager, httpServer.Client())
 	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"},
@@ -586,7 +642,7 @@ func TestCreatePipelineVersionAndCheckLatestVersion(t *testing.T) {
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-526655440001", nil))
 	resourceManager = resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	pipelineServer = PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer = createPipelineServerV1(resourceManager, httpServer.Client())
 	pipelineVersion, err := pipelineServer.CreatePipelineVersionV1(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
@@ -640,7 +696,7 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 	defer httpServer.Close()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+	pipelineServer := createPipelineServer(resourceManager, httpServer.Client())
 
 	type args struct {
 		pipeline *model.Pipeline
@@ -704,12 +760,24 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 			true,
 			"name is required",
 		},
+		{
+			name: "Invalid - name too long",
+			id:   DefaultFakeIdOne,
+			arg: &apiv2.Pipeline{
+				Name:        strings.Repeat("a", 129),
+				DisplayName: strings.Repeat("a", 129),
+				Namespace:   "",
+			},
+			want:    nil,
+			wantErr: true,
+			errMsg:  "Pipeline.Name length cannot exceed 128",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(tt.id, nil))
 			resourceManager = resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-			pipelineServer = PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
+			pipelineServer = createPipelineServer(resourceManager, httpServer.Client())
 			got, err := pipelineServer.CreatePipeline(context.Background(), &apiv2.CreatePipelineRequest{Pipeline: tt.arg})
 			if tt.wantErr {
 				assert.NotNil(t, err)
@@ -737,6 +805,25 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 		wantErr bool
 		errMsg  string
 	}{
+		{
+			name: "Invalid - name too long",
+			request: &apiv2.CreatePipelineAndVersionRequest{
+				Pipeline: &apiv2.Pipeline{
+					DisplayName: strings.Repeat("a", 129),
+					Description: "pipeline description",
+					Namespace:   "",
+				},
+				PipelineVersion: &apiv2.PipelineVersion{
+					PackageUrl: &apiv2.Url{
+						PipelineUrl: httpServer.URL + "/arguments-parameters.yaml",
+					},
+				},
+			},
+			want:    nil,
+			wantPv:  nil,
+			wantErr: true,
+			errMsg:  "Pipeline.Name length cannot exceed 128",
+		},
 		{
 			"Valid - yaml",
 			&apiv2.CreatePipelineAndVersionRequest{
@@ -782,7 +869,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 				},
 				PipelineVersion: &apiv2.PipelineVersion{
 					PackageUrl: &apiv2.Url{
-						PipelineUrl: "https://raw.githubusercontent.com/kubeflow/pipelines/master/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml",
+						PipelineUrl: setupLargePipelineURL(),
 					},
 				},
 			},
@@ -866,9 +953,7 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 		clientManager := resource.NewFakeClientManagerOrFatal(
 			util.NewFakeTimeForEpoch())
 		resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
-		pipelineServer := PipelineServer{
-			resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false},
-		}
+		pipelineServer := createPipelineServer(resourceManager, httpServer.Client())
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := pipelineServer.CreatePipelineAndVersion(context.Background(), tt.request)
 			if tt.wantErr {

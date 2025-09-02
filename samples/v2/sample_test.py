@@ -17,18 +17,49 @@ from dataclasses import dataclass
 import inspect
 import os
 from pprint import pprint
+import subprocess
 from typing import List
 import unittest
-
-import collected_parameters
-import component_with_optional_inputs
-import hello_world
+import uuid
 import kfp
 from kfp.dsl.graph_component import GraphComponent
 from kubernetes import client
 from kubernetes import config
 from kubernetes import utils
-from modelcar import modelcar
+import yaml
+import functools
+from kfp import dsl
+
+def get_kfp_package_path() -> str:
+    path = get_package_path("sdk/python")
+    print(f'Using the following KFP package path for tests: {path}')
+    return path
+
+def get_kfp_pipeline_spec_path() -> str:
+    path = get_package_path("api/v2alpha1/python")
+    print(f'Using the following KFP pipeline spec path for tests: {path}')
+    return path
+
+def get_package_path(subdir: str) -> str:
+    repo_name = os.environ.get('REPO_NAME', 'kubeflow/pipelines')
+    if os.environ.get('PULL_NUMBER'):
+        path = f'git+https://github.com/{repo_name}.git@refs/pull/{os.environ["PULL_NUMBER"]}/merge#subdirectory={subdir}'
+    else:
+        path = f'git+https://github.com/{repo_name}.git@master#subdirectory={subdir}'
+    return path
+
+# Set the component configuration BEFORE importing any pipeline modules
+# To have pipeline execution code leverage source kfp-pipeline-spec
+# in api/v2alpha1/python you can set:
+# packages_to_install=[get_kfp_pipeline_spec_path()]
+dsl.component = functools.partial(
+    dsl.component, kfp_package_path=get_kfp_package_path())
+
+# Now import the pipeline modules, this way we can leverage the kfp_package and pipeline
+# spec defined above
+import component_with_optional_inputs
+import collected_parameters
+import hello_world
 import parallel_after_dependency
 import parallel_consume_upstream
 import pipeline_container_no_input
@@ -37,19 +68,28 @@ import pipeline_with_placeholders
 import pipeline_with_secret_as_env
 import pipeline_with_secret_as_volume
 import producer_consumer_param
-import subdagio
-import two_step_pipeline_containerized
-import yaml
 import pipeline_with_retry
 import pipeline_with_input_status_state
+import subdagio
+import two_step_pipeline_containerized
+import nested_pipeline_opt_inputs_parent_level
+import nested_pipeline_opt_inputs_nil
+import nested_pipeline_opt_input_child_level
+import pipeline_with_pod_metadata
+import pipeline_with_workspace
+from modelcar import modelcar
+import pipeline_with_utils
+
 
 _MINUTE = 60  # seconds
-_DEFAULT_TIMEOUT = 10 * _MINUTE
+_DEFAULT_TIMEOUT = 20 * _MINUTE
 SAMPLES_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
 PRE_REQ_DIR = os.path.join(SAMPLES_DIR, 'v2', 'pre-requisites')
 PREREQS = [os.path.join(PRE_REQ_DIR, 'test-secrets.yaml')]
 
 _KFP_NAMESPACE = os.getenv('KFP_NAMESPACE', 'kubeflow')
+_KFP_MULTI_USER = os.getenv('KFP_MULTI_USER', 'false').lower() == 'true'
+_USER_NAMESPACE = os.getenv('_USER_NAMESPACE', 'kubeflow-user-example-com')
 
 
 @dataclass
@@ -111,27 +151,62 @@ def delete_k8s_yaml(namespace: str, yaml_file: str):
         print(f'Exception when deleting from YAML: {e}')
 
 
+def get_authentication_token():
+    """Get authentication token for multi-user mode."""
+    if _KFP_MULTI_USER:
+        try:
+            namespace = _USER_NAMESPACE
+            print(f'Creating authentication token for namespace {namespace}...')
+            result = subprocess.run([
+                'kubectl', '-n', namespace, 'create', 'token', 'default-editor',
+                '--audience=pipelines.kubeflow.org'
+            ], capture_output=True, text=True, check=True)
+            token = result.stdout.strip()
+            print('Successfully created authentication token.')
+            return token
+        except subprocess.CalledProcessError as e:
+            print(f'Failed to create authentication token: {e}')
+            print(f'stderr: {e.stderr}')
+            return None
+    return None
+
+
 class SampleTest(unittest.TestCase):
     _kfp_host_and_port = os.getenv('KFP_API_HOST_AND_PORT',
                                    'http://localhost:8888')
     _kfp_ui_and_port = os.getenv('KFP_UI_HOST_AND_PORT',
                                  'http://localhost:8080')
-    _client = kfp.Client(host=_kfp_host_and_port, ui_host=_kfp_ui_and_port)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize client with token if in multi-user mode
+        auth_token = get_authentication_token()
+        if auth_token:
+            self._client = kfp.Client(
+                host=self._kfp_host_and_port, 
+                ui_host=self._kfp_ui_and_port,
+                existing_token=auth_token
+            )
+        else:
+            self._client = kfp.Client(host=self._kfp_host_and_port, ui_host=self._kfp_ui_and_port)
+
 
     @classmethod
     def setUpClass(cls):
         """Runs once before all tests."""
         print('Deploying pre-requisites....')
+        target_namespace = _USER_NAMESPACE if _KFP_MULTI_USER else _KFP_NAMESPACE
         for p in PREREQS:
-            deploy_k8s_yaml(_KFP_NAMESPACE, p)
+            deploy_k8s_yaml(target_namespace, p)
         print('Done deploying pre-requisites.')
 
     @classmethod
     def tearDownClass(cls):
         """Runs once after all tests in this class."""
         print('Cleaning up resources....')
+        target_namespace = _USER_NAMESPACE if _KFP_MULTI_USER else _KFP_NAMESPACE
         for p in PREREQS:
-            delete_k8s_yaml(_KFP_NAMESPACE, p)
+            delete_k8s_yaml(target_namespace, p)
         print('Done clean up.')
 
     def test(self):
@@ -174,6 +249,12 @@ class SampleTest(unittest.TestCase):
                 pipeline_func=collected_parameters.collected_param_pipeline),
             TestCase(pipeline_func=pipeline_with_retry.retry_pipeline),
             TestCase(pipeline_func=pipeline_with_input_status_state.status_state_pipeline),
+            TestCase(pipeline_func=nested_pipeline_opt_inputs_parent_level.nested_pipeline_opt_inputs_parent_level),
+            TestCase(pipeline_func=nested_pipeline_opt_input_child_level.nested_pipeline_opt_input_child_level),
+            TestCase(pipeline_func=nested_pipeline_opt_inputs_nil.nested_pipeline_opt_inputs_nil),
+            TestCase(pipeline_func=pipeline_with_pod_metadata.pipeline_with_pod_metadata),
+            TestCase(pipeline_func=pipeline_with_workspace.pipeline_with_workspace),
+            TestCase(pipeline_func=pipeline_with_utils.pipeline_with_utils),
         ]
 
         with ThreadPoolExecutor() as executor:
@@ -189,8 +270,11 @@ class SampleTest(unittest.TestCase):
             print(
                 f'Running pipeline: {inspect.getmodule(pipeline_func.pipeline_func).__name__}/{pipeline_func.name}.'
             )
+            experiment_name = f"test-{pipeline_func.name}-{uuid.uuid4().hex[:8]}"
             run_result = self._client.create_run_from_pipeline_func(
-                pipeline_func=pipeline_func)
+                pipeline_func=pipeline_func,
+                namespace=_USER_NAMESPACE,
+                experiment_name=experiment_name)
 
             run_response = run_result.wait_for_run_completion(timeout)
 

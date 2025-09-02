@@ -19,13 +19,14 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -53,12 +54,20 @@ func toModelExperiment(e interface{}) (*model.Experiment, error) {
 	if name == "" {
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Experiment must have a non-empty name"), "Failed to convert API experiment to model experiment")
 	}
-	return &model.Experiment{
+	// Namespace validation is handled in the server layer as it depends on multi-user mode.
+	exp := &model.Experiment{
 		Name:         name,
 		Description:  description,
 		Namespace:    namespace,
 		StorageState: model.StorageStateAvailable,
-	}, nil
+	}
+	if err := validation.ValidateModel(exp); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API experiment to model experiment",
+		)
+	}
+	return exp, nil
 }
 
 // Converts internal experiment representation to its API counterpart.
@@ -90,7 +99,7 @@ func toApiExperimentV1(experiment *model.Experiment) *apiv1beta1.Experiment {
 		Id:                 experiment.UUID,
 		Name:               experiment.Name,
 		Description:        experiment.Description,
-		CreatedAt:          &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
+		CreatedAt:          timestamppb.New(time.Unix(experiment.CreatedAtInSec, 0)),
 		ResourceReferences: resourceReferences,
 		StorageState:       storageState,
 	}
@@ -116,8 +125,8 @@ func toApiExperiment(experiment *model.Experiment) *apiv2beta1.Experiment {
 		ExperimentId:     experiment.UUID,
 		DisplayName:      experiment.Name,
 		Description:      experiment.Description,
-		CreatedAt:        &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
-		LastRunCreatedAt: &timestamp.Timestamp{Seconds: experiment.LastRunCreatedAtInSec},
+		CreatedAt:        timestamppb.New(time.Unix(experiment.CreatedAtInSec, 0)),
+		LastRunCreatedAt: timestamppb.New(time.Unix(experiment.LastRunCreatedAtInSec, 0)),
 		Namespace:        experiment.Namespace,
 		StorageState:     storageState,
 	}
@@ -147,6 +156,7 @@ func toApiExperiments(experiments []*model.Experiment) []*apiv2beta1.Experiment 
 // Supports both v1beta1 abd v2beta1 API.
 func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 	var name, displayName, namespace, description string
+
 	switch apiPipeline := p.(type) {
 	case *apiv1beta1.Pipeline:
 		namespace = getNamespaceFromResourceReferenceV1(apiPipeline.GetResourceReferences())
@@ -172,13 +182,24 @@ func toModelPipeline(p interface{}) (*model.Pipeline, error) {
 		displayName = name
 	}
 
-	return &model.Pipeline{
+	// Build the full model first, then validate the actual values on the struct.
+	pipeline := &model.Pipeline{
 		Name:        name,
 		DisplayName: displayName,
 		Namespace:   namespace,
-		Description: description,
+		Description: model.LargeText(description),
 		Status:      model.PipelineCreating,
-	}, nil
+	}
+
+	if err := validation.ValidateModel(pipeline); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API pipeline to model pipeline",
+		)
+	}
+
+	return pipeline, nil
+
 }
 
 // Converts internal pipeline and pipeline version representation to an API pipeline.
@@ -195,11 +216,11 @@ func toApiPipelineV1(pipeline *model.Pipeline, pipelineVersion *model.PipelineVe
 		}
 	}
 
-	params := toApiParametersV1(pipelineVersion.Parameters)
+	params := toApiParametersV1(string(pipelineVersion.Parameters))
 	if params == nil {
 		return &apiv1beta1.Pipeline{
 			Id:    pipeline.UUID,
-			Error: util.NewInternalServerError(util.NewInvalidInputError(fmt.Sprintf("Failed to convert parameters: %s", pipelineVersion.Parameters)), "Failed to convert a model pipeline to v1beta1 API pipeline").Error(),
+			Error: util.NewInternalServerError(util.NewInvalidInputError("%s", fmt.Sprintf("Failed to convert parameters: %s", pipelineVersion.Parameters)), "Failed to convert a model pipeline to v1beta1 API pipeline").Error(),
 		}
 	}
 	if len(params) == 0 {
@@ -221,9 +242,9 @@ func toApiPipelineV1(pipeline *model.Pipeline, pipelineVersion *model.PipelineVe
 	}
 	apiPipeline := &apiv1beta1.Pipeline{
 		Id:                 pipeline.UUID,
-		CreatedAt:          &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
+		CreatedAt:          timestamppb.New(time.Unix(pipeline.CreatedAtInSec, 0)),
 		Name:               pipeline.Name,
-		Description:        pipeline.Description,
+		Description:        string(pipeline.Description),
 		Parameters:         params,
 		DefaultVersion:     defaultVersion,
 		ResourceReferences: resourceRefs,
@@ -293,8 +314,8 @@ func toApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 		PipelineId:  pipeline.UUID,
 		Name:        pipeline.Name,
 		DisplayName: pipeline.DisplayName,
-		Description: pipeline.Description,
-		CreatedAt:   &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
+		Description: string(pipeline.Description),
+		CreatedAt:   timestamppb.New(time.Unix(pipeline.CreatedAtInSec, 0)),
 		Namespace:   pipeline.Namespace,
 	}
 }
@@ -362,16 +383,22 @@ func toModelPipelineVersion(p interface{}) (*model.PipelineVersion, error) {
 	if displayName == "" {
 		displayName = name
 	}
-
-	return &model.PipelineVersion{
+	pv := &model.PipelineVersion{
 		Name:            name,
 		DisplayName:     displayName,
 		PipelineId:      pipelineId,
-		PipelineSpecURI: pipelineUrl,
+		PipelineSpecURI: model.LargeText(pipelineUrl),
 		CodeSourceUrl:   codeUrl,
-		Description:     description,
+		Description:     model.LargeText(description),
 		Status:          model.PipelineVersionCreating,
-	}, nil
+	}
+	if err := validation.ValidateModel(pv); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API pipeline version to model pipeline version",
+		)
+	}
+	return pv, nil
 }
 
 // Converts internal pipeline version representation to its API counterpart.
@@ -384,13 +411,13 @@ func toApiPipelineVersionV1(pv *model.PipelineVersion) *apiv1beta1.PipelineVersi
 	}
 	apiPipelineVersion.Id = pv.UUID
 	apiPipelineVersion.Name = pv.Name
-	apiPipelineVersion.CreatedAt = &timestamp.Timestamp{Seconds: pv.CreatedAtInSec}
-	if p := toApiParametersV1(pv.Parameters); p == nil {
+	apiPipelineVersion.CreatedAt = timestamppb.New(time.Unix(pv.CreatedAtInSec, 0))
+	if p := toApiParametersV1(string(pv.Parameters)); p == nil {
 		return nil
 	} else if len(p) > 0 {
 		apiPipelineVersion.Parameters = p
 	}
-	apiPipelineVersion.Description = pv.Description
+	apiPipelineVersion.Description = string(pv.Description)
 	if pv.CodeSourceUrl != "" {
 		apiPipelineVersion.CodeSourceUrl = pv.CodeSourceUrl
 		apiPipelineVersion.PackageUrl = &apiv1beta1.Url{PipelineUrl: pv.CodeSourceUrl}
@@ -454,23 +481,23 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 		PipelineVersionId: pv.UUID,
 		Name:              pv.Name,
 		DisplayName:       pv.DisplayName,
-		Description:       pv.Description,
-		CreatedAt:         &timestamp.Timestamp{Seconds: pv.CreatedAtInSec},
+		Description:       string(pv.Description),
+		CreatedAt:         timestamppb.New(time.Unix(pv.CreatedAtInSec, 0)),
 	}
 
 	// Infer pipeline url
 	if pv.CodeSourceUrl != "" {
 		apiPipelineVersion.PackageUrl = &apiv2beta1.Url{
-			PipelineUrl: pv.PipelineSpecURI,
+			PipelineUrl: string(pv.PipelineSpecURI),
 		}
 	} else if pv.PipelineSpecURI != "" {
 		apiPipelineVersion.PackageUrl = &apiv2beta1.Url{
-			PipelineUrl: pv.PipelineSpecURI,
+			PipelineUrl: string(pv.PipelineSpecURI),
 		}
 	}
 
 	// Convert pipeline spec
-	spec, err := yamlStringToPipelineSpecStruct(pv.PipelineSpec)
+	spec, err := YamlStringToPipelineSpecStruct(string(pv.PipelineSpec))
 	if err != nil {
 		return &apiv2beta1.PipelineVersion{
 			PipelineVersionId: pv.UUID,
@@ -772,14 +799,10 @@ func toApiTriggerV1(trigger *model.Trigger) *apiv1beta1.Trigger {
 		var cronSchedule apiv1beta1.CronSchedule
 		cronSchedule.Cron = *trigger.Cron
 		if trigger.CronScheduleStartTimeInSec != nil {
-			cronSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleStartTimeInSec,
-			}
+			cronSchedule.StartTime = timestamppb.New(time.Unix(*trigger.CronScheduleStartTimeInSec, 0))
 		}
 		if trigger.CronScheduleEndTimeInSec != nil {
-			cronSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleEndTimeInSec,
-			}
+			cronSchedule.EndTime = timestamppb.New(time.Unix(*trigger.CronScheduleEndTimeInSec, 0))
 		}
 		return &apiv1beta1.Trigger{Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
 	}
@@ -787,14 +810,10 @@ func toApiTriggerV1(trigger *model.Trigger) *apiv1beta1.Trigger {
 		var periodicSchedule apiv1beta1.PeriodicSchedule
 		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {
-			periodicSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleStartTimeInSec,
-			}
+			periodicSchedule.StartTime = timestamppb.New(time.Unix(*trigger.PeriodicScheduleStartTimeInSec, 0))
 		}
 		if trigger.PeriodicScheduleEndTimeInSec != nil {
-			periodicSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleEndTimeInSec,
-			}
+			periodicSchedule.EndTime = timestamppb.New(time.Unix(*trigger.PeriodicScheduleEndTimeInSec, 0))
 		}
 		return &apiv1beta1.Trigger{Trigger: &apiv1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
 	}
@@ -815,14 +834,10 @@ func toApiTrigger(trigger *model.Trigger) *apiv2beta1.Trigger {
 		var cronSchedule apiv2beta1.CronSchedule
 		cronSchedule.Cron = *trigger.Cron
 		if trigger.CronScheduleStartTimeInSec != nil {
-			cronSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleStartTimeInSec,
-			}
+			cronSchedule.StartTime = timestamppb.New(time.Unix(*trigger.CronScheduleStartTimeInSec, 0))
 		}
 		if trigger.CronScheduleEndTimeInSec != nil {
-			cronSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.CronScheduleEndTimeInSec,
-			}
+			cronSchedule.EndTime = timestamppb.New(time.Unix(*trigger.CronScheduleEndTimeInSec, 0))
 		}
 		return &apiv2beta1.Trigger{Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
 	}
@@ -830,14 +845,10 @@ func toApiTrigger(trigger *model.Trigger) *apiv2beta1.Trigger {
 		var periodicSchedule apiv2beta1.PeriodicSchedule
 		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {
-			periodicSchedule.StartTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleStartTimeInSec,
-			}
+			periodicSchedule.StartTime = timestamppb.New(time.Unix(*trigger.PeriodicScheduleStartTimeInSec, 0))
 		}
 		if trigger.PeriodicScheduleEndTimeInSec != nil {
-			periodicSchedule.EndTime = &timestamp.Timestamp{
-				Seconds: *trigger.PeriodicScheduleEndTimeInSec,
-			}
+			periodicSchedule.EndTime = timestamppb.New(time.Unix(*trigger.PeriodicScheduleEndTimeInSec, 0))
 		}
 		return &apiv2beta1.Trigger{Trigger: &apiv2beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
 	}
@@ -971,8 +982,8 @@ func toModelRuntimeConfig(obj interface{}) (*model.RuntimeConfig, error) {
 		return nil, util.NewUnknownApiVersionError("RuntimeConfig", obj)
 	}
 	return &model.RuntimeConfig{
-		Parameters:   params,
-		PipelineRoot: root,
+		Parameters:   model.LargeText(params),
+		PipelineRoot: model.LargeText(root),
 	}, nil
 }
 
@@ -984,12 +995,12 @@ func toApiRuntimeConfigV1(modelRuntime model.RuntimeConfig) *apiv1beta1.Pipeline
 	if modelRuntime.Parameters == "" && modelRuntime.PipelineRoot == "" {
 		return &apiRuntimeConfig
 	}
-	runtimeParams := toMapProtoStructParameters(modelRuntime.Parameters)
+	runtimeParams := toMapProtoStructParameters(string(modelRuntime.Parameters))
 	if runtimeParams == nil {
 		return nil
 	}
 	apiRuntimeConfig.Parameters = runtimeParams
-	apiRuntimeConfig.PipelineRoot = modelRuntime.PipelineRoot
+	apiRuntimeConfig.PipelineRoot = string(modelRuntime.PipelineRoot)
 	return &apiRuntimeConfig
 }
 
@@ -1001,12 +1012,12 @@ func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) *apiv2beta1.RuntimeCon
 	if modelRuntime.Parameters == "" && modelRuntime.PipelineRoot == "" {
 		return &apiRuntimeConfig
 	}
-	runtimeParams := toMapProtoStructParameters(modelRuntime.Parameters)
+	runtimeParams := toMapProtoStructParameters(string(modelRuntime.Parameters))
 	if runtimeParams == nil {
 		return nil
 	}
 	apiRuntimeConfig.Parameters = runtimeParams
-	apiRuntimeConfig.PipelineRoot = modelRuntime.PipelineRoot
+	apiRuntimeConfig.PipelineRoot = string(modelRuntime.PipelineRoot)
 	return &apiRuntimeConfig
 }
 
@@ -1016,13 +1027,13 @@ func toPipelineSpecRuntimeConfig(cfg *model.RuntimeConfig) *pipelinespec.Pipelin
 	if cfg == nil {
 		return &pipelinespec.PipelineJob_RuntimeConfig{}
 	}
-	runtimeParams := toMapProtoStructParameters(cfg.Parameters)
+	runtimeParams := toMapProtoStructParameters(string(cfg.Parameters))
 	if runtimeParams == nil {
 		return nil
 	}
 	return &pipelinespec.PipelineJob_RuntimeConfig{
 		ParameterValues:    runtimeParams,
-		GcsOutputDirectory: cfg.PipelineRoot,
+		GcsOutputDirectory: string(cfg.PipelineRoot),
 	}
 }
 
@@ -1040,7 +1051,6 @@ func toModelRunMetric(m interface{}, runId string) (*model.RunMetric, error) {
 	default:
 		return nil, util.NewUnknownApiVersionError("RunMetric", m)
 	}
-
 	modelMetric := &model.RunMetric{
 		RunUUID:     runId,
 		Name:        name,
@@ -1048,7 +1058,11 @@ func toModelRunMetric(m interface{}, runId string) (*model.RunMetric, error) {
 		NumberValue: val,
 		Format:      format,
 	}
+	if err := validation.ValidateModel(modelMetric); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to convert API run metric to internal representation")
+	}
 	return modelMetric, nil
+
 }
 
 // Converts internal run metric representation to its API counterpart.
@@ -1118,7 +1132,7 @@ func toModelRunDetails(r interface{}) (*model.RunDetails, error) {
 			if err != nil {
 				return nil, util.NewInternalServerError(err, "Failed to convert a API run to internal run details representation due to pipeline spec parsing error")
 			}
-			modelRunDetails.PipelineRuntimeManifest = spec
+			modelRunDetails.PipelineRuntimeManifest = model.LargeText(spec)
 		}
 		return modelRunDetails, nil
 	case *apiv2beta1.RunDetails:
@@ -1130,8 +1144,8 @@ func toModelRunDetails(r interface{}) (*model.RunDetails, error) {
 			return nil, util.Wrap(err, "Failed to convert v1beta1 API run detail to its internal representation")
 		}
 		apiRuntimeV1 := r.GetPipelineRuntime()
-		modelRunDetails.PipelineRuntimeManifest = apiRuntimeV1.GetPipelineManifest()
-		modelRunDetails.WorkflowRuntimeManifest = apiRuntimeV1.GetWorkflowManifest()
+		modelRunDetails.PipelineRuntimeManifest = model.LargeText(apiRuntimeV1.GetPipelineManifest())
+		modelRunDetails.WorkflowRuntimeManifest = model.LargeText(apiRuntimeV1.GetWorkflowManifest())
 		return modelRunDetails, nil
 	default:
 		return nil, util.NewUnknownApiVersionError("RunDetails", r)
@@ -1209,8 +1223,8 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to convert v1beta1 API run to its internal representation due to runtime config conversion error")
 		}
-		cfgParams = cfg.Parameters
-		pipelineRoot = cfg.PipelineRoot
+		cfgParams = string(cfg.Parameters)
+		pipelineRoot = string(cfg.PipelineRoot)
 
 		pipelineSpec = apiRunV1.GetPipelineSpec().GetPipelineManifest()
 		workflowSpec = apiRunV1.GetPipelineSpec().GetWorkflowManifest()
@@ -1285,8 +1299,8 @@ func toModelRun(r interface{}) (*model.Run, error) {
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to convert API run to its internal representation due to runtime config conversion error")
 		}
-		cfgParams = cfg.Parameters
-		pipelineRoot = cfg.PipelineRoot
+		cfgParams = string(cfg.Parameters)
+		pipelineRoot = string(cfg.PipelineRoot)
 
 		if apiRunV2.GetPipelineSpec() == nil {
 			pipelineSpec = ""
@@ -1318,12 +1332,12 @@ func toModelRun(r interface{}) (*model.Run, error) {
 			PipelineId:           pipelineId,
 			PipelineVersionId:    pipelineVersionId,
 			PipelineName:         pipelineName,
-			PipelineSpecManifest: pipelineSpec,
-			WorkflowSpecManifest: workflowSpec,
-			Parameters:           specParams,
+			PipelineSpecManifest: model.LargeText(pipelineSpec),
+			WorkflowSpecManifest: model.LargeText(workflowSpec),
+			Parameters:           model.LargeText(specParams),
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   cfgParams,
-				PipelineRoot: pipelineRoot,
+				Parameters:   model.LargeText(cfgParams),
+				PipelineRoot: model.LargeText(pipelineRoot),
 			},
 		},
 		RunDetails: model.RunDetails{
@@ -1332,10 +1346,17 @@ func toModelRun(r interface{}) (*model.Run, error) {
 			CreatedAtInSec:          createTime,
 			ScheduledAtInSec:        scheduleTime,
 			FinishedAtInSec:         finishTime,
-			PipelineRuntimeManifest: runtimePipelineSpec,
-			WorkflowRuntimeManifest: runtimeWorkflowSpec,
+			PipelineRuntimeManifest: model.LargeText(runtimePipelineSpec),
+			WorkflowRuntimeManifest: model.LargeText(runtimeWorkflowSpec),
 			TaskDetails:             tasks,
 		},
+	}
+
+	if err := validation.ValidateModel(&modelRun); err != nil {
+		return nil, util.NewInternalServerError(
+			err,
+			"Failed to convert API run to its internal representation",
+		)
 	}
 	return &modelRun, nil
 }
@@ -1346,7 +1367,7 @@ func toModelRun(r interface{}) (*model.Run, error) {
 func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 	r = r.ToV1()
 	// v1 parameters
-	specParams := toApiParametersV1(r.PipelineSpec.Parameters)
+	specParams := toApiParametersV1(string(r.Parameters))
 	if specParams == nil {
 		return &apiv1beta1.Run{
 			Id:    r.UUID,
@@ -1446,21 +1467,21 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 	specManifest := r.PipelineSpec.PipelineSpecManifest
 	wfManifest := r.PipelineSpec.WorkflowSpecManifest
 	return &apiv1beta1.Run{
-		CreatedAt:      &timestamp.Timestamp{Seconds: r.RunDetails.CreatedAtInSec},
+		CreatedAt:      timestamppb.New(time.Unix(r.RunDetails.CreatedAtInSec, 0)),
 		Id:             r.UUID,
 		Metrics:        metrics,
 		Name:           r.DisplayName,
 		ServiceAccount: r.ServiceAccount,
 		StorageState:   apiv1beta1.Run_StorageState(apiv1beta1.Run_StorageState_value[string(r.StorageState.ToV1())]),
 		Description:    r.Description,
-		ScheduledAt:    &timestamp.Timestamp{Seconds: r.RunDetails.ScheduledAtInSec},
-		FinishedAt:     &timestamp.Timestamp{Seconds: r.RunDetails.FinishedAtInSec},
+		ScheduledAt:    timestamppb.New(time.Unix(r.RunDetails.ScheduledAtInSec, 0)),
+		FinishedAt:     timestamppb.New(time.Unix(r.RunDetails.FinishedAtInSec, 0)),
 		Status:         string(r.RunDetails.State.ToV1()),
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineId:       r.PipelineSpec.PipelineId,
 			PipelineName:     r.PipelineSpec.PipelineName,
-			WorkflowManifest: wfManifest,
-			PipelineManifest: specManifest,
+			WorkflowManifest: string(wfManifest),
+			PipelineManifest: string(specManifest),
 			Parameters:       specParams,
 			RuntimeConfig:    runtimeConfig,
 		},
@@ -1482,7 +1503,7 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		}
 	}
 	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
-		if params := toMapProtoStructParameters(r.PipelineSpec.Parameters); len(params) > 0 {
+		if params := toMapProtoStructParameters(string(r.Parameters)); len(params) > 0 {
 			runtimeConfig.Parameters = params
 		} else {
 			runtimeConfig = nil
@@ -1507,9 +1528,9 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		StorageState:   toApiRunStorageState(&r.StorageState),
 		State:          toApiRuntimeState(&r.RunDetails.State),
 		StateHistory:   toApiRuntimeStatuses(r.RunDetails.StateHistory),
-		CreatedAt:      &timestamp.Timestamp{Seconds: r.RunDetails.CreatedAtInSec},
-		ScheduledAt:    &timestamp.Timestamp{Seconds: r.RunDetails.ScheduledAtInSec},
-		FinishedAt:     &timestamp.Timestamp{Seconds: r.RunDetails.FinishedAtInSec},
+		CreatedAt:      timestamppb.New(time.Unix(r.RunDetails.CreatedAtInSec, 0)),
+		ScheduledAt:    timestamppb.New(time.Unix(r.RunDetails.ScheduledAtInSec, 0)),
+		FinishedAt:     timestamppb.New(time.Unix(r.RunDetails.FinishedAtInSec, 0)),
 		RunDetails:     apiRd,
 	}
 	err := util.NewInvalidInputError("Failed to parse the pipeline source")
@@ -1522,7 +1543,7 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		}
 		return apiRunV2
 	} else if r.PipelineSpec.PipelineSpecManifest != "" {
-		spec, err1 := yamlStringToPipelineSpecStruct(r.PipelineSpec.PipelineSpecManifest)
+		spec, err1 := YamlStringToPipelineSpecStruct(string(r.PipelineSpecManifest))
 		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
 				PipelineSpec: spec,
@@ -1531,7 +1552,7 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		}
 		err = util.Wrap(err1, err.Error()).(*util.UserError)
 	} else if r.PipelineSpec.WorkflowSpecManifest != "" {
-		spec, err1 := yamlStringToPipelineSpecStruct(r.PipelineSpec.WorkflowSpecManifest)
+		spec, err1 := YamlStringToPipelineSpecStruct(string(r.WorkflowSpecManifest))
 		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
 				PipelineSpec: spec,
@@ -1577,16 +1598,16 @@ func toApiRunDetailV1(r *model.Run) *apiv1beta1.RunDetail {
 	}
 	if r.RunDetails.WorkflowRuntimeManifest == "" {
 		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
-			PipelineManifest: r.RunDetails.PipelineRuntimeManifest,
+			PipelineManifest: string(r.PipelineRuntimeManifest),
 		}
 	} else if r.RunDetails.PipelineRuntimeManifest == "" {
 		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
-			WorkflowManifest: r.RunDetails.WorkflowRuntimeManifest,
+			WorkflowManifest: string(r.WorkflowRuntimeManifest),
 		}
 	} else {
 		apiRunDetails.PipelineRuntime = &apiv1beta1.PipelineRuntime{
-			PipelineManifest: r.RunDetails.PipelineRuntimeManifest,
-			WorkflowManifest: r.RunDetails.WorkflowRuntimeManifest,
+			PipelineManifest: string(r.PipelineRuntimeManifest),
+			WorkflowManifest: string(r.WorkflowRuntimeManifest),
 		}
 	}
 	return apiRunDetails
@@ -1678,8 +1699,8 @@ func toModelTask(t interface{}) (*model.Task, error) {
 		ParentTaskId:      parentTaskId,
 		State:             model.RuntimeState(state).ToV2(),
 		StateHistory:      stateHistory,
-		MLMDInputs:        inputs,
-		MLMDOutputs:       outputs,
+		MLMDInputs:        model.LargeText(inputs),
+		MLMDOutputs:       model.LargeText(outputs),
 		ChildrenPods:      children,
 	}, nil
 }
@@ -1741,8 +1762,8 @@ func toApiTaskV1(task *model.Task) *apiv1beta1.Task {
 		PipelineName:    task.PipelineName,
 		RunId:           task.RunId,
 		MlmdExecutionID: task.MLMDExecutionID,
-		CreatedAt:       &timestamp.Timestamp{Seconds: task.CreatedTimestamp},
-		FinishedAt:      &timestamp.Timestamp{Seconds: task.FinishedTimestamp},
+		CreatedAt:       timestamppb.New(time.Unix(task.CreatedTimestamp, 0)),
+		FinishedAt:      timestamppb.New(time.Unix(task.FinishedTimestamp, 0)),
 		Fingerprint:     task.Fingerprint,
 	}
 }
@@ -1787,9 +1808,9 @@ func toApiPipelineTaskDetail(t *model.Task) *apiv2beta1.PipelineTaskDetail {
 		RunId:        t.RunId,
 		TaskId:       t.UUID,
 		DisplayName:  t.Name,
-		CreateTime:   &timestamp.Timestamp{Seconds: t.CreatedTimestamp},
-		StartTime:    &timestamp.Timestamp{Seconds: t.StartedTimestamp},
-		EndTime:      &timestamp.Timestamp{Seconds: t.FinishedTimestamp},
+		CreateTime:   timestamppb.New(time.Unix(t.CreatedTimestamp, 0)),
+		StartTime:    timestamppb.New(time.Unix(t.StartedTimestamp, 0)),
+		EndTime:      timestamppb.New(time.Unix(t.FinishedTimestamp, 0)),
 		State:        apiv2beta1.RuntimeState(apiv2beta1.RuntimeState_value[t.State.ToString()]),
 		ExecutionId:  execId,
 		Inputs:       inputArtifacts,
@@ -1890,8 +1911,8 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to convert v1beta1 API recurring run to its internal representation due to runtime config conversion error")
 		}
-		cfgParams = cfg.Parameters
-		pipelineRoot = cfg.PipelineRoot
+		cfgParams = string(cfg.Parameters)
+		pipelineRoot = string(cfg.PipelineRoot)
 
 		pipelineSpec = apiJob.GetPipelineSpec().GetPipelineManifest()
 		workflowSpec = apiJob.GetPipelineSpec().GetWorkflowManifest()
@@ -1912,8 +1933,8 @@ func toModelJob(j interface{}) (*model.Job, error) {
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to convert API recurring run to its internal representation due to runtime config conversion error")
 		}
-		cfgParams = cfg.Parameters
-		pipelineRoot = cfg.PipelineRoot
+		cfgParams = string(cfg.Parameters)
+		pipelineRoot = string(cfg.PipelineRoot)
 
 		jobName = apiJob.GetDisplayName()
 		if jobName == "" {
@@ -1993,12 +2014,12 @@ func toModelJob(j interface{}) (*model.Job, error) {
 			PipelineId:           pipelineId,
 			PipelineName:         pipelineName,
 			PipelineVersionId:    pipelineVersionId,
-			PipelineSpecManifest: pipelineSpec,
-			WorkflowSpecManifest: workflowSpec,
-			Parameters:           specParams,
+			PipelineSpecManifest: model.LargeText(pipelineSpec),
+			WorkflowSpecManifest: model.LargeText(workflowSpec),
+			Parameters:           model.LargeText(specParams),
 			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   cfgParams,
-				PipelineRoot: pipelineRoot,
+				Parameters:   model.LargeText(cfgParams),
+				PipelineRoot: model.LargeText(pipelineRoot),
 			},
 		},
 	}, nil
@@ -2080,7 +2101,7 @@ func toApiJobStatus(s string) string {
 // Supports v1beta1 API.
 func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 	j = j.ToV1()
-	specParams := toApiParametersV1(j.PipelineSpec.Parameters)
+	specParams := toApiParametersV1(string(j.Parameters))
 	if specParams == nil {
 		return &apiv1beta1.Job{
 			Id:    j.UUID,
@@ -2171,17 +2192,17 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 		ServiceAccount: j.ServiceAccount,
 		Description:    j.Description,
 		Enabled:        j.Enabled,
-		CreatedAt:      &timestamp.Timestamp{Seconds: j.CreatedAtInSec},
+		CreatedAt:      timestamppb.New(time.Unix(j.CreatedAtInSec, 0)),
 		Status:         toApiJobStatus(j.Conditions),
-		UpdatedAt:      &timestamp.Timestamp{Seconds: j.UpdatedAtInSec},
+		UpdatedAt:      timestamppb.New(time.Unix(j.UpdatedAtInSec, 0)),
 		MaxConcurrency: j.MaxConcurrency,
 		NoCatchup:      j.NoCatchup,
 		Trigger:        trigger,
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineId:       j.PipelineSpec.PipelineId,
 			PipelineName:     j.PipelineSpec.PipelineName,
-			WorkflowManifest: wfManifest,
-			PipelineManifest: specManifest,
+			WorkflowManifest: string(wfManifest),
+			PipelineManifest: string(specManifest),
 			Parameters:       specParams,
 			RuntimeConfig:    runtimeConfig,
 		},
@@ -2201,7 +2222,7 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 		}
 	}
 	if runtimeConfig == nil || (len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0) {
-		if params := toMapProtoStructParameters(j.PipelineSpec.Parameters); len(params) > 0 {
+		if params := toMapProtoStructParameters(string(j.Parameters)); len(params) > 0 {
 			runtimeConfig.Parameters = params
 		} else {
 			runtimeConfig = nil
@@ -2214,8 +2235,8 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 		ServiceAccount: j.ServiceAccount,
 		Description:    j.Description,
 		Status:         toApiRecurringRunStatus(j.Conditions),
-		CreatedAt:      &timestamp.Timestamp{Seconds: j.CreatedAtInSec},
-		UpdatedAt:      &timestamp.Timestamp{Seconds: j.UpdatedAtInSec},
+		CreatedAt:      timestamppb.New(time.Unix(j.CreatedAtInSec, 0)),
+		UpdatedAt:      timestamppb.New(time.Unix(j.UpdatedAtInSec, 0)),
 		MaxConcurrency: j.MaxConcurrency,
 		NoCatchup:      j.NoCatchup,
 		Trigger:        toApiTrigger(&j.Trigger),
@@ -2225,7 +2246,7 @@ func toApiRecurringRun(j *model.Job) *apiv2beta1.RecurringRun {
 	}
 
 	if j.PipelineSpec.PipelineId == "" && j.PipelineSpec.PipelineVersionId == "" {
-		spec, err := yamlStringToPipelineSpecStruct(j.PipelineSpec.PipelineSpecManifest)
+		spec, err := YamlStringToPipelineSpecStruct(string(j.PipelineSpecManifest))
 		if err != nil {
 			return &apiv2beta1.RecurringRun{
 				RecurringRunId: j.UUID,

@@ -61,9 +61,9 @@ class TestV2beta1RunDetails(unittest.TestCase):
                             code = 56, 
                             message = '0', 
                             details = [
-                                kfp_server_api.models.protobuf_any.protobufAny(
-                                    type_url = '0', 
-                                    value = 'YQ==', )
+                                {
+                                    'key' : None
+                                    }
                                 ], ), 
                         inputs = {
                             'key' : kfp_server_api.models.v2beta1_artifact_list.v2beta1ArtifactList(

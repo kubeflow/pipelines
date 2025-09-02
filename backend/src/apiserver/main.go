@@ -30,7 +30,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
@@ -48,6 +48,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	corev1 "k8s.io/api/core/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -57,6 +58,7 @@ import (
 const (
 	executionTypeEnv = "ExecutionType"
 	launcherEnv      = "Launcher"
+	workspaceConfig  = "workspace"
 )
 
 var (
@@ -157,11 +159,18 @@ func main() {
 
 	}
 
+	var pvcSpec *corev1.PersistentVolumeClaimSpec
+	pvcSpec, err = getPVCSpec()
+	if err != nil {
+		glog.Fatalf("Failed to get Workspace PVC Spec: %v", err)
+	}
+
 	resourceManager := resource.NewResourceManager(
 		clientManager,
 		&resource.ResourceManagerOptions{
-			CollectMetrics: *collectMetricsFlag,
-			CacheDisabled:  !common.GetBoolConfigWithDefault("CacheEnabled", true),
+			CollectMetrics:   *collectMetricsFlag,
+			CacheDisabled:    !common.GetBoolConfigWithDefault("CacheEnabled", true),
+			DefaultWorkspace: pvcSpec,
 		},
 	)
 	err = config.LoadSamples(resourceManager, *sampleConfigPath)
@@ -210,23 +219,27 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
 
-	sharedExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
-	sharedPipelineServer := server.NewPipelineServer(
-		resourceManager,
-		&server.PipelineServerOptions{
-			CollectMetrics: *collectMetricsFlag,
-		},
-	)
-	sharedJobServer := server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag})
-	sharedRunServer := server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag})
-	sharedReportServer := server.NewReportServer(resourceManager)
+	ExperimentServerV1 := server.NewExperimentServerV1(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
+	ExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
 
-	apiv1beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
-	apiv1beta1.RegisterPipelineServiceServer(s, sharedPipelineServer)
-	apiv1beta1.RegisterJobServiceServer(s, sharedJobServer)
-	apiv1beta1.RegisterRunServiceServer(s, sharedRunServer)
+	PipelineServerV1 := server.NewPipelineServerV1(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag})
+	PipelineServer := server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag})
+
+	RunServerV1 := server.NewRunServerV1(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag})
+	RunServer := server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag})
+
+	JobServerV1 := server.NewJobServerV1(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag})
+	JobServer := server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag})
+
+	ReportServerV1 := server.NewReportServerV1(resourceManager)
+	ReportServer := server.NewReportServer(resourceManager)
+
+	apiv1beta1.RegisterExperimentServiceServer(s, ExperimentServerV1)
+	apiv1beta1.RegisterPipelineServiceServer(s, PipelineServerV1)
+	apiv1beta1.RegisterJobServiceServer(s, JobServerV1)
+	apiv1beta1.RegisterRunServiceServer(s, RunServerV1)
 	apiv1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
-	apiv1beta1.RegisterReportServiceServer(s, sharedReportServer)
+	apiv1beta1.RegisterReportServiceServer(s, ReportServerV1)
 
 	apiv1beta1.RegisterVisualizationServiceServer(
 		s,
@@ -237,11 +250,11 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 		))
 	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
 
-	apiv2beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
-	apiv2beta1.RegisterPipelineServiceServer(s, sharedPipelineServer)
-	apiv2beta1.RegisterRecurringRunServiceServer(s, sharedJobServer)
-	apiv2beta1.RegisterRunServiceServer(s, sharedRunServer)
-	apiv2beta1.RegisterReportServiceServer(s, sharedReportServer)
+	apiv2beta1.RegisterExperimentServiceServer(s, ExperimentServer)
+	apiv2beta1.RegisterPipelineServiceServer(s, PipelineServer)
+	apiv2beta1.RegisterRecurringRunServiceServer(s, JobServer)
+	apiv2beta1.RegisterRunServiceServer(s, RunServer)
+	apiv2beta1.RegisterReportServiceServer(s, ReportServer)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -266,8 +279,9 @@ func startHttpProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 		pipelineStore = "database"
 	}
 
-	// Create gRPC HTTP MUX and register services for v1beta1 api.
-	runtimeMux := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(grpcCustomMatcher))
+	runtimeMux := runtime.NewServeMux(
+		runtime.WithIncomingHeaderMatcher(grpcCustomMatcher),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, common.CustomMarshaler()))
 	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux)
 	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
 	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, runtimeMux)
@@ -397,4 +411,23 @@ func initConfig() {
 	})
 
 	proxy.InitializeConfigWithEnv()
+}
+
+// getPVCSpec retrieves the default workspace PersistentVolumeClaimSpec from the config.
+// This default is used for workspace PVCs when users do not specify their own configuration.
+func getPVCSpec() (*corev1.PersistentVolumeClaimSpec, error) {
+	workspaceConfig := viper.Sub(workspaceConfig)
+	if workspaceConfig == nil {
+		glog.Info("No workspace config found; proceeding without a default PVC spec")
+		return nil, nil
+	}
+	var pvcSpec corev1.PersistentVolumeClaimSpec
+	if err := workspaceConfig.UnmarshalKey("volumeclaimtemplatespec", &pvcSpec); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal workspace.volumeclaimtemplatespec: %w", err)
+	}
+	if len(pvcSpec.AccessModes) == 0 || pvcSpec.StorageClassName == nil || *pvcSpec.StorageClassName == "" {
+		return nil, fmt.Errorf("invalid workspace.volumeclaimtemplatespec: must specify accessModes and storageClassName")
+	}
+
+	return &pvcSpec, nil
 }

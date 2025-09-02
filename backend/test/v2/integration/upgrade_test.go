@@ -51,7 +51,7 @@ type UpgradeTests struct {
 	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
+	pipelineUploadClient api_server.PipelineUploadInterface
 	runClient            *api_server.RunClient
 	recurringRunClient   *api_server.RecurringRunClient
 }
@@ -101,7 +101,6 @@ func (s *UpgradeTests) SetupSuite() {
 	s.namespace = *namespace
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var newRunClient func() (*api_server.RunClient, error)
 	var newRecurringRunClient func() (*api_server.RecurringRunClient, error)
@@ -111,9 +110,6 @@ func (s *UpgradeTests) SetupSuite() {
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
 			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
@@ -129,9 +125,6 @@ func (s *UpgradeTests) SetupSuite() {
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
 			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
 			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
@@ -149,7 +142,13 @@ func (s *UpgradeTests) SetupSuite() {
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*isDebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
@@ -188,7 +187,7 @@ func (s *UpgradeTests) PrepareExperiments() {
 	/* ---------- Create a new experiment ---------- */
 	experiment := test.MakeExperiment("training", "my first experiment", s.resourceNamespace)
 	_, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	require.Nil(t, err)
 
@@ -197,14 +196,14 @@ func (s *UpgradeTests) PrepareExperiments() {
 	time.Sleep(1 * time.Second)
 	experiment = test.MakeExperiment("prediction", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	require.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 	experiment = test.MakeExperiment("moonshot", "my third experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	require.Nil(t, err)
 }
@@ -269,13 +268,13 @@ func (s *UpgradeTests) PreparePipelines() {
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&pipeline_params.PipelineServiceCreatePipelineParams{
-		Body: &pipeline_model.V2beta1Pipeline{DisplayName: "sequential"},
+		Pipeline: &pipeline_model.V2beta1Pipeline{DisplayName: "sequential"},
 	})
 	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.DisplayName)
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: sequentialPipeline.PipelineID,
-		Body: &pipeline_model.V2beta1PipelineVersion{
+		PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
 			DisplayName: "sequential",
 			PackageURL: &pipeline_model.V2beta1URL{
 				PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
@@ -302,13 +301,13 @@ func (s *UpgradeTests) PreparePipelines() {
 
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&pipeline_params.PipelineServiceCreatePipelineParams{
-		Body: &pipeline_model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip"},
+		Pipeline: &pipeline_model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip"},
 	})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.DisplayName)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: argumentUrlPipeline.PipelineID,
-		Body: &pipeline_model.V2beta1PipelineVersion{
+		PipelineVersion: &pipeline_model.V2beta1PipelineVersion{
 			DisplayName: "arguments",
 			PackageURL: &pipeline_model.V2beta1URL{
 				PipelineURL: pipelineURL,
@@ -373,7 +372,7 @@ func (s *UpgradeTests) PrepareRuns() {
 	require.Equal(t, hello2, helloWorldExperiment)
 
 	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
-	createRunRequest := &runParams.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -412,7 +411,7 @@ func (s *UpgradeTests) PrepareRecurringRuns() {
 	experiment := s.getHelloWorldExperiment(true)
 
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName: "hello world",
 		Description: "this is hello world",
 		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
@@ -421,7 +420,7 @@ func (s *UpgradeTests) PrepareRecurringRuns() {
 		},
 		ExperimentID:   experiment.ExperimentID,
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeENABLE,
+		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 		NoCatchup:      true,
 	}}
 	_, err := s.recurringRunClient.Create(createRecurringRunRequest)
@@ -452,7 +451,7 @@ func (s *UpgradeTests) VerifyRecurringRuns() {
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		MaxConcurrency: 10,
 		NoCatchup:      true,
-		Mode:           recurring_run_model.RecurringRunModeENABLE,
+		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 		Namespace:      recurringRun.Namespace,
 		CreatedAt:      recurringRun.CreatedAt,
 		UpdatedAt:      recurringRun.UpdatedAt,
@@ -488,7 +487,7 @@ func (s *UpgradeTests) VerifyCreatingRunsAndRecurringRuns() {
 	assert.Equal(t, "hello world experiment", experiments[4].DisplayName)
 
 	/* ---------- Create a new run based on the oldest pipeline and its default pipeline version ---------- */
-	createRunRequest := &runParams.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName: "argument parameter from pipeline",
 		Description: "a run from an old pipeline",
 		// This run should belong to the newest experiment (created after the upgrade)
@@ -516,7 +515,7 @@ func (s *UpgradeTests) VerifyCreatingRunsAndRecurringRuns() {
 	require.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 
-	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "sequential job from pipeline version",
 		Description:  "a recurring run from an old pipeline version",
 		ExperimentID: experiments[1].ExperimentID,
@@ -530,7 +529,7 @@ func (s *UpgradeTests) VerifyCreatingRunsAndRecurringRuns() {
 			},
 		},
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeENABLE,
+		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 	}}
 	createdRecurringRun, err := s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
@@ -541,7 +540,7 @@ func (s *UpgradeTests) createHelloWorldExperiment() *experiment_model.V2beta1Exp
 	t := s.T()
 
 	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	require.Nil(t, err)
 
 	return helloWorldExperiment

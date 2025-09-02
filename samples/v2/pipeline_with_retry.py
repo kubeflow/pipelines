@@ -4,15 +4,13 @@ from kfp import dsl
 
 from kfp import compiler
 
-_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
-
-@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
+@dsl.component()
 def verify_retries(retryCount: str, retries: str) -> bool:
     if retryCount != retries:
         raise Exception(f"Number of retries has not reached {retries} blank yet.")
     return True
 
-@dsl.component(kfp_package_path=_KFP_PACKAGE_PATH)
+@dsl.component()
 def print_op(text: str) -> str:
     print(text)
     return text

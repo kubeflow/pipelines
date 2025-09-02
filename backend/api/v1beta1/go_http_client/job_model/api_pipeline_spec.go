@@ -6,15 +6,16 @@ package job_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // APIPipelineSpec api pipeline spec
+//
 // swagger:model apiPipelineSpec
 type APIPipelineSpec struct {
 
@@ -60,7 +61,6 @@ func (m *APIPipelineSpec) Validate(formats strfmt.Registry) error {
 }
 
 func (m *APIPipelineSpec) validateParameters(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Parameters) { // not required
 		return nil
 	}
@@ -74,6 +74,8 @@ func (m *APIPipelineSpec) validateParameters(formats strfmt.Registry) error {
 			if err := m.Parameters[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("parameters" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("parameters" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -85,7 +87,6 @@ func (m *APIPipelineSpec) validateParameters(formats strfmt.Registry) error {
 }
 
 func (m *APIPipelineSpec) validateRuntimeConfig(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.RuntimeConfig) { // not required
 		return nil
 	}
@@ -94,6 +95,72 @@ func (m *APIPipelineSpec) validateRuntimeConfig(formats strfmt.Registry) error {
 		if err := m.RuntimeConfig.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("runtime_config")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("runtime_config")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ContextValidate validate this api pipeline spec based on the context it is used
+func (m *APIPipelineSpec) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateParameters(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateRuntimeConfig(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *APIPipelineSpec) contextValidateParameters(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Parameters); i++ {
+
+		if m.Parameters[i] != nil {
+
+			if swag.IsZero(m.Parameters[i]) { // not required
+				return nil
+			}
+
+			if err := m.Parameters[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("parameters" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("parameters" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *APIPipelineSpec) contextValidateRuntimeConfig(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.RuntimeConfig != nil {
+
+		if swag.IsZero(m.RuntimeConfig) { // not required
+			return nil
+		}
+
+		if err := m.RuntimeConfig.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("runtime_config")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("runtime_config")
 			}
 			return err
 		}

@@ -56,7 +56,7 @@ func FromPipelineModel(pipeline model.Pipeline) Pipeline {
 		},
 		Spec: PipelineSpec{
 			DisplayName: pipeline.DisplayName,
-			Description: pipeline.Description,
+			Description: string(pipeline.Description),
 		},
 	}
 }
@@ -72,7 +72,7 @@ func (p *Pipeline) ToModel() *model.Pipeline {
 	return &model.Pipeline{
 		Name:           p.Name,
 		DisplayName:    displayName,
-		Description:    p.Spec.Description,
+		Description:    model.LargeText(p.Spec.Description),
 		Namespace:      p.Namespace,
 		UUID:           string(p.UID),
 		CreatedAtInSec: p.CreationTimestamp.Unix(),
@@ -82,22 +82,24 @@ func (p *Pipeline) ToModel() *model.Pipeline {
 
 func (p *Pipeline) GetField(name string) interface{} {
 	switch name {
-	case "pipelines.id":
+	case "pipelines.UUID":
 		return p.UID
 	case "pipelines.pipeline_id":
 		return p.UID
 	case "pipelines.Name":
 		return p.Name
-	case "pipelines.display_name":
+	case "pipelines.DisplayName":
 		return p.Spec.DisplayName
-	case "pipelines.created_at":
-		return p.CreationTimestamp
-	case "description":
+	case "pipelines.CreatedAtInSec":
+		return p.CreationTimestamp.Unix()
+	case "pipelines.Description":
 		return p.Spec.Description
 	case "pipelines.namespace":
 		return p.Namespace
+	case "pipelines.Namespace":
+		return p.Namespace
 	default:
-		return ""
+		return nil
 	}
 }
 

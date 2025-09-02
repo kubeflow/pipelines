@@ -1,0 +1,167 @@
+{
+  "experiment_id": "f7344db6-de5d-4e68-816b-98b4f0d1ca7f",
+  "run_id": "9e68aca5-3afa-4028-8777-f697d858053f",
+  "namespace": "some_namespace",
+  "display_name": "mypipeline-run",
+  "storage_state": "AVAILABLE",
+  "pipeline_version_reference": {},
+  "pipeline_root": "minio://mlpipeline/v2/artifacts/pipeline/f7344db6-de5d-4e68-816b-98b4f0d1ca7f",
+  "runtime_config": {},
+  "service_account": "pipeline-runner",
+  "created_at": "2025-08-08T15:15:41Z",
+  "scheduled_at": "2025-08-08T15:15:41Z",
+  "finished_at": "2025-08-08T15:18:24Z",
+  "state": "SUCCEEDED",
+  // These are new:
+  "tasks": [
+    {
+      "task_id": "task_id_1",
+      "run_id": "run_id",
+      "display_name": "train-model",
+      "create_time": "2025-08-08T15:15:41Z",
+      "start_time": "2025-08-08T15:17:36Z",
+      "end_time": "2025-08-08T15:18:24Z",
+      "state": "SUCCEEDED",
+      "state_history": [],
+      // in non Runtime types, we expect only one pod
+      "pods": [
+        {
+          "name": "runtime_driver_pod",
+          "uid" : "some_uid_a",
+          "type": "DRIVER"
+        },
+        {
+          "name": "runtime_executor_pod",
+          "uid" : "some_uid_a",
+          "type": "EXECUTOR"
+        }
+      ],
+      "inputs": {
+        "metrics": [
+          {
+            "key": "accuracy_score",
+            "value": 2123.22,
+            "task_id": "task_id_1",
+            "schema": "Metric",
+            "created_at": "2025-08-08T15:15:41Z",
+            "type": "METRIC_INPUT"
+          },
+          {
+            "schema": "ClassificationMetrics",
+            "values": [
+              {
+                "confidenceThreshold": 0.999999,
+                "falsePositiveRate": 0,
+                "recall": 0
+              },
+              {
+                "confidenceThreshold": 1,
+                "falsePositiveRate": 0,
+                "recall": 0.33962264150943394
+              }],
+            "task_id": "task_id_1",
+            "created_at": "2025-08-08T15:15:41Z",
+            "type": "METRIC_INPUT"
+          }
+        ],
+        "artifacts": [
+          {
+            "input_type": "ResolvedInput",
+            "name": "input_dataset",
+            "value": {
+              "artifact_id": "5",
+              "name": "my_dataset",
+              "type": "Model",
+              "uri": "minio://mlpipeline/v2/artifacts/pipeline/9e68aca5-3afa-4028-8777-f697d858053f/input_dataset",
+              "custom_properties": {
+                "my_data": ["some", "data"],
+                "more_data": { "can_be":  "anythingJSON"}
+              },
+              "created_at": "2025-08-08T15:15:41Z",
+              "namespace": "some_namespace"
+            }
+          },
+          {
+            "input_type": "PipelineChannel",
+            "producer_task_name": "output_artifact",
+            "producer_parameter_id": "some_id",
+            "value": {
+              "artifact_id": "5",
+              "name": "my_dataset",
+              "type": "Model",
+              "uri": "minio://mlpipeline/v2/artifacts/pipeline/9e68aca5-3afa-4028-8777-f697d858053f/input_dataset",
+              "custom_properties": {
+                "my_data": ["some", "data"],
+                "more_data": { "can_be":  "anythingJSON"}
+              },
+              "created_at": "2025-08-08T15:15:41Z",
+              "namespace": "some_namespace"
+            }
+          }
+        ],
+        "parameters": [
+          {
+            // For Runtime tasks we expect to have resolved input parameters
+            "input_type": "ResolvedInput",
+            "name": "min_max_scaler",
+            "value": "false"
+          },
+          {
+            // For non Runtime tasks, we may get PipelineChannels as input parameters
+            // PipelineChannel can be of the following forms:
+            // * pipelinechannel--output-msg-output_artifact
+            // * pipelinechannel--output-msg-Output
+            // We convert these to a more machine readable format:
+            "input_type": "PipelineChannel",
+            "producer_task_name": "output-msg",
+            // We call it ID because it's not always a parameter "name" so producer_parameter_name would be misleading
+            // (e.g. in the case of loops pipelinechannel--loop-item-param-1), if we can infer the name of the iteration
+            // param then "name" would be better.
+            "producer_parameter_id": "a_msg",
+            "value": "this"
+          }
+        ]
+      },
+      // Same structure as inputs
+      "outputs": {
+        "metrics": [],
+        "artifacts": [],
+        // At first this is not intuitive, but there are output parameter pipeline channels, like in the case of dsl.collected.
+        // This is defined in the pipeline spec, though we don't surface these pipeline channels today in the runtime executions.
+        // I.e., it is not visible in the RunDetails graph details. It is not in scope of this proposal to add this feature but
+        // the api should support it regardless.
+        "parameters": []
+      },
+      "child_tasks": [{"pod_name": "pipeline-j9t66-382940577"}],
+      // Add these new fields
+      "child_task_ids": [
+        {
+          "name": "some_task",
+          "id": "task_id_1"
+        },
+        {
+          "name": "another_task",
+          "id": "task_id_2"
+        }
+      ],
+      "type": "LOOP",
+      // Included for LoopIteration
+      "iteration_index": 2,
+      // Included for LoopCount, iteration_index & iteration_count are mutually exclusive
+      "iteration_count": 2,
+      // This should match the component task names created during sdk compilation
+      // UI can use this to look up matching tasks in the UI.
+      // In the case of task_groups this would take on names like: "condition-branches-1, for-loop-1, etc."
+      "name": "task_name",
+      "cache_fingerprint": "0d32871640a827e4abaec95747b8780602f38f2f66d447ee70af3a7310d5849e",
+    }
+  ],
+
+  // We have 2 paths here:
+  // 1) As it's not used in KFP and half implemented, we can remove this outright. But it is part of the Runs object api, which is widely used.
+  // 2) We can deprecate it, but we intend to drop the "tasks" table, so it can just be something like:
+  "run_details": {
+    "task_details": [ ] // Same as "tasks" at root level
+  },
+  "state_history": []
+}

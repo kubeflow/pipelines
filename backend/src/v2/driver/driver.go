@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 )
@@ -65,6 +66,10 @@ type Options struct {
 	PublishLogs string
 
 	CacheDisabled bool
+
+	DriverType string
+
+	TaskName string // the original name of the task, used for input resolution
 }
 
 // Identifying information used for error messages
@@ -73,8 +78,8 @@ func (o Options) info() string {
 	if o.Task.GetTaskInfo().GetName() != "" {
 		msg = msg + fmt.Sprintf(", taskDisplayName=%q", o.Task.GetTaskInfo().GetName())
 	}
-	if o.Task.GetTaskInfo().GetTaskName() != "" {
-		msg = msg + fmt.Sprintf(", taskName=%q", o.Task.GetTaskInfo().GetTaskName())
+	if o.TaskName != "" {
+		msg = msg + fmt.Sprintf(", taskName=%q", o.TaskName)
 	}
 	if o.Task.GetComponentRef().GetName() != "" {
 		msg = msg + fmt.Sprintf(", component=%q", o.Task.GetComponentRef().GetName())
@@ -316,7 +321,74 @@ func initPodSpecPatch(
 
 	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), userEnvVar, podSpec)
 
+	if needsWorkspaceMount(executorInput) {
+		// Validate that no user volume mounts conflict with the workspace
+		if err := validateVolumeMounts(podSpec); err != nil {
+			return nil, fmt.Errorf("failed to validate volume mounts: %w", err)
+		}
+
+		// Uses Argo template variable to reference the PVC created by volumeClaimTemplates
+		// Argo resolves {{workflow.name}}-kfp-workspace to the actual PVC name at runtime
+		pvcName := "{{workflow.name}}-" + component.WorkspaceVolumeName
+
+		addWorkspaceMount(podSpec, pvcName)
+	}
+
 	return podSpec, nil
+}
+
+// needsWorkspaceMount checks if the component needs workspace mounting based on input parameters and artifacts.
+func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
+	// Check if any input parameter is the workspace path placeholder
+	for _, param := range executorInput.GetInputs().GetParameterValues() {
+		if strVal, ok := param.GetKind().(*structpb.Value_StringValue); ok {
+			if strings.Contains(strVal.StringValue, "{{$.workspace_path}}") {
+				return true
+			}
+
+			if strings.HasPrefix(strVal.StringValue, component.WorkspaceMountPath) {
+				return true
+			}
+		}
+	}
+
+	// Check if any input artifact has workspace metadata
+	for _, artifactList := range executorInput.GetInputs().GetArtifacts() {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+		// first artifact is used, as the list is expected to contain a single artifact
+		artifact := artifactList.Artifacts[0]
+		if artifact.Metadata != nil {
+			if workspaceVal, ok := artifact.Metadata.Fields["_kfp_workspace"]; ok {
+				if boolVal, ok := workspaceVal.GetKind().(*structpb.Value_BoolValue); ok && boolVal.BoolValue {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+// addWorkspaceMount adds the workspace volume mount to the pod spec if needed.
+func addWorkspaceMount(podSpec *k8score.PodSpec, pvcName string) {
+	workspaceVolume := k8score.Volume{
+		Name: component.WorkspaceVolumeName,
+		VolumeSource: k8score.VolumeSource{
+			PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
+				ClaimName: pvcName,
+			},
+		},
+	}
+
+	workspaceVolumeMount := k8score.VolumeMount{
+		Name:      component.WorkspaceVolumeName,
+		MountPath: component.WorkspaceMountPath,
+	}
+
+	podSpec.Volumes = append(podSpec.Volumes, workspaceVolume)
+	podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, workspaceVolumeMount)
 }
 
 // addModelcarsToPodSpec will patch the pod spec if there are any input artifacts in the Modelcar format.
@@ -520,4 +592,21 @@ func provisionOutputs(
 	}
 
 	return outputs
+}
+
+func validateVolumeMounts(podSpec *k8score.PodSpec) error {
+	// Validate that no user volume mounts conflict with the workspace mount path or volume name
+	for _, container := range podSpec.Containers {
+		for _, mount := range container.VolumeMounts {
+			if strings.HasPrefix(mount.MountPath, component.WorkspaceMountPath) {
+				return fmt.Errorf("user volume mount at %s conflicts with workspace mount at %s", mount.MountPath, component.WorkspaceMountPath)
+			}
+
+			if mount.Name == component.WorkspaceVolumeName {
+				return fmt.Errorf("user volume mount name %s conflicts with workspace volume name %s", mount.Name, component.WorkspaceVolumeName)
+			}
+		}
+	}
+
+	return nil
 }

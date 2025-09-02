@@ -14,7 +14,7 @@
 
 # Based on KFP backend api client generator dockerfile
 # Keep in sync with the version used in backend/api/Makefile
-FROM ghcr.io/kubeflow/kfp-api-generator:1.1
+FROM ghcr.io/kubeflow/kfp-api-generator:1.2
 
 # install nvm & node 12
 # Reference: https://stackoverflow.com/a/28390848
@@ -28,6 +28,7 @@ RUN mkdir -p $NVM_DIR && \
     nvm use default
 ENV NODE_PATH $NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules
 ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+ENV GIT_CLIFF_VERSION 2.10.0
 
 # install java==11 python==3
 RUN apt-get update \
@@ -45,3 +46,6 @@ RUN chmod -R 777 $NVM_DIR && \
 
 # Configure npm cache location
 RUN npm config set cache /tmp/.npm --global
+
+RUN curl -L https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz \
+    | tar -xz --strip-components=1 -C /usr/local/bin git-cliff-${GIT_CLIFF_VERSION}/git-cliff
