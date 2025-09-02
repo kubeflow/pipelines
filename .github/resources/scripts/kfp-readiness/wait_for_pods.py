@@ -77,7 +77,7 @@ def print_get_pods():
         print(f"An error occurred while running kubectl get pods: {e.stderr}")
 
 
-def check_pods(calm_time=10, timeout=900, retries_after_ready=5):
+def check_pods(calm_time=10, timeout=600, retries_after_ready=5):
     start_time = time.time()
     stable_count = 0
     previous_statuses = {}
