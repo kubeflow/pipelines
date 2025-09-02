@@ -31,6 +31,7 @@ spec:
         - '-s3'
         - '-iam'
         - '-filer'
+        - '-master.volumePreallocate=false'
         ports:
         - containerPort: 8333
         - containerPort: 8111

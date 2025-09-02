@@ -166,7 +166,7 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 	}
 	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
 	runtimeConfig.ParameterValues = *parameters
-	runtimeConfig.GcsOutputDirectory = modelRuntimeConfig.PipelineRoot
+	runtimeConfig.GcsOutputDirectory = string(modelRuntimeConfig.PipelineRoot)
 	return runtimeConfig, nil
 }
 
