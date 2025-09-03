@@ -1,7 +1,7 @@
 # Test Plan to verify multiple supported argo versions
 
 ## Compatibility Matrix Tests
-Based on the compatability matrix as defined in #Test Environments
+Based on the compatability matrix as defined in [Test Environments](#test-environments)
 
 ### Test Environments
 | Environment | Argo Version  | KFP Version | Purpose                   |
