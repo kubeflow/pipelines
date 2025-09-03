@@ -62,9 +62,13 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 	errorF := func(err error) ([]*model.Experiment, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
+	q := s.dialect.QuoteIdentifier
 	opts.SetQuote(s.dialect.QuoteIdentifier)
 
-	q := s.dialect.QuoteIdentifier
+	// Fix for wrong sort key prefix.
+	opts.SetSortByFieldPrefix(q("experiments") + ".")
+	opts.SetKeyFieldPrefix(q("experiments") + ".")
+
 	// SQL for getting the filtered and paginated rows
 	qb := s.dialect.QueryBuilder()
 	cols := make([]string, len(experimentColumns))
