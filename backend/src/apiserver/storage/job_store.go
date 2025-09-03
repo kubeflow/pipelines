@@ -195,9 +195,8 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
 	sql, args, err := s.addResourceReferences(
-		qb.Select(jobColumns...).From(q("jobs")),
+		qb.Select(quoteAll(q, jobColumns)...).From(q("jobs")),
 	).Where(sq.Eq{q("UUID"): id}).Limit(1).ToSql()
-
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get job: %v",
 			err.Error())

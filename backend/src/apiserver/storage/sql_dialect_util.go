@@ -104,6 +104,17 @@ func joinQuoted(q func(string) string, cols []string) string {
 	return strings.Join(out, ", ")
 }
 
+// quoteAll applies the dialect's QuoteIdentifier (q) to each column name and returns a new slice.
+// Use this when passing columns into squirrel.Select(...), so each identifier is properly quoted
+// for the current SQL dialect (e.g., Postgres requires double quotes to preserve case).
+func quoteAll(q func(string) string, cols []string) []string {
+	out := make([]string, len(cols))
+	for i, c := range cols {
+		out[i] = q(c)
+	}
+	return out
+}
+
 // ---- UPDATE ... JOIN / FROM compatibility ------------------------------------
 
 // updateFromPG normalizes "update with join" to PostgreSQL's
