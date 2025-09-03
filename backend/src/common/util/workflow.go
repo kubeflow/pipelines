@@ -513,7 +513,7 @@ func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, r
 		return nil, err
 	}
 
-	retrievedNodeID := RetrievePodName(wf, *nodeStatus)
+	retrievedNodeID := nodeStatus.ID
 	// Proto json lib requires a proto message before unmarshal data from JSON. We use
 	// ReportRunMetricsRequest as a workaround to hold user's metrics, which is a superset of what
 	// user can provide.
@@ -579,7 +579,7 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 
 	artifactRequest := &api.ReadArtifactRequest{
 		RunId:        runID,
-		NodeId:       RetrievePodName(*wf, *nodeStatus),
+		NodeId:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
 	}
 	artifactResponse, err := retrieveArtifact(artifactRequest)
