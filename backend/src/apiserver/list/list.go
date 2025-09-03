@@ -101,6 +101,16 @@ func (o *Options) SetQuote(q func(string) string) {
 	o.quoteIdentifier = q
 }
 
+// SetSortByFieldPrefix sets the prefix for the sort-by field.
+func (o *Options) SetSortByFieldPrefix(prefix string) {
+	o.SortByFieldPrefix = prefix
+}
+
+// SetKeyFieldPrefix sets the prefix for the key field.
+func (o *Options) SetKeyFieldPrefix(prefix string) {
+	o.KeyFieldPrefix = prefix
+}
+
 func EmptyOptions() *Options {
 	return &Options{
 		math.MaxInt32,
