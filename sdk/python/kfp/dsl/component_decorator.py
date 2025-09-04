@@ -13,24 +13,29 @@
 # limitations under the License.
 
 import functools
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Union
 import warnings
 
 from kfp.dsl import component_factory
+from kfp.dsl.component_task_config import TaskConfigField
+from kfp.dsl.component_task_config import TaskConfigPassthrough
 
 
-def component(func: Optional[Callable] = None,
-              *,
-              base_image: Optional[str] = None,
-              target_image: Optional[str] = None,
-              packages_to_install: List[str] = None,
-              pip_index_urls: Optional[List[str]] = None,
-              output_component_file: Optional[str] = None,
-              install_kfp_package: bool = True,
-              kfp_package_path: Optional[str] = None,
-              pip_trusted_hosts: Optional[List[str]] = None,
-              use_venv: bool = False,
-              additional_funcs: Optional[List[Callable]] = None):
+def component(
+    func: Optional[Callable] = None,
+    *,
+    base_image: Optional[str] = None,
+    target_image: Optional[str] = None,
+    packages_to_install: List[str] = None,
+    pip_index_urls: Optional[List[str]] = None,
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None,
+    pip_trusted_hosts: Optional[List[str]] = None,
+    use_venv: bool = False,
+    additional_funcs: Optional[List[Callable]] = None,
+    task_config_passthroughs: Optional[List[Union[TaskConfigPassthrough,
+                                                  TaskConfigField]]] = None):
     """Decorator for Python-function based components.
 
     A KFP component can either be a lightweight component or a containerized
@@ -83,6 +88,9 @@ def component(func: Optional[Callable] = None,
         additional_funcs: List of additional functions to include in the component.
             These functions will be available to the main function. This is useful for adding util functions that
             are shared across multiple components but are not packaged as an importable Python package.
+        task_config_passthroughs: List of task configurations (e.g. resources, env, volumes etc.) to pass through
+            to the component. This is useful when the component launches another Kubernetes resource (for example,
+            a Kubeflow Trainer job). Use this in conjunction with dsl.TaskConfig.
 
     Returns:
         A component task factory that can be used in pipeline definitions.
@@ -114,6 +122,19 @@ def component(func: Optional[Callable] = None,
             DeprecationWarning,
             stacklevel=2)
 
+    task_config_passthroughs_formatted: Optional[
+        List[TaskConfigPassthrough]] = None
+    if task_config_passthroughs is not None:
+        task_config_passthroughs_formatted = []
+
+        for passthrough in task_config_passthroughs:
+            if isinstance(passthrough, TaskConfigField):
+                task_config_passthroughs_formatted.append(
+                    TaskConfigPassthrough(
+                        field=passthrough, apply_to_task=False))
+            else:
+                task_config_passthroughs_formatted.append(passthrough)
+
     if func is None:
         return functools.partial(
             component,
@@ -126,7 +147,8 @@ def component(func: Optional[Callable] = None,
             kfp_package_path=kfp_package_path,
             pip_trusted_hosts=pip_trusted_hosts,
             use_venv=use_venv,
-            additional_funcs=additional_funcs)
+            additional_funcs=additional_funcs,
+            task_config_passthroughs=task_config_passthroughs_formatted)
 
     return component_factory.create_component_from_func(
         func,
@@ -139,4 +161,5 @@ def component(func: Optional[Callable] = None,
         kfp_package_path=kfp_package_path,
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
-        additional_funcs=additional_funcs)
+        additional_funcs=additional_funcs,
+        task_config_passthroughs=task_config_passthroughs_formatted)

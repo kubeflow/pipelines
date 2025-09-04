@@ -114,8 +114,16 @@ func extendPodSpecPatch(
 	pipeline *metadata.Pipeline,
 	mlmd *metadata.Client,
 	inputParams map[string]*structpb.Value,
+	taskConfig *TaskConfig,
 ) error {
 	kubernetesExecutorConfig := opts.KubernetesExecutorConfig
+
+	setOnTaskConfig, setOnPod := getTaskConfigOptions(opts.Component)
+
+	// Always set setOnTaskConfig to an empty map if taskConfig is nil to avoid nil pointer dereference.
+	if taskConfig == nil {
+		setOnTaskConfig = map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool{}
+	}
 
 	// Return an error if the podSpec has no user container.
 	if len(podSpec.Containers) == 0 {
@@ -129,9 +137,17 @@ func extendPodSpecPatch(
 		if err != nil {
 			return fmt.Errorf("failed to extract volume mount info: %w", err)
 		}
-		podSpec.Volumes = append(podSpec.Volumes, volumes...)
-		// We assume that the user container always gets executed first within a pod.
-		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volumeMounts...)
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			taskConfig.VolumeMounts = append(taskConfig.VolumeMounts, volumeMounts...)
+			taskConfig.Volumes = append(taskConfig.Volumes, volumes...)
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			podSpec.Volumes = append(podSpec.Volumes, volumes...)
+			// We assume that the user container always gets executed first within a pod.
+			podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volumeMounts...)
+		}
 	}
 
 	// Get image pull policy
@@ -154,16 +170,23 @@ func extendPodSpecPatch(
 
 	// Get node selector information
 	if kubernetesExecutorConfig.GetNodeSelector() != nil {
+		var nodeSelector map[string]string
 		if kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson() != nil {
-			var nodeSelector map[string]string
 			err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
 				kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson(), inputParams, &nodeSelector)
 			if err != nil {
 				return fmt.Errorf("failed to resolve node selector: %w", err)
 			}
-			podSpec.NodeSelector = nodeSelector
 		} else {
-			podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
+			nodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
+		}
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
+			taskConfig.NodeSelector = nodeSelector
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
+			podSpec.NodeSelector = nodeSelector
 		}
 	}
 
@@ -219,8 +242,7 @@ func extendPodSpecPatch(
 							glog.V(4).Info("encountered empty tolerations list, ignoring.")
 						}
 					} else {
-						return fmt.Errorf("encountered unexpected toleration proto value, " +
-							"must be either struct or list type.")
+						return fmt.Errorf("encountered unexpected toleration proto value, must be either struct or list type")
 					}
 				} else {
 					k8sToleration.Key = toleration.Key
@@ -233,7 +255,13 @@ func extendPodSpecPatch(
 
 			}
 		}
-		podSpec.Tolerations = k8sTolerations
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_TOLERATIONS] {
+			taskConfig.Tolerations = k8sTolerations
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_TOLERATIONS] {
+			podSpec.Tolerations = k8sTolerations
+		}
 	}
 
 	// Get secret mount information
@@ -266,8 +294,16 @@ func extendPodSpecPatch(
 			Name:      secretName,
 			MountPath: secretAsVolume.GetMountPath(),
 		}
-		podSpec.Volumes = append(podSpec.Volumes, secretVolume)
-		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, secretVolumeMount)
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			taskConfig.Volumes = append(taskConfig.Volumes, secretVolume)
+			taskConfig.VolumeMounts = append(taskConfig.VolumeMounts, secretVolumeMount)
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			podSpec.Volumes = append(podSpec.Volumes, secretVolume)
+			podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, secretVolumeMount)
+		}
 	}
 
 	// Get secret env information
@@ -298,7 +334,14 @@ func extendPodSpecPatch(
 			}
 
 			secretEnvVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name = secretName
-			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, secretEnvVar)
+
+			if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
+				podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, secretEnvVar)
+			}
+
+			if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {
+				taskConfig.Env = append(taskConfig.Env, secretEnvVar)
+			}
 		}
 	}
 
@@ -334,8 +377,16 @@ func extendPodSpecPatch(
 			Name:      configMapName,
 			MountPath: configMapAsVolume.GetMountPath(),
 		}
-		podSpec.Volumes = append(podSpec.Volumes, configMapVolume)
-		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, configMapVolumeMount)
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			podSpec.Volumes = append(podSpec.Volumes, configMapVolume)
+			podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, configMapVolumeMount)
+		}
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			taskConfig.Volumes = append(taskConfig.Volumes, configMapVolume)
+			taskConfig.VolumeMounts = append(taskConfig.VolumeMounts, configMapVolumeMount)
+		}
 	}
 
 	// Get config map env information
@@ -366,7 +417,14 @@ func extendPodSpecPatch(
 			}
 
 			configMapEnvVar.ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name = configMapName
-			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, configMapEnvVar)
+
+			if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
+				podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, configMapEnvVar)
+			}
+
+			if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {
+				taskConfig.Env = append(taskConfig.Env, configMapEnvVar)
+			}
 		}
 	}
 
@@ -405,7 +463,14 @@ func extendPodSpecPatch(
 				},
 			},
 		}
-		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, fieldPathEnvVar)
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {
+			taskConfig.Env = append(taskConfig.Env, fieldPathEnvVar)
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
+			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, fieldPathEnvVar)
+		}
 	}
 
 	// Get container timeout information
@@ -452,6 +517,8 @@ func extendPodSpecPatch(
 			Name:      ephemeralVolumeSpec.GetVolumeName(),
 			MountPath: ephemeralVolumeSpec.GetMountPath(),
 		}
+
+		// Ephemeral volumes don't apply for passthrough.
 		podSpec.Volumes = append(podSpec.Volumes, ephemeralVolume)
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, ephemeralVolumeMount)
 	}
@@ -478,6 +545,7 @@ func extendPodSpecPatch(
 			MountPath: emptyDirVolumeSpec.GetMountPath(),
 		}
 
+		// EmptyDirMounts don't apply for passthrough.
 		podSpec.Volumes = append(podSpec.Volumes, emptyDirVolume)
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, emptyDirVolumeMount)
 	}
@@ -547,17 +615,30 @@ func extendPodSpecPatch(
 		}
 
 		if len(requiredTerms) > 0 || len(preferredTerms) > 0 {
-			if podSpec.Affinity == nil {
-				podSpec.Affinity = &k8score.Affinity{}
-			}
-			podSpec.Affinity.NodeAffinity = &k8score.NodeAffinity{}
+			k8sNodeAffinity := &k8score.NodeAffinity{}
 			if len(requiredTerms) > 0 {
-				podSpec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &k8score.NodeSelector{
+				k8sNodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &k8score.NodeSelector{
 					NodeSelectorTerms: requiredTerms,
 				}
 			}
 			if len(preferredTerms) > 0 {
-				podSpec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = preferredTerms
+				k8sNodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = preferredTerms
+			}
+
+			if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY] {
+				if taskConfig.Affinity == nil {
+					taskConfig.Affinity = &k8score.Affinity{}
+				}
+
+				taskConfig.Affinity.NodeAffinity = k8sNodeAffinity
+			}
+
+			if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY] {
+				if podSpec.Affinity == nil {
+					podSpec.Affinity = &k8score.Affinity{}
+				}
+
+				podSpec.Affinity.NodeAffinity = k8sNodeAffinity
 			}
 		}
 	}
@@ -741,7 +822,6 @@ func deletePVC(
 	mlmd *metadata.Client,
 	ecfg *metadata.ExecutionConfig,
 ) (createdExecution *metadata.Execution, status pb.Execution_State, err error) {
-
 	// Create execution regardless the operation succeeds or not
 	defer func() {
 		if createdExecution == nil {

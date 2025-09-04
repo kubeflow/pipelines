@@ -32,6 +32,8 @@ from kfp.dsl import placeholders
 from kfp.dsl import python_component
 from kfp.dsl import structures
 from kfp.dsl import task_final_status
+from kfp.dsl.component_task_config import TaskConfigPassthrough
+from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import custom_artifact_types
 from kfp.dsl.types import type_annotations
@@ -59,6 +61,7 @@ class ComponentInfo():
     pip_index_urls: Optional[List[str]] = None
     pip_trusted_hosts: Optional[List[str]] = None
     use_venv: bool = False
+    task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None
 
 
 # A map from function_name to components.  This is always populated when a
@@ -405,8 +408,12 @@ def make_input_spec(annotation: Any,
     default = None if inspect_param.default == inspect.Parameter.empty or type_annotations.issubclass_of_artifact(
         annotation) else inspect_param.default
 
-    optional = inspect_param.default is not inspect.Parameter.empty or type_utils.is_task_final_status_type(
-        getattr(inspect_param.annotation, '__name__', ''))
+    optional = (
+        inspect_param.default is not inspect.Parameter.empty or
+        type_utils.is_task_final_status_type(
+            getattr(inspect_param.annotation, '__name__', '')) or
+        type_utils.is_task_config_type(
+            getattr(inspect_param.annotation, '__name__', '')))
     return structures.InputSpec(
         **input_output_spec_args,
         default=default,
@@ -561,6 +568,7 @@ def create_component_from_func(
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
     additional_funcs: Optional[List[Callable]] = None,
+    task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
@@ -600,6 +608,9 @@ def create_component_from_func(
             func=func, additional_funcs=additional_funcs)
 
     component_spec = extract_component_interface(func)
+    # Attach task_config_passthroughs to the ComponentSpec structure if provided.
+    if task_config_passthroughs:
+        component_spec.task_config_passthroughs = task_config_passthroughs
     component_spec.implementation = structures.Implementation(
         container=structures.ContainerSpecImplementation(
             image=component_image,
@@ -622,7 +633,8 @@ def create_component_from_func(
         base_image=base_image,
         packages_to_install=packages_to_install,
         pip_index_urls=pip_index_urls,
-        pip_trusted_hosts=pip_trusted_hosts)
+        pip_trusted_hosts=pip_trusted_hosts,
+        task_config_passthroughs=task_config_passthroughs)
 
     if REGISTERED_MODULES is not None:
         REGISTERED_MODULES[component_name] = component_info
@@ -665,6 +677,9 @@ def make_input_for_parameterized_container_component_function(
         # small hack to encode the runtime value's type for a custom json.dumps function
         if (annotation == task_final_status.PipelineTaskFinalStatus or
                 type_utils.is_task_final_status_type(annotation)):
+            placeholder._ir_type = 'STRUCT'
+        elif annotation == TaskConfig:
+            # Treat as STRUCT for IR and use reserved input name at runtime.
             placeholder._ir_type = 'STRUCT'
         else:
             placeholder._ir_type = type_utils.get_parameter_type_name(
