@@ -101,11 +101,9 @@ export function getArtifactsHandler({
     const source = useParameter ? req.params.source : req.query.source;
     const bucket = useParameter ? req.params.bucket : req.query.bucket;
     const key = useParameter ? req.params[0] : req.query.key;
-    const {
-      peek = 0,
-      providerInfo = '',
-      namespace: requestedNamespace,
-    } = req.query as Partial<ArtifactsQueryStrings>;
+    const { peek = 0, providerInfo = '', namespace: requestedNamespace } = req.query as Partial<
+      ArtifactsQueryStrings
+    >;
 
     if (!source) {
       res.status(500).send('Storage source is missing from artifact request');
@@ -151,7 +149,9 @@ export function getArtifactsHandler({
     }
 
     namespace = requestedNamespace;
-    console.log(`Getting storage artifact at: ${source}: ${bucket}/${key} in namespace: ${namespace}`);
+    console.log(
+      `Getting storage artifact at: ${source}: ${bucket}/${key} in namespace: ${namespace}`,
+    );
 
     let client: MinioClient;
     switch (source) {
@@ -245,7 +245,9 @@ function getHttpArtifactsHandler(
     if (auth.key.length > 0) {
       // inject original request's value if exists, otherwise default to provided default value
       const headerValue = req.headers[auth.key] || req.headers[auth.key.toLowerCase()];
-      headers[auth.key] = Array.isArray(headerValue) ? headerValue[0] : headerValue || auth.defaultValue;
+      headers[auth.key] = Array.isArray(headerValue)
+        ? headerValue[0]
+        : headerValue || auth.defaultValue;
     }
     if (!isAllowedDomain(url, allowedDomain)) {
       res.status(500).send(`Domain not allowed.`);
@@ -337,11 +339,11 @@ function getGCSArtifactHandler(
         // escapes everything else.
         const regex = new RegExp(
           '^' +
-          key
-            .split(/\*+/)
-            .map(escapeRegexChars)
-            .join('.*') +
-          '$',
+            key
+              .split(/\*+/)
+              .map(escapeRegexChars)
+              .join('.*') +
+            '$',
         );
         return regex.test(f.name);
       });
