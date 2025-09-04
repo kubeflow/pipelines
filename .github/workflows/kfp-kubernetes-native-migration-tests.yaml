@@ -1,0 +1,192 @@
+name: KFP Kubernetes Native Migration Tests
+
+on:
+  push:
+    branches: [master]
+
+  pull_request:
+    paths:
+      - ".github/workflows/kfp-kubernetes-native-migration-tests.yml"
+      - ".github/resources/**"
+      - "tools/k8s-native/**"
+      - "test/kfp-kubernetes-native-migration-tests/**"
+      - "test_data/pipeline_files/valid/**"
+      - "backend/src/apiserver/**"
+      - "backend/src/common/**"      
+      - "manifests/kustomize/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
+
+jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+
+  kfp-kubernetes-native-migration-tests:
+    runs-on: ubuntu-24.04
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: ["v1.29.2", "v1.31.0"]
+    name: KFP Kubernetes Native Migration Tests - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      # This is intended to address disk space issues that have surfaced
+      # intermittently during CI -
+      # https://github.com/actions/runner-images/issues/2840#issuecomment-1284059930
+      - name: Free up space in /dev/root
+        run: |
+          echo "Disk usage before clean up:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "Disk usage after clean up:"
+          df -h
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+        continue-on-error: true
+
+      - name: Forward API port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        id: forward-api-port
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
+
+      - name: Install kfp & kfp-kubernetes from source
+        if: ${{ steps.install-protobuf-deps.outcome == 'success' }}
+        id: install-kfp-k8s-deps
+        uses: ./.github/actions/kfp-k8s
+
+      - name: Install requirements
+        id: install-requirements
+        if: ${{ steps.install-kfp-k8s-deps.outcome == 'success' }}
+        run: pip install -r ./test/kfp-kubernetes-native-migration-tests/requirements.txt
+
+      - name: Create test pipelines in DB mode
+        if: ${{ steps.install-requirements.outcome == 'success' }}
+        id: create-test-pipelines
+        run: python ./test/kfp-kubernetes-native-migration-tests/create_test_pipelines.py
+        continue-on-error: true
+
+      - name: Run DB mode migration tests
+        if: ${{ steps.create-test-pipelines.outcome == 'success' }}
+        id: run-db-mode-tests
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+          KFP_ENDPOINT: "http://localhost:8888"
+        run: python -m pytest ./test/kfp-kubernetes-native-migration-tests/kfp_db_mode_migration_tests.py -v
+        continue-on-error: true
+
+      - name: Install cert-manager
+        if: ${{ steps.run-db-mode-tests.outcome == 'success' }}
+        id: install-cert-manager
+        run: |
+          echo "Installing cert-manager..."
+
+          # Install cert-manager 
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+
+          # Wait for cert-manager to be ready
+          kubectl wait --for=condition=available --timeout=300s deployment/cert-manager -n cert-manager
+          kubectl wait --for=condition=available --timeout=300s deployment/cert-manager-cainjector -n cert-manager
+          kubectl wait --for=condition=available --timeout=300s deployment/cert-manager-webhook -n cert-manager
+
+          echo "cert-manager installation completed"
+        continue-on-error: true
+
+      - name: Switch KFP to K8s mode
+        if: ${{ steps.install-cert-manager.outcome == 'success' }}
+        id: switch-to-k8s-mode
+        run: |
+          kubectl delete deployment ml-pipeline -n kubeflow     
+          # Deploy KFP in K8s mode
+          echo "Deploying KFP in K8s mode..."
+          kubectl apply -k "manifests/kustomize/env/cert-manager/platform-agnostic-k8s-native/"
+          # Wait for KFP K8s mode deployment to be ready
+          kubectl wait --for=condition=available --timeout=300s deployment/ml-pipeline -n kubeflow
+        continue-on-error: true
+
+      - name: Re-forward API port after mode switch
+        if: ${{ steps.switch-to-k8s-mode.outcome == 'success' }}
+        id: re-forward-api-port
+        run: |
+          echo "Waiting for ml-pipeline pod to be ready in K8s mode..."
+          kubectl wait pods -l app=ml-pipeline -n kubeflow --for condition=Ready --timeout=300s
+          # Kill any existing port forwarding
+          pkill -f "kubectl port-forward.*ml-pipeline" || echo "No existing port forwarding to kill"
+          sleep 3
+          ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Apply migrated pipelines to K8s mode
+        if: ${{ steps.re-forward-api-port.outcome == 'success' }}
+        id: apply-migrated-pipelines
+        run: |
+          # Find and apply YAML files from most recent migration output
+          migrated_yaml_dir=$(find /tmp/kfp_shared_migration_outputs -name "migration_output_*" -type d 2>/dev/null | sort | tail -1)
+
+          if [ -z "$migrated_yaml_dir" ]; then
+            echo "No migration output directory found"
+            exit 1
+          fi
+
+          for yaml_file in "$migrated_yaml_dir"/*.yaml; do
+            if [ -f "$yaml_file" ]; then
+              filename=$(basename "$yaml_file")
+              # Skip tutorial pipelines that come with deployment
+              if [[ "$filename" != *"tutorial"* ]]; then
+                echo "Applying $filename..."
+                kubectl apply -f "$yaml_file" -n kubeflow || echo "Failed to apply $filename (may already exist)"
+              else
+                echo "Skipping tutorial pipeline: $filename (already exists as default)"
+              fi
+            fi
+          done
+
+          # Verify pipelines were applied
+          echo "Verifying migrated pipelines in K8s mode:"
+          kubectl get pipeline,pipelineversion -n kubeflow
+        continue-on-error: true
+
+      - name: Run K8s mode migration tests
+        if: ${{ steps.apply-migrated-pipelines.outcome == 'success' }}
+        id: run-k8s-mode-tests
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+          KFP_ENDPOINT: "http://localhost:8888"
+        run: python -m pytest ./test/kfp-kubernetes-native-migration-tests/kfp_k8s_mode_migration_tests.py -v
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.run-db-mode-tests.outcome != 'success' || 
+            steps.switch-to-k8s-mode.outcome != 'success' || steps.re-forward-api-port.outcome != 'success' || steps.run-k8s-mode-tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-kubernetes-native-migration-tests-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*
