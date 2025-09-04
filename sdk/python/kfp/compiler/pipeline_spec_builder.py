@@ -36,6 +36,7 @@ from kfp.dsl import placeholders
 from kfp.dsl import structures
 from kfp.dsl import tasks_group
 from kfp.dsl import utils
+from kfp.dsl.component_task_config import TaskConfigField
 from kfp.dsl.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -390,6 +391,16 @@ def _build_component_spec_from_component_spec_structure(
                 component_spec.input_definitions.parameters[
                     input_name].description = input_spec.description
 
+        # Special handling for TaskConfig second.
+        elif type_utils.is_task_config_type(input_spec.type):
+            component_spec.input_definitions.parameters[
+                input_name].parameter_type = pipeline_spec_pb2.ParameterType.TASK_CONFIG
+            component_spec.input_definitions.parameters[
+                input_name].is_optional = True
+            if input_spec.description:
+                component_spec.input_definitions.parameters[
+                    input_name].description = input_spec.description
+
         elif type_utils.is_parameter_type(input_spec.type):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
@@ -439,6 +450,11 @@ def _build_component_spec_from_component_spec_structure(
             if output_spec.description:
                 component_spec.output_definitions.artifacts[
                     output_name].description = output_spec.description
+
+    # Attach TaskConfig passthroughs if present on the structure
+    if getattr(component_spec_struct, 'task_config_passthroughs', None):
+        for p in component_spec_struct.task_config_passthroughs or []:
+            component_spec.task_config_passthroughs.append(p.to_proto())
 
     return component_spec
 
@@ -617,6 +633,91 @@ def build_container_spec_for_task(
     Returns:
         A PipelineContainerSpec object for the task.
     """
+
+    def _raise_passthrough_error(task: pipeline_task.PipelineTask,
+                                 resource_type: str) -> None:
+        raise ValueError(
+            f"Task '{task.name}' cannot handle resource type '{resource_type}' based on the values in task_config_passthroughs"
+        )
+
+    def _validate_task_config_passthroughs_for_container_settings(
+        task: pipeline_task.PipelineTask,) -> None:
+        """Validates that when a component declares TaskConfig passthroughs,
+        the task does not set container-level resources/env that are not
+        listed.
+
+        This prevents silent no-ops at runtime when a component expects
+        to handle certain TaskConfig fields externally.
+        """
+        passthroughs = getattr(task.component_spec, 'task_config_passthroughs',
+                               None)
+        if not passthroughs:
+            return
+
+        allowed_fields = {pt.field for pt in passthroughs}
+
+        if task.container_spec and task.container_spec.resources:
+            res = task.container_spec.resources
+            if any([
+                    res.cpu_request,
+                    res.cpu_limit,
+                    res.memory_request,
+                    res.memory_limit,
+                    res.accelerator_type,
+                    res.accelerator_count,
+            ]):
+                if TaskConfigField.RESOURCES not in allowed_fields:
+                    _raise_passthrough_error(task,
+                                             TaskConfigField.RESOURCES.name)
+
+        if task.container_spec and task.container_spec.env:
+            if TaskConfigField.ENV not in allowed_fields:
+                _raise_passthrough_error(task, TaskConfigField.ENV.name)
+
+    _validate_task_config_passthroughs_for_container_settings(task)
+
+    def _validate_task_config_passthroughs_for_kubernetes_settings(
+        task: pipeline_task.PipelineTask,) -> None:
+        """Validates that when a component declares TaskConfig passthroughs,
+        the task does not set Kubernetes platform options that are not
+        listed."""
+        passthroughs = getattr(task.component_spec, 'task_config_passthroughs',
+                               None)
+        if not passthroughs:
+            return
+
+        allowed_fields = {pt.field for pt in passthroughs}
+        k8s_cfg = (task.platform_config or {}).get('kubernetes', {}) or {}
+
+        def _has_any(cfg: dict, keys: list[str]) -> bool:
+            return any(cfg.get(k) for k in keys)
+
+        if _has_any(k8s_cfg, ['tolerations']):
+            if TaskConfigField.KUBERNETES_TOLERATIONS not in allowed_fields:
+                _raise_passthrough_error(
+                    task, TaskConfigField.KUBERNETES_TOLERATIONS.name)
+
+        if _has_any(k8s_cfg, ['nodeSelector']):
+            if TaskConfigField.KUBERNETES_NODE_SELECTOR not in allowed_fields:
+                _raise_passthrough_error(
+                    task, TaskConfigField.KUBERNETES_NODE_SELECTOR.name)
+
+        if _has_any(k8s_cfg, ['nodeAffinity', 'podAffinity']):
+            if TaskConfigField.KUBERNETES_AFFINITY not in allowed_fields:
+                _raise_passthrough_error(
+                    task, TaskConfigField.KUBERNETES_AFFINITY.name)
+
+        volume_like_keys = [
+            'pvcMount',
+            'secretAsVolume',
+            'configMapAsVolume',
+        ]
+        if _has_any(k8s_cfg, volume_like_keys):
+            if TaskConfigField.KUBERNETES_VOLUMES not in allowed_fields:
+                _raise_passthrough_error(
+                    task, TaskConfigField.KUBERNETES_VOLUMES.name)
+
+    _validate_task_config_passthroughs_for_kubernetes_settings(task)
 
     def convert_to_placeholder(input_value: str) -> str:
         """Checks if input is a pipeline channel and if so, converts to
