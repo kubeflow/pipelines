@@ -93,55 +93,137 @@ class TestRunDockerContainer(DockerMockTestCase):
 class TestDockerTaskHandler(DockerMockTestCase):
 
     def test_get_volumes_to_mount(self):
-        handler = docker_task_handler.DockerTaskHandler(
-            image='alpine',
-            full_command=['echo', 'foo'],
-            pipeline_root=os.path.abspath('my_root'),
-            runner=local.DockerRunner(),
-        )
-        volumes = handler.get_volumes_to_mount()
-        self.assertEqual(
-            volumes, {
-                os.path.abspath('my_root'): {
-                    'bind': os.path.abspath('my_root'),
-                    'mode': 'rw'
-                }
-            })
-
-    def test_run(self):
-        handler = docker_task_handler.DockerTaskHandler(
-            image='alpine',
-            full_command=['echo', 'foo'],
-            pipeline_root=os.path.abspath('my_root'),
-            runner=local.DockerRunner(),
-        )
-
-        handler.run()
-        self.mocked_docker_client.containers.run.assert_called_once_with(
-            image='alpine:latest',
-            command=['echo', 'foo'],
-            detach=True,
-            stdout=True,
-            stderr=True,
-            volumes={
-                os.path.abspath('my_root'): {
-                    'bind': os.path.abspath('my_root'),
-                    'mode': 'rw'
-                }
-            },
-        )
-
-    def test_pipeline_root_relpath(self):
-        with self.assertRaisesRegex(
-                ValueError,
-                r"'pipeline_root' should be an absolute path to correctly construct the volume mount specification\."
-        ):
-            docker_task_handler.DockerTaskHandler(
+        # Mock LocalExecutionConfig.instance to be None (no workspace configured)
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):
+            handler = docker_task_handler.DockerTaskHandler(
                 image='alpine',
                 full_command=['echo', 'foo'],
-                pipeline_root='my_relpath',
+                pipeline_root=os.path.abspath('my_root'),
                 runner=local.DockerRunner(),
-            ).run()
+            )
+            volumes = handler.get_volumes_to_mount()
+            self.assertEqual(
+                volumes, {
+                    os.path.abspath('my_root'): {
+                        'bind': os.path.abspath('my_root'),
+                        'mode': 'rw'
+                    }
+                })
+
+    def test_get_volumes_to_mount_with_workspace(self):
+        # Mock the LocalExecutionConfig to have a workspace_root
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance'
+                       ) as mock_instance:
+            mock_instance.workspace_root = '/tmp/test-workspace'
+
+            handler = docker_task_handler.DockerTaskHandler(
+                image='alpine',
+                full_command=['echo', 'foo'],
+                pipeline_root=os.path.abspath('my_root'),
+                runner=local.DockerRunner(),
+            )
+            volumes = handler.get_volumes_to_mount()
+
+            expected_volumes = {
+                os.path.abspath('my_root'): {
+                    'bind': os.path.abspath('my_root'),
+                    'mode': 'rw'
+                },
+                '/tmp/test-workspace': {
+                    'bind': '/kfp-workspace',
+                    'mode': 'rw'
+                }
+            }
+            self.assertEqual(volumes, expected_volumes)
+
+    def test_get_volumes_to_mount_with_relative_workspace(self):
+        # Mock the LocalExecutionConfig to have a relative workspace_root
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance'
+                       ) as mock_instance:
+            mock_instance.workspace_root = 'test-workspace'
+
+            handler = docker_task_handler.DockerTaskHandler(
+                image='alpine',
+                full_command=['echo', 'foo'],
+                pipeline_root=os.path.abspath('my_root'),
+                runner=local.DockerRunner(),
+            )
+            volumes = handler.get_volumes_to_mount()
+
+            # The relative workspace path should be converted to absolute
+            abs_workspace_path = os.path.abspath('test-workspace')
+            expected_volumes = {
+                os.path.abspath('my_root'): {
+                    'bind': os.path.abspath('my_root'),
+                    'mode': 'rw'
+                },
+                abs_workspace_path: {
+                    'bind': '/kfp-workspace',
+                    'mode': 'rw'
+                }
+            }
+            self.assertEqual(volumes, expected_volumes)
+
+    def test_get_volumes_to_mount_without_workspace(self):
+        # Mock the LocalExecutionConfig to have no workspace_root
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance'
+                       ) as mock_instance:
+            mock_instance.workspace_root = None
+
+            handler = docker_task_handler.DockerTaskHandler(
+                image='alpine',
+                full_command=['echo', 'foo'],
+                pipeline_root=os.path.abspath('my_root'),
+                runner=local.DockerRunner(),
+            )
+            volumes = handler.get_volumes_to_mount()
+
+            expected_volumes = {
+                os.path.abspath('my_root'): {
+                    'bind': os.path.abspath('my_root'),
+                    'mode': 'rw'
+                }
+            }
+            self.assertEqual(volumes, expected_volumes)
+
+    def test_run(self):
+        # Mock LocalExecutionConfig.instance to be None (no workspace configured)
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):
+            handler = docker_task_handler.DockerTaskHandler(
+                image='alpine',
+                full_command=['echo', 'foo'],
+                pipeline_root=os.path.abspath('my_root'),
+                runner=local.DockerRunner(),
+            )
+
+            handler.run()
+            self.mocked_docker_client.containers.run.assert_called_once_with(
+                image='alpine:latest',
+                command=['echo', 'foo'],
+                detach=True,
+                stdout=True,
+                stderr=True,
+                volumes={
+                    os.path.abspath('my_root'): {
+                        'bind': os.path.abspath('my_root'),
+                        'mode': 'rw'
+                    }
+                },
+            )
+
+    def test_pipeline_root_relpath(self):
+        # Mock LocalExecutionConfig.instance to be None (no workspace configured)
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):
+            with self.assertRaisesRegex(
+                    ValueError,
+                    r"'pipeline_root' should be an absolute path to correctly construct the volume mount specification\."
+            ):
+                docker_task_handler.DockerTaskHandler(
+                    image='alpine',
+                    full_command=['echo', 'foo'],
+                    pipeline_root='my_relpath',
+                    runner=local.DockerRunner(),
+                ).run()
 
 
 class TestAddLatestTagIfNotPresent(unittest.TestCase):
