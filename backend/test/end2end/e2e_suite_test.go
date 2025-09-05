@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -97,6 +98,9 @@ var _ = BeforeSuite(func() {
 var _ = ReportAfterEach(func(specReport types.SpecReport) {
 	if specReport.Failed() {
 		logger.Log("Test failed... Capturing logs")
+		fiveMinBefore := time.Now().Add(-5 * time.Minute)
+		podLogs := test_utils.ReadContainerLogs(k8Client, *config.Namespace, "pipeline-api-server", nil, &fiveMinBefore, config.PodLogLimit)
+		AddReportEntry("Pod Log", podLogs)
 		AddReportEntry("Test Log", specReport.CapturedGinkgoWriterOutput)
 		writeLogFile(specReport)
 	} else {
