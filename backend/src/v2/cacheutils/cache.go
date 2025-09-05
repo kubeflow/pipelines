@@ -22,7 +22,7 @@ const (
 	// MaxGRPCMessageSize contains max grpc message size supported by the client
 	MaxClientGRPCMessageSize = 100 * 1024 * 1024
 	// The endpoint uses Kubernetes service DNS name with namespace:
-	//https://kubernetes.io/docs/concepts/services-networking/service/#dns
+	// https://kubernetes.io/docs/concepts/services-networking/service/#dns
 	defaultKfpApiEndpoint = "ml-pipeline.kubeflow:8887"
 )
 
@@ -34,16 +34,23 @@ type Client interface {
 		outputs *pipelinespec.ExecutorInput_Outputs,
 		outputParametersTypeMap map[string]string,
 		cmdArgs []string, image string,
+		pvcNames []string,
 	) (*cachekey.CacheKey, error)
 	GenerateFingerPrint(cacheKey *cachekey.CacheKey) (string, error)
 }
 
-type disabledCacheClient struct {
-}
+type disabledCacheClient struct{}
 
 var _ Client = &disabledCacheClient{}
 
-func (d disabledCacheClient) GenerateCacheKey(*pipelinespec.ExecutorInput_Inputs, *pipelinespec.ExecutorInput_Outputs, map[string]string, []string, string) (*cachekey.CacheKey, error) {
+func (d disabledCacheClient) GenerateCacheKey(
+	*pipelinespec.ExecutorInput_Inputs,
+	*pipelinespec.ExecutorInput_Outputs,
+	map[string]string,
+	[]string,
+	string,
+	[]string,
+) (*cachekey.CacheKey, error) {
 	panic("GenerateCacheKey is not supposed to be called when cache is disabled")
 }
 
@@ -157,8 +164,9 @@ func (c *client) GenerateCacheKey(
 	inputs *pipelinespec.ExecutorInput_Inputs,
 	outputs *pipelinespec.ExecutorInput_Outputs,
 	outputParametersTypeMap map[string]string,
-	cmdArgs []string, image string) (*cachekey.CacheKey, error) {
-
+	cmdArgs []string, image string,
+	pvcNames []string,
+) (*cachekey.CacheKey, error) {
 	cacheKey := cachekey.CacheKey{
 		InputArtifactNames:   make(map[string]*cachekey.ArtifactNameList),
 		InputParameterValues: make(map[string]*structpb.Value),
@@ -202,10 +210,10 @@ func (c *client) GenerateCacheKey(
 	}
 
 	cacheKey.ContainerSpec = &cachekey.ContainerSpec{
-		Image:   image,
-		CmdArgs: cmdArgs,
+		Image:    image,
+		CmdArgs:  cmdArgs,
+		PvcNames: pvcNames,
 	}
 
 	return &cacheKey, nil
-
 }
