@@ -1,0 +1,178 @@
+# PIPELINE DEFINITION
+# Name: multiple-artifacts-namedtuple-pipeline
+components:
+  comp-core:
+    dag:
+      outputs:
+        artifacts:
+          ds1:
+            artifactSelectors:
+            - outputArtifactKey: ds1
+              producerSubtask: core-comp
+          ds2:
+            artifactSelectors:
+            - outputArtifactKey: ds2
+              producerSubtask: core-comp
+      tasks:
+        core-comp:
+          cachingOptions: {}
+          componentRef:
+            name: comp-core-comp
+          taskInfo:
+            name: core-comp
+    outputDefinitions:
+      artifacts:
+        ds1:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        ds2:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-core-comp:
+    executorLabel: exec-core-comp
+    outputDefinitions:
+      artifacts:
+        ds1:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        ds2:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-crust-comp:
+    executorLabel: exec-crust-comp
+    inputDefinitions:
+      artifacts:
+        ds1:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        ds2:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-mantle:
+    dag:
+      outputs:
+        artifacts:
+          ds1:
+            artifactSelectors:
+            - outputArtifactKey: ds1
+              producerSubtask: core
+          ds2:
+            artifactSelectors:
+            - outputArtifactKey: ds2
+              producerSubtask: core
+      tasks:
+        core:
+          cachingOptions: {}
+          componentRef:
+            name: comp-core
+          taskInfo:
+            name: core
+    outputDefinitions:
+      artifacts:
+        ds1:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        ds2:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-core-comp:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - core_comp
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef core_comp(ds1: dsl.Output[dsl.Dataset], ds2: dsl.Output[dsl.Dataset]):\n\
+          \    with open(ds1.path, 'w') as f:\n        f.write('foo')\n    with open(ds2.path,\
+          \ 'w') as f:\n        f.write('bar')\n\n"
+        image: python:3.9
+    exec-crust-comp:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - crust_comp
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef crust_comp(\n    ds1: dsl.Dataset,\n    ds2: dsl.Dataset,\n):\n\
+          \    with open(ds1.path, 'r') as f:\n        print('ds1: ', f.read())\n\
+          \    with open(ds2.path, 'r') as f:\n        print('ds2: ', f.read())\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: multiple-artifacts-namedtuple-pipeline
+root:
+  dag:
+    tasks:
+      crust-comp:
+        cachingOptions: {}
+        componentRef:
+          name: comp-crust-comp
+        dependentTasks:
+        - mantle
+        inputs:
+          artifacts:
+            ds1:
+              taskOutputArtifact:
+                outputArtifactKey: ds1
+                producerTask: mantle
+            ds2:
+              taskOutputArtifact:
+                outputArtifactKey: ds2
+                producerTask: mantle
+        taskInfo:
+          name: crust-comp
+      mantle:
+        cachingOptions: {}
+        componentRef:
+          name: comp-mantle
+        taskInfo:
+          name: mantle
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

@@ -1,0 +1,160 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-modelcar-model
+# Inputs:
+#    model_uri: str [Default: 'oci://registry.domain.local/modelcar:test']
+components:
+  comp-build-model-car:
+    executorLabel: exec-build-model-car
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-get-model-files-list:
+    executorLabel: exec-get-model-files-list
+    inputDefinitions:
+      artifacts:
+        input_model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-build-model-car:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_model_car
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_model_car(model: dsl.Output[dsl.Model]):\n    # Simulate\
+          \ pushing the Modelcar to an OCI registry\n    model.uri = \"oci://registry.domain.local/org/repo:v1.0\"\
+          \n\n"
+        image: python:3.9
+    exec-get-model-files-list:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_model_files_list
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_model_files_list(input_model: dsl.Input[dsl.Model]) -> str:\n\
+          \    import os\n    import os.path\n\n    if not os.path.exists(input_model.path):\n\
+          \        raise RuntimeError(f\"The model does not exist at: {input_model.path}\"\
+          )\n\n    expected_files = {\n        \"added_tokens.json\",\n        \"\
+          config.json\",\n        \"generation_config.json\",\n        \"merges.txt\"\
+          ,\n        \"model.safetensors\",\n        \"normalizer.json\",\n      \
+          \  \"preprocessor_config.json\",\n        \"special_tokens_map.json\",\n\
+          \        \"tokenizer.json\",\n        \"tokenizer_config.json\",\n     \
+          \   \"vocab.json\",\n    }\n\n    filesInPath = set(os.listdir(input_model.path))\n\
+          \n    if not filesInPath.issuperset(expected_files):\n        raise RuntimeError(\n\
+          \            \"The model does not have expected files: \"\n            +\
+          \ \", \".join(sorted(expected_files.difference(filesInPath)))\n        )\n\
+          \n    return \", \".join(sorted(filesInPath))\n\n"
+        image: python:3.9
+    exec-importer:
+      importer:
+        artifactUri:
+          runtimeParameter: uri
+        typeSchema:
+          schemaTitle: system.Model
+          schemaVersion: 0.0.1
+pipelineInfo:
+  name: pipeline-with-modelcar-model
+root:
+  dag:
+    tasks:
+      build-model-car:
+        cachingOptions: {}
+        componentRef:
+          name: comp-build-model-car
+        taskInfo:
+          name: build-model-car
+      get-model-files-list:
+        cachingOptions: {}
+        componentRef:
+          name: comp-get-model-files-list
+        dependentTasks:
+        - importer
+        inputs:
+          artifacts:
+            input_model:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+        taskInfo:
+          name: get-model-files-list
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              componentInputParameter: model_uri
+        taskInfo:
+          name: importer
+  inputDefinitions:
+    parameters:
+      model_uri:
+        defaultValue: oci://registry.domain.local/modelcar:test
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

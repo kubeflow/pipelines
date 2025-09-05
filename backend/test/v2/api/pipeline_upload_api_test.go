@@ -16,17 +16,17 @@ package api
 
 import (
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/test/config"
+	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	. "github.com/kubeflow/pipelines/backend/test/v2/api/constants"
-	"github.com/kubeflow/pipelines/backend/test/v2/api/logger"
-	matcher "github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
-	utils "github.com/kubeflow/pipelines/backend/test/v2/api/utils"
+	"github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -47,12 +47,11 @@ const (
 var _ = BeforeEach(func() {
 	logger.Log("################### Setup before each test #####################")
 	testStartTime, _ := strfmt.ParseDateTime(time.Now().Format(time.DateTime))
-	testContext.CreatedPipelines = []*model.V2beta1Pipeline{}
-	testContext.ExpectedPipeline = new(model.V2beta1Pipeline)
-	testContext.ExpectedPipeline.CreatedAt = testStartTime
-	testContext.PipelineGeneratedName = "apitest-" + strconv.FormatInt(time.Now().UnixNano(), 10)
-	testContext.UploadParams = upload_params.NewUploadPipelineParams()
-	testContext.ExpectedPipeline.Namespace = *namespace
+	testContext.Pipeline.CreatedPipelines = []*model.V2beta1Pipeline{}
+	testContext.Pipeline.ExpectedPipeline = new(model.V2beta1Pipeline)
+	testContext.Pipeline.ExpectedPipeline.CreatedAt = testStartTime
+	testContext.Pipeline.PipelineGeneratedName = "apitest-" + randomName
+	testContext.Pipeline.ExpectedPipeline.Namespace = *config.Namespace
 })
 
 // ####################################################################################################################################################################
@@ -65,57 +64,46 @@ var _ = BeforeEach(func() {
 
 var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload", "ApiServerTests", FullRegression), func() {
 
-	/* Critical Positive Scenarios of uploading a pipeline file */
-	Context("Upload a valid critical pipeline file and verify pipeline metadata after upload >", Label(Smoke), func() {
-		var pipelineDir = "valid/critical"
-		criticalPipelineFiles := utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
-		for _, pipelineFile := range criticalPipelineFiles {
-			pipelineFile := pipelineFile
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
-				uploadPipelineAndVerify(pipelineDir, pipelineFile, &testContext.PipelineGeneratedName, nil)
+	/* Positive Scenarios of uploading a pipeline file */
+	Context("Upload a valid pipeline and verify pipeline metadata after upload >", func() {
+		var pipelineDir = "valid"
+		validPipelineFilePaths := test_utils.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDir))
+		for _, pipelineFilePath := range validPipelineFilePaths {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFilePath), func() {
+				uploadPipelineAndVerify(pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 			})
 		}
 
 		It(fmt.Sprintf("Upload %s pipeline file with custom name and description", helloWorldPipelineFileName), func() {
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 			description := "Some pipeline description"
-			testContext.UploadParams.SetDescription(&description)
-			testContext.ExpectedPipeline.Description = description
-			uploadPipelineAndVerify(pipelineDir, helloWorldPipelineFileName, &testContext.PipelineGeneratedName, nil)
+			testContext.Pipeline.UploadParams.SetDescription(&description)
+			testContext.Pipeline.ExpectedPipeline.Description = description
+			uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 		})
 
 		It(fmt.Sprintf("Upload %s pipeline file with custom name, display name and description", helloWorldPipelineFileName), func() {
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 			description := "Some pipeline description"
-			displayName := fmt.Sprintf("Pipeline Display Name - %s ", testContext.PipelineGeneratedName)
-			testContext.UploadParams.SetDescription(&description)
-			testContext.ExpectedPipeline.Description = description
-			uploadPipelineAndVerify(pipelineDir, helloWorldPipelineFileName, &testContext.PipelineGeneratedName, &displayName)
+			displayName := fmt.Sprintf("Pipeline Display Name - %s ", testContext.Pipeline.PipelineGeneratedName)
+			testContext.Pipeline.UploadParams.SetDescription(&description)
+			testContext.Pipeline.ExpectedPipeline.Description = description
+			uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, &displayName)
 		})
-	})
-
-	/* Positive Scenarios of uploading a pipeline file */
-	Context("Upload a valid pipeline and verify pipeline metadata after upload >", func() {
-		var pipelineDir = "valid"
-		validPipelineFiles := utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
-		for _, pipelineFile := range validPipelineFiles {
-			pipelineFile := pipelineFile
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
-				uploadPipelineAndVerify(pipelineDir, pipelineFile, &testContext.PipelineGeneratedName, nil)
-			})
-		}
 	})
 })
 
 var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "PipelineUpload", "ApiServerTests", FullRegression), func() {
-	var pipelineDir = "valid/critical"
-
+	var pipelineDir = "valid"
+	helloWorldPipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+	argParamPipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineWithArgsFileName)
 	/* Positive Scenarios of uploading a pipeline file */
 	Context("Upload a pipeline and upload the same pipeline to change version >", func() {
-		const pipelineFile = helloWorldPipelineFileName
-		It(fmt.Sprintf("Upload %s pipeline file and upload a new version with the same file", pipelineFile), Label(Smoke), func() {
-			uploadPipelineAndChangePipelineVersion(pipelineDir, pipelineFile, pipelineFile, &testContext.PipelineGeneratedName, nil)
+		It(fmt.Sprintf("Upload %s pipeline file and upload a new version with the same file", helloWorldPipelineFileName), Label(Smoke), func() {
+			uploadPipelineAndChangePipelineVersion(helloWorldPipelineSpecFilePath, helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 		})
-		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the different file %s", pipelineFile, pipelineWithArgsFileName), func() {
-			uploadPipelineAndChangePipelineVersion(pipelineDir, pipelineFile, pipelineWithArgsFileName, &testContext.PipelineGeneratedName, nil)
+		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the different file %s", helloWorldPipelineFileName, pipelineWithArgsFileName), func() {
+			uploadPipelineAndChangePipelineVersion(helloWorldPipelineSpecFilePath, argParamPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 		})
 
 	})
@@ -127,48 +115,56 @@ var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "Pipeline
 
 var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "PipelineUpload", "ApiServerTests", FullRegression), func() {
 	var pipelineDir = "invalid"
-	invalidPipelineFiles := utils.GetListOfFileInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
+	invalidPipelineFiles := test_utils.GetListOfFilesInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
 
 	/* Negative scenarios of uploading a pipeline  */
-	Context("Upload a failing pipeline and verify the error in the response >", func() {
-		It("Upload a pipeline twice and verify that it should fail the second time", func() {
-			var pipelineDir = "valid/critical"
-			createdPipeline := uploadPipelineAndVerify(pipelineDir, helloWorldPipelineFileName, &testContext.PipelineGeneratedName, nil)
-			uploadPipelineAndVerifyFailure(pipelineDir, helloWorldPipelineFileName, &(createdPipeline.Name), nil, "Failed to upload pipeline")
-		})
-
+	Context("Upload an invalid pipeline spec and verify the error in the response >", func() {
 		for _, fileName := range invalidPipelineFiles {
-			fileName := fileName
+			filePath := filepath.Join(pipelineFilesRootDir, pipelineDir, fileName)
 			It(fmt.Sprintf("Upload a %s pipeline and verify the failure", fileName), func() {
-				var pipelineDir = "invalid"
-				uploadPipelineAndVerifyFailure(pipelineDir, fileName, &testContext.PipelineGeneratedName, nil, "Failed to upload pipeline")
+				uploadPipelineAndVerifyFailure(filePath, &testContext.Pipeline.PipelineGeneratedName, nil, "Failed to upload pipeline")
 			})
 		}
+
+		It("Upload a pipeline twice and verify that it should fail the second time", func() {
+			var validPipelineDir = "valid"
+			filePath := filepath.Join(pipelineFilesRootDir, validPipelineDir, helloWorldPipelineFileName)
+			createdPipeline := uploadPipelineAndVerify(filePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+			uploadPipelineAndVerifyFailure(filePath, &(createdPipeline.Name), nil, "Failed to upload pipeline")
+		})
 	})
 })
 
 var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "PipelineUpload", "ApiServerTests", FullRegression), func() {
-	var pipelineDir = "valid/critical"
-	const pipelineFileName = helloWorldPipelineFileName
+	var pipelineDir = "valid"
+	pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 	/* Negative Scenarios of uploading a pipeline file */
 	Context("Upload a pipeline and try changing the version with a different metric >", func() {
-		It(fmt.Sprintf("Change %s pipeline's name to be same as original version", pipelineFileName), func() {
-			createdPipeline := uploadPipelineAndVerify(pipelineDir, pipelineFileName, &testContext.PipelineGeneratedName, nil)
+		It(fmt.Sprintf("Change %s pipeline's name to be same as original version", helloWorldPipelineFileName), func() {
+			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
 			parameters := upload_params.NewUploadPipelineVersionParams()
 			parameters.Pipelineid = &(createdPipeline.PipelineID)
 			parameters.SetName(&createdPipeline.DisplayName)
-			uploadPipelineVersionAndVerifyFailure(pipelineDir, pipelineFileName, parameters, "Failed to upload pipeline version")
+			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, "Failed to upload pipeline version")
 		})
-		It(fmt.Sprintf("Change %s pipeline's id with fake pipeline id", pipelineFileName), func() {
-			uploadPipelineAndVerify(pipelineDir, pipelineFileName, &testContext.PipelineGeneratedName, nil)
+		It(fmt.Sprintf("Change %s pipeline's id with fake pipeline id", helloWorldPipelineFileName), func() {
+			uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
 			parameters := upload_params.NewUploadPipelineVersionParams()
 			fakePipelineId := "12345"
 			parameters.Pipelineid = &fakePipelineId
-			uploadPipelineVersionAndVerifyFailure(pipelineDir, pipelineFileName, parameters, "Failed to upload pipeline version")
+			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, "Failed to upload pipeline version")
 		})
 	})
+
+	// TODO: To to be implemented
+	if *config.IsKubeflowMode {
+		Context("Upload a pipeline in MultiUser Mode >", func() {
+			It("Upload a pipeline in a namespace you don;t have access to", func() {
+			})
+		})
+	}
 })
 
 // ####################################################################################################################################################################
@@ -177,11 +173,11 @@ var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "
 
 /*
 A common method that creates a pipeline and then creates a new pipeline version
-@param pipelineFileNameForCreation - pipeline file name for initial pipeline upload
-@param pipelineFileNameWhenChangingVersion - the pipeline file name that you wish to upload when creating a new version
+@param pipelineFilePathForCreation - pipeline file path for initial pipeline upload
+@param pipelineFilePathWhenChangingVersion - the pipeline file path that you wish to upload when creating a new version
 */
-func uploadPipelineAndChangePipelineVersion(pipelineDir string, pipelineFileNameForCreation string, pipelineFileNameWhenChangingVersion string, pipelineName *string, pipelineDisplayName *string) {
-	createdPipeline := uploadPipelineAndVerify(pipelineDir, pipelineFileNameForCreation, pipelineName, pipelineDisplayName)
+func uploadPipelineAndChangePipelineVersion(pipelineFilePathForCreation string, pipelineFilePathWhenChangingVersion string, pipelineName *string, pipelineDisplayName *string) {
+	createdPipeline := uploadPipelineAndVerify(pipelineFilePathForCreation, pipelineName, pipelineDisplayName)
 
 	// Construct a payload to create new pipeline version
 	parameters := upload_params.NewUploadPipelineVersionParams()
@@ -193,73 +189,69 @@ func uploadPipelineAndChangePipelineVersion(pipelineDir string, pipelineFileName
 	parameters.SetName(&pipelineNameNew)
 
 	// Construct expected Pipeline Spec from the uploaded file
-	pipelineVersionFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineFileNameWhenChangingVersion)
-	inputFileContent := utils.ParseFileToSpecs(pipelineVersionFilePath, true, nil)
+	inputFileContent := test_utils.ParseFileToSpecs(pipelineFilePathWhenChangingVersion, true, nil)
 
 	// Construct expected pipeline version object for comparison
 	expectedPipelineVersion.Description = descriptionNew
 	expectedPipelineVersion.PipelineSpec = inputFileContent
 	expectedPipelineVersion.DisplayName = pipelineNameNew
-	uploadPipelineVersionAndVerify(pipelineDir, pipelineFileNameWhenChangingVersion, parameters, expectedPipelineVersion)
+	uploadPipelineVersionAndVerify(pipelineFilePathWhenChangingVersion, parameters, expectedPipelineVersion)
 }
 
-func uploadPipeline(pipelineDir string, pipelineFileName string, pipelineName *string, pipelineDisplayName *string) (*model.V2beta1Pipeline, error) {
-	pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineFileName)
-	testContext.UploadParams.SetName(pipelineName)
+func uploadPipeline(pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) (*model.V2beta1Pipeline, error) {
+	testContext.Pipeline.UploadParams.SetName(pipelineName)
 	if pipelineDisplayName != nil {
-		testContext.ExpectedPipeline.DisplayName = *pipelineDisplayName
-		testContext.UploadParams.SetDisplayName(pipelineDisplayName)
+		testContext.Pipeline.ExpectedPipeline.DisplayName = *pipelineDisplayName
+		testContext.Pipeline.UploadParams.SetDisplayName(pipelineDisplayName)
 	} else {
-		testContext.ExpectedPipeline.DisplayName = *pipelineName
+		testContext.Pipeline.ExpectedPipeline.DisplayName = *pipelineName
 	}
-	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
-	return pipelineUploadClient.UploadFile(pipelineFile, testContext.UploadParams)
+	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFilePath)
+	return pipelineUploadClient.UploadFile(pipelineFilePath, testContext.Pipeline.UploadParams)
 }
 
-func uploadPipelineAndVerify(pipelineDir string, pipelineFileName string, pipelineName *string, pipelineDisplayName *string) *model.V2beta1Pipeline {
-	createdPipeline, err := uploadPipeline(pipelineDir, pipelineFileName, pipelineName, pipelineDisplayName)
+func uploadPipelineAndVerify(pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) *model.V2beta1Pipeline {
+	createdPipeline, err := uploadPipeline(pipelineFilePath, pipelineName, pipelineDisplayName)
 	logger.Log("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
 	Expect(err).NotTo(HaveOccurred())
-	testContext.CreatedPipelines = append(testContext.CreatedPipelines, createdPipeline)
+	testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, createdPipeline)
 
-	createdPipelineFromDB := utils.GetPipeline(pipelineClient, createdPipeline.PipelineID)
+	createdPipelineFromDB := test_utils.GetPipeline(pipelineClient, createdPipeline.PipelineID)
 	Expect(createdPipelineFromDB).To(Equal(*createdPipeline))
-	matcher.MatchPipelines(&createdPipelineFromDB, testContext.ExpectedPipeline, *isKubeflowMode)
+	matcher.MatchPipelines(&createdPipelineFromDB, testContext.Pipeline.ExpectedPipeline, *config.IsKubeflowMode)
 
 	// Validate the created pipeline spec (by API server) matches the input file
-	pipelineVersionFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineFileName)
-	expectedPipelineSpec := utils.ParseFileToSpecs(pipelineVersionFilePath, true, nil)
+	expectedPipelineSpec := test_utils.ParseFileToSpecs(pipelineFilePath, true, nil)
 	logger.Log("Verifying that the generated pipeline spec matches the input yaml file")
-	versions := utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+	versions := test_utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
 	Expect(versions).Should(HaveLen(1), "Expected to find only one pipeline version after pipeline upload")
 	actualPipelineSpec := versions[0].PipelineSpec.(map[string]interface{})
 	matcher.MatchPipelineSpecs(actualPipelineSpec, expectedPipelineSpec)
 	return createdPipeline
 }
 
-func uploadPipelineAndVerifyFailure(pipelineDir string, pipelineFileName string, pipelineName *string, pipelineDisplayName *string, errorMessage string) {
-	_, err := uploadPipeline(pipelineDir, pipelineFileName, pipelineName, pipelineDisplayName)
+func uploadPipelineAndVerifyFailure(pipelineFilePath string, pipelineName *string, pipelineDisplayName *string, errorMessage string) {
+	_, err := uploadPipeline(pipelineFilePath, pipelineName, pipelineDisplayName)
 	logger.Log("Verifying error in the response")
 	Expect(err).To(HaveOccurred())
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
 }
 
-func uploadPipelineVersion(pipelineDir string, pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion, error) {
-	pipelineFile := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineFileName)
-	logger.Log("Uploading pipeline version for pipeline with id=%s, from file %s", *parameters.Pipelineid, pipelineFile)
-	return pipelineUploadClient.UploadPipelineVersion(pipelineFile, parameters)
+func uploadPipelineVersion(pipelineFilePath string, parameters *upload_params.UploadPipelineVersionParams) (*model.V2beta1PipelineVersion, error) {
+	logger.Log("Uploading pipeline version for pipeline with id=%s, from file %s", *parameters.Pipelineid, pipelineFilePath)
+	return pipelineUploadClient.UploadPipelineVersion(pipelineFilePath, parameters)
 }
 
-func uploadPipelineVersionAndVerify(pipelineDir string, pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams, expectedPipelineVersion *model.V2beta1PipelineVersion) *model.V2beta1PipelineVersion {
-	createdPipelineVersion, err := uploadPipelineVersion(pipelineDir, pipelineFileName, parameters)
+func uploadPipelineVersionAndVerify(pipelineFilePath string, parameters *upload_params.UploadPipelineVersionParams, expectedPipelineVersion *model.V2beta1PipelineVersion) *model.V2beta1PipelineVersion {
+	createdPipelineVersion, err := uploadPipelineVersion(pipelineFilePath, parameters)
 	logger.Log("Verifying that NO error was returned in the response to confirm that the pipeline was successfully uploaded")
 	Expect(err).NotTo(HaveOccurred())
 	matcher.MatchPipelineVersions(createdPipelineVersion, expectedPipelineVersion)
 	return createdPipelineVersion
 }
 
-func uploadPipelineVersionAndVerifyFailure(pipelineDir string, pipelineFileName string, parameters *upload_params.UploadPipelineVersionParams, errorMessage string) {
-	_, err := uploadPipelineVersion(pipelineDir, pipelineFileName, parameters)
+func uploadPipelineVersionAndVerifyFailure(pipelineFilePath string, parameters *upload_params.UploadPipelineVersionParams, errorMessage string) {
+	_, err := uploadPipelineVersion(pipelineFilePath, parameters)
 	logger.Log("Verifying error in the response")
 	Expect(err).To(HaveOccurred())
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
