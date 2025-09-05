@@ -78,7 +78,9 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow',
+        )
         .expect(200, artifactContent, err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'minio',
@@ -100,7 +102,7 @@ describe('/artifacts', () => {
       process.env.AWS_SECRET_ACCESS_KEY = 'awsSecret123';
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow')
         .expect(200, artifactContent, err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
@@ -122,7 +124,7 @@ describe('/artifacts', () => {
       app = new UIServer(configs);
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow')
         .expect(200, artifactContent, err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
@@ -184,7 +186,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', done => {
+    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when namespace is provided', done => {
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');
       const mockedMinioClient: jest.Mock = minio.Client as any;
@@ -206,7 +208,7 @@ describe('/artifacts', () => {
       };
       request
         .get(
-          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${JSON.stringify(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
@@ -238,7 +240,7 @@ describe('/artifacts', () => {
         });
     });
 
-    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default namespace when no namespace is provided, as specified in ENV', done => {
+    it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses custom namespace when namespace is provided, as specified in ENV', done => {
       const mockedGetK8sSecret: jest.Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');
       const mockedMinioClient: jest.Mock = minio.Client as any;
@@ -260,7 +262,7 @@ describe('/artifacts', () => {
       };
       request
         .get(
-          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${JSON.stringify(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=${namespace}&providerInfo=${JSON.stringify(
             providerInfo,
           )}`,
         )
@@ -290,6 +292,31 @@ describe('/artifacts', () => {
           expect(mockedGetK8sSecret).toBeCalledTimes(2);
           done(err);
         });
+    });
+
+    it('rejects requests when no namespace parameter is provided (security fix)', done => {
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+      const request = requests(app.start());
+      const providerInfo = {
+        Params: {
+          accessKeyKey: 'AWS_ACCESS_KEY_ID',
+          disableSSL: 'false',
+          endpoint: 's3.amazonaws.com',
+          fromEnv: 'false',
+          region: 'us-east-2',
+          secretKeyKey: 'AWS_SECRET_ACCESS_KEY',
+          secretName: 'aws-s3-creds',
+        },
+        Provider: 's3',
+      };
+      request
+        .get(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(400, 'namespace parameter is required for artifact access', done);
     });
 
     it('responds with artifact if source is s3-compatible, and creds are sourced from Provider Configs', done => {
@@ -433,7 +460,9 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
+        .get(
+          '/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5&namespace=kubeflow',
+        )
         .expect(200, artifactContent.slice(0, 5), err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
@@ -459,7 +488,7 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow')
         .expect(200, artifactContent, err => {
           expect(mockedMinioClient).toBeCalledWith({
             accessKey: 'aws123',
@@ -489,7 +518,9 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .get(
+          '/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow',
+        )
         .expect(200, artifactContent, err => {
           expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
             headers: {},
@@ -516,7 +547,9 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
+        .get(
+          '/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5&namespace=kubeflow',
+        )
         .expect(200, artifactContent.slice(0, 5), err => {
           expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello/world.txt', {
             headers: {},
@@ -545,7 +578,9 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=https&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .get(
+          '/artifacts/get?source=https&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow',
+        )
         .expect(200, artifactContent, err => {
           expect(mockedFetch).toBeCalledWith('https://foo.bar/ml-pipeline/hello/world.txt', {
             headers: {
@@ -574,7 +609,9 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=https&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .get(
+          '/artifacts/get?source=https&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow',
+        )
         .set('Authorization', 'inheritedToken')
         .expect(200, artifactContent, err => {
           expect(mockedFetch).toBeCalledWith('https://foo.bar/ml-pipeline/hello/world.txt', {
@@ -603,7 +640,9 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .get(
+          '/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow',
+        )
         .expect(200, artifactContent + '\n', done);
     });
 
@@ -623,7 +662,9 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
+        .get(
+          '/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5&namespace=kubeflow',
+        )
         .expect(200, artifactContent.slice(0, 5), done);
     });
 
@@ -667,7 +708,9 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/get?source=volume&bucket=artifact&key=subartifact/content')
+        .get(
+          '/artifacts/get?source=volume&bucket=artifact&key=subartifact/content&namespace=kubeflow',
+        )
         .expect(200, artifactContent, done);
     });
 
@@ -710,7 +753,7 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get(`/artifacts/get?source=volume&bucket=artifact&key=content&peek=5`)
+        .get(`/artifacts/get?source=volume&bucket=artifact&key=content&peek=5&namespace=kubeflow`)
         .expect(200, artifactContent.slice(0, 5), done);
     });
 
@@ -752,7 +795,7 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get(`/artifacts/get?source=volume&bucket=notexist&key=content`)
+        .get(`/artifacts/get?source=volume&bucket=notexist&key=content&namespace=kubeflow`)
         .expect(404, 'Failed to open volume.', done);
     });
 
@@ -795,7 +838,7 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get(`/artifacts/get?source=volume&bucket=artifact&key=notexist/config`)
+        .get(`/artifacts/get?source=volume&bucket=artifact&key=notexist/config&namespace=kubeflow`)
         .expect(404, 'Failed to open volume.', done);
     });
 
@@ -835,7 +878,9 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get(`/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv`)
+        .get(
+          `/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv&namespace=kubeflow`,
+        )
         .expect(500, 'Failed to open volume.', done);
     });
   });
@@ -847,7 +892,7 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/minio/ml-pipeline/hello/world.txt') // url
+        .get('/artifacts/minio/ml-pipeline/hello/world.txt?namespace=kubeflow') // url
         .expect(200, artifactContent, done);
     });
 
@@ -862,7 +907,7 @@ describe('/artifacts', () => {
 
       const request = requests(app.start());
       request
-        .get('/artifacts/minio/ml-pipeline/hello/world.txt') // url
+        .get('/artifacts/minio/ml-pipeline/hello/world.txt?namespace=kubeflow') // url
         .expect(200, tarGzBuffer.toString(), done);
     });
   });
