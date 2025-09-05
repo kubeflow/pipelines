@@ -56,7 +56,7 @@ type Options struct {
 	// optional, allows to specify kubernetes-specific executor config
 	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
 
-	// optional, required only if the {{$.pipeline_job_resource_name}} placeholder is used
+	// optional, required only if the {{$.pipeline_job_resource_name}} placeholder is used or the run uses a workspace
 	RunName string
 	// optional, required only if the {{$.pipeline_job_name}} placeholder is used
 	RunDisplayName string
@@ -214,6 +214,7 @@ func initPodSpecPatch(
 	executionID int64,
 	pipelineName string,
 	runID string,
+	runName string,
 	pipelineLogLevel string,
 	publishLogs string,
 	cacheDisabled string,
@@ -404,9 +405,11 @@ func initPodSpecPatch(
 			return nil, fmt.Errorf("failed to validate volume mounts: %w", err)
 		}
 
-		// Uses Argo template variable to reference the PVC created by volumeClaimTemplates
-		// Argo resolves {{workflow.name}}-kfp-workspace to the actual PVC name at runtime
-		pvcName := "{{workflow.name}}-" + component.WorkspaceVolumeName
+		if runName == "" {
+			return nil, fmt.Errorf("failed to init podSpecPatch: run name is required when workspace is used")
+		}
+
+		pvcName := GetWorkspacePVCName(runName)
 
 		workspaceVolume, workspaceVolumeMount := getWorkspaceMount(pvcName)
 
