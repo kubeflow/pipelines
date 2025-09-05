@@ -23,4 +23,6 @@ var (
 	namespace           = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
 	initializeTimeout   = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
 	runIntegrationTests = flag.Bool("runIntegrationTests", false, "Whether to also run integration tests that call the service")
+	tlsEnabled          = flag.Bool("tlsEnabled", false, "Whether TLS is enabled tests")
+	caCertPath          = flag.String("caCertPath", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt", "CA Cert path")
 )

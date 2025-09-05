@@ -26,6 +26,8 @@ var (
 	runUpgradeTests     = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
 	runPostgreSQLTests  = flag.Bool("runPostgreSQLTests", false, "Run integration test with PostgreSQL")
 	localTest           = flag.Bool("localTest", false, "Run integration test locally")
+	tlsEnabled          = flag.Bool("tlsEnabled", false, "Whether TLS is enabled tests")
+	caCertPath          = flag.String("caCertPath", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt", "CA Cert path")
 )
 
 /**

@@ -54,6 +54,11 @@ type LauncherV2Options struct {
 	RunID string
 	PublishLogs   string
 	CacheDisabled bool
+	// set to true if ml pipeline server is serving over tls
+	MLPipelineTLSEnabled bool
+	// set to true if metadata server is serving over tls
+	MetadataTLSEnabled bool
+	CaCertPath         string
 }
 
 type LauncherV2 struct {
