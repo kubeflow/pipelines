@@ -68,7 +68,8 @@
           }
         }
       },
-      "single_platform_specs":  []
+      "single_platform_specs":  [],
+      "task_config_passthroughs":  []
     }
   },
   "root":  {
@@ -107,7 +108,8 @@
       }
     },
     "executor_label":  "root-executor",
-    "single_platform_specs":  []
+    "single_platform_specs":  [],
+    "task_config_passthroughs":  []
   },
   "default_pipeline_root":  ""
 }
