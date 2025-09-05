@@ -272,6 +272,7 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.executionID,
 				tt.args.pipelineName,
 				tt.args.runID,
+				"my-run-name",
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
@@ -387,6 +388,7 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
@@ -433,6 +435,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
@@ -481,6 +484,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
@@ -524,6 +528,7 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"true",
 		"false",
@@ -647,6 +652,7 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.executionID,
 				tt.args.pipelineName,
 				tt.args.runID,
+				"my-run-name",
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
@@ -701,6 +707,7 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
@@ -761,6 +768,7 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
@@ -938,6 +946,34 @@ func TestGetWorkspaceMount(t *testing.T) {
 	}
 }
 
+// Ensure that when workspace is used, missing RunName leads to an error during pod spec init.
+func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	componentSpec := &pipelinespec.ComponentSpec{}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"workspace_param": {Kind: &structpb.Value_StringValue{StringValue: "{{$.workspace_path}}"}},
+			},
+		},
+	}
+	taskCfg := &TaskConfig{}
+	_, err := initPodSpecPatch(
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"run-id",
+		"", // runName intentionally empty
+		"1",
+		"false",
+		"false",
+		taskCfg,
+	)
+	require.NotNil(t, err)
+}
+
 func TestValidateVolumeMounts(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -1047,7 +1083,7 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "1", "false", "false", taskCfg,
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg,
 	)
 	assert.Nil(t, err)
 
@@ -1060,7 +1096,7 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 	if assert.Len(t, taskCfg.Volumes, 1) {
 		assert.Equal(t, "kfp-workspace", taskCfg.Volumes[0].Name)
 		if assert.NotNil(t, taskCfg.Volumes[0].PersistentVolumeClaim) {
-			assert.Equal(t, "{{workflow.name}}-kfp-workspace", taskCfg.Volumes[0].PersistentVolumeClaim.ClaimName)
+			assert.Equal(t, "my-run-name-kfp-workspace", taskCfg.Volumes[0].PersistentVolumeClaim.ClaimName)
 		}
 	}
 
@@ -1090,7 +1126,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "1", "false", "false", taskCfg,
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg,
 	)
 	assert.Nil(t, err)
 	// Should mount workspace to pod and also capture to TaskConfig
@@ -1102,7 +1138,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 	if assert.Len(t, podSpec.Volumes, 1) {
 		assert.Equal(t, "kfp-workspace", podSpec.Volumes[0].Name)
 		if assert.NotNil(t, podSpec.Volumes[0].PersistentVolumeClaim) {
-			assert.Equal(t, "{{workflow.name}}-kfp-workspace", podSpec.Volumes[0].PersistentVolumeClaim.ClaimName)
+			assert.Equal(t, "my-run-name-kfp-workspace", podSpec.Volumes[0].PersistentVolumeClaim.ClaimName)
 		}
 	}
 
@@ -1116,7 +1152,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 	if assert.Len(t, taskCfg.Volumes, 1) {
 		assert.Equal(t, "kfp-workspace", taskCfg.Volumes[0].Name)
 		if assert.NotNil(t, taskCfg.Volumes[0].PersistentVolumeClaim) {
-			assert.Equal(t, "{{workflow.name}}-kfp-workspace", taskCfg.Volumes[0].PersistentVolumeClaim.ClaimName)
+			assert.Equal(t, "my-run-name-kfp-workspace", taskCfg.Volumes[0].PersistentVolumeClaim.ClaimName)
 		}
 	}
 
@@ -1149,6 +1185,7 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 		27,
 		"test",
 		"run",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
@@ -1192,6 +1229,7 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 		27,
 		"test",
 		"run",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
@@ -1266,6 +1304,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 		27,
 		"test",
 		"run",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
@@ -1361,6 +1400,7 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 		27,
 		"test",
 		"run",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
