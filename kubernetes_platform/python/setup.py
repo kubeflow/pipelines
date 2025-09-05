@@ -20,6 +20,7 @@ import setuptools
 
 NAME = 'kfp-kubernetes'
 
+
 def get_requirements(requirements_file: str) -> List[str]:
     """Read requirements from requirements.in."""
 
@@ -29,6 +30,7 @@ def get_requirements(requirements_file: str) -> List[str]:
     lines = [line.strip() for line in lines]
     lines = [line for line in lines if not line.startswith('#') and line]
     return lines
+
 
 def find_version(*file_path_parts: str) -> str:
     """Get version from kfp.__init__.__version__."""
@@ -72,7 +74,7 @@ setuptools.setup(
             'https://github.com/kubeflow/pipelines/tree/master/kubernetes_platform/python',
     },
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
-    python_requires='>=3.9.0',
+    python_requires='>=3.10.0',
     install_requires=get_requirements('requirements.txt'),
     include_package_data=True,
     extras_require={
