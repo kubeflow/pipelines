@@ -313,7 +313,11 @@ func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta
 	require.Eventually(s.T(), func() bool {
 		pipelineRunDetail, err = s.runClient.Get(&runParams.RunServiceGetRunParams{RunID: pipelineRunDetail.RunID})
 
-		s.T().Logf("Pipeline %v state: %v", pipelineRunDetail.RunID, pipelineRunDetail.State)
+		if err == nil {
+			s.T().Logf("Pipeline %v state: %v", pipelineRunDetail.RunID, *pipelineRunDetail.State)
+		} else {
+			s.T().Logf("Pipeline %v state: %v", pipelineRunDetail.RunID, err.Error())
+		}
 
 		return err == nil && *pipelineRunDetail.State == expectedState
 	}, 2*time.Minute, 10*time.Second)
@@ -337,7 +341,11 @@ func (s *CacheTestSuite) createRunWithParams(pipelineVersion *pipeline_upload_mo
 	expectedState := run_model.V2beta1RuntimeStateSUCCEEDED
 	require.Eventually(s.T(), func() bool {
 		pipelineRunDetail, err = s.runClient.Get(&runParams.RunServiceGetRunParams{RunID: pipelineRunDetail.RunID})
-		s.T().Logf("PVC pipeline %v state: %v", pipelineRunDetail.RunID, pipelineRunDetail.State)
+		if err == nil {
+			s.T().Logf("PVC pipeline %v state: %v", pipelineRunDetail.RunID, *pipelineRunDetail.State)
+		} else {
+			s.T().Logf("PVC pipeline %v state: %v", pipelineRunDetail.RunID, err.Error())
+		}
 		return err == nil && *pipelineRunDetail.State == expectedState
 	}, 2*time.Minute, 10*time.Second)
 
