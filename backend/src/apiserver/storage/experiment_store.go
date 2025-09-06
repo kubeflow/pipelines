@@ -103,7 +103,6 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 		glog.Errorf("Failed to start transaction to list jobs")
 		return errorF(err)
 	}
-	glog.Infof("ListExperiments SQL=%s ARGS=%v", rowsSql, rowsArgs)
 	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		tx.Rollback()

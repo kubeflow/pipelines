@@ -226,7 +226,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	qb := s.dialect.QueryBuilder()
 
 	// SQL for getting the filtered and paginated rows
-	sqlBuilder := qb.Select(taskColumns...).From(q("tasks"))
+	sqlBuilder := qb.Select(quoteAll(q, taskColumns)...).From(q("tasks"))
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("PipelineName"): filterContext.ID})
 	}
@@ -311,7 +311,7 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
 	sql, args, err := qb.
-		Select(taskColumns...).
+		Select(quoteAll(q, taskColumns)...).
 		From(q("tasks")).
 		Where(sq.Eq{q("tasks") + "." + q("UUID"): id}).
 		Limit(1).ToSql()
@@ -343,7 +343,7 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task) error {
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
 	sql, args, err := qb.
-		Select(taskColumns...).
+		Select(quoteAll(q, taskColumns)...).
 		From(q("tasks")).
 		Where(sq.Eq{q("PodName"): podNames}).
 		ToSql()
