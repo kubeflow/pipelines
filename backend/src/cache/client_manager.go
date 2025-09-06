@@ -18,17 +18,21 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	"encoding/json"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -62,118 +66,163 @@ func (c *ClientManager) Close() {
 
 func (c *ClientManager) init(params WhSvrDBParameters, clientParams util.ClientParameters) {
 	timeoutDuration, _ := time.ParseDuration(DefaultConnectionTimeout)
-	db := initDBClient(params, timeoutDuration)
+	db, d := initDBClient(params, timeoutDuration)
 
 	c.time = util.NewRealTime()
 	c.db = db
-	c.cacheStore = storage.NewExecutionCacheStore(db, c.time)
+	c.cacheStore = storage.NewExecutionCacheStore(db, c.time, d)
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(timeoutDuration, clientParams)
 }
 
-func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration) *storage.DB {
+func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration) (*storage.DB, dialect.DBDialect) {
 	driverName := params.dbDriver
-	var arg string
 
+	dbDialect := dialect.NewDBDialect(driverName)
+	arg := initDBDriver(params, initConnectionTimeout)
+
+	var dialector gorm.Dialector
 	switch driverName {
-	case mysqlDBDriverDefault:
-		arg = initMysql(params, initConnectionTimeout)
+	case "mysql":
+		// DefaultStringSize dictates non-indexable string fields map to VARCHAR(255) for backward compatibility with GORM v1.
+		dialector = mysql.New(mysql.Config{
+			DSN:               arg,
+			DefaultStringSize: 255,
+		})
+	case "pgx":
+		dialector = postgres.Open(arg)
 	default:
-		glog.Fatalf("Driver %v is not supported", driverName)
+		glog.Fatalf("Unsupported driver %v", driverName)
 	}
 
 	// db is safe for concurrent use by multiple goroutines
 	// and maintains its own pool of idle connections.
-	db, err := gorm.Open(mysql.Open(arg), &gorm.Config{})
+	gormDB, err := gorm.Open(dialector, &gorm.Config{})
 	util.TerminateIfError(err)
 
 	// Create table
-	err = db.AutoMigrate(&model.ExecutionCache{})
+	err = gormDB.AutoMigrate(&model.ExecutionCache{})
 	if err != nil {
 		glog.Fatalf("Failed to initialize the databases.")
 	}
 
-	err = db.Migrator().AlterColumn(&model.ExecutionCache{}, "ExecutionOutput")
+	err = gormDB.Migrator().AlterColumn(&model.ExecutionCache{}, "ExecutionOutput")
 	if err != nil {
 		glog.Fatalf("Failed to update the execution output type. Error: %s", err)
 	}
-	err = db.Migrator().AlterColumn(&model.ExecutionCache{}, "ExecutionTemplate")
+	err = gormDB.Migrator().AlterColumn(&model.ExecutionCache{}, "ExecutionTemplate")
 	if err != nil {
 		glog.Fatalf("Failed to update the execution template type. Error: %s", err)
 	}
 
 	var tableNames []string
-	db.Raw(`show tables`).Pluck("Tables_in_caches", &tableNames)
+	gormDB.Raw(`show tables`).Pluck("Tables_in_caches", &tableNames)
 	for _, tableName := range tableNames {
 		log.Printf("%s", tableName)
 	}
 
-	return storage.NewDB(db)
+	// TODO(yunkai): Migrate cache storage to dialect-aware initialization (similar to apiserver) and remove this NewDB wrapper when unified.
+	return storage.NewDB(gormDB), dbDialect
 }
 
-func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) string {
+func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration) string {
+	switch params.dbDriver {
+	case "mysql":
+		var mysqlExtraParams = map[string]string{}
+		data := []byte(params.dbExtraParams)
+		json.Unmarshal(data, &mysqlExtraParams)
+		mysqlConfig := client.CreateMySQLConfig(
+			params.dbUser,
+			params.dbPwd,
+			params.dbHost,
+			params.dbPort,
+			"",
+			params.dbGroupConcatMaxLen,
+			mysqlExtraParams,
+		)
 
-	var mysqlExtraParams = map[string]string{}
-	data := []byte(params.dbExtraParams)
-	json.Unmarshal(data, &mysqlExtraParams)
-	mysqlConfig := client.CreateMySQLConfig(
-		params.dbUser,
-		params.dbPwd,
-		params.dbHost,
-		params.dbPort,
-		"",
-		params.dbGroupConcatMaxLen,
-		mysqlExtraParams,
-	)
-
-	var db *sql.DB
-	var err error
-	var operation = func() error {
-		db, err = sql.Open(params.dbDriver, mysqlConfig.FormatDSN())
-		if err != nil {
-			return err
+		var db *sql.DB
+		var err error
+		var operation = func() error {
+			db, err = sql.Open(params.dbDriver, mysqlConfig.FormatDSN())
+			if err != nil {
+				return err
+			}
+			return nil
 		}
-		return nil
-	}
-	b := backoff.NewExponentialBackOff()
-	b.MaxElapsedTime = initConnectionTimeout
-	err = backoff.Retry(operation, b)
+		b := backoff.NewExponentialBackOff()
+		b.MaxElapsedTime = initConnectionTimeout
+		err = backoff.Retry(operation, b)
 
-	defer db.Close()
-	util.TerminateIfError(err)
+		defer db.Close()
+		util.TerminateIfError(err)
 
-	// Create database if not exist
-	dbName := params.dbName
-	operation = func() error {
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
-		if err != nil {
-			return err
+		// Create database if not exist
+		dbName := params.dbName
+		operation = func() error {
+			_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName))
+			if err != nil {
+				return err
+			}
+			log.Printf("Database created")
+			return nil
 		}
-		log.Printf("Database created")
-		return nil
-	}
-	b = backoff.NewExponentialBackOff()
-	b.MaxElapsedTime = initConnectionTimeout
-	err = backoff.Retry(operation, b)
+		b = backoff.NewExponentialBackOff()
+		b.MaxElapsedTime = initConnectionTimeout
+		err = backoff.Retry(operation, b)
 
-	operation = func() error {
-		_, err = db.Exec(fmt.Sprintf("USE %s", dbName))
-		if err != nil {
-			return err
+		operation = func() error {
+			_, err = db.Exec(fmt.Sprintf("USE %s", dbName))
+			if err != nil {
+				return err
+			}
+			return nil
 		}
-		return nil
-	}
-	b = backoff.NewExponentialBackOff()
-	b.MaxElapsedTime = initConnectionTimeout
-	err = backoff.Retry(operation, b)
+		b = backoff.NewExponentialBackOff()
+		b.MaxElapsedTime = initConnectionTimeout
+		err = backoff.Retry(operation, b)
 
-	util.TerminateIfError(err)
-	mysqlConfig.DBName = dbName
-	// When updating, return rows matched instead of rows affected. This counts rows that are being
-	// set as the same values as before. If updating using a primary key and rows matched is 0, then
-	// it means this row is not found.
-	// Config reference: https://github.com/go-sql-driver/mysql#clientfoundrows
-	mysqlConfig.ClientFoundRows = true
-	return mysqlConfig.FormatDSN()
+		util.TerminateIfError(err)
+		mysqlConfig.DBName = dbName
+		// When updating, return rows matched instead of rows affected. This counts rows that are being
+		// set as the same values as before. If updating using a primary key and rows matched is 0, then
+		// it means this row is not found.
+		// Config reference: https://github.com/go-sql-driver/mysql#clientfoundrows
+		mysqlConfig.ClientFoundRows = true
+		return mysqlConfig.FormatDSN()
+	case "pgx":
+		port, err := strconv.Atoi(params.dbPort)
+		if err != nil {
+			glog.Fatalf("Invalid port for PostgreSQL: %v", err)
+		}
+		// Connect without target DB first
+		dsnNoDB := client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, "postgres", uint16(port))
+		var db *sql.DB
+		var operation = func() error {
+			db, err = sql.Open(params.dbDriver, dsnNoDB)
+			if err != nil {
+				return err
+			}
+			return db.Ping()
+		}
+		b := backoff.NewExponentialBackOff()
+		b.MaxElapsedTime = initConnectionTimeout
+		err = backoff.Retry(operation, b)
+		util.TerminateIfError(err)
+
+		// Create database, ignoring "already exists" error
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", params.dbName))
+		if err != nil && !strings.Contains(err.Error(), "already exists") {
+			db.Close()
+			glog.Fatalf("Failed to create database: %v", err)
+		}
+		db.Close()
+
+		// Return DSN with target DB
+		return client.CreatePostgreSQLConfig(params.dbUser, params.dbPwd, params.dbHost, params.dbName, uint16(port))
+	default:
+		glog.Fatalf("Driver %v is not supported", params.dbDriver)
+	}
+	return ""
 }
 
 func NewClientManager(params WhSvrDBParameters, clientParams util.ClientParameters) ClientManager {

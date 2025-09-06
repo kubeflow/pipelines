@@ -1,0 +1,233 @@
+name: KFP Backend Postgres Tests
+
+on:
+  push:
+    branches:
+      - ci/pgx-kustomize
+      - feature/replace-str-with-largetext-WIP
+  workflow_dispatch: {}
+
+jobs:
+  postgres-pgx:
+    name: Backend Postgres (pgx via Kustomize+KinD)
+    runs-on: ubuntu-latest
+    continue-on-error: true # Temporarily allow failures; switch to false after LargeText/storage changes land
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/replace-str-with-largetext-WIP
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Create KinD cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: kfp-ci
+          wait: 300s
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "latest"
+
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: "5.4.2"
+
+      - name: Install utils (psql, nc, jq)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client netcat-openbsd jq
+
+      - name: Create namespace
+        env:
+          NAMESPACE: kfp-pgx-test
+        run: kubectl create namespace "$NAMESPACE" || true
+
+      - name: Install default StorageClass for KinD (local-path)
+        run: |
+          set -euo pipefail
+
+          # 1) Install local-path-provisioner (idempotent)
+          kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+
+          # 2) Detect its namespace (usually local-path-storage)
+          LPP_NS=$(kubectl get deploy -A -o jsonpath='{range .items[?(@.metadata.name=="local-path-provisioner")]}{.metadata.namespace}{"\n"}{end}')
+          if [ -z "${LPP_NS:-}" ]; then
+            echo "Failed to locate local-path-provisioner deployment"
+            kubectl get deploy -A
+            exit 1
+          fi
+          echo "local-path-provisioner namespace: $LPP_NS"
+
+          # 3) Wait for controller to be ready
+          kubectl -n "$LPP_NS" rollout status deploy/local-path-provisioner --timeout=180s
+
+          # 4) Mark StorageClass as default (idempotent)
+          if ! kubectl get storageclass local-path >/dev/null 2>&1; then
+            echo "StorageClass 'local-path' not found, listing SCs:"
+            kubectl get storageclass -o wide
+            exit 1
+          fi
+          kubectl annotate storageclass local-path storageclass.kubernetes.io/is-default-class="true" --overwrite
+
+          echo "StorageClasses:"
+          kubectl get storageclass
+
+          # 5) Verify default StorageClass exists
+          kubectl get storageclass | tee /dev/stderr | grep "(default)"
+
+      - name: Wait for default StorageClass present
+        run: |
+          # Sanity check: ensure there is a default StorageClass before deploying PG
+          kubectl get storageclass | tee /dev/stderr | grep "(default)" >/dev/null
+
+      - name: Deploy Postgres via Kustomize
+        working-directory: manifests/kustomize/third-party/postgresql
+        env:
+          NAMESPACE: kfp-pgx-test
+        run: |
+          kustomize build ./base | kubectl -n "$NAMESPACE" apply -f -
+          kubectl -n "$NAMESPACE" get all
+
+      - name: Wait for Postgres pod ready
+        env:
+          NAMESPACE: kfp-pgx-test
+        run: |
+          # Wait until pods with label=app=postgres are Ready
+          kubectl -n "$NAMESPACE" wait --for=condition=ready pod -l app=postgres --timeout=300s
+          kubectl -n "$NAMESPACE" get pods -l app=postgres -o wide
+
+      - name: Port-forward Postgres (bind to 127.0.0.3)
+        env:
+          NAMESPACE: kfp-pgx-test
+        run: |
+          set -euo pipefail
+
+          kubectl -n "$NAMESPACE" get svc postgres-service -o wide
+          SVC_PORT=$(kubectl -n "$NAMESPACE" get svc postgres-service -o jsonpath='{.spec.ports[0].port}')
+
+          kubectl -n "$NAMESPACE" port-forward svc/postgres-service ${SVC_PORT}:${SVC_PORT} --address=127.0.0.3 >/tmp/pf.log 2>&1 &
+          echo $! > pf.pid
+
+          # Wait until endpoints are ready
+          for i in {1..150}; do
+            EP=$(kubectl -n "$NAMESPACE" get endpoints postgres-service -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null || true)
+            [ -n "$EP" ] && break
+            sleep 2
+          done
+          [ -n "${EP:-}" ] || { echo "no endpoints"; cat /tmp/pf.log || true; exit 1; }
+
+          # Wait until local port is open
+          for i in {1..60}; do nc -z 127.0.0.3 "${SVC_PORT}" && break; sleep 2; done
+          nc -z 127.0.0.3 "${SVC_PORT}" || { echo "local port not open"; cat /tmp/pf.log || true; exit 1; }
+
+          # Optional: psql probe (not fatal; default db/user may not exist)
+          PGPASSWORD=kubeflow psql -h 127.0.0.3 -p "${SVC_PORT}" -U kubeflow -d kubeflow -c "SELECT 1;" || true
+
+      - name: Bootstrap PG objects for tests (discover superuser & create user/db)
+        env:
+          NAMESPACE: kfp-pgx-test
+        run: |
+          set -euo pipefail
+
+          # --- helper: decode secret value ---
+          get_secret_val () {
+            local ns="$1" name="$2" key="$3"
+            kubectl -n "$ns" get secret "$name" -o jsonpath="{.data.$key}" | base64 -d 2>/dev/null || true
+          }
+
+          # --- Detect superuser username from Pod env/secretKeyRef ---
+          RAW_USER=$(kubectl -n "$NAMESPACE" get pod -l app=postgres -o json \
+            | jq -r '
+                .items[0].spec.containers[0].env // []
+                | map(select(.name|test("(?i)^POSTGRES(_QL)?_(USER|USERNAME)$")))
+                | .[0] // {}')
+          PG_SUPER_USER=$(printf '%s' "$RAW_USER" | jq -r '.value // empty')
+          if [ -z "${PG_SUPER_USER:-}" ]; then
+            USN=$(printf '%s' "$RAW_USER" | jq -r '.valueFrom.secretKeyRef.name // empty')
+            UKY=$(printf '%s' "$RAW_USER" | jq -r '.valueFrom.secretKeyRef.key // empty')
+            if [ -n "${USN:-}" ] && [ -n "${UKY:-}" ]; then
+              PG_SUPER_USER="$(get_secret_val "$NAMESPACE" "$USN" "$UKY" || true)"
+            fi
+          fi
+
+          # --- Detect superuser password from Pod env/secretKeyRef ---
+          RAW_PW=$(kubectl -n "$NAMESPACE" get pod -l app=postgres -o json \
+            | jq -r '
+                .items[0].spec.containers[0].env // []
+                | map(select(.name|test("(?i)^POSTGRES(_QL)?_PASSWORD$|^POSTGRES-PASSWORD$")))
+                | .[0] // {}')
+          PG_SUPER_PW=$(printf '%s' "$RAW_PW" | jq -r '.value // empty')
+          if [ -z "${PG_SUPER_PW:-}" ]; then
+            PWN=$(printf '%s' "$RAW_PW" | jq -r '.valueFrom.secretKeyRef.name // empty')
+            PWK=$(printf '%s' "$RAW_PW" | jq -r '.valueFrom.secretKeyRef.key // empty')
+            if [ -n "${PWN:-}" ] && [ -n "${PWK:-}" ]; then
+              PG_SUPER_PW="$(get_secret_val "$NAMESPACE" "$PWN" "$PWK" || true)"
+            fi
+          fi
+
+          # --- Candidate superuser usernames (discovered first, then common fallbacks) ---
+          CAND_USERS=()
+          [ -n "${PG_SUPER_USER:-}" ] && CAND_USERS+=("$PG_SUPER_USER")
+          CAND_USERS+=("postgres" "kubeflow")
+
+          # --- Try connecting with each candidate until success ---
+          CONNECTED=false
+          for U in "${CAND_USERS[@]}"; do
+            if [ -n "${PG_SUPER_PW:-}" ]; then
+              PGPASSWORD="$PG_SUPER_PW" psql -h 127.0.0.3 -p 5432 -U "$U" -d postgres -c "SELECT 1;" >/dev/null 2>&1 \
+                && { PG_SUPER_USER="$U"; CONNECTED=true; break; }
+            else
+              psql -h 127.0.0.3 -p 5432 -U "$U" -d postgres -c "SELECT 1;" >/dev/null 2>&1 \
+                && { PG_SUPER_USER="$U"; CONNECTED=true; break; }
+            fi
+          done
+          if [ "$CONNECTED" != true ]; then
+            echo "Failed to connect as a superuser. Tried: ${CAND_USERS[*]}"
+            echo "Secrets in namespace:"
+            kubectl -n "$NAMESPACE" get secret
+            exit 2
+          fi
+          echo "Using superuser: $PG_SUPER_USER"
+
+          # --- Create test user/password & db (idempotent) ---
+          [ -n "${PG_SUPER_PW:-}" ] && export PGPASSWORD="$PG_SUPER_PW" || true
+
+          # Create role
+          psql -h 127.0.0.3 -p 5432 -U "$PG_SUPER_USER" -d postgres -v ON_ERROR_STOP=1 -q -c \
+            "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='user') THEN CREATE ROLE \"user\" LOGIN PASSWORD 'password'; END IF; END \$\$;"
+
+          # Create database (cannot be inside DO/transaction)
+          psql -h 127.0.0.3 -p 5432 -U "$PG_SUPER_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='mlpipeline'" \
+            | grep -q 1 || psql -h 127.0.0.3 -p 5432 -U "$PG_SUPER_USER" -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE mlpipeline OWNER \"user\";"
+
+          # --- Verify new user can log in ---
+          PGPASSWORD=password psql -h 127.0.0.3 -p 5432 -U user -d mlpipeline -c "SELECT current_database(), current_user;"
+
+      - name: Run backend integration tests (pgx)
+        env:
+          DB_TYPE: postgres
+          DB_DRIVER: pgx
+          DB_HOST: 127.0.0.3
+          DB_PORT: "5432"
+          DB_USER: user
+          DB_PASSWORD: password
+          DB_NAME: mlpipeline
+          NAMESPACE: kfp-pgx-test
+        run: |
+          go test -v ./... -namespace "$NAMESPACE" -args -runIntegrationTests=true -isDevMode=true -runPostgreSQLTests=true -localTest=true || true
+
+      - name: Cleanup (always)
+        if: always()
+        run: |
+          echo "==== PG Pods ===="
+          kubectl -n kfp-pgx-test get pods -o wide || true
+          echo "==== PG Events ===="
+          kubectl -n kfp-pgx-test get events --sort-by=.lastTimestamp | tail -n 100 || true
+          if [ -f pf.pid ]; then kill -9 "$(cat pf.pid)" || true; fi

@@ -435,62 +435,62 @@ func TestAddToSelectV1(t *testing.T) {
 	}{
 		{
 			`predicates { key: "status" op: EQUALS string_value: "Running" }`,
-			"SELECT mycolumn WHERE status = ?",
+			"SELECT mycolumn WHERE (status = ?)",
 			[]interface{}{"Running"},
 		},
 		{
 			`predicates { key: "status" op: EQUALS string_value: "Running" }
 			 predicates { key: "status" op: EQUALS string_value: "Stopped" }`,
-			"SELECT mycolumn WHERE status = ? AND status = ?",
+			"SELECT mycolumn WHERE (status = ? AND status = ?)",
 			[]interface{}{"Running", "Stopped"},
 		},
 		{
 			`predicates { key: "status" op: EQUALS string_value: "Running" }`,
-			"SELECT mycolumn WHERE status = ?",
+			"SELECT mycolumn WHERE (status = ?)",
 			[]interface{}{"Running"},
 		},
 		{
 			`predicates { key: "status" op: EQUALS string_value: "Running" }
 		   predicates { key: "total" op: GREATER_THAN_EQUALS  long_value: 100 }`,
-			"SELECT mycolumn WHERE status = ? AND total >= ?",
+			"SELECT mycolumn WHERE (status = ? AND total >= ?)",
 			[]interface{}{"Running", int64(100)},
 		},
 		{
 			`predicates { key: "status" op: NOT_EQUALS string_value: "Running" }
 		   predicates { key: "total" op: GREATER_THAN  long_value: 100 }`,
-			"SELECT mycolumn WHERE status <> ? AND total > ?",
+			"SELECT mycolumn WHERE (status <> ? AND total > ?)",
 			[]interface{}{"Running", int64(100)},
 		},
 		{
 			`predicates { key: "date" op: LESS_THAN timestamp_value { seconds: 10 } }
 		   predicates { key: "total" op: LESS_THAN_EQUALS  int_value: 100 }`,
-			"SELECT mycolumn WHERE date < ? AND total <= ?",
+			"SELECT mycolumn WHERE (date < ? AND total <= ?)",
 			[]interface{}{int64(10), int32(100)},
 		},
 		{
 			`predicates { key: "total" op: IN int_values {values: 1 values: 2 values: 3} }`,
-			"SELECT mycolumn WHERE total IN (?,?,?)",
+			"SELECT mycolumn WHERE (total IN (?,?,?))",
 			[]interface{}{int32(1), int32(2), int32(3)},
 		},
 		{
 			`predicates { key: "runs" op: IN  long_values {values: 100 values: 200}}`,
-			"SELECT mycolumn WHERE runs IN (?,?)",
+			"SELECT mycolumn WHERE (runs IN (?,?))",
 			[]interface{}{int64(100), int64(200)},
 		},
 		{
 			`predicates { key: "label" op: IN  string_values {values: "l1" values: "l2"}}`,
-			"SELECT mycolumn WHERE label IN (?,?)",
+			"SELECT mycolumn WHERE (label IN (?,?))",
 			[]interface{}{"l1", "l2"},
 		},
 		{
 			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring" }`,
-			"SELECT mycolumn WHERE label LIKE ?",
+			"SELECT mycolumn WHERE (label LIKE ?)",
 			[]interface{}{"%label_substring%"},
 		},
 		{
 			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring1" }
 			 predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring2" }`,
-			"SELECT mycolumn WHERE label LIKE ? AND label LIKE ?",
+			"SELECT mycolumn WHERE (label LIKE ? AND label LIKE ?)",
 			[]interface{}{"%label_substring1%", "%label_substring2%"},
 		},
 	}
@@ -509,7 +509,7 @@ func TestAddToSelectV1(t *testing.T) {
 		}
 
 		sb := squirrel.Select("mycolumn")
-		gotSQL, gotArgs, err := filter.AddToSelect(sb).ToSql()
+		gotSQL, gotArgs, err := filter.AddToSelect(sb, nil).ToSql()
 		if !cmp.Equal(gotSQL, test.wantSQL) || !cmp.Equal(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("Filter.AddToSelect(%+v).ToSql() =\nGot: %+v, %v, %v\nWant: %+v, %+v, <nil>", filter, gotSQL, gotArgs, err, test.wantSQL, test.wantArgs)
 		}
@@ -524,62 +524,62 @@ func TestAddToSelect(t *testing.T) {
 	}{
 		{
 			`predicates { key: "status" operation: EQUALS string_value: "Running" }`,
-			"SELECT mycolumn WHERE status = ?",
+			"SELECT mycolumn WHERE (status = ?)",
 			[]interface{}{"Running"},
 		},
 		{
 			`predicates { key: "status" operation: EQUALS string_value: "Running" }
 			 predicates { key: "status" operation: EQUALS string_value: "Stopped" }`,
-			"SELECT mycolumn WHERE status = ? AND status = ?",
+			"SELECT mycolumn WHERE (status = ? AND status = ?)",
 			[]interface{}{"Running", "Stopped"},
 		},
 		{
 			`predicates { key: "status" operation: EQUALS string_value: "Running" }`,
-			"SELECT mycolumn WHERE status = ?",
+			"SELECT mycolumn WHERE (status = ?)",
 			[]interface{}{"Running"},
 		},
 		{
 			`predicates { key: "status" operation: EQUALS string_value: "Running" }
 		   predicates { key: "total" operation: GREATER_THAN_EQUALS  long_value: 100 }`,
-			"SELECT mycolumn WHERE status = ? AND total >= ?",
+			"SELECT mycolumn WHERE (status = ? AND total >= ?)",
 			[]interface{}{"Running", int64(100)},
 		},
 		{
 			`predicates { key: "status" operation: NOT_EQUALS string_value: "Running" }
 		   predicates { key: "total" operation: GREATER_THAN  long_value: 100 }`,
-			"SELECT mycolumn WHERE status <> ? AND total > ?",
+			"SELECT mycolumn WHERE (status <> ? AND total > ?)",
 			[]interface{}{"Running", int64(100)},
 		},
 		{
 			`predicates { key: "date" operation: LESS_THAN timestamp_value { seconds: 10 } }
 		   predicates { key: "total" operation: LESS_THAN_EQUALS  int_value: 100 }`,
-			"SELECT mycolumn WHERE date < ? AND total <= ?",
+			"SELECT mycolumn WHERE (date < ? AND total <= ?)",
 			[]interface{}{int64(10), int32(100)},
 		},
 		{
 			`predicates { key: "total" operation: IN int_values {values: 1 values: 2 values: 3} }`,
-			"SELECT mycolumn WHERE total IN (?,?,?)",
+			"SELECT mycolumn WHERE (total IN (?,?,?))",
 			[]interface{}{int32(1), int32(2), int32(3)},
 		},
 		{
 			`predicates { key: "runs" operation: IN  long_values {values: 100 values: 200}}`,
-			"SELECT mycolumn WHERE runs IN (?,?)",
+			"SELECT mycolumn WHERE (runs IN (?,?))",
 			[]interface{}{int64(100), int64(200)},
 		},
 		{
 			`predicates { key: "label" operation: IN  string_values {values: "l1" values: "l2"}}`,
-			"SELECT mycolumn WHERE label IN (?,?)",
+			"SELECT mycolumn WHERE (label IN (?,?))",
 			[]interface{}{"l1", "l2"},
 		},
 		{
 			`predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring" }`,
-			"SELECT mycolumn WHERE label LIKE ?",
+			"SELECT mycolumn WHERE (label LIKE ?)",
 			[]interface{}{"%label_substring%"},
 		},
 		{
 			`predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring1" }
 			 predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring2" }`,
-			"SELECT mycolumn WHERE label LIKE ? AND label LIKE ?",
+			"SELECT mycolumn WHERE (label LIKE ? AND label LIKE ?)",
 			[]interface{}{"%label_substring1%", "%label_substring2%"},
 		},
 	}
@@ -598,7 +598,7 @@ func TestAddToSelect(t *testing.T) {
 		}
 
 		sb := squirrel.Select("mycolumn")
-		gotSQL, gotArgs, err := filter.AddToSelect(sb).ToSql()
+		gotSQL, gotArgs, err := filter.AddToSelect(sb, nil).ToSql()
 		if !cmp.Equal(gotSQL, test.wantSQL) || !cmp.Equal(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("Filter.AddToSelect(%+v).ToSql() =\nGot: %+v, %v, %v\nWant: %+v, %+v, <nil>", filter, gotSQL, gotArgs, err, test.wantSQL, test.wantArgs)
 		}
@@ -991,4 +991,29 @@ func TestFilter_ReplaceKeys(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAddToSelect_WithQuoting(t *testing.T) {
+	protoFilter := &apiv2beta1.Filter{
+		Predicates: []*apiv2beta1.Predicate{
+			{Key: "CreatedAtInSec", Operation: apiv2beta1.Predicate_GREATER_THAN, Value: &apiv2beta1.Predicate_LongValue{LongValue: 100}},
+			{Key: "name", Operation: apiv2beta1.Predicate_EQUALS, Value: &apiv2beta1.Predicate_StringValue{StringValue: "test"}},
+		},
+	}
+	filter, err := New(protoFilter)
+	assert.NoError(t, err)
+
+	sb := squirrel.Select("mycolumn")
+	// pgx style quoting
+	quote := func(s string) string { return `"` + s + `"` }
+
+	gotSQL, gotArgs, err := filter.AddToSelect(sb, quote).ToSql()
+	assert.NoError(t, err)
+
+	// Order is deterministic based on the implementation of AddToSelect
+	wantSQL := `SELECT mycolumn WHERE ("name" = ? AND "CreatedAtInSec" > ?)`
+	wantArgs := []interface{}{"test", int64(100)}
+
+	assert.Equal(t, wantSQL, gotSQL)
+	assert.Equal(t, wantArgs, gotArgs)
 }
