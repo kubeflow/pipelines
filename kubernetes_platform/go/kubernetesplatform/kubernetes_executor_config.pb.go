@@ -980,12 +980,12 @@ type ConfigMapAsEnv struct {
 	// Deprecated: Marked as deprecated in kubernetes_executor_config.proto.
 	ConfigMapName string                                 `protobuf:"bytes,1,opt,name=config_map_name,json=configMapName,proto3" json:"config_map_name,omitempty"`
 	KeyToEnv      []*ConfigMapAsEnv_ConfigMapKeyToEnvMap `protobuf:"bytes,2,rep,name=key_to_env,json=keyToEnv,proto3" json:"key_to_env,omitempty"`
-	// An optional boolean value indicating whether the ConfigMap must be defined.
-	Optional *bool `protobuf:"varint,3,opt,name=optional,proto3,oneof" json:"optional,omitempty"`
 	// Name of the ConfigMap.
-	ConfigMapNameParameter *pipelinespec.TaskInputsSpec_InputParameterSpec `protobuf:"bytes,4,opt,name=config_map_name_parameter,json=configMapNameParameter,proto3" json:"config_map_name_parameter,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	ConfigMapNameParameter *pipelinespec.TaskInputsSpec_InputParameterSpec `protobuf:"bytes,3,opt,name=config_map_name_parameter,json=configMapNameParameter,proto3" json:"config_map_name_parameter,omitempty"`
+	// An optional boolean value indicating whether the ConfigMap must be defined.
+	Optional      *bool `protobuf:"varint,4,opt,name=optional,proto3,oneof" json:"optional,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ConfigMapAsEnv) Reset() {
@@ -1033,18 +1033,18 @@ func (x *ConfigMapAsEnv) GetKeyToEnv() []*ConfigMapAsEnv_ConfigMapKeyToEnvMap {
 	return nil
 }
 
-func (x *ConfigMapAsEnv) GetOptional() bool {
-	if x != nil && x.Optional != nil {
-		return *x.Optional
-	}
-	return false
-}
-
 func (x *ConfigMapAsEnv) GetConfigMapNameParameter() *pipelinespec.TaskInputsSpec_InputParameterSpec {
 	if x != nil {
 		return x.ConfigMapNameParameter
 	}
 	return nil
+}
+
+func (x *ConfigMapAsEnv) GetOptional() bool {
+	if x != nil && x.Optional != nil {
+		return *x.Optional
+	}
+	return false
 }
 
 type GenericEphemeralVolume struct {
@@ -1862,9 +1862,9 @@ const file_kubernetes_executor_config_proto_rawDesc = "" +
 	"\x0eConfigMapAsEnv\x12*\n" +
 	"\x0fconfig_map_name\x18\x01 \x01(\tB\x02\x18\x01R\rconfigMapName\x12Q\n" +
 	"\n" +
-	"key_to_env\x18\x02 \x03(\v23.kfp_kubernetes.ConfigMapAsEnv.ConfigMapKeyToEnvMapR\bkeyToEnv\x12\x1f\n" +
-	"\boptional\x18\x03 \x01(\bH\x00R\boptional\x88\x01\x01\x12j\n" +
-	"\x19config_map_name_parameter\x18\x04 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x16configMapNameParameter\x1aU\n" +
+	"key_to_env\x18\x02 \x03(\v23.kfp_kubernetes.ConfigMapAsEnv.ConfigMapKeyToEnvMapR\bkeyToEnv\x12j\n" +
+	"\x19config_map_name_parameter\x18\x03 \x01(\v2/.ml_pipelines.TaskInputsSpec.InputParameterSpecR\x16configMapNameParameter\x12\x1f\n" +
+	"\boptional\x18\x04 \x01(\bH\x00R\boptional\x88\x01\x01\x1aU\n" +
 	"\x14ConfigMapKeyToEnvMap\x12$\n" +
 	"\x0econfig_map_key\x18\x01 \x01(\tR\fconfigMapKey\x12\x17\n" +
 	"\aenv_var\x18\x02 \x01(\tR\x06envVarB\v\n" +

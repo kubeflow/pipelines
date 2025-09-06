@@ -175,11 +175,11 @@ message ConfigMapAsEnv {
     }
 
     repeated ConfigMapKeyToEnvMap key_to_env = 2;
-    // An optional boolean value indicating whether the ConfigMap must be defined.
-    optional bool optional = 3;
 
     // Name of the ConfigMap.
-    ml_pipelines.TaskInputsSpec.InputParameterSpec config_map_name_parameter = 4;
+    ml_pipelines.TaskInputsSpec.InputParameterSpec config_map_name_parameter = 3;
+    // An optional boolean value indicating whether the ConfigMap must be defined.
+    optional bool optional = 4;
 }
 
 message GenericEphemeralVolume {
