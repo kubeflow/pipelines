@@ -205,7 +205,8 @@ class TestUseConfigMapAsVolume:
                                     'keyToEnv': [{
                                         'configMapKey': 'foo',
                                         'envVar': 'CM_VAR'
-                                    }]
+                                    }],
+                                    'optional': False
                                 }],
                                 'configMapAsVolume': [{
                                     'configMapName': 'cm-name2',
@@ -518,7 +519,102 @@ class TestUseConfigMapAsEnv:
                                             'configMapKey': 'bar',
                                             'envVar': 'BAR'
                                         },
-                                    ]
+                                    ],
+                                    'optional': False
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_use_one_optional_true(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.use_config_map_as_env(
+                task,
+                config_map_name='cm-name',
+                config_map_key_to_env={
+                    'foo': 'FOO',
+                    'bar': 'BAR',
+                },
+                optional=True,
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'configMapAsEnv': [{
+                                    'configMapName': 'cm-name',
+                                    'configMapNameParameter': {
+                                        'runtimeValue': {
+                                            'constant': 'cm-name'
+                                        }
+                                    },
+                                    'keyToEnv': [
+                                        {
+                                            'configMapKey': 'foo',
+                                            'envVar': 'FOO'
+                                        },
+                                        {
+                                            'configMapKey': 'bar',
+                                            'envVar': 'BAR'
+                                        },
+                                    ],
+                                    'optional': True
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_use_one_optional_false(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.use_config_map_as_env(
+                task,
+                config_map_name='cm-name',
+                config_map_key_to_env={
+                    'foo': 'FOO',
+                    'bar': 'BAR',
+                },
+                optional=False,
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'configMapAsEnv': [{
+                                    'configMapName': 'cm-name',
+                                    'configMapNameParameter': {
+                                        'runtimeValue': {
+                                            'constant': 'cm-name'
+                                        }
+                                    },
+                                    'keyToEnv': [
+                                        {
+                                            'configMapKey': 'foo',
+                                            'envVar': 'FOO'
+                                        },
+                                        {
+                                            'configMapKey': 'bar',
+                                            'envVar': 'BAR'
+                                        },
+                                    ],
+                                    'optional': False
                                 }]
                             }
                         }
@@ -561,7 +657,8 @@ class TestUseConfigMapAsEnv:
                                         'keyToEnv': [{
                                             'configMapKey': 'foo1',
                                             'envVar': 'CM_VAR1'
-                                        }]
+                                        }],
+                                        'optional': False
                                     },
                                     {
                                         'configMapName': 'cm-name2',
@@ -573,7 +670,8 @@ class TestUseConfigMapAsEnv:
                                         'keyToEnv': [{
                                             'configMapKey': 'foo2',
                                             'envVar': 'CM_VAR2'
-                                        }]
+                                        }],
+                                        'optional': False
                                     },
                                 ]
                             }
@@ -617,7 +715,8 @@ class TestUseConfigMapAsEnv:
                                     'keyToEnv': [{
                                         'configMapKey': 'foo',
                                         'envVar': 'CM_VAR'
-                                    }]
+                                    }],
+                                    'optional': False
                                 }],
                                 'configMapAsVolume': [{
                                     'configMapName': 'cm-name2',
@@ -681,7 +780,8 @@ class TestUseConfigMapAsEnv:
                                             'configMapKey': 'foo',
                                             'envVar': 'CM_VAR'
                                         },
-                                    ]
+                                    ],
+                                    'optional': False
                                 }]
                             }
                         }
@@ -719,7 +819,8 @@ class TestUseConfigMapAsEnv:
                                             'configMapKey': 'foo',
                                             'envVar': 'CM_VAR'
                                         },
-                                    ]
+                                    ],
+                                    'optional': False
                                 }]
                             }
                         }
@@ -772,7 +873,8 @@ class TestUseConfigMapAsEnv:
                                                 'configMapKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     },
                                     {
                                         'configMapNameParameter': {
@@ -783,7 +885,8 @@ class TestUseConfigMapAsEnv:
                                                 'configMapKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     },
                                 ]
                             },
@@ -798,7 +901,8 @@ class TestUseConfigMapAsEnv:
                                                 'configMapKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     },
                                 ]
                             }
@@ -840,7 +944,8 @@ class TestUseConfigMapAsEnv:
                                             'configMapKey': 'foo',
                                             'envVar': 'CM_VAR'
                                         },
-                                    ]
+                                    ],
+                                    'optional': False
                                 }]
                             }
                         }
@@ -900,7 +1005,8 @@ class TestUseConfigMapAsEnv:
                                                 'configMapKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     },
                                     {
                                         'configMapNameParameter': {
@@ -914,7 +1020,8 @@ class TestUseConfigMapAsEnv:
                                                 'configMapKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     }
                                 ]
                             },
@@ -932,7 +1039,8 @@ class TestUseConfigMapAsEnv:
                                                 'configMapKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     }
                                 ]
                             }
