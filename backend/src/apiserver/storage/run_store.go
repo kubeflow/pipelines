@@ -228,7 +228,7 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
 	sql, args, err := s.addMetricsResourceReferencesAndTasks(
-		qb.Select(runColumns...).
+		qb.Select(quoteAll(q, runColumns)...).
 			From(q("run_details")).
 			Where(sq.Eq{q("UUID"): runId}).
 			Limit(1), nil).
@@ -256,15 +256,6 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 	return runs[0], nil
 }
 
-// Applies a func f to every string in a given string slice.
-func apply(f func(string) string, vs []string) []string {
-	vsm := make([]string, len(vs))
-	for i, v := range vs {
-		vsm[i] = f(v)
-	}
-	return vsm
-}
-
 func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
@@ -273,11 +264,11 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	// resource references
 	resourceRefConcatQuery := s.dialect.ConcatExprs(
 		[]string{
-			"'['", s.dialect.ConcatAgg(false, "rr."+q("Payload"), ","), "']'",
+			"'['", "COALESCE(" + s.dialect.ConcatAgg(false, "rr."+q("Payload"), ",") + ", '')", "']'",
 		}, "",
 	)
 	columnsAfterJoiningResourceReferences := append(
-		apply(func(column string) string { return "rd." + q(column) }, runColumns), // rd."Column"
+		quoteAll(func(column string) string { return "rd." + q(column) }, runColumns), // rd."Column"
 		resourceRefConcatQuery+" AS "+q("refs"))
 	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
 		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+q(opts.SortByFieldName))
@@ -289,7 +280,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 			LeftJoin(q("resource_references") + " AS rr ON rr." + q("ResourceType") + "='Run' AND rd." + q("UUID") + "=rr." + q("ResourceUUID"))
 		// In Postgres, every selected non-aggregated column must appear in GROUP BY.
 		// Group by all rd.* columns that we selected above (and optional sort metric column if present).
-		groupCols := apply(func(column string) string { return "rd." + q(column) }, runColumns)
+		groupCols := quoteAll(func(column string) string { return "rd." + q(column) }, runColumns)
 		if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
 			groupCols = append(groupCols, "rd."+q(opts.SortByFieldName))
 		}
@@ -298,11 +289,11 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	// tasks
 	tasksConcatQuery := s.dialect.ConcatExprs(
 		[]string{
-			"'['", s.dialect.ConcatAgg(false, "tasks."+q("Payload"), ","), "']'",
+			"'['", "COALESCE(" + s.dialect.ConcatAgg(false, "tasks."+q("Payload"), ",") + ", '')", "']'",
 		}, "",
 	)
 	columnsAfterJoiningTasks := append(
-		apply(func(column string) string { return "rdref." + q(column) }, runColumns),
+		quoteAll(func(column string) string { return "rdref." + q(column) }, runColumns),
 		"rdref."+q("refs"),
 		tasksConcatQuery+" AS "+q("taskDetails"))
 	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
@@ -314,7 +305,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 			FromSelect(subQ, "rdref").
 			LeftJoin(q("tasks") + " AS tasks ON rdref." + q("UUID") + "=tasks." + q("RunUUID"))
 		// Group by all rdref.* columns we selected (plus refs and optional sort metric column).
-		groupCols := apply(func(column string) string { return "rdref." + q(column) }, runColumns)
+		groupCols := quoteAll(func(column string) string { return "rdref." + q(column) }, runColumns)
 		groupCols = append(groupCols, "rdref."+q("refs"))
 		if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
 			groupCols = append(groupCols, "rdref."+q(opts.SortByFieldName))
@@ -325,17 +316,17 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	// metrics
 	metricConcatQuery := s.dialect.ConcatExprs(
 		[]string{
-			"'['", s.dialect.ConcatAgg(false /* DISTINCT off */, "rm."+q("Payload"), ","), "']'",
+			"'['", "COALESCE(" + s.dialect.ConcatAgg(false /* DISTINCT off */, "rm."+q("Payload"), ",") + ", '')", "']'",
 		}, "",
 	)
 	columnsAfterJoiningRunMetrics := append(
-		apply(func(column string) string { return "subq." + q(column) }, runColumns),
+		quoteAll(func(column string) string { return "subq." + q(column) }, runColumns),
 		"subq."+q("refs"),
 		"subq."+q("taskDetails"),
 		metricConcatQuery+" AS "+q("metrics"))
 	return func() sq.SelectBuilder {
 		// Final grouping: group by all base columns plus refs and taskDetails (both are selected as non-aggregates here).
-		groupCols := apply(func(column string) string { return "subq." + q(column) }, runColumns)
+		groupCols := quoteAll(func(column string) string { return "subq." + q(column) }, runColumns)
 		groupCols = append(groupCols, "subq."+q("refs"), "subq."+q("taskDetails"))
 		if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
 			groupCols = append(groupCols, "subq."+q(opts.SortByFieldName))
@@ -399,6 +390,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			// are invalid.
 			metrics = []*model.RunMetric{}
 		}
+		if len(metrics) == 0 {
+			metrics = nil
+		}
 		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
 		if err != nil {
 			// throw internal exception if failed to parse the resource reference.
@@ -407,6 +401,9 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		tasks, err := parseTaskDetails(tasksInString)
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to parse task details")
+		}
+		if len(tasks) == 0 {
+			tasks = nil
 		}
 		jId := jobId.String
 		pvId := pipelineVersionId.String
