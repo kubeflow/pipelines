@@ -25,7 +25,6 @@ from kfp import kubernetes
         dsl.TaskConfigField.KUBERNETES_TOLERATIONS,
         dsl.TaskConfigField.KUBERNETES_AFFINITY,
     ],
-    kfp_package_path='git+https://github.com/kubeflow/pipelines@refs/pull/12185/merge#egg=kfp&subdirectory=sdk/python',
 )
 def echo_task_config(workspace_path: str, task_config: dsl.TaskConfig):
     import dataclasses
