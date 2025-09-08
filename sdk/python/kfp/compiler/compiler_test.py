@@ -4240,6 +4240,16 @@ class TestPlatformConfig(unittest.TestCase):
         with self.assertRaises(ValueError):
             WorkspaceConfig(size=None)
 
+        # Test invalid size raise error
+        invalid_sizes = ['abc', '10XYZ', 'Gi', '.', '1..5Gi', '-10Gi']
+        for size in invalid_sizes:
+            with self.subTest(invalid_size=size):
+                with self.assertRaisesRegex(
+                        ValueError,
+                        r'Workspace size \".*\" is invalid\. Must be a valid Kubernetes resource quantity \(e\.g\., \"10Gi\", \"500Mi\", \"1Ti\"\)'
+                ):
+                    WorkspaceConfig(size=size)
+
         # Test set_size method validation
         workspace = WorkspaceConfig(size='10Gi')
 
@@ -4256,6 +4266,74 @@ class TestPlatformConfig(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             workspace.set_size('   ')
         self.assertIn('required and cannot be empty', str(context.exception))
+
+    def test_compile_fails_when_workspace_placeholder_used_without_workspace_config(
+            self):
+        """Tests that compilation fails if placeholder is used and no workspace configured."""
+
+        @dsl.component
+        def uses_workspace(workspace_path: str) -> str:
+            import os
+            file_path = os.path.join(workspace_path, 'test.txt')
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, 'w') as f:
+                f.write('hello')
+            return file_path
+
+        # No PipelineConfig provided (i.e., no workspace configured)
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Workspace features are used \(e\.g\., dsl\.WORKSPACE_PATH_PLACEHOLDER\) but PipelineConfig\.workspace\.size is not set\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                uses_workspace(workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
+
+    def test_compile_fails_when_workspace_placeholder_used_in_nested_groups_without_workspace_config(
+            self):
+        """Tests that compilation fails if placeholder is used within nested groups and no workspace configured."""
+
+        import os
+        import tempfile
+
+        from kfp import compiler
+        from kfp import dsl
+
+        @dsl.component
+        def gen_int() -> int:
+            return 0
+
+        @dsl.component
+        def uses_workspace(workspace_path: str) -> str:
+            import os as _os
+            file_path = _os.path.join(workspace_path, 'nested.txt')
+            _os.makedirs(_os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, 'w') as f:
+                f.write('nested')
+            return file_path
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Workspace features are used \(e\.g\., dsl\.WORKSPACE_PATH_PLACEHOLDER\) but PipelineConfig\.workspace\.size is not set\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                x = gen_int()
+                with dsl.If(x.output == 0):
+                    uses_workspace(
+                        workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
 
 
 class ExtractInputOutputDescription(unittest.TestCase):
