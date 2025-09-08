@@ -111,7 +111,7 @@ export async function createMinioClient(
     // AWS S3 with credentials from provider chain
     if (isAWSS3Endpoint(config.endPoint)) {
       try {
-        const credentials = fromNodeProviderChain({ignoreCache: true});
+        const credentials = fromNodeProviderChain({ ignoreCache: true });
         const awsCredentials = await credentials();
         if (awsCredentials) {
           const {
