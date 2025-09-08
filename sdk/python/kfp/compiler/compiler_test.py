@@ -4257,6 +4257,58 @@ class TestPlatformConfig(unittest.TestCase):
             workspace.set_size('   ')
         self.assertIn('required and cannot be empty', str(context.exception))
 
+    def test_compile_fails_when_workspace_config_has_invalid_size(self):
+        """Tests that compilation fails when a workspace is configured with an invalid size."""
+        from kfp.dsl.pipeline_config import WorkspaceConfig
+
+        invalid_sizes = ['abc', '10XYZ', 'Gi', '.', '1..5Gi', '-10Gi']
+        for size in invalid_sizes:
+            with self.subTest(invalid_size=repr(size)):
+                ws_cfg = WorkspaceConfig(size=size)
+                config = PipelineConfig(workspace=ws_cfg)
+
+                with self.assertRaisesRegex(
+                        ValueError,
+                        r"Workspace size .* is invalid\. Must be a valid Kubernetes resource quantity \(e\.g\., \"10Gi\", \"500Mi\", \"1Ti\"\)"
+                ):
+
+                    @dsl.pipeline(pipeline_config=config)
+                    def my_pipeline():
+                        comp()
+
+                    with tempfile.TemporaryDirectory() as tmpdir:
+                        output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+                        compiler.Compiler().compile(
+                            pipeline_func=my_pipeline, package_path=output_yaml)
+
+    def test_compile_fails_when_workspace_placeholder_used_without_workspace_config(
+            self):
+        """Tests that compilation fails if placeholder is used and no workspace configured."""
+
+        @dsl.component
+        def uses_workspace(workspace_path: str) -> str:
+            import os
+            file_path = os.path.join(workspace_path, 'test.txt')
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, 'w') as f:
+                f.write('hello')
+            return file_path
+
+        # No PipelineConfig provided (i.e., no workspace configured)
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Workspace features are used \(e\.g\., dsl\.WORKSPACE_PATH_PLACEHOLDER\) but PipelineConfig\.workspace\.size is not set\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                uses_workspace(workspace_path=dsl.WORKSPACE_PATH_PLACEHOLDER)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_yaml = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=output_yaml)
+
 
 class ExtractInputOutputDescription(unittest.TestCase):
 
