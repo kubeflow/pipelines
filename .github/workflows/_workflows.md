@@ -2,7 +2,7 @@
 
 | Filename | Description | Triggers |
 | --- | --- | --- |
-| [add-ci-passed-label.yml](add-ci-passed-label.yml) | Adds `ci-passed` label to a PR once the `CI Check` workflow completes successfully. Resets the `ci-passed` label when a PR is synchronized or reopened, indicating that changes have been pushed and CI needs to rerun. | workflow_run |
+| [add-ci-passed-label.yml](add-ci-passed-label.yml) | Adds `ci-passed` label to a PR once the `CI Check` workflow completes successfully. Resets the `ci-passed` label when a pull request is synchronized or reopened, indicating that changes have been pushed and CI needs to rerun. | workflow_run |
 | [api-server-tests.yml](api-server-tests.yml) | Runs e2e tests to verify API Server REST Endpoints. | pull_request, push, workflow_dispatch |
 | [backend-visualization.yml](backend-visualization.yml) | Runs unit tests against the backend visualization code. | pull_request, push |
 | [build-and-push.yml](build-and-push.yml) | Builds and pushes images. | workflow_call, workflow_dispatch |
