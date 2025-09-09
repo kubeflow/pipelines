@@ -1,3 +1,6 @@
+## Runs doc-formatter tests.
+# TODO: Relocate this to pre-commit.
+
 name: KFP SDK Docformatter Test
 
 on:

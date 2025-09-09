@@ -1,3 +1,5 @@
+## Validates KFP upgrade succeeds.
+
 name: KFP upgrade tests
 
 on:
@@ -73,7 +75,7 @@ jobs:
         working-directory: backend/test/v2/integration/
         run: go test -v ./... -namespace kubeflow -args -runUpgradeTests=true -testify.m=Prepare
         continue-on-error: true
-      
+
       - name: Prepare verification tests v2
         id: verification-tests-v2
         if: ${{ steps.forward-api-port.outcome == 'success' }}

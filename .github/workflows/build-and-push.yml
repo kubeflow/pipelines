@@ -1,3 +1,5 @@
+## Builds and pushes images.
+
 name: Build and Push images
 run-name: Build images
 on:

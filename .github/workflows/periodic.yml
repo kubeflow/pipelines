@@ -1,3 +1,5 @@
+## Runs functional tests every day at midnight.
+
 name: Periodic Functional Tests
 
 on:

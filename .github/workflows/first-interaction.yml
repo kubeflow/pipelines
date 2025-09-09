@@ -1,3 +1,5 @@
+## Welcomes first time contributors to the project.
+
 name: First interaction
 
 on: [pull_request_target, issues]

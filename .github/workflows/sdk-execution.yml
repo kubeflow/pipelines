@@ -1,3 +1,5 @@
+## Runs e2e tests against kfp SDK.
+
 name: KFP SDK execution tests
 
 on:
@@ -31,7 +33,7 @@ jobs:
 
       - name: Free up disk space
         run: ./.github/resources/scripts/free-disk-space.sh
-  
+
       # This must occur after "Free up space" step
       # otherwise python version will be overridden
       - name: Set up Python

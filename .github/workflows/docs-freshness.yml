@@ -1,3 +1,5 @@
+## Verifies that the Argo Workflows version compatibility information in README.md stays in sync with the actual versions used in the codebase.
+
 name: KFP Docs Freshness
 
 on:

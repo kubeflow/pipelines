@@ -1,4 +1,5 @@
-# This workflow runs tests to verify all the API Server REST Endpoints
+## Runs e2e tests to verify API Server REST Endpoints.
+
 name: API Server Tests
 env:
   API_TESTS_DIR: "./backend/test/v2/api"
@@ -162,4 +163,3 @@ jobs:
       - name: Mark Workflow failure if test reporting failed
         if: (steps.api-tests-manual.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
         run: exit 1
-

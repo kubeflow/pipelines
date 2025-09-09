@@ -1,3 +1,6 @@
+## Runs isort tests.
+# TODO: Relocate this to pre-commit.
+
 name: KFP SDK Isort Test
 
 on:
