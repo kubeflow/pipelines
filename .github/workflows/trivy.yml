@@ -1,3 +1,5 @@
+## Runs trivy vulnerability scanner in repo mode and uploads results to GitHub Security tab.
+
 name: Trivy Vulnerability Scan
 on:
   push:

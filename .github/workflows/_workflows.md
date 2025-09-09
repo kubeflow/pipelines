@@ -35,5 +35,6 @@
 | [sdk-upgrade.yml](.github/workflows/sdk-upgrade.yml) | Validates SDK upgrade succeeds. | ✓ | ✓ |
 | [sdk-yapf.yml](.github/workflows/sdk-yapf.yml) | Runs YAPF against SDK. | ✓ | ✓ |
 | [stale.yml](.github/workflows/stale.yml) | Warns and then closes issues and PRs that have had no activity for a specified amount of time. |  |  |
+| [trivy.yml](.github/workflows/trivy.yml) | Runs trivy vulnerability scanner in repo mode and uploads results to GitHub Security tab. | ✓ | ✓ |
 | [upgrade-test.yml](.github/workflows/upgrade-test.yml) | Validates KFP upgrade succeeds. | ✓ | ✓ |
 | [validate-generated-files.yml](.github/workflows/validate-generated-files.yml) | Validates automatically generated files. | ✓ | ✓ |
