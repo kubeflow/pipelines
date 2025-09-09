@@ -75,7 +75,7 @@ repos:
         pass_filenames: false
 
   # GitHub Workflows documentation generation
-  - repo: https://github.com/droctothorpe/ghadoc
-    rev: 2c7b169f32d49625cf3e92c02e802f81270b97a0
+  - repo: https://github.com/droctothorpe/gha-docs
+    rev: 6297c3b8ecdfebe5f01448e109a38275c854c646
     hooks:
-      - id: ghadoc
+      - id: gha-docs
