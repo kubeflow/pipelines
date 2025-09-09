@@ -15,6 +15,7 @@
 package api_server_v2
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
@@ -41,10 +42,10 @@ type ExperimentClient struct {
 	apiClient *apiclient.Experiment
 }
 
-func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
+func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*ExperimentClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating experiment client: %w", err)
 	}
@@ -57,10 +58,10 @@ func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEna
 	}, nil
 }
 
-func NewKubeflowInClusterExperimentClient(namespace string, debug bool, tlsEnabled bool, caCertPath string) (
+func NewKubeflowInClusterExperimentClient(namespace string, debug bool, tlsCfg *tls.Config) (
 	*ExperimentClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsEnabled, caCertPath)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsCfg)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"crypto/tls"
 	"os"
 	"testing"
 
@@ -47,7 +48,11 @@ func (s *HealthzApiTest) SetupTest() {
 	s.namespace = *namespace
 	clientConfig := test.GetClientConfig(*namespace)
 	var err error
-	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false, *tlsEnabled, *caCertPath)
+	var tlsCfg *tls.Config
+	if *tlsEnabled {
+		tlsCfg = test.GetTLSConfig(*caCertPath)
+	}
+	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false, tlsCfg)
 	if err != nil {
 		glog.Exitf("Failed to get healthz client. Error: %v", err)
 	}

@@ -15,6 +15,8 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"os"
@@ -106,7 +108,27 @@ func main() {
 	grpcAddress := fmt.Sprintf("%s:%s", mlPipelineAPIServerName, mlPipelineServiceGRPCPort)
 
 	log.Infof("Connecting the API server over GRPC at: %s", grpcAddress)
-	apiConnection, err := commonutil.GetRpcConnectionWithTimeout(grpcAddress, mlPipelineServiceTLSEnabled, mlPipelineServiceTLSCert, time.Now().Add(time.Minute))
+
+	var tlsCfg *tls.Config
+	if mlPipelineServiceTLSEnabled {
+		caCertPool, err := x509.SystemCertPool()
+		if err != nil {
+			log.Fatalf("Failed to load system cert pool: %v", err)
+		}
+		if mlPipelineServiceTLSCert != "" {
+			caCert, err := os.ReadFile(mlPipelineServiceTLSCert)
+			if err != nil {
+				log.Fatalf("Failed to read CA cert from %s", mlPipelineServiceTLSCert)
+			}
+			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+				log.Fatalf("Failed to append CA cert from %s", mlPipelineServiceTLSCert)
+			}
+		}
+		tlsCfg = &tls.Config{
+			RootCAs: caCertPool,
+		}
+	}
+	apiConnection, err := commonutil.GetRpcConnectionWithTimeout(grpcAddress, tlsCfg, time.Now().Add(time.Minute))
 	if err != nil {
 		log.Fatalf("Error connecting to the API server after trying for one minute: %v", err)
 	}

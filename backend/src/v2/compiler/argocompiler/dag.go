@@ -576,10 +576,10 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		args = append(args, "--cache_disabled")
 	}
 	if c.mlPipelineServiceTLSEnabled {
-		args = append(args, "--ml_pipeline_service_tls_enabled", "true")
+		args = append(args, "--ml_pipeline_service_tls_enabled")
 	}
 	if common.GetMetadataTLSEnabled() {
-		args = append(args, "--metadata_tls_enabled", "true")
+		args = append(args, "--metadata_tls_enabled")
 	}
 	if common.GetCaCertPath() != "" {
 		args = append(args, "--ca_cert_path", common.GetCaCertPath())

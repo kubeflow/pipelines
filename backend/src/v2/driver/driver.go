@@ -281,10 +281,10 @@ func initPodSpecPatch(
 		"--publish_logs", publishLogs,
 	}
 	if mlPipelineTLSEnabled {
-		launcherCmd = append(launcherCmd, "--ml_pipeline_service_tls_enabled", "true")
+		launcherCmd = append(launcherCmd, "--ml_pipeline_service_tls_enabled")
 	}
 	if mlmdTLSEnabled {
-		launcherCmd = append(launcherCmd, "--metadata_tls_enabled", "true")
+		launcherCmd = append(launcherCmd, "--metadata_tls_enabled")
 	}
 	if caCertPath != "" {
 		launcherCmd = append(launcherCmd, "--ca_cert_path", caCertPath)

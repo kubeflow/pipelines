@@ -15,6 +15,7 @@
 package api_server_v2
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"github.com/go-openapi/runtime"
@@ -44,10 +45,10 @@ type RunClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
+func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*RunClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating run client: %w", err)
 	}
@@ -60,10 +61,10 @@ func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bo
 	}, nil
 }
 
-func NewKubeflowInClusterRunClient(namespace string, debug bool, tlsEnabled bool, caCertPath string) (
+func NewKubeflowInClusterRunClient(namespace string, debug bool, tlsCfg *tls.Config) (
 	*RunClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsEnabled, caCertPath)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsCfg)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

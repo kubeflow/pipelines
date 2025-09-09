@@ -2,6 +2,7 @@ package client_manager
 
 import (
 	"fmt"
+	"github.com/golang/glog"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
@@ -88,7 +89,7 @@ func initK8sClient() (kubernetes.Interface, error) {
 }
 
 func initMetadataClient(address string, port string, mlPipelineTLSEnabled bool, caCertPath string) (metadata.ClientInterface, error) {
-
+	glog.Info("Calling metadata.NewClient() from client_manager.initMetadataClient()")
 	return metadata.NewClient(address, port, mlPipelineTLSEnabled, caCertPath)
 }
 

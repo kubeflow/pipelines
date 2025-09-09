@@ -71,12 +71,13 @@ func GetMLPipelineServiceTLSEnabled() (bool, error) {
 // ConfigureCABundle adds CABundle environment variables and volume mounts
 // if CA Bundle env vars are specified.
 func ConfigureCABundle(tmpl *wfapi.Template) {
-	caCert := os.Getenv(common.CaBundleCertName)
-	caSecretName := os.Getenv(common.CaBundleSecretName)
-	caCertMountPath := os.Getenv(common.CaBundleMountPath)
-	if caCert != "" && caCertMountPath != "" {
-		caFile := fmt.Sprintf("%s/%s", caCertMountPath, caCert)
+	caBundleCertName := os.Getenv(common.CaBundleCertName)
+	caBundleMountPath := os.Getenv(common.CaBundleMountPath)
+	caBundleSecretName := os.Getenv(common.CaBundleSecretName)
+	if caBundleSecretName != "" {
+		caFile := fmt.Sprintf("%s/%s", caBundleMountPath, caBundleCertName)
 		var certDirectories = []string{
+			caBundleMountPath,
 			"/etc/ssl/certs",
 			"/etc/pki/tls/certs",
 		}
@@ -113,7 +114,7 @@ func ConfigureCABundle(tmpl *wfapi.Template) {
 			Name: "ca-secret",
 			VolumeSource: k8score.VolumeSource{
 				Secret: &k8score.SecretVolumeSource{
-					SecretName: caSecretName,
+					SecretName: caBundleSecretName,
 				},
 			},
 		}
@@ -122,10 +123,11 @@ func ConfigureCABundle(tmpl *wfapi.Template) {
 
 		volumeMount := k8score.VolumeMount{
 			Name:      "ca-secret",
-			MountPath: caCertMountPath,
+			MountPath: caBundleMountPath,
 		}
 
 		tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, volumeMount)
+
 	}
 }
 

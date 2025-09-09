@@ -994,6 +994,9 @@ func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
 		"false",
 		"false",
 		taskCfg,
+		false,
+		false,
+		"",
 	)
 	require.NotNil(t, err)
 }

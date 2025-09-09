@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"testing"
 	"time"
@@ -67,30 +68,33 @@ func (s *CacheTestSuite) SetupTest() {
 	var newPipelineClient func() (*apiServer.PipelineClient, error)
 	var newRunClient func() (*apiServer.RunClient, error)
 	var newRecurringRunClient func() (*apiServer.RecurringRunClient, error)
-
+	var tlsCfg *tls.Config
+	if *tlsEnabled {
+		tlsCfg = test.GetTLSConfig(*caCertPath)
+	}
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
 		newPipelineClient = func() (*apiServer.PipelineClient, error) {
-			return apiServer.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiServer.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiServer.RunClient, error) {
-			return apiServer.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiServer.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode, tlsCfg)
 		}
 		newRecurringRunClient = func() (*apiServer.RecurringRunClient, error) {
-			return apiServer.NewKubeflowInClusterRecurringRunClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiServer.NewKubeflowInClusterRecurringRunClient(s.namespace, *isDebugMode, tlsCfg)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
 		newPipelineClient = func() (*apiServer.PipelineClient, error) {
-			return apiServer.NewPipelineClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiServer.NewPipelineClient(clientConfig, *isDebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiServer.RunClient, error) {
-			return apiServer.NewRunClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiServer.NewRunClient(clientConfig, *isDebugMode, tlsCfg)
 		}
 		newRecurringRunClient = func() (*apiServer.RecurringRunClient, error) {
-			return apiServer.NewRecurringRunClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiServer.NewRecurringRunClient(clientConfig, *isDebugMode, tlsCfg)
 		}
 	}
 
@@ -100,8 +104,7 @@ func (s *CacheTestSuite) SetupTest() {
 		*isKubeflowMode,
 		*isDebugMode,
 		s.namespace,
-		*tlsEnabled,
-		*caCertPath,
+		tlsCfg,
 		test.GetClientConfig(s.namespace),
 	)
 	if err != nil {

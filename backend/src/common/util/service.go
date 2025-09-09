@@ -17,10 +17,8 @@ package util
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -35,9 +33,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func WaitForAPIAvailable(initializeTimeout time.Duration, basePath string, apiAddress string, scheme string) error {
+func WaitForAPIAvailable(initializeTimeout time.Duration, healthURL string, httpClient *http.Client) error {
 	operation := func() error {
-		response, err := http.Get(fmt.Sprintf("%s://%s%s/healthz", scheme, apiAddress, basePath))
+		client := httpClient
+		if client == nil {
+			client = http.DefaultClient
+		}
+		response, err := client.Get(healthURL)
 		if err != nil {
 			return err
 		}
@@ -101,24 +103,10 @@ func GetKubernetesClientFromClientConfig(clientConfig clientcmd.ClientConfig) (
 	return clientSet, config, namespace, nil
 }
 
-func GetRpcConnectionWithTimeout(address string, tlsEnabled bool, caCertPath string, timeout time.Time) (*grpc.ClientConn, error) {
+func GetRpcConnectionWithTimeout(address string, tlsCfg *tls.Config, timeout time.Time) (*grpc.ClientConn, error) {
 	creds := insecure.NewCredentials()
-	if tlsEnabled {
-		if caCertPath == "" {
-			return nil, errors.New("CA cert path is empty")
-		}
-
-		caCert, err := os.ReadFile(caCertPath)
-		if err != nil {
-			return nil, errors.Wrap(err, "Encountered error when reading CA cert path for creating a metadata client.")
-		}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(caCert)
-
-		config := &tls.Config{
-			RootCAs: caCertPool,
-		}
-		creds = credentials.NewTLS(config)
+	if tlsCfg != nil {
+		creds = credentials.NewTLS(tlsCfg)
 	}
 
 	ctx, _ := context.WithDeadline(context.Background(), timeout)
@@ -130,24 +118,10 @@ func GetRpcConnectionWithTimeout(address string, tlsEnabled bool, caCertPath str
 	return conn, nil
 }
 
-func GetRpcConnection(address string, tlsEnabled bool, caCertPath string) (*grpc.ClientConn, error) {
+func GetRpcConnection(address string, tlsCfg *tls.Config) (*grpc.ClientConn, error) {
 	creds := insecure.NewCredentials()
-	if tlsEnabled {
-		if caCertPath == "" {
-			return nil, errors.New("CA cert path is empty")
-		}
-
-		caCert, err := os.ReadFile(caCertPath)
-		if err != nil {
-			return nil, errors.Wrap(err, "Encountered error when reading CA cert path for creating a metadata client.")
-		}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(caCert)
-
-		config := &tls.Config{
-			RootCAs: caCertPool,
-		}
-		creds = credentials.NewTLS(config)
+	if tlsCfg != nil {
+		creds = credentials.NewTLS(tlsCfg)
 	}
 
 	conn, err := grpc.Dial(

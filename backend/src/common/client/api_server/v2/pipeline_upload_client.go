@@ -16,6 +16,7 @@ package api_server_v2
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"os"
 
@@ -49,10 +50,10 @@ type PipelineUploadClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
+func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	PipelineUploadInterface, error,
 ) {
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating pipeline upload client: %w", err)
 	}
@@ -65,10 +66,10 @@ func NewPipelineUploadClient(clientConfig clientcmd.ClientConfig, debug bool, tl
 	}, nil
 }
 
-func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool, tlsEnabled bool, caCertPath string) (
+func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool, tlsCfg *tls.Config) (
 	PipelineUploadInterface, error,
 ) {
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsEnabled, caCertPath)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsCfg)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

@@ -2,7 +2,6 @@ package api_server
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net/http"
 	"os"
@@ -65,31 +64,17 @@ func toWorkflowTestOnly(workflow string) *workflowapi.Workflow {
 	return &result
 }
 
-func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
+func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*httptransport.Runtime, error,
 ) {
 	if os.Getenv("LOCAL_API_SERVER") == "true" {
 		var schemes []string
 		var httpClient *http.Client
 		var runtime *httptransport.Runtime
-		if tlsEnabled {
+		if tlsCfg != nil {
 			schemes = []string{"https"}
-			if caCertPath == "" {
-				return nil, errors.New("CA cert path is empty")
-			}
-
-			caCert, err := os.ReadFile(caCertPath)
-			if err != nil {
-				return nil, errors.Wrap(err, "Encountered error when reading CA cert path for creating a metadata client.")
-			}
-			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM(caCert)
-
-			config := &tls.Config{
-				RootCAs: caCertPool,
-			}
 			tr := &http.Transport{
-				TLSClientConfig: config,
+				TLSClientConfig: tlsCfg,
 			}
 			httpClient = &http.Client{Transport: tr}
 		} else {
@@ -122,20 +107,11 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled 
 	return runtime, err
 }
 
-func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool, tlsEnabled bool, caCertPath string) *httptransport.Runtime {
+func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool, tlsCfg *tls.Config) *httptransport.Runtime {
 	var schemes []string
 	var httpClient *http.Client
-	if tlsEnabled {
-		schemes = []string{"https"}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM([]byte(caCertPath))
-
-		config := &tls.Config{
-			RootCAs: caCertPool,
-		}
-		tr := &http.Transport{
-			TLSClientConfig: config,
-		}
+	if tlsCfg != nil {
+		tr := &http.Transport{TLSClientConfig: tlsCfg}
 		httpClient = &http.Client{Transport: tr}
 	} else {
 		schemes = []string{"http"}

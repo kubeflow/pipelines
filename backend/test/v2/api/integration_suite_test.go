@@ -47,14 +47,14 @@ var _ = BeforeSuite(func() {
 	if *isKubeflowMode {
 		logger.Log("Creating API Clients for Multi User Mode")
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(*namespace, *isDebugMode, false, "")
+			return api_server.NewKubeflowInClusterPipelineClient(*namespace, *isDebugMode, nil)
 		}
 	} else {
 		logger.Log("Creating API Clients for Single User Mode")
 		clientConfig := utils.GetClientConfig(*namespace)
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode, false, "")
+			return api_server.NewPipelineClient(clientConfig, *isDebugMode, nil)
 		}
 	}
 
@@ -63,8 +63,7 @@ var _ = BeforeSuite(func() {
 		*isKubeflowMode,
 		*isDebugMode,
 		*namespace,
-		false,
-		"",
+		nil,
 		utils.GetClientConfig(*namespace),
 	)
 

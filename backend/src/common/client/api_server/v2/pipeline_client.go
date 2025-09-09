@@ -15,9 +15,8 @@
 package api_server_v2
 
 import (
+	"crypto/tls"
 	"fmt"
-	httptransport "github.com/go-openapi/runtime/client"
-
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client"
@@ -47,10 +46,10 @@ type PipelineClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
+func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*PipelineClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating pipeline client: %w", err)
 	}
@@ -63,14 +62,10 @@ func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabl
 	}, nil
 }
 
-func NewKubeflowInClusterPipelineClient(namespace string, debug bool, tlsEnabled bool, caCertPath string) (
+func NewKubeflowInClusterPipelineClient(namespace string, debug bool, tlsCfg *tls.Config) (
 	*PipelineClient, error) {
-	var runtime *httptransport.Runtime
-	if tlsEnabled {
 
-	} else {
-		runtime = api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsEnabled, caCertPath)
-	}
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsCfg)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

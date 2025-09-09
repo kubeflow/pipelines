@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"crypto/tls"
 	"testing"
 	"time"
 
@@ -58,30 +59,33 @@ func (s *ProxyTestSuite) SetupTest() {
 	var newExperimentClient func() (*apiserver.ExperimentClient, error)
 	var newPipelineClient func() (*apiserver.PipelineClient, error)
 	var newRunClient func() (*apiserver.RunClient, error)
-
+	var tlsCfg *tls.Config
+	if *tlsEnabled {
+		tlsCfg = test.GetTLSConfig(*caCertPath)
+	}
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiserver.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode, tlsCfg)
 		}
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiserver.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiserver.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode, tlsCfg)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*namespace)
 
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewExperimentClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiserver.NewExperimentClient(clientConfig, *isDebugMode, tlsCfg)
 		}
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewPipelineClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiserver.NewPipelineClient(clientConfig, *isDebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewRunClient(clientConfig, *isDebugMode, *tlsEnabled, *caCertPath)
+			return apiserver.NewRunClient(clientConfig, *isDebugMode, tlsCfg)
 		}
 	}
 
@@ -95,8 +99,7 @@ func (s *ProxyTestSuite) SetupTest() {
 		*isKubeflowMode,
 		*isDebugMode,
 		s.namespace,
-		*tlsEnabled,
-		*caCertPath,
+		tlsCfg,
 		test.GetClientConfig(s.namespace),
 	)
 	if err != nil {

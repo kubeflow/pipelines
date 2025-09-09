@@ -73,8 +73,8 @@ var (
 	webhookTLSKeyPath             = flag.String("webhookTLSKeyPath", "", "Path to the webhook TLS private key.")
 	configPath                    = flag.String("config", "", "Path to JSON file containing config")
 	sampleConfigPath              = flag.String("sampleconfig", "", "Path to samples")
-	tlsCertPath                   = flag.String("tlsCertPath", "", "Path to the public tls cert.")
-	tlsCertKeyPath                = flag.String("tlsCertKeyPath", "", "Path to the private tls key cert.")
+	podToPodTLSCertPath           = flag.String("tlsCertPath", "", "Path to the public TLS cert.")
+	podToPodTLSCertKeyPath        = flag.String("tlsCertKeyPath", "", "Path to the private TLS key cert.")
 	collectMetricsFlag            = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
 	usePipelinesKubernetesStorage = flag.Bool("pipelinesStoreKubernetes", false, "Store and run pipeline versions in Kubernetes")
 	disableWebhook                = flag.Bool("disableWebhook", false, "Set this if pipelinesStoreKubernetes is on but using a global webhook in a separate pod")
@@ -84,15 +84,15 @@ var (
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
 
 func initCerts() (*tls.Config, error) {
-	if *tlsCertPath == "" && *tlsCertKeyPath == "" {
+	if *podToPodTLSCertPath == "" && *podToPodTLSCertKeyPath == "" {
 		// User can choose not to provide certs
 		return nil, nil
-	} else if *tlsCertPath == "" {
+	} else if *podToPodTLSCertPath == "" {
 		return nil, fmt.Errorf("Missing tlsCertPath when specifying cert paths, both tlsCertPath and tlsCertKeyPath are required.")
-	} else if *tlsCertKeyPath == "" {
+	} else if *podToPodTLSCertKeyPath == "" {
 		return nil, fmt.Errorf("Missing tlsCertKeyPath when specifying cert paths, both tlsCertPath and tlsCertKeyPath are required.")
 	}
-	serverCert, err := tls.LoadX509KeyPair(*tlsCertPath, *tlsCertKeyPath)
+	serverCert, err := tls.LoadX509KeyPair(*podToPodTLSCertPath, *podToPodTLSCertKeyPath)
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +377,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 			Addr:      *httpPortFlag,
 			Handler:   topMux,
 		}
-		err := https.ListenAndServeTLS(*tlsCertPath, *tlsCertKeyPath)
+		err := https.ListenAndServeTLS(*podToPodTLSCertPath, *podToPodTLSCertKeyPath)
 		if err != nil {
 			glog.Errorf("Error starting https server: %v", err)
 			return
@@ -392,9 +392,6 @@ func startHttpProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 
 func startWebhook(client ctrlclient.Client, clientNoCahe ctrlclient.Client, wg *sync.WaitGroup) (*http.Server, error) {
 	glog.Info("Starting the Kubernetes webhooks...")
-
-	tlsCertPath := *webhookTLSCertPath
-	tlsKeyPath := *webhookTLSKeyPath
 
 	topMux := mux.NewRouter()
 
@@ -414,21 +411,37 @@ func startWebhook(client ctrlclient.Client, clientNoCahe ctrlclient.Client, wg *
 	go func() {
 		defer wg.Done()
 
+		tlsCertPath := *webhookTLSCertPath
+		tlsKeyPath := *webhookTLSKeyPath
+
+		// Use webhook TLS key/cert if specified.
 		if tlsCertPath != "" && tlsKeyPath != "" {
 			if !common.FileExists(tlsCertPath) || !common.FileExists(tlsKeyPath) {
-				glog.Fatalf("TLS certificate/key paths are set but files do not exist")
+				glog.Fatalf("Webhook TLS certificate/key paths are set but files do not exist")
+				return
 			}
-			glog.Info("Starting the Kubernetes webhook with TLS")
-			err := webhookServer.ListenAndServeTLS(tlsCertPath, tlsKeyPath)
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				glog.Fatalf("Failed to start the Kubernetes webhook with TLS: %v", err)
+		} else {
+			// If a webhook TLS key/cert are not specified, default to pod-to-pod TLS key/cert if specified.
+			if *podToPodTLSCertPath != "" && *podToPodTLSCertKeyPath != "" {
+				if !common.FileExists(*podToPodTLSCertPath) || !common.FileExists(*podToPodTLSCertPath) {
+					glog.Fatalf("Pod-to-pod TLS certificate/key paths are set but files do not exist")
+					return
+				}
+				tlsCertPath = *podToPodTLSCertPath
+				tlsKeyPath = *podToPodTLSCertKeyPath
+			} else {
+				glog.Warning("TLS certificate/key paths are not set. Starting webhook server without TLS.")
+				err = webhookServer.ListenAndServe()
+				if err != nil && !errors.Is(err, http.ErrServerClosed) {
+					glog.Fatalf("Failed to start Kubernetes webhook server: %v", err)
+				}
+				return
 			}
-			return
 		}
-		glog.Warning("TLS certificate/key paths are not set. Starting webhook server without TLS.")
-		err := webhookServer.ListenAndServe()
+		glog.Info("Starting the Kubernetes webhook with TLS")
+		err := webhookServer.ListenAndServeTLS(tlsCertPath, tlsKeyPath)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			glog.Fatalf("Failed to start Kubernetes webhook server: %v", err)
+			glog.Fatalf("Failed to start the Kubernetes webhook with TLS: %v", err)
 		}
 	}()
 

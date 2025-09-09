@@ -14,13 +14,13 @@ spec:
             - name: tls-certs
               mountPath: /etc/envoy/tls
               readOnly: true
-            - name: envoy-tls-enabled
+            - name: envoy-config-tls-enabled
               mountPath: /etc/envoy
               readOnly: true
       volumes:
         - name: tls-certs
           secret:
             secretName: kfp-api-tls-cert
-        - name: envoy-tls-enabled
+        - name: envoy-config-tls-enabled
           configMap:
-            name: envoy-config-tls-enabled
+            name: envoy-config

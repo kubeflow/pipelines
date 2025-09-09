@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grpc-config-writer
+  name: metadata-grpc-config-writer
 data:
   generate-config.sh: |-
     #!/bin/sh

@@ -15,8 +15,10 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
-	"strconv"
+	"os"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
@@ -30,25 +32,25 @@ import (
 )
 
 var (
-	masterURL                      string
-	logLevel                       string
-	kubeconfig                     string
-	initializeTimeout              time.Duration
-	timeout                        time.Duration
-	mlPipelineAPIServerName        string
-	mlPipelineAPIServerPort        string
-	mlPipelineAPIServerBasePath    string
-	mlPipelineServiceHttpPort      string
-	mlPipelineServiceGRPCPort      string
-	mlPipelineServiceTLSEnabledStr string
-	namespace                      string
-	ttlSecondsAfterWorkflowFinish  int64
-	numWorker                      int
-	clientQPS                      float64
-	clientBurst                    int
-	executionType                  string
-	saTokenRefreshIntervalInSecs   int64
-	caCertPath                     string
+	masterURL                     string
+	logLevel                      string
+	kubeconfig                    string
+	initializeTimeout             time.Duration
+	timeout                       time.Duration
+	mlPipelineAPIServerName       string
+	mlPipelineAPIServerPort       string
+	mlPipelineAPIServerBasePath   string
+	mlPipelineServiceHttpPort     string
+	mlPipelineServiceGRPCPort     string
+	mlPipelineServiceTLSEnabled   bool
+	namespace                     string
+	ttlSecondsAfterWorkflowFinish int64
+	numWorker                     int
+	clientQPS                     float64
+	clientBurst                   int
+	executionType                 string
+	saTokenRefreshIntervalInSecs  int64
+	caCertPath                    string
 )
 
 const (
@@ -124,9 +126,24 @@ func main() {
 		log.Fatalf("Error starting Service Account Token Refresh Ticker due to: %v", err)
 	}
 
-	mlPipelineServiceTLSEnabled, err := strconv.ParseBool(mlPipelineServiceTLSEnabledStr)
-	if err != nil {
-		log.Fatalf("Error parsing boolean flag %s, please provide a valid bool value (true/false). %v", mlPipelineAPIServerTLSEnabledFlagName, err)
+	var tlsCfg *tls.Config
+	if mlPipelineServiceTLSEnabled {
+		caCertPool, err := x509.SystemCertPool()
+		if err != nil {
+			log.Fatalf("Failed to load system cert pool: %v", err)
+		}
+		if caCertPath != "" {
+			caCert, err := os.ReadFile(caCertPath)
+			if err != nil {
+				log.Fatalf("Failed to read CA cert from %s", caCertPath)
+			}
+			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+				log.Fatalf("Failed to append CA cert from %s", caCertPath)
+			}
+		}
+		tlsCfg = &tls.Config{
+			RootCAs: caCertPool,
+		}
 	}
 
 	pipelineClient, err := client.NewPipelineClient(
@@ -137,8 +154,7 @@ func main() {
 		mlPipelineAPIServerName,
 		mlPipelineServiceHttpPort,
 		mlPipelineServiceGRPCPort,
-		mlPipelineServiceTLSEnabled,
-		caCertPath)
+		tlsCfg)
 	if err != nil {
 		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
 	}
@@ -169,7 +185,7 @@ func init() {
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceHttpPort, mlPipelineAPIServerHttpPortFlagName, "8888", "Http Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
-	flag.StringVar(&mlPipelineServiceTLSEnabledStr, mlPipelineAPIServerTLSEnabledFlagName, "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
+	flag.BoolVar(&mlPipelineServiceTLSEnabled, mlPipelineAPIServerTLSEnabledFlagName, false, "Set to true if mlpipeline api server serves over TLS (default: true).")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
 		"/apis/v1beta1", "The base path for the ML pipeline API server.")
 	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")

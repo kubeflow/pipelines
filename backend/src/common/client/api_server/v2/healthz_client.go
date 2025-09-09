@@ -15,6 +15,7 @@
 package api_server_v2
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
@@ -34,8 +35,8 @@ type HealthzClient struct {
 	apiClient *apiclient.Healthz
 }
 
-func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (*HealthzClient, error) {
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
+func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (*HealthzClient, error) {
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, err
 	}

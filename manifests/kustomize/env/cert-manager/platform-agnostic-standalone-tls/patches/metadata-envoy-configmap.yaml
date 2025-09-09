@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: envoy-config-tls-enabled
+  name: envoy-config
 data:
   envoy-config.yaml: |-
     admin:
@@ -17,7 +17,7 @@ data:
       listeners:
         - name: listener_0
           address:
-            socket_address: { address: 0.0.0.0, port_value: 9443 }  # change from 9090 if you want HTTPS on 9443/443
+            socket_address: { address: 0.0.0.0, port_value: 9090 }
           filter_chains:
             - transport_socket:
                 name: envoy.transport_sockets.tls

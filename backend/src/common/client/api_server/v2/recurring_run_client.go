@@ -15,6 +15,7 @@
 package api_server_v2
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"github.com/go-openapi/runtime"
@@ -44,10 +45,10 @@ type RecurringRunClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewRecurringRunClient(clientConfig clientcmd.ClientConfig, debug bool, tlsEnabled bool, caCertPath string) (
+func NewRecurringRunClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*RecurringRunClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsEnabled, caCertPath)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
 	}
@@ -60,10 +61,10 @@ func NewRecurringRunClient(clientConfig clientcmd.ClientConfig, debug bool, tlsE
 	}, nil
 }
 
-func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool, tlsEnabled bool, caCertPath string) (
+func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool, tlsCfg *tls.Config) (
 	*RecurringRunClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsEnabled, caCertPath)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsCfg)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

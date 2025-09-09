@@ -15,7 +15,7 @@ spec:
           emptyDir: { }
         - name: config-writer
           configMap:
-            name: grpc-config-writer
+            name: metadata-grpc-config-writer
         - name: mysql-secret
           secret:
             secretName: mysql-secret

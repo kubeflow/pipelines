@@ -87,6 +87,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     METADATA_ENVOY_SERVICE_SERVICE_HOST = 'localhost',
     /** Envoy service will listen to this port */
     METADATA_ENVOY_SERVICE_SERVICE_PORT = '9090',
+    /** Envoy service will listen via this transfer protocol */
+    METADATA_ENVOY_SERVICE_SERVICE_SCHEME = 'http',
     /** Is Argo log archive enabled? */
     ARGO_ARCHIVE_LOGS = 'false',
     /** Use minio or s3 client to retrieve archives. */
@@ -179,6 +181,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       envoyService: {
         host: METADATA_ENVOY_SERVICE_SERVICE_HOST,
         port: METADATA_ENVOY_SERVICE_SERVICE_PORT,
+        schema: METADATA_ENVOY_SERVICE_SERVICE_SCHEME,
       },
     },
     pipeline: {
@@ -264,6 +267,7 @@ export interface MetadataConfigs {
   envoyService: {
     host: string;
     port: string | number;
+    schema: string;
   };
 }
 export interface ArgoConfigs {

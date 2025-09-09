@@ -124,18 +124,21 @@ func NewClient(serverAddress, serverPort string, tlsEnabled bool, caCertPath str
 
 	creds := insecure.NewCredentials()
 	if tlsEnabled {
-		if caCertPath == "" {
-			return nil, errors.New("CA cert path is empty")
-		}
-
-		caCert, err := os.ReadFile(caCertPath)
+		var config *tls.Config
+		caCertPool, err := x509.SystemCertPool()
 		if err != nil {
-			return nil, util.Wrap(err, "metadata.NewClient() failed")
+			return nil, util.Wrap(err, "Failed to load system cert pool")
 		}
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(caCert)
-
-		config := &tls.Config{
+		if caCertPath != "" {
+			caCert, err := os.ReadFile(caCertPath)
+			if err != nil {
+				return nil, util.Wrap(err, fmt.Sprintf("Failed to read CA cert from %s", caCertPath))
+			}
+			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+				return nil, util.Wrap(err, fmt.Sprintf("Failed to append CA cert from %s", caCertPath))
+			}
+		}
+		config = &tls.Config{
 			RootCAs: caCertPool,
 		}
 		creds = credentials.NewTLS(config)
