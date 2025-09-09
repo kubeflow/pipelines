@@ -545,8 +545,14 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 				mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
 			}
 
-			// Upload artifacts from local path to remote storages.
-			localDir, err := LocalPathForURI(outputArtifact.Uri)
+			// If artifact customPath is set, upload to remote storages from this path. Otherwise, upload from local path.
+			var artifactDir string
+			var err error
+			if *outputArtifact.CustomPath != "" {
+				artifactDir = *outputArtifact.CustomPath
+			} else {
+				artifactDir, err = LocalPathForURI(outputArtifact.Uri)
+			}
 			if err != nil {
 				glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
 			} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
@@ -554,10 +560,10 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 				if err != nil {
 					return nil, fmt.Errorf("failed to upload output artifact %q: %w", name, err)
 				}
-				if err := objectstore.UploadBlob(ctx, opts.bucket, localDir, blobKey); err != nil {
+				if err := objectstore.UploadBlob(ctx, opts.bucket, artifactDir, blobKey); err != nil {
 					//  We allow components to not produce output files
 					if errors.Is(err, os.ErrNotExist) {
-						glog.Warningf("Local filepath %q does not exist", localDir)
+						glog.Warningf("Local filepath %q does not exist", artifactDir)
 					} else {
 						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
 					}
