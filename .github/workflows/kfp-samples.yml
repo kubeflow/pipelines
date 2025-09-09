@@ -1,3 +1,5 @@
+## Runs e2e tests against the samples directory.
+
 name: KFP Samples
 
 on:
@@ -57,7 +59,7 @@ jobs:
             mode: "standalone"
             storage: "minio"
             argo_version: "v3.5.14"
-    name: KFP Samples - K8s ${{ matrix.k8s_version }} - AWF ${{ matrix.argo_version }} - ${{ matrix.mode }} - ${{ matrix.storage }} 
+    name: KFP Samples - K8s ${{ matrix.k8s_version }} - AWF ${{ matrix.argo_version }} - ${{ matrix.mode }} - ${{ matrix.storage }}
 
     steps:
       - name: Checkout code

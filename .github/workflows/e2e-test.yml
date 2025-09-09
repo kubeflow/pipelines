@@ -1,3 +1,5 @@
+## Runs e2e tests.
+
 name: KFP e2e tests
 
 on:
@@ -205,7 +207,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      
+
       - name: Free up disk space
         run: ./.github/resources/scripts/free-disk-space.sh
 
@@ -465,7 +467,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      
+
       - name: Free up disk space
         run: ./.github/resources/scripts/free-disk-space.sh
 

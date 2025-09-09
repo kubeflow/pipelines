@@ -1,3 +1,5 @@
+## Validates component loading.
+
 name: KFP Component YAML Test
 
 on:
@@ -31,6 +33,6 @@ jobs:
 
       - name: Install requirements
         run: pip install -r ./test/sdk-execution-tests/requirements.txt
-        
+
       - name: Run component YAML tests
         run: ./test/presubmit-component-yaml.sh

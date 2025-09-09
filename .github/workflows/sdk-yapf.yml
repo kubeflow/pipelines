@@ -1,3 +1,6 @@
+## Runs YAPF against SDK.
+# TODO: Relocate this to pre-commit.
+
 name: KFP SDK YAPF Tests
 
 on:
