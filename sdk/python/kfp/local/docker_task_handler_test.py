@@ -164,6 +164,32 @@ class TestDockerTaskHandler(DockerMockTestCase):
             }
             self.assertEqual(volumes, expected_volumes)
 
+    def test_get_volumes_to_mount_with_selinux(self):
+        # Mock LocalExecutionConfig.instance to have a workspace_root
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance'
+                       ) as mock_instance:
+            mock_instance.workspace_root = '/tmp/test-workspace'
+
+            # Create handler
+            handler = docker_task_handler.DockerTaskHandler(
+                image='alpine',
+                full_command=['echo', 'foo'],
+                pipeline_root=os.path.abspath('my_root'),
+                runner=local.DockerRunner(),
+            )
+
+            # Mock docker client with SELinux option
+            client = mock.Mock()
+            client.info.return_value = {'SecurityOptions': ['name=selinux']}
+            volumes = handler.get_volumes_to_mount(client)
+
+            # Expect ",z" added to mode
+            self.assertEqual(volumes[os.path.abspath('my_root')]['mode'],
+                             'rw,z')
+            self.assertEqual(volumes['/tmp/test-workspace']['bind'],
+                             dsl_constants.WORKSPACE_MOUNT_PATH)
+            self.assertEqual(volumes['/tmp/test-workspace']['mode'], 'rw,z')
+
     def test_get_volumes_to_mount_without_workspace(self):
         # Mock the LocalExecutionConfig to have no workspace_root
         with mock.patch('kfp.local.config.LocalExecutionConfig.instance'
