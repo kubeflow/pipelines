@@ -1,5 +1,0 @@
-name: helloworld-ci
-description: Print "hello world" to console
-implementation:
-  container:
-    image: helloworld-ci
