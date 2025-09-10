@@ -20,6 +20,7 @@ import docker
 from kfp import dsl
 from kfp import local
 from kfp.dsl import Artifact
+from kfp.dsl import constants as dsl_constants
 from kfp.dsl import Output
 from kfp.local import docker_task_handler
 from kfp.local import testing_utilities
@@ -130,7 +131,7 @@ class TestDockerTaskHandler(DockerMockTestCase):
                     'mode': 'rw'
                 },
                 '/tmp/test-workspace': {
-                    'bind': '/kfp-workspace',
+                    'bind': dsl_constants.WORKSPACE_MOUNT_PATH,
                     'mode': 'rw'
                 }
             }
@@ -158,7 +159,7 @@ class TestDockerTaskHandler(DockerMockTestCase):
                     'mode': 'rw'
                 },
                 abs_workspace_path: {
-                    'bind': '/kfp-workspace',
+                    'bind': dsl_constants.WORKSPACE_MOUNT_PATH,
                     'mode': 'rw'
                 }
             }

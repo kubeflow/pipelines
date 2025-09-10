@@ -15,6 +15,7 @@ import os
 from typing import Any, Dict, List
 
 import docker
+from kfp.dsl import constants as dsl_constants
 from kfp.local import config
 from kfp.local import status
 from kfp.local import task_handler_interface
@@ -66,7 +67,7 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
                 workspace_root = os.path.abspath(workspace_root)
             # Mount workspace to the standard KFP workspace path
             volumes[workspace_root] = {
-                'bind': '/kfp-workspace',
+                'bind': dsl_constants.WORKSPACE_MOUNT_PATH,
                 'mode': default_mode
             }
         return volumes
