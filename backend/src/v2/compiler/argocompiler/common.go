@@ -15,8 +15,18 @@
 package argocompiler
 
 import (
+	"fmt"
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	k8score "k8s.io/api/core/v1"
+	"os"
+	"strconv"
+	"strings"
+)
+
+const (
+	MLPipelineTLSEnabledEnvVar  = "ML_PIPELINE_TLS_ENABLED"
+	DefaultMLPipelineTLSEnabled = false
 )
 
 // env vars in metadata-grpc-configmap is defined in component package
@@ -45,6 +55,81 @@ var commonEnvs = []k8score.EnvVar{{
 		},
 	},
 }}
+
+func GetMLPipelineServiceTLSEnabled() (bool, error) {
+	mlPipelineServiceTLSEnabledStr := os.Getenv(MLPipelineTLSEnabledEnvVar)
+	if mlPipelineServiceTLSEnabledStr == "" {
+		return DefaultMLPipelineTLSEnabled, nil
+	}
+	mlPipelineServiceTLSEnabled, err := strconv.ParseBool(os.Getenv(MLPipelineTLSEnabledEnvVar))
+	if err != nil {
+		return false, err
+	}
+	return mlPipelineServiceTLSEnabled, nil
+}
+
+// ConfigureCABundle adds CABundle environment variables and volume mounts
+// if CA Bundle env vars are specified.
+func ConfigureCABundle(tmpl *wfapi.Template) {
+	caBundleCertName := os.Getenv(common.CaBundleCertName)
+	caBundleMountPath := os.Getenv(common.CaBundleMountPath)
+	caBundleSecretName := os.Getenv(common.CaBundleSecretName)
+	if caBundleSecretName != "" {
+		caFile := fmt.Sprintf("%s/%s", caBundleMountPath, caBundleCertName)
+		var certDirectories = []string{
+			caBundleMountPath,
+			"/etc/ssl/certs",
+			"/etc/pki/tls/certs",
+		}
+		// Add to REQUESTS_CA_BUNDLE for python request library.
+		// As many python web based libraries utilize this, we add it here so the user
+		// does not have to manually include this in the user pipeline.
+		// Note: for packages like Boto3, even though it is documented to use AWS_CA_BUNDLE,
+		// we found the python boto3 client only works if we include REQUESTS_CA_BUNDLE.
+		// https://requests.readthedocs.io/en/latest/user/advanced/#ssl-cert-verification
+		// https://github.com/aws/aws-cli/issues/3425
+		tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{
+			Name:  "REQUESTS_CA_BUNDLE",
+			Value: caFile,
+		})
+		// For AWS utilities like cli, and packages.
+		tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{
+			Name:  "AWS_CA_BUNDLE",
+			Value: caFile,
+		})
+		// OpenSSL default cert file env variable.
+		// Similar to AWS_CA_BUNDLE, the SSL_CERT_DIR equivalent for paths had unyielding
+		// results, even after rehashing.
+		// https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
+		tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{
+			Name:  "SSL_CERT_FILE",
+			Value: caFile,
+		})
+		sslCertDir := strings.Join(certDirectories, ":")
+		tmpl.Container.Env = append(tmpl.Container.Env, k8score.EnvVar{
+			Name:  "SSL_CERT_DIR",
+			Value: sslCertDir,
+		})
+		volume := k8score.Volume{
+			Name: "ca-secret",
+			VolumeSource: k8score.VolumeSource{
+				Secret: &k8score.SecretVolumeSource{
+					SecretName: caBundleSecretName,
+				},
+			},
+		}
+
+		tmpl.Volumes = append(tmpl.Volumes, volume)
+
+		volumeMount := k8score.VolumeMount{
+			Name:      "ca-secret",
+			MountPath: caBundleMountPath,
+		}
+
+		tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, volumeMount)
+
+	}
+}
 
 // addExitTask adds an exit lifecycle hook to a task if exitTemplate is not empty.
 func addExitTask(task *wfapi.DAGTask, exitTemplate string, parentDagID string) {

@@ -32,6 +32,10 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
+	CaBundleMountPath                       string = "CABUNDLE_MOUNTPATH"
+	CaBundleCertName                        string = "CABUNDLE_CERT_NAME"
+	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -126,4 +130,19 @@ func GetKubeflowUserIDPrefix() string {
 
 func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
+}
+
+func GetMetadataTLSEnabled() bool {
+	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
+}
+
+// Retrieve CA Cert path used by driver and launcher when TLS is enabled.
+func GetCaCertPath() string {
+	caBundleMountPath := GetStringConfigWithDefault(CaBundleMountPath, "")
+	if caBundleMountPath != "" {
+		caBundleConfigMapKey := GetStringConfigWithDefault(CaBundleCertName, "")
+		return caBundleMountPath + "/" + caBundleConfigMapKey
+	} else {
+		return ""
+	}
 }

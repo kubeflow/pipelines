@@ -86,6 +86,10 @@ var (
 	noProxy           = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
 	publishLogs       = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 	cacheDisabledFlag = flag.Bool("cache_disabled", false, "Disable cache globally.")
+
+	mlPipelineServiceTLSEnabled = flag.Bool("ml_pipeline_service_tls_enabled", false, "Set to true if mlpipeline api server serves over TLS (default: false).")
+	metadataTLSEnabled          = flag.Bool("metadata_tls_enabled", false, "Set to true if metadata server serves over TLS (default: false).")
+	caCertPath                  = flag.String("ca_cert_path", "", "The path to the CA certificate.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -141,7 +145,6 @@ func drive() (err error) {
 	}
 
 	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)
-
 	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJson))
 	componentSpec := &pipelinespec.ComponentSpec{}
 	if err := util.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
@@ -180,25 +183,37 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	cacheClient, err := cacheutils.NewClient(*cacheDisabledFlag)
+	if err != nil {
+		return err
+	}
+
+	if err != nil {
+		return err
+	}
+	cacheClient, err := cacheutils.NewClient(*cacheDisabledFlag, *mlPipelineServiceTLSEnabled)
 	if err != nil {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:     *pipelineName,
-		RunID:            *runID,
-		RunName:          *runName,
-		RunDisplayName:   *runDisplayName,
-		Namespace:        namespace,
-		Component:        componentSpec,
-		Task:             taskSpec,
-		DAGExecutionID:   *dagExecutionID,
-		IterationIndex:   *iterationIndex,
-		PipelineLogLevel: *logLevel,
-		PublishLogs:      *publishLogs,
-		CacheDisabled:    *cacheDisabledFlag,
-		DriverType:       *driverType,
-		TaskName:         *taskName,
+		PipelineName:         *pipelineName,
+		RunID:                *runID,
+		RunName:              *runName,
+		RunDisplayName:       *runDisplayName,
+		Namespace:            namespace,
+		Component:            componentSpec,
+		Task:                 taskSpec,
+		DAGExecutionID:       *dagExecutionID,
+		IterationIndex:       *iterationIndex,
+		PipelineLogLevel:     *logLevel,
+		PublishLogs:          *publishLogs,
+		CacheDisabled:        *cacheDisabledFlag,
+		DriverType:           *driverType,
+		TaskName:             *taskName,
+		MLPipelineTLSEnabled: *mlPipelineServiceTLSEnabled,
+		MLMDServerAddress:    *mlmdServerAddress,
+		MLMDServerPort:       *mlmdServerPort,
+		MLMDTLSEnabled:       *metadataTLSEnabled,
+		CaCertPath:           *caCertPath,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -337,5 +352,5 @@ func newMlmdClient() (*metadata.Client, error) {
 		mlmdConfig.Address = *mlmdServerAddress
 		mlmdConfig.Port = *mlmdServerPort
 	}
-	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port)
+	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port, *metadataTLSEnabled, *caCertPath)
 }
