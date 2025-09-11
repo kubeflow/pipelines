@@ -20,6 +20,7 @@ converting those objects to HTML.
 from enum import Enum
 from pathlib import Path
 from typing import Text
+import warnings
 from jupyter_client import KernelManager
 from nbconvert import HTMLExporter
 from nbconvert.preprocessors import ExecutePreprocessor
@@ -131,6 +132,19 @@ class Exporter:
             kernel_name='python3',
             allow_errors=True
         )
+
+    def __del__(self):
+        # Best-effort cleanup to avoid ResourceWarning about unclosed ZMQ sockets
+        if getattr(self, "km", None):
+            try:
+                self.km.shutdown_kernel(now=True)
+            except Exception:
+                pass
+
+            try:
+                self.km.cleanup_resources()
+            except Exception:
+                pass
 
     def generate_html_from_notebook(self, nb: NotebookNode) -> Text:
         """Converts a provided NotebookNode to HTML.
