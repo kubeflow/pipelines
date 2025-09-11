@@ -1,0 +1,118 @@
+# PIPELINE DEFINITION
+# Name: pvc-mount-pipeline
+# Inputs:
+#    pvc_name: str
+components:
+  comp-consumer:
+    executorLabel: exec-consumer
+  comp-producer:
+    executorLabel: exec-producer
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-consumer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - consumer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef consumer() -> None:\n    with open('/data/file.txt', 'r') as\
+          \ f:\n        print(f.read())\n\n"
+        image: python:3.9
+    exec-producer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - producer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef producer() -> str:\n    with open('/data/file.txt', 'w') as f:\n\
+          \        f.write('hello')\n    with open('/data/file.txt', 'r') as f:\n\
+          \        return f.read()\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pvc-mount-pipeline
+root:
+  dag:
+    tasks:
+      consumer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-consumer
+        dependentTasks:
+        - producer
+        taskInfo:
+          name: consumer
+      producer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-producer
+        taskInfo:
+          name: producer
+  inputDefinitions:
+    parameters:
+      pvc_name:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.2
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-consumer:
+          pvcMount:
+          - componentInputParameter: pvc_name
+            mountPath: /data
+            pvcNameParameter:
+              componentInputParameter: pvc_name
+        exec-producer:
+          pvcMount:
+          - componentInputParameter: pvc_name
+            mountPath: /data
+            pvcNameParameter:
+              componentInputParameter: pvc_name
