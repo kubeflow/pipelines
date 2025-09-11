@@ -14,6 +14,8 @@
 import os
 from typing import Any, Dict, List
 
+import docker
+from kfp.dsl import constants as dsl_constants
 from kfp.local import config
 from kfp.local import status
 from kfp.local import task_handler_interface
@@ -34,10 +36,17 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
         self.pipeline_root = pipeline_root
         self.runner = runner
 
-    def get_volumes_to_mount(self) -> Dict[str, Any]:
+    def get_volumes_to_mount(self,
+                             client: docker.DockerClient = None
+                            ) -> Dict[str, Any]:
         """Gets the volume configuration to mount the pipeline root and
         workspace to the container so that outputs and workspace can be
         accessed outside of the container."""
+        default_mode = 'rw'
+        if client is not None and 'name=selinux' in client.info().get(
+                'SecurityOptions', []):
+            default_mode = f'{default_mode},z'
+
         if not os.path.isabs(self.pipeline_root):
             # defensive check. this is enforced by upstream code.
             # users should not hit this,
@@ -47,7 +56,7 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
         volumes = {
             self.pipeline_root: {
                 'bind': self.pipeline_root,
-                'mode': 'rw'
+                'mode': default_mode
             }
         }
         # Add workspace volume mount if workspace is configured
@@ -57,7 +66,10 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
             if not os.path.isabs(workspace_root):
                 workspace_root = os.path.abspath(workspace_root)
             # Mount workspace to the standard KFP workspace path
-            volumes[workspace_root] = {'bind': '/kfp-workspace', 'mode': 'rw'}
+            volumes[workspace_root] = {
+                'bind': dsl_constants.WORKSPACE_MOUNT_PATH,
+                'mode': default_mode
+            }
         return volumes
 
     def run(self) -> status.Status:
@@ -67,7 +79,7 @@ class DockerTaskHandler(task_handler_interface.ITaskHandler):
         import docker
         client = docker.from_env()
         try:
-            volumes = self.get_volumes_to_mount()
+            volumes = self.get_volumes_to_mount(client)
             return_code = run_docker_container(
                 client=client,
                 image=self.image,

@@ -19,6 +19,7 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from kfp import dsl
+from kfp.dsl import constants as dsl_constants
 from kfp.local import config
 
 
@@ -339,12 +340,22 @@ def resolve_individual_placeholder(
 ) -> str:
     """Replaces placeholders for a single element."""
 
-    if dsl.WORKSPACE_PATH_PLACEHOLDER in element:
-        workspace_value = (
-            config.LocalExecutionConfig.instance.workspace_root
-            if config.LocalExecutionConfig.instance and
-            config.LocalExecutionConfig.instance.workspace_root else
-            _raise_workspace_not_configured())
+    if dsl.WORKSPACE_PATH_PLACEHOLDER in element or dsl_constants.WORKSPACE_MOUNT_PATH in element:
+        # Ensure local config and workspace are available
+        if not (config.LocalExecutionConfig.instance and
+                config.LocalExecutionConfig.instance.workspace_root):
+            _raise_workspace_not_configured()
+
+        runner = config.LocalExecutionConfig.instance.runner
+        # For DockerRunner, use the standardized in-container mount path.
+        # For SubprocessRunner (or others), use the host workspace path.
+        if isinstance(runner, config.DockerRunner):
+            workspace_value = dsl_constants.WORKSPACE_MOUNT_PATH
+        else:
+            workspace_value = config.LocalExecutionConfig.instance.workspace_root
+
+        element = element.replace(dsl_constants.WORKSPACE_MOUNT_PATH,
+                                  workspace_value)
         element = element.replace(dsl.WORKSPACE_PATH_PLACEHOLDER,
                                   workspace_value)
 
