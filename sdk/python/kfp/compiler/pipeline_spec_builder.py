@@ -16,8 +16,7 @@
 import copy
 import json
 import typing
-from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
-                    Union)
+from typing import Any, DefaultDict, Dict, List, Mapping, Optional, Tuple, Union
 import warnings
 
 from google.protobuf import json_format
