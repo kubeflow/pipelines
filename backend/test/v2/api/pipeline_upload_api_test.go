@@ -164,7 +164,7 @@ var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "
 
 	// TODO: To to be implemented
 	if *config.IsKubeflowMode {
-		Context("Upload a pipeline in MultiUser Mode >", func() {
+		PContext("Upload a pipeline in MultiUser Mode >", func() {
 			It("Upload a pipeline in a namespace you don;t have access to", func() {
 			})
 		})

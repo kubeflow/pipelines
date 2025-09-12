@@ -40,7 +40,7 @@ import (
 // ########################################################## POSITIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = Describe("List Pipelines API Tests >", Label("Positive", "Pipeline", "PipelineList", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("List Pipelines API Tests >", Label("Positive", "Pipeline", "PipelineList", "ApiServerTests", FullRegression), func() {
 
 	Context("Basic List Operations >", func() {
 		It("When no pipelines exist", func() {
@@ -94,7 +94,7 @@ var _ = Describe("List Pipelines API Tests >", Label("Positive", "Pipeline", "Pi
 	})
 })
 
-var _ = Describe("List Pipelines Versions API Tests >", Label("Positive", "Pipeline", "PipelineVersionList", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("List Pipelines Versions API Tests >", Label("Positive", "Pipeline", "PipelineVersionList", "ApiServerTests", FullRegression), func() {
 
 	Context("Basic List Operations >", func() {
 		It("When no pipeline versions exist", func() {
@@ -150,7 +150,7 @@ var _ = Describe("List Pipelines Versions API Tests >", Label("Positive", "Pipel
 	})
 })
 
-var _ = Describe("Create Pipeline API Tests >", Label("Positive", "Pipeline", "PipelineCreate", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Create Pipeline API Tests >", Label("Positive", "Pipeline", "PipelineCreate", "ApiServerTests", FullRegression), func() {
 
 	Context("Create a pipeline using '/pipelines' >", func() {
 		It("With just name", func() {
@@ -181,7 +181,7 @@ var _ = Describe("Create Pipeline API Tests >", Label("Positive", "Pipeline", "P
 	})
 })
 
-var _ = Describe("Get Pipeline API Tests >", Label("Positive", "Pipeline", "PipelineGet", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Get Pipeline API Tests >", Label("Positive", "Pipeline", "PipelineGet", "ApiServerTests", FullRegression), func() {
 
 	Context("Get by name '/pipelines/{name}' >", func() {
 		It("With full name", func() {
@@ -196,7 +196,7 @@ var _ = Describe("Get Pipeline API Tests >", Label("Positive", "Pipeline", "Pipe
 	})
 })
 
-var _ = Describe("Get Pipeline Version API Tests >", Label("Positive", "Pipeline", "PipelineVersionGet", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Get Pipeline Version API Tests >", Label("Positive", "Pipeline", "PipelineVersionGet", "ApiServerTests", FullRegression), func() {
 
 	Context("Get by id '/pipelines/{pipeline_id}/versions/{pipeline_version_id}' >", func() {
 		It("With valid pipeline id and version id", func() {
@@ -204,7 +204,7 @@ var _ = Describe("Get Pipeline Version API Tests >", Label("Positive", "Pipeline
 	})
 })
 
-var _ = Describe("Delete Pipeline API Tests >", Label("Positive", "Pipeline", "PipelineDelete", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Delete Pipeline API Tests >", Label("Positive", "Pipeline", "PipelineDelete", "ApiServerTests", FullRegression), func() {
 
 	Context("Delete pipeline by ID '/pipelines/{pipeline_id}' >", func() {
 		It("Delete pipeline by ID that does not have any versions", func() {
@@ -219,7 +219,7 @@ var _ = Describe("Delete Pipeline API Tests >", Label("Positive", "Pipeline", "P
 // ################################################################################################################
 // ########################################################## NEGATIVE TESTS ######################################
 // ################################################################################################################
-var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", "Pipeline", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Pipeline", "ApiServerTests", FullRegression), func() {
 	Context("Create a pipeline with version using '/pipelines/create' >", func() {
 		It("With a valid pipeline and pipeline version name but invalid pipeline spec file", func() {
 		})

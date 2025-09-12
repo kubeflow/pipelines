@@ -196,7 +196,7 @@ var _ = Describe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "ApiS
 		})
 	})
 
-	Context("Terminate a pipeline run >", func() {
+	PContext("Terminate a pipeline run >", func() {
 		It("Terminate a run in RUNNING state", func() {
 		})
 		It("Terminate a run in PENDING state", func() {
@@ -205,7 +205,7 @@ var _ = Describe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "ApiS
 		})
 	})
 
-	Context("Get All pipeline run >", func() {
+	PContext("Get All pipeline run >", func() {
 		It("Create a Pipeline Run and validate that it gets returned in the List Runs API call", func() {
 		})
 		It("Create 2 pipeline Runs, and list it", func() {
@@ -256,7 +256,7 @@ var _ = Describe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "ApiS
 // ################################################################################################################
 // ########################################################## NEGATIVE TESTS ######################################
 // ################################################################################################################
-var _ = Describe("Verify Pipeline Run Negative Tests >", Label("Negative", "PipelineRun", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Verify Pipeline Run Negative Tests >", Label("Negative", "PipelineRun", "ApiServerTests", FullRegression), func() {
 	Context("Unarchive a pipeline run >", func() {
 		It("Unarchive a deleted run", func() {
 		})
