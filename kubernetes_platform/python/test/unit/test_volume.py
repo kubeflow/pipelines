@@ -123,7 +123,8 @@ class TestMountPVC:
                                     'keyToEnv': [{
                                         'secretKey': 'password',
                                         'envVar': 'SECRET_VAR'
-                                    }]
+                                    }],
+                                    'optional': False
                                 }]
                             }
                         }
