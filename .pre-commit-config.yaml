@@ -73,3 +73,9 @@ repos:
         language: golang
         require_serial: true
         pass_filenames: false
+
+  # GitHub Workflows documentation generation
+  - repo: https://github.com/droctothorpe/gha-docs
+    rev: 6297c3b8ecdfebe5f01448e109a38275c854c646
+    hooks:
+      - id: gha-docs

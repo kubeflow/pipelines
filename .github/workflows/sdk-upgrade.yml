@@ -1,3 +1,5 @@
+## Validates SDK upgrade succeeds.
+
 name: KFP SDK Upgrade Test
 
 on:

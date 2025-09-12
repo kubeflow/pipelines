@@ -1,3 +1,5 @@
+## Validates KFP Readthedocs release readiness.
+
 name: KFP Readthedocs Release Readiness
 
 on:

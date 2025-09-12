@@ -1,3 +1,5 @@
+## Runs the pre-commit hooks against the codebase.
+
 name: pre-commit
 
 on:
@@ -23,7 +25,7 @@ jobs:
         version: v2.3
         args: --new-from-rev HEAD
     #- uses: pre-commit/action@v3.0.1
-    #  # This is set to only run the golangci-lint pre-commit hooks 
+    #  # This is set to only run the golangci-lint pre-commit hooks
     #  # Remove in a later PR to run all hooks
     #  with:
     #    go-version: '>=1.24.2'
