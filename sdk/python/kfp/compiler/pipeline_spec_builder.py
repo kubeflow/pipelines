@@ -15,6 +15,7 @@
 
 import copy
 import json
+import re
 import typing
 from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
                     Union)
@@ -48,6 +49,20 @@ group_type_to_dsl_class = {
     tasks_group.TasksGroupType.FOR_LOOP: tasks_group.ParallelFor,
     tasks_group.TasksGroupType.EXIT_HANDLER: tasks_group.ExitHandler,
 }
+
+# Workspace size validation (compiler-side only)
+_SIZE_REGEX = re.compile(
+    r'^(?:(?:0|[1-9]\d*)(?:\.\d+)?)(?:Ki|Mi|Gi|Ti|Pi|Ei|K|M|G|T|P|E)?$')
+
+
+def is_valid_workspace_size(value: Any) -> bool:
+    """Returns True if value is a valid Kubernetes resource quantity string."""
+    if not isinstance(value, str):
+        return False
+    size = value.strip()
+    if not size:
+        return False
+    return _SIZE_REGEX.match(size) is not None
 
 
 def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
@@ -2058,6 +2073,9 @@ def create_pipeline_spec(
         platform_spec=platform_spec,
     )
 
+    # Validate workspace usage and configuration
+    _validate_workspace_requirements(pipeline_config, pipeline_spec)
+
     _build_dag_outputs(
         component_spec=pipeline_spec.root,
         dag_outputs=modified_pipeline_outputs_dict,
@@ -2084,6 +2102,48 @@ def _validate_dag_output_types(
             error_message_prefix,
             checks_input=False,
         )
+
+
+def _validate_workspace_requirements(
+        pipeline_config: Optional[pipeline_config.PipelineConfig],
+        pipeline_spec: Optional[pipeline_spec_pb2.PipelineSpec] = None) -> None:
+    workspace_config = getattr(pipeline_config, 'workspace',
+                               None) if pipeline_config else None
+
+    # If workspace configured, validate size
+    if workspace_config is not None:
+        size = getattr(workspace_config, 'size', None)
+        if not is_valid_workspace_size(size):
+            raise ValueError(
+                f'Workspace size {size} is invalid. Must be a valid Kubernetes resource quantity (e.g., "10Gi", "500Mi", "1Ti")'
+            )
+
+    # If placeholder used, validate that a workspace is configured
+    if _pipeline_spec_uses_workspace_placeholder(pipeline_spec):
+        if workspace_config is None:
+            raise ValueError(
+                'Workspace features are used (e.g., dsl.WORKSPACE_PATH_PLACEHOLDER) but PipelineConfig.workspace.size is not set.'
+            )
+
+
+def _pipeline_spec_uses_workspace_placeholder(
+        pipeline_spec: Optional[Any]) -> bool:
+    """Recursively scans pipeline_spec for the placeholder."""
+    if pipeline_spec is None:
+        return False
+    placeholder = dsl.WORKSPACE_PATH_PLACEHOLDER
+    pipeline_spec_dict = json_format.MessageToDict(pipeline_spec)
+
+    def _contains(obj: Any) -> bool:
+        if isinstance(obj, str):
+            return placeholder in obj
+        if isinstance(obj, list):
+            return any(_contains(x) for x in obj)
+        if isinstance(obj, dict):
+            return any(_contains(v) for v in obj.values())
+        return False
+
+    return _contains(pipeline_spec_dict)
 
 
 def convert_pipeline_outputs_to_dict(
