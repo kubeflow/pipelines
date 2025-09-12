@@ -145,7 +145,7 @@ jobs:
         if: (!cancelled())
         with:
           name: HTML Report - Upgrade Tests
-          path: ${{ env.REPORTS_DIR }}/test-report.html
+          path: ${{ env.TESTS_DIR }}/reports/test-report.html
           retention-days: 30
         continue-on-error: true
 
