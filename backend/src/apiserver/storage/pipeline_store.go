@@ -217,9 +217,10 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 	q := s.dialect.QuoteIdentifier
 	qb := s.dialect.QueryBuilder()
 	subQuery := qb.Select("t1.pvid, t1.pid").FromSelect(
-		qb.Select("UUID AS pvid, PipelineId AS pid, ROW_NUMBER () OVER (PARTITION BY PipelineId ORDER BY CreatedAtInSec DESC) rn").
+		qb.Select(fmt.Sprintf("%s AS pvid, %s AS pid, ROW_NUMBER () OVER (PARTITION BY %s ORDER BY %s DESC) rn",
+			q("UUID"), q("PipelineId"), q("PipelineId"), q("CreatedAtInSec"))).
 			From(q("pipeline_versions")), "t1").
-		Where(sq.Or{sq.Eq{"rn": 1}, sq.Eq{"rn": nil}})
+		Where("rn = 1 OR rn IS NULL")
 
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		query := opts.AddFilterToSelect(sqlBuilder).From(q("pipelines")).
