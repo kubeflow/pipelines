@@ -6,7 +6,7 @@ env:
   NUMBER_OF_PARALLEL_NODES: 15
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
-  USER_NAMESPACE: ""
+  USER_NAMESPACE: "kubeflow-user-example-com"
   PYTHON_VERSION: "3.9"
 
 on:
@@ -209,6 +209,8 @@ jobs:
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          LOCAL_API_SERVER: "true"
         with:
           cache_enabled: ${{ matrix.cache_enabled }}
           test_directory: ${{ env.API_TESTS_DIR }}
