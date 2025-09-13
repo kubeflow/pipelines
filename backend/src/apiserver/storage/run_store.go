@@ -137,7 +137,6 @@ func (s *RunStore) ListRuns(
 		glog.Error("Failed to start transaction to list runs")
 		return errorF(err)
 	}
-
 	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		return errorF(err)
@@ -209,11 +208,11 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
 
 	// If we're not just counting, then also add select columns and perform a left join
-	// to get resource reference information. Also add pagination.
+	// to get resource reference information. Pagination and sorting are applied at the outermost level.
 	if !selectCount {
 		sqlBuilder = s.addSortByRunMetricToSelect(sqlBuilder, opts)
-		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
 		sqlBuilder = s.addMetricsResourceReferencesAndTasks(sqlBuilder, opts)
+		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
 		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
 	}
 	sql, args, err := sqlBuilder.ToSql()
