@@ -63,6 +63,14 @@ func toWorkflowTestOnly(workflow string) *workflowapi.Workflow {
 	return &result
 }
 
+func TokenToAuthInfo(userToken string) runtime.ClientAuthInfoWriter {
+	return runtime.ClientAuthInfoWriterFunc(
+		func(r runtime.ClientRequest, _ strfmt.Registry) error {
+			r.SetHeaderParam("Authorization", "Bearer "+userToken)
+			return nil
+		})
+}
+
 func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	*httptransport.Runtime, error,
 ) {

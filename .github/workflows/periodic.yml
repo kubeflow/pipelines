@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: 3.9
       - name: Create KFP cluster
-        uses: ./.github/actions/kfp-cluster
+        uses: ./.github/actions/create-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}

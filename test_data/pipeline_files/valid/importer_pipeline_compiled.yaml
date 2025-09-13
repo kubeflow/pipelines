@@ -1,0 +1,125 @@
+# PIPELINE DEFINITION
+# Name: my-pipe
+# Inputs:
+#    artifact_uri: str
+#    standard_scaler: bool [Default: True]
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-normalize-dataset:
+    executorLabel: exec-normalize-dataset
+    inputDefinitions:
+      artifacts:
+        input_iris_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        standard_scaler:
+          parameterType: BOOLEAN
+    outputDefinitions:
+      artifacts:
+        normalized_iris_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          runtimeParameter: uri
+        reimport: true
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-normalize-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - normalize_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.0'\
+          \ 'scikit-learn==1.4.0' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef normalize_dataset(\n    input_iris_dataset: Input[Dataset], normalized_iris_dataset:\
+          \ Output[Dataset], standard_scaler: bool\n):\n    import pandas as pd  #\
+          \ noqa: PLC0415\n    from sklearn.preprocessing import MinMaxScaler, StandardScaler\
+          \  # noqa: PLC0415\n\n    with open(input_iris_dataset.path) as f:\n   \
+          \     df = pd.read_csv(f)\n    labels = df.pop(\"Labels\")\n\n    scaler\
+          \ = StandardScaler() if standard_scaler else MinMaxScaler()\n\n    df =\
+          \ pd.DataFrame(scaler.fit_transform(df))\n    df[\"Labels\"] = labels\n\
+          \    normalized_iris_dataset.metadata[\"state\"] = \"Normalized\"\n    with\
+          \ open(normalized_iris_dataset.path, \"w\") as f:\n        df.to_csv(f)\n\
+          \n"
+        image: registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168
+pipelineInfo:
+  name: my-pipe
+root:
+  dag:
+    tasks:
+      importer:
+        cachingOptions: {}
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              componentInputParameter: artifact_uri
+        taskInfo:
+          name: importer
+      normalize-dataset:
+        cachingOptions: {}
+        componentRef:
+          name: comp-normalize-dataset
+        dependentTasks:
+        - importer
+        inputs:
+          artifacts:
+            input_iris_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+          parameters:
+            standard_scaler:
+              componentInputParameter: standard_scaler
+        taskInfo:
+          name: normalize-dataset
+  inputDefinitions:
+    parameters:
+      artifact_uri:
+        parameterType: STRING
+      standard_scaler:
+        defaultValue: true
+        isOptional: true
+        parameterType: BOOLEAN
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
