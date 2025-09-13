@@ -150,7 +150,7 @@ jobs:
         continue-on-error: true
 
       - name: Mark Workflow failure if test step failed
-        if: steps.compiler.outcome != 'success' && !cancelled()
+        if: (steps.prepare-upgrade.outcome != 'success' || steps.verify-upgrade.outcome != 'success' ) && !cancelled()
         run: exit 1
 
       - name: Mark Workflow failure if test reporting failed
