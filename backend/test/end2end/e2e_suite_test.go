@@ -7,14 +7,13 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"k8s.io/client-go/kubernetes"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
-
-	"k8s.io/client-go/kubernetes"
 
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/v2"
@@ -28,7 +27,7 @@ import (
 var randomName string
 var experimentID *string = nil
 
-const maxPipelineWaitTime = 1200 // In Seconds
+const maxPipelineWaitTime = 900 // In Seconds
 
 var (
 	pipelineUploadClient apiserver.PipelineUploadInterface
@@ -68,7 +67,7 @@ var _ = BeforeSuite(func() {
 			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.IsDebugMode)
 		}
 	} else if *config.IsMultiUserMode {
-		logger.Log("Creating API Clients for Multi User Mode, with token: %s", *config.UserToken)
+		logger.Log("Creating API Clients for Multi User Mode")
 		clientConfig = test_utils.GetClientConfig(*config.ResourceNamespace, config.UserToken)
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewMultiUserPipelineClient(clientConfig, *config.UserToken, *config.IsDebugMode)
@@ -79,6 +78,15 @@ var _ = BeforeSuite(func() {
 		newRunClient = func() (*apiserver.RunClient, error) {
 			return apiserver.NewMultiUserRunClient(clientConfig, *config.UserToken, *config.IsDebugMode)
 		}
+
+		// Create Experiment so that we can use it to associate pipeline runs with, because experiment is required in multi user mode
+		experimentName := fmt.Sprintf("E2EExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
+		experiment := test_utils.CreateExperimentWithParams(experimentClient, &experiment_model.V2beta1Experiment{
+			DisplayName: experimentName,
+			Namespace:   test_utils.GetNamespace(),
+			Description: experimentName,
+		})
+		experimentID = &experiment.ExperimentID
 	} else {
 		logger.Log("Creating API Clients for Single User Mode")
 
@@ -110,15 +118,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).To(BeNil(), "Failed to get Pipeline Run client")
 	k8Client, err = initK8sClient()
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
-
-	// Create Experiment so that we can use it to associate pipeline runs with
-	experimentName := fmt.Sprintf("E2EExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
-	experiment := test_utils.CreateExperimentWithParams(experimentClient, &experiment_model.V2beta1Experiment{
-		DisplayName: experimentName,
-		Namespace:   test_utils.GetNamespace(),
-		Description: experimentName,
-	})
-	experimentID = &experiment.ExperimentID
 })
 
 var _ = ReportAfterEach(func(specReport types.SpecReport) {

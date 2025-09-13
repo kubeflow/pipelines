@@ -6,6 +6,7 @@ env:
   NUMBER_OF_PARALLEL_NODES: 15
   CLUSTER_NAME: "kfp"
   NAMESPACE: "kubeflow"
+  USER_NAMESPACE: ""
   PYTHON_VERSION: "3.9"
 
 on:
@@ -171,3 +172,50 @@ jobs:
           default_namespace: ${{ env.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "K8Native_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version }}_uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}"
+
+  api-test-multi-user:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [ "v1.31.0"]
+        cache_enabled: [ "true", "false" ]
+        multi_user: [ "true", "false" ]
+      fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
+    name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        id: deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          multi_user: "true"
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        if: ${{ steps.deploy.outcome == 'success' }}
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          test_directory: ${{ env.API_TESTS_DIR }}
+          test_label: ${{ env.TESTS_LABEL }}
+          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          user_namespace: ${{ env.USER_NAMESPACE }}
+          multi_user: ${{ matrix.multi_user }}
+          report_name: "K8Native_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	"github.com/kubeflow/pipelines/backend/test/config"
@@ -30,6 +31,7 @@ import (
 var testContext *TestContext
 var randomName string
 var pipelineFilesRootDir = test_utils.GetPipelineFilesDir()
+var experimentID *string
 
 var (
 	pipelineUploadClient apiserver.PipelineUploadInterface
@@ -88,6 +90,15 @@ var _ = BeforeSuite(func() {
 		newRecurringRunClient = func() (*apiserver.RecurringRunClient, error) {
 			return apiserver.NewMultiUserRecurringRunClient(clientConfig, *config.UserToken, *config.IsDebugMode)
 		}
+
+		// Create Experiment so that we can use it to associate pipeline runs with
+		experimentName := fmt.Sprintf("E2EExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
+		experiment := test_utils.CreateExperimentWithParams(experimentClient, &experiment_model.V2beta1Experiment{
+			DisplayName: experimentName,
+			Namespace:   test_utils.GetNamespace(),
+			Description: experimentName,
+		})
+		experimentID = &experiment.ExperimentID
 	} else {
 		logger.Log("Creating API Clients for Single User Mode")
 		clientConfig := test_utils.GetClientConfig(*config.Namespace, nil)

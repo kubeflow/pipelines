@@ -79,6 +79,7 @@ runs:
       working-directory: ${{ inputs.test_directory }}
       env:
         PIPELINE_STORE: ${{ inputs.pipeline_store }}
+        LOCAL_API_SERVER: "true"
       run: |
         USE_PROXY=${{ inputs.proxy }}
         if [ -z $USE_PROXY ]; then

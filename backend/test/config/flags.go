@@ -40,5 +40,5 @@ var PodLogLimit = flag.Int64("podLogLimit", 50000000, "Limit the pod logs size t
 
 var (
 	IsKubeflowMode    = flag.Bool("isKubeflowMode", false, "Runs tests in full Kubeflow mode")
-	ResourceNamespace = flag.String("resourceNamespace", "", "The namespace that will store the test resources in Kubeflow mode")
+	ResourceNamespace = flag.String("resourceNamespace", "kubeflow-user-example-com", "The namespace that will store the test resources in Kubeflow mode")
 )

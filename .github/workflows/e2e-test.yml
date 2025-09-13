@@ -57,7 +57,7 @@ jobs:
         cache_enabled: ["true", "false"]
         argo_version: [ "v3.7.1", "v3.6.10", "v3.5.15"]
         storage: [ "seaweedfs", "minio"]
-        multi_user: [ "false"]
+        multi_user: [ "false", "true" ]
         proxy: [ "false" ]
         test_label: [ "E2ECritical" ]
         include:
@@ -120,7 +120,7 @@ jobs:
           kind --name kfp load docker-image registry.domain.local/modelcar:test
         continue-on-error: true
 
-      - name: Create some test secrets
+      - name: Create some test secrets (Required for some pipeline runs)
         id: create-secrets
         shell: bash
         run: |

@@ -79,11 +79,6 @@ var _ = Describe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "ApiS
 		for _, param := range testParams {
 			for _, pipelineFilePath := range pipelineFilePaths {
 				It(fmt.Sprintf("Create a '%s' pipeline with cacheEnabled=%t and verify run", pipelineFilePath, param.pipelineCacheEnabled), func() {
-					var experimentID *string = nil
-					if *config.IsMultiUserMode || *config.IsKubeflowMode {
-						createdExperiment := createExperiment(experimentName)
-						experimentID = &createdExperiment.ExperimentID
-					}
 					pipelineFilePath := pipelineFilePath
 					pipelineFileName := filepath.Base(pipelineFilePath)
 					test_utils.SkipTest(pipelineFileName)
@@ -257,6 +252,10 @@ var _ = Describe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "ApiS
 // ########################################################## NEGATIVE TESTS ######################################
 // ################################################################################################################
 var _ = PDescribe("Verify Pipeline Run Negative Tests >", Label("Negative", "PipelineRun", "ApiServerTests", FullRegression), func() {
+	if *config.IsMultiUserMode {
+		Context("Create a run without an experiment in a Multi User Mode deployment", func() {
+		})
+	}
 	Context("Unarchive a pipeline run >", func() {
 		It("Unarchive a deleted run", func() {
 		})
