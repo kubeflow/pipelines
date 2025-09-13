@@ -90,15 +90,6 @@ var _ = BeforeSuite(func() {
 		newRecurringRunClient = func() (*apiserver.RecurringRunClient, error) {
 			return apiserver.NewMultiUserRecurringRunClient(clientConfig, *config.UserToken, *config.IsDebugMode)
 		}
-
-		// Create Experiment so that we can use it to associate pipeline runs with
-		experimentName := fmt.Sprintf("E2EExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
-		experiment := test_utils.CreateExperimentWithParams(experimentClient, &experiment_model.V2beta1Experiment{
-			DisplayName: experimentName,
-			Namespace:   test_utils.GetNamespace(),
-			Description: experimentName,
-		})
-		experimentID = &experiment.ExperimentID
 	} else {
 		logger.Log("Creating API Clients for Single User Mode")
 		clientConfig := test_utils.GetClientConfig(*config.Namespace, nil)
@@ -135,6 +126,16 @@ var _ = BeforeSuite(func() {
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
 	recurringRunClient, err = newRecurringRunClient()
 	Expect(err).To(BeNil(), "Failed to get Recurring Run client")
+	if *config.IsMultiUserMode || *config.IsKubeflowMode {
+		// Create Experiment so that we can use it to associate pipeline runs with
+		experimentName := fmt.Sprintf("E2EExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
+		experiment := test_utils.CreateExperimentWithParams(experimentClient, &experiment_model.V2beta1Experiment{
+			DisplayName: experimentName,
+			Namespace:   test_utils.GetNamespace(),
+			Description: experimentName,
+		})
+		experimentID = &experiment.ExperimentID
+	}
 })
 
 var _ = BeforeEach(func() {

@@ -3,10 +3,15 @@ package end2end
 import (
 	"fmt"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
+	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/v2"
+	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
+	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes"
 	"log"
 	"os"
@@ -14,12 +19,6 @@ import (
 	"strconv"
 	"testing"
 	"time"
-
-	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
-	"github.com/kubeflow/pipelines/backend/test/v2"
-	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
-	. "github.com/onsi/gomega"
 )
 
 // Test Context
@@ -78,15 +77,6 @@ var _ = BeforeSuite(func() {
 		newRunClient = func() (*apiserver.RunClient, error) {
 			return apiserver.NewMultiUserRunClient(clientConfig, *config.UserToken, *config.IsDebugMode)
 		}
-
-		// Create Experiment so that we can use it to associate pipeline runs with, because experiment is required in multi user mode
-		experimentName := fmt.Sprintf("E2EExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
-		experiment := test_utils.CreateExperimentWithParams(experimentClient, &experiment_model.V2beta1Experiment{
-			DisplayName: experimentName,
-			Namespace:   test_utils.GetNamespace(),
-			Description: experimentName,
-		})
-		experimentID = &experiment.ExperimentID
 	} else {
 		logger.Log("Creating API Clients for Single User Mode")
 
@@ -118,6 +108,17 @@ var _ = BeforeSuite(func() {
 	Expect(err).To(BeNil(), "Failed to get Pipeline Run client")
 	k8Client, err = initK8sClient()
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
+
+	if *config.IsMultiUserMode || *config.IsKubeflowMode {
+		// Create Experiment so that we can use it to associate pipeline runs with
+		experimentName := fmt.Sprintf("E2EExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
+		experiment := test_utils.CreateExperimentWithParams(experimentClient, &experiment_model.V2beta1Experiment{
+			DisplayName: experimentName,
+			Namespace:   test_utils.GetNamespace(),
+			Description: experimentName,
+		})
+		experimentID = &experiment.ExperimentID
+	}
 })
 
 var _ = ReportAfterEach(func(specReport types.SpecReport) {
