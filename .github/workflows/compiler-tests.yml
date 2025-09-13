@@ -1,0 +1,111 @@
+# This workflow runs tests to verify all the API Server REST Endpoints
+name: Workflow Compiler Tests
+env:
+  COMPILER_TESTS_DIR: "./backend/test/compiler"
+  REPORTS_DIR: "./backend/test/compiler/reports"
+  TESTS_LABEL: "WorkflowCompiler"
+  NUMBER_OF_PARALLEL_NODES: 20
+
+on:
+  push:
+    branches: [master]
+
+  workflow_dispatch:
+    inputs:
+      test_label:
+        description: "Test label that you want to filter on and run"
+        default: 'ApiServerTests'
+        required: true
+        type: string
+      number_of_parallel_tests:
+        description: "Number of ginkgo nodes that you want run in parallel, it essentially is equivalent to number of parallel tests with some caveats"
+        default: 10
+        required: true
+        type: number
+
+  pull_request:
+    paths:
+      - '.github/workflows/compiler-tests.yml'
+      - 'backend/src/v2/compiler/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
+jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+
+  compiler-tests:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Workflow Compiler Tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Workflow Compiler Tests
+        id: compiler
+        working-directory: ${{ env.COMPILER_TESTS_DIR }}
+        run: |
+          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          TEST_LABEL=${{ env.TESTS_LABEL }}
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
+            TEST_LABEL=${{ inputs.test_label }}
+            NAMESPACE=${{ inputs.namespace }}
+          fi
+          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=$NUMBER_OF_NODES -v --label-filter=$TEST_LABEL
+        continue-on-error: true
+
+      - name: Collect Pod logs in case of Test Failures
+        id: collect-logs
+        if: ${{ steps.compiler.outcome != 'success' }}
+        run: |
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NAMESPACE=${{ inputs.namespace }}
+          fi
+          ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
+
+      - name: Publish Test Summary
+        id: publish
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
+        with:
+          files: |
+            ${{ env.REPORTS_DIR }}/*.xml
+
+      - name: Install Junit2Html plugin and generate report
+        if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
+        run: |
+          go run github.com/alexec/junit2html@latest < ${{ env.REPORTS_DIR }}/compiler_junit.xml > ${{ env.REPORTS_DIR }}/test-report.html
+        continue-on-error: true
+
+      - name: Generate UUID
+        id: uuid_gen
+        run: echo "uuid=$(uuidgen)" >> $GITHUB_OUTPUT
+
+      - name: Upload HTML Report
+        id: upload
+        uses: actions/upload-artifact@v4
+        if: (!cancelled())
+        with:
+          name: HTML Report - ${{ github.run_id }}_${{ github.job }}_${{ steps.uuid_gen.outputs.uuid }}
+          path: ${{ env.REPORTS_DIR }}/test-report.html
+          retention-days: 30
+        continue-on-error: true
+
+      - name: Mark Workflow failure if test step failed
+        if: steps.compiler.outcome != 'success' && !cancelled()
+        run: exit 1
+
+      - name: Mark Workflow failure if test reporting failed
+        if: (steps.publish.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
+        run: exit 1
+

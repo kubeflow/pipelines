@@ -1,0 +1,194 @@
+# PIPELINE DEFINITION
+# Name: loop-consume-upstream
+components:
+  comp-create-file:
+    executorLabel: exec-create-file
+    inputDefinitions:
+      parameters:
+        content:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        file:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-for-loop-1:
+    dag:
+      tasks:
+        create-file:
+          cachingOptions: {}
+          componentRef:
+            name: comp-create-file
+          inputs:
+            parameters:
+              content:
+                componentInputParameter: pipelinechannel--split-input-Output-loop-item
+          taskInfo:
+            name: create-file
+        read-file:
+          cachingOptions: {}
+          componentRef:
+            name: comp-read-file
+          dependentTasks:
+          - create-file
+          inputs:
+            artifacts:
+              file:
+                taskOutputArtifact:
+                  outputArtifactKey: file
+                  producerTask: create-file
+          taskInfo:
+            name: read-file
+    inputDefinitions:
+      parameters:
+        pipelinechannel--split-input-Output:
+          parameterType: LIST
+        pipelinechannel--split-input-Output-loop-item:
+          parameterType: STRING
+  comp-read-file:
+    executorLabel: exec-read-file
+    inputDefinitions:
+      artifacts:
+        file:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-split-input:
+    executorLabel: exec-split-input
+    inputDefinitions:
+      parameters:
+        input:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+deploymentSpec:
+  executors:
+    exec-create-file:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - create_file
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef create_file(file: Output[Artifact], content: str):\n    with\
+          \ open(file.path, 'w') as f:\n        f.write(content)\n\n"
+        image: python:3.9
+    exec-read-file:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_file
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_file(file: Input[Artifact]) -> str:\n    with open(file.path,\
+          \ 'r') as f:\n        print(f.read())\n    return file.path\n\n"
+        image: python:3.9
+    exec-split-input:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - split_input
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef split_input(input: str) -> list:\n    return input.split(',')\n\
+          \n"
+        image: python:3.9
+pipelineInfo:
+  name: loop-consume-upstream
+root:
+  dag:
+    tasks:
+      for-loop-1:
+        componentRef:
+          name: comp-for-loop-1
+        dependentTasks:
+        - split-input
+        inputs:
+          parameters:
+            pipelinechannel--split-input-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: split-input
+        parameterIterator:
+          itemInput: pipelinechannel--split-input-Output-loop-item
+          items:
+            inputParameter: pipelinechannel--split-input-Output
+        taskInfo:
+          name: for-loop-1
+      split-input:
+        cachingOptions: {}
+        componentRef:
+          name: comp-split-input
+        inputs:
+          parameters:
+            input:
+              runtimeValue:
+                constant: component1,component2,component3
+        taskInfo:
+          name: split-input
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

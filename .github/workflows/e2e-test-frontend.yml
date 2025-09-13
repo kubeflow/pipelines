@@ -1,0 +1,78 @@
+name: KFP e2e frontend tests
+
+on:
+  push:
+    branches: [master]
+
+  pull_request:
+    paths:
+      - '.github/workflows/e2e-test-frontend.yml'
+      - 'frontend/**'
+      - 'manifests/kustomize/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
+jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+
+  frontend-integration-test:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
+    name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Forward Frontend port
+        id: forward-frontend-port
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
+        continue-on-error: true
+
+      - name: Build frontend integration tests image
+        working-directory: ./test/frontend-integration-test
+        run: docker build . -t kfp-frontend-integration-test:local
+
+      - name: Frontend integration tests
+        id: tests
+        if: ${{ steps.forward-frontend-port.outcome == 'success' }}
+        run: docker run --net=host kfp-frontend-integration-test:local --remote-run true
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-frontend-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*

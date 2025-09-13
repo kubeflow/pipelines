@@ -2,6 +2,7 @@
 name: API Server Tests
 env:
   API_TESTS_DIR: "./backend/test/v2/api"
+  REPORTS_DIR: "./backend/test/v2/api/reports"
   TESTS_LABEL: "ApiServerTests"
   NUMBER_OF_PARALLEL_NODES: 15
   NAMESPACE: "kubeflow"
@@ -134,12 +135,12 @@ jobs:
         if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
         with:
           files: |
-            ${{ env.API_TESTS_DIR }}/reports/*.xml
+            ${{ env.REPORTS_DIR }}/*.xml
 
       - name: Install Junit2Html plugin and generate report
         if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
         run: |
-          go run github.com/alexec/junit2html@latest < ${{ env.API_TESTS_DIR }}/reports/junit.xml > ${{ env.API_TESTS_DIR }}/reports/test-report.html
+          go run github.com/alexec/junit2html@latest < ${{ env.REPORTS_DIR }}/api_junit.xml > ${{ env.REPORTS_DIR }}/test-report.html
         continue-on-error: true
 
       - name: Generate UUID
@@ -152,7 +153,8 @@ jobs:
         if: (!cancelled())
         with:
           name: HTML Report - ${{ github.run_id }}_${{ github.job }}_${{ steps.uuid_gen.outputs.uuid }}
-          path: ${{ env.API_TESTS_DIR }}/reports/test-report.html
+          path: ${{ env.REPORTS_DIR }}/test-report.html
+          retention-days: 30
         continue-on-error: true
 
       - name: Mark Workflow failure if test step failed
@@ -160,6 +162,6 @@ jobs:
         run: exit 1
 
       - name: Mark Workflow failure if test reporting failed
-        if: (steps.api-tests-manual.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
+        if: (steps.publish.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
         run: exit 1
 
