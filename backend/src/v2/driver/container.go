@@ -27,6 +27,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func validateContainer(opts Options) (err error) {
@@ -134,9 +136,40 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)
 	}
 
+	var inputParams map[string]*structpb.Value
+
+	if opts.KubernetesExecutorConfig != nil {
+		inputParams, _, err = dag.Execution.GetParameters()
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch input parameters from execution: %w", err)
+		}
+	}
+
 	if !opts.CacheDisabled {
 		// Generate fingerprint and MLMD ID for cache
-		fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient)
+		// Start by getting the names of the PVCs that need to be mounted.
+		pvcNames := []string{}
+		if opts.KubernetesExecutorConfig != nil && opts.KubernetesExecutorConfig.GetPvcMount() != nil {
+			_, volumes, err := makeVolumeMountPatch(ctx, opts, opts.KubernetesExecutorConfig.GetPvcMount(),
+				dag, pipeline, mlmd, inputParams)
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract volume mount info while generating fingerprint: %w", err)
+			}
+
+			for _, volume := range volumes {
+				pvcNames = append(pvcNames, volume.Name)
+			}
+		}
+
+		if needsWorkspaceMount(execution.ExecutorInput) {
+			if opts.RunName == "" {
+				return execution, fmt.Errorf("failed to generate fingerprint: run name is required when workspace is used")
+			}
+
+			pvcNames = append(pvcNames, GetWorkspacePVCName(opts.RunName))
+		}
+
+		fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient, pvcNames)
 		if err != nil {
 			return execution, err
 		}
@@ -146,7 +179,6 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 
 	// TODO(Bobgy): change execution state to pending, because this is driver, execution hasn't started.
 	createdExecution, err := mlmd.CreateExecution(ctx, pipeline, ecfg)
-
 	if err != nil {
 		return execution, err
 	}
@@ -182,6 +214,8 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		glog.Info("Cache disabled globally at the server level.")
 	}
 
+	taskConfig := &TaskConfig{}
+
 	podSpec, err := initPodSpecPatch(
 		opts.Container,
 		opts.Component,
@@ -189,23 +223,76 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		execution.ID,
 		opts.PipelineName,
 		opts.RunID,
+		opts.RunName,
 		opts.PipelineLogLevel,
 		opts.PublishLogs,
 		strconv.FormatBool(opts.CacheDisabled),
+		taskConfig,
 	)
 	if err != nil {
 		return execution, err
 	}
 	if opts.KubernetesExecutorConfig != nil {
-		inputParams, _, err := dag.Execution.GetParameters()
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch input parameters from execution: %w", err)
-		}
-		err = extendPodSpecPatch(ctx, podSpec, opts, dag, pipeline, mlmd, inputParams)
+		err = extendPodSpecPatch(ctx, podSpec, opts, dag, pipeline, mlmd, inputParams, taskConfig)
 		if err != nil {
 			return execution, err
 		}
 	}
+
+	// Handle replacing any dsl.TaskConfig inputs with the taskConfig. This is done here because taskConfig is
+	// populated by initPodSpecPatch and extendPodSpecPatch.
+	taskConfigInputs := map[string]bool{}
+	for inputName := range opts.Component.GetInputDefinitions().GetParameters() {
+		compParam := opts.Component.GetInputDefinitions().GetParameters()[inputName]
+		if compParam != nil && compParam.GetParameterType() == pipelinespec.ParameterType_TASK_CONFIG {
+			taskConfigInputs[inputName] = true
+		}
+	}
+
+	if len(taskConfigInputs) > 0 {
+		taskConfigBytes, err := json.Marshal(taskConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal Kubernetes passthrough info: %w", err)
+		}
+
+		taskConfigStruct := &structpb.Struct{}
+		err = protojson.Unmarshal(taskConfigBytes, taskConfigStruct)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal Kubernetes passthrough info: %w", err)
+		}
+
+		for inputName := range taskConfigInputs {
+			executorInput.Inputs.ParameterValues[inputName] = &structpb.Value{
+				Kind: &structpb.Value_StructValue{StructValue: taskConfigStruct},
+			}
+		}
+
+		ecfg.InputParameters = executorInput.Inputs.ParameterValues
+
+		// Overwrite the --executor_input argument in the podSpec container command with the updated executorInput
+		executorInputJSON, err := protojson.Marshal(executorInput)
+		if err != nil {
+			return execution, fmt.Errorf("JSON marshaling executor input: %w", err)
+		}
+
+		for index, container := range podSpec.Containers {
+			if container.Name == "main" {
+				cmd := container.Command
+				for i := 0; i < len(cmd)-1; i++ {
+					if cmd[i] == "--executor_input" {
+						podSpec.Containers[index].Command[i+1] = string(executorInputJSON)
+
+						break
+					}
+				}
+
+				break
+			}
+		}
+
+		execution.ExecutorInput = executorInput
+	}
+
 	podSpecPatchBytes, err := json.Marshal(podSpec)
 	if err != nil {
 		return execution, fmt.Errorf("JSON marshaling pod spec patch: %w", err)

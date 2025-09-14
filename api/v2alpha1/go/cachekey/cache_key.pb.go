@@ -127,6 +127,7 @@ type ContainerSpec struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Image         string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
 	CmdArgs       []string               `protobuf:"bytes,2,rep,name=cmdArgs,proto3" json:"cmdArgs,omitempty"`
+	PvcNames      []string               `protobuf:"bytes,3,rep,name=pvcNames,proto3" json:"pvcNames,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -171,6 +172,13 @@ func (x *ContainerSpec) GetImage() string {
 func (x *ContainerSpec) GetCmdArgs() []string {
 	if x != nil {
 		return x.CmdArgs
+	}
+	return nil
+}
+
+func (x *ContainerSpec) GetPvcNames() []string {
+	if x != nil {
+		return x.PvcNames
 	}
 	return nil
 }
@@ -245,10 +253,11 @@ const file_cache_key_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a_\n" +
 	"\x19InputParameterValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12,\n" +
-	"\x05value\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x05value:\x028\x01\"?\n" +
+	"\x05value\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x05value:\x028\x01\"[\n" +
 	"\rContainerSpec\x12\x14\n" +
 	"\x05image\x18\x01 \x01(\tR\x05image\x12\x18\n" +
-	"\acmdArgs\x18\x02 \x03(\tR\acmdArgs\"8\n" +
+	"\acmdArgs\x18\x02 \x03(\tR\acmdArgs\x12\x1a\n" +
+	"\bpvcNames\x18\x03 \x03(\tR\bpvcNames\"8\n" +
 	"\x10ArtifactNameList\x12$\n" +
 	"\rartifactNames\x18\x01 \x03(\tR\rartifactNamesB8Z6github.com/kubeflow/pipelines/api/v2alpha1/go/cachekeyb\x06proto3"
 

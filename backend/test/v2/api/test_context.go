@@ -1,9 +1,10 @@
 package api
 
 import (
+	"time"
+
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	"time"
 )
 
 type TestContext struct {

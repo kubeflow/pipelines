@@ -307,10 +307,10 @@ func TestToModel_PipelineSpecOnly(t *testing.T) {
 	assert.Equal(t, "version-456", result.UUID)
 	assert.Equal(t, "test-version", result.Name)
 	assert.Equal(t, "Test Version", result.DisplayName)
-	assert.Equal(t, "A test version", result.Description)
+	assert.Equal(t, "A test version", string(result.Description))
 	assert.Equal(t, "pipeline-123", result.PipelineId)
 	assert.Equal(t, "https://github.com/test/pipeline", result.CodeSourceUrl)
-	assert.Equal(t, "gs://bucket/pipeline.yaml", result.PipelineSpecURI)
+	assert.Equal(t, "gs://bucket/pipeline.yaml", string(result.PipelineSpecURI))
 
 	// Check PipelineSpec contains only pipeline spec (no platform spec)
 	assert.Contains(t, result.PipelineSpec, "pipelineInfo:")
@@ -387,10 +387,10 @@ func TestToModel_PipelineAndPlatformSpecs(t *testing.T) {
 	assert.Equal(t, "version-456", result.UUID)
 	assert.Equal(t, "test-version", result.Name)
 	assert.Equal(t, "Test Version", result.DisplayName)
-	assert.Equal(t, "A test version", result.Description)
+	assert.Equal(t, "A test version", string(result.Description))
 	assert.Equal(t, "pipeline-123", result.PipelineId)
 	assert.Equal(t, "https://github.com/test/pipeline", result.CodeSourceUrl)
-	assert.Equal(t, "gs://bucket/pipeline.yaml", result.PipelineSpecURI)
+	assert.Equal(t, "gs://bucket/pipeline.yaml", string(result.PipelineSpecURI))
 
 	// Check PipelineSpec contains both pipeline and platform specs
 	assert.Contains(t, result.PipelineSpec, "pipelineInfo:")
@@ -717,7 +717,7 @@ platforms:
 		Name:         "hello-world-v1",
 		DisplayName:  "Hello World Pipeline v1",
 		Description:  "A simple hello world pipeline with workspace configuration",
-		PipelineSpec: pipelineSpecYAML,
+		PipelineSpec: model.LargeText(pipelineSpecYAML),
 		PipelineId:   "pipeline-123",
 	}
 
@@ -743,7 +743,7 @@ platforms:
 	err = k8syaml.Unmarshal([]byte(originalPipelineSpecSplit[1]), &originalPlatformSpec)
 	require.NoError(t, err)
 
-	roundTripPipelineSpecSplit := strings.Split(roundTripModel.PipelineSpec, "\n---\n")
+	roundTripPipelineSpecSplit := strings.Split(string(roundTripModel.PipelineSpec), "\n---\n")
 	require.Len(t, roundTripPipelineSpecSplit, 2)
 	var roundTripPipelineSpec map[string]interface{}
 	err = k8syaml.Unmarshal([]byte(roundTripPipelineSpecSplit[0]), &roundTripPipelineSpec)
@@ -767,6 +767,6 @@ platforms:
 	assert.Equal(t, "version-456", roundTripModel.UUID)
 	assert.Equal(t, "hello-world-v1", roundTripModel.Name)
 	assert.Equal(t, "Hello World Pipeline v1", roundTripModel.DisplayName)
-	assert.Equal(t, "A simple hello world pipeline with workspace configuration", roundTripModel.Description)
+	assert.Equal(t, "A simple hello world pipeline with workspace configuration", string(roundTripModel.Description))
 	assert.Equal(t, "pipeline-123", roundTripModel.PipelineId)
 }

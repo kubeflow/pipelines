@@ -12,34 +12,6 @@ The core samples will also include intermediate samples that are
 more complex than basic samples such as flip coins but simpler than TFX samples. 
 It serves to demonstrate a set of the outstanding features and offers users the next level KFP experience.
 
-**Contrib samples** are not tested by KFP and could potentially be moved to
-the core samples if the samples are of good quality and tests are covered and it demonstrates certain KFP functionality. 
-Another reason to put some samples in this directory is that some samples require certain 
-platform support that is hard to support in our test infra.
-
-In the Core directory, each sample will be in a separate directory. 
-In the Contrib directory, there is an intermediate directory for each contributor, 
-e.g. ibm and arena, within which each sample is in a separate directory. 
-An example of the resulting structure is as follows: 
-```
-pipelines/samples/
-Core/
-	dsl_static_type_checking/
-		dsl_static_type_checking.ipynb
-	xgboost_training_cm/
-		xgboost_training_cm.py
-	condition/
-		condition.py
-	recursion/
-		recursion.py
-Contrib/
-	IBM/
-		ffdl-seldon/
-			ffdl_pipeline.ipynb
-			ffdl_pipeline.py
-			README.md
-```
-
 # Run Samples
 
 ## Compile the pipeline specification

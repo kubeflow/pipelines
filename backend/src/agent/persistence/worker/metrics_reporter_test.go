@@ -172,7 +172,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "MY_NAME-template-1-1",
+			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -190,12 +190,12 @@ func TestReportMetrics_Succeed(t *testing.T) {
 		Metrics: []*api.RunMetric{
 			{
 				Name:   "accuracy",
-				NodeId: "MY_NAME-template-1-1",
+				NodeId: "node-1",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 0.77},
 			},
 			{
 				Name:   "logloss",
-				NodeId: "MY_NAME-template-1-1",
+				NodeId: "node-1",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 1.2},
 			},
 		},
@@ -235,7 +235,7 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "MY_NAME-template-1-1",
+			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -263,7 +263,7 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 		Status: workflowapi.WorkflowStatus{
 			Nodes: map[string]workflowapi.NodeStatus{
 				"node-1": {
-					ID:           "MY_NAME-template-1-1",
+					ID:           "node-1",
 					TemplateName: "template-1",
 					Phase:        workflowapi.NodeSucceeded,
 					Outputs: &workflowapi.Outputs{
@@ -279,7 +279,7 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "MY_NAME-template-1-1",
+			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -322,7 +322,7 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "MY_NAME-template-1-1",
+			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -376,7 +376,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "MY_NAME-template-1-1",
+			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -385,7 +385,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "MY_NAME-template-2-2",
+			NodeId:       "node-2",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -402,12 +402,12 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 		Metrics: []*api.RunMetric{
 			{
 				Name:   "accuracy",
-				NodeId: "MY_NAME-template-2-2",
+				NodeId: "node-2",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 0.77},
 			},
 			{
 				Name:   "logloss",
-				NodeId: "MY_NAME-template-2-2",
+				NodeId: "node-2",
 				Value:  &api.RunMetric_NumberValue{NumberValue: 1.2},
 			},
 		},
@@ -446,7 +446,7 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "MY_NAME-template-1-1",
+			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -490,7 +490,7 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "MY_NAME-template-1-1",
+			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{
@@ -553,7 +553,7 @@ func TestReportMetrics_Unauthorized(t *testing.T) {
 	pipelineFake.StubArtifact(
 		&api.ReadArtifactRequest{
 			RunId:        "run-1",
-			NodeId:       "MY_NAME-template-1-1",
+			NodeId:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&api.ReadArtifactResponse{

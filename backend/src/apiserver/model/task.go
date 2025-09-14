@@ -37,13 +37,13 @@ type Task struct {
 	Name               string           `gorm:"column:Name; default:null"`
 	ParentTaskId       string           `gorm:"column:ParentTaskUUID; default:null"`
 	State              RuntimeState     `gorm:"column:State; default:null;"`
-	StateHistoryString string           `gorm:"column:StateHistory; default:null; type:longtext;"`
-	MLMDInputs         string           `gorm:"column:MLMDInputs; default:null; type:longtext;"`
-	MLMDOutputs        string           `gorm:"column:MLMDOutputs; default:null; type:longtext;"`
-	ChildrenPodsString string           `gorm:"column:ChildrenPods; default:null; type:longtext;"`
+	StateHistoryString LargeText        `gorm:"column:StateHistory; default:null;"`
+	MLMDInputs         LargeText        `gorm:"column:MLMDInputs; default:null;"`
+	MLMDOutputs        LargeText        `gorm:"column:MLMDOutputs; default:null;"`
+	ChildrenPodsString LargeText        `gorm:"column:ChildrenPods; default:null;"`
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	ChildrenPods       []string         `gorm:"-;"`
-	Payload            string           `gorm:"column:Payload; default:null; type:longtext;"`
+	Payload            LargeText        `gorm:"column:Payload; default:null;"`
 }
 
 func (t Task) ToString() string {

@@ -39,3 +39,17 @@ def hello_world():
 def pipeline_hello_world():
     task = hello_world()
 ```
+
+## Pipeline Execution Flow on Argo Workflows Backend
+![flow](pipeline-flow.png)
+
+## Table
+
+| Pipeline Execution Component Name | Responsibilities                                                                                                                                                      |
+|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Workflow Controller               | Workflow Controller is the central component in the Argo Workflows backend. It monitors and executes Argo Workflow Custom Resources (CRs)                             |
+| MLMD Metadata*                    | MLMD Metadata is a storage system for tracking experiments                                                                                                            |
+| Argo Workflow CR                  | Argo Workflow CR is the representation of a pipeline at the Argo Workflows level. It contains information about all tasks and their dependencies within the pipeline. |
+| API-server                        | API Server — from the pipeline execution perspective, it provides access to the previously executed pipeline cache (if it exists).                                    |
+
+The MLMD implementation is [planned](https://github.com/kubeflow/pipelines/pull/12147) to be replaced in the future.

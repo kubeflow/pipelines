@@ -718,6 +718,28 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             self.assertEqual(task.output, 'Test workspace functionality!')
             self.assert_output_dir_contents(1, 2)
 
+    def test_docker_runner_workspace_functionality(self):
+        import tempfile
+
+        # Create temporary directory for workspace
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_root = os.path.join(temp_dir, 'workspace')
+            os.makedirs(workspace_root, exist_ok=True)
+
+            # Test that DockerRunner can be initialized with workspace
+            local.init(
+                local.DockerRunner(),
+                pipeline_root=ROOT_FOR_TESTING,
+                workspace_root=workspace_root)
+
+            # Verify that the workspace is properly configured
+            self.assertEqual(
+                local.config.LocalExecutionConfig.instance.workspace_root,
+                workspace_root)
+            self.assertEqual(
+                type(local.config.LocalExecutionConfig.instance.runner),
+                local.DockerRunner)
+
 
 class TestFstringContainerComponent(
         testing_utilities.LocalRunnerEnvironmentTestCase):

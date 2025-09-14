@@ -1,0 +1,17 @@
+name: First interaction
+
+on: [pull_request_target, issues]
+
+permissions:
+  contents: read
+
+jobs:
+  greeting:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+    - uses: actions/first-interaction@v3
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        pr-message: "🎉 Welcome! Thanks for making your first pull request to Kubeflow Pipelines! Contributors like ⭐ you ⭐ are what make this project possible!  Please make sure to read the [contributing guidelines](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md)."
