@@ -52,8 +52,9 @@ def diagnose_me(ctx: click.Context, json: bool, project_id: str,
 
     # default behaviour dump all configurations
     results: ResultsType = {
-        gcp_command: gcp.get_gcp_configuration(
-            gcp_command, project_id=project_id, human_readable=not json)
+        gcp_command:
+            gcp.get_gcp_configuration(
+                gcp_command, project_id=project_id, human_readable=not json)
         for gcp_command in gcp.Commands
     }
 

@@ -48,16 +48,16 @@ def construct_executor_input(
     inputs = pipeline_spec_pb2.ExecutorInput.Inputs(
         parameter_values={
             param_name:
-            pipeline_spec_builder.to_protobuf_value(arguments[param_name])
-            if param_name in arguments else component_spec.input_definitions
-            .parameters[param_name].default_value
+                pipeline_spec_builder.to_protobuf_value(arguments[param_name])
+                if param_name in arguments else component_spec.input_definitions
+                .parameters[param_name].default_value
             for param_name in input_parameter_keys
         },
         # input artifact constants are not supported yet,
         # except when passed from an upstream output or parent component input
         artifacts={
             artifact_name:
-            dsl_artifact_to_artifact_list(arguments[artifact_name])
+                dsl_artifact_to_artifact_list(arguments[artifact_name])
             for artifact_name, _ in
             component_spec.input_definitions.artifacts.items()
         },
@@ -67,16 +67,18 @@ def construct_executor_input(
         component_spec.output_definitions.parameters.keys())
     outputs = pipeline_spec_pb2.ExecutorInput.Outputs(
         parameters={
-            param_name: pipeline_spec_pb2.ExecutorInput.OutputParameter(
-                output_file=os.path.join(task_root, param_name))
+            param_name:
+                pipeline_spec_pb2.ExecutorInput.OutputParameter(
+                    output_file=os.path.join(task_root, param_name))
             for param_name in output_parameter_keys
         },
         artifacts={
-            artifact_name: artifact_type_schema_to_artifact_list(
-                name=artifact_name,
-                artifact_type=artifact_spec.artifact_type,
-                task_root=task_root,
-            ) for artifact_name, artifact_spec in
+            artifact_name:
+                artifact_type_schema_to_artifact_list(
+                    name=artifact_name,
+                    artifact_type=artifact_spec.artifact_type,
+                    task_root=task_root,
+                ) for artifact_name, artifact_spec in
             component_spec.output_definitions.artifacts.items()
         },
         output_file=os.path.join(task_root, _EXECUTOR_OUTPUT_FILE),

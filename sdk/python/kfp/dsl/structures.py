@@ -646,8 +646,9 @@ class ComponentSpec:
         ]
         env = {
             key:
-            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                command, component_dict=component_dict)
+                placeholders
+                .maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+                    command, component_dict=component_dict)
             for key, command in container.get('env', {}).items()
         }
         container_spec = ContainerSpecImplementation.from_container_dict({
