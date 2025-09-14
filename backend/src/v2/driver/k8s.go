@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -102,6 +103,12 @@ func kubernetesPlatformOps(
 		return err
 	}
 	return nil
+}
+
+// GetWorkspacePVCName gets the name of the workspace PVC for a given run name. runName is the resolved Argo Workflows
+// variable of {{workflow.name}}
+func GetWorkspacePVCName(runName string) string {
+	return fmt.Sprintf("%s-%s", runName, component.WorkspaceVolumeName)
 }
 
 // Extends the PodSpec to include Kubernetes-specific executor config.
@@ -309,12 +316,19 @@ func extendPodSpecPatch(
 	// Get secret env information
 	for _, secretAsEnv := range kubernetesExecutorConfig.GetSecretAsEnv() {
 		for _, keyToEnv := range secretAsEnv.GetKeyToEnv() {
+			secretKeySelector := &k8score.SecretKeySelector{
+				Key: keyToEnv.GetSecretKey(),
+			}
+
+			// Set Optional field when explicitly provided (true or false), leave nil when not specified
+			if secretAsEnv.Optional != nil {
+				secretKeySelector.Optional = secretAsEnv.Optional
+			}
+
 			secretEnvVar := k8score.EnvVar{
 				Name: keyToEnv.GetEnvVar(),
 				ValueFrom: &k8score.EnvVarSource{
-					SecretKeyRef: &k8score.SecretKeySelector{
-						Key: keyToEnv.GetSecretKey(),
-					},
+					SecretKeyRef: secretKeySelector,
 				},
 			}
 
@@ -392,12 +406,19 @@ func extendPodSpecPatch(
 	// Get config map env information
 	for _, configMapAsEnv := range kubernetesExecutorConfig.GetConfigMapAsEnv() {
 		for _, keyToEnv := range configMapAsEnv.GetKeyToEnv() {
+			configMapKeySelector := &k8score.ConfigMapKeySelector{
+				Key: keyToEnv.GetConfigMapKey(),
+			}
+
+			// Set Optional field when explicitly provided (true or false), leave nil when not specified
+			if configMapAsEnv.Optional != nil {
+				configMapKeySelector.Optional = configMapAsEnv.Optional
+			}
+
 			configMapEnvVar := k8score.EnvVar{
 				Name: keyToEnv.GetEnvVar(),
 				ValueFrom: &k8score.EnvVarSource{
-					ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
-						Key: keyToEnv.GetConfigMapKey(),
-					},
+					ConfigMapKeyRef: configMapKeySelector,
 				},
 			}
 
@@ -732,7 +753,7 @@ func createPVC(
 	// Get execution fingerprint and MLMD ID for caching
 	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
 	// The original execution is not changed.
-	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient)
+	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient, nil)
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, err
 	}
@@ -848,7 +869,7 @@ func deletePVC(
 	// Get execution fingerprint and MLMD ID for caching
 	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
 	// The original execution is not changed.
-	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient)
+	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient, nil)
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, err
 	}

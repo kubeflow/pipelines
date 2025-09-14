@@ -20,6 +20,7 @@ import unittest
 
 from absl.testing import parameterized
 from google.protobuf import json_format
+from kfp.dsl import constants as dsl_constants
 from kfp.local import placeholder_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
@@ -548,6 +549,103 @@ class TestWorkspacePlaceholderResolution(unittest.TestCase):
         # Should resolve to actual workspace path
         self.assertIsInstance(result, str)
         self.assertTrue(result.startswith('/tmp/kfp-workspace-'))
+
+    def test_literal_mount_path_replaced_for_subprocess(self):
+        """'/kfp-workspace' should be replaced with host workspace in
+        subprocess mode."""
+        executor_input_dict = {
+            'inputs': {
+                'parameterValues': {}
+            },
+            'outputs': {
+                'outputFile': '/tmp/outputs/output.txt'
+            }
+        }
+
+        element = f'{dsl_constants.WORKSPACE_MOUNT_PATH}/data/file.txt'
+        result = placeholder_utils.resolve_individual_placeholder(
+            element=element,
+            executor_input_dict=executor_input_dict,
+            pipeline_resource_name='test-pipeline',
+            task_resource_name='test-task',
+            pipeline_root='/tmp/pipeline',
+            pipeline_job_id='test-job-id',
+            pipeline_task_id='test-task-id')
+
+        self.assertIsInstance(result, str)
+        self.assertTrue(result.startswith('/tmp/kfp-workspace-'))
+        self.assertTrue(result.endswith('/data/file.txt'))
+
+
+class TestWorkspacePlaceholderResolutionDocker(unittest.TestCase):
+    """DockerRunner-specific workspace placeholder resolution."""
+
+    def setUp(self):
+        from kfp import local
+        local.init(runner=local.DockerRunner())
+
+    def test_workspace_placeholder_maps_to_mount_path(self):
+        executor_input_dict = {
+            'inputs': {
+                'parameterValues': {}
+            },
+            'outputs': {
+                'outputFile': '/tmp/outputs/output.txt'
+            }
+        }
+
+        result = placeholder_utils.resolve_individual_placeholder(
+            element='{{$.workspace_path}}/data/file.txt',
+            executor_input_dict=executor_input_dict,
+            pipeline_resource_name='test-pipeline',
+            task_resource_name='test-task',
+            pipeline_root='/tmp/pipeline',
+            pipeline_job_id='test-job-id',
+            pipeline_task_id='test-task-id')
+
+        self.assertEqual(result,
+                         f'{dsl_constants.WORKSPACE_MOUNT_PATH}/data/file.txt')
+
+    def test_literal_mount_path_kept_for_docker(self):
+        executor_input_dict = {
+            'inputs': {
+                'parameterValues': {}
+            },
+            'outputs': {
+                'outputFile': '/tmp/outputs/output.txt'
+            }
+        }
+
+        element = f'{dsl_constants.WORKSPACE_MOUNT_PATH}/data/file.txt'
+        result = placeholder_utils.resolve_individual_placeholder(
+            element=element,
+            executor_input_dict=executor_input_dict,
+            pipeline_resource_name='test-pipeline',
+            task_resource_name='test-task',
+            pipeline_root='/tmp/pipeline',
+            pipeline_job_id='test-job-id',
+            pipeline_task_id='test-task-id')
+
+        self.assertEqual(result, element)
+
+
+class TestWorkspacePlaceholderMissing(unittest.TestCase):
+
+    def test_raises_when_workspace_not_configured(self):
+        # When placeholder or mount path appears and no workspace configured, raise
+        from unittest import mock
+        with mock.patch('kfp.local.config.LocalExecutionConfig.instance', None):
+            with self.assertRaises(RuntimeError):
+                placeholder_utils.resolve_individual_placeholder(
+                    element='{{$.workspace_path}}/foo',
+                    executor_input_dict={'outputs': {
+                        'outputFile': '/tmp/x'
+                    }},
+                    pipeline_resource_name='p',
+                    task_resource_name='t',
+                    pipeline_root='/tmp/root',
+                    pipeline_job_id='j',
+                    pipeline_task_id='k')
 
 
 if __name__ == '__main__':

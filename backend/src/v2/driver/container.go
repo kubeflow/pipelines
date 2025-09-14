@@ -136,9 +136,40 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)
 	}
 
+	var inputParams map[string]*structpb.Value
+
+	if opts.KubernetesExecutorConfig != nil {
+		inputParams, _, err = dag.Execution.GetParameters()
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch input parameters from execution: %w", err)
+		}
+	}
+
 	if !opts.CacheDisabled {
 		// Generate fingerprint and MLMD ID for cache
-		fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient)
+		// Start by getting the names of the PVCs that need to be mounted.
+		pvcNames := []string{}
+		if opts.KubernetesExecutorConfig != nil && opts.KubernetesExecutorConfig.GetPvcMount() != nil {
+			_, volumes, err := makeVolumeMountPatch(ctx, opts, opts.KubernetesExecutorConfig.GetPvcMount(),
+				dag, pipeline, mlmd, inputParams)
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract volume mount info while generating fingerprint: %w", err)
+			}
+
+			for _, volume := range volumes {
+				pvcNames = append(pvcNames, volume.Name)
+			}
+		}
+
+		if needsWorkspaceMount(execution.ExecutorInput) {
+			if opts.RunName == "" {
+				return execution, fmt.Errorf("failed to generate fingerprint: run name is required when workspace is used")
+			}
+
+			pvcNames = append(pvcNames, GetWorkspacePVCName(opts.RunName))
+		}
+
+		fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(execution, &opts, cacheClient, pvcNames)
 		if err != nil {
 			return execution, err
 		}
@@ -192,6 +223,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		execution.ID,
 		opts.PipelineName,
 		opts.RunID,
+		opts.RunName,
 		opts.PipelineLogLevel,
 		opts.PublishLogs,
 		strconv.FormatBool(opts.CacheDisabled),
@@ -201,10 +233,6 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, err
 	}
 	if opts.KubernetesExecutorConfig != nil {
-		inputParams, _, err := dag.Execution.GetParameters()
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch input parameters from execution: %w", err)
-		}
 		err = extendPodSpecPatch(ctx, podSpec, opts, dag, pipeline, mlmd, inputParams, taskConfig)
 		if err != nil {
 			return execution, err
