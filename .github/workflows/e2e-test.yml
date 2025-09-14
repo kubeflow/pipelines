@@ -1,11 +1,4 @@
-name: KFP E2E Pipeline tests
-env:
-  E2E_TESTS_DIR: "./backend/test/end2end"
-  NUMBER_OF_PARALLEL_NODES: 10
-  CLUSTER_NAME: "kfp"
-  NAMESPACE: "kubeflow"
-  PYTHON_VERSION: "3.9"
-  USER_NAMESPACE: "kubeflow-user-example-com"
+name: KFP e2e tests
 
 on:
   push:
@@ -19,56 +12,24 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'backend/**'
+      - 'frontend/**'
       - 'proxy/**'
       - 'manifests/kustomize/**'
+      - 'test/**'
       - '!**/*.md'
       - '!**/OWNERS'
-
-
-  workflow_dispatch:
-    inputs:
-      test_label:
-        description: "Test label that you want to filter on and run"
-        default: 'ApiServerTests'
-        required: true
-        type: string
-      number_of_parallel_tests:
-        description: "Number of ginkgo nodes that you want run in parallel, it essentially is equivalent to number of parallel tests with some caveats"
-        default: 10
-        required: true
-        type: number
-      namespace:
-        description: "Namespace where you want to create your pipelines in"
-        default: "kubeflow"
-        required: true
-        type: string
 
 jobs:
   build:
     uses: ./.github/workflows/image-builds-with-cache.yml
 
-  end-to-end-critical-scenario-tests:
+  initialization-tests-v1:
     runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:
-        k8s_version: ["v1.31.0"]
-        cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.1", "v3.6.10", "v3.5.15"]
-        storage: [ "seaweedfs", "minio"]
-        proxy: [ "false" ]
-        test_label: [ "E2ECritical" ]
-        include:
-          - k8s_version: "v1.29.2"
-            cache_enabled: "false"
-            argo_version: "v3.5.15"
-            test_label: "E2ECritical"
-          - k8s_version: "v1.31.0"
-            cache_enabled: "false"
-            proxy: "true"
-            test_label: "E2EProxy"
-      fail-fast: false
-    name: End to End Critical Scenario Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }}
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
+    name: Initialization tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -76,145 +37,566 @@ jobs:
       - name: Create cluster
         uses: ./.github/actions/create-cluster
         id: create-cluster
-        with:
-          k8s_version: ${{ matrix.k8s_version }}
-          cluster_name: ${{ env.CLUSTER_NAME }}
 
-      - name: Deploy KFP
-        uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
-        id: deploy
-        with:
-          cache_enabled: ${{ matrix.cache_enabled }}
-          argo_version: ${{ matrix.argo_version }}
-          storage_backend: ${{ matrix.storage }}
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
-
-      - name: Configure Input Variables
-        shell: bash
-        id: configure
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
-          TEST_LABEL=${{ matrix.test_label }}
-          NAMESPACE=${{ env.NAMESPACE }}
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
-          fi
-          echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
-          echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
-          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
-
-      - name: Build and upload the sample Modelcar image to Kind
-        id: build-sample-modelcar-image
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
-          kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
-
-      - name: Run Tests
-        uses: ./.github/actions/test-and-report
-        id: test-run
-        if: ${{ steps.configure.outcome == 'success' }}
-        with:
-          cache_enabled: ${{ matrix.cache_enabled }}
-          test_directory: ${{ env.E2E_TESTS_DIR }}
-          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
-          num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
-          default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
-          python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "E2ECriticalTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}_storage=${{ matrix.storage }}"
-
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
-        run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
-
-  end-to-end-critical-scenario-multi-user-tests:
-    runs-on: ubuntu-latest
-    needs: build
-    strategy:
-      matrix:
-        k8s_version: ["v1.31.0"]
-        cache_enabled: ["true", "false"]
-        storage: [ "seaweedfs", "minio"]
-        multi_user: [ "true" ]
-        test_label: [ "E2ECritical" ]
-      fail-fast: false
-    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
         id: create-cluster
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+
         with:
           k8s_version: ${{ matrix.k8s_version }}
-          cluster_name: ${{ env.CLUSTER_NAME }}
-
-      - name: Deploy KFP
-        uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
-        id: deploy
-        with:
-          cache_enabled: ${{ matrix.cache_enabled }}
-          multi_user: "true"
-          storage_backend: ${{ matrix.storage }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
-
-      - name: Configure Input Variables
-        shell: bash
-        id: configure
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
-          TEST_LABEL=${{ matrix.test_label }}
-          NAMESPACE=${{ env.NAMESPACE }}
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
-            TEST_LABEL=${{ inputs.test_label }}
-            NAMESPACE=${{ inputs.namespace }}
-          fi
-          echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
-          echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
-          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
-
-      - name: Build and upload the sample Modelcar image to Kind
-        id: build-sample-modelcar-image
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
-          kind --name kfp load docker-image registry.domain.local/modelcar:test
         continue-on-error: true
 
-      - name: Run Tests
-        uses: ./.github/actions/test-and-report
-        if: ${{ steps.configure.outcome == 'success' }}
-        id: test-run
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Initialization tests v2
+        id: tests
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        working-directory: ./backend/test/v2/initialization
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
         env:
-          LOCAL_API_SERVER: "true"
-        with:
-          multi_user: ${{ matrix.multi_user }}
-          cache_enabled: ${{ matrix.cache_enabled }}
-          test_directory: ${{ env.E2E_TESTS_DIR }}
-          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
-          num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
-          default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
-          python_version: ${{ env.PYTHON_VERSION }}
-          user_namespace: ${{ env.USER_NAMESPACE }}
-          report_name: "E2ECriticalMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_storage=${{ matrix.storage }}"
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
 
-      - name: Notify test reports
-        shell: bash
-        if: ${{ steps.test-run.outcome == 'success' }}
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
-          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-initialization-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*
+
+  api-integration-tests-v1:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
+    name: API integration tests v1 - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Forward MySQL port
+        id: forward-mysql-port
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "mysql" 3306 3306
+        continue-on-error: true
+
+      - name: API integration tests v1
+        id: tests
+        if: ${{ steps.forward-mysql-port.outcome == 'success' }}
+        working-directory: ./backend/test/integration
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mysql-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v1-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*
+
+  api-integration-tests-v2:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        pipeline_store: [ "database", "kubernetes" ]
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
+    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          pipeline_store: ${{ matrix.pipeline_store }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Forward MLMD port
+        id: forward-mlmd-port
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
+        continue-on-error: true
+
+      - name: API integration tests v2
+        id: tests
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        working-directory: ./backend/test/v2/integration
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          PIPELINE_STORE: ${{ matrix.pipeline_store }}
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v2-artifacts-k8s-${{ matrix.k8s_version }}-${{ matrix.pipeline_store }}
+          path: /tmp/tmp*/*
+
+  api-integration-tests-v2-compile-k8s:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
+    name: API integration tests v2 - compile pipelines with Kubernetes - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          pipeline_store: kubernetes
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Forward MLMD port
+        id: forward-mlmd-port
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
+        continue-on-error: true
+
+      - name: API integration tests v2
+        id: tests
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        working-directory: ./backend/test/v2/integration
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -uploadPipelinesWithKubernetes=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+          PIPELINE_STORE: kubernetes
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v2-artifacts-compile-kubernetes-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*
+
+  api-integration-tests-v2-with-proxy:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.31.0" ]
+    name: API integration tests v2 with proxy - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          proxy: 'true'
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Forward MLMD port
+        id: forward-mlmd-port
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
+        continue-on-error: true
+
+      - name: API integration tests v2
+        id: tests
+        if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
+        working-directory: ./backend/test/v2/integration
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -useProxy=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns squid --output /tmp/tmp_squid_pod_log.txt
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v2-with-proxy-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*
+
+  api-integration-tests-v2-with-cache-disabled:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.31.0" ]
+    name: API integration tests v2 with cache disabled - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          cache_enabled: 'false'
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Forward MLMD port
+        id: forward-mlmd-port
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
+        continue-on-error: true
+
+      - name: API integration tests v2
+        id: tests
+        if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
+        working-directory: ./backend/test/v2/integration
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true -cacheEnabled=false
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v2-with-cache-disabled-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*
+
+  api-integration-tests-v2-argo:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.31.0" ]
+        argo_version: [ "v3.5.14" ]
+    name: API Integration tests v2 - Argo ${{ matrix.argo_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          argo_version: ${{ matrix.argo_version }}
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Forward MLMD port
+        id: forward-mlmd-port
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
+        continue-on-error: true
+
+      - name: API integration tests v2
+        id: tests
+        if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
+        working-directory: ./backend/test/v2/integration
+        run: go test -v ./... -namespace kubeflow -args -runIntegrationTests=true
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-api-integration-tests-v2-argo-artifacts-k8s-${{ matrix.k8s_version }}-argo-${{ matrix.argo_version }}
+          path: /tmp/tmp*/*
+
+  frontend-integration-test:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
+    name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Forward Frontend port
+        id: forward-frontend-port
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline-ui" 3000 3000
+        continue-on-error: true
+
+      - name: Build frontend integration tests image
+        working-directory: ./test/frontend-integration-test
+        run: docker build . -t kfp-frontend-integration-test:local
+
+      - name: Frontend integration tests
+        id: tests
+        if: ${{ steps.forward-frontend-port.outcome == 'success' }}
+        run: docker run --net=host kfp-frontend-integration-test:local --remote-run true
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-frontend-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*
+
+  basic-sample-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        k8s_version: [ "v1.29.2", "v1.31.0" ]
+    name: Basic Sample Tests - K8s ${{ matrix.k8s_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: ./.github/resources/scripts/free-disk-space.sh
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Create KFP cluster
+        id: create-kfp-cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
+
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
+
+      - name: Install kfp & kfp-kubernetes from source
+        if: ${{ steps.install-protobuf-deps.outcome == 'success' }}
+        id: install-kfp-k8s-deps
+        uses: ./.github/actions/kfp-k8s
+
+      - name: Install prerequisites
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        run: pip3 install -r ./test/sample-test/requirements.txt
+
+      - name: Basic sample tests - sequential
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        id: sequential-test
+        run: python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name sequential --results-gcs-dir output
+
+      - name: Basic sample tests - exit_handler
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        id: sample-test
+        run: python3 ./test/sample-test/sample_test_launcher.py sample_test run_test --namespace kubeflow --test-name exit_handler --expected-result failed --results-gcs-dir output
+        continue-on-error: true
+
+      - name: Collect failed logs
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.sequential-test.outcome != 'success' || steps.sample-test.outcome != 'success'}}
+        run: |
+          ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          exit 1
+
+      - name: Collect test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kfp-e2e-tests-artifacts-k8s-${{ matrix.k8s_version }}
+          path: /tmp/tmp*/*

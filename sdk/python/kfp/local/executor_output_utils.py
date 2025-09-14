@@ -96,11 +96,13 @@ def get_outputs_from_executor_output(
     # collect artifact outputs from executor output
     output_artifact_definitions = component_spec.output_definitions.artifacts
     output_artifacts = {
-        artifact_name: artifact_list_to_dsl_artifact(
-            artifact_list,
-            is_artifact_list=output_artifact_definitions[artifact_name]
-            .is_artifact_list,
-        ) for artifact_name, artifact_list in executor_output.artifacts.items()
+        artifact_name:
+            artifact_list_to_dsl_artifact(
+                artifact_list,
+                is_artifact_list=output_artifact_definitions[artifact_name]
+                .is_artifact_list,
+            )
+        for artifact_name, artifact_list in executor_output.artifacts.items()
     }
     return {**output_parameters, **output_artifacts}
 

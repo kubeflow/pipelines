@@ -72,8 +72,9 @@ def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
         return struct_pb2.Value(number_value=value)
     elif isinstance(value, dict):
         return struct_pb2.Value(
-            struct_value=struct_pb2.Struct(
-                fields={k: to_protobuf_value(v) for k, v in value.items()}))
+            struct_value=struct_pb2.Struct(fields={
+                k: to_protobuf_value(v) for k, v in value.items()
+            }))
     elif isinstance(value, list):
         return struct_pb2.Value(
             list_value=struct_pb2.ListValue(
