@@ -44,6 +44,10 @@ const (
 	mysqlDBHostDefault              = "mysql"
 	mysqlDBPortDefault              = "3306"
 	mysqlDBGroupConcatMaxLenDefault = "4194304"
+
+	pgxDBDriverDefault = "pgx"
+	pgxDBHostDefault   = "postgres"
+	pgxDBPortDefault   = "5432"
 )
 
 type WhSvrDBParameters struct {
@@ -65,13 +69,13 @@ func main() {
 	var keyFile string
 	var webhookPort int
 
-	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name, mysql is the default value")
-	flag.StringVar(&params.dbHost, "db_host", mysqlDBHostDefault, "Database host name.")
-	flag.StringVar(&params.dbPort, "db_port", mysqlDBPortDefault, "Database port number.")
+	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name. One of [mysql, pgx]")
+	flag.StringVar(&params.dbHost, "db_host", "", "Database host name.")
+	flag.StringVar(&params.dbPort, "db_port", "", "Database port number.")
 	flag.StringVar(&params.dbName, "db_name", "cachedb", "Database name.")
 	flag.StringVar(&params.dbUser, "db_user", "root", "Database user name.")
 	flag.StringVar(&params.dbPwd, "db_password", "", "Database password.")
-	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length.")
+	flag.StringVar(&params.dbGroupConcatMaxLen, "db_group_concat_max_len", mysqlDBGroupConcatMaxLenDefault, "Database group concat max length (MySQL only).")
 	flag.StringVar(&params.dbExtraParams, "db_extra_params", "", "Database extra parameters.")
 	flag.StringVar(&params.namespaceToWatch, "namespace_to_watch", "kubeflow", "Namespace to watch.")
 	// Use default value of client QPS (5) & burst (10) defined in
@@ -85,6 +89,24 @@ func main() {
 	flag.IntVar(&webhookPort, "listen_port", DefaultWebhookPort, "Port number on which the webhook listens.")
 
 	flag.Parse()
+
+	// Set default host and port based on driver if not provided.
+	if params.dbHost == "" {
+		switch params.dbDriver {
+		case mysqlDBDriverDefault:
+			params.dbHost = mysqlDBHostDefault
+		case pgxDBDriverDefault:
+			params.dbHost = pgxDBHostDefault
+		}
+	}
+	if params.dbPort == "" {
+		switch params.dbDriver {
+		case mysqlDBDriverDefault:
+			params.dbPort = mysqlDBPortDefault
+		case pgxDBDriverDefault:
+			params.dbPort = pgxDBPortDefault
+		}
+	}
 
 	log.Println("Initing client manager....")
 	clientManager := NewClientManager(params, clientParams)
