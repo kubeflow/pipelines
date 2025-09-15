@@ -368,6 +368,7 @@ func executeV2(
 		return nil, nil, err
 	}
 
+	// ensure executorOutput contains custompath
 	executorOutput, err := execute(
 		ctx,
 		executorInput,
@@ -545,27 +546,32 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 				mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
 			}
 
-			// If artifact customPath is set, upload to remote storages from this path. Otherwise, upload from local path.
-			var artifactDir string
+			var dir string
+			var copyDir string
 			var err error
+			// If artifact customPath is set, upload to remote storages from this path. Otherwise, upload from local path (outputArtifact.URI)
 			if *outputArtifact.CustomPath != "" {
-				artifactDir = *outputArtifact.CustomPath
+				dir = *outputArtifact.CustomPath
+				copyDir = *outputArtifact.CustomPath
 			} else {
-				artifactDir, err = LocalPathForURI(outputArtifact.Uri)
+				dir = outputArtifact.Uri
+				copyDir, err = LocalPathForURI(dir)
+				if err != nil {
+					glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, dir)
+				}
 			}
-			if err != nil {
-				glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
-			} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
-				blobKey, err := opts.bucketConfig.KeyFromURI(outputArtifact.Uri)
+
+			if !strings.HasPrefix(dir, "oci://") {
+				blobKey, err := opts.bucketConfig.KeyFromURI(dir)
 				if err != nil {
 					return nil, fmt.Errorf("failed to upload output artifact %q: %w", name, err)
 				}
-				if err := objectstore.UploadBlob(ctx, opts.bucket, artifactDir, blobKey); err != nil {
+				if err := objectstore.UploadBlob(ctx, opts.bucket, copyDir, blobKey); err != nil {
 					//  We allow components to not produce output files
 					if errors.Is(err, os.ErrNotExist) {
-						glog.Warningf("Local filepath %q does not exist", artifactDir)
+						glog.Warningf("Local filepath %q does not exist", copyDir)
 					} else {
-						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, dir, err)
 					}
 				}
 			}

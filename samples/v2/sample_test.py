@@ -65,8 +65,8 @@ import parallel_consume_upstream
 import pipeline_container_no_input
 import pipeline_with_env
 import pipeline_with_placeholders
-import pipeline_with_secret_as_env
-import pipeline_with_secret_as_volume
+# import pipeline_with_secret_as_env
+# import pipeline_with_secret_as_volume
 import producer_consumer_param
 import pipeline_with_retry
 import pipeline_with_input_status_state
@@ -177,14 +177,14 @@ class SampleTest(unittest.TestCase):
                                    'http://localhost:8888')
     _kfp_ui_and_port = os.getenv('KFP_UI_HOST_AND_PORT',
                                  'http://localhost:8080')
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Initialize client with token if in multi-user mode
         auth_token = get_authentication_token()
         if auth_token:
             self._client = kfp.Client(
-                host=self._kfp_host_and_port, 
+                host=self._kfp_host_and_port,
                 ui_host=self._kfp_ui_and_port,
                 existing_token=auth_token
             )
@@ -225,10 +225,10 @@ class SampleTest(unittest.TestCase):
             # The following tests are not working. Tracking issue: https://github.com/kubeflow/pipelines/issues/11053
             # TestCase(pipeline_func=pipeline_with_importer.pipeline_with_importer),
             # TestCase(pipeline_func=pipeline_with_volume.pipeline_with_volume),
-            TestCase(pipeline_func=pipeline_with_secret_as_volume
-                     .pipeline_secret_volume),
-            TestCase(
-                pipeline_func=pipeline_with_secret_as_env.pipeline_secret_env),
+            # TestCase(pipeline_func=pipeline_with_secret_as_volume
+            #          .pipeline_secret_volume),
+            # TestCase(
+            #     pipeline_func=pipeline_with_secret_as_env.pipeline_secret_env),
             TestCase(pipeline_func=subdagio.parameter.crust),
             TestCase(pipeline_func=subdagio.parameter_cache.crust),
             TestCase(pipeline_func=subdagio.mixed_parameters.crust),

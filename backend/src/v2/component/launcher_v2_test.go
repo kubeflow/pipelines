@@ -52,6 +52,7 @@ var addNumbersComponent = &pipelinespec.ComponentSpec{
 
 // Tests that launcher correctly executes the user component and successfully writes output parameters to file.
 func Test_executeV2_Parameters(t *testing.T) {
+	customLocalPath := "/tmp/custom/artifact.txt"
 	tests := []struct {
 		name          string
 		executorInput *pipelinespec.ExecutorInput
@@ -63,6 +64,17 @@ func Test_executeV2_Parameters(t *testing.T) {
 			&pipelinespec.ExecutorInput{
 				Inputs: &pipelinespec.ExecutorInput_Inputs{
 					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
+				},
+				Outputs: &pipelinespec.ExecutorInput_Outputs{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
+						"dataset": {
+							Artifacts: []*pipelinespec.RuntimeArtifact{
+								{
+									Uri: customLocalPath,
+								},
+							},
+						},
+					},
 				},
 			},
 			[]string{"-c", "test {{$.inputs.parameters['a']}} -eq 1 || exit 1\ntest {{$.inputs.parameters['b']}} -eq 2 || exit 1"},
