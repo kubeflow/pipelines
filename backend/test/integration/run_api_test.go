@@ -360,6 +360,181 @@ func (s *RunApiTestSuite) TestRunApis() {
 	longRunningRunDetail, _, err = s.runClient.Get(&runparams.RunServiceGetRunV1Params{RunID: longRunningRunDetail.Run.ID})
 	assert.Nil(t, err)
 	s.checkTerminatedRunDetail(t, longRunningRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, longRunningPipelineVersion.ID, longRunningPipelineVersion.Name)
+
+	/* ---------- Test ListRuns with metric sorting ---------- */
+	// Create experiment for metric sorting test
+	metricExperiment := test.GetExperiment("metric sorting test", "", s.resourceNamespace)
+	createdMetricExperiment, err := s.experimentClient.Create(&experimentparams.ExperimentServiceCreateExperimentV1Params{Experiment: metricExperiment})
+	assert.Nil(t, err)
+
+	// Create 3 runs with different metric values
+	runMetricData := []struct {
+		name        string
+		metricValue float64
+	}{
+		{"metric-run-low", 0.5},
+		{"metric-run-high", 0.9},
+		{"metric-run-mid", 0.7},
+	}
+
+	runIDs := make([]string, 0, 3)
+	for _, data := range runMetricData {
+		createRunRequest := &runparams.RunServiceCreateRunV1Params{Run: &run_model.APIRun{
+			Name:        data.name,
+			Description: fmt.Sprintf("Run with accuracy %.2f", data.metricValue),
+			ResourceReferences: []*run_model.APIResourceReference{
+				{
+					Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: createdMetricExperiment.ID},
+					Name:         createdMetricExperiment.Name,
+					Relationship: run_model.APIRelationshipOWNER.Pointer(),
+				},
+				{
+					Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: helloWorldPipelineVersion.ID},
+					Relationship: run_model.APIRelationshipCREATOR.Pointer(),
+				},
+			},
+		}}
+
+		runDetail, _, err := s.runClient.Create(createRunRequest)
+		assert.Nil(t, err)
+		runIDs = append(runIDs, runDetail.Run.ID)
+
+		// Report metric for this run
+		reportParams := &runparams.RunServiceReportRunMetricsV1Params{
+			RunID: runDetail.Run.ID,
+			Body: &run_model.RunServiceReportRunMetricsV1Body{
+				Metrics: []*run_model.APIRunMetric{
+					{
+						Name:        "accuracy",
+						NodeID:      "test-node",
+						NumberValue: data.metricValue,
+						Format:      run_model.RunMetricFormatRAW.Pointer(),
+					},
+				},
+			},
+		}
+		_, err = s.runClient.ReportRunMetrics(reportParams)
+		assert.Nil(t, err)
+	}
+
+	// Verify metrics are saved
+	for i, runID := range runIDs {
+		runDetail, _, err := s.runClient.Get(&runparams.RunServiceGetRunV1Params{RunID: runID})
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(runDetail.Run.Metrics))
+		assert.Equal(t, "accuracy", runDetail.Run.Metrics[0].Name)
+		assert.Equal(t, runMetricData[i].metricValue, runDetail.Run.Metrics[0].NumberValue)
+	}
+
+	// Test: List runs sorted by metric ascending
+	runs, totalSize, _, err = test.ListRuns(
+		s.runClient,
+		&runparams.RunServiceListRunsV1Params{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(createdMetricExperiment.ID),
+			SortBy:                   util.StringPointer("metric:accuracy"),
+			PageSize:                 util.Int32Pointer(10),
+		},
+		s.resourceNamespace)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 3, len(runs))
+	// Verify order: 0.5 -> 0.7 -> 0.9
+	assert.Equal(t, "metric-run-low", runs[0].Name)
+	assert.Equal(t, 0.5, runs[0].Metrics[0].NumberValue)
+	assert.Equal(t, "metric-run-mid", runs[1].Name)
+	assert.Equal(t, 0.7, runs[1].Metrics[0].NumberValue)
+	assert.Equal(t, "metric-run-high", runs[2].Name)
+	assert.Equal(t, 0.9, runs[2].Metrics[0].NumberValue)
+
+	// Test: List runs sorted by metric descending
+	runs, totalSize, _, err = test.ListRuns(
+		s.runClient,
+		&runparams.RunServiceListRunsV1Params{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(createdMetricExperiment.ID),
+			SortBy:                   util.StringPointer("metric:accuracy desc"),
+			PageSize:                 util.Int32Pointer(10),
+		},
+		s.resourceNamespace)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 3, len(runs))
+	// Verify order: 0.9 -> 0.7 -> 0.5
+	assert.Equal(t, "metric-run-high", runs[0].Name)
+	assert.Equal(t, "metric-run-mid", runs[1].Name)
+	assert.Equal(t, "metric-run-low", runs[2].Name)
+
+	// Test: List runs sorted by metric ascending with pagination
+	// First page
+	runs, totalSize, nextPageToken, err = test.ListRuns(
+		s.runClient,
+		&runparams.RunServiceListRunsV1Params{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(createdMetricExperiment.ID),
+			SortBy:                   util.StringPointer("metric:accuracy"),
+			PageSize:                 util.Int32Pointer(2),
+		},
+		s.resourceNamespace)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 2, len(runs))
+	assert.NotEmpty(t, nextPageToken)
+	// First page should have 0.5 and 0.7
+	assert.Equal(t, "metric-run-low", runs[0].Name)
+	assert.Equal(t, "metric-run-mid", runs[1].Name)
+
+	// Second page
+	runs, totalSize, nextPageToken, err = test.ListRuns(
+		s.runClient,
+		&runparams.RunServiceListRunsV1Params{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(createdMetricExperiment.ID),
+			PageToken:                util.StringPointer(nextPageToken),
+			PageSize:                 util.Int32Pointer(2),
+		},
+		s.resourceNamespace)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 1, len(runs))
+	assert.Empty(t, nextPageToken)
+	// Second page should have 0.9
+	assert.Equal(t, "metric-run-high", runs[0].Name)
+
+	// Test: List runs sorted by metric descending with pagination
+	// First page
+	runs, totalSize, nextPageToken, err = test.ListRuns(
+		s.runClient,
+		&runparams.RunServiceListRunsV1Params{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(createdMetricExperiment.ID),
+			SortBy:                   util.StringPointer("metric:accuracy desc"),
+			PageSize:                 util.Int32Pointer(2),
+		},
+		s.resourceNamespace)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 2, len(runs))
+	assert.NotEmpty(t, nextPageToken)
+	// First page should have 0.9 and 0.7
+	assert.Equal(t, "metric-run-high", runs[0].Name)
+	assert.Equal(t, "metric-run-mid", runs[1].Name)
+
+	// Second page
+	runs, totalSize, _, err = test.ListRuns(
+		s.runClient,
+		&runparams.RunServiceListRunsV1Params{
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyID:   util.StringPointer(createdMetricExperiment.ID),
+			PageToken:                util.StringPointer(nextPageToken),
+			PageSize:                 util.Int32Pointer(2),
+		},
+		s.resourceNamespace)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, totalSize)
+	assert.Equal(t, 1, len(runs))
+	// Second page should have 0.5
+	assert.Equal(t, "metric-run-low", runs[0].Name)
 }
 
 func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {

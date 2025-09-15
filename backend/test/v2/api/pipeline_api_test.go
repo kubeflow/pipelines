@@ -326,28 +326,102 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 			Expect(pipelines[0].PipelineID).To(Equal(createdPipeline.PipelineID))
 		})
 
-		It("Filter by name", func() {
-			pipelineDir := "valid"
-			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
-			uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+		It("Filter by name (SQL DB backend)", func() {
+			if *config.PipelineStoreKubernetes {
+				Skip("SQL DB backend only: k8s metadata.name is lowercase-only, cannot test case-insensitive filtering on name field")
+			}
+			// Mixed-case name is valid in SQL DB; used to verify case-insensitive filtering.
+			name := "Filter-Test-" + randomName[:17]
+			pipeline := createPipelineWithDisplayName(name, name)
 
-			filter := fmt.Sprintf(`{"predicates":[{"key":"name","operation":"EQUALS","string_value":"%s"}]}`, testContext.Pipeline.PipelineGeneratedName)
+			// 1. EQUALS exact match (baseline)
+			filter := fmt.Sprintf(`{"predicates":[{"key":"name","operation":"EQUALS","string_value":"%s"}]}`, name)
 			params := newListPipelinesParams()
 			params.Filter = &filter
-			pipelines, totalSize, _, err := pipelineClient.List(params)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(totalSize).To(BeNumerically(">=", 1))
-			for _, p := range pipelines {
-				Expect(p.Name).To(Equal(testContext.Pipeline.PipelineGeneratedName))
+			found := findPipelineInList(params, pipeline.PipelineID)
+			Expect(found).To(BeTrue(), "Pipeline should be found via exact name filter")
+
+			// 2. EQUALS lowercase (case-insensitive)
+			filterLower := fmt.Sprintf(`{"predicates":[{"key":"name","operation":"EQUALS","string_value":"%s"}]}`, strings.ToLower(name))
+			params.Filter = &filterLower
+			found = findPipelineInList(params, pipeline.PipelineID)
+			Expect(found).To(BeTrue(), "Pipeline should be found via case-insensitive name EQUALS filter")
+
+			// 3. IS_SUBSTRING exact case (baseline)
+			filterSub := `{"predicates":[{"key":"name","operation":"IS_SUBSTRING","string_value":"Filter-Test"}]}`
+			params.Filter = &filterSub
+			found = findPipelineInList(params, pipeline.PipelineID)
+			Expect(found).To(BeTrue(), "Pipeline should be found via IS_SUBSTRING name filter")
+
+			// 4. IS_SUBSTRING lowercase (case-insensitive)
+			filterSubLower := `{"predicates":[{"key":"name","operation":"IS_SUBSTRING","string_value":"filter-test"}]}`
+			params.Filter = &filterSubLower
+			found = findPipelineInList(params, pipeline.PipelineID)
+			Expect(found).To(BeTrue(), "Pipeline should be found via case-insensitive IS_SUBSTRING name filter")
+		})
+
+		It("Filter by name (k8s CRD backend)", func() {
+			if !*config.PipelineStoreKubernetes {
+				Skip("k8s CRD backend only")
 			}
-			_ = pipelines
+			// k8s requires metadata.name to be lowercase (DNS label format), so we only
+			// verify basic filtering functionality here, not case-insensitive behavior.
+			name := "filter-test-" + strings.ToLower(randomName[:17])
+			pipeline := createPipelineWithDisplayName(name, name)
+
+			// EQUALS exact match
+			filter := fmt.Sprintf(`{"predicates":[{"key":"name","operation":"EQUALS","string_value":"%s"}]}`, name)
+			params := newListPipelinesParams()
+			params.Filter = &filter
+			found := findPipelineInList(params, pipeline.PipelineID)
+			Expect(found).To(BeTrue(), "Pipeline should be found via name EQUALS filter")
+
+			// IS_SUBSTRING
+			filterSub := `{"predicates":[{"key":"name","operation":"IS_SUBSTRING","string_value":"filter-test"}]}`
+			params.Filter = &filterSub
+			found = findPipelineInList(params, pipeline.PipelineID)
+			Expect(found).To(BeTrue(), "Pipeline should be found via IS_SUBSTRING name filter")
+		})
+
+		It("Filter by display_name (SQL DB backend)", func() {
+			if *config.PipelineStoreKubernetes {
+				Skip("SQL DB backend only: display_name case-insensitive filtering is a DB-layer feature")
+			}
+			// name must be lowercase for k8s compatibility; displayName can be mixed-case.
+			displayName := "Filter-Test-" + randomName[:17]
+			pipeline := createPipelineWithDisplayName(strings.ToLower(displayName), displayName)
+
+			// 1. EQUALS exact case (baseline)
+			filter := fmt.Sprintf(`{"predicates":[{"key":"display_name","operation":"EQUALS","string_value":"%s"}]}`, displayName)
+			params := newListPipelinesParams()
+			params.Filter = &filter
+			found := findPipelineInList(params, pipeline.PipelineID)
+			Expect(found).To(BeTrue(), "Pipeline should be found via exact display_name EQUALS filter")
+
+			// 2. EQUALS lowercase (case-insensitive)
+			filterLower := fmt.Sprintf(`{"predicates":[{"key":"display_name","operation":"EQUALS","string_value":"%s"}]}`, strings.ToLower(displayName))
+			params.Filter = &filterLower
+			found = findPipelineInList(params, pipeline.PipelineID)
+			Expect(found).To(BeTrue(), "Pipeline should be found via case-insensitive display_name EQUALS filter")
+
+			// 3. IS_SUBSTRING exact case (baseline)
+			filterSub := `{"predicates":[{"key":"display_name","operation":"IS_SUBSTRING","string_value":"Filter-Test"}]}`
+			params.Filter = &filterSub
+			found = findPipelineInList(params, pipeline.PipelineID)
+			Expect(found).To(BeTrue(), "Pipeline should be found via IS_SUBSTRING display_name filter")
+
+			// 4. IS_SUBSTRING lowercase (case-insensitive)
+			filterSubLower := `{"predicates":[{"key":"display_name","operation":"IS_SUBSTRING","string_value":"filter-test"}]}`
+			params.Filter = &filterSubLower
+			found = findPipelineInList(params, pipeline.PipelineID)
+			Expect(found).To(BeTrue(), "Pipeline should be found via case-insensitive IS_SUBSTRING display_name filter")
 		})
 
 		It("Filter by created at", func() {
 			if *config.PipelineStoreKubernetes {
 				Skip("GREATER_THAN filter is not supported in Kubernetes pipeline store")
 			}
-			filter := `{"predicates":[{"key":"created_at","operation":"GREATER_THAN","string_value":"2000-01-01T00:00:00Z"}]}`
+			filter := `{"predicates":[{"key":"created_at","operation":"GREATER_THAN","long_value":946684800}]}` // 946684800 = 2000-01-01T00:00:00Z in Unix seconds
 			params := newListPipelinesParams()
 			params.Filter = &filter
 			_, _, _, err := pipelineClient.List(params)
@@ -451,7 +525,7 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 			if *config.PipelineStoreKubernetes {
 				Skip("GREATER_THAN filter is not supported in Kubernetes pipeline store")
 			}
-			filter := `{"predicates":[{"key":"created_at","operation":"GREATER_THAN","string_value":"2000-01-01T00:00:00Z"}]}`
+			filter := `{"predicates":[{"key":"created_at","operation":"GREATER_THAN","long_value":946684800}]}` // 946684800 = 2000-01-01T00:00:00Z in Unix seconds
 			sortBy := "created_at desc"
 			params := newListPipelinesParams()
 			params.Filter = &filter
@@ -464,7 +538,7 @@ var _ = Describe("List Pipelines API Tests >", Label(constants.POSITIVE, constan
 			if *config.PipelineStoreKubernetes {
 				Skip("GREATER_THAN filter is not supported in Kubernetes pipeline store")
 			}
-			filter := `{"predicates":[{"key":"created_at","operation":"GREATER_THAN","string_value":"2000-01-01T00:00:00Z"}]}`
+			filter := `{"predicates":[{"key":"created_at","operation":"GREATER_THAN","long_value":946684800}]}` // 946684800 = 2000-01-01T00:00:00Z in Unix seconds
 			sortBy := "created_at desc"
 			params := newListPipelinesParams()
 			params.Filter = &filter
@@ -878,7 +952,7 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
-			filter := `{"predicates":[{"key":"created_at","operation":"GREATER_THAN","string_value":"2000-01-01T00:00:00Z"}]}`
+			filter := `{"predicates":[{"key":"created_at","operation":"GREATER_THAN","long_value":946684800}]}` // 946684800 = 2000-01-01T00:00:00Z in Unix seconds
 			_, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
 				PipelineID: createdPipeline.PipelineID,
 				Filter:     &filter,
@@ -1016,7 +1090,7 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 			createdPipeline := uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
-			filter := `{"predicates":[{"key":"created_at","operation":"GREATER_THAN","string_value":"2000-01-01T00:00:00Z"}]}`
+			filter := `{"predicates":[{"key":"created_at","operation":"GREATER_THAN","long_value":946684800}]}` // 946684800 = 2000-01-01T00:00:00Z in Unix seconds
 			sortBy := "created_at desc"
 			_, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
 				PipelineID: createdPipeline.PipelineID,
@@ -2954,3 +3028,33 @@ var _ = Describe("Update Pipeline Version - Negative Tests >", Label(constants.N
 		})
 	})
 })
+
+// findPipelineInList executes a list request and returns true if a pipeline with
+// the given pipelineID appears in the results.
+func findPipelineInList(params *pipeline_params.PipelineServiceListPipelinesParams, pipelineID string) bool {
+	pipelines, _, _, err := pipelineClient.List(params)
+	Expect(err).NotTo(HaveOccurred())
+	for _, p := range pipelines {
+		if p.PipelineID == pipelineID {
+			return true
+		}
+	}
+	return false
+}
+
+// createPipelineWithDisplayName creates a pipeline with an explicit lowercase name
+// and a separate displayName (which may contain uppercase letters).
+// Use this when testing display_name filters that require mixed-case values,
+// since Kubernetes backend requires metadata.name to be lowercase.
+func createPipelineWithDisplayName(name string, displayName string) *pipeline_model.V2beta1Pipeline {
+	pipeline := &pipeline_model.V2beta1Pipeline{
+		Name:        name,
+		DisplayName: displayName,
+		Description: "description",
+		Namespace:   utils.GetNamespace(),
+	}
+	p, err := pipelineClient.Create(&pipeline_params.PipelineServiceCreatePipelineParams{Pipeline: pipeline})
+	Expect(err).ToNot(HaveOccurred())
+	testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, toUploadModel(p))
+	return p
+}

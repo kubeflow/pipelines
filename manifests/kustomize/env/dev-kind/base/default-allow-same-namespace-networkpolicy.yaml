@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-allow-same-namespace
+  namespace: kubeflow
+spec:
+  podSelector: {}
+  ingress:
+  - from:
+    - podSelector: {}
+  - from:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - port: 3000
+      protocol: TCP
+    - port: 3306
+      protocol: TCP
+    - port: 5432
+      protocol: TCP
+    - port: 8080
+      protocol: TCP
+    - port: 9000
+      protocol: TCP
+    - port: 8888
+      protocol: TCP
+  policyTypes:
+  - Ingress
