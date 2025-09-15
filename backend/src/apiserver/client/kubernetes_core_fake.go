@@ -20,11 +20,13 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	policyv1 "k8s.io/api/policy/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type FakeKuberneteCoreClient struct {
 	podClientFake *FakePodClient
+	fakeClientset *k8sfake.Clientset
 }
 
 func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
@@ -34,20 +36,35 @@ func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
 	return c.podClientFake
 }
 
+func (c *FakeKuberneteCoreClient) ConfigMapClient(namespace string) v1.ConfigMapInterface {
+	return c.fakeClientset.CoreV1().ConfigMaps(namespace)
+}
+
 func NewFakeKuberneteCoresClient() *FakeKuberneteCoreClient {
-	return &FakeKuberneteCoreClient{&FakePodClient{}}
+	return &FakeKuberneteCoreClient{
+		podClientFake: &FakePodClient{},
+		fakeClientset: k8sfake.NewSimpleClientset(),
+	}
 }
 
 type FakeKubernetesCoreClientWithBadPodClient struct {
 	podClientFake *FakeBadPodClient
+	fakeClientset *k8sfake.Clientset
 }
 
 func NewFakeKubernetesCoreClientWithBadPodClient() *FakeKubernetesCoreClientWithBadPodClient {
-	return &FakeKubernetesCoreClientWithBadPodClient{&FakeBadPodClient{}}
+	return &FakeKubernetesCoreClientWithBadPodClient{
+		podClientFake: &FakeBadPodClient{},
+		fakeClientset: k8sfake.NewSimpleClientset(),
+	}
 }
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) PodClient(namespace string) v1.PodInterface {
 	return c.podClientFake
+}
+
+func (c *FakeKubernetesCoreClientWithBadPodClient) ConfigMapClient(namespace string) v1.ConfigMapInterface {
+	return c.fakeClientset.CoreV1().ConfigMaps(namespace)
 }
 
 func (c *FakePodClient) EvictV1(context.Context, *policyv1.Eviction) error {

@@ -147,8 +147,6 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 			opts.MutexName = pipelineOptions.MutexName
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
-	} else if util.CurrentExecutionType() == util.TektonPipelineRun {
-		obj, err = tektoncompiler.Compile(job, kubernetesSpec, &tektoncompiler.Options{LauncherImage: Launcher})
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -365,8 +363,6 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 			opts.MutexName = pipelineOptions.MutexName
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
-	} else if util.CurrentExecutionType() == util.TektonPipelineRun {
-		obj, err = tektoncompiler.Compile(job, kubernetesSpec, nil)
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
