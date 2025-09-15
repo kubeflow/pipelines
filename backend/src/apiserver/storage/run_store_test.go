@@ -16,12 +16,14 @@ package storage
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"sort"
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -43,13 +45,13 @@ func (r RunMetricSorter) Len() int           { return len(r) }
 func (r RunMetricSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
 func (r RunMetricSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
-func initializeRunStore() (*DB, *RunStore) {
-	db := NewFakeDBOrFatal()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+func initializeRunStore() (*sql.DB, dialect.DBDialect, *RunStore) {
+	db, testDialect := NewFakeDBOrFatal()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
+	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp2"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	run1 := &model.Run{
 		UUID:         "1",
@@ -136,11 +138,11 @@ func initializeRunStore() (*DB, *RunStore) {
 	runStore.CreateMetric(metric1)
 	runStore.CreateMetric(metric2)
 
-	return db, runStore
+	return db, testDialect, runStore
 }
 
 func TestListRuns_Pagination(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedFirstPageRuns := []*model.Run{
@@ -226,27 +228,27 @@ func TestListRuns_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	assert.Nil(t, err)
 
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedFirstPageRuns := []*model.Run{
@@ -332,21 +334,21 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 1, "metric:dummymetric", nil)
 	assert.Nil(t, err)
 
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 
@@ -354,27 +356,27 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	opts, err = list.NewOptions(&model.Run{}, 1, "metric:dummymetric desc", nil)
 	assert.Nil(t, err)
 
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// A malicious sortBy value attempting SQL injection through the metric name.
@@ -410,7 +412,7 @@ func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
 // SortByFieldName with a SQL identifier regex that rejects "-", causing page-2
 // requests with hyphenated metric names to fail with "Invalid sort field name".
 func TestListRuns_HyphenatedMetricSort(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// Seed runs 1 and 2 with the hyphenated metric so pagination produces a page token.
@@ -439,20 +441,20 @@ func TestListRuns_HyphenatedMetricSort(t *testing.T) {
 }
 
 func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
 
 	// No filter
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(runs))
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 }
 
 func TestListRuns_TotalSizeWithFilter(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// Add a filter
@@ -471,14 +473,14 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 	}
 	newFilter, _ := filter.New(filterProto)
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", newFilter)
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 }
 
 func TestListRuns_Pagination_Descend(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedFirstPageRuns := []*model.Run{
@@ -562,7 +564,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "id desc", nil)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	for i, run := range runs {
 		runs[i] = run.ToV1()
@@ -570,23 +572,23 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	}
 
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedRuns := []*model.Run{
@@ -670,19 +672,19 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 
 	runs[0] = runs[0].ToV1()
 	runs[1] = runs[1].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListRunsError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
@@ -693,7 +695,7 @@ func TestListRunsError(t *testing.T) {
 }
 
 func TestGetRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedRun := &model.Run{
@@ -739,7 +741,7 @@ func TestGetRun(t *testing.T) {
 }
 
 func TestGetRun_NotFoundError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	_, err := runStore.GetRun("notfound")
@@ -748,7 +750,7 @@ func TestGetRun_NotFoundError(t *testing.T) {
 }
 
 func TestGetRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	_, err := runStore.GetRun("1")
@@ -757,7 +759,7 @@ func TestGetRun_InternalError(t *testing.T) {
 }
 
 func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedRun := &model.Run{
@@ -860,9 +862,9 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 }
 
 func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	// Checking that the run is not yet in the DB
 	_, err := runStore.GetRun("2000")
@@ -918,7 +920,7 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 }
 
 func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	run := &model.Run{
@@ -937,7 +939,7 @@ func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
 }
 
 func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	runDetail := &model.Run{
@@ -960,7 +962,7 @@ func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
 }
 
 func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	runDetail := &model.Run{
@@ -993,7 +995,7 @@ func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
 }
 
 func TestUpdateRun_RunNotExist(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.UpdateRun(&model.Run{UUID: "not-exist", RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded}})
@@ -1003,7 +1005,7 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 }
 
 func TestTerminateRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.TerminateRun("1")
@@ -1052,7 +1054,7 @@ func TestTerminateRun(t *testing.T) {
 }
 
 func TestTerminateRun_RunDoesNotExist(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.TerminateRun("does-not-exist")
@@ -1061,7 +1063,7 @@ func TestTerminateRun_RunDoesNotExist(t *testing.T) {
 }
 
 func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.TerminateRun("2")
@@ -1070,7 +1072,7 @@ func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
 }
 
 func TestCreateMetric_Success(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	metric := &model.RunMetric{
@@ -1098,7 +1100,7 @@ func TestCreateMetric_Success(t *testing.T) {
 }
 
 func TestCreateMetric_DupReports_Fail(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	metric1 := &model.RunMetric{
@@ -1123,7 +1125,7 @@ func TestCreateMetric_DupReports_Fail(t *testing.T) {
 }
 
 func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 	sql, args, _ := sq.
 		Insert("run_metrics").
@@ -1143,7 +1145,7 @@ func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
 }
 
 func TestListRuns_WithMetrics(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 	metric1 := &model.RunMetric{
 		RunUUID:     "1",
@@ -1253,10 +1255,10 @@ func TestListRuns_WithMetrics(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 2, "id", nil)
 	assert.Nil(t, err)
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	runs[0] = runs[0].ToV1()
 	runs[1] = runs[1].ToV1()
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 	assert.Nil(t, err)
 	for _, run := range expectedRuns {
 		sort.Sort(RunMetricSorter(run.Metrics))
@@ -1268,9 +1270,9 @@ func TestListRuns_WithMetrics(t *testing.T) {
 }
 
 func TestArchiveRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
@@ -1289,7 +1291,7 @@ func TestArchiveRun(t *testing.T) {
 }
 
 func TestArchiveRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	db.Close()
@@ -1300,9 +1302,9 @@ func TestArchiveRun_InternalError(t *testing.T) {
 }
 
 func TestUnarchiveRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
@@ -1328,7 +1330,7 @@ func TestUnarchiveRun(t *testing.T) {
 }
 
 func TestUnarchiveRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	db.Close()
@@ -1339,7 +1341,7 @@ func TestUnarchiveRun_InternalError(t *testing.T) {
 }
 
 func TestArchiveRun_IncludedInRunList(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// Archive run
@@ -1390,19 +1392,19 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 	}
 	expectedRuns[0] = expectedRuns[0].ToV1()
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedRuns, runs)
 	assert.NotEmpty(t, nextPageToken)
 }
 
 func TestDeleteRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
@@ -1422,7 +1424,7 @@ func TestDeleteRun(t *testing.T) {
 }
 
 func TestDeleteRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	err := runStore.DeleteRun("1")
@@ -1491,4 +1493,87 @@ func TestRunAPIFieldMap(t *testing.T) {
 	for _, modelField := range (&model.Run{}).APIToModelFieldMap() {
 		assert.Contains(t, runColumns, modelField)
 	}
+}
+
+func TestListRuns_Pagination_WithSortingOnMetrics_StringValueInToken(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+
+	expectedSecondPageRuns := []*model.Run{
+		{
+			UUID:         "2",
+			ExperimentId: defaultFakeExpId,
+			K8SName:      "run2",
+			DisplayName:  "run2",
+			StorageState: model.StorageStateAvailable,
+			Namespace:    "n2",
+			RunDetails: model.RunDetails{
+				CreatedAtInSec:          2,
+				ScheduledAtInSec:        2,
+				Conditions:              "Succeeded",
+				State:                   model.RuntimeStateSucceeded,
+				WorkflowRuntimeManifest: "workflow1",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 2,
+						State:           model.RuntimeStateSucceeded,
+					},
+				},
+			},
+			Metrics: []*model.RunMetric{
+				{
+					RunUUID:     "2",
+					NodeID:      "node2",
+					Name:        "dummymetric",
+					NumberValue: 2.0,
+					Format:      "PERCENTAGE",
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run2",
+				},
+			},
+		},
+	}
+	expectedSecondPageRuns[0] = expectedSecondPageRuns[0].ToV1()
+
+	// Sort in asc order
+	opts, err := list.NewOptions(&model.Run{}, 1, "metric:dummymetric", nil)
+	assert.Nil(t, err)
+
+	_, _, nextPageToken, err := runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, nextPageToken)
+
+	// Decode token to modify SortByFieldValue to string
+	// list.Token is exported now
+	var tokenMap map[string]interface{}
+	tokenBytes, err := base64.StdEncoding.DecodeString(nextPageToken)
+	assert.Nil(t, err)
+	err = json.Unmarshal(tokenBytes, &tokenMap)
+	assert.Nil(t, err)
+
+	// Force it to string
+	tokenMap["SortByFieldValue"] = fmt.Sprintf("%v", tokenMap["SortByFieldValue"])
+
+	// Encode back
+	newTokenBytes, err := json.Marshal(tokenMap)
+	assert.Nil(t, err)
+	newToken := base64.StdEncoding.EncodeToString(newTokenBytes)
+
+	// Use the manipulated token
+	opts, err = list.NewOptionsFromToken(newToken, 1)
+	assert.Nil(t, err)
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+	runs[0] = runs[0].ToV1()
+
+	// Should not error and return correct results
+	assert.Nil(t, err)
+	assert.Equal(t, 2, totalSize)
+	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed with string token")
+	assert.Empty(t, nextPageToken)
 }

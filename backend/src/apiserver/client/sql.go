@@ -15,10 +15,11 @@
 package client
 
 import (
-	"bytes"
 	"fmt"
+	"net/url"
 
 	"github.com/go-sql-driver/mysql"
+	pgx "github.com/jackc/pgx/v5"
 )
 
 func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
@@ -47,24 +48,16 @@ func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
 }
 
 func CreatePostgreSQLConfig(user, password, postgresHost, dbName string, postgresPort uint16,
-) string {
-	var b bytes.Buffer
-	if dbName != "" {
-		fmt.Fprintf(&b, "database=%s ", dbName)
+) (*pgx.ConnConfig, string) {
+	u := &url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(user, password),
+		Host:     fmt.Sprintf("%s:%d", postgresHost, postgresPort),
+		Path:     dbName,
+		RawQuery: "sslmode=disable",
 	}
-	if user != "" {
-		fmt.Fprintf(&b, "user=%s ", user)
-	}
-	if password != "" {
-		fmt.Fprintf(&b, "password=%s ", password)
-	}
-	if postgresHost != "" {
-		fmt.Fprintf(&b, "host=%s ", postgresHost)
-	}
-	if postgresPort != 0 {
-		fmt.Fprintf(&b, "port=%d ", postgresPort)
-	}
-	fmt.Fprint(&b, "sslmode=disable")
-
-	return b.String()
+	cfg, _ := pgx.ParseConfig(u.String())
+	redactedDSN := fmt.Sprintf("host=%s port=%d user=%s password=*** database=%s sslmode=disable",
+		postgresHost, postgresPort, user, dbName)
+	return cfg, redactedDSN
 }
