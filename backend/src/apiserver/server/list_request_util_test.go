@@ -336,8 +336,9 @@ func (f *fakeListable) GetModelName() string {
 func (f *fakeListable) GetField(name string) (string, string, bool) {
 	if field, ok := fakeAPIToModelMap[name]; ok {
 		return field, field, true
+	} else {
+		return "", "", false
 	}
-	return "", "", false
 }
 
 func (f *fakeListable) GetFieldValue(name string) interface{} {

@@ -34,6 +34,7 @@ AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
 IAM_CONNTRACK_WINDOW_ACTIVE=false
 IAM_CONNTRACK_BASELINE="/tmp/kfp-seaweedfs-iam-conntrack-window.tsv"
+DB_TYPE=""
 
 report_iam_conntrack_window() {
   if [ "$IAM_CONNTRACK_WINDOW_ACTIVE" != "true" ]; then
@@ -85,6 +86,16 @@ while [ "$#" -gt 0 ]; do
     --tls-enabled)
       POD_TO_POD_TLS_ENABLED=true
       shift
+      ;;
+    --db-type)
+      shift
+      if [[ -n "$1" ]]; then
+        DB_TYPE="$1"
+        shift
+      else
+        echo "ERROR: --db-type requires an argument"
+        exit 1
+      fi
       ;;
   esac
 done
@@ -190,6 +201,16 @@ fi
 # Manifests will be deployed according to the flag provided
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
+
+  if $POD_TO_POD_TLS_ENABLED && [ "${DB_TYPE}" == "pgx" ]; then
+    echo "Error: POD_TO_POD_TLS_ENABLED and DB_TYPE=pgx cannot be used together (TLS+PostgreSQL overlay not yet implemented)." >&2
+    exit 1
+  fi
+  if [ "${DB_TYPE}" == "pgx" ] && { $CACHE_DISABLED || $USE_PROXY; }; then
+    echo "Error: DB_TYPE=pgx cannot be combined with CACHE_DISABLED or USE_PROXY." >&2
+    exit 1
+  fi
+
   if $CACHE_DISABLED && $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
   elif $CACHE_DISABLED; then
@@ -198,6 +219,8 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy"
   elif $POD_TO_POD_TLS_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
+  elif [ "${DB_TYPE}" == "pgx" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
@@ -210,7 +233,19 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
-  if $ARTIFACT_PROXY_ENABLED; then
+
+  if [ "${DB_TYPE}" == "pgx" ] && $CACHE_DISABLED; then
+    echo "Error: DB_TYPE=pgx cannot be combined with CACHE_DISABLED in multi-user mode (no corresponding overlay exists)." >&2
+    exit 1
+  fi
+  if [ "${DB_TYPE}" == "pgx" ] && $ARTIFACT_PROXY_ENABLED; then
+    echo "Error: DB_TYPE=pgx cannot be combined with ARTIFACT_PROXY_ENABLED in multi-user mode (no corresponding overlay exists)." >&2
+    exit 1
+  fi
+
+  if [ "${DB_TYPE}" == "pgx" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
+  elif $ARTIFACT_PROXY_ENABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
   elif $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"

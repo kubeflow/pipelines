@@ -358,12 +358,12 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "CreatedTimestamp",
-					SortBySQLColumn:   "CreatedTimestamp",
-					SortByFieldPrefix: "",
-					IsDesc:            false,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "CreatedTimestamp",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: false,
+					IsDesc:              false,
 				},
 			},
 		},
@@ -372,12 +372,12 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "CreatedTimestamp",
-					SortBySQLColumn:   "CreatedTimestamp",
-					SortByFieldPrefix: "",
-					IsDesc:            false,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "CreatedTimestamp",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: false,
+					IsDesc:              false,
 				},
 			},
 		},
@@ -386,12 +386,12 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "FakeName",
-					SortBySQLColumn:   "FakeName",
-					SortByFieldPrefix: "",
-					IsDesc:            false,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "FakeName",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: true,
+					IsDesc:              false,
 				},
 			},
 		},
@@ -400,12 +400,12 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "FakeName",
-					SortBySQLColumn:   "FakeName",
-					SortByFieldPrefix: "",
-					IsDesc:            false,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "FakeName",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: true,
+					IsDesc:              false,
 				},
 			},
 		},
@@ -414,12 +414,12 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "FakeName",
-					SortBySQLColumn:   "FakeName",
-					SortByFieldPrefix: "",
-					IsDesc:            true,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "FakeName",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: true,
+					IsDesc:              true,
 				},
 			},
 		},
@@ -428,12 +428,12 @@ func TestNewOptions_ValidSortOptions(t *testing.T) {
 			want: &Options{
 				PageSize: pageSize,
 				token: &token{
-					KeyFieldName:      "PrimaryKey",
-					KeyFieldPrefix:    "",
-					SortByFieldName:   "PrimaryKey",
-					SortBySQLColumn:   "PrimaryKey",
-					SortByFieldPrefix: "",
-					IsDesc:            true,
+					KeyFieldName:        "PrimaryKey",
+					KeyFieldPrefix:      "",
+					SortByFieldName:     "PrimaryKey",
+					SortByFieldPrefix:   "",
+					SortByFieldIsString: true,
+					IsDesc:              true,
 				},
 			},
 		},
@@ -458,12 +458,38 @@ func TestNewOptions_InvalidSortOptions(t *testing.T) {
 		{"unknownfield"},
 		{"timestamp descending"},
 		{"timestamp asc hello"},
+		// Metric names with invalid characters must be rejected on page 1.
+		{"metric:val/loss"}, // slash not allowed
+		{"metric:123bad"},   // must start with a letter
 	}
 
 	for _, test := range tests {
 		got, err := NewOptions(&fakeListable{}, pageSize, test.sortBy, nil)
 		if err == nil {
 			t.Errorf("NewOptions(sortBy=%q) =\nGot: %+v, <nil>\nWant error", test.sortBy, got)
+		}
+	}
+}
+
+func TestNewOptions_ValidMetricSort(t *testing.T) {
+	pageSize := 10
+	tests := []struct {
+		sortBy         string
+		wantMetricName string
+	}{
+		{"metric:accuracy", "accuracy"},
+		{"metric:log-loss", "log-loss"},
+		{"metric:val_accuracy", "val_accuracy"},
+	}
+
+	for _, test := range tests {
+		got, err := NewOptions(&fakeListable{}, pageSize, test.sortBy, nil)
+		if err != nil {
+			t.Errorf("NewOptions(sortBy=%q) returned unexpected error: %v", test.sortBy, err)
+			continue
+		}
+		if got.SortByMetricName != test.wantMetricName {
+			t.Errorf("NewOptions(sortBy=%q) SortByMetricName = %q, want %q", test.sortBy, got.SortByMetricName, test.wantMetricName)
 		}
 	}
 }
@@ -506,13 +532,13 @@ func TestNewOptions_ValidFilter(t *testing.T) {
 	want := &Options{
 		PageSize: 10,
 		token: &token{
-			KeyFieldName:      "PrimaryKey",
-			KeyFieldPrefix:    "",
-			SortByFieldName:   "CreatedTimestamp",
-			SortBySQLColumn:   "CreatedTimestamp",
-			SortByFieldPrefix: "",
-			IsDesc:            false,
-			Filter:            f,
+			KeyFieldName:        "PrimaryKey",
+			KeyFieldPrefix:      "",
+			SortByFieldName:     "CreatedTimestamp",
+			SortByFieldPrefix:   "",
+			SortByFieldIsString: false,
+			IsDesc:              false,
+			Filter:              f,
 		},
 	}
 
@@ -577,11 +603,11 @@ func TestNewOptions_ModelFilter(t *testing.T) {
 	want := &Options{
 		PageSize: 10,
 		token: &token{
-			KeyFieldName:    "UUID",
-			SortByFieldName: "DisplayName",
-			SortBySQLColumn: "DisplayName",
-			IsDesc:          false,
-			Filter:          f,
+			KeyFieldName:        "UUID",
+			SortByFieldName:     "DisplayName",
+			SortByFieldIsString: true,
+			IsDesc:              false,
+			Filter:              f,
 		},
 	}
 
@@ -622,7 +648,6 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
-					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -631,7 +656,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (SortField < ? OR (SortField = ? AND KeyField <= ?)) ORDER BY SortField DESC, KeyField DESC LIMIT 124",
+			wantSQL:  "SELECT * FROM MyTable WHERE (LOWER(SortField) < LOWER(?) OR (LOWER(SortField) = LOWER(?) AND KeyField <= ?)) ORDER BY LOWER(SortField) DESC, KeyField DESC LIMIT 124",
 			wantArgs: []interface{}{"value", "value", 1111},
 		},
 		{
@@ -639,7 +664,6 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
-					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -648,7 +672,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (SortField > ? OR (SortField = ? AND KeyField >= ?)) ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  "SELECT * FROM MyTable WHERE (LOWER(SortField) > LOWER(?) OR (LOWER(SortField) = LOWER(?) AND KeyField >= ?)) ORDER BY LOWER(SortField) ASC, KeyField ASC LIMIT 124",
 			wantArgs: []interface{}{"value", "value", 1111},
 		},
 		{
@@ -656,7 +680,6 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
-					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -666,23 +689,23 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					Filter:            f,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (SortField > ? OR (SortField = ? AND KeyField >= ?)) AND Name = ? ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  "SELECT * FROM MyTable WHERE (LOWER(SortField) > LOWER(?) OR (LOWER(SortField) = LOWER(?) AND KeyField >= ?)) AND (LOWER(Name) = LOWER(?)) ORDER BY LOWER(SortField) ASC, KeyField ASC LIMIT 124",
 			wantArgs: []interface{}{"value", "value", 1111, "SomeName"},
 		},
 		{
 			in: &Options{
 				PageSize: 123,
 				token: &token{
-					SortByFieldName:   "SortField",
-					SortBySQLColumn:   "SortField",
-					SortByFieldPrefix: "",
-					KeyFieldName:      "KeyField",
-					KeyFieldPrefix:    "",
-					KeyFieldValue:     1111,
-					IsDesc:            true,
+					SortByFieldName:     "SortField",
+					SortByFieldIsString: true,
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldPrefix:      "",
+					KeyFieldValue:       1111,
+					IsDesc:              true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable ORDER BY SortField DESC, KeyField DESC LIMIT 124",
+			wantSQL:  "SELECT * FROM MyTable ORDER BY LOWER(SortField) DESC, KeyField DESC LIMIT 124",
 			wantArgs: nil,
 		},
 		{
@@ -690,12 +713,47 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 			wantSQL:  fmt.Sprintf("SELECT * FROM MyTable LIMIT %d", math.MaxInt32+1),
 			wantArgs: nil,
 		},
+		// Numeric field, first page (SortByFieldValue == nil): should NOT use LOWER().
+		// This is the regression test for PostgreSQL "function lower(bigint) does not exist".
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "CreatedAtInSec",
+					SortByFieldIsString: false,
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldPrefix:      "",
+					IsDesc:              false,
+				},
+			},
+			wantSQL:  "SELECT * FROM MyTable ORDER BY CreatedAtInSec ASC, KeyField ASC LIMIT 124",
+			wantArgs: nil,
+		},
+		// Numeric field, second page (SortByFieldValue is float64, e.g. CreatedAtInSec):
+		// WHERE clause should NOT use LOWER().
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "CreatedAtInSec",
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(1234567890),
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-2",
+					KeyFieldPrefix:      "",
+					IsDesc:              false,
+				},
+			},
+			wantSQL:  "SELECT * FROM MyTable WHERE (CreatedAtInSec > ? OR (CreatedAtInSec = ? AND KeyField >= ?)) ORDER BY CreatedAtInSec ASC, KeyField ASC LIMIT 124",
+			wantArgs: []interface{}{float64(1234567890), float64(1234567890), "uuid-2"},
+		},
 		{
 			in: &Options{
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
-					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -703,7 +761,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  "SELECT * FROM MyTable ORDER BY LOWER(SortField) ASC, KeyField ASC LIMIT 124",
 			wantArgs: nil,
 		},
 		{
@@ -711,7 +769,6 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 				PageSize: 123,
 				token: &token{
 					SortByFieldName:   "SortField",
-					SortBySQLColumn:   "SortField",
 					SortByFieldValue:  "value",
 					SortByFieldPrefix: "",
 					KeyFieldName:      "KeyField",
@@ -720,14 +777,49 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					Filter:            f,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE Name = ? ORDER BY SortField ASC, KeyField ASC LIMIT 124",
+			wantSQL:  "SELECT * FROM MyTable WHERE (LOWER(Name) = LOWER(?)) ORDER BY LOWER(SortField) ASC, KeyField ASC LIMIT 124",
 			wantArgs: []interface{}{"SomeName"},
+		},
+		// Numeric field, second page (SortByFieldValue is float64): bind parameter preserves full precision.
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "MetricValue",
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(0.123456789),
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-1",
+					KeyFieldPrefix:      "",
+					IsDesc:              false,
+				},
+			},
+			wantSQL:  "SELECT * FROM MyTable WHERE (MetricValue > ? OR (MetricValue = ? AND KeyField >= ?)) ORDER BY MetricValue ASC, KeyField ASC LIMIT 124",
+			wantArgs: []interface{}{float64(0.123456789), float64(0.123456789), "uuid-1"},
+		},
+		{
+			in: &Options{
+				PageSize: 123,
+				token: &token{
+					SortByFieldName:     "MetricValue",
+					SortByFieldIsString: false,
+					SortByFieldValue:    float64(0.123456789),
+					SortByFieldPrefix:   "",
+					KeyFieldName:        "KeyField",
+					KeyFieldValue:       "uuid-1",
+					KeyFieldPrefix:      "",
+					IsDesc:              true,
+				},
+			},
+			wantSQL:  "SELECT * FROM MyTable WHERE (MetricValue < ? OR (MetricValue = ? AND KeyField <= ?)) ORDER BY MetricValue DESC, KeyField DESC LIMIT 124",
+			wantArgs: []interface{}{float64(0.123456789), float64(0.123456789), "uuid-1"},
 		},
 	}
 
 	for _, test := range tests {
 		sql := sq.Select("*").From("MyTable")
-		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql)).ToSql()
+		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql, nil, ""), nil).ToSql()
 
 		if gotSQL != test.wantSQL || !reflect.DeepEqual(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("BuildListSQLQuery(%+v) =\nGot: %q, %v, %v\nWant: %q, %v, nil",
@@ -836,6 +928,61 @@ func TestTokenSerialization(t *testing.T) {
 	}
 }
 
+func TestUnmarshalInvalidMetricNameRoundTrip(t *testing.T) {
+	// A tampered or legacy token may carry a metric name that is now invalid
+	// (e.g. contains a slash). unmarshal must reject it so that page 2 never
+	// silently accepts what page 1 would reject after the NewOptions fix.
+	badToken := token{
+		SortByFieldName:  model.MetricSortSQLAlias,
+		SortByMetricName: "val/loss",
+		KeyFieldName:     "UUID",
+	}
+	s, err := badToken.marshal()
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	got := &token{}
+	if err := got.unmarshal(s); err == nil {
+		t.Errorf("unmarshal token with metric name %q: expected error, got nil", "val/loss")
+	}
+}
+
+func TestUnmarshalLegacyTokenMigration(t *testing.T) {
+	// Legacy tokens stored the user-supplied metric name (e.g. "log-loss") in
+	// SortByFieldName and left SortByMetricName empty. unmarshal must migrate
+	// them to the new layout without returning an error.
+	legacyToken := token{
+		SortByFieldName:   "log-loss",
+		SortByFieldPrefix: "pipeline_runs.",
+		KeyFieldPrefix:    "pipeline_runs.",
+		KeyFieldName:      "UUID",
+		KeyFieldValue:     "abc",
+		IsDesc:            false,
+	}
+	s, err := legacyToken.marshal()
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	got := &token{}
+	if err := got.unmarshal(s); err != nil {
+		t.Fatalf("unmarshal legacy token: %v", err)
+	}
+
+	if got.SortByFieldName != model.MetricSortSQLAlias {
+		t.Errorf("SortByFieldName = %q, want %q", got.SortByFieldName, model.MetricSortSQLAlias)
+	}
+	if got.SortByMetricName != "log-loss" {
+		t.Errorf("SortByMetricName = %q, want %q", got.SortByMetricName, "log-loss")
+	}
+	if got.SortByFieldPrefix != "pipeline_runs" {
+		t.Errorf("SortByFieldPrefix = %q, want trailing dot stripped", got.SortByFieldPrefix)
+	}
+	if got.KeyFieldPrefix != "pipeline_runs" {
+		t.Errorf("KeyFieldPrefix = %q, want trailing dot stripped", got.KeyFieldPrefix)
+	}
+}
+
 func TestMatches(t *testing.T) {
 	protoFilter1 := &api.Filter{
 		Predicates: []*api.Predicate{
@@ -895,6 +1042,18 @@ func TestMatches(t *testing.T) {
 			o2:   &Options{token: &token{Filter: f2}},
 			want: false,
 		},
+		// Metric sort: same SQL alias but different metric names are distinct queries.
+		{
+			o1:   &Options{token: &token{SortByFieldName: "sort_metric_value", SortByMetricName: "accuracy"}},
+			o2:   &Options{token: &token{SortByFieldName: "sort_metric_value", SortByMetricName: "log-loss"}},
+			want: false,
+		},
+		// Metric sort: same SQL alias and same metric name are the same query.
+		{
+			o1:   &Options{token: &token{SortByFieldName: "sort_metric_value", SortByMetricName: "accuracy"}},
+			o2:   &Options{token: &token{SortByFieldName: "sort_metric_value", SortByMetricName: "accuracy"}},
+			want: true,
+		},
 	}
 
 	for _, test := range tests {
@@ -903,158 +1062,6 @@ func TestMatches(t *testing.T) {
 		if got != test.want {
 			t.Errorf("Matches(%+v, %+v) = %v, Want nil %v", test.o1, test.o2, got, test.want)
 			continue
-		}
-	}
-}
-
-func TestFilterOnResourceReference(t *testing.T) {
-	type testIn struct {
-		table        string
-		resourceType model.ResourceType
-		count        bool
-		filter       *model.FilterContext
-	}
-	tests := []struct {
-		in      *testIn
-		wantSql string
-		wantErr error
-	}{
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        false,
-				filter:       &model.FilterContext{},
-			},
-			wantSql: "SELECT * FROM testTable",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        true,
-				filter:       &model.FilterContext{},
-			},
-			wantSql: "SELECT count(*) FROM testTable",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        false,
-				filter:       &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: "test3"}},
-			},
-			wantSql: "SELECT * FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:        "testTable",
-				resourceType: model.RunResourceType,
-				count:        true,
-				filter:       &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType, ID: "test4"}},
-			},
-			wantSql: "SELECT count(*) FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
-			wantErr: nil,
-		},
-	}
-
-	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnResourceReference(test.in.table, []string{"*"}, test.in.resourceType, test.in.count, test.in.filter)
-		gotSql, _, err := sqlBuilder.ToSql()
-		assert.Nil(t, err)
-
-		if gotSql != test.wantSql || gotErr != test.wantErr {
-			t.Errorf("FilterOnResourceReference(%+v) =\nGot: %q, %v\nWant: %q, %v",
-				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
-		}
-	}
-}
-
-func TestFilterOnExperiment(t *testing.T) {
-	type testIn struct {
-		table  string
-		count  bool
-		filter *model.FilterContext
-	}
-	tests := []struct {
-		in      *testIn
-		wantSql string
-		wantErr error
-	}{
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  false,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT * FROM testTable WHERE ExperimentUUID = ?",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  true,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT count(*) FROM testTable WHERE ExperimentUUID = ?",
-			wantErr: nil,
-		},
-	}
-
-	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnExperiment(test.in.table, []string{"*"}, test.in.count, "123")
-		gotSql, _, err := sqlBuilder.ToSql()
-		assert.Nil(t, err)
-
-		if gotSql != test.wantSql || gotErr != test.wantErr {
-			t.Errorf("FilterOnExperiment(%+v) =\nGot: %q, %v\nWant: %q, %v",
-				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
-		}
-	}
-}
-
-func TestFilterOnNamesapce(t *testing.T) {
-	type testIn struct {
-		table  string
-		count  bool
-		filter *model.FilterContext
-	}
-	tests := []struct {
-		in      *testIn
-		wantSql string
-		wantErr error
-	}{
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  false,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT * FROM testTable WHERE Namespace = ?",
-			wantErr: nil,
-		},
-		{
-			in: &testIn{
-				table:  "testTable",
-				count:  true,
-				filter: &model.FilterContext{},
-			},
-			wantSql: "SELECT count(*) FROM testTable WHERE Namespace = ?",
-			wantErr: nil,
-		},
-	}
-
-	for _, test := range tests {
-		sqlBuilder, gotErr := FilterOnNamespace(test.in.table, []string{"*"}, test.in.count, "ns")
-		gotSql, _, err := sqlBuilder.ToSql()
-		assert.Nil(t, err)
-
-		if gotSql != test.wantSql || gotErr != test.wantErr {
-			t.Errorf("FilterOnNamespace(%+v) =\nGot: %q, %v\nWant: %q, %v",
-				test.in, gotSql, gotErr, test.wantSql, test.wantErr)
 		}
 	}
 }
@@ -1074,7 +1081,7 @@ func TestAddSortingToSelectWithPipelineVersionModel(t *testing.T) {
 	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("pipeline_versions")
-	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder).ToSql()
+	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder, nil, "").ToSql()
 	assert.Nil(t, err)
 
 	assert.Contains(t, sql, "pipeline_versions.Name") // sorting field
@@ -1103,9 +1110,9 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("run_details")
-	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder, nil).ToSql()
 	assert.Nil(t, err)
-	assert.Contains(t, sql, "WHERE Conditions = ?") // filtering on status, aka Conditions in db
+	assert.Contains(t, sql, "WHERE (LOWER(Conditions) = LOWER(?))") // filtering on status, aka Conditions in db
 	assert.Contains(t, args, "Succeeded")
 
 	notEqualProtoFilter := &api.Filter{}
@@ -1120,8 +1127,8 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listableOptions, err = NewOptions(listable, 10, "name", newNotEqualFilter)
 	assert.Nil(t, err)
 	sqlBuilder = sq.Select("*").From("run_details")
-	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder, nil).ToSql()
 	assert.Nil(t, err)
-	assert.Contains(t, sql, "WHERE Conditions <> ?") // filtering on status, aka Conditions in db
+	assert.Contains(t, sql, "WHERE (LOWER(Conditions) <> LOWER(?))") // filtering on status, aka Conditions in db
 	assert.Contains(t, args, "somevalue")
 }
