@@ -36,6 +36,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -125,6 +126,10 @@ func (s *RunAPITestSuite) SetupTest() {
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
 
+	// Clean up before each test to ensure test isolation.
+	// This prevents failures from "zombie" runs left behind by other tests
+	// (e.g., the scheduled workflows in recurring run tests)
+	// due to race conditions during their teardown.
 	s.cleanUp()
 }
 
@@ -201,6 +206,7 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	/* ---------- List all the runs. Both runs should be returned ---------- */
 	runs, totalSize, _, err := test.ListAllRuns(s.runClient, s.resourceNamespace)
 	assert.Nil(t, err)
+
 	assert.Equal(t, 2, len(runs))
 	assert.Equal(t, 2, totalSize)
 
@@ -342,19 +348,29 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	})
 	assert.Nil(t, err)
 
-	/* ---------- Get long-running run ---------- */
-	longRunningRun, err = s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: longRunningRun.RunID})
-	assert.Nil(t, err)
+	/* ---------- Wait for long-running run to reach CANCELING or CANCELED state ---------- */
+	require.Eventually(t, func() bool {
+		longRunningRun, err = s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: longRunningRun.RunID})
+		if err != nil || longRunningRun.State == nil {
+			return false
+		}
+		state := *longRunningRun.State
+		return state == run_model.V2beta1RuntimeStateCANCELING || state == run_model.V2beta1RuntimeStateCANCELED
+	}, 1*time.Minute, 2*time.Second)
 	s.checkTerminatedRunDetail(t, longRunningRun, helloWorldExperiment.ExperimentID, longRunningPipelineVersion.PipelineID, longRunningPipelineVersion.PipelineVersionID)
 }
 
 func (s *RunAPITestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentID string, pipelineID string, pipelineVersionID string) {
+	require.NotNil(t, run.State)
+	state := *run.State
+	assert.True(t, state == run_model.V2beta1RuntimeStateCANCELING || state == run_model.V2beta1RuntimeStateCANCELED,
+		"expected state CANCELING or CANCELED, got %v", state)
 
 	expectedRun := &run_model.V2beta1Run{
 		RunID:          run.RunID,
 		DisplayName:    "long running",
 		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
-		State:          run_model.V2beta1RuntimeStateCANCELING.Pointer(),
+		State:          run.State,
 		StateHistory:   run.StateHistory,
 		StorageState:   run.StorageState,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
