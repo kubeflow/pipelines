@@ -591,7 +591,7 @@ func TestCreateJobError(t *testing.T) {
 		ExperimentId: defaultFakeExpId,
 	}
 
-	job, err := jobStore.CreateJob(job.ToV2())
+	_, err := jobStore.CreateJob(job.ToV2())
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected create job to return error")
 }
