@@ -29,8 +29,8 @@ import (
 var testDialect = dialect.NewDBDialect("sqlite")
 
 type FakeClientManager struct {
-	db                            *sql.DB
-	dialect                       dialect.DBDialect
+	db *sql.DB
+	// dbDialect                     dialect.DBDialect
 	experimentStore               storage.ExperimentStoreInterface
 	pipelineStore                 storage.PipelineStoreInterface
 	jobStore                      storage.JobStoreInterface
