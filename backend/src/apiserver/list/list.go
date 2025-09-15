@@ -27,9 +27,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -96,12 +94,28 @@ func (t *token) marshal() (string, error) {
 type Options struct {
 	PageSize int
 	*token
+	quoteIdentifier func(string) string
+}
+
+func (o *Options) SetQuote(q func(string) string) {
+	o.quoteIdentifier = q
+}
+
+// SetSortByFieldPrefix sets the prefix for the sort-by field.
+func (o *Options) SetSortByFieldPrefix(prefix string) {
+	o.SortByFieldPrefix = prefix
+}
+
+// SetKeyFieldPrefix sets the prefix for the key field.
+func (o *Options) SetKeyFieldPrefix(prefix string) {
+	o.KeyFieldPrefix = prefix
 }
 
 func EmptyOptions() *Options {
 	return &Options{
 		math.MaxInt32,
 		&token{},
+		func(s string) string { return s },
 	}
 }
 
@@ -193,25 +207,33 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBu
 
 // AddSortingToSelect adds Order By clause.
 func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+	quote := func(s string) string { return s }
+	if o.quoteIdentifier != nil {
+		quote = o.quoteIdentifier
+	}
+
+	sortByFieldNameWithPrefix := o.SortByFieldPrefix + quote(o.SortByFieldName)
+	keyFieldNameWithPrefix := o.KeyFieldPrefix + quote(o.KeyFieldName)
+
 	// When sorting by a direct field in the listable model (i.e., name in Run or uuid in Pipeline), a sortByFieldPrefix can be specified; when sorting by a field in an array-typed dictionary (i.e., a run metric inside the metrics in Run), a sortByFieldPrefix is not needed.
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
 		if o.IsDesc {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{
-					sq.Lt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.Lt{sortByFieldNameWithPrefix: o.SortByFieldValue},
 					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.LtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
+						sq.Eq{sortByFieldNameWithPrefix: o.SortByFieldValue},
+						sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
 					},
 				})
 		} else {
 			sqlBuilder = sqlBuilder.
 				Where(sq.Or{
-					sq.Gt{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
+					sq.Gt{sortByFieldNameWithPrefix: o.SortByFieldValue},
 					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortByFieldName: o.SortByFieldValue},
-						sq.GtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
+						sq.Eq{sortByFieldNameWithPrefix: o.SortByFieldValue},
+						sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
 					},
 				})
 		}
@@ -223,11 +245,11 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 	}
 
 	if o.SortByFieldName != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortByFieldName, order))
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortByFieldNameWithPrefix, order))
 	}
 
 	if o.KeyFieldName != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.KeyFieldPrefix+o.KeyFieldName, order))
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", keyFieldNameWithPrefix, order))
 	}
 
 	return sqlBuilder
@@ -238,74 +260,10 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 // containing these.
 func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 	if o.Filter != nil {
-		sqlBuilder = o.Filter.AddToSelect(sqlBuilder)
+		sqlBuilder = o.Filter.AddToSelect(sqlBuilder, o.quoteIdentifier)
 	}
 
 	return sqlBuilder
-}
-
-// FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
-// table that match an optional given filter, and returns the rebuilt SelectBuilder.
-func FilterOnResourceReference(tableName string, columns []string, resourceType model.ResourceType,
-	selectCount bool, filterContext *model.FilterContext,
-) (sq.SelectBuilder, error) {
-	selectBuilder := sq.Select(columns...)
-	if selectCount {
-		selectBuilder = sq.Select("count(*)")
-	}
-	selectBuilder = selectBuilder.From(tableName)
-	if filterContext.ReferenceKey != nil && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
-		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
-			From("resource_references as rf").
-			Where(sq.And{
-				sq.Eq{"rf.ResourceType": resourceType},
-				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
-				sq.Eq{"rf.ReferenceType": filterContext.Type},
-			}).ToSql()
-		if err != nil {
-			return selectBuilder, util.NewInternalServerError(
-				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
-		}
-		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
-	}
-	return selectBuilder, nil
-}
-
-// FilterOnExperiment filters the given table by rows based on provided experiment ID,
-// and returns the rebuilt SelectBuilder.
-func FilterOnExperiment(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	experimentID string,
-) (sq.SelectBuilder, error) {
-	return filterByColumnValue(tableName, columns, selectCount, "ExperimentUUID", experimentID), nil
-}
-
-func FilterOnNamespace(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	namespace string,
-) (sq.SelectBuilder, error) {
-	return filterByColumnValue(tableName, columns, selectCount, "Namespace", namespace), nil
-}
-
-func filterByColumnValue(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	columnName string,
-	filterValue interface{},
-) sq.SelectBuilder {
-	selectBuilder := sq.Select(columns...)
-	if selectCount {
-		selectBuilder = sq.Select("count(*)")
-	}
-	selectBuilder = selectBuilder.From(tableName).Where(
-		sq.Eq{columnName: filterValue},
-	)
-	return selectBuilder
 }
 
 // Scans the one given row into a number, and returns the number.
