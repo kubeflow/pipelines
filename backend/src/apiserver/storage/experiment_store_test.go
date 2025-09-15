@@ -507,7 +507,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	}
 	runStore.CreateRun(run1)
 	runStore.CreateRun(run2)
-	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
+	opts, _ := list.NewOptions(&model.Run{}, 10, "id", nil)
 	runs, total_run_size, _, err := runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_run_size)
@@ -563,7 +563,8 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	exp, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
 	assert.Equal(t, "ARCHIVED", exp.StorageState.ToString())
-	opts, err = list.NewOptions(&model.Run{}, 10, "id", nil)
+	opts, _ = list.NewOptions(&model.Run{}, 10, "id", nil)
+	// Removed unused opts and err variables.
 	runs, total_run_size, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_run_size)
