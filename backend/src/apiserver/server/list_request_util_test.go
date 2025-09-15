@@ -336,8 +336,9 @@ func (f *fakeListable) GetModelName() string {
 func (f *fakeListable) GetField(name string) (string, string, bool) {
 	if field, ok := fakeAPIToModelMap[name]; ok {
 		return field, field, true
+	} else {
+		return "", "", false
 	}
-	return "", "", false
 }
 
 func (f *fakeListable) GetFieldValue(name string) interface{} {
@@ -358,6 +359,10 @@ func (f *fakeListable) GetSortByFieldPrefix(name string) string {
 
 func (f *fakeListable) GetKeyFieldPrefix() string {
 	return ""
+}
+
+func (f *fakeListable) CaseInsensitiveFields() map[string]struct{} {
+	return map[string]struct{}{"name": {}}
 }
 
 func TestValidatedListOptions_Errors(t *testing.T) {
