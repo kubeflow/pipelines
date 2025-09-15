@@ -293,67 +293,82 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 	return true, nil
 }
 
+// qualifyIdentifier quotes identifiers correctly when they are qualified with dots,
+// e.g. "experiments.Name" -> `"experiments"."Name"` (or the dialect's quote style).
+// If there is no dot, it simply quotes the key.
+func qualifyIdentifier(key string, quote func(string) string) string {
+	if quote == nil {
+		return key
+	}
+	if strings.Contains(key, ".") {
+		parts := strings.Split(key, ".")
+		for i := range parts {
+			parts[i] = quote(parts[i])
+		}
+		return strings.Join(parts, ".")
+	}
+	return quote(key)
+}
+
 // AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied
 // SelectBuilder object and returns it for use in SQL queries.
-func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
-	for k := range f.eq {
-		for _, v := range f.eq[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Eq(m))
+func (f *Filter) AddToSelect(sb squirrel.SelectBuilder, quote func(string) string) squirrel.SelectBuilder {
+	if quote == nil {
+		quote = func(s string) string { return s }
+	}
+
+	var andExprs []squirrel.Sqlizer
+
+	for k, vs := range f.eq {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.Eq{qualifyIdentifier(k, quote): v})
 		}
 	}
 
-	for k := range f.neq {
-		for _, v := range f.neq[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.NotEq(m))
+	for k, vs := range f.neq {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.NotEq{qualifyIdentifier(k, quote): v})
 		}
 	}
 
-	for k := range f.gt {
-		for _, v := range f.gt[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Gt(m))
+	for k, vs := range f.gt {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.Gt{qualifyIdentifier(k, quote): v})
 		}
 	}
 
-	for k := range f.gte {
-		for _, v := range f.gte[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.GtOrEq(m))
+	for k, vs := range f.gte {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.GtOrEq{qualifyIdentifier(k, quote): v})
 		}
 	}
 
-	for k := range f.lt {
-		for _, v := range f.lt[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Lt(m))
+	for k, vs := range f.lt {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.Lt{qualifyIdentifier(k, quote): v})
 		}
 	}
 
-	for k := range f.lte {
-		for _, v := range f.lte[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.LtOrEq(m))
+	for k, vs := range f.lte {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.LtOrEq{qualifyIdentifier(k, quote): v})
 		}
 	}
 
-	// In
-	for k := range f.in {
-		for _, v := range f.in[k] {
-			m := map[string]interface{}{k: v}
-			sb = sb.Where(squirrel.Eq(m))
+	for k, vs := range f.in {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.Eq{qualifyIdentifier(k, quote): v})
 		}
 	}
 
-	for k := range f.substring {
-		// Modify each string value v so it looks like %v% so we are doing a substring
-		// match with the LIKE operator.
-		for _, v := range f.substring[k] {
-			like := make(squirrel.Like)
-			like[k] = fmt.Sprintf("%%%s%%", v)
-			sb = sb.Where(like)
+	for k, vs := range f.substring {
+		for _, v := range vs {
+			andExprs = append(andExprs, squirrel.Like{qualifyIdentifier(k, quote): fmt.Sprintf("%%%s%%", v)})
 		}
+	}
+
+	if len(andExprs) > 0 {
+		return sb.Where(squirrel.And(andExprs))
 	}
 
 	return sb
