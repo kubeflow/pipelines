@@ -6,7 +6,8 @@
       "GroupConcatMaxLen": "4194304"
     },
     "PostgreSQLConfig": {
-      "DBName": "mlpipeline"
+      "DBName": "mlpipeline",
+      "ExtraParams": {}
     },
     "ConMaxLifeTime": "120s"
   },
