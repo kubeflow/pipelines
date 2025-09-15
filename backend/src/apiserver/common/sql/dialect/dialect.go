@@ -34,7 +34,7 @@ type DBDialect struct {
 	existDatabaseErrHint string
 }
 
-// Get constructs a DBDialect for the given backend name.
+// NewDBDialect constructs a DBDialect for the given backend name.
 // Supported names: "mysql", "pgx", "sqlite" (sqlite is for tests).
 func NewDBDialect(name string) DBDialect {
 	switch name {
