@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/backend-visualization.yml'
       - 'backend/src/apiserver/visualization/**'
+      - 'manifests/kustomize/**'
       - 'test/presubmit-backend-visualization.sh'
       - '!**/*.md'
       - '!**/OWNERS'

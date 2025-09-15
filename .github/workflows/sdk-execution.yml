@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/sdk-execution.yml'
       - '.github/resources/**'
+      - 'manifests/kustomize/**'
       - 'sdk/python/**'
       - 'api/v2alpha1/**'
       - 'backend/**'
