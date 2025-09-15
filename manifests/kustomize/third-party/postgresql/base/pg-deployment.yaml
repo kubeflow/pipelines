@@ -16,9 +16,25 @@ spec:
         app: postgres
     spec:
       serviceAccountName: postgresql
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       containers:
-        - image: postgres:14.7-alpine3.17
+        - image: docker.io/postgres:18-alpine
           name: postgres
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            capabilities:
+              drop:
+              - ALL
+            seccompProfile:
+              type: RuntimeDefault
           env:
             - name: POSTGRES_DB
               value: postgres

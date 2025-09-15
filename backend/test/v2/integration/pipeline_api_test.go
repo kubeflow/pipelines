@@ -229,6 +229,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	}
 
 	/* ---------- Verify list pipeline sorted by names ---------- */
+	// NOTE: Test file names use consistent separators (all hyphens) to ensure
+	// database-agnostic sorting. See backend/test/integration/README.md for details.
 	listFirstPagePipelines, totalSize, nextPageToken, err := s.pipelineClient.List(
 		&params.PipelineServiceListPipelinesParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("name")})
 	require.Nil(t, err)

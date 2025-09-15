@@ -260,9 +260,9 @@ func (j *Job) GetFieldValue(name string) interface{} {
 }
 
 func (j *Job) GetSortByFieldPrefix(name string) string {
-	return "jobs."
+	return "jobs"
 }
 
 func (j *Job) GetKeyFieldPrefix() string {
-	return "jobs."
+	return "jobs"
 }

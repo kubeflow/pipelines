@@ -151,3 +151,90 @@ func TestCreateMySQLConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestCreatePostgreSQLConfig(t *testing.T) {
+	tests := []struct {
+		name         string
+		user         string
+		password     string
+		host         string
+		dbName       string
+		port         uint16
+		wantRedacted string
+	}{
+		{
+			name:         "all fields populated",
+			user:         "admin",
+			password:     "secret",
+			host:         "postgres-host",
+			dbName:       "mlpipeline",
+			port:         5432,
+			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
+		},
+		{
+			name:         "empty password",
+			user:         "admin",
+			password:     "",
+			host:         "postgres-host",
+			dbName:       "mlpipeline",
+			port:         5432,
+			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
+		},
+		{
+			name:         "password with spaces",
+			user:         "admin",
+			password:     "foo bar",
+			host:         "postgres-host",
+			dbName:       "mlpipeline",
+			port:         5432,
+			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
+		},
+		{
+			name:         "password with single quote",
+			user:         "admin",
+			password:     "pa'ss",
+			host:         "postgres-host",
+			dbName:       "mlpipeline",
+			port:         5432,
+			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
+		},
+		{
+			name:         "password with backslash",
+			user:         "admin",
+			password:     `p\as`,
+			host:         "postgres-host",
+			dbName:       "mlpipeline",
+			port:         5432,
+			wantRedacted: "host=postgres-host port=5432 user=admin password=*** database=mlpipeline sslmode=disable",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, gotRedacted := CreatePostgreSQLConfig(tt.user, tt.password, tt.host, tt.dbName, tt.port)
+			if cfg == nil {
+				t.Fatal("CreatePostgreSQLConfig() returned nil ConnConfig")
+			}
+			if cfg.Host != tt.host {
+				t.Errorf("cfg.Host = %q, want %q", cfg.Host, tt.host)
+			}
+			if cfg.Port != tt.port {
+				t.Errorf("cfg.Port = %d, want %d", cfg.Port, tt.port)
+			}
+			if cfg.User != tt.user {
+				t.Errorf("cfg.User = %q, want %q", cfg.User, tt.user)
+			}
+			if cfg.Password != tt.password {
+				t.Errorf("cfg.Password = %q, want %q", cfg.Password, tt.password)
+			}
+			if cfg.Database != tt.dbName {
+				t.Errorf("cfg.Database = %q, want %q", cfg.Database, tt.dbName)
+			}
+			if cfg.TLSConfig != nil {
+				t.Errorf("cfg.TLSConfig = %v, want nil (sslmode=disable)", cfg.TLSConfig)
+			}
+			if gotRedacted != tt.wantRedacted {
+				t.Errorf("CreatePostgreSQLConfig() redactedDSN = %q, want %q", gotRedacted, tt.wantRedacted)
+			}
+		})
+	}
+}

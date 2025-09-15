@@ -18,10 +18,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strconv"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"gorm.io/gorm"
 )
 
 type ExecutionCacheStoreInterface interface {
@@ -30,8 +31,9 @@ type ExecutionCacheStoreInterface interface {
 }
 
 type ExecutionCacheStore struct {
-	db   *DB
-	time util.TimeInterface
+	db      *gorm.DB
+	time    util.TimeInterface
+	dialect dialect.DBDialect
 }
 
 func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error) {
@@ -43,19 +45,29 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, cacheS
 	if cacheStaleness == 0 {
 		return nil, fmt.Errorf("CacheStaleness=0, Cache is disabled.")
 	}
-	r, err := s.db.Table("execution_caches").Where("ExecutionCacheKey = ?", executionCacheKey).Rows()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get execution cache: %q, err: %v", executionCacheKey, err)
+	// Use GORM's standard query method with struct field name to avoid case-sensitivity issues
+	var executionCaches []model.ExecutionCache
+	result := s.db.Where(&model.ExecutionCache{ExecutionCacheKey: executionCacheKey}).Find(&executionCaches)
+	if result.Error != nil {
+		return nil, fmt.Errorf("failed to get execution cache: %q, err: %v", executionCacheKey, result.Error)
 	}
-	defer r.Close()
-	executionCaches, err := s.scanRows(r, cacheStaleness)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to scan rows on execution cache: %q, err: %v", executionCacheKey, err)
+
+	// Filter by cache staleness
+	var validCaches []*model.ExecutionCache
+	for i := range executionCaches {
+		cache := &executionCaches[i]
+		// maxCacheStaleness comes from the database entry.
+		// cacheStaleness is computed from the pods annotation and environment variables.
+		if (cache.MaxCacheStaleness < 0 || s.time.Now().UTC().Unix()-cache.StartedAtInSec <= cache.MaxCacheStaleness) &&
+			(cacheStaleness < 0 || s.time.Now().UTC().Unix()-cache.StartedAtInSec <= cacheStaleness) {
+			validCaches = append(validCaches, cache)
+		}
 	}
-	if len(executionCaches) == 0 {
+
+	if len(validCaches) == 0 {
 		return nil, fmt.Errorf("Execution cache not found with cache key: %q", executionCacheKey)
 	}
-	latestCache, err := getLatestCacheEntry(executionCaches)
+	latestCache, err := getLatestCacheEntry(validCaches)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +84,7 @@ func (s *ExecutionCacheStore) cleanDatabase(maximumCacheStaleness int64) (int64,
 	log.Printf("Cleaning cache entries older than maximumCacheStaleness=%d", maximumCacheStaleness)
 
 	cutoffTime := s.time.Now().UTC().Unix() - maximumCacheStaleness
-	result := s.db.Exec(
-		"DELETE FROM execution_caches WHERE StartedAtInSec < ?",
+	result := s.db.Exec(fmt.Sprintf("DELETE FROM %s WHERE %s < ?", s.dialect.QuoteIdentifier("execution_caches"), s.dialect.QuoteIdentifier("StartedAtInSec")),
 		cutoffTime)
 
 	if result.Error != nil {
@@ -98,8 +109,6 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podCacheStaleness int64) 
 		if err != nil {
 			return executionCaches, nil
 		}
-		log.Println("Get id: " + strconv.FormatInt(id, 10))
-		log.Println("Get template: " + executionTemplate)
 		// maxCacheStaleness comes from the database entry.
 		// podCacheStaleness is computed from the pods annotation and environment variables.
 		if (maxCacheStaleness < 0 || s.time.Now().UTC().Unix()-startedAtInSec <= maxCacheStaleness) &&
@@ -138,17 +147,15 @@ func getLatestCacheEntry(executionCaches []*model.ExecutionCache) (*model.Execut
 func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.ExecutionCache) (*model.ExecutionCache, error) {
 	log.Printf("checking for existing row with cache key: %s before insertion", executionCache.ExecutionCacheKey)
 
-	r, err := s.db.Table("execution_caches").Where("ExecutionCacheKey = ?", executionCache.ExecutionCacheKey).Rows()
-	if err != nil {
-		log.Printf("Failed to get execution cache with key: %s, err: %v", executionCache.ExecutionCacheKey, err)
-		return nil, err
+	// Use GORM's standard query method with struct field name to avoid case-sensitivity issues
+	var existingCaches []model.ExecutionCache
+	result := s.db.Where(&model.ExecutionCache{ExecutionCacheKey: executionCache.ExecutionCacheKey}).Find(&existingCaches)
+	if result.Error != nil {
+		log.Printf("Failed to get execution cache with key: %s, err: %v", executionCache.ExecutionCacheKey, result.Error)
+		return nil, result.Error
 	}
 
-	rowCount := 0
-
-	for r.Next() {
-		rowCount++
-	}
+	rowCount := len(existingCaches)
 	log.Printf("number of rows returned for existing rows check: %d", rowCount)
 
 	if rowCount == 0 {
@@ -176,9 +183,10 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 }
 
 // factory function for execution cache store
-func NewExecutionCacheStore(db *DB, time util.TimeInterface) *ExecutionCacheStore {
+func NewExecutionCacheStore(db *gorm.DB, time util.TimeInterface, d dialect.DBDialect) *ExecutionCacheStore {
 	return &ExecutionCacheStore{
-		db:   db,
-		time: time,
+		db:      db,
+		time:    time,
+		dialect: d,
 	}
 }

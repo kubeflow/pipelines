@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-grpc-deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: container
+          env:
+          - $patch: replace
+          - name: METADATA_GRPC_SERVICE_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: metadata-grpc-configmap
+                key: METADATA_GRPC_SERVICE_PORT
+          - name: POSTGRES_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: postgresHost
+          - name: POSTGRES_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: postgresPort
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: username
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: password
+          - name: POSTGRES_DBNAME
+            value: mlmdpostgres
+          args:
+            - "--grpc_port=$(METADATA_GRPC_SERVICE_PORT)"
+            - "--metadata_source_config_type=postgresql"
+            - "--postgres_config_host=$(POSTGRES_HOST)"
+            - "--postgres_config_port=$(POSTGRES_PORT)"
+            - "--postgres_config_dbname=$(POSTGRES_DBNAME)"
+            - "--postgres_config_user=$(POSTGRES_USER)"
+            - "--postgres_config_password=$(POSTGRES_PASSWORD)"
+            - "--enable_database_upgrade=true"
+            - "--grpc_channel_arguments=grpc.max_metadata_size=16384"

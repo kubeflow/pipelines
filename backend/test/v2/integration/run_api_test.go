@@ -125,6 +125,10 @@ func (s *RunAPITestSuite) SetupTest() {
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
 
+	// Clean up before each test to ensure test isolation.
+	// This prevents failures from "zombie" runs left behind by other tests
+	// (e.g., the scheduled workflows in recurring run tests)
+	// due to race conditions during their teardown.
 	s.cleanUp()
 }
 
@@ -201,6 +205,7 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	/* ---------- List all the runs. Both runs should be returned ---------- */
 	runs, totalSize, _, err := test.ListAllRuns(s.runClient, s.resourceNamespace)
 	assert.Nil(t, err)
+
 	assert.Equal(t, 2, len(runs))
 	assert.Equal(t, 2, totalSize)
 

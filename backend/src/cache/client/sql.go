@@ -16,8 +16,10 @@ package client
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/go-sql-driver/mysql"
+	pgx "github.com/jackc/pgx/v5"
 )
 
 func CreateMySQLConfig(user, password string, mysqlServiceHost string,
@@ -43,4 +45,19 @@ func CreateMySQLConfig(user, password string, mysqlServiceHost string,
 		DBName:               dbName,
 		AllowNativePasswords: true,
 	}
+}
+
+func CreatePostgreSQLConfig(user, password, postgresHost, dbName string, postgresPort uint16,
+) (*pgx.ConnConfig, string) {
+	u := &url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(user, password),
+		Host:     fmt.Sprintf("%s:%d", postgresHost, postgresPort),
+		Path:     dbName,
+		RawQuery: "sslmode=disable",
+	}
+	cfg, _ := pgx.ParseConfig(u.String())
+	redactedDSN := fmt.Sprintf("host=%s port=%d user=%s password=*** database=%s sslmode=disable",
+		postgresHost, postgresPort, user, dbName)
+	return cfg, redactedDSN
 }
