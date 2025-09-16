@@ -910,7 +910,7 @@ func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 
 func LocalPathForURI(uri string) (string, error) {
 	if strings.HasPrefix(uri, "gs://") {
-		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
+		return "/home/agoins/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
 	}
 	if strings.HasPrefix(uri, "minio://") {
 		return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil
@@ -938,14 +938,16 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 		}
 
 		for _, outputArtifact := range artifactList.Artifacts {
+			// If custom path is set, do not create local directory for output artifact.
+			if outputArtifact.CustomPath == nil {
+				localPath, err := LocalPathForURI(outputArtifact.Uri)
+				if err != nil {
+					return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
+				}
 
-			localPath, err := LocalPathForURI(outputArtifact.Uri)
-			if err != nil {
-				return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
-			}
-
-			if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
-				return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
+				if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+					return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
+				}
 			}
 		}
 	}

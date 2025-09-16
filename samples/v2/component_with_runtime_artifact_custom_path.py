@@ -17,6 +17,9 @@ def validate_custom_path(exp_path: str, input_list: Output[Artifact]) -> bool:
     if input_list.path is not exp_path:
         raise ValueError(f"File uri is {input_list.path} but should be {exp_path}.")
 
+def component(artifact: Output[Artifact]) -> bool:
+    return True
+
 @dsl.pipeline
 def pipeline_with_custom_path_artifact():
     task1 = create_list()
