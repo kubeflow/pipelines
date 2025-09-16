@@ -967,7 +967,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         ),
       ),
     );
-    const allArtifactConfigs = flatten(configLists);
+    const allArtifactConfigs: AnnotatedConfig[] = flatten(configLists) as AnnotatedConfig[];
 
     this.setStateSafe({ allArtifactConfigs });
   }
