@@ -910,7 +910,7 @@ func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 
 func LocalPathForURI(uri string) (string, error) {
 	if strings.HasPrefix(uri, "gs://") {
-		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
+		return "/home/agoins/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
 	}
 	if strings.HasPrefix(uri, "minio://") {
 		return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil

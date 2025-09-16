@@ -41,12 +41,13 @@ def get_kfp_pipeline_spec_path() -> str:
     return path
 
 def get_package_path(subdir: str) -> str:
-    repo_name = os.environ.get('REPO_NAME', 'kubeflow/pipelines')
-    if os.environ.get('PULL_NUMBER'):
-        path = f'git+https://github.com/{repo_name}.git@refs/pull/{os.environ["PULL_NUMBER"]}/merge#subdirectory={subdir}'
-    else:
-        path = f'git+https://github.com/{repo_name}.git@master#subdirectory={subdir}'
-    return path
+    return f'git+https://github.com/alyssacgoins/data-science-pipelines.git@refs/pull/12248/merge#subdirectory=sdk/python'
+    # repo_name = os.environ.get('REPO_NAME', 'kubeflow/pipelines')
+    # if os.environ.get('PULL_NUMBER'):
+    #     path = f'git+https://github.com/{repo_name}.git@refs/pull/{os.environ["PULL_NUMBER"]}/merge#subdirectory={subdir}'
+    # else:
+    #     path = f'git+https://github.com/{repo_name}.git@master#subdirectory={subdir}'
+    # return path
 
 # Set the component configuration BEFORE importing any pipeline modules
 # To have pipeline execution code leverage source kfp-pipeline-spec
