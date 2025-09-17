@@ -16,13 +16,13 @@ spec:
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer
       value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
-    - name: components-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde
+    - name: components-b375628bfbe3297e8615b48608c3bb9e5702145c781f5d43ce35416859ad7994
       value: '{"executorLabel":"exec-python-artifact-printer","inputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"},"isOptional":true}}}}'
-    - name: implementations-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde
+    - name: implementations-b375628bfbe3297e8615b48608c3bb9e5702145c781f5d43ce35416859ad7994
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","python_artifact_printer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -217,11 +217,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde}}'
+            value: '{{workflow.parameters.components-b375628bfbe3297e8615b48608c3bb9e5702145c781f5d43ce35416859ad7994}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-python-artifact-printer"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset"}}},"taskInfo":{"name":"python-artifact-printer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde}}'
+            value: '{{workflow.parameters.implementations-b375628bfbe3297e8615b48608c3bb9e5702145c781f5d43ce35416859ad7994}}'
           - name: task-name
             value: python-artifact-printer
           - name: parent-dag-id
@@ -249,11 +249,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde}}'
+            value: '{{workflow.parameters.components-b375628bfbe3297e8615b48608c3bb9e5702145c781f5d43ce35416859ad7994}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-python-artifact-printer-2"},"inputs":{"artifacts":{"artifact":{"componentInputArtifact":"dataset"}}},"taskInfo":{"name":"python-artifact-printer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-495791df86dbf27585c94745a0178cba9ad25b9394e366a8bbdc9d44d3cabcde}}'
+            value: '{{workflow.parameters.implementations-b375628bfbe3297e8615b48608c3bb9e5702145c781f5d43ce35416859ad7994}}'
           - name: task-name
             value: python-artifact-printer
           - name: parent-dag-id

@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-552012c95d7a12c0cc2fce4c2551edb647009c6251ad2b10f712a7ed1a051814
+    - name: components-888809574b5309659ec40b386743894e8953566f7d2130458f4fb24e267dfb9c
       value: '{"executorLabel":"exec-print-message","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-552012c95d7a12c0cc2fce4c2551edb647009c6251ad2b10f712a7ed1a051814
+    - name: implementations-888809574b5309659ec40b386743894e8953566f7d2130458f4fb24e267dfb9c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -205,11 +205,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-552012c95d7a12c0cc2fce4c2551edb647009c6251ad2b10f712a7ed1a051814}}'
+            value: '{{workflow.parameters.components-888809574b5309659ec40b386743894e8953566f7d2130458f4fb24e267dfb9c}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-message"},"inputs":{"parameters":{"message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"print-message"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-552012c95d7a12c0cc2fce4c2551edb647009c6251ad2b10f712a7ed1a051814}}'
+            value: '{{workflow.parameters.implementations-888809574b5309659ec40b386743894e8953566f7d2130458f4fb24e267dfb9c}}'
           - name: task-name
             value: print-message
           - name: parent-dag-id

@@ -359,8 +359,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             with open(nb_path, 'w', encoding='utf-8') as f:
                 _json.dump(nb, f)
 
-            @dsl.notebook_component(
-                notebook_path=nb_path,)
+            @dsl.notebook_component(notebook_path=nb_path,)
             def nb_comp(msg: str) -> str:
                 dsl.run_notebook(text=msg)
 
@@ -423,8 +422,7 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
         with open(bad_nb, 'w', encoding='utf-8') as f:
             f.write('not a json')
 
-        @dsl.notebook_component(
-            notebook_path=bad_nb,)
+        @dsl.notebook_component(notebook_path=bad_nb,)
         def nb_comp():
             dsl.run_notebook()
 

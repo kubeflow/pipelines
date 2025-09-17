@@ -1,0 +1,70 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-utils
+# Description: A simple hello world pipeline
+# Inputs:
+#    msg: str [Default: 'Hello, World!']
+components:
+  comp-echo:
+    executorLabel: exec-echo
+    inputDefinitions:
+      parameters:
+        msg:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-echo:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - echo
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef util_func(msg: str) -> str:\n    return f\"{msg} from util_func\"\
+          \n\n\ndef util_func2(msg: str) -> str:\n    return f\"{msg} from util_func2\"\
+          \n\n\ndef echo(msg: str):\n    assert util_func(msg) == f\"{msg} from util_func\"\
+          \n    assert util_func2(msg) == f\"{msg} from util_func2\"\n\n"
+        image: python:3.9
+pipelineInfo:
+  description: A simple hello world pipeline
+  name: pipeline-with-utils
+root:
+  dag:
+    tasks:
+      echo:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo
+        inputs:
+          parameters:
+            msg:
+              componentInputParameter: msg
+        taskInfo:
+          name: echo
+  inputDefinitions:
+    parameters:
+      msg:
+        defaultValue: Hello, World!
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.3

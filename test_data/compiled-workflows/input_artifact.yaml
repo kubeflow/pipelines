@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-ddaf9ede1aa090b8e5250a33b86f1f029b149dfb76980a5793195575ad736b4c
+    - name: components-da3c6808bf551f2963106f4d6e053e4d70b827b3960f6e6d581fa72f4c1191fe
       value: '{"executorLabel":"exec-input-artifact","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-ddaf9ede1aa090b8e5250a33b86f1f029b149dfb76980a5793195575ad736b4c
+    - name: implementations-da3c6808bf551f2963106f4d6e053e4d70b827b3960f6e6d581fa72f4c1191fe
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","input_artifact"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -201,11 +201,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ddaf9ede1aa090b8e5250a33b86f1f029b149dfb76980a5793195575ad736b4c}}'
+            value: '{{workflow.parameters.components-da3c6808bf551f2963106f4d6e053e4d70b827b3960f6e6d581fa72f4c1191fe}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-input-artifact"},"inputs":{"artifacts":{"data":{"componentInputArtifact":"data"}}},"taskInfo":{"name":"input-artifact"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ddaf9ede1aa090b8e5250a33b86f1f029b149dfb76980a5793195575ad736b4c}}'
+            value: '{{workflow.parameters.implementations-da3c6808bf551f2963106f4d6e053e4d70b827b3960f6e6d581fa72f4c1191fe}}'
           - name: task-name
             value: input-artifact
           - name: parent-dag-id

@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-6da7df14afa10172e0765518d99daebf081c4c5d1dd69dca1076d1853d616a1e
+    - name: components-e5d34ee36841e876565d23eaf4d49fb55df421558117e42fb4f0f56dfb8eb7cb
       value: '{"executorLabel":"exec-receive-file","inputDefinitions":{"artifacts":{"incomingfile":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"saveartifact":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-6da7df14afa10172e0765518d99daebf081c4c5d1dd69dca1076d1853d616a1e
+    - name: implementations-e5d34ee36841e876565d23eaf4d49fb55df421558117e42fb4f0f56dfb8eb7cb
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","receive_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -24,13 +24,13 @@ spec:
         open(incomingfile, \"rb\") as f:\n        b = f.read(1)\n        print(\"read
         byte: %s\" % b)\n        f.close()\n\n    print(\"copying in %s to out %s\"
         % (incomingfile, saveartifact))\n    shutil.copyfile(incomingfile, saveartifact)\n\n"],"image":"python:3.9"}'
-    - name: components-5f01d4a4bf4c086b109651d2d12fc329973b641179e00e9beeb2da22a26981e5
+    - name: components-2baa105dc921c5395c01625982411e9ae576e4eeaed37130715ad12ac007288f
       value: '{"executorLabel":"exec-send-file","inputDefinitions":{"parameters":{"file_size_bytes":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"outgoingfile":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-5f01d4a4bf4c086b109651d2d12fc329973b641179e00e9beeb2da22a26981e5
+    - name: implementations-2baa105dc921c5395c01625982411e9ae576e4eeaed37130715ad12ac007288f
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","send_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -44,13 +44,13 @@ spec:
         os.path.basename(input_file_path))\n\n    print(\"starting creating the file...\")\n    file_path
         = \"/tmp/large_file.txt\"\n    create_large_file(file_path, file_size_bytes)\n    zip_file(file_path,
         outgoingfile)\n    print(f\"saved: {outgoingfile}\")\n\n"],"image":"python:3.9"}'
-    - name: components-d4bb770e6ac3284bd6ee15d8a428d3d514c5c9e2150b99d46a232d0d493577a3
+    - name: components-55196ea4ba5ecbd374c5ad86dbe244930e8558effdeb5a02e2a7f98d71dbbdc6
       value: '{"executorLabel":"exec-test-uploaded-artifact","inputDefinitions":{"artifacts":{"previous_step":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}},"parameters":{"bucket_name":{"parameterType":"STRING"},"file_size_bytes":{"parameterType":"NUMBER_INTEGER"},"mlpipeline_minio_artifact_secret":{"parameterType":"STRING"}}}}'
-    - name: implementations-d4bb770e6ac3284bd6ee15d8a428d3d514c5c9e2150b99d46a232d0d493577a3
+    - name: implementations-55196ea4ba5ecbd374c5ad86dbe244930e8558effdeb5a02e2a7f98d71dbbdc6
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","test_uploaded_artifact"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
         -m pip install --quiet --no-warn-script-location ''minio'' \u0026\u0026 \"$0\"
         \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" \u003e
@@ -256,11 +256,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6da7df14afa10172e0765518d99daebf081c4c5d1dd69dca1076d1853d616a1e}}'
+            value: '{{workflow.parameters.components-e5d34ee36841e876565d23eaf4d49fb55df421558117e42fb4f0f56dfb8eb7cb}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-receive-file"},"dependentTasks":["send-file"],"inputs":{"artifacts":{"incomingfile":{"taskOutputArtifact":{"outputArtifactKey":"outgoingfile","producerTask":"send-file"}}}},"taskInfo":{"name":"receive-file"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6da7df14afa10172e0765518d99daebf081c4c5d1dd69dca1076d1853d616a1e}}'
+            value: '{{workflow.parameters.implementations-e5d34ee36841e876565d23eaf4d49fb55df421558117e42fb4f0f56dfb8eb7cb}}'
           - name: task-name
             value: receive-file
           - name: parent-dag-id
@@ -281,11 +281,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5f01d4a4bf4c086b109651d2d12fc329973b641179e00e9beeb2da22a26981e5}}'
+            value: '{{workflow.parameters.components-2baa105dc921c5395c01625982411e9ae576e4eeaed37130715ad12ac007288f}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-send-file"},"inputs":{"parameters":{"file_size_bytes":{"runtimeValue":{"constant":20971520}}}},"taskInfo":{"name":"send-file"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5f01d4a4bf4c086b109651d2d12fc329973b641179e00e9beeb2da22a26981e5}}'
+            value: '{{workflow.parameters.implementations-2baa105dc921c5395c01625982411e9ae576e4eeaed37130715ad12ac007288f}}'
           - name: task-name
             value: send-file
           - name: parent-dag-id
@@ -305,11 +305,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-d4bb770e6ac3284bd6ee15d8a428d3d514c5c9e2150b99d46a232d0d493577a3}}'
+            value: '{{workflow.parameters.components-55196ea4ba5ecbd374c5ad86dbe244930e8558effdeb5a02e2a7f98d71dbbdc6}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-test-uploaded-artifact"},"dependentTasks":["receive-file"],"inputs":{"artifacts":{"previous_step":{"taskOutputArtifact":{"outputArtifactKey":"saveartifact","producerTask":"receive-file"}}},"parameters":{"bucket_name":{"componentInputParameter":"bucket_name"},"file_size_bytes":{"runtimeValue":{"constant":20971520}},"mlpipeline_minio_artifact_secret":{"componentInputParameter":"mlpipeline_minio_artifact_secret"}}},"taskInfo":{"name":"test-uploaded-artifact"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-d4bb770e6ac3284bd6ee15d8a428d3d514c5c9e2150b99d46a232d0d493577a3}}'
+            value: '{{workflow.parameters.implementations-55196ea4ba5ecbd374c5ad86dbe244930e8558effdeb5a02e2a7f98d71dbbdc6}}'
           - name: task-name
             value: test-uploaded-artifact
           - name: parent-dag-id
