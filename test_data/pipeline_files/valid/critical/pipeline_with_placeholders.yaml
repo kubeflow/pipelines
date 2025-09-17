@@ -43,14 +43,14 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_all_placeholders(\n    job_name: str,\n    job_resource_name:\
-          \ str,\n    job_id: str,\n    task_name: str,\n    task_id: str,\n):\n \
-          \   allPlaceholders = [job_name, job_resource_name, job_id, task_name, task_id]\n\
-          \n    for placeholder in allPlaceholders:\n        if \"\\{\\{\" in placeholder\
-          \ or placeholder == \"\":\n            raise RuntimeError(\n           \
-          \     \"Expected the placeholder to be replaced with a value: \" + placeholder\n\
-          \            )\n\n    print(f\"Received placeholders:\\n {allPlaceholders}\"\
-          )\n    assert task_name == \"print-all-placeholders\"\n    assert job_resource_name.startswith(\"\
+          \ *\n\ndef print_all_placeholders(\n        job_name: str,\n        job_resource_name:\
+          \ str,\n        job_id: str,\n        task_name: str,\n        task_id:\
+          \ str,\n):\n    allPlaceholders = [job_name, job_resource_name, job_id,\
+          \ task_name, task_id]\n\n    for placeholder in allPlaceholders:\n     \
+          \   if \"\\{\\{\" in placeholder or placeholder == \"\":\n            raise\
+          \ RuntimeError(\n                \"Expected the placeholder to be replaced\
+          \ with a value: \" + placeholder\n            )\n\n    assert task_name\
+          \ == \"print-all-placeholders\"\n    assert job_resource_name.startswith(\"\
           pipeline-with-placeholders-\")\n\n    output = \", \".join(allPlaceholders)\n\
           \    print(output)\n\n"
         image: python:3.9

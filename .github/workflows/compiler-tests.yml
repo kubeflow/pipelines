@@ -31,6 +31,7 @@ on:
     paths:
       - '.github/workflows/compiler-tests.yml'
       - 'backend/src/v2/compiler/**'
+      - 'test_data/**'
       - '!**/*.md'
       - '!**/OWNERS'
 

@@ -28,9 +28,6 @@ jobs:
 
       - name: Install protobuf dependencies
         uses: ./.github/actions/protobuf
-
-      - name: Install requirements
-        run: pip install -r ./test/sdk-execution-tests/requirements.txt
         
       - name: Run component YAML tests
         run: ./test/presubmit-component-yaml.sh

@@ -5,16 +5,22 @@ components:
     executorLabel: exec-component-with-concat-placeholder
     inputDefinitions:
       parameters:
-        input_prefix:
+        input_one:
+          parameterType: STRING
+        input_two:
           parameterType: STRING
 deploymentSpec:
   executors:
     exec-component-with-concat-placeholder:
       container:
         args:
-        - --arg0
-        - '{"Concat": ["{{$.inputs.parameters[''input_prefix'']}}", "some value"]}'
-        image: gcr.io/my-project/my-image
+        - echo "$0" > /tmp/test && [[ "$0" == 'one+two=three' ]]
+        - '{"Concat": ["{{$.inputs.parameters[''input_one'']}}", "+", "{{$.inputs.parameters[''input_two'']}}",
+          "=three"]}'
+        command:
+        - sh
+        - -ec
+        image: ghcr.io/containerd/busybox
 pipelineInfo:
   name: one-step-pipeline-with-concat-placeholder
 root:
@@ -27,10 +33,13 @@ root:
           name: comp-component-with-concat-placeholder
         inputs:
           parameters:
-            input_prefix:
+            input_one:
               runtimeValue:
-                constant: 'some prefix:'
+                constant: one
+            input_two:
+              runtimeValue:
+                constant: two
         taskInfo:
           name: component-with-concat-placeholder
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.13.0
+sdkVersion: kfp-2.14.3

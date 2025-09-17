@@ -157,6 +157,9 @@ func GetTasksFromWorkflow(workflow *v1alpha1.Workflow) []TaskDetails {
 	for _, template := range workflow.Spec.Templates {
 		if template.DAG != nil {
 			for _, task := range template.DAG.Tasks {
+				if task.When == "" {
+					continue
+				}
 				container, containerExists := containers[task.Template]
 				taskToAppend := TaskDetails{
 					TaskName:  task.Name,

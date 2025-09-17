@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-62058920104d06f6598e1f362b4f472c032ae975974c53220cb2e6751d18dfd6
+    - name: components-134a4a180bb4bfeacb7a318916bac3b02f8ba93e7aca4257373412cf9e37ca3b
       value: '{"executorLabel":"exec-add","inputDefinitions":{"parameters":{"a":{"parameterType":"NUMBER_DOUBLE"},"b":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_DOUBLE"}}}}'
-    - name: implementations-62058920104d06f6598e1f362b4f472c032ae975974c53220cb2e6751d18dfd6
+    - name: implementations-134a4a180bb4bfeacb7a318916bac3b02f8ba93e7aca4257373412cf9e37ca3b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -227,11 +227,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-62058920104d06f6598e1f362b4f472c032ae975974c53220cb2e6751d18dfd6}}'
+            value: '{{workflow.parameters.components-134a4a180bb4bfeacb7a318916bac3b02f8ba93e7aca4257373412cf9e37ca3b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"componentInputParameter":"b"}}},"retryPolicy":{"backoffDuration":"0s","backoffFactor":2,"backoffMaxDuration":"3600s","maxRetryCount":3},"taskInfo":{"name":"add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-62058920104d06f6598e1f362b4f472c032ae975974c53220cb2e6751d18dfd6}}'
+            value: '{{workflow.parameters.implementations-134a4a180bb4bfeacb7a318916bac3b02f8ba93e7aca4257373412cf9e37ca3b}}'
           - name: task-name
             value: add
           - name: parent-dag-id

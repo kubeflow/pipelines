@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-fcab46676e2507bacd0819b02a44e9c71fa784bde3663031fa084a74dfd5df9f
+    - name: components-ed5ffb9d2b8fff6bccdc76c9370a0e8bcdb7e239acce180cc6ce4a8eca4d1972
       value: '{"executorLabel":"exec-create-file","inputDefinitions":{"parameters":{"content":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"file":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-fcab46676e2507bacd0819b02a44e9c71fa784bde3663031fa084a74dfd5df9f
+    - name: implementations-ed5ffb9d2b8fff6bccdc76c9370a0e8bcdb7e239acce180cc6ce4a8eca4d1972
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -20,13 +20,13 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         create_file(file: Output[Artifact], content: str):\n    with open(file.path,
         ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.9"}'
-    - name: components-47f36b235f299359c955bb31d8224c1adac93b34732e01029e51c7e8bd61bfcc
+    - name: components-711e8b6e3ae4585024167b39bc927d87c5c6dd39e2ab20b0613ea96fd049dc4a
       value: '{"executorLabel":"exec-read-file","inputDefinitions":{"artifacts":{"file":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-47f36b235f299359c955bb31d8224c1adac93b34732e01029e51c7e8bd61bfcc
+    - name: implementations-711e8b6e3ae4585024167b39bc927d87c5c6dd39e2ab20b0613ea96fd049dc4a
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -35,14 +35,30 @@ spec:
         read_file(file: Input[Artifact]) -\u003e str:\n    with open(file.path, ''r'')
         as f:\n        print(f.read())\n    return file.path\n\n"],"image":"python:3.9"}'
     - name: components-comp-for-loop-1
-      value: '{"dag":{"tasks":{"create-file":{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-input-Output-loop-item"}}},"taskInfo":{"name":"create-file"}},"read-file":{"cachingOptions":{},"componentRef":{"name":"comp-read-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"read-file"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--split-input-Output":{"parameterType":"LIST"},"pipelinechannel--split-input-Output-loop-item":{"parameterType":"STRING"}}}}'
-    - name: components-9000d613a1c1d496142475bf7738a4436006ff41fe853b064960404119b9223e
+      value: '{"dag":{"tasks":{"create-file":{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-input-Output-loop-item"}}},"taskInfo":{"name":"same
+        display name"}},"read-file":{"cachingOptions":{},"componentRef":{"name":"comp-read-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"same
+        display name"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--split-input-Output":{"parameterType":"LIST"},"pipelinechannel--split-input-Output-loop-item":{"parameterType":"STRING"}}}}'
+    - name: components-ca2a87b6895df4cb47f1b6631daadcc4a5634c47ac3aadb0d316b2910f3b7794
+      value: '{"executorLabel":"exec-print-input","inputDefinitions":{"parameters":{"input":{"parameterType":"LIST"}}}}'
+    - name: implementations-ca2a87b6895df4cb47f1b6631daadcc4a5634c47ac3aadb0d316b2910f3b7794
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_input"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        print_input(input: list):\n    for item in input:\n        print(f''Input
+        item: {item}'')\n\n"],"image":"python:3.9"}'
+    - name: components-ed7019fac34ed83d85bd9c5b5fd36b6f73f1211ad397845e5f71e73680a4d5a6
       value: '{"executorLabel":"exec-split-input","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
-    - name: implementations-9000d613a1c1d496142475bf7738a4436006ff41fe853b064960404119b9223e
+    - name: implementations-ed7019fac34ed83d85bd9c5b5fd36b6f73f1211ad397845e5f71e73680a4d5a6
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","split_input"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -50,7 +66,9 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         split_input(input: str) -\u003e list:\n    return input.split('','')\n\n"],"image":"python:3.9"}'
     - name: components-root
-      value: '{"dag":{"tasks":{"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-input"],"inputs":{"parameters":{"pipelinechannel--split-input-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-input"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-input-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-input-Output"}},"taskInfo":{"name":"for-loop-1"}},"split-input":{"cachingOptions":{},"componentRef":{"name":"comp-split-input"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"component1,component2,component3"}}}},"taskInfo":{"name":"split-input"}}}}}'
+      value: '{"dag":{"tasks":{"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-input"],"inputs":{"parameters":{"pipelinechannel--split-input-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-input"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-input-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-input-Output"}},"taskInfo":{"name":"for-loop-1"}},"print-input":{"cachingOptions":{},"componentRef":{"name":"comp-print-input"},"dependentTasks":["split-input"],"inputs":{"parameters":{"input":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-input"}}}},"taskInfo":{"name":"same
+        display name"}},"split-input":{"cachingOptions":{},"componentRef":{"name":"comp-split-input"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"component1,component2,component3"}}}},"taskInfo":{"name":"same
+        display name"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -231,11 +249,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-fcab46676e2507bacd0819b02a44e9c71fa784bde3663031fa084a74dfd5df9f}}'
+            value: '{{workflow.parameters.components-ed5ffb9d2b8fff6bccdc76c9370a0e8bcdb7e239acce180cc6ce4a8eca4d1972}}'
           - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-input-Output-loop-item"}}},"taskInfo":{"name":"create-file"}}'
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-input-Output-loop-item"}}},"taskInfo":{"name":"same
+              display name"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-fcab46676e2507bacd0819b02a44e9c71fa784bde3663031fa084a74dfd5df9f}}'
+            value: '{{workflow.parameters.implementations-ed5ffb9d2b8fff6bccdc76c9370a0e8bcdb7e239acce180cc6ce4a8eca4d1972}}'
           - name: task-name
             value: create-file
           - name: parent-dag-id
@@ -255,11 +274,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-47f36b235f299359c955bb31d8224c1adac93b34732e01029e51c7e8bd61bfcc}}'
+            value: '{{workflow.parameters.components-711e8b6e3ae4585024167b39bc927d87c5c6dd39e2ab20b0613ea96fd049dc4a}}'
           - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"read-file"}}'
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"same
+              display name"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-47f36b235f299359c955bb31d8224c1adac93b34732e01029e51c7e8bd61bfcc}}'
+            value: '{{workflow.parameters.implementations-711e8b6e3ae4585024167b39bc927d87c5c6dd39e2ab20b0613ea96fd049dc4a}}'
           - name: task-name
             value: read-file
           - name: parent-dag-id
@@ -431,11 +451,38 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-9000d613a1c1d496142475bf7738a4436006ff41fe853b064960404119b9223e}}'
+            value: '{{workflow.parameters.components-ca2a87b6895df4cb47f1b6631daadcc4a5634c47ac3aadb0d316b2910f3b7794}}'
           - name: task
-            value: '{"cachingOptions":{},"componentRef":{"name":"comp-split-input"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"component1,component2,component3"}}}},"taskInfo":{"name":"split-input"}}'
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-input"},"dependentTasks":["split-input"],"inputs":{"parameters":{"input":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-input"}}}},"taskInfo":{"name":"same
+              display name"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-9000d613a1c1d496142475bf7738a4436006ff41fe853b064960404119b9223e}}'
+            value: '{{workflow.parameters.implementations-ca2a87b6895df4cb47f1b6631daadcc4a5634c47ac3aadb0d316b2910f3b7794}}'
+          - name: task-name
+            value: print-input
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: split-input.Succeeded
+        name: print-input-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.print-input-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.print-input-driver.outputs.parameters.cached-decision}}'
+        depends: print-input-driver.Succeeded
+        name: print-input
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-ed7019fac34ed83d85bd9c5b5fd36b6f73f1211ad397845e5f71e73680a4d5a6}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-split-input"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"component1,component2,component3"}}}},"taskInfo":{"name":"same
+              display name"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-ed7019fac34ed83d85bd9c5b5fd36b6f73f1211ad397845e5f71e73680a4d5a6}}'
           - name: task-name
             value: split-input
           - name: parent-dag-id

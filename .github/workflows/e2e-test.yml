@@ -68,8 +68,11 @@ jobs:
             cache_enabled: "false"
             proxy: "true"
             test_label: "E2EProxy"
+          - k8s_version: "v1.31.0"
+            cache_enabled: "false"
+            test_label: "E2EEssential"
       fail-fast: false
-    name: End to End Critical Scenario Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }}
+    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -117,7 +120,7 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          docker build -f ./test_data/python_functions/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
         continue-on-error: true
 
@@ -132,7 +135,7 @@ jobs:
           num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
-          report_name: "E2ECriticalTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}_storage=${{ matrix.storage }}"
+          report_name: "${{ matrix.test_label}}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}_storage=${{ matrix.storage }}"
 
       - name: Notify test reports
         shell: bash
@@ -199,7 +202,7 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f samples/v2/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          docker build -f ./test_data/python_functions/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
         continue-on-error: true
 
@@ -218,7 +221,7 @@ jobs:
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
-          report_name: "E2ECriticalMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_storage=${{ matrix.storage }}"
+          report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_storage=${{ matrix.storage }}"
 
       - name: Notify test reports
         shell: bash

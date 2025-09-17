@@ -6,15 +6,15 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-5d57f3661ffacea68fb758af193f78cb33b96450ae1aa7e8704ae71b0fdefd9b
+    - name: components-1e13061c086c82fca98c3bec1d9f3c373acd890377eb9145cfdb7f69de426019
       value: '{"executorLabel":"exec-digit-classification","outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.Metrics","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-5d57f3661ffacea68fb758af193f78cb33b96450ae1aa7e8704ae71b0fdefd9b
+    - name: implementations-1e13061c086c82fca98c3bec1d9f3c373acd890377eb9145cfdb7f69de426019
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","digit_classification"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
-        -m pip install --quiet --no-warn-script-location ''scikit-learn'' \u0026\u0026
+        python3 -m pip install --quiet --no-warn-script-location ''scikit-learn''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
@@ -32,13 +32,13 @@ spec:
         random_state=seed)\n    #fit model\n    model.fit(X_train, y_train)\n\n    #accuracy
         on test set\n    result = model.score(X_test, y_test)\n    metrics.log_metric(''accuracy'',
         (result * 100.0))\n\n"],"image":"python:3.9"}'
-    - name: components-0581169170ca764662238032dd8903cf4be1a77922d37769255923e57a528904
+    - name: components-507141586ba39388ea617640b16454b71ab71dfefbfda1d7add5fd6b13fc6f36
       value: '{"executorLabel":"exec-html-visualization","outputDefinitions":{"artifacts":{"html_artifact":{"artifactType":{"schemaTitle":"system.HTML","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-0581169170ca764662238032dd8903cf4be1a77922d37769255923e57a528904
+    - name: implementations-507141586ba39388ea617640b16454b71ab71dfefbfda1d7add5fd6b13fc6f36
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","html_visualization"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -47,15 +47,15 @@ spec:
         html_visualization(html_artifact: Output[HTML]):\n    html_content = ''\u003c!DOCTYPE
         html\u003e\u003chtml\u003e\u003cbody\u003e\u003ch1\u003eHello world\u003c/h1\u003e\u003c/body\u003e\u003c/html\u003e''\n    with
         open(html_artifact.path, ''w'') as f:\n        f.write(html_content)\n\n"],"image":"python:3.9"}'
-    - name: components-629d07db004137846330952fd16e8bc24fd6d1a385fdb23c7ab4499cc383c03a
+    - name: components-070c6090f000ab4579ea9970fdbe93fd311d1b7a3d4e4c9735898c872ed91a8f
       value: '{"executorLabel":"exec-iris-sgdclassifier","inputDefinitions":{"parameters":{"test_samples_fraction":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.ClassificationMetrics","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-629d07db004137846330952fd16e8bc24fd6d1a385fdb23c7ab4499cc383c03a
+    - name: implementations-070c6090f000ab4579ea9970fdbe93fd311d1b7a3d4e4c9735898c872ed91a8f
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","iris_sgdclassifier"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
-        -m pip install --quiet --no-warn-script-location ''scikit-learn'' \u0026\u0026
+        python3 -m pip install --quiet --no-warn-script-location ''scikit-learn''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
@@ -70,13 +70,13 @@ spec:
         cv=3)\n    metrics.log_confusion_matrix(\n        [''Setosa'', ''Versicolour'',
         ''Virginica''],\n        confusion_matrix(\n            train_y,\n            predictions).tolist()  #
         .tolist() to convert np array to list.\n    )\n\n"],"image":"python:3.9"}'
-    - name: components-1a3050a08062fcb9e4f3953db46546e5092493def4b246f7ca0491a6a5ce5751
+    - name: components-837e3b5eebdb2f6e1895391076d11f242320d5ee805a3712c681d87af27a0322
       value: '{"executorLabel":"exec-markdown-visualization","outputDefinitions":{"artifacts":{"markdown_artifact":{"artifactType":{"schemaTitle":"system.Markdown","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-1a3050a08062fcb9e4f3953db46546e5092493def4b246f7ca0491a6a5ce5751
+    - name: implementations-837e3b5eebdb2f6e1895391076d11f242320d5ee805a3712c681d87af27a0322
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","markdown_visualization"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -85,15 +85,15 @@ spec:
         markdown_visualization(markdown_artifact: Output[Markdown]):\n    markdown_content
         = ''## Hello world \\n\\n Markdown content''\n    with open(markdown_artifact.path,
         ''w'') as f:\n        f.write(markdown_content)\n\n"],"image":"python:3.9"}'
-    - name: components-e6699a20c7e91d278c364b7ecb0df13c1d43e7ab0cbb48e0473d577d8e9c035e
+    - name: components-cedc2096e3940b72ca9724db5ab3d0ab9680a848e3c724b60de8adea53f2b7c8
       value: '{"executorLabel":"exec-wine-classification","outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.ClassificationMetrics","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-e6699a20c7e91d278c364b7ecb0df13c1d43e7ab0cbb48e0473d577d8e9c035e
+    - name: implementations-cedc2096e3940b72ca9724db5ab3d0ab9680a848e3c724b60de8adea53f2b7c8
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","wine_classification"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
-        -m pip install --quiet --no-warn-script-location ''scikit-learn'' \u0026\u0026
+        python3 -m pip install --quiet --no-warn-script-location ''scikit-learn''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
@@ -293,11 +293,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5d57f3661ffacea68fb758af193f78cb33b96450ae1aa7e8704ae71b0fdefd9b}}'
+            value: '{{workflow.parameters.components-1e13061c086c82fca98c3bec1d9f3c373acd890377eb9145cfdb7f69de426019}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-digit-classification"},"taskInfo":{"name":"digit-classification"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5d57f3661ffacea68fb758af193f78cb33b96450ae1aa7e8704ae71b0fdefd9b}}'
+            value: '{{workflow.parameters.implementations-1e13061c086c82fca98c3bec1d9f3c373acd890377eb9145cfdb7f69de426019}}'
           - name: task-name
             value: digit-classification
           - name: parent-dag-id
@@ -317,11 +317,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-0581169170ca764662238032dd8903cf4be1a77922d37769255923e57a528904}}'
+            value: '{{workflow.parameters.components-507141586ba39388ea617640b16454b71ab71dfefbfda1d7add5fd6b13fc6f36}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-html-visualization"},"taskInfo":{"name":"html-visualization"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-0581169170ca764662238032dd8903cf4be1a77922d37769255923e57a528904}}'
+            value: '{{workflow.parameters.implementations-507141586ba39388ea617640b16454b71ab71dfefbfda1d7add5fd6b13fc6f36}}'
           - name: task-name
             value: html-visualization
           - name: parent-dag-id
@@ -341,11 +341,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-629d07db004137846330952fd16e8bc24fd6d1a385fdb23c7ab4499cc383c03a}}'
+            value: '{{workflow.parameters.components-070c6090f000ab4579ea9970fdbe93fd311d1b7a3d4e4c9735898c872ed91a8f}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-iris-sgdclassifier"},"inputs":{"parameters":{"test_samples_fraction":{"runtimeValue":{"constant":0.3}}}},"taskInfo":{"name":"iris-sgdclassifier"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-629d07db004137846330952fd16e8bc24fd6d1a385fdb23c7ab4499cc383c03a}}'
+            value: '{{workflow.parameters.implementations-070c6090f000ab4579ea9970fdbe93fd311d1b7a3d4e4c9735898c872ed91a8f}}'
           - name: task-name
             value: iris-sgdclassifier
           - name: parent-dag-id
@@ -365,11 +365,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-1a3050a08062fcb9e4f3953db46546e5092493def4b246f7ca0491a6a5ce5751}}'
+            value: '{{workflow.parameters.components-837e3b5eebdb2f6e1895391076d11f242320d5ee805a3712c681d87af27a0322}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-markdown-visualization"},"taskInfo":{"name":"markdown-visualization"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-1a3050a08062fcb9e4f3953db46546e5092493def4b246f7ca0491a6a5ce5751}}'
+            value: '{{workflow.parameters.implementations-837e3b5eebdb2f6e1895391076d11f242320d5ee805a3712c681d87af27a0322}}'
           - name: task-name
             value: markdown-visualization
           - name: parent-dag-id
@@ -389,11 +389,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e6699a20c7e91d278c364b7ecb0df13c1d43e7ab0cbb48e0473d577d8e9c035e}}'
+            value: '{{workflow.parameters.components-cedc2096e3940b72ca9724db5ab3d0ab9680a848e3c724b60de8adea53f2b7c8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-wine-classification"},"taskInfo":{"name":"wine-classification"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e6699a20c7e91d278c364b7ecb0df13c1d43e7ab0cbb48e0473d577d8e9c035e}}'
+            value: '{{workflow.parameters.implementations-cedc2096e3940b72ca9724db5ab3d0ab9680a848e3c724b60de8adea53f2b7c8}}'
           - name: task-name
             value: wine-classification
           - name: parent-dag-id

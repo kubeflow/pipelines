@@ -65,7 +65,7 @@ func setupLargePipelineURL() string {
 	if branch == "" {
 		branch = "master"
 	}
-	largePipelineURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/sdk/python/test_data/pipelines/xgboost_sample_pipeline.yaml", repo, branch)
+	largePipelineURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/test_data/pipeline_files/valid/xgboost_sample_pipeline.yaml", repo, branch)
 	return largePipelineURL
 }
 func TestBuildPipelineName_QueryStringNotEmpty(t *testing.T) {
@@ -698,9 +698,6 @@ func TestPipelineServer_CreatePipeline(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	pipelineServer := createPipelineServer(resourceManager, httpServer.Client())
 
-	type args struct {
-		pipeline *model.Pipeline
-	}
 	tests := []struct {
 		name    string
 		id      string

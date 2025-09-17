@@ -6,17 +6,17 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-7dd053e817103beb95ff60c3287a8f3d52c454255f12d769c1b83a41ab0ff45c
+    - name: components-802eb316f0b783824e20b61d8170192b475638db1d585e4b891cfe17e7c76602
       value: '{"executorLabel":"exec-component-with-pip-install"}'
-    - name: implementations-7dd053e817103beb95ff60c3287a8f3d52c454255f12d769c1b83a41ab0ff45c
+    - name: implementations-802eb316f0b783824e20b61d8170192b475638db1d585e4b891cfe17e7c76602
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_with_pip_install"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
         python3 -m pip install --quiet --no-warn-script-location --index-url https://pypi.org/simple
-        --trusted-host https://pypi.org/simple ''kfp==2.13.0'' ''--no-deps'' ''typing-extensions\u003e=3.7.4,\u003c5;
-        python_version\u003c\"3.9\"''  \u0026\u0026  python3 -m pip install --quiet
-        --no-warn-script-location --index-url https://pypi.org/simple --trusted-host
-        https://pypi.org/simple ''yapf'' \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp
+        --trusted-host https://pypi.org/simple ''yapf''  \u0026\u0026  python3 -m
+        pip install --quiet --no-warn-script-location --index-url https://pypi.org/simple
+        --trusted-host https://pypi.org/simple ''kfp==2.14.3'' ''--no-deps'' ''typing-extensions\u003e=3.7.4,\u003c5;
+        python_version\u003c\"3.9\"'' \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp
         -d)\n\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true
         python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
@@ -203,11 +203,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-7dd053e817103beb95ff60c3287a8f3d52c454255f12d769c1b83a41ab0ff45c}}'
+            value: '{{workflow.parameters.components-802eb316f0b783824e20b61d8170192b475638db1d585e4b891cfe17e7c76602}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-pip-install"},"taskInfo":{"name":"component-with-pip-install"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-7dd053e817103beb95ff60c3287a8f3d52c454255f12d769c1b83a41ab0ff45c}}'
+            value: '{{workflow.parameters.implementations-802eb316f0b783824e20b61d8170192b475638db1d585e4b891cfe17e7c76602}}'
           - name: task-name
             value: component-with-pip-install
           - name: parent-dag-id

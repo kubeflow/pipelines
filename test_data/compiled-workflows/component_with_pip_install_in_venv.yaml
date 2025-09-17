@@ -6,19 +6,18 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-ba8af08093687a3ccb00569a036bc7ab0587cc89a62eaaa9e9d343a59dd1bdb6
+    - name: components-2074f0535aaa76760a0be660778c79824ceacab159cd4d83a847c6a3876650e0
       value: '{"executorLabel":"exec-component-with-pip-install"}'
-    - name: implementations-ba8af08093687a3ccb00569a036bc7ab0587cc89a62eaaa9e9d343a59dd1bdb6
+    - name: implementations-2074f0535aaa76760a0be660778c79824ceacab159cd4d83a847c6a3876650e0
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_with_pip_install"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        \nexport PIP_DISABLE_PIP_VERSION_CHECK=1\ntmp=$(mktemp -d)\npython3 -m venv
-        \"$tmp/venv\" --system-site-packages\n. \"$tmp/venv/bin/activate\"\n python3
-        -m pip install --quiet --no-warn-script-location --index-url https://pypi.org/simple
-        --trusted-host https://pypi.org/simple ''kfp==2.9.0'' ''--no-deps'' ''typing-extensions\u003e=3.7.4,\u003c5;
-        python_version\u003c\"3.9\"''  \u0026\u0026  python3 -m pip install --quiet
-        --no-warn-script-location --index-url https://pypi.org/simple --trusted-host
-        https://pypi.org/simple ''yapf'' \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp
+        python3 -m pip install --quiet --no-warn-script-location --index-url https://pypi.org/simple
+        --trusted-host https://pypi.org/simple ''yapf''  \u0026\u0026  \nexport PIP_DISABLE_PIP_VERSION_CHECK=1\ntmp=$(mktemp
+        -d)\npython3 -m venv \"$tmp/venv\" --system-site-packages\n. \"$tmp/venv/bin/activate\"\n
+        python3 -m pip install --quiet --no-warn-script-location --index-url https://pypi.org/simple
+        --trusted-host https://pypi.org/simple ''kfp==2.14.3'' ''--no-deps'' ''typing-extensions\u003e=3.7.4,\u003c5;
+        python_version\u003c\"3.9\"'' \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp
         -d)\n\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true
         python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
@@ -205,11 +204,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ba8af08093687a3ccb00569a036bc7ab0587cc89a62eaaa9e9d343a59dd1bdb6}}'
+            value: '{{workflow.parameters.components-2074f0535aaa76760a0be660778c79824ceacab159cd4d83a847c6a3876650e0}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-pip-install"},"taskInfo":{"name":"component-with-pip-install"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ba8af08093687a3ccb00569a036bc7ab0587cc89a62eaaa9e9d343a59dd1bdb6}}'
+            value: '{{workflow.parameters.implementations-2074f0535aaa76760a0be660778c79824ceacab159cd4d83a847c6a3876650e0}}'
           - name: task-name
             value: component-with-pip-install
           - name: parent-dag-id

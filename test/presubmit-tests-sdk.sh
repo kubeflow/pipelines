@@ -26,7 +26,10 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install -r sdk/python/requirements-dev.txt
   python3 -m pip install setuptools
   python3 -m pip install wheel==0.42.0
-  python3 -m pip install coveralls==4.0.1
+  python3 -m pip install pytest-cov
+  python3 -m pip install pytest
+  python3 -m pip install google_cloud_pipeline_components
+  python3 -m pip install docker
   python3 -m pip install --upgrade protobuf
   python3 -m pip install sdk/python
 
@@ -38,7 +41,7 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install -I api/v2alpha1/python
 fi
 
-pytest sdk/python/kfp --cov=kfp
+python -m pytest sdk/python/test -v -s -m regression --cov=kfp
 
 if [ "${SETUP_ENV}" = "true" ]; then
   # Deactivate the virtual environment

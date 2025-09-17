@@ -26,7 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	"github.com/kubeflow/pipelines/backend/test/config"
-	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/constants"
 	e2e_utils "github.com/kubeflow/pipelines/backend/test/end2end/utils"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
@@ -39,7 +39,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Upload and Verify Pipeline Run >", Label(FULL_REGRESSION), func() {
+var _ = Describe("Upload and Verify Pipeline Run >", Label(constants.FullRegression), func() {
 	var testContext *apitests.TestContext
 
 	// ################## SET AND TEARDOWN ##################
@@ -120,8 +120,8 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FULL_REGRESSION), fun
 
 	// ################## TESTS ##################
 
-	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", Label(E2E_NON_CRITICAL), func() {
-		var pipelineDir = "valid"
+	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", Label(constants.E2eEssential), func() {
+		var pipelineDir = "valid/essential"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
@@ -143,7 +143,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FULL_REGRESSION), fun
 	})
 
 	// Few of the following pipelines randomly fail in Multi User Mode during CI run - which is why a FlakeAttempt is added, but we need to investigate, create ticket and fix it in the future
-	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label("Sample", E2E_CRITICAL), func() {
+	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label("Sample", constants.E2eCritical), func() {
 		var pipelineDir = "valid/critical"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
@@ -166,7 +166,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FULL_REGRESSION), fun
 		}
 	})
 
-	Context("Create a pipeline run with HTTP proxy >", Label(E2E_PROXY), func() {
+	Context("Create a pipeline run with HTTP proxy >", Label(constants.E2eProxy), func() {
 		var pipelineDir = "valid"
 		pipelineFile := "env-var.yaml"
 		It(fmt.Sprintf("Create a pipeline run with http proxy, using specs: %s", pipelineFile), func() {
@@ -194,5 +194,29 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FULL_REGRESSION), fun
 				Expect(runState).To(Equal(&expectedRunState), fmt.Sprintf("Expected run with id=%s to fail with proxy=false", createdRunID))
 			}
 		})
+	})
+
+	Context("Upload a pipeline file, run it and verify that pipeline run fails >", Label(constants.E2eFailed), func() {
+		var pipelineDir = "valid/failing"
+		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
+		for _, pipelineFile := range pipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
+				testutil.CheckIfSkipping(pipelineFile)
+				pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+				logger.Log("Uploading pipeline file %s", pipelineFile)
+				uploadedPipeline, uploadErr := testutil.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
+				Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
+				testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
+				logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
+				uploadedPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
+				pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFilePath)
+				createdRunID := e2e_utils.CreatePipelineRunAndWaitForItToFinish(runClient, testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &uploadedPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs, maxPipelineWaitTime)
+				logger.Log("Fetching updated pipeline run details for run with id=%s", createdRunID)
+				updatedRun := testutil.GetPipelineRun(runClient, &createdRunID)
+				Expect(updatedRun.State).NotTo(BeNil(), "Updated pipeline run state is Nil")
+				Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateFAILED), "Pipeline run was expected to fail, but is "+*updatedRun.State)
+
+			})
+		}
 	})
 })

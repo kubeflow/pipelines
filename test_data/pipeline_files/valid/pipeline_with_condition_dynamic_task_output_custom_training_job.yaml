@@ -1,5 +1,5 @@
 # PIPELINE DEFINITION
-# Name: pipeline
+# Name: pipeline-with-dynamic-condition-output
 # Inputs:
 #    encryption_spec_key_name: str [Default: '']
 #    location: str
@@ -109,9 +109,17 @@ components:
           isOptional: true
           parameterType: STRUCT
         location:
-          defaultValue: us-central1
+          defaultValue: '{{$.pipeline_google_cloud_location}}'
           description: Location for creating the custom training job. If not set,
-            default to us-central1.
+            default to the location where the PipelineJob is run.
+          isOptional: true
+          parameterType: STRING
+        max_wait_duration:
+          defaultValue: 86400s
+          description: The maximum time to wait for the custom training job to be
+            scheduled only if the scheduling strategy is set to FLEX_START. If set
+            to 0, the job will wait indefinitely. The default is 24 hours. See [more
+            information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
           isOptional: true
           parameterType: STRING
         network:
@@ -124,12 +132,31 @@ components:
             for the network. If left unspecified, the job is not peered with any network.
           isOptional: true
           parameterType: STRING
+        persistent_resource_id:
+          defaultValue: '{{$.pipeline_persistent_resource_id}}'
+          description: The ID of the PersistentResource in the same Project and Location
+            which to run. The default value is a placeholder that will be resolved
+            to the PipelineJob [RuntimeConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.pipelineJobs#PipelineJob.RuntimeConfig)'s
+            persistent resource id at runtime. However, if the PipelineJob doesn't
+            set Persistent Resource as the job level runtime, the placedholder will
+            be resolved to an empty string and the custom job will be run on demand.
+            If the value is set explicitly, the custom job will runs in the specified
+            persistent resource, in this case, please note the network and CMEK configs
+            on the job should be consistent with those on the PersistentResource,
+            otherwise, the job will be rejected.
+          isOptional: true
+          parameterType: STRING
         project:
           defaultValue: '{{$.pipeline_google_cloud_project_id}}'
           description: Project to create the custom training job in. Defaults to the
             project in which the PipelineJob is run.
           isOptional: true
           parameterType: STRING
+        psc_interface_config:
+          defaultValue: {}
+          description: Configuration CustomJob with PSC-I. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#PscInterfaceConfig).
+          isOptional: true
+          parameterType: STRUCT
         reserved_ip_ranges:
           defaultValue: []
           description: A list of names for the reserved IP ranges under the VPC network
@@ -153,6 +180,12 @@ components:
             run-as account. If unspecified, the Vertex AI Custom Code [Service Agent
             ](https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
             for the CustomJob's project.
+          isOptional: true
+          parameterType: STRING
+        strategy:
+          defaultValue: STANDARD
+          description: The strategy to use for the custom training job. The default
+            is 'STANDARD'. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
           isOptional: true
           parameterType: STRING
         tensorboard:
@@ -207,7 +240,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -235,7 +268,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -260,11 +293,15 @@ deploymentSpec:
         - '{"display_name": "{{$.inputs.parameters[''display_name'']}}", "job_spec":
           {"worker_pool_specs": {{$.inputs.parameters[''worker_pool_specs'']}}, "scheduling":
           {"timeout": "{{$.inputs.parameters[''timeout'']}}", "restart_job_on_worker_restart":
-          {{$.inputs.parameters[''restart_job_on_worker_restart'']}}}, "service_account":
-          "{{$.inputs.parameters[''service_account'']}}", "tensorboard": "{{$.inputs.parameters[''tensorboard'']}}",
-          "enable_web_access": {{$.inputs.parameters[''enable_web_access'']}}, "network":
-          "{{$.inputs.parameters[''network'']}}", "reserved_ip_ranges": {{$.inputs.parameters[''reserved_ip_ranges'']}},
-          "base_output_directory": {"output_uri_prefix": "{{$.inputs.parameters[''base_output_directory'']}}"}},
+          {{$.inputs.parameters[''restart_job_on_worker_restart'']}}, "strategy":
+          "{{$.inputs.parameters[''strategy'']}}", "max_wait_duration": "{{$.inputs.parameters[''max_wait_duration'']}}"},
+          "service_account": "{{$.inputs.parameters[''service_account'']}}", "tensorboard":
+          "{{$.inputs.parameters[''tensorboard'']}}", "enable_web_access": {{$.inputs.parameters[''enable_web_access'']}},
+          "network": "{{$.inputs.parameters[''network'']}}", "reserved_ip_ranges":
+          {{$.inputs.parameters[''reserved_ip_ranges'']}}, "base_output_directory":
+          {"output_uri_prefix": "{{$.inputs.parameters[''base_output_directory'']}}"},
+          "persistent_resource_id": "{{$.inputs.parameters[''persistent_resource_id'']}}",
+          "psc_interface_config": {{$.inputs.parameters[''psc_interface_config'']}}},
           "labels": {{$.inputs.parameters[''labels'']}}, "encryption_spec": {"kms_key_name":
           "{{$.inputs.parameters[''encryption_spec_key_name'']}}"}}'
         - --project
@@ -278,7 +315,7 @@ deploymentSpec:
         - -u
         - -m
         - google_cloud_pipeline_components.container.v1.custom_job.launcher
-        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.14.1
+        image: gcr.io/ml-pipeline/google-cloud-pipeline-components:2.21.0
     exec-flip-biased-coin-op:
       container:
         args:
@@ -291,7 +328,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -320,7 +357,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -337,7 +374,7 @@ deploymentSpec:
           \ *\n\ndef machine_type() -> str:\n    return 'n1-standard-4'\n\n"
         image: python:3.9
 pipelineInfo:
-  name: pipeline
+  name: pipeline-with-dynamic-condition-output
 root:
   dag:
     tasks:
@@ -416,4 +453,4 @@ root:
       project:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.13.0
+sdkVersion: kfp-2.14.3

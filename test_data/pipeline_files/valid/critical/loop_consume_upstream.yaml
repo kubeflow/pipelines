@@ -25,7 +25,7 @@ components:
               content:
                 componentInputParameter: pipelinechannel--split-input-Output-loop-item
           taskInfo:
-            name: create-file
+            name: same display name
         read-file:
           cachingOptions: {}
           componentRef:
@@ -39,13 +39,19 @@ components:
                   outputArtifactKey: file
                   producerTask: create-file
           taskInfo:
-            name: read-file
+            name: same display name
     inputDefinitions:
       parameters:
         pipelinechannel--split-input-Output:
           parameterType: LIST
         pipelinechannel--split-input-Output-loop-item:
           parameterType: STRING
+  comp-print-input:
+    executorLabel: exec-print-input
+    inputDefinitions:
+      parameters:
+        input:
+          parameterType: LIST
   comp-read-file:
     executorLabel: exec-read-file
     inputDefinitions:
@@ -82,7 +88,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -99,6 +105,35 @@ deploymentSpec:
           \ *\n\ndef create_file(file: Output[Artifact], content: str):\n    with\
           \ open(file.path, 'w') as f:\n        f.write(content)\n\n"
         image: python:3.9
+    exec-print-input:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_input
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_input(input: list):\n    for item in input:\n        print(f'Input\
+          \ item: {item}')\n\n"
+        image: python:3.9
     exec-read-file:
       container:
         args:
@@ -111,7 +146,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -140,7 +175,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -158,6 +193,7 @@ deploymentSpec:
           \n"
         image: python:3.9
 pipelineInfo:
+  displayName: Loop Consume Upstream
   name: loop-consume-upstream
 root:
   dag:
@@ -179,6 +215,20 @@ root:
             inputParameter: pipelinechannel--split-input-Output
         taskInfo:
           name: for-loop-1
+      print-input:
+        cachingOptions: {}
+        componentRef:
+          name: comp-print-input
+        dependentTasks:
+        - split-input
+        inputs:
+          parameters:
+            input:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: split-input
+        taskInfo:
+          name: same display name
       split-input:
         cachingOptions: {}
         componentRef:
@@ -189,6 +239,6 @@ root:
               runtimeValue:
                 constant: component1,component2,component3
         taskInfo:
-          name: split-input
+          name: same display name
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.13.0
+sdkVersion: kfp-2.14.3

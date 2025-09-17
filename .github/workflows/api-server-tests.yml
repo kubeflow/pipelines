@@ -41,6 +41,7 @@ on:
       - 'backend/metadata_writer/**'
       - 'backend/test/v2/api/**'
       - 'manifests/kustomize/**'
+      - 'test_data/pipeline_files/**'
       - '!**/*.md'
       - '!**/OWNERS'
 

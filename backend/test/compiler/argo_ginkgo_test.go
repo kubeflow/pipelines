@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	matcher "github.com/kubeflow/pipelines/backend/test/compiler/matchers"
@@ -37,7 +38,7 @@ var _ = BeforeEach(func() {
 	proxy.InitializeConfigWithEmptyForTests()
 })
 
-var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WORKFLOW_COMPILER), func() {
+var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WorkflowCompiler), func() {
 	pipelineFilePaths := testutil.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
 
 	testParams := []struct {
@@ -72,14 +73,14 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WORKFL
 					pipelineSpecs, platformSpec := workflowutils.LoadPipelineSpecsFromIR(pipelineSpecFilePath, param.compilerOptions.CacheDisabled, nil)
 					compiledWorkflow := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &param.compilerOptions)
 					if *createMissingGoldenFiles || *updateGoldenFiles {
-						configuredWorkflow := workflowutils.ConfigureCacheSettings(compiledWorkflow, true)
-						_, err := os.Stat(compiledWorkflowFilePath)
-						if err != nil {
-							logger.Log("Creating/Updating Compiled Workflow File '%s'", compiledWorkflowFilePath)
-							workflowutils.CreateCompiledWorkflowFile(configuredWorkflow, compiledWorkflowFilePath)
+						var configuredWorkflow *v1alpha1.Workflow
+						if param.compilerOptions.CacheDisabled {
+							configuredWorkflow = workflowutils.ConfigureCacheSettings(compiledWorkflow, true)
 						} else {
-							logger.Log("Compiled Workflow File '%s' either already exists or is up to date", compiledWorkflowFilePath)
+							configuredWorkflow = compiledWorkflow
 						}
+						logger.Log("Updating/Creating Compiled Workflow File '%s'", compiledWorkflowFilePath)
+						workflowutils.CreateCompiledWorkflowFile(configuredWorkflow, compiledWorkflowFilePath)
 					}
 					expectedWorkflow := workflowutils.UnmarshallWorkflowYAML(compiledWorkflowFilePath)
 					if param.compilerOptions.CacheDisabled {

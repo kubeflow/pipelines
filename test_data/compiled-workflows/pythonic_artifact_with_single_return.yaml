@@ -10,15 +10,15 @@ spec:
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer
       value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"metadata":{"key":"value"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
-    - name: components-df76e661981c011f500d6b9d0ea8ef578644ed9edefe4199648d9b383ca340f6
+    - name: components-c8e04e29003554b439081c46cb32438ef1f27bc6030910c9c95c7df619a4084b
       value: '{"executorLabel":"exec-make-language-model","inputDefinitions":{"artifacts":{"text_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-df76e661981c011f500d6b9d0ea8ef578644ed9edefe4199648d9b383ca340f6
+    - name: implementations-c8e04e29003554b439081c46cb32438ef1f27bc6030910c9c95c7df619a4084b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","make_language_model"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
-        -m pip install --quiet --no-warn-script-location ''dill==0.3.7'' \u0026\u0026
+        python3 -m pip install --quiet --no-warn-script-location ''dill==0.3.7''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
@@ -281,11 +281,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-df76e661981c011f500d6b9d0ea8ef578644ed9edefe4199648d9b383ca340f6}}'
+            value: '{{workflow.parameters.components-c8e04e29003554b439081c46cb32438ef1f27bc6030910c9c95c7df619a4084b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-language-model"},"dependentTasks":["importer"],"inputs":{"artifacts":{"text_dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"make-language-model"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-df76e661981c011f500d6b9d0ea8ef578644ed9edefe4199648d9b383ca340f6}}'
+            value: '{{workflow.parameters.implementations-c8e04e29003554b439081c46cb32438ef1f27bc6030910c9c95c7df619a4084b}}'
           - name: task-name
             value: make-language-model
           - name: parent-dag-id

@@ -6,41 +6,25 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-70b42d8402b896d5c6a80c33abe526393cf8da3dded9b8d46055850a5fcdc440
-      value: '{"executorLabel":"exec-component-op","inputDefinitions":{"parameters":{"input_bool1":{"defaultValue":true,"isOptional":true,"parameterType":"BOOLEAN"},"input_bool2":{"isOptional":true,"parameterType":"BOOLEAN"},"input_dict":{"defaultValue":{"a":1},"isOptional":true,"parameterType":"STRUCT"},"input_int":{"defaultValue":100,"isOptional":true,"parameterType":"NUMBER_INTEGER"},"input_list":{"defaultValue":["123"],"isOptional":true,"parameterType":"LIST"},"input_str1":{"defaultValue":"string
-        default value","isOptional":true,"parameterType":"STRING"},"input_str2":{"isOptional":true,"parameterType":"STRING"},"input_str3":{"isOptional":true,"parameterType":"STRING"},"input_str4_from_pipeline":{"defaultValue":"Some
-        component default","isOptional":true,"parameterType":"STRING"},"input_str5_from_pipeline":{"defaultValue":"Some
-        component default","isOptional":true,"parameterType":"STRING"},"input_str6_from_pipeline":{"isOptional":true,"parameterType":"STRING"}}}}'
-    - name: implementations-70b42d8402b896d5c6a80c33abe526393cf8da3dded9b8d46055850a5fcdc440
+    - name: components-305fccf43860a79b150cabe2f8d8140dd3c6539588f7e9c3f1788e775bd62887
+      value: '{"executorLabel":"exec-component-op","inputDefinitions":{"parameters":{"input1":{"defaultValue":"default
+        value","isOptional":true,"parameterType":"STRING"},"input2":{"isOptional":true,"parameterType":"STRING"},"input3":{"isOptional":true,"parameterType":"STRING"}}}}'
+    - name: implementations-305fccf43860a79b150cabe2f8d8140dd3c6539588f7e9c3f1788e775bd62887
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        component_op(\n    input_str1: Optional[str] = ''string default value'',\n    input_str2:
-        Optional[str] = None,\n    input_str3: Optional[str] = None,\n    input_str4_from_pipeline:
-        Optional[str] = \"Some component default\",\n    input_str5_from_pipeline:
-        Optional[str] = \"Some component default\",\n    input_str6_from_pipeline:
-        Optional[str] = None,\n    input_bool1: Optional[bool] = True,\n    input_bool2:
-        Optional[bool] = None,\n    input_dict: Optional[Dict[str, int]] = {\"a\":
-        1},\n    input_list: Optional[List[str]] = [\"123\"],\n    input_int: Optional[int]
-        = 100,\n):\n    print(f''input_str1: {input_str1}, type: {type(input_str1)}'')\n    print(f''input_str2:
-        {input_str2}, type: {type(input_str2)}'')\n    print(f''input_str3: {input_str3},
-        type: {type(input_str3)}'')\n    print(f''input_str4_from_pipeline: {input_str4_from_pipeline},
-        type: {type(input_str4_from_pipeline)}'')\n    print(f''input_str5_from_pipeline:
-        {input_str5_from_pipeline}, type: {type(input_str5_from_pipeline)}'')\n    print(f''input_str6_from_pipeline:
-        {input_str6_from_pipeline}, type: {type(input_str6_from_pipeline)}'')\n    print(f''input_bool1:
-        {input_bool1}, type: {type(input_bool1)}'')\n    print(f''input_bool2: {input_bool2},
-        type: {type(input_bool2)}'')\n    print(f''input_bool: {input_dict}, type:
-        {type(input_dict)}'')\n    print(f''input_bool: {input_list}, type: {type(input_list)}'')\n    print(f''input_bool:
-        {input_int}, type: {type(input_int)}'')\n\n"],"image":"python:3.9"}'
+        component_op(\n    input1: str = ''default value'',\n    input2: Optional[str]
+        = None,\n    input3: Optional[str] = None,\n):\n    print(f''input1: {input1},
+        type: {type(input1)}'')\n    print(f''input2: {input2}, type: {type(input2)}'')\n    print(f''input3:
+        {input3}, type: {type(input3)}'')\n\n"],"image":"python:3.9"}'
     - name: components-root
-      value: '{"dag":{"tasks":{"component-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-op"},"inputs":{"parameters":{"input_str1":{"runtimeValue":{"constant":"Hello"}},"input_str2":{"runtimeValue":{"constant":"World"}},"input_str4_from_pipeline":{"componentInputParameter":"input_str4"},"input_str5_from_pipeline":{"componentInputParameter":"input_str5"},"input_str6_from_pipeline":{"componentInputParameter":"input_str6"}}},"taskInfo":{"name":"component-op"}}}},"inputDefinitions":{"parameters":{"input_str4":{"isOptional":true,"parameterType":"STRING"},"input_str5":{"defaultValue":"Some
-        pipeline default","isOptional":true,"parameterType":"STRING"},"input_str6":{"isOptional":true,"parameterType":"STRING"}}}}'
+      value: '{"dag":{"tasks":{"component-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-op"},"inputs":{"parameters":{"input1":{"runtimeValue":{"constant":"Hello"}},"input2":{"runtimeValue":{"constant":"World"}}}},"taskInfo":{"name":"component-op"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -221,11 +205,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-70b42d8402b896d5c6a80c33abe526393cf8da3dded9b8d46055850a5fcdc440}}'
+            value: '{{workflow.parameters.components-305fccf43860a79b150cabe2f8d8140dd3c6539588f7e9c3f1788e775bd62887}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-op"},"inputs":{"parameters":{"input_str1":{"runtimeValue":{"constant":"Hello"}},"input_str2":{"runtimeValue":{"constant":"World"}},"input_str4_from_pipeline":{"componentInputParameter":"input_str4"},"input_str5_from_pipeline":{"componentInputParameter":"input_str5"},"input_str6_from_pipeline":{"componentInputParameter":"input_str6"}}},"taskInfo":{"name":"component-op"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-op"},"inputs":{"parameters":{"input1":{"runtimeValue":{"constant":"Hello"}},"input2":{"runtimeValue":{"constant":"World"}}}},"taskInfo":{"name":"component-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-70b42d8402b896d5c6a80c33abe526393cf8da3dded9b8d46055850a5fcdc440}}'
+            value: '{{workflow.parameters.implementations-305fccf43860a79b150cabe2f8d8140dd3c6539588f7e9c3f1788e775bd62887}}'
           - name: task-name
             value: component-op
           - name: parent-dag-id
@@ -332,8 +316,7 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
-            value: '{"parameterValues":{"input_str4":null,"input_str5":"Some pipeline
-              default","input_str6":null}}'
+            value: '{}'
           - name: driver-type
             value: ROOT_DAG
         name: root-driver

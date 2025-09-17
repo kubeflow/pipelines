@@ -1,5 +1,7 @@
 # PIPELINE DEFINITION
-# Name: two-step-pipeline-containerized
+# Name: containerized-two-step-pipeline
+# Inputs:
+#    text: str [Default: 'Hello KFP Containerized!']
 components:
   comp-component1:
     executorLabel: exec-component1
@@ -41,7 +43,7 @@ deploymentSpec:
         - cat
         image: alpine
 pipelineInfo:
-  name: two-step-pipeline-containerized
+  name: containerized-two-step-pipeline
 root:
   dag:
     tasks:
@@ -53,8 +55,7 @@ root:
         inputs:
           parameters:
             text:
-              runtimeValue:
-                constant: hi
+              componentInputParameter: text
         taskInfo:
           name: component1
       component2:
@@ -72,5 +73,10 @@ root:
                 producerTask: component1
         taskInfo:
           name: component2
+  inputDefinitions:
+    parameters:
+      text:
+        defaultValue: Hello KFP Containerized!
+        parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.14.2
+sdkVersion: kfp-2.14.3

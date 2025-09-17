@@ -6,26 +6,26 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3
+    - name: components-2f694fdbcf4a9d3446e12aa9fca457c7e2882290abceb728d2f702c4d450df8d
       value: '{"executorLabel":"exec-crust-comp","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}}}'
-    - name: implementations-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3
+    - name: implementations-2f694fdbcf4a9d3446e12aa9fca457c7e2882290abceb728d2f702c4d450df8d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","crust_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         crust_comp(input: str):\n    print(''input :'', input)\n\n"],"image":"python:3.9"}'
-    - name: components-9c2adbce22e7223ac5155c235fbc1541b292d9e1f78a984687c391207f9bdbce
+    - name: components-ee0778c93e3b1661b503b59214cb8f679694b2ecc4aa2e53dd25ba5c03529348
       value: '{"executorLabel":"exec-core-comp","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-9c2adbce22e7223ac5155c235fbc1541b292d9e1f78a984687c391207f9bdbce
+    - name: implementations-ee0778c93e3b1661b503b59214cb8f679694b2ecc4aa2e53dd25ba5c03529348
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","core_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -218,11 +218,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-9c2adbce22e7223ac5155c235fbc1541b292d9e1f78a984687c391207f9bdbce}}'
+            value: '{{workflow.parameters.components-ee0778c93e3b1661b503b59214cb8f679694b2ecc4aa2e53dd25ba5c03529348}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-9c2adbce22e7223ac5155c235fbc1541b292d9e1f78a984687c391207f9bdbce}}'
+            value: '{{workflow.parameters.implementations-ee0778c93e3b1661b503b59214cb8f679694b2ecc4aa2e53dd25ba5c03529348}}'
           - name: task-name
             value: core-comp
           - name: parent-dag-id
@@ -356,11 +356,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3}}'
+            value: '{{workflow.parameters.components-2f694fdbcf4a9d3446e12aa9fca457c7e2882290abceb728d2f702c4d450df8d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"parameters":{"input":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3}}'
+            value: '{{workflow.parameters.implementations-2f694fdbcf4a9d3446e12aa9fca457c7e2882290abceb728d2f702c4d450df8d}}'
           - name: task-name
             value: crust-comp
           - name: parent-dag-id

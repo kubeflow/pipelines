@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-3c766a9a3b2e810910139d1e23daf4f989f8805fa49399065dcb5c4e810121c4
+    - name: components-9206f02c3bc8c7317ae618f681a47d92020ce2a4461722611ba616d3ca7af069
       value: '{"executorLabel":"exec-nested-return","outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
-    - name: implementations-3c766a9a3b2e810910139d1e23daf4f989f8805fa49399065dcb5c4e810121c4
+    - name: implementations-9206f02c3bc8c7317ae618f681a47d92020ce2a4461722611ba616d3ca7af069
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","nested_return"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -202,11 +202,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-3c766a9a3b2e810910139d1e23daf4f989f8805fa49399065dcb5c4e810121c4}}'
+            value: '{{workflow.parameters.components-9206f02c3bc8c7317ae618f681a47d92020ce2a4461722611ba616d3ca7af069}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-nested-return"},"taskInfo":{"name":"nested-return"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-3c766a9a3b2e810910139d1e23daf4f989f8805fa49399065dcb5c4e810121c4}}'
+            value: '{{workflow.parameters.implementations-9206f02c3bc8c7317ae618f681a47d92020ce2a4461722611ba616d3ca7af069}}'
           - name: task-name
             value: nested-return
           - name: parent-dag-id

@@ -1,0 +1,250 @@
+# PIPELINE DEFINITION
+# Name: iris-training-pipeline
+# Inputs:
+#    neighbors: int [Default: 3.0]
+#    standard_scaler: bool [Default: True]
+components:
+  comp-create-dataset:
+    executorLabel: exec-create-dataset
+    outputDefinitions:
+      artifacts:
+        iris_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-normalize-dataset:
+    executorLabel: exec-normalize-dataset
+    inputDefinitions:
+      artifacts:
+        input_iris_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        standard_scaler:
+          parameterType: BOOLEAN
+    outputDefinitions:
+      artifacts:
+        normalized_iris_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-train-model:
+    executorLabel: exec-train-model
+    inputDefinitions:
+      artifacts:
+        normalized_iris_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        n_neighbors:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.ClassificationMetrics
+            schemaVersion: 0.0.1
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-create-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - create_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.0'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef create_dataset(iris_dataset: Output[Dataset]):\n    from io import\
+          \ StringIO  # noqa: PLC0415\n\n    import pandas as pd  # noqa: PLC0415\n\
+          \n    data = \"\"\"\n    5.1,3.5,1.4,0.2,Iris-setosa\n    4.9,3.0,1.4,0.2,Iris-setosa\n\
+          \    4.7,3.2,1.3,0.2,Iris-setosa\n    4.6,3.1,1.5,0.2,Iris-setosa\n    5.0,3.6,1.4,0.2,Iris-setosa\n\
+          \    5.7,3.8,1.7,0.3,Iris-setosa\n    5.1,3.8,1.5,0.3,Iris-setosa\n    5.4,3.4,1.7,0.2,Iris-setosa\n\
+          \    5.1,3.7,1.5,0.4,Iris-setosa\n    5.1,3.4,1.5,0.2,Iris-setosa\n    5.0,3.5,1.3,0.3,Iris-setosa\n\
+          \    4.5,2.3,1.3,0.3,Iris-setosa\n    4.4,3.2,1.3,0.2,Iris-setosa\n    5.0,3.5,1.6,0.6,Iris-setosa\n\
+          \    5.1,3.8,1.9,0.4,Iris-setosa\n    4.8,3.0,1.4,0.3,Iris-setosa\n    5.1,3.8,1.6,0.2,Iris-setosa\n\
+          \    4.6,3.2,1.4,0.2,Iris-setosa\n    5.3,3.7,1.5,0.2,Iris-setosa\n    5.0,3.3,1.4,0.2,Iris-setosa\n\
+          \    7.0,3.2,4.7,1.4,Iris-versicolor\n    6.4,3.2,4.5,1.5,Iris-versicolor\n\
+          \    6.9,3.1,4.9,1.5,Iris-versicolor\n    5.5,2.3,4.0,1.3,Iris-versicolor\n\
+          \    6.5,2.8,4.6,1.5,Iris-versicolor\n    6.2,2.2,4.5,1.5,Iris-versicolor\n\
+          \    5.6,2.5,3.9,1.1,Iris-versicolor\n    5.9,3.2,4.8,1.8,Iris-versicolor\n\
+          \    6.1,2.8,4.0,1.3,Iris-versicolor\n    6.3,2.5,4.9,1.5,Iris-versicolor\n\
+          \    6.1,2.8,4.7,1.2,Iris-versicolor\n    6.4,2.9,4.3,1.3,Iris-versicolor\n\
+          \    6.6,3.0,4.4,1.4,Iris-versicolor\n    5.6,2.7,4.2,1.3,Iris-versicolor\n\
+          \    5.7,3.0,4.2,1.2,Iris-versicolor\n    5.7,2.9,4.2,1.3,Iris-versicolor\n\
+          \    6.2,2.9,4.3,1.3,Iris-versicolor\n    5.1,2.5,3.0,1.1,Iris-versicolor\n\
+          \    5.7,2.8,4.1,1.3,Iris-versicolor\n    6.3,3.3,6.0,2.5,Iris-virginica\n\
+          \    5.8,2.7,5.1,1.9,Iris-virginica\n    7.1,3.0,5.9,2.1,Iris-virginica\n\
+          \    6.3,2.9,5.6,1.8,Iris-virginica\n    6.5,3.0,5.8,2.2,Iris-virginica\n\
+          \    6.9,3.1,5.1,2.3,Iris-virginica\n    5.8,2.7,5.1,1.9,Iris-virginica\n\
+          \    6.8,3.2,5.9,2.3,Iris-virginica\n    6.7,3.3,5.7,2.5,Iris-virginica\n\
+          \    6.7,3.0,5.2,2.3,Iris-virginica\n    6.3,2.5,5.0,1.9,Iris-virginica\n\
+          \    6.5,3.0,5.2,2.0,Iris-virginica\n    6.2,3.4,5.4,2.3,Iris-virginica\n\
+          \    5.9,3.0,5.1,1.8,Iris-virginica\n    \"\"\"\n    col_names = [\"Sepal_Length\"\
+          , \"Sepal_Width\", \"Petal_Length\", \"Petal_Width\", \"Labels\"]\n    df\
+          \ = pd.read_csv(StringIO(data), names=col_names)\n\n    with open(iris_dataset.path,\
+          \ \"w\") as f:\n        df.to_csv(f)\n\n"
+        image: python:3.9
+    exec-normalize-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - normalize_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.0'\
+          \ 'scikit-learn==1.4.0' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef normalize_dataset(\n    input_iris_dataset: Input[Dataset],\n\
+          \    normalized_iris_dataset: Output[Dataset],\n    standard_scaler: bool,\n\
+          ):\n    import pandas as pd  # noqa: PLC0415\n    from sklearn.preprocessing\
+          \ import MinMaxScaler, StandardScaler  # noqa: PLC0415\n\n    with open(input_iris_dataset.path)\
+          \ as f:\n        df = pd.read_csv(f)\n    labels = df.pop(\"Labels\")\n\n\
+          \    scaler = StandardScaler() if standard_scaler else MinMaxScaler()\n\n\
+          \    df = pd.DataFrame(scaler.fit_transform(df))\n    df[\"Labels\"] = labels\n\
+          \    normalized_iris_dataset.metadata[\"state\"] = \"Normalized\"\n    with\
+          \ open(normalized_iris_dataset.path, \"w\") as f:\n        df.to_csv(f)\n\
+          \n"
+        image: python:3.9
+    exec-train-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.0'\
+          \ 'scikit-learn==1.4.0' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_model(\n    normalized_iris_dataset: Input[Dataset],\n\
+          \    model: Output[Model],\n    metrics: Output[ClassificationMetrics],\n\
+          \    n_neighbors: int,\n):\n    import pickle  # noqa: PLC0415\n\n    import\
+          \ pandas as pd  # noqa: PLC0415\n    from sklearn.metrics import confusion_matrix\
+          \  # noqa: PLC0415\n    from sklearn.model_selection import cross_val_predict,\
+          \ train_test_split  # noqa: PLC0415\n    from sklearn.neighbors import KNeighborsClassifier\
+          \  # noqa: PLC0415\n\n    with open(normalized_iris_dataset.path) as f:\n\
+          \        df = pd.read_csv(f)\n\n    y = df.pop(\"Labels\")\n    X = df\n\
+          \n    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)\
+          \  # noqa: F841\n\n    clf = KNeighborsClassifier(n_neighbors=n_neighbors)\n\
+          \    clf.fit(X_train, y_train)\n\n    predictions = cross_val_predict(clf,\
+          \ X_train, y_train, cv=3)\n    metrics.log_confusion_matrix(\n        [\"\
+          Iris-Setosa\", \"Iris-Versicolour\", \"Iris-Virginica\"],\n        confusion_matrix(y_train,\
+          \ predictions).tolist(),  # .tolist() to convert np array to list.\n   \
+          \ )\n\n    model.metadata[\"framework\"] = \"scikit-learn\"\n    with open(model.path,\
+          \ \"wb\") as f:\n        pickle.dump(clf, f)\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: iris-training-pipeline
+root:
+  dag:
+    tasks:
+      create-dataset:
+        cachingOptions: {}
+        componentRef:
+          name: comp-create-dataset
+        taskInfo:
+          name: create-dataset
+      normalize-dataset:
+        cachingOptions: {}
+        componentRef:
+          name: comp-normalize-dataset
+        dependentTasks:
+        - create-dataset
+        inputs:
+          artifacts:
+            input_iris_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: iris_dataset
+                producerTask: create-dataset
+          parameters:
+            standard_scaler:
+              componentInputParameter: standard_scaler
+        taskInfo:
+          name: normalize-dataset
+      train-model:
+        cachingOptions: {}
+        componentRef:
+          name: comp-train-model
+        dependentTasks:
+        - normalize-dataset
+        inputs:
+          artifacts:
+            normalized_iris_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: normalized_iris_dataset
+                producerTask: normalize-dataset
+          parameters:
+            n_neighbors:
+              componentInputParameter: neighbors
+        taskInfo:
+          name: train-model
+  inputDefinitions:
+    parameters:
+      neighbors:
+        defaultValue: 3.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      standard_scaler:
+        defaultValue: true
+        isOptional: true
+        parameterType: BOOLEAN
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
