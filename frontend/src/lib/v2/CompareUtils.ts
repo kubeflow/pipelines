@@ -162,7 +162,7 @@ export const getValidRocCurveArtifactData = (
       }),
     ),
   ) as LinkedArtifact[];
-  
+
   return {
     validLinkedArtifacts,
     fullArtifactPathMap,
