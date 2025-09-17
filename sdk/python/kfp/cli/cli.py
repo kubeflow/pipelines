@@ -95,9 +95,10 @@ def _install_completion(shell: str) -> None:
     type=click.Choice(list(map(lambda x: x.name, OutputFormat))),
     default=OutputFormat.table.name,
     show_default=True,
-    help='The formatting style for command output.')
+    help='The formatting style for command output.'
+)
 @click.pass_context
-@click.version_option(version=_version.__version__, message='%(prog)s %(version)s')
+@click.version_option(version=kfp.__version__, message='%(prog)s %(version)s')
 
 
 

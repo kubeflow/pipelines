@@ -15,10 +15,11 @@
 from collections import abc
 from collections import OrderedDict
 import inspect
-from typing import Any, cast, Dict, get_type_hints, List, Mapping, MutableMapping, MutableSequence, Sequence, Type, TypeVar, Union
+from typing import (Any, cast, Dict, get_type_hints, List, Mapping,
+                    MutableMapping, MutableSequence, Sequence, Type, TypeVar,
+                    Union)
 
 T = TypeVar('T')
-
 
 def verify_object_against_type(x: Any, typ: Type[T]) -> T:
     """Verifies that the object is compatible to the specified type (types from

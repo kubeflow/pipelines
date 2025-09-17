@@ -10,33 +10,51 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.
+# limitations under the License. 
+
 import dataclasses
 import inspect
 import itertools
 import pathlib
 import re
 import textwrap
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Type, Union
 import warnings
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import docstring_parser
-import kfp
 from kfp import dsl
-from kfp.dsl import container_component_artifact_channel
-from kfp.dsl import container_component_class
-from kfp.dsl import graph_component
-from kfp.dsl import pipeline_config
-from kfp.dsl import placeholders
-from kfp.dsl import python_component
-from kfp.dsl import structures
-from kfp.dsl import task_final_status
+from kfp.dsl import (
+    container_component_artifact_channel,
+    container_component_class,
+    graph_component,
+    pipeline_config,
+    placeholders,
+    python_component,
+    structures,
+    task_final_status,
+)
+
 from kfp.dsl.component_task_config import TaskConfigPassthrough
+from kfp.dsl.container_component_artifact_channel import (
+    ContainerComponentArtifactChannel,
+)
 from kfp.dsl.task_config import TaskConfig
-from kfp.dsl.types import artifact_types
-from kfp.dsl.types import custom_artifact_types
-from kfp.dsl.types import type_annotations
-from kfp.dsl.types import type_utils
+from kfp.dsl.types import (
+    artifact_types,
+    custom_artifact_types,
+    type_annotations,
+    type_utils,
+)
 
 _DEFAULT_BASE_IMAGE = 'python:3.9'
 SINGLE_OUTPUT_NAME = 'Output'
