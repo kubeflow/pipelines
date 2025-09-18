@@ -66,3 +66,9 @@ const (
 	MaxFileNameLength = 100
 	MaxFileLength     = 32 << 20 // 32Mb
 )
+
+const (
+	//ToDo: Pls rename. Also the first one may not even be necessary.
+	TLSCertCAPath = "/etc/pki/tls/cert/ca.crt"
+	CABundleDir   = "/etc/pki/tls/cert"
+)

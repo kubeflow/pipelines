@@ -516,13 +516,15 @@ func execute(
 		writer = os.Stdout
 	}
 
-	// If TLS enabled, append mounted custom CA to system CA and save to temp file for executor access.
+	// If TLS enabled, save system CA (with mounted custom CA appended, if applicable) to temp file for executor access.
 	if tlsEnabled {
-		mountedCACertPath := os.Getenv("REQUESTS_CA_BUNDLE")
-		caBundleTmpPath := compileTempCABundle(mountedCACertPath)
-		os.Setenv("REQUESTS_CA_BUNDLE", caBundleTmpPath)
-		os.Setenv("AWS_CA_BUNDLE", caBundleTmpPath)
-		os.Setenv("SSL_CERT_FILE", caBundleTmpPath)
+		if caBundleTmpPath, err := compileTempCABundle(); err != nil {
+			return nil, err
+		} else {
+			os.Setenv("REQUESTS_CA_BUNDLE", caBundleTmpPath)
+			os.Setenv("AWS_CA_BUNDLE", caBundleTmpPath)
+			os.Setenv("SSL_CERT_FILE", caBundleTmpPath)
+		}
 	}
 
 	// Prepare command that will execute end user code.
@@ -541,9 +543,9 @@ func execute(
 	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
 }
 
-// Append custom CA to system CA bundle and store in temp file
-func compileTempCABundle(customCAMountPath string) string {
-	// Possible certificate files; stop after finding one.
+// Create temp file that stores system CA bundle (and custom CA if exists).
+func compileTempCABundle() (string, error) {
+	// Possible certificate files; stop after finding one. List from https://go.dev/src/crypto/x509/root_linux.go
 	var systemCAs = []string{
 		"/etc/ssl/certs/ca-certificates.crt",
 		"/etc/pki/tls/certs/ca-bundle.crt",
@@ -552,34 +554,42 @@ func compileTempCABundle(customCAMountPath string) string {
 		"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
 		"/etc/ssl/cert.pem",
 	}
-
+	sslCertFilePath := os.Getenv("SSL_CERT_FILE")
+	if sslCertFilePath != "" {
+		systemCAs = append(systemCAs, sslCertFilePath)
+	}
 	tmpCaBundle, err := os.CreateTemp("", "ca-bundle-*.crt")
 	if err != nil {
-		glog.Errorf("Error creating temp file: %s", err)
+		return "", err
 	}
+	var systemCaBundle []byte
 	for _, file := range systemCAs {
-		systemCaBundle, err := os.ReadFile(file)
-		if err == nil {
-			if _, err = tmpCaBundle.Write(systemCaBundle); err != nil {
-				glog.Errorf("Error writing to temp ca-bundle file: %s", err)
-			}
+		systemCaBundle, err = os.ReadFile(file)
+		if err != nil {
+			return "", err
+		}
+		// Once a non-nil system CA file is found, break.
+		if systemCaBundle != nil {
 			break
 		}
 	}
-	// Append mounted custom CA cert to CA bundle from input customCAMountPath
-	if customCA, err := os.ReadFile(customCAMountPath); err == nil {
-		if _, err = tmpCaBundle.Seek(0, io.SeekEnd); err != nil {
-			glog.Errorf("Error reading mounted CA cert: %s", err)
-			return ""
-		}
-
-		if _, err = tmpCaBundle.Write(customCA); err != nil {
-			glog.Errorf("Error writing to temp file: %s", err)
-			return ""
-		}
+	// Append mounted custom CA cert to System CA bundle.
+	customCa, err := os.ReadFile("etc/pki/tls/cert/ca.crt")
+	if err != nil {
+		return "", err
+	}
+	systemCaBundle = append(systemCaBundle, customCa...)
+	_, err = tmpCaBundle.Write(systemCaBundle)
+	if err != nil {
+		return "", err
+	}
+	// Update temp file permissions to 444 (read-only).
+	err = tmpCaBundle.Chmod(0444)
+	if err != nil {
+		return "", err
 	}
 	// Return filepath for tmpCaBundle
-	return tmpCaBundle.Name()
+	return tmpCaBundle.Name(), nil
 }
 
 type uploadOutputArtifactsOptions struct {

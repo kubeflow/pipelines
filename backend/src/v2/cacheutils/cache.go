@@ -76,17 +76,14 @@ type client struct {
 var _ Client = &client{}
 
 // NewClient creates a Client.
-func NewClient(cacheDisabled bool, mlPipelineServiceTLSEnabled bool) (Client, error) {
+func NewClient(cacheDisabled bool, mlPipelineServiceTLSEnabled bool, tlsCfg *tls.Config) (Client, error) {
 	if cacheDisabled {
 		return &disabledCacheClient{}, nil
 	}
 
 	creds := insecure.NewCredentials()
 	if mlPipelineServiceTLSEnabled {
-		config := &tls.Config{
-			InsecureSkipVerify: false,
-		}
-		creds = credentials.NewTLS(config)
+		creds = credentials.NewTLS(tlsCfg)
 	}
 	glog.Infof("Connecting to cache endpoint %s", defaultKfpApiEndpoint)
 	conn, err := grpc.Dial(

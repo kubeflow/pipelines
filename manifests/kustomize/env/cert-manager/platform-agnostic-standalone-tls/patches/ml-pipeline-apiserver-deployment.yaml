@@ -20,12 +20,8 @@ spec:
               value: "true"
             - name: ML_PIPELINE_TLS_ENABLED
               value: "true"
-            - name: CABUNDLE_PATH
-              value: "/etc/pki/tls/cert/ca.crt"
             - name: CABUNDLE_SECRET_NAME
               value: "kfp-api-tls-cert"
-            - name: SSL_CERT_FILE
-              value: "/etc/pki/tls/cert/ca.crt"
             - name: METADATA_GRPC_SERVICE_SERVICE_HOST
               value: "metadata-grpc-service.kubeflow.svc"
             - name: ML_PIPELINE_SERVICE_HOST

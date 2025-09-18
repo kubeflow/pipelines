@@ -44,9 +44,9 @@ var (
 	logLevel                    = flag.String("log_level", "1", "The verbosity level to log.")
 	publishLogs                 = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 	cacheDisabledFlag           = flag.Bool("cache_disabled", false, "Disable cache globally.")
-	mlPipelineServiceTLSEnabled = flag.Bool("ml_pipeline_service_tls_enabled", false, "Set to true if mlpipeline api server serves over TLS (default: false).")
-	metadataServiceTLSEnabled   = flag.Bool("metadata_tls_enabled", false, "Set to true if metadata server serves over TLS (default: false).")
-	caCertPath                  = flag.String("ca_cert_path", "", "The path to the CA certificate.")
+	mlPipelineServiceTLSEnabled = flag.Bool("ml_pipeline_service_tls_enabled", false, "Set to true if ML pipeline API server serves over TLS.")
+	metadataServiceTLSEnabled   = flag.Bool("metadata_tls_enabled", false, "Set to true if metadata server serves over TLS.")
+	caCertPath                  = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 )
 
 func main() {

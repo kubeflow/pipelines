@@ -341,30 +341,6 @@ To resolve this, a webhook proxy acts as a bridge, allowing webhooks to communic
 
 This is used by default when using the `dev-kind-cluster` Make target.
 
-### Enabling Pod-to-Pod TLS for Local Development in a Kind Cluster
-To create a Kind cluster in which pod-to-pod communication occurs over TLS, run the `kind-cluster-agnostic-tls` Make target.
-You will need to extract the cluster CA cert locally:
-```
-kubectl -n kubeflow get secret kfp-api-tls-cert  -o jsonpath='{.data.tls\.crt}' | base64 -d > tls.crt
-```
-And port-forward the following:
-```
-kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 
-```
-```
-kubectl -n kubeflow port-forward <ml-pipeline pod> 8888:8888
-```
-For developing locally with any of the following deployments, add the following deployment-specific runtime arguments:
-#### Run the KFP Backend locally with TLS Enabled
-```
--tlsCertPath=tls.crt
--tlsCertKeyPath=tls.key
-```
-#### Run the Scheduled Workflow controller locally with TLS enabled
-```
--mlPipelineServiceTLSEnabled=true
--mlPipelineServiceTLSCert=ca.crt
-```
 ### Deleting the Kind Cluster
 
 Run the following to delete the cluster (once you are finished):

@@ -105,7 +105,7 @@ kind-cluster-agnostic:
 	# Switch to Kubeflow namespace context
 	kubectl config set-context --current --namespace=kubeflow
 
-# Creates a Kind cluster with pod-to-pod TLS enabled.
+# Creates a Kind cluster and deploys a standalone KFP instance in the Kubeflow namespace with pod-to-pod TLS enabled.
 .PHONY: kind-cluster-agnostic-tls
 kind-cluster-agnostic-tls:
 	$(MAKE) TLS_ENABLED="true" kind-cluster-agnostic

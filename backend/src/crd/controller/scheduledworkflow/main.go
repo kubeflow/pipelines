@@ -16,7 +16,6 @@ package main
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"flag"
 	"fmt"
 	"os"
@@ -111,22 +110,8 @@ func main() {
 
 	var tlsCfg *tls.Config
 	if mlPipelineServiceTLSEnabled {
-		caCertPool, err := x509.SystemCertPool()
-		if err != nil {
-			log.Fatalf("Failed to load system cert pool: %v", err)
-		}
-		if mlPipelineServiceTLSCert != "" {
-			caCert, err := os.ReadFile(mlPipelineServiceTLSCert)
-			if err != nil {
-				log.Fatalf("Failed to read CA cert from %s", mlPipelineServiceTLSCert)
-			}
-			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-				log.Fatalf("Failed to append CA cert from %s", mlPipelineServiceTLSCert)
-			}
-		}
-		tlsCfg = &tls.Config{
-			RootCAs: caCertPool,
-		}
+		tlsCfg = commonutil.GetTLSConfig(mlPipelineServiceTLSCert)
+
 	}
 	apiConnection, err := commonutil.GetRpcConnectionWithTimeout(grpcAddress, tlsCfg, time.Now().Add(time.Minute))
 	if err != nil {

@@ -19,11 +19,9 @@ package metadata
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -115,7 +113,7 @@ type Client struct {
 }
 
 // NewClient creates a Client given the MLMD server address and port.
-func NewClient(serverAddress, serverPort string, tlsEnabled bool, caCertPath string) (*Client, error) {
+func NewClient(serverAddress, serverPort string, tlsEnabled bool, tlsCfg *tls.Config) (*Client, error) {
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(mlmdClientSideMaxRetries),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
@@ -124,24 +122,7 @@ func NewClient(serverAddress, serverPort string, tlsEnabled bool, caCertPath str
 
 	creds := insecure.NewCredentials()
 	if tlsEnabled {
-		var config *tls.Config
-		caCertPool, err := x509.SystemCertPool()
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to load system cert pool")
-		}
-		if caCertPath != "" {
-			caCert, err := os.ReadFile(caCertPath)
-			if err != nil {
-				return nil, util.Wrap(err, fmt.Sprintf("Failed to read CA cert from %s", caCertPath))
-			}
-			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-				return nil, util.Wrap(err, fmt.Sprintf("Failed to append CA cert from %s", caCertPath))
-			}
-		}
-		config = &tls.Config{
-			RootCAs: caCertPool,
-		}
-		creds = credentials.NewTLS(config)
+		creds = credentials.NewTLS(tlsCfg)
 	}
 
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),

@@ -16,9 +16,7 @@ package main
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"flag"
-	"os"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
@@ -128,22 +126,7 @@ func main() {
 
 	var tlsCfg *tls.Config
 	if mlPipelineServiceTLSEnabled {
-		caCertPool, err := x509.SystemCertPool()
-		if err != nil {
-			log.Fatalf("Failed to load system cert pool: %v", err)
-		}
-		if caCertPath != "" {
-			caCert, err := os.ReadFile(caCertPath)
-			if err != nil {
-				log.Fatalf("Failed to read CA cert from %s", caCertPath)
-			}
-			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-				log.Fatalf("Failed to append CA cert from %s", caCertPath)
-			}
-		}
-		tlsCfg = &tls.Config{
-			RootCAs: caCertPool,
-		}
+		tlsCfg = util.GetTLSConfig(caCertPath)
 	}
 
 	pipelineClient, err := client.NewPipelineClient(
@@ -185,7 +168,7 @@ func init() {
 	flag.StringVar(&mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceHttpPort, mlPipelineAPIServerHttpPortFlagName, "8888", "Http Port of the ML pipeline API server.")
 	flag.StringVar(&mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
-	flag.BoolVar(&mlPipelineServiceTLSEnabled, mlPipelineAPIServerTLSEnabledFlagName, false, "Set to true if mlpipeline API server serves over TLS.")
+	flag.BoolVar(&mlPipelineServiceTLSEnabled, mlPipelineAPIServerTLSEnabledFlagName, false, "Set to true if ML pipeline API server serves over TLS.")
 	flag.StringVar(&mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
 		"/apis/v1beta1", "The base path for the ML pipeline API server.")
 	flag.StringVar(&namespace, namespaceFlagName, "", "The namespace name used for Kubernetes informers to obtain the listers.")
@@ -199,5 +182,5 @@ func init() {
 	// TODO use viper/config file instead. Sync `saTokenRefreshIntervalFlagName` with the value from manifest file by using ENV var.
 	flag.Int64Var(&saTokenRefreshIntervalInSecs, saTokenRefreshIntervalFlagName, DefaultSATokenRefresherIntervalInSecs, "Persistence agent service account token read interval in seconds. "+
 		"Defines how often `/var/run/secrets/kubeflow/tokens/kubeflow-persistent_agent-api-token` to be read")
-	flag.StringVar(&caCertPath, caCertPathFlagName, "", "The path to the CA certificate.")
+	flag.StringVar(&caCertPath, caCertPathFlagName, "", "The path to the CA certificate to trust on connections to the ML pipeline API server.")
 }

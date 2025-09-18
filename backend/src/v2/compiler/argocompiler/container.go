@@ -215,9 +215,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	}
 	if common.GetMetadataTLSEnabled() {
 		args = append(args, "--metadata_tls_enabled")
-	}
-	if common.GetCaCertPath() != "" {
-		args = append(args, "--ca_cert_path", common.GetCaCertPath())
+		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
 	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
