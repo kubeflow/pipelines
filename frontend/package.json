@@ -35,7 +35,7 @@
     "react-dropzone": "^5.1.0",
     "react-flow-renderer": "^9.6.3",
     "react-query": "^3.16.0",
-    "react-router-dom": "^4.3.1",
+    "react-router-dom": "^7.5.2",
     "react-svg-line-chart": "^2.0.2",
     "react-textarea-autosize": "^8.3.3",
     "react-virtualized": "^9.20.1",
