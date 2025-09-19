@@ -54,6 +54,12 @@ spec:
               key: defaultPipelineRoot
               name: pipeline-install-config
               optional: true
+        - name: ARTIFACTS_PROXY_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              key: ARTIFACTS_PROXY_ENABLED
+              name: pipeline-install-config
+              optional: true
         volumeMounts:
         - name: hooks
           mountPath: /hooks

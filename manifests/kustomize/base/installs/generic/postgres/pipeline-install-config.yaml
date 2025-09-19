@@ -93,3 +93,12 @@ data:
   ## If this value doesn't include a unit abbreviation, the units will be assumed
   ## to be nanoseconds.
   ConMaxLifeTime: "120s"
+  LOG_LEVEL: "info"
+  ## ARTIFACTS_PROXY_ENABLED: Controls whether the artifact proxy is enabled
+  ## to support accessing out-of-kubeflow scope buckets. The artifact proxy
+  ## has known security and architectural flaws, so it should only be enabled
+  ## if you specifically need to access unique pipeline root buckets per
+  ## namespace that are outside the kubeflow namespace's access.
+  ## Valid values are 'true' and 'false'. Defaults to 'false'.
+  ## For more information see: https://github.com/kubeflow/pipelines/issues/11987
+  ARTIFACTS_PROXY_ENABLED: "false"

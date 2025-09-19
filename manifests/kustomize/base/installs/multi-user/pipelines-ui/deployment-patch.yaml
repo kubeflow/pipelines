@@ -21,7 +21,11 @@ spec:
         - name: ARTIFACTS_SERVICE_PROXY_PORT
           value: '80'
         - name: ARTIFACTS_SERVICE_PROXY_ENABLED
-          value: 'true'
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: ARTIFACTS_PROXY_ENABLED
+              optional: true
         - name: ENABLE_AUTHZ
           value: 'true'
         - name: KUBEFLOW_USERID_HEADER

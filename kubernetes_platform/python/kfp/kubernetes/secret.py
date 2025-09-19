@@ -26,6 +26,7 @@ def use_secret_as_env(
     task: PipelineTask,
     secret_name: Union[pipeline_channel.PipelineParameterChannel, str],
     secret_key_to_env: Dict[str, str],
+    optional: bool = False,
 ) -> PipelineTask:
     """Use a Kubernetes Secret as an environment variable as described by the `Kubernetes documentation
     https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-environment-variables `_.
@@ -34,6 +35,7 @@ def use_secret_as_env(
         task: Pipeline task.
         secret_name: Name of the Secret.
         secret_key_to_env: Dictionary of Secret data key to environment variable name. For example, ``{'password': 'PASSWORD'}`` sets the data of the Secret's password field to the environment variable ``PASSWORD``.
+        optional: Optional field specifying whether the Secret must be defined.
 
     Returns:
         Task object with updated secret configuration.
@@ -47,7 +49,7 @@ def use_secret_as_env(
             env_var=env_var,
         ) for secret_key, env_var in secret_key_to_env.items()
     ]
-    secret_as_env = pb.SecretAsEnv(key_to_env=key_to_env)
+    secret_as_env = pb.SecretAsEnv(key_to_env=key_to_env, optional=optional)
 
     secret_name_parameter = common.parse_k8s_parameter_input(secret_name, task)
     secret_as_env.secret_name_parameter.CopyFrom(secret_name_parameter)

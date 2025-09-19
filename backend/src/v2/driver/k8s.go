@@ -316,12 +316,19 @@ func extendPodSpecPatch(
 	// Get secret env information
 	for _, secretAsEnv := range kubernetesExecutorConfig.GetSecretAsEnv() {
 		for _, keyToEnv := range secretAsEnv.GetKeyToEnv() {
+			secretKeySelector := &k8score.SecretKeySelector{
+				Key: keyToEnv.GetSecretKey(),
+			}
+
+			// Set Optional field when explicitly provided (true or false), leave nil when not specified
+			if secretAsEnv.Optional != nil {
+				secretKeySelector.Optional = secretAsEnv.Optional
+			}
+
 			secretEnvVar := k8score.EnvVar{
 				Name: keyToEnv.GetEnvVar(),
 				ValueFrom: &k8score.EnvVarSource{
-					SecretKeyRef: &k8score.SecretKeySelector{
-						Key: keyToEnv.GetSecretKey(),
-					},
+					SecretKeyRef: secretKeySelector,
 				},
 			}
 
@@ -399,12 +406,19 @@ func extendPodSpecPatch(
 	// Get config map env information
 	for _, configMapAsEnv := range kubernetesExecutorConfig.GetConfigMapAsEnv() {
 		for _, keyToEnv := range configMapAsEnv.GetKeyToEnv() {
+			configMapKeySelector := &k8score.ConfigMapKeySelector{
+				Key: keyToEnv.GetConfigMapKey(),
+			}
+
+			// Set Optional field when explicitly provided (true or false), leave nil when not specified
+			if configMapAsEnv.Optional != nil {
+				configMapKeySelector.Optional = configMapAsEnv.Optional
+			}
+
 			configMapEnvVar := k8score.EnvVar{
 				Name: keyToEnv.GetEnvVar(),
 				ValueFrom: &k8score.EnvVarSource{
-					ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
-						Key: keyToEnv.GetConfigMapKey(),
-					},
+					ConfigMapKeyRef: configMapKeySelector,
 				},
 			}
 

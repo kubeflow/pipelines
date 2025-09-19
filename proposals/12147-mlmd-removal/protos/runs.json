@@ -16,12 +16,19 @@
   "tasks": [
     {
       "task_id": "task_id_1",
+      // This should match the component task names created during sdk compilation
+      // UI can use this to look up matching tasks in the UI.
+      // In the case of task_groups this would take on names like: "condition-branches-1, for-loop-1, etc."
       "run_id": "run_id",
+      "name": "task_name",
       "display_name": "train-model",
       "create_time": "2025-08-08T15:15:41Z",
       "start_time": "2025-08-08T15:17:36Z",
       "end_time": "2025-08-08T15:18:24Z",
-      "state": "SUCCEEDED",
+      "status": "SUCCEEDED",
+      "status_metadata": {
+        "custom_message": "this is a custom message"
+      },
       "state_history": [],
       // in non Runtime types, we expect only one pod
       "pods": [
@@ -37,54 +44,26 @@
         }
       ],
       "inputs": {
-        "metrics": [
-          {
-            "key": "accuracy_score",
-            "value": 2123.22,
-            "task_id": "task_id_1",
-            "schema": "Metric",
-            "created_at": "2025-08-08T15:15:41Z",
-            "type": "METRIC_INPUT"
-          },
-          {
-            "schema": "ClassificationMetrics",
-            "values": [
-              {
-                "confidenceThreshold": 0.999999,
-                "falsePositiveRate": 0,
-                "recall": 0
-              },
-              {
-                "confidenceThreshold": 1,
-                "falsePositiveRate": 0,
-                "recall": 0.33962264150943394
-              }],
-            "task_id": "task_id_1",
-            "created_at": "2025-08-08T15:15:41Z",
-            "type": "METRIC_INPUT"
-          }
-        ],
         "artifacts": [
           {
-            "input_type": "ResolvedInput",
-            "name": "input_dataset",
+            // Parameter name is only applicable on a
+            // runtime task type
+            "parameter_name": "some_param",
+            "producer_task_name": "create_metric",
+            "producer_key": "my_metric_out_param_name",
             "value": {
-              "artifact_id": "5",
-              "name": "my_dataset",
-              "type": "Model",
-              "uri": "minio://mlpipeline/v2/artifacts/pipeline/9e68aca5-3afa-4028-8777-f697d858053f/input_dataset",
-              "custom_properties": {
-                "my_data": ["some", "data"],
-                "more_data": { "can_be":  "anythingJSON"}
-              },
-              "created_at": "2025-08-08T15:15:41Z",
-              "namespace": "some_namespace"
+              "artifact_id": "1",
+              "name": "my_metric",
+              "type": "Metric",
+              "custom_properties": {},
+              "number_value": 23.21,
+              "created_at": "2025-08-08T15:15:41Z"
             }
           },
           {
-            "input_type": "PipelineChannel",
-            "producer_task_name": "output_artifact",
-            "producer_parameter_id": "some_id",
+            "name": "input_dataset",
+            "producer_task_name": "create_dataset",
+            "producer_key": "my_dataset_out_param_name",
             "value": {
               "artifact_id": "5",
               "name": "my_dataset",
@@ -94,37 +73,33 @@
                 "my_data": ["some", "data"],
                 "more_data": { "can_be":  "anythingJSON"}
               },
-              "created_at": "2025-08-08T15:15:41Z",
-              "namespace": "some_namespace"
+              "created_at": "2025-08-08T15:15:41Z"
             }
           }
         ],
         "parameters": [
           {
-            // For Runtime tasks we expect to have resolved input parameters
-            "input_type": "ResolvedInput",
             "name": "min_max_scaler",
             "value": "false"
           },
           {
-            // For non Runtime tasks, we may get PipelineChannels as input parameters
-            // PipelineChannel can be of the following forms:
-            // * pipelinechannel--output-msg-output_artifact
-            // * pipelinechannel--output-msg-Output
-            // We convert these to a more machine readable format:
-            "input_type": "PipelineChannel",
-            "producer_task_name": "output-msg",
-            // We call it ID because it's not always a parameter "name" so producer_parameter_name would be misleading
-            // (e.g. in the case of loops pipelinechannel--loop-item-param-1), if we can infer the name of the iteration
-            // param then "name" would be better.
-            "producer_parameter_id": "a_msg",
-            "value": "this"
+            "value": "this",
+            "producer": {
+              // For tasks, we may get PipelineChannels as input parameters
+              // PipelineChannel can be of the following forms:
+              // * pipelinechannel--output-msg-output_artifact
+              // * pipelinechannel--output-msg-Output
+              "task_name": "output-msg",
+              // We call it ID because it's not always a parameter "name" so producer_parameter_name would be misleading
+              // (e.g. in the case of loops pipelinechannel--loop-item-param-1), if we can infer the name of the iteration
+              // param then "name" would be better.
+              "key": "a_msg"
+            }
           }
         ]
       },
       // Same structure as inputs
       "outputs": {
-        "metrics": [],
         "artifacts": [],
         // At first this is not intuitive, but there are output parameter pipeline channels, like in the case of dsl.collected.
         // This is defined in the pipeline spec, though we don't surface these pipeline channels today in the runtime executions.
@@ -132,16 +107,22 @@
         // the api should support it regardless.
         "parameters": []
       },
-      "child_tasks": [{"pod_name": "pipeline-j9t66-382940577"}],
-      // Add these new fields
-      "child_task_ids": [
+      "child_tasks": [
         {
-          "name": "some_task",
-          "id": "task_id_1"
-        },
-        {
-          "name": "another_task",
-          "id": "task_id_2"
+          "task_id": "pipeline-j9t66-382940577",
+          "name": "child_task_name",
+          "pods": [
+            {
+              "name": "child_task_pod1",
+              "uid" : "some_uid_b",
+              "type": "EXECUTOR"
+            },
+            {
+              "name": "child_task_pod2",
+              "uid" : "some_uid_b",
+              "type": "DRIVER"
+            }
+          ]
         }
       ],
       "type": "LOOP",
@@ -149,10 +130,6 @@
       "iteration_index": 2,
       // Included for LoopCount, iteration_index & iteration_count are mutually exclusive
       "iteration_count": 2,
-      // This should match the component task names created during sdk compilation
-      // UI can use this to look up matching tasks in the UI.
-      // In the case of task_groups this would take on names like: "condition-branches-1, for-loop-1, etc."
-      "name": "task_name",
       "cache_fingerprint": "0d32871640a827e4abaec95747b8780602f38f2f66d447ee70af3a7310d5849e",
     }
   ],

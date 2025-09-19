@@ -1,11 +1,66 @@
+// Copyright 2025 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 syntax = "proto3";
+
+option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
+package kubeflow.pipelines.backend.api.v2beta1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  schemes: [1, 2], // http + https
+  responses: {
+    key: "default";
+    value: {
+      schema: {
+        json_schema: {
+          ref: ".google.rpc.Status";
+        }
+      }
+    }
+  }
+  // Use bearer token for authorizing access to artifact service.
+  // Kubernetes client library(https://kubernetes.io/docs/reference/using-api/client-libraries/)
+  // uses bearer token as default for authorization. The section below
+  // ensures security definition object is generated in the swagger definition.
+  // For more details see https://github.com/OAI/OpenAPI-Specification/blob/3.0.0/versions/2.0.md#securityDefinitionsObject
+  security_definitions: {
+    security: {
+      key: "Bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization";
+      }
+    }
+  }
+};
 
 service ArtifactService {
   // Finds all artifacts within the specified namespace.
-  // Namespace field is required. In multi-user mode, the caller
   rpc ListArtifacts(ListArtifactRequest) returns (ListArtifactResponse) {
     option (google.api.http) = {
       get: "/apis/v2beta1/artifacts"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "list_artifacts"
+      summary: "Finds all artifacts within the specified namespace."
+      tags: "ArtifactService"
     };
   }
 
@@ -14,19 +69,37 @@ service ArtifactService {
     option (google.api.http) = {
       get: "/apis/v2beta1/artifacts/{artifact_id}"
     };
-  }
-
-  // Updates an existing artifact.
-  rpc UpdateArtifact(UpdateArtifactRequest) returns (Artifact) {
-    option (google.api.http) = {
-      put: "/apis/v2beta1/artifacts/{artifact.artifact_id}"
-      body: "artifact"
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "get_artifact"
+      summary: "Finds a specific Artifact by ID."
+      tags: "ArtifactService"
     };
   }
 
   rpc ListArtifactTasks(ListArtifactTasksRequest) returns (ListArtifactTasksResponse) {
     option (google.api.http) = {
       get: "/apis/v2beta1/artifact_tasks"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "list_artifact_tasks"
+      summary: "Lists artifact-task relationships."
+      tags: "ArtifactService"
+    };
+  }
+
+  // Creates an artifact-task relationship.
+  // While we always create an artifact-task link when an artifact is created,
+  // In the case of Importer, we only create a link (and not an artifact)
+  // if Reimport = false.
+  rpc CreateArtifactTask(CreateArtifactTaskRequest) returns (ArtifactTask) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/artifact_tasks"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "create_artifact_task"
+      summary: "Creates an artifact-task relationship."
+      tags: "ArtifactService"
     };
   }
 
@@ -36,40 +109,25 @@ service ArtifactService {
       post: "/apis/v2beta1/artifacts"
       body: "*"
     };
-  }
-
-  // Logs a metric for a specific task.
-  rpc LogMetric(LogMetricRequest) returns (Metric) {
-    option (google.api.http) = {
-      post: "/apis/v2beta1/metrics"
-      body: "*"
-    };
-  }
-
-  // Gets a metric by task ID and name.
-  rpc GetMetric(GetMetricRequest) returns (Metric) {
-    option (google.api.http) = {
-      get: "/apis/v2beta1/metrics/{task_id}/{name}"
-    };
-  }
-
-  // Lists all metrics.
-  rpc ListMetrics(ListMetricsRequest) returns (ListMetricsResponse) {
-    option (google.api.http) = {
-      get: "/apis/v2beta1/metrics"
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "create_artifact"
+      summary: "Creates a new artifact."
+      tags: "ArtifactService"
     };
   }
 }
-
 
 message CreateArtifactRequest {
   // Required. The artifact to create.
   Artifact artifact = 1;
-}
 
-message UpdateArtifactRequest {
-  // Required. The artifact to update. The artifact_id field is required.
-  Artifact artifact = 1;
+  // An artifact is always created in the context of a
+  // run.
+  string run_id = 2;
+  string task_id = 3;
+  ArtifactTaskType type = 4;
+  string producer_task_name = 5;
+  string producer_key = 6;
 }
 
 message GetArtifactRequest {
@@ -77,7 +135,6 @@ message GetArtifactRequest {
   string artifact_id = 1;
 }
 
-// Note: This follows the same format as other List operations in KFP backend
 message ListArtifactRequest {
   // Optional input. Namespace for the artifacts.
   string namespace = 1;
@@ -116,15 +173,15 @@ message ListArtifactTasksRequest {
   // Optional, filter artifact task by a set of task_ids
   // We can also likely just rely on filter for this and omit this field
   repeated string task_ids = 1;
-  // Optional input, filter artifact task by a set of run_ids
+  // Optional, filter artifact task by a set of run_ids
   repeated string run_ids = 2;
   // Optional, filter artifact task by a set of artifact_ids
   // We can also likely just rely on filter for this and omit this field
   repeated string artifact_ids = 3;
-  
+
   // Optional. Only list artifact tasks that have artifacts of this type.
-  ArtifactTasksType type = 4;
-  
+  ArtifactTaskType type = 4;
+
   string page_token = 5;
   int32 page_size = 6;
   string sort_by = 7;
@@ -132,89 +189,61 @@ message ListArtifactTasksRequest {
 }
 
 message ListArtifactTasksResponse {
-  repeated ArtifactTasks artifact_tasks = 1;
+  repeated ArtifactTask artifact_tasks = 1;
   int32 total_size = 2;
   string next_page_token = 3;
 }
 
-message LogMetricRequest {
-  // Required. The metric to log.
-  Metric metric = 1;
+// Request to create an artifact-task relationship
+message CreateArtifactTaskRequest {
+  // Required. The artifact-task relationship to create.
+  ArtifactTask artifact_task = 1;
 }
 
-message GetMetricRequest {
-  // Required. Task UUID that owns this metric
-  string task_id = 1;
-  // Required. Name of the metric
-  string name = 2;
-}
-
-message ListMetricsRequest {
-  // Optional input, filter metrics by a set of task_ids
-  repeated string task_ids = 1;
-  // Optional input, filter metrics by a set of run_ids
-  repeated string run_ids = 2;
-  // Optional input. Namespace for the metrics.
-  string namespace = 3;
-  // A page token to request the results page.
-  string page_token = 4;
-  // The number of metrics to be listed per page.
-  int32 page_size = 5;
-  // Sorting order in form of "field_name", "field_name asc" or "field_name desc".
-  string sort_by = 6;
-  // A url-encoded, JSON-serialized filter protocol buffer.
-  string filter = 7;
-}
-
-message ListMetricsResponse {
-  // The list of metrics returned.
-  repeated Metric metrics = 1;
-  // The total number of metrics available.
-  int32 total_size = 2;
-  // Token to retrieve the next page of results.
-  string next_page_token = 3;
-}
-
-enum ArtifactTasksType {
+// Describes the I/O relationship between
+// this Artifact and Task
+enum ArtifactTaskType {
   INPUT = 0;
   OUTPUT = 1;
 }
 
-message ArtifactTasks {
+message ArtifactTask {
+  // Output only. The unique server generated id of the ArtifactTask.
   string id = 1;
   string artifact_id = 2;
-  string task_id = 3;
+  string run_id = 3;
+  string task_id = 4;
+  ArtifactTaskType type = 5;
 
-  ArtifactTasks type = 4;
-  google.protobuf.Timestamp created_at = 5;
-}
+  // The task that produced this artifact
+  // For example in the case of a pipeline channel
+  // that is an output artifact you might have as
+  // input something like the following in the IR:
+  //   taskOutputArtifact:
+  //     outputArtifactKey: output_dataset
+  //     producerTask: create-dataset
+  // These fields are used to track this lineage.
+  //
+  // For outputs, the producer task is the component name
+  // of the task that produced the artifact.
+  string producer_task_name = 6;
+  // The key is often the parameter name used
+  // as input/output on the component, but
+  // can also take on the value of other values.
+  // For example:
+  //  * "param-#" when using parameters in a ParallelFor
+  //  * "Output" when using Pythonic Artifacts
+  //
+  // For outputs, the key is the name of the parameter
+  // in the component spec (found in OutputDefinitions)
+  // used to output the artifact.
+  string producer_key = 7;
 
-enum MetricType {
-  METRIC_INPUT = 0;
-  METRIC_OUTPUT = 1;
-}
-
-message Metric {
-  // Required. Task UUID that owns this metric
-  string task_id = 1;
-  // Required. Name of the metric
-  string name = 2;
-
-  // Required. Schema of the metric
-  enum Schema {
-    Metric = 0;
-    ClassificationMetric = 1;
-    SlicedClassificationMetric = 2;
-  }
-  Schema schema = 3;
-  // Value can be double or a valid json,
-  // but not string_value, bool_value, null_value
-  // API server validation will be needed
-  google.protobuf.Value value = 4;
-  google.protobuf.Timestamp created_at = 5;
-  // Required. Type of the metric (input/output)
-  MetricType type = 6;
-
+  // The parameter name for the input/output artifact
+  // This maybe the same as the Artifact name if the
+  // artifact name is not specified. It is used to
+  // resolve artifact pipeline channels.
+  string artifact_key = 8;
 }
 
 // Note to be confused with RuntimeArtifact in pipelinespec
@@ -222,38 +251,47 @@ message Artifact {
   // Output only. The unique server generated id of the artifact.
   // Note: Updated id name to be consistent with other api naming patterns (with prefix)
   string artifact_id = 1;
-  // The client provided name of the artifact.
+
+  // Required. The client provided name of the artifact.
   // Note: it seems in MLMD when name was set, it had to be unique for that type_id
   // this restriction is removed here
+  // If this is a "Metric" artifact, the name of the metric
+  // is treated as the Key in its K/V pair.
   string name = 2;
 
+  string description = 3;
+
   enum ArtifactType {
-    Artifact = 0;
-    Model = 1;
-    Dataset = 2;
-    HTML = 3;
-    Markdown = 4;
+    // default; treated as "not set"
+    // reject if unset.
+    TYPE_UNSPECIFIED = 0;
+
+    Artifact = 1;
+    Model = 2;
+    Dataset = 3;
+    HTML = 4;
+    Markdown = 5;
+
+    Metric = 6;
+    ClassificationMetric = 7;
+    SlicedClassificationMetric = 8;
   }
-  // The name of an ArtifactType. E.g. Dataset
-  ArtifactType type = 3;
+  // Required. The name of an ArtifactType. E.g. Dataset
+  ArtifactType type = 4;
 
   // The uniform resource identifier of the physical artifact.
   // May be empty if there is no physical artifact.
-  string uri = 4;
-  // User provided custom properties which are not defined by its type.
-  map<string, Value> metadata = 5;
+  optional string uri = 5;
+
+  // Optional. User provided custom properties which are not defined by its type.
+  map<string, google.protobuf.Value> metadata = 6;
+
+  // Used primarily for metrics
+  optional double number_value = 7;
+
   // Output only. Create time of the artifact in millisecond since epoch.
   // Note: The type and name is updated from mlmd artifact to be consistent with other backend apis.
-  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp created_at = 8;
 
-  // New field:
-  string namespace = 7;
-
-  // In KFP only the Live state is ever used
-  // As such we don't port this field over, default assumption is all artifacts are live
-  // we can add more states if we need to in the future
-  // State state = 8;
-
-  // Fields not included from mlmd artifact are: state, external_id, properties, system_metadata, last_update_time_since_epoch, type_id
-  // Reference: https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/third_party/ml-metadata/ml_metadata/proto/metadata_store.proto
+  string namespace = 9;
 }

@@ -602,6 +602,94 @@ func Test_extendPodSpecPatch_Secret(t *testing.T) {
 				"param_1": structpb.NewStringValue("secret-name"),
 			},
 		},
+		{
+			"Valid - secret as env with optional true",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsEnv: []*kubernetesplatform.SecretAsEnv{
+					{
+						SecretNameParameter: inputParamConstant("my-secret"),
+						KeyToEnv: []*kubernetesplatform.SecretAsEnv_SecretKeyToEnvMap{
+							{
+								SecretKey: "password",
+								EnvVar:    "SECRET_VAR",
+							},
+						},
+						Optional: &[]bool{true}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						Env: []k8score.EnvVar{
+							{
+								Name: "SECRET_VAR",
+								ValueFrom: &k8score.EnvVarSource{
+									SecretKeyRef: &k8score.SecretKeySelector{
+										LocalObjectReference: k8score.LocalObjectReference{Name: "my-secret"},
+										Key:                  "password",
+										Optional:             &[]bool{true}[0],
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"Valid - secret as env with optional false",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				SecretAsEnv: []*kubernetesplatform.SecretAsEnv{
+					{
+						SecretNameParameter: inputParamConstant("my-secret"),
+						KeyToEnv: []*kubernetesplatform.SecretAsEnv_SecretKeyToEnvMap{
+							{
+								SecretKey: "password",
+								EnvVar:    "SECRET_VAR",
+							},
+						},
+						Optional: &[]bool{false}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						Env: []k8score.EnvVar{
+							{
+								Name: "SECRET_VAR",
+								ValueFrom: &k8score.EnvVarSource{
+									SecretKeyRef: &k8score.SecretKeySelector{
+										LocalObjectReference: k8score.LocalObjectReference{Name: "my-secret"},
+										Key:                  "password",
+										Optional:             &[]bool{false}[0],
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1010,6 +1098,94 @@ func Test_extendPodSpecPatch_ConfigMap(t *testing.T) {
 			map[string]*structpb.Value{
 				"param_1": structpb.NewStringValue("cm-name"),
 			},
+		},
+		{
+			"Valid - config map as env with optional true",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsEnv: []*kubernetesplatform.ConfigMapAsEnv{
+					{
+						ConfigMapNameParameter: inputParamConstant("my-cm"),
+						KeyToEnv: []*kubernetesplatform.ConfigMapAsEnv_ConfigMapKeyToEnvMap{
+							{
+								ConfigMapKey: "foo",
+								EnvVar:       "CONFIG_MAP_VAR",
+							},
+						},
+						Optional: &[]bool{true}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						Env: []k8score.EnvVar{
+							{
+								Name: "CONFIG_MAP_VAR",
+								ValueFrom: &k8score.EnvVarSource{
+									ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+										LocalObjectReference: k8score.LocalObjectReference{Name: "my-cm"},
+										Key:                  "foo",
+										Optional:             &[]bool{true}[0],
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
+		},
+		{
+			"Valid - config map as env with optional false",
+			&kubernetesplatform.KubernetesExecutorConfig{
+				ConfigMapAsEnv: []*kubernetesplatform.ConfigMapAsEnv{
+					{
+						ConfigMapNameParameter: inputParamConstant("my-cm"),
+						KeyToEnv: []*kubernetesplatform.ConfigMapAsEnv_ConfigMapKeyToEnvMap{
+							{
+								ConfigMapKey: "foo",
+								EnvVar:       "CONFIG_MAP_VAR",
+							},
+						},
+						Optional: &[]bool{false}[0],
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+					},
+				},
+			},
+			&k8score.PodSpec{
+				Containers: []k8score.Container{
+					{
+						Name: "main",
+						Env: []k8score.EnvVar{
+							{
+								Name: "CONFIG_MAP_VAR",
+								ValueFrom: &k8score.EnvVarSource{
+									ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
+										LocalObjectReference: k8score.LocalObjectReference{Name: "my-cm"},
+										Key:                  "foo",
+										Optional:             &[]bool{false}[0],
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			nil,
 		},
 	}
 	for _, tt := range tests {

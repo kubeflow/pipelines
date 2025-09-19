@@ -8,24 +8,38 @@ import "artifacts.proto";
 // to its parent Run. A user that can only "create" a run should not have access to "update" for that
 // the run, without explicitly having that verb.
 service RunService {
-
   rpc CreateTask(CreateTaskRequest) returns (PipelineTaskDetail) {
     option (google.api.http) = {
-      post: "/apis/v2beta1/task"
+      post: "/apis/v2beta1/tasks"
       body: "task"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "create_task"
+      summary: "Creates a new task."
+      tags: "RunService"
     };
   }
 
   rpc UpdateTask(UpdateTaskRequest) returns (PipelineTaskDetail) {
     option (google.api.http) = {
-      patch: "/apis/v2beta1/task/{task_id}"
+      patch: "/apis/v2beta1/tasks/{task_id}"
       body: "task"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "update_task"
+      summary: "Updates an existing task."
+      tags: "RunService"
     };
   }
 
   rpc GetTask(GetTaskRequest) returns (PipelineTaskDetail) {
     option (google.api.http) = {
-      get: "/apis/v2beta1/task/{task_id}"
+      get: "/apis/v2beta1/tasks/{task_id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "get_task"
+      summary: "Gets a specific task by ID."
+      tags: "RunService"
     };
   }
 
@@ -33,15 +47,14 @@ service RunService {
     option (google.api.http) = {
       get: "/apis/v2beta1/tasks"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      operation_id: "list_tasks"
+      summary: "Lists tasks with optional filtering."
+      tags: "RunService"
+    };
   }
 }
 
-// Task requests should share the rbac with their parent run
-// Meaning that if you have get/update/create rights on the parent run
-// it should trickle down do that task
-
-// In the create task case, if you have create permissions on the target run
-// you can create the task for that run
 message CreateTaskRequest {
   PipelineTaskDetail task = 1;
 }
@@ -56,10 +69,13 @@ message GetTaskRequest {
 }
 
 message ListTasksRequest {
-  // Optional, List all tasks with this parent task.
-  string parent_id = 1;
-  // Optional. List all tasks for this run.
-  string run_id = 2;
+  // Required. Must specify either parent_id or run_id to filter tasks.
+  oneof parent_filter {
+    // List all tasks with this parent task.
+    string parent_id = 1;
+    // List all tasks for this run.
+    string run_id = 2;
+  }
 
   int32 page_size = 3;
   string page_token = 4;
@@ -73,90 +89,53 @@ message ListTasksResponse {
   int32 total_size = 3;
 }
 
-// The field numbers are re-numbered
-// this can have strong implications
-// please review carefully.
+// Runtime information of a task execution.
 message PipelineTaskDetail {
-  //--------------------------
-  // Pre-Existing fields
-  //--------------------------
-  // Output only.
-  string task_id = 1;
-  string run_id = 2;
-  string display_name = 3;
-  google.protobuf.Timestamp create_time = 4;
-  google.protobuf.Timestamp start_time = 5;
-  google.protobuf.Timestamp end_time = 6;
-  RuntimeState state = 7;
-  int64 execution_id = 8;
-  google.rpc.Status error = 9;
-  string parent_task_id = 10;
-  repeated RuntimeStatus state_history = 11;
+  string name = 1;
+  // User specified name of a task that is defined in
+  // [Pipeline.spec][].
+  string display_name = 2;
 
-  enum PodType {
+  // System-generated ID of a task.
+  string task_id = 3;
+
+  // ID of the parent run.
+  string run_id = 4;
+
+  // Name of the corresponding pod assigned by the orchestration engine.
+  // Also known as node_id.
+  enum TaskPodType {
     DRIVER = 0;
     EXECUTOR = 1;
   }
-  message PodInfo {
+  message TaskPod {
     string name = 1;
     string uid = 2;
-    PodType type = 3;
+    string type = 3;
   }
-  repeated PodInfo pods = 12;
+  repeated TaskPod pods = 5;
 
-  //--------------------------
-  // Remove these fields
-  //--------------------------
+  string cache_fingerprint = 6;
 
-  //  PipelineTaskExecutorDetail executor_detail = 13;
-  //  map<string, ArtifactList> inputs = 14;
-  //  map<string, ArtifactList> outputs = 15;
-  //  repeated ChildTask child_tasks = 16;
+  // Creation time of a task.
+  google.protobuf.Timestamp create_time = 7;
 
-  //--------------------------
-  // New fields
-  //--------------------------
-  message ChildTask {
-    string name = 1;
-    string id = 2;
-  }
-  repeated ChildTask child_tasks_ids = 13;
+  // Starting time of a task.
+  google.protobuf.Timestamp start_time = 8;
 
-  enum InputType {
-    ResolvedValue = 0;
-    PipelineChannel = 1;
-  }
+  // Completion time of a task.
+  google.protobuf.Timestamp end_time = 9;
 
-  message InputOutputs {
-    message Parameter {
-      InputType input_type = 1;
-      string value = 2;
+  // Runtime state of a Task
+  RuntimeState status = 10;
 
-      // Fields for Resolved type
-      string name = 3;
+  // Custom status metadata, this can be used to provide
+  // additional status info for a given task during runtime
+  map<string, google.protobuf.Value> status_metadata = 11;
 
-      // Fields for PipelineChannel type
-      string producer_task_name = 4;
-      string producer_parameter_id = 5;
-    }
-    message TaskArtifact {
-      InputType input_type = 1;
-      Artifact value = 2;
-
-      // Fields for ResolvedValue type
-      string name = 3;
-
-      // Fields for PipelineChannel type
-      string producer_task_name = 4;
-      string producer_parameter_id = 5;
-    }
-    repeated Parameter parameters = 1;
-    repeated TaskArtifact artifacts = 2;
-    repeated Metric metrics = 3; // from artifacts.proto
-  }
-
-  InputOutputs inputs = 14;
-  InputOutputs outputs = 15;
+  // A sequence of task statuses. This field keeps a record
+  // of state transitions.
+  repeated RuntimeStatus state_history = 12;
 
   enum TaskType {
     // Root task replaces Root Execution, it is the top ancestor task to all tasks in the pipeline run
@@ -172,14 +151,80 @@ message PipelineTaskDetail {
     // a driver.
     DAG = 7;
   }
-  TaskType type = 16;
+  TaskType type = 13;
 
-  // Optional. Applies to type LOOP_ITERATION
-  int64 iteration_index = 17;
-  // Optional. Applies to type LOOP
-  int64 iteration_count = 18;
-  string name = 19;
-  string cache_fingerprint = 20;
+  message TypeAttributes {
+    // Optional. Applies to type LOOP_ITERATION
+    int64 iteration_index = 1;
+    // Optional. Applies to type LOOP
+    int64 iteration_count = 2;
+  }
+
+  TypeAttributes type_attributes = 14;
+
+  // The error that occurred during task execution.
+  // Only populated when the task is in FAILED or CANCELED state.
+  google.rpc.Status error = 15;
+
+  // ID of the parent task if the task is within a component scope.
+  // Empty if the task is at the root level.
+  string parent_task_id = 16;
+
+  // A dependent task that requires this one to succeed.
+  // Represented by either task_id or pod_name.
+  message ChildTask {
+    // System-generated ID of a task.
+    string task_id = 1;
+
+    string name = 2;
+
+    // Name of the corresponding pod assigned by the orchestration engine.
+    // Also known as node_id.
+    repeated TaskPod pods = 3;
+  }
+
+  // Sequence of dependent tasks.
+  repeated ChildTask child_tasks = 17;
+
+  message InputOutputs {
+
+    message IOProducer {
+      string task_name = 1;
+      // This would be the equivalent of output_parameter_key from the upstream task
+      // when it's a parameter input, or output_artifact_key when it is an Artifact.
+      string key = 2;
+    }
+
+    message Parameter {
+      string value = 1;
+      // Optional, this is only included on Runtime Tasks when the parameter name is known.
+      optional string name = 2;
+      // Not all Parameters have task producers,
+      // For example they can also be Runtime Constants.
+      // Whereas in the case of a PipelineChannel, they
+      // do have a producer.
+      optional IOProducer producer = 3;
+    }
+    message IOArtifact {
+      // Optional, this is only included on Runtime Tasks when the parameter name is known.
+      string parameter_name = 1;
+
+      Artifact value = 2;
+
+      // All IO artifacts have a producer, so the following
+      // fields are required. In the case of importer
+      // where the artifact is set to reimport = true
+      // the name & key are importer-[0-9]+ and "artifact"
+      IOProducer producer = 3;
+    }
+    repeated Parameter parameters = 1;
+    // Output Only. To create Artifacts for a task are created
+    // via ArtifactTasks.
+    repeated IOArtifact artifacts = 2;
+  }
+
+  InputOutputs inputs = 18;
+  InputOutputs outputs = 19;
 }
 
 
