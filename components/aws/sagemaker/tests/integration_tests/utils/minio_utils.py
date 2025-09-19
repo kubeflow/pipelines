@@ -1,7 +1,7 @@
-import utils
 import os
 
 from minio import Minio
+import utils
 
 
 def get_artifact_in_minio(workflow_json, step_name, artifact_name, output_dir):

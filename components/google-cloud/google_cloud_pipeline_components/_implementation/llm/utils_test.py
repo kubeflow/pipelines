@@ -1,7 +1,8 @@
 """Unit test for utils."""
 
-from google_cloud_pipeline_components._implementation.llm import utils
 import unittest
+
+from google_cloud_pipeline_components._implementation.llm import utils
 
 
 class UtilsTest(unittest.TestCase):

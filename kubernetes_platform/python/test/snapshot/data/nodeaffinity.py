@@ -14,7 +14,9 @@
 
 import kfp
 from kfp import dsl
-from kfp.kubernetes.node_affinity import add_node_affinity, add_node_affinity_json
+from kfp.kubernetes.node_affinity import add_node_affinity
+from kfp.kubernetes.node_affinity import add_node_affinity_json
+
 
 @dsl.component
 def print_hello_with_json_affinity():

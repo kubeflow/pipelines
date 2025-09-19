@@ -1,8 +1,10 @@
 import logging
-import time
-import urllib3
-from kubernetes import client, config
 import subprocess
+import time
+
+from kubernetes import client
+from kubernetes import config
+import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

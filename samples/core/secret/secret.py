@@ -14,9 +14,9 @@
 # limitations under the License.
 
 
-from kfp import dsl, compiler
+from kfp import compiler
+from kfp import dsl
 from kfp.components import load_component_from_text
-
 
 # Accessing GCS using the Google Cloud SDK command-line programs
 gcs_list_items_op = load_component_from_text(text='''

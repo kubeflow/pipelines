@@ -1,5 +1,6 @@
-from rlestimator.src.sagemaker_rlestimator_spec import SageMakerRLEstimatorSpec
 import unittest
+
+from rlestimator.src.sagemaker_rlestimator_spec import SageMakerRLEstimatorSpec
 
 
 class RLEstimatorSpecTestCase(unittest.TestCase):

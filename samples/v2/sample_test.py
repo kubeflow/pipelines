@@ -14,6 +14,7 @@
 from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+import functools
 import inspect
 import os
 from pprint import pprint
@@ -21,14 +22,15 @@ import subprocess
 from typing import List
 import unittest
 import uuid
+
 import kfp
+from kfp import dsl
 from kfp.dsl.graph_component import GraphComponent
 from kubernetes import client
 from kubernetes import config
 from kubernetes import utils
 import yaml
-import functools
-from kfp import dsl
+
 
 def get_kfp_package_path() -> str:
     path = get_package_path("sdk/python")
@@ -55,32 +57,31 @@ def get_package_path(subdir: str) -> str:
 dsl.component = functools.partial(
     dsl.component, kfp_package_path=get_kfp_package_path())
 
+import collected_parameters
 # Now import the pipeline modules, this way we can leverage the kfp_package and pipeline
 # spec defined above
 import component_with_optional_inputs
-import collected_parameters
 import hello_world
+from modelcar import modelcar
+import nested_pipeline_opt_input_child_level
+import nested_pipeline_opt_inputs_nil
+import nested_pipeline_opt_inputs_parent_level
 import parallel_after_dependency
 import parallel_consume_upstream
 import pipeline_container_no_input
 import pipeline_with_env
+import pipeline_with_input_status_state
 import pipeline_with_placeholders
+import pipeline_with_pod_metadata
+import pipeline_with_retry
 import pipeline_with_secret_as_env
 import pipeline_with_secret_as_volume
-import producer_consumer_param
-import pipeline_with_retry
-import pipeline_with_input_status_state
-import subdagio
-import two_step_pipeline_containerized
-import nested_pipeline_opt_inputs_parent_level
-import nested_pipeline_opt_inputs_nil
-import nested_pipeline_opt_input_child_level
-import pipeline_with_pod_metadata
-import pipeline_with_workspace
-from modelcar import modelcar
 import pipeline_with_utils
+import pipeline_with_workspace
+import producer_consumer_param
+import subdagio
 import task_config
-
+import two_step_pipeline_containerized
 
 _MINUTE = 60  # seconds
 _DEFAULT_TIMEOUT = 20 * _MINUTE

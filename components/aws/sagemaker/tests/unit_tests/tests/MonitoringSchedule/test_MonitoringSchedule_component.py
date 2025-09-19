@@ -1,13 +1,10 @@
-from commonv2.sagemaker_component import SageMakerJobStatus
-
-from unittest.mock import patch, MagicMock
 import unittest
-from MonitoringSchedule.src.MonitoringSchedule_spec import (
-    SageMakerMonitoringScheduleSpec,
-)
-from MonitoringSchedule.src.MonitoringSchedule_component import (
-    SageMakerMonitoringScheduleComponent,
-)
+from unittest.mock import MagicMock
+from unittest.mock import patch
+
+from commonv2.sagemaker_component import SageMakerJobStatus
+from MonitoringSchedule.src.MonitoringSchedule_component import SageMakerMonitoringScheduleComponent
+from MonitoringSchedule.src.MonitoringSchedule_spec import SageMakerMonitoringScheduleSpec
 
 
 class MonitoringScheduleComponentTestCase(unittest.TestCase):

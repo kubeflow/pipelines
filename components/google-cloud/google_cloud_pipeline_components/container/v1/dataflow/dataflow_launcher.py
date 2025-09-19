@@ -16,7 +16,8 @@
 import argparse
 import os
 import sys
-from typing import Dict, Any
+from typing import Any, Dict
+
 from google_cloud_pipeline_components.container.v1.dataflow import dataflow_python_job_remote_runner
 
 

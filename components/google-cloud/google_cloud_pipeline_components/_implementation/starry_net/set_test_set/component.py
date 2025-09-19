@@ -33,8 +33,9 @@ def set_test_set(
   Returns:
     The test set dsl.Artifact.
   """
-  import os  # pylint: disable=g-import-not-at-top
   import json  # pylint: disable=g-import-not-at-top
+  import os  # pylint: disable=g-import-not-at-top
+
   import tensorflow as tf  # pylint: disable=g-import-not-at-top
 
   with tf.io.gfile.GFile(

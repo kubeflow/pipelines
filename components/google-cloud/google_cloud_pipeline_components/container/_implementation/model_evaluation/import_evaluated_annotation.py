@@ -19,13 +19,11 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
 
 from google.api_core import gapic_v1
-from google.cloud import storage
 from google.cloud import aiplatform_v1
-
-
+from google.cloud import storage
 
 BATCH_IMPORT_LIMIT = 50
 EvaluatedAnnotation = (

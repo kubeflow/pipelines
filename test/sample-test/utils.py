@@ -16,8 +16,10 @@ import os
 import re
 import subprocess
 
+from junit_xml import TestCase
+from junit_xml import TestSuite
 from minio import Minio
-from junit_xml import TestSuite, TestCase
+
 
 # Parse the workflow json to obtain the artifacts for a particular step.
 #   Note: the step_name could be the key words.

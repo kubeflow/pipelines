@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import base64
-import tensorflow_data_validation as tfdv
+from typing import Text
+
 from IPython.display import display
 from IPython.display import HTML
+import tensorflow_data_validation as tfdv
 from tensorflow_metadata.proto.v0 import statistics_pb2
-from typing import Text
 
 # The following variables are provided through dependency injection. These
 # variables come from the specified input path and arguments provided by the

@@ -1,4 +1,6 @@
-from kfp.components import create_component_from_func, InputPath, OutputPath
+from kfp.components import create_component_from_func
+from kfp.components import InputPath
+from kfp.components import OutputPath
 
 
 def convert_to_onnx_from_pytorch_script_module(

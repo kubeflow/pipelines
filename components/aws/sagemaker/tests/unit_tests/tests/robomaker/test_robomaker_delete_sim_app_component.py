@@ -1,17 +1,12 @@
-from common.sagemaker_component import SageMakerJobStatus
-from delete_simulation_app.src.robomaker_delete_simulation_app_spec import (
-    RoboMakerDeleteSimulationAppSpec,
-)
-from delete_simulation_app.src.robomaker_delete_simulation_app_component import (
-    RoboMakerDeleteSimulationAppComponent,
-)
-from tests.unit_tests.tests.robomaker.test_robomaker_delete_sim_app_spec import (
-    RoboMakerDeleteSimAppSpecTestCase,
-)
-import unittest
 import json
+import unittest
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from unittest.mock import patch, MagicMock
+from common.sagemaker_component import SageMakerJobStatus
+from delete_simulation_app.src.robomaker_delete_simulation_app_component import RoboMakerDeleteSimulationAppComponent
+from delete_simulation_app.src.robomaker_delete_simulation_app_spec import RoboMakerDeleteSimulationAppSpec
+from tests.unit_tests.tests.robomaker.test_robomaker_delete_sim_app_spec import RoboMakerDeleteSimAppSpecTestCase
 
 
 class RoboMakerDeleteSimAppTestCase(unittest.TestCase):

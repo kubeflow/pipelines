@@ -40,16 +40,28 @@ class PipelineTaskFinalStatus:
             task = task_status(user_input='my_input')
     """
     state: str
-    """Final state of the task. The value could be one of ``'SUCCEEDED'``, ``'FAILED'`` or ``'CANCELLED'``."""
+    """Final state of the task.
+
+    The value could be one of ``'SUCCEEDED'``, ``'FAILED'`` or ``'CANCELLED'``.
+    """
 
     pipeline_job_resource_name: str
-    """Pipeline job resource name, in the format of ``projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}``."""
+    """Pipeline job resource name, in the format of
+    ``projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}``."""
 
     pipeline_task_name: str
     """Name of the task that produced this status."""
 
     error_code: Optional[int]
-    """The `google.rpc.Code <github.com/googleapis/googleapis/blob/master/google/rpc/code.proto>`_ in case of error. If state is ``'SUCCEEDED'``, this is ``None``."""
+    """The `google.rpc.Code
+    <github.com/googleapis/googleapis/blob/master/google/rpc/code.proto>`_ in
+    case of error.
+
+    If state is ``'SUCCEEDED'``, this is ``None``.
+    """
 
     error_message: Optional[str]
-    """In case of error, the detailed error message. If state is ``'SUCCEEDED'``, this is ``None``."""
+    """In case of error, the detailed error message.
+
+    If state is ``'SUCCEEDED'``, this is ``None``.
+    """

@@ -20,6 +20,7 @@ from kfp import compiler
 from kfp import dsl
 from kfp.dsl import component
 
+
 @dsl.component()
 def build_model_car(model: dsl.Output[dsl.Model]):
     # Simulate pushing the Modelcar to an OCI registry

@@ -22,7 +22,9 @@ file.
 import json
 import os
 import sys
+
 import requests
+
 
 def copy_third_party_licenses(dependency_spec):
   if not os.path.isfile(dependency_spec):

@@ -13,18 +13,15 @@
 
 import logging
 from typing import Dict
-from delete_simulation_app.src.robomaker_delete_simulation_app_spec import (
-    RoboMakerDeleteSimulationAppSpec,
-    RoboMakerDeleteSimulationAppInputs,
-    RoboMakerDeleteSimulationAppOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
+
 from common.boto3_manager import Boto3Manager
 from common.common_inputs import SageMakerComponentCommonInputs
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from delete_simulation_app.src.robomaker_delete_simulation_app_spec import RoboMakerDeleteSimulationAppInputs
+from delete_simulation_app.src.robomaker_delete_simulation_app_spec import RoboMakerDeleteSimulationAppOutputs
+from delete_simulation_app.src.robomaker_delete_simulation_app_spec import RoboMakerDeleteSimulationAppSpec
 
 
 @ComponentMetadata(

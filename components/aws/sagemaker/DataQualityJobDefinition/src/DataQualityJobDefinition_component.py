@@ -10,21 +10,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 from typing import Dict
-import json
 
-from DataQualityJobDefinition.src.DataQualityJobDefinition_spec import (
-    SageMakerDataQualityJobDefinitionInputs,
-    SageMakerDataQualityJobDefinitionOutputs,
-    SageMakerDataQualityJobDefinitionSpec,
-)
-from commonv2.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
 from commonv2 import snake_to_camel
+from commonv2.sagemaker_component import ComponentMetadata
+from commonv2.sagemaker_component import SageMakerComponent
+from commonv2.sagemaker_component import SageMakerJobStatus
+from DataQualityJobDefinition.src.DataQualityJobDefinition_spec import SageMakerDataQualityJobDefinitionInputs
+from DataQualityJobDefinition.src.DataQualityJobDefinition_spec import SageMakerDataQualityJobDefinitionOutputs
+from DataQualityJobDefinition.src.DataQualityJobDefinition_spec import SageMakerDataQualityJobDefinitionSpec
 
 
 @ComponentMetadata(

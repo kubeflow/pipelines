@@ -13,23 +13,20 @@
 
 import difflib
 from tempfile import NamedTemporaryFile
-from typing import Callable, Dict, Type, Union, List, NamedTuple, cast
-from kfp.components.structures import (
-    ComponentSpec,
-    InputSpec,
-    OutputSpec,
-    ContainerImplementation,
-    InputValuePlaceholder,
-    OutputPathPlaceholder,
-    ContainerSpec,
-)
+from typing import Callable, cast, Dict, List, NamedTuple, Type, Union
+
+from kfp.components.structures import ComponentSpec
+from kfp.components.structures import ContainerImplementation
+from kfp.components.structures import ContainerSpec
+from kfp.components.structures import InputSpec
+from kfp.components.structures import InputValuePlaceholder
+from kfp.components.structures import OutputPathPlaceholder
+from kfp.components.structures import OutputSpec
 
 from .sagemaker_component import SageMakerComponent
-from .sagemaker_component_spec import (
-    SageMakerComponentSpec,
-    SageMakerComponentInputValidator,
-    SageMakerComponentOutputValidator,
-)
+from .sagemaker_component_spec import SageMakerComponentInputValidator
+from .sagemaker_component_spec import SageMakerComponentOutputValidator
+from .sagemaker_component_spec import SageMakerComponentSpec
 from .spec_input_parsers import SpecInputParsers
 
 CommandlineArgumentType = Union[

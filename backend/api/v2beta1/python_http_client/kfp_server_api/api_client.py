@@ -12,7 +12,6 @@ from __future__ import absolute_import
 
 import atexit
 import datetime
-from dateutil.parser import parse
 import json
 import mimetypes
 from multiprocessing.pool import ThreadPool
@@ -20,14 +19,15 @@ import os
 import re
 import tempfile
 
+from dateutil.parser import parse
+from kfp_server_api import rest
+from kfp_server_api.configuration import Configuration
+from kfp_server_api.exceptions import ApiException
+from kfp_server_api.exceptions import ApiValueError
+import kfp_server_api.models
 # python 2 and python 3 compatibility library
 import six
 from six.moves.urllib.parse import quote
-
-from kfp_server_api.configuration import Configuration
-import kfp_server_api.models
-from kfp_server_api import rest
-from kfp_server_api.exceptions import ApiValueError, ApiException
 
 
 class ApiClient(object):

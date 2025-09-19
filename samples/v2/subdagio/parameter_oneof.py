@@ -3,6 +3,7 @@ import os
 from kfp import Client
 from kfp import dsl
 
+
 @dsl.component
 def flip_coin() -> str:
     import random

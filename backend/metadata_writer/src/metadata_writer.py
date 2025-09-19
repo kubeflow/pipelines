@@ -12,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
+import collections
 import hashlib
+import json
 import os
 import re
-import collections
-import kubernetes
-import yaml
-import urllib3
 from time import sleep
+
+import kubernetes
 import lru
-
 from metadata_helpers import *
-
+import urllib3
+import yaml
 
 namespace_to_watch = os.environ.get('NAMESPACE_TO_WATCH', 'default')
 pod_name_to_execution_id_size = os.environ.get('POD_NAME_TO_EXECUTION_ID_SIZE', 5000)
@@ -94,6 +93,7 @@ METADATA_WRITTEN_LABEL_KEY = 'pipelines.kubeflow.org/metadata_written'
 
 def output_name_to_argo(name: str) -> str:
     import re
+
     # This sanitization code should be kept in sync with the code in the DSL compiler.
     # See https://github.com/kubeflow/pipelines/blob/39975e3cde7ba4dcea2bca835b92d0fe40b1ae3c/sdk/python/kfp/compiler/_k8s_helper.py#L33
     return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-', name)).strip('-')

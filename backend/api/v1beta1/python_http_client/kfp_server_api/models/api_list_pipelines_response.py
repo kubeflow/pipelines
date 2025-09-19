@@ -13,9 +13,8 @@
 import pprint
 import re  # noqa: F401
 
-import six
-
 from kfp_server_api.configuration import Configuration
+import six
 
 
 class ApiListPipelinesResponse(object):

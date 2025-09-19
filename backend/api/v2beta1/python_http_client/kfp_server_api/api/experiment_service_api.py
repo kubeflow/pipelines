@@ -14,14 +14,11 @@ from __future__ import absolute_import
 
 import re  # noqa: F401
 
+from kfp_server_api.api_client import ApiClient
+from kfp_server_api.exceptions import ApiTypeError  # noqa: F401
+from kfp_server_api.exceptions import ApiValueError
 # python 2 and python 3 compatibility library
 import six
-
-from kfp_server_api.api_client import ApiClient
-from kfp_server_api.exceptions import (  # noqa: F401
-    ApiTypeError,
-    ApiValueError
-)
 
 
 class ExperimentServiceApi(object):

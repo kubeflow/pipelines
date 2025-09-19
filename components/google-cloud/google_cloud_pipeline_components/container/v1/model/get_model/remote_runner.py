@@ -14,6 +14,7 @@
 """Remote runner for Get Model based on the Vertex AI SDK."""
 import contextlib
 from typing import Tuple, Type, Union
+
 from google.api_core.client_options import ClientOptions
 from google.cloud import aiplatform_v1 as aip_v1
 from google_cloud_pipeline_components.container.utils import artifact_utils

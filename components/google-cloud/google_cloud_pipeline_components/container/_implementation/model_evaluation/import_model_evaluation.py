@@ -23,11 +23,13 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from google.api_core import gapic_v1
 from google.cloud import aiplatform
 from google.cloud.aiplatform_v1.types.model_evaluation_slice import ModelEvaluationSlice
+from google.protobuf import json_format
+from google.protobuf.struct_pb2 import ListValue
+from google.protobuf.struct_pb2 import NULL_VALUE
+from google.protobuf.struct_pb2 import Struct
+from google.protobuf.struct_pb2 import Value
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 import six
-
-from google.protobuf.struct_pb2 import ListValue, NULL_VALUE, Struct, Value
-from google.protobuf import json_format
 
 PROBLEM_TYPE_TO_SCHEMA_URI = {
     'classification': 'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml',

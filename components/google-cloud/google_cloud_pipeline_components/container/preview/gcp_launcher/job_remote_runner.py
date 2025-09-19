@@ -27,13 +27,12 @@ import google.auth
 import google.auth.transport.requests
 from google.cloud import aiplatform_v1beta1
 from google.cloud.aiplatform_v1beta1.types import job_state as gca_job_state
+from google.protobuf import json_format
 from google_cloud_pipeline_components.container.utils import execution_context
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 import requests
-
-from google.protobuf import json_format
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5

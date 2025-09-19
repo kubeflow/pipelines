@@ -15,9 +15,8 @@
 from typing import Any, Dict, List, Union
 
 from google.cloud.aiplatform_v1.types.model_evaluation_slice import ModelEvaluationSlice
-
-from google.protobuf.wrappers_pb2 import BoolValue
 from google.protobuf import json_format
+from google.protobuf.wrappers_pb2 import BoolValue
 
 
 def create_slice_specs_list(

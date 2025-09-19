@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl
 from kfp import components
+from kfp import dsl
 
 
 @components.create_component_from_func

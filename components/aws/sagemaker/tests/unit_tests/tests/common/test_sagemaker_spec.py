@@ -1,26 +1,26 @@
-from common.spec_input_parsers import SpecInputParsers
 from dataclasses import dataclass
-from common.common_inputs import (
-    SageMakerComponentBaseInputs,
-    SageMakerComponentBaseOutputs,
-    SageMakerComponentInput,
-    SageMakerComponentOutput,
-)
-from tests.unit_tests.tests.common.dummy_spec import (
-    AllInputTypes,
-    DummyInputs,
-    DummyOutputs,
-    DummySpec,
-    ExtraSpec,
-    NoOutputs,
-)
-import unittest
 import os
+import unittest
+from unittest.mock import ANY
+from unittest.mock import call
+from unittest.mock import MagicMock
+from unittest.mock import Mock
+from unittest.mock import mock_open
+from unittest.mock import patch
 
-from unittest.mock import patch, call, Mock, MagicMock, mock_open, ANY
 from botocore.exceptions import ClientError
-
+from common.common_inputs import SageMakerComponentBaseInputs
+from common.common_inputs import SageMakerComponentBaseOutputs
+from common.common_inputs import SageMakerComponentInput
+from common.common_inputs import SageMakerComponentOutput
 from common.sagemaker_component_spec import SageMakerComponentSpec
+from common.spec_input_parsers import SpecInputParsers
+from tests.unit_tests.tests.common.dummy_spec import AllInputTypes
+from tests.unit_tests.tests.common.dummy_spec import DummyInputs
+from tests.unit_tests.tests.common.dummy_spec import DummyOutputs
+from tests.unit_tests.tests.common.dummy_spec import DummySpec
+from tests.unit_tests.tests.common.dummy_spec import ExtraSpec
+from tests.unit_tests.tests.common.dummy_spec import NoOutputs
 
 
 class SageMakerComponentSpecTestCase(unittest.TestCase):

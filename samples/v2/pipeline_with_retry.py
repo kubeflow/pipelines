@@ -1,8 +1,8 @@
 import os
 
+from kfp import compiler
 from kfp import dsl
 
-from kfp import compiler
 
 @dsl.component()
 def verify_retries(retryCount: str, retries: str) -> bool:

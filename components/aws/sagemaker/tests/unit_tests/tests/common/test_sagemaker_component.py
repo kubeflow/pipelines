@@ -1,27 +1,23 @@
 import json
 import unittest
-from unittest.mock import patch, call, MagicMock, ANY
+from unittest.mock import ANY
+from unittest.mock import call
+from unittest.mock import MagicMock
+from unittest.mock import patch
+
 from botocore.exceptions import ClientError
-
-from common.common_inputs import (
-    COMMON_INPUTS,
-    SPOT_INSTANCE_INPUTS,
-    SageMakerComponentBaseOutputs,
-    SageMakerComponentCommonInputs,
-    SpotInstanceInputs,
-)
-from common.sagemaker_component import (
-    ComponentMetadata,
-    SageMakerComponent,
-    SageMakerJobStatus,
-)
-from tests.unit_tests.tests.common.dummy_spec import (
-    DummyOutputs,
-    DummySpec,
-)
-from tests.unit_tests.tests.common.dummy_component import DummyComponent
-
+from common.common_inputs import COMMON_INPUTS
+from common.common_inputs import SageMakerComponentBaseOutputs
+from common.common_inputs import SageMakerComponentCommonInputs
+from common.common_inputs import SPOT_INSTANCE_INPUTS
+from common.common_inputs import SpotInstanceInputs
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
 from common.sagemaker_component_spec import SageMakerComponentSpec
+from tests.unit_tests.tests.common.dummy_component import DummyComponent
+from tests.unit_tests.tests.common.dummy_spec import DummyOutputs
+from tests.unit_tests.tests.common.dummy_spec import DummySpec
 
 
 class SageMakerComponentMetadataTestCase(unittest.TestCase):

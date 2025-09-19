@@ -1,8 +1,8 @@
-import boto3
 from datetime import datetime
-import xml.etree.ElementTree as ET
 import os
+import xml.etree.ElementTree as ET
 
+import boto3
 
 xml_path = "./integration_tests.xml"
 

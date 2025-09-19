@@ -409,6 +409,7 @@ def resolve_model_display_name(
   """
   # pylint: disable=g-import-not-at-top
   import datetime
+
   # pylint: enable=g-import-not-at-top
   now = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
   return model_display_name or f'{large_model_reference.lower()}-{now}'

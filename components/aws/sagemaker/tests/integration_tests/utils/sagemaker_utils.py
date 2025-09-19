@@ -1,14 +1,14 @@
-import logging
-import re
 from datetime import datetime
-from time import sleep
-import os
-import pickle
 import gzip
 import io
-import numpy
 import json
+import logging
+import os
+import pickle
+import re
+from time import sleep
 
+import numpy
 from utils import get_s3_data_bucket
 
 

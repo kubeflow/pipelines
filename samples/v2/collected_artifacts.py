@@ -2,7 +2,9 @@ from typing import List
 
 import kfp
 from kfp import dsl
-from kfp.dsl import Artifact, Dataset, Model
+from kfp.dsl import Artifact
+from kfp.dsl import Dataset
+from kfp.dsl import Model
 from kfp.dsl import Output
 
 # This sample pipeline is meant to cover the following cases during artifact resolution:

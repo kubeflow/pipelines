@@ -12,12 +12,13 @@
 
 from __future__ import absolute_import
 
-import unittest
 import datetime
+import unittest
 
 import kfp_server_api
 from kfp_server_api.models.v2beta1_filter import V2beta1Filter  # noqa: E501
 from kfp_server_api.rest import ApiException
+
 
 class TestV2beta1Filter(unittest.TestCase):
     """V2beta1Filter unit test stubs"""

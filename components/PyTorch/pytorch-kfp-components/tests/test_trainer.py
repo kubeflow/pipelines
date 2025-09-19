@@ -19,9 +19,8 @@ import sys
 import tempfile
 
 import pytest
-import pytorch_lightning
-
 from pytorch_kfp_components.components.trainer.component import Trainer
+import pytorch_lightning
 
 dirname, filename = os.path.split(os.path.abspath(__file__))
 IRIS_DIR = os.path.join(dirname, "iris")

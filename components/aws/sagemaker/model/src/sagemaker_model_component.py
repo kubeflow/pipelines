@@ -14,16 +14,12 @@
 import logging
 from typing import Dict
 
-from model.src.sagemaker_model_spec import (
-    SageMakerCreateModelSpec,
-    SageMakerCreateModelInputs,
-    SageMakerCreateModelOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from model.src.sagemaker_model_spec import SageMakerCreateModelInputs
+from model.src.sagemaker_model_spec import SageMakerCreateModelOutputs
+from model.src.sagemaker_model_spec import SageMakerCreateModelSpec
 
 
 @ComponentMetadata(

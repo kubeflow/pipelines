@@ -1,12 +1,11 @@
-import pytest
-import os
-import utils
 import json
+import os
 
+import pytest
+import utils
 from utils import kfp_client_utils
 from utils import minio_utils
 from utils import sagemaker_utils
-
 
 
 @pytest.mark.parametrize(

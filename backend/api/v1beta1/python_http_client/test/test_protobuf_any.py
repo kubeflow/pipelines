@@ -12,12 +12,13 @@
 
 from __future__ import absolute_import
 
-import unittest
 import datetime
+import unittest
 
 import kfp_server_api
 from kfp_server_api.models.protobuf_any import ProtobufAny  # noqa: E501
 from kfp_server_api.rest import ApiException
+
 
 class TestProtobufAny(unittest.TestCase):
     """ProtobufAny unit test stubs"""

@@ -1,4 +1,5 @@
-from kfp import dsl, compiler
+from kfp import compiler
+from kfp import dsl
 from kfp.kubernetes import add_pod_annotation
 from kfp.kubernetes import add_pod_label
 from kfp.kubernetes import use_field_path_as_env

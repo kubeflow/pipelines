@@ -24,7 +24,6 @@ from google_cloud_pipeline_components._implementation.starry_net.train.component
 from google_cloud_pipeline_components._implementation.starry_net.upload_decomposition_plots.component import upload_decomposition_plots as UploadDecompositionPlotsOp
 from google_cloud_pipeline_components._implementation.starry_net.upload_model.component import upload_model as UploadModelOp
 
-
 __all__ = [
     'DataprepOp',
     'EvaluationOp',

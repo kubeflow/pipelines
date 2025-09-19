@@ -11,23 +11,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from enum import auto
+from enum import Enum
 import logging
 from typing import Dict
-from enum import Enum, auto
-from sagemaker.image_uris import retrieve
 
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import DebugRulesStatus
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from sagemaker.image_uris import retrieve
 from train.src.built_in_algos import BUILT_IN_ALGOS
-from train.src.sagemaker_training_spec import (
-    SageMakerTrainingSpec,
-    SageMakerTrainingInputs,
-    SageMakerTrainingOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-    DebugRulesStatus,
-)
+from train.src.sagemaker_training_spec import SageMakerTrainingInputs
+from train.src.sagemaker_training_spec import SageMakerTrainingOutputs
+from train.src.sagemaker_training_spec import SageMakerTrainingSpec
 
 
 @ComponentMetadata(

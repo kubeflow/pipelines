@@ -12,12 +12,13 @@
 
 from __future__ import absolute_import
 
-import unittest
 import datetime
+import unittest
 
 import kfp_server_api
 from kfp_server_api.models.api_periodic_schedule import ApiPeriodicSchedule  # noqa: E501
 from kfp_server_api.rest import ApiException
+
 
 class TestApiPeriodicSchedule(unittest.TestCase):
     """ApiPeriodicSchedule unit test stubs"""

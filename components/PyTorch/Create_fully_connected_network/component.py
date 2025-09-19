@@ -1,4 +1,6 @@
-from kfp.components import create_component_from_func, OutputPath
+from kfp.components import create_component_from_func
+from kfp.components import OutputPath
+
 
 def create_fully_connected_pytorch_network(
     layer_sizes: list,

@@ -43,11 +43,12 @@ def validate_pipeline(
   """
   # fmt: on
   # pylint: disable=g-import-not-at-top,import-outside-toplevel
+  import glob
   import json
   import logging
   import re
   import sys
-  import glob
+
   # pylint: enable=g-import-not-at-top,import-outside-toplevel
   outputs = NamedTuple(
       'PreprocessedInputs',

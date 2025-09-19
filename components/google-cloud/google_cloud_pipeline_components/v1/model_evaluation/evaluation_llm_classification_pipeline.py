@@ -25,7 +25,6 @@ from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPred
 from google_cloud_pipeline_components.v1.model_evaluation.classification_component import model_evaluation_classification as ModelEvaluationClassificationOp
 from kfp import dsl
 
-
 # pylint: disable=unused-argument, unexpected-keyword-arg
 
 _PIPELINE_NAME = 'evaluation-llm-classification-pipeline'

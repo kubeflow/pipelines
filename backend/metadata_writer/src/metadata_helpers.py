@@ -13,13 +13,16 @@
 # limitations under the License.
 
 import functools
+from ipaddress import ip_address
+from ipaddress import IPv4Address
 import json
 import os
 import sys
 from time import sleep
-from ml_metadata.proto import metadata_store_pb2
+
 from ml_metadata.metadata_store import metadata_store
-from ipaddress import ip_address, IPv4Address 
+from ml_metadata.proto import metadata_store_pb2
+
 
 def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
     if value is None:

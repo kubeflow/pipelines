@@ -14,16 +14,12 @@
 import logging
 from typing import Dict
 
-from batch_transform.src.sagemaker_transform_spec import (
-    SageMakerTransformSpec,
-    SageMakerTransformInputs,
-    SageMakerTransformOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
+from batch_transform.src.sagemaker_transform_spec import SageMakerTransformInputs
+from batch_transform.src.sagemaker_transform_spec import SageMakerTransformOutputs
+from batch_transform.src.sagemaker_transform_spec import SageMakerTransformSpec
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
 
 
 @ComponentMetadata(

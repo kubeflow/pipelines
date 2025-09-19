@@ -1,5 +1,6 @@
-from model.src.sagemaker_model_spec import SageMakerCreateModelSpec
 import unittest
+
+from model.src.sagemaker_model_spec import SageMakerCreateModelSpec
 
 
 class CreateModelSpecTestCase(unittest.TestCase):

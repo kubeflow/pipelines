@@ -1,15 +1,12 @@
-from common.sagemaker_component import SageMakerJobStatus
-from rlestimator.src.sagemaker_rlestimator_spec import SageMakerRLEstimatorSpec
-from rlestimator.src.sagemaker_rlestimator_component import (
-    SageMakerRLEstimatorComponent,
-    DebugRulesStatus,
-)
-from tests.unit_tests.tests.rlestimator.test_rlestimator_spec import (
-    RLEstimatorSpecTestCase,
-)
 import unittest
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from unittest.mock import patch, MagicMock
+from common.sagemaker_component import SageMakerJobStatus
+from rlestimator.src.sagemaker_rlestimator_component import DebugRulesStatus
+from rlestimator.src.sagemaker_rlestimator_component import SageMakerRLEstimatorComponent
+from rlestimator.src.sagemaker_rlestimator_spec import SageMakerRLEstimatorSpec
+from tests.unit_tests.tests.rlestimator.test_rlestimator_spec import RLEstimatorSpecTestCase
 
 HAS_ATTR_MESSAGE = "{} should have an attribute {}"
 HAS_NOT_ATTR_MESSAGE = "{} should not have an attribute {}"

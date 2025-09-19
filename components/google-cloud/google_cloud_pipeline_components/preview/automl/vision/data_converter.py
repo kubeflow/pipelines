@@ -18,7 +18,9 @@ from typing import Optional
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components import _placeholders
 # pylint: disable-next=g-importing-member, g-multiple-import
-from google_cloud_pipeline_components.preview.automl.vision.json_utils import Concat, IfPresent, Json
+from google_cloud_pipeline_components.preview.automl.vision.json_utils import Concat
+from google_cloud_pipeline_components.preview.automl.vision.json_utils import IfPresent
+from google_cloud_pipeline_components.preview.automl.vision.json_utils import Json
 from kfp import dsl
 
 

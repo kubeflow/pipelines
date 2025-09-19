@@ -14,14 +14,15 @@
 # limitations under the License.
 #pylint: disable=not-callable,unused-variable
 """Test for component compilation."""
+import json
 import os
 import unittest
-import json
-import pytest
-from kfp import components
-from kfp.components import load_component_from_file
-from kfp import dsl
+
 from kfp import compiler
+from kfp import components
+from kfp import dsl
+from kfp.components import load_component_from_file
+import pytest
 
 tests_dir, _ = os.path.split(os.path.abspath(__file__))
 

@@ -26,13 +26,11 @@ from google.cloud.aiplatform import schema
 from google.cloud.aiplatform import training_jobs
 from google.cloud.aiplatform_v1.types import model
 from google.cloud.aiplatform_v1.types import training_pipeline
+from google.protobuf import json_format
+from google.protobuf import struct_pb2
 from google_cloud_pipeline_components.container.v1.aiplatform import remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher import pipeline_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
-
-from google.protobuf import struct_pb2
-from google.protobuf import json_format
-
 
 _GET_PIPELINE_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
 _CLASSIFICATION = 'classification'

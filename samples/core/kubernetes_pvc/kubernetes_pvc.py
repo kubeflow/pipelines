@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl, compiler
+from kfp import compiler
+from kfp import dsl
 from kfp import kubernetes
+
 
 @dsl.component
 def make_data():

@@ -13,18 +13,15 @@
 
 import logging
 from typing import Dict
-from create_simulation_app.src.robomaker_create_simulation_app_spec import (
-    RoboMakerCreateSimulationAppSpec,
-    RoboMakerCreateSimulationAppInputs,
-    RoboMakerCreateSimulationAppOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
+
 from common.boto3_manager import Boto3Manager
 from common.common_inputs import SageMakerComponentCommonInputs
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from create_simulation_app.src.robomaker_create_simulation_app_spec import RoboMakerCreateSimulationAppInputs
+from create_simulation_app.src.robomaker_create_simulation_app_spec import RoboMakerCreateSimulationAppOutputs
+from create_simulation_app.src.robomaker_create_simulation_app_spec import RoboMakerCreateSimulationAppSpec
 
 
 @ComponentMetadata(

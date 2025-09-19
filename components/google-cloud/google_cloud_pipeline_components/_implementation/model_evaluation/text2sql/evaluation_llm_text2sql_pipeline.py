@@ -22,7 +22,6 @@ from google_cloud_pipeline_components._implementation.model_evaluation.text2sql_
 import kfp
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 
-
 _PIPELINE_NAME = 'evaluation_llm_text2sql_pipeline'
 
 

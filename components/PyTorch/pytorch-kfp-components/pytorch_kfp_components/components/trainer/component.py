@@ -13,9 +13,10 @@
 # limitations under the License.
 """Training Component class."""
 
-from typing import Optional, Dict
-from pytorch_kfp_components.components.trainer.executor import Executor
+from typing import Dict, Optional
+
 from pytorch_kfp_components.components.base.base_component import BaseComponent
+from pytorch_kfp_components.components.trainer.executor import Executor
 from pytorch_kfp_components.types import standard_component_specs
 
 

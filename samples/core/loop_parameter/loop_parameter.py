@@ -1,4 +1,5 @@
-from kfp import compiler, dsl
+from kfp import compiler
+from kfp import dsl
 
 
 @dsl.component

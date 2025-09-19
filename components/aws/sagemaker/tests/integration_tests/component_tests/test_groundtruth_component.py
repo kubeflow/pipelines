@@ -1,9 +1,10 @@
-import pytest
 import os
+
+import pytest
+from test_workteam_component import create_workteamjob
 import utils
 from utils import kfp_client_utils
 from utils import sagemaker_utils
-from test_workteam_component import create_workteamjob
 
 
 def create_initial_workteam(

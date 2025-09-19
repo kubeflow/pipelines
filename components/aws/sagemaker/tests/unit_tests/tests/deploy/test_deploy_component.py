@@ -1,13 +1,14 @@
-from common.sagemaker_component import SageMakerComponent, SageMakerJobStatus
-from deploy.src.sagemaker_deploy_spec import SageMakerDeploySpec
-from deploy.src.sagemaker_deploy_component import (
-    EndpointRequests,
-    SageMakerDeployComponent,
-)
-from tests.unit_tests.tests.deploy.test_deploy_spec import DeploySpecTestCase
 import unittest
+from unittest.mock import ANY
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from unittest.mock import patch, MagicMock, ANY
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from deploy.src.sagemaker_deploy_component import EndpointRequests
+from deploy.src.sagemaker_deploy_component import SageMakerDeployComponent
+from deploy.src.sagemaker_deploy_spec import SageMakerDeploySpec
+from tests.unit_tests.tests.deploy.test_deploy_spec import DeploySpecTestCase
 
 
 class DeployComponentTestCase(unittest.TestCase):

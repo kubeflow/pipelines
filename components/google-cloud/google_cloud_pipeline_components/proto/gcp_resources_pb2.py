@@ -7,13 +7,13 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
+
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
 from google.rpc import status_pb2 as google_dot_rpc_dot_status__pb2
-
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13gcp_resources.proto\x12\x0cgcp_launcher\x1a\x17google/rpc/status.proto\"\xe0\x01\n\x0cGcpResources\x12\x36\n\tresources\x18\x01 \x03(\x0b\x32#.gcp_launcher.GcpResources.Resource\x1a\x97\x01\n\x08Resource\x12\x1a\n\rresource_type\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0cresource_uri\x18\x02 \x01(\tH\x01\x88\x01\x01\x12!\n\x05\x65rror\x18\x03 \x01(\x0b\x32\x12.google.rpc.Status\x12\x0e\n\x06labels\x18\x04 \x03(\tB\x10\n\x0e_resource_typeB\x0f\n\r_resource_urib\x06proto3')
 

@@ -1,7 +1,6 @@
-from delete_simulation_app.src.robomaker_delete_simulation_app_spec import (
-    RoboMakerDeleteSimulationAppSpec,
-)
 import unittest
+
+from delete_simulation_app.src.robomaker_delete_simulation_app_spec import RoboMakerDeleteSimulationAppSpec
 
 
 class RoboMakerDeleteSimAppSpecTestCase(unittest.TestCase):

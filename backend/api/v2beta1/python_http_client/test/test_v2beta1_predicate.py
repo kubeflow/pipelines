@@ -12,12 +12,13 @@
 
 from __future__ import absolute_import
 
-import unittest
 import datetime
+import unittest
 
 import kfp_server_api
 from kfp_server_api.models.v2beta1_predicate import V2beta1Predicate  # noqa: E501
 from kfp_server_api.rest import ApiException
+
 
 class TestV2beta1Predicate(unittest.TestCase):
     """V2beta1Predicate unit test stubs"""

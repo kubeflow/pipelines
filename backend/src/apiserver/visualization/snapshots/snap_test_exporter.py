@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 from snapshottest import Snapshot
 
-
 snapshots = Snapshot()
 
 snapshots['TestExporterMethods::test_create_cell_from_args_with_multiple_args 1'] = '''\

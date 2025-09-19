@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
+import os
+import random
+
 import kfp
 from kfp import components
 from kfp import dsl
-import os
-import random
 
 # Training job component, path is relative from this directory.
 sagemaker_training_op = components.load_component_from_file("../../component.yaml")

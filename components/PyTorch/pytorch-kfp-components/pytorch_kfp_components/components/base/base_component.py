@@ -15,6 +15,7 @@
 """Pipeline Base component class."""
 
 import abc
+
 from pytorch_kfp_components.types import standard_component_specs
 
 

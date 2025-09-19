@@ -12,23 +12,22 @@
 # limitations under the License.
 
 import logging
-from typing import Dict
 import os
-from sagemaker.rl import RLEstimator, RLToolkit, RLFramework
-from rlestimator.src.sagemaker_rlestimator_spec import (
-    SageMakerRLEstimatorSpec,
-    SageMakerRLEstimatorInputs,
-    SageMakerRLEstimatorOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-    DebugRulesStatus,
-)
+from typing import Dict
+
 from common.boto3_manager import Boto3Manager
 from common.common_inputs import SageMakerComponentCommonInputs
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import DebugRulesStatus
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
 from common.spec_input_parsers import SpecInputParsers
+from rlestimator.src.sagemaker_rlestimator_spec import SageMakerRLEstimatorInputs
+from rlestimator.src.sagemaker_rlestimator_spec import SageMakerRLEstimatorOutputs
+from rlestimator.src.sagemaker_rlestimator_spec import SageMakerRLEstimatorSpec
+from sagemaker.rl import RLEstimator
+from sagemaker.rl import RLFramework
+from sagemaker.rl import RLToolkit
 
 
 @ComponentMetadata(

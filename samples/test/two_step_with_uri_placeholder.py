@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Two step v2-compatible pipeline with URI placeholders."""
-from kfp import components, dsl
+from kfp import components
+from kfp import dsl
 
 write_to_gcs_op = components.load_component_from_text("""
 name: write-to-gcs

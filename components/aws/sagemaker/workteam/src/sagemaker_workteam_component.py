@@ -14,16 +14,12 @@
 import logging
 from typing import Dict
 
-from workteam.src.sagemaker_workteam_spec import (
-    SageMakerWorkteamSpec,
-    SageMakerWorkteamInputs,
-    SageMakerWorkteamOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from workteam.src.sagemaker_workteam_spec import SageMakerWorkteamInputs
+from workteam.src.sagemaker_workteam_spec import SageMakerWorkteamOutputs
+from workteam.src.sagemaker_workteam_spec import SageMakerWorkteamSpec
 
 
 @ComponentMetadata(

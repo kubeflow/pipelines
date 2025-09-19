@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """A pipeline that passes a secret as an env variable to a container."""
+import os
+
 from kfp import dsl
 from kfp import kubernetes
 from kfp.dsl import OutputPath
-import os
 
 # Note: this sample will only work if this secret is pre-created before running this pipeline.
 # Is is pre-created by default only in the Google Cloud distribution listed here:

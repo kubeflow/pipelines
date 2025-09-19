@@ -18,10 +18,6 @@ import json
 import os
 import sys
 import time
-import yaml
-
-from kubernetes import client
-from kubernetes.client.models import V1ResourceRequirements
 
 from kserve import constants
 from kserve import KServeClient
@@ -37,7 +33,9 @@ from kserve import V1beta1TorchServeSpec
 from kserve import V1beta1TritonSpec
 from kserve import V1beta1XGBoostSpec
 from kserve.api.watch import isvc_watch
-
+from kubernetes import client
+from kubernetes.client.models import V1ResourceRequirements
+import yaml
 
 AVAILABLE_FRAMEWORKS = {
     'tensorflow': V1beta1TFServingSpec,

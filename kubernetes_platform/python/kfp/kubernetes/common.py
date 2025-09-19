@@ -14,12 +14,13 @@
 
 from typing import Union
 
-from kfp.dsl import pipeline_channel
-from kfp.compiler.pipeline_spec_builder import to_protobuf_value
-from kfp.dsl import PipelineTask
 from google.protobuf import json_format
-from kfp.pipeline_spec import pipeline_spec_pb2
+from kfp.compiler.pipeline_spec_builder import to_protobuf_value
+from kfp.dsl import pipeline_channel
+from kfp.dsl import PipelineTask
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
+from kfp.pipeline_spec import pipeline_spec_pb2
+
 
 def camel_to_python_case(name: str) -> str:
     import re

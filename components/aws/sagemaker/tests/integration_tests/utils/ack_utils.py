@@ -1,6 +1,8 @@
-from time import sleep
-from kubernetes import client, config
 import os
+from time import sleep
+
+from kubernetes import client
+from kubernetes import config
 
 
 def k8s_client():

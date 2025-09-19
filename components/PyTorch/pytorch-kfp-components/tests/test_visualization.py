@@ -14,14 +14,15 @@
 # limitations under the License.
 
 """Unit tests for visualization component."""
-import os
 import json
+import os
 import tempfile
 from unittest.mock import patch
+
 import mock
+import pytest
 from pytorch_kfp_components.components.visualization.component import Visualization
 from pytorch_kfp_components.components.visualization.executor import Executor
-import pytest
 
 metdata_dir = tempfile.mkdtemp()
 

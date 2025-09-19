@@ -12,12 +12,13 @@
 
 from __future__ import absolute_import
 
-import unittest
 import datetime
+import unittest
 
 import kfp_server_api
 from kfp_server_api.models.recurring_run_mode import RecurringRunMode  # noqa: E501
 from kfp_server_api.rest import ApiException
+
 
 class TestRecurringRunMode(unittest.TestCase):
     """RecurringRunMode unit test stubs"""

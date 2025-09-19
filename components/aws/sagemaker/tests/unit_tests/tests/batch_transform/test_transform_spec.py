@@ -1,5 +1,6 @@
-from batch_transform.src.sagemaker_transform_spec import SageMakerTransformSpec
 import unittest
+
+from batch_transform.src.sagemaker_transform_spec import SageMakerTransformSpec
 
 
 class TransformSpecTestCase(unittest.TestCase):

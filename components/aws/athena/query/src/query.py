@@ -13,8 +13,8 @@
 import argparse
 import json
 import logging
-import time
 import re
+import time
 
 import boto3
 

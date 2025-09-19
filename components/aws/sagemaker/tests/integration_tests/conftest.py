@@ -1,14 +1,14 @@
-import pytest
-import boto3
-import kfp
-import os
-from utils import sagemaker_utils
-import utils
-
 from datetime import datetime
-from filelock import FileLock
-from sagemaker import image_uris
+import os
+
+import boto3
 from botocore.config import Config
+from filelock import FileLock
+import kfp
+import pytest
+from sagemaker import image_uris
+import utils
+from utils import sagemaker_utils
 
 
 def pytest_addoption(parser):

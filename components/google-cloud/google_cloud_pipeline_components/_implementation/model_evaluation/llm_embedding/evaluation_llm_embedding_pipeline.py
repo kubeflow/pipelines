@@ -25,7 +25,6 @@ from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPred
 import kfp
 from kfp.dsl import PIPELINE_ROOT_PLACEHOLDER
 
-
 _PIPELINE_NAME = 'evaluation-llm-embedding-pipeline'
 
 

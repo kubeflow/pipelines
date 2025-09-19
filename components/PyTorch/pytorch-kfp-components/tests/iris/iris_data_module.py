@@ -14,11 +14,14 @@
 # limitations under the License.
 
 from argparse import ArgumentParser
-import pytorch_lightning as pl
-import torch
+
 from pytorch_lightning import seed_everything
+import pytorch_lightning as pl
 from sklearn.datasets import load_iris
-from torch.utils.data import DataLoader, random_split, TensorDataset
+import torch
+from torch.utils.data import DataLoader
+from torch.utils.data import random_split
+from torch.utils.data import TensorDataset
 
 
 class IrisDataModule(pl.LightningDataModule):

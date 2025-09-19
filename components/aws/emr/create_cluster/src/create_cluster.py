@@ -11,11 +11,11 @@
 # limitations under the License.
 
 import argparse
-import os
 import logging
-from pathlib2 import Path
+import os
 
 from common import _utils
+from pathlib2 import Path
 
 try:
   unicode

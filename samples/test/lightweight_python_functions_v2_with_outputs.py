@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Lightweight functions v2 with outputs."""
-from typing import NamedTuple
 import os
+from typing import NamedTuple
 
-from kfp import compiler, dsl
-from kfp.dsl import Input, Dataset, Model, Metrics, component
+from kfp import compiler
+from kfp import dsl
+from kfp.dsl import component
+from kfp.dsl import Dataset
+from kfp.dsl import Input
+from kfp.dsl import Metrics
+from kfp.dsl import Model
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.

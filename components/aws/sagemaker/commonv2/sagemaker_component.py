@@ -11,31 +11,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from abc import abstractmethod
+import json
+import logging
 import os
-import sys
+from pathlib import Path
+import random
 import signal
 import string
-import logging
-import json
+import sys
+from time import gmtime
+from time import sleep
+from time import strftime
 from types import FunctionType
-import yaml
-import random
-from pathlib import Path
-from time import sleep, strftime, gmtime
-from abc import abstractmethod
 from typing import Any, Dict, List, NamedTuple, Optional
-from kubernetes import client, config
+
+from commonv2 import is_ack_requeue_error
+from commonv2 import snake_to_camel
+from commonv2.common_inputs import SageMakerComponentBaseOutputs
+from commonv2.common_inputs import SageMakerComponentCommonInputs
+from commonv2.sagemaker_component_spec import SageMakerComponentSpec
+from kubernetes import client
+from kubernetes import config
 from kubernetes.client.api_client import ApiClient
 from kubernetes.client.rest import ApiException
-
-from commonv2.sagemaker_component_spec import SageMakerComponentSpec
-
-from commonv2.common_inputs import (
-    SageMakerComponentBaseOutputs,
-    SageMakerComponentCommonInputs,
-)
-
-from commonv2 import snake_to_camel, is_ack_requeue_error
+import yaml
 
 # This handler is called whenever the @ComponentMetadata is applied.
 # It allows the command line compiler to detect every component spec class.

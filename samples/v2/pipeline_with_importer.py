@@ -15,8 +15,13 @@
 import os
 from typing import NamedTuple
 
-from kfp import compiler, dsl
-from kfp.dsl import Dataset, Input, Model, component, importer
+from kfp import compiler
+from kfp import dsl
+from kfp.dsl import component
+from kfp.dsl import Dataset
+from kfp.dsl import importer
+from kfp.dsl import Input
+from kfp.dsl import Model
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.

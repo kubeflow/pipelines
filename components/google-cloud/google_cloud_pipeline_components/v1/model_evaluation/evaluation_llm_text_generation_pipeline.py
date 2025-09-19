@@ -23,7 +23,6 @@ from google_cloud_pipeline_components.types.artifact_types import VertexModel
 from google_cloud_pipeline_components.v1.batch_predict_job import ModelBatchPredictOp
 from kfp import dsl
 
-
 # pylint: disable=unused-argument, unexpected-keyword-arg
 
 

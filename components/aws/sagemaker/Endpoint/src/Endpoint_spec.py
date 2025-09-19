@@ -13,21 +13,17 @@
 """Specification for the SageMaker - Endpoint"""
 
 from dataclasses import dataclass
-
 from typing import List
-from commonv2.sagemaker_component_spec import (
-    SageMakerComponentSpec,
-    SageMakerComponentBaseOutputs,
-)
+
+from commonv2.common_inputs import COMMON_INPUTS
+from commonv2.common_inputs import SageMakerComponentCommonInputs
+from commonv2.common_inputs import SageMakerComponentInput as Input
+from commonv2.common_inputs import SageMakerComponentInputValidator as InputValidator
+from commonv2.common_inputs import SageMakerComponentOutput as Output
+from commonv2.common_inputs import SageMakerComponentOutputValidator as OutputValidator
+from commonv2.sagemaker_component_spec import SageMakerComponentBaseOutputs
+from commonv2.sagemaker_component_spec import SageMakerComponentSpec
 from commonv2.spec_input_parsers import SpecInputParsers
-from commonv2.common_inputs import (
-    COMMON_INPUTS,
-    SageMakerComponentCommonInputs,
-    SageMakerComponentInput as Input,
-    SageMakerComponentOutput as Output,
-    SageMakerComponentInputValidator as InputValidator,
-    SageMakerComponentOutputValidator as OutputValidator,
-)
 
 
 @dataclass(frozen=False)

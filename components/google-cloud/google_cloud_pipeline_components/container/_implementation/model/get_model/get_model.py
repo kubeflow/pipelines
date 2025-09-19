@@ -20,12 +20,10 @@ from typing import Optional
 
 from google.api_core import gapic_v1
 from google.cloud import aiplatform
+from google.protobuf import json_format
 from google_cloud_pipeline_components.container.utils import artifact_utils
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
-
-from google.protobuf import json_format
-
 
 RESOURCE_TYPE = 'Model'
 

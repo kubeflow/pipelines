@@ -16,8 +16,8 @@ import os
 import shutil
 import sys
 import unittest
-import yaml
 
+import yaml
 
 # Need to adjust sys path to find utils.py
 _PACKAGE_PARENT = '..'
@@ -25,7 +25,6 @@ _SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path
 sys.path.append(os.path.normpath(os.path.join(_SCRIPT_DIR, _PACKAGE_PARENT)))
 
 import utils
-
 
 _DATAPATH = 'testdata/'
 _WORK_DIR = 'workdir/'

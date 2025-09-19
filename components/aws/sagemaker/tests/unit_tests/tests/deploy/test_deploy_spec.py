@@ -1,5 +1,6 @@
-from deploy.src.sagemaker_deploy_spec import SageMakerDeploySpec
 import unittest
+
+from deploy.src.sagemaker_deploy_spec import SageMakerDeploySpec
 
 
 class DeploySpecTestCase(unittest.TestCase):

@@ -16,7 +16,8 @@
 # Notice: caching is tricky when recursion is involved. Please be careful and
 # set proper max_cache_staleness in case of infinite loop.
 
-from kfp import dsl, compiler
+from kfp import compiler
+from kfp import dsl
 
 
 def flip_coin_op():

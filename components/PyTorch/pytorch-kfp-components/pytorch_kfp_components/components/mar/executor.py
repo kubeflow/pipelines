@@ -15,13 +15,14 @@
 """Mar Generation Executor Class."""
 
 import os
-import shutil
-import tempfile
-import subprocess
 from pathlib import Path
-import wget
+import shutil
+import subprocess
+import tempfile
+
 from pytorch_kfp_components.components.base.base_executor import BaseExecutor
 from pytorch_kfp_components.types import standard_component_specs
+import wget
 
 
 class Executor(BaseExecutor):

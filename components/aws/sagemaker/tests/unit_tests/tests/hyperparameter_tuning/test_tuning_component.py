@@ -1,14 +1,12 @@
-from common.sagemaker_component import SageMakerJobStatus
-from hyperparameter_tuning.src.sagemaker_tuning_spec import SageMakerTuningSpec
-from hyperparameter_tuning.src.sagemaker_tuning_component import (
-    SageMakerTuningComponent,
-)
-from tests.unit_tests.tests.hyperparameter_tuning.test_tuning_spec import (
-    TuningSpecTestCase,
-)
 import unittest
+from unittest.mock import ANY
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from unittest.mock import patch, MagicMock, ANY
+from common.sagemaker_component import SageMakerJobStatus
+from hyperparameter_tuning.src.sagemaker_tuning_component import SageMakerTuningComponent
+from hyperparameter_tuning.src.sagemaker_tuning_spec import SageMakerTuningSpec
+from tests.unit_tests.tests.hyperparameter_tuning.test_tuning_spec import TuningSpecTestCase
 
 
 class TuningComponentTestCase(unittest.TestCase):

@@ -1,5 +1,6 @@
-from workteam.src.sagemaker_workteam_spec import SageMakerWorkteamSpec
 import unittest
+
+from workteam.src.sagemaker_workteam_spec import SageMakerWorkteamSpec
 
 
 class WorkteamSpecTestCase(unittest.TestCase):

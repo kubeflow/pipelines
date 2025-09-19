@@ -14,6 +14,7 @@
 
 import importlib
 import unittest
+
 from nbformat.v4 import new_notebook
 import snapshottest
 

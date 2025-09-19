@@ -5,6 +5,7 @@ This is a KFP component doing "unload data to GCS bucket" operation
 from kfp import compiler
 from kfp.dsl import component
 
+
 @component(
     base_image="python:3.11",
     packages_to_install=["snowflake-connector-python:3.12.3"]

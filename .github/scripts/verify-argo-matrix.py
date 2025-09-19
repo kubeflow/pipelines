@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 from typing import List, Set
 
 from ruamel.yaml import YAML

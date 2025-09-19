@@ -16,10 +16,10 @@
 import json
 
 from google.api_core import retry
+from google.cloud.aiplatform_v1.types import study as gca_study
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
-from google.cloud.aiplatform_v1.types import study as gca_study
 
 _HYPERPARAMETER_TUNING_JOB_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
 _LABELS_PAYLOAD_KEY = 'labels'

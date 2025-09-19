@@ -1,8 +1,6 @@
-from MonitoringSchedule.src.MonitoringSchedule_spec import (
-    SageMakerMonitoringScheduleSpec,
-)
-
 import unittest
+
+from MonitoringSchedule.src.MonitoringSchedule_spec import SageMakerMonitoringScheduleSpec
 
 
 class MonitoringScheduleSpecTestCase(unittest.TestCase):

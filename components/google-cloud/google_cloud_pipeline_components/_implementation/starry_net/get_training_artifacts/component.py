@@ -44,6 +44,7 @@ def get_training_artifacts(
     and the instance_schema_uri.
   """
   import os  # pylint: disable=g-import-not-at-top
+
   import tensorflow as tf  # pylint: disable=g-import-not-at-top
 
   with tf.io.gfile.GFile(os.path.join(trainer_dir, 'trainer.txt')) as f:

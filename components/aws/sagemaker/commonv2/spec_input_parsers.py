@@ -12,12 +12,12 @@
 # limitations under the License.
 
 
-import json
-import yaml
-
-from distutils.util import strtobool
 from argparse import ArgumentTypeError
-from typing import List, Dict
+from distutils.util import strtobool
+import json
+from typing import Dict, List
+
+import yaml
 
 
 class SpecInputParsers:

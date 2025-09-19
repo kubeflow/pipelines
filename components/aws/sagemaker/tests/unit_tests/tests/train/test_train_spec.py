@@ -1,5 +1,6 @@
-from train.src.sagemaker_training_spec import SageMakerTrainingSpec
 import unittest
+
+from train.src.sagemaker_training_spec import SageMakerTrainingSpec
 
 
 class TrainingSpecTestCase(unittest.TestCase):

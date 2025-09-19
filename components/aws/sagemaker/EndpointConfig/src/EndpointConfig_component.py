@@ -10,21 +10,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 from typing import Dict
-import json
 
-from EndpointConfig.src.EndpointConfig_spec import (
-    SageMakerEndpointConfigInputs,
-    SageMakerEndpointConfigOutputs,
-    SageMakerEndpointConfigSpec,
-)
-from commonv2.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
 from commonv2 import snake_to_camel
+from commonv2.sagemaker_component import ComponentMetadata
+from commonv2.sagemaker_component import SageMakerComponent
+from commonv2.sagemaker_component import SageMakerJobStatus
+from EndpointConfig.src.EndpointConfig_spec import SageMakerEndpointConfigInputs
+from EndpointConfig.src.EndpointConfig_spec import SageMakerEndpointConfigOutputs
+from EndpointConfig.src.EndpointConfig_spec import SageMakerEndpointConfigSpec
 
 
 @ComponentMetadata(

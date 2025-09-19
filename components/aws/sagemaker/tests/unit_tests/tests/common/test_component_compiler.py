@@ -1,22 +1,20 @@
 import unittest
-from unittest.mock import patch, MagicMock, ANY
-from kfp.components.structures import (
-    ComponentSpec,
-    InputSpec,
-    OutputSpec,
-    ContainerImplementation,
-    InputValuePlaceholder,
-    OutputPathPlaceholder,
-    ContainerSpec,
-)
+from unittest.mock import ANY
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-
-from common.component_compiler import (
-    IOArgs,
-    SageMakerComponentCompiler,
-)
-from tests.unit_tests.tests.common.dummy_spec import DummySpec, ExtraSpec
+from common.component_compiler import IOArgs
+from common.component_compiler import SageMakerComponentCompiler
+from kfp.components.structures import ComponentSpec
+from kfp.components.structures import ContainerImplementation
+from kfp.components.structures import ContainerSpec
+from kfp.components.structures import InputSpec
+from kfp.components.structures import InputValuePlaceholder
+from kfp.components.structures import OutputPathPlaceholder
+from kfp.components.structures import OutputSpec
 from tests.unit_tests.tests.common.dummy_component import DummyComponent
+from tests.unit_tests.tests.common.dummy_spec import DummySpec
+from tests.unit_tests.tests.common.dummy_spec import ExtraSpec
 
 
 class ComponentCompilerTestCase(unittest.TestCase):

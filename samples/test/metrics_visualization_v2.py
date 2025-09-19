@@ -14,8 +14,12 @@
 import os
 
 from kfp import dsl
-from kfp.dsl import (component, Output, ClassificationMetrics, Metrics, HTML,
-                     Markdown)
+from kfp.dsl import ClassificationMetrics
+from kfp.dsl import component
+from kfp.dsl import HTML
+from kfp.dsl import Markdown
+from kfp.dsl import Metrics
+from kfp.dsl import Output
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
@@ -28,9 +32,9 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
 def digit_classification(metrics: Output[Metrics]):
+    from sklearn import datasets
     from sklearn import model_selection
     from sklearn.linear_model import LogisticRegression
-    from sklearn import datasets
     from sklearn.metrics import accuracy_score
 
     # Load digits dataset
@@ -72,10 +76,11 @@ def digit_classification(metrics: Output[Metrics]):
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
 def wine_classification(metrics: Output[ClassificationMetrics]):
+    from sklearn.datasets import load_wine
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.metrics import roc_curve
-    from sklearn.datasets import load_wine
-    from sklearn.model_selection import train_test_split, cross_val_predict
+    from sklearn.model_selection import cross_val_predict
+    from sklearn.model_selection import train_test_split
 
     X, y = load_wine(return_X_y=True)
     # Binary classification problem for label 1.
@@ -104,7 +109,8 @@ def wine_classification(metrics: Output[ClassificationMetrics]):
 )
 def iris_sgdclassifier(test_samples_fraction: float,
                        metrics: Output[ClassificationMetrics]):
-    from sklearn import datasets, model_selection
+    from sklearn import datasets
+    from sklearn import model_selection
     from sklearn.linear_model import SGDClassifier
     from sklearn.metrics import confusion_matrix
 

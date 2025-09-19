@@ -1,7 +1,7 @@
-import pytest
 import os
-import utils
 
+import pytest
+import utils
 from utils import kfp_client_utils
 from utils import minio_utils
 from utils import sagemaker_utils

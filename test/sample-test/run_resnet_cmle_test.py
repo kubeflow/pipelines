@@ -13,12 +13,13 @@
 # limitations under the License.
 
 import argparse
-import os
-import json
-import tarfile
 from datetime import datetime
-import utils
+import json
+import os
+import tarfile
+
 from kfp import Client
+import utils
 
 ###### Input/Output Instruction ######
 # input: yaml
