@@ -22,8 +22,10 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"strings"
 
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"sigs.k8s.io/yaml"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
@@ -125,10 +127,12 @@ type ResourceManager struct {
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []kfpauth.Authenticator
+	semaphoreManager          *SemaphoreManager
 	options                   *ResourceManagerOptions
 }
 
 func NewResourceManager(clientManager ClientManagerInterface, options *ResourceManagerOptions) *ResourceManager {
+	k8sCoreClient := clientManager.KubernetesCoreClient()
 	return &ResourceManager{
 		experimentStore:           clientManager.ExperimentStore(),
 		pipelineStore:             clientManager.PipelineStore(),
@@ -141,13 +145,14 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		objectStore:               clientManager.ObjectStore(),
 		execClient:                clientManager.ExecClient(),
 		swfClient:                 clientManager.SwfClient(),
-		k8sCoreClient:             clientManager.KubernetesCoreClient(),
+		k8sCoreClient:             k8sCoreClient,
 		subjectAccessReviewClient: clientManager.SubjectAccessReviewClient(),
 		tokenReviewClient:         clientManager.TokenReviewClient(),
 		logArchive:                clientManager.LogArchive(),
 		time:                      clientManager.Time(),
 		uuid:                      clientManager.UUID(),
 		authenticators:            clientManager.Authenticators(),
+		semaphoreManager:          NewSemaphoreManager(k8sCoreClient),
 		options:                   options,
 	}
 }
@@ -557,6 +562,11 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
 	}
 	executionSpec.SetExecutionNamespace(k8sNamespace)
+
+	// Auto-create semaphore ConfigMaps if needed
+	if err := r.ensureSemaphoreConfigMap(ctx, k8sNamespace, manifest); err != nil {
+		return nil, err
+	}
 
 	// assign OwnerReference to scheduledworkflow
 	if run.RecurringRunId != "" {
@@ -2047,4 +2057,138 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 		return nil, util.Wrapf(err, "Failed to fetch task %v", taskId)
 	}
 	return task, nil
+}
+
+// ensureSemaphoreConfigMap parses the pipeline manifest and creates semaphore ConfigMaps if needed
+func (r *ResourceManager) ensureSemaphoreConfigMap(ctx context.Context, namespace, manifest string) error {
+	// Parse the manifest to extract semaphore configuration
+	semaphoreKey, mutexName, err := r.extractSemaphoreConfig(manifest)
+	if err != nil {
+		glog.Warningf("Failed to parse semaphore configuration from manifest: %v", err)
+		return nil // Don't fail run creation for semaphore parsing issues
+	}
+
+	// Create ConfigMap for semaphore_key if present
+	if semaphoreKey != "" {
+		if err := r.semaphoreManager.EnsureSemaphoreConfigMap(ctx, namespace, semaphoreKey); err != nil {
+			glog.Errorf("Failed to ensure semaphore ConfigMap for key %s: %v", semaphoreKey, err)
+			return nil // Don't fail run creation for ConfigMap issues
+		}
+	}
+
+	// Create ConfigMap for mutex_name if present (same logic, treat as semaphore with limit 1)
+	if mutexName != "" {
+		if err := r.semaphoreManager.EnsureSemaphoreConfigMap(ctx, namespace, mutexName); err != nil {
+			glog.Errorf("Failed to ensure mutex ConfigMap for name %s: %v", mutexName, err)
+			return nil // Don't fail run creation for ConfigMap issues
+		}
+	}
+
+	return nil
+}
+
+// getStringFromYAML safely extracts string values from yaml.v2 maps that can be map[interface{}]interface{}
+func (r *ResourceManager) getStringFromYAML(data interface{}, keys ...string) (string, bool) {
+	current := data
+
+	for _, key := range keys {
+		switch v := current.(type) {
+		case map[string]interface{}:
+			var ok bool
+			current, ok = v[key]
+			if !ok {
+				return "", false
+			}
+		case map[interface{}]interface{}:
+			var ok bool
+			current, ok = v[key]
+			if !ok {
+				return "", false
+			}
+		default:
+			return "", false
+		}
+	}
+
+	// Final conversion to string
+	if str, ok := current.(string); ok {
+		return str, true
+	}
+	return "", false
+}
+
+// extractSemaphoreConfig parses the pipeline manifest to extract semaphore_key and mutex_name
+func (r *ResourceManager) extractSemaphoreConfig(manifest string) (semaphoreKey, mutexName string, err error) {
+	// Parse YAML manifest, which may contain multiple documents
+	var pipelineSpec map[string]interface{}
+	var platformSpec interface{}
+	var hasValidDocument bool
+	var lastParseError error
+
+	// Split YAML documents by "---"
+	docs := strings.Split(manifest, "---")
+
+	for _, doc := range docs {
+		doc = strings.TrimSpace(doc)
+		if doc == "" {
+			continue
+		}
+
+		var tempSpec map[string]interface{}
+		if err := yaml.Unmarshal([]byte(doc), &tempSpec); err != nil {
+			lastParseError = err
+			continue // Skip invalid documents
+		}
+
+		hasValidDocument = true
+
+		// Check if this document contains a pipeline spec or platform spec
+		if _, hasPipelineInfo := tempSpec["pipelineInfo"]; hasPipelineInfo {
+			pipelineSpec = tempSpec
+		}
+		if _, hasPlatformSpec := tempSpec["platformSpec"]; hasPlatformSpec {
+			platformSpec = tempSpec
+		}
+		// Also check for direct "platforms" key (without "platformSpec" wrapper)
+		if _, hasPlatforms := tempSpec["platforms"]; hasPlatforms {
+			platformSpec = tempSpec
+		}
+	}
+
+	// If no valid documents were parsed, return the last parse error
+	if !hasValidDocument && lastParseError != nil {
+		return "", "", lastParseError
+	}
+
+	// If we didn't find separate platform spec, check if it's embedded in pipeline spec
+	if platformSpec == nil && pipelineSpec != nil {
+		if ps, ok := pipelineSpec["platformSpec"]; ok {
+			platformSpec = map[string]interface{}{"platformSpec": ps}
+		}
+	}
+
+	// Extract semaphore config using helper function to handle yaml.v2 types
+	if platformSpec != nil {
+		// Try Format 1: platformSpec.platforms.kubernetes.pipelineConfig
+		if semKey, ok := r.getStringFromYAML(platformSpec, "platformSpec", "platforms", "kubernetes", "pipelineConfig", "semaphoreKey"); ok {
+			semaphoreKey = semKey
+		}
+		if mutKey, ok := r.getStringFromYAML(platformSpec, "platformSpec", "platforms", "kubernetes", "pipelineConfig", "mutexName"); ok {
+			mutexName = mutKey
+		}
+
+		// Try Format 2: platforms.kubernetes.pipelineConfig (direct)
+		if semaphoreKey == "" {
+			if semKey, ok := r.getStringFromYAML(platformSpec, "platforms", "kubernetes", "pipelineConfig", "semaphoreKey"); ok {
+				semaphoreKey = semKey
+			}
+		}
+		if mutexName == "" {
+			if mutKey, ok := r.getStringFromYAML(platformSpec, "platforms", "kubernetes", "pipelineConfig", "mutexName"); ok {
+				mutexName = mutKey
+			}
+		}
+	}
+
+	return semaphoreKey, mutexName, nil
 }
