@@ -16,6 +16,7 @@ package driver
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -640,7 +641,6 @@ func provisionOutputs(
 	outputs := &pipelinespec.ExecutorInput_Outputs{
 		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
 		Parameters: make(map[string]*pipelinespec.ExecutorInput_OutputParameter),
-		OutputFile: component.OutputMetadataFilepath,
 	}
 	artifacts := outputsSpec.GetArtifacts()
 
@@ -660,13 +660,23 @@ func provisionOutputs(
 		}
 	}
 
+	// Compute a task-root remote URI that will serve as the base for all
+	// output artifacts and the executor output file. This enables Pythonic
+	// artifacts (dsl.get_uri) by allowing the SDK to infer the task root from
+	// the executor output file's directory (set below) and convert it back to
+	// a remote URI at runtime.
+	taskRootRemote := metadata.GenerateOutputURI(pipelineRoot, []string{taskName, outputURISalt}, false)
+
+	// Set per-artifact output URIs under the task root.
 	for name, artifact := range artifacts {
 		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
 			Artifacts: []*pipelinespec.RuntimeArtifact{
 				{
+					// Required by Pythonic artifacts to avoid a key error in the SDK.
+					Name: name,
 					// Do not preserve the query string for output artifacts, as otherwise
 					// they'd appear in file and artifact names.
-					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, outputURISalt, name}, false),
+					Uri:      metadata.GenerateOutputURI(taskRootRemote, []string{name}, false),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},
@@ -678,6 +688,15 @@ func provisionOutputs(
 		outputs.Parameters[name] = &pipelinespec.ExecutorInput_OutputParameter{
 			OutputFile: fmt.Sprintf("/tmp/kfp/outputs/%s", name),
 		}
+	}
+
+	// Place the executor output file under localTaskRoot to enable Pythonic artifacts. The SDK's pythonic artifact
+	// runtime derives CONTAINER_TASK_ROOT from the directory of OutputFile to use it in dsl.get_uri.
+	if localTaskRoot, err := component.LocalPathForURI(taskRootRemote); err == nil {
+		outputs.OutputFile = filepath.Join(localTaskRoot, "output_metadata.json")
+	} else {
+		// Fallback to legacy path if the pipeline root scheme is not recognized.
+		outputs.OutputFile = component.OutputMetadataFilepath
 	}
 
 	return outputs
