@@ -80,6 +80,7 @@ import pipeline_with_workspace
 from modelcar import modelcar
 import pipeline_with_utils
 import task_config
+import pythonic_artifacts_test_pipeline
 
 
 _MINUTE = 60  # seconds
@@ -257,6 +258,7 @@ class SampleTest(unittest.TestCase):
             TestCase(pipeline_func=pipeline_with_workspace.pipeline_with_workspace),
             TestCase(pipeline_func=pipeline_with_utils.pipeline_with_utils),
             TestCase(pipeline_func=task_config.pipeline_task_config),
+            TestCase(pipeline_func=pythonic_artifacts_test_pipeline.pythonic_artifacts_test_pipeline),
         ]
 
         with ThreadPoolExecutor() as executor:
