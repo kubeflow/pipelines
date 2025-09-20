@@ -16,12 +16,11 @@ package argocompiler
 
 import (
 	"fmt"
-	"os"
-
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	k8score "k8s.io/api/core/v1"
+	"os"
 )
 
 func (c *workflowCompiler) Importer(name string, componentSpec *pipelinespec.ComponentSpec, importer *pipelinespec.PipelineDeploymentConfig_ImporterSpec) error {
@@ -110,6 +109,9 @@ func (c *workflowCompiler) addImporterTemplate() string {
 			Resources: driverResources,
 		},
 	}
+
+	ConfigureCABundle(importerTemplate)
+
 	c.templates[name] = importerTemplate
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *importerTemplate)
 	return name

@@ -31,6 +31,8 @@ var (
 	useProxy                      = flag.Bool("useProxy", false, "Whether to run the proxy tests")
 	cacheEnabled                  = flag.Bool("cacheEnabled", true, "Whether cache is enabled tests")
 	uploadPipelinesWithKubernetes = flag.Bool("uploadPipelinesWithKubernetes", false, "Whether to use Kubernetes for uploading pipelines or use the REST API")
+	tlsEnabled                    = flag.Bool("tlsEnabled", false, "Whether TLS is enabled tests")
+	caCertPath                    = flag.String("caCertPath", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 )
 
 /**

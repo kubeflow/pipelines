@@ -18,6 +18,7 @@ package metadata
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,7 +29,12 @@ import (
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"gopkg.in/yaml.v3"
+
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 
@@ -41,7 +47,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -108,14 +113,20 @@ type Client struct {
 }
 
 // NewClient creates a Client given the MLMD server address and port.
-func NewClient(serverAddress, serverPort string) (*Client, error) {
+func NewClient(serverAddress, serverPort string, tlsEnabled bool, tlsCfg *tls.Config) (*Client, error) {
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(mlmdClientSideMaxRetries),
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponentialWithJitter(300*time.Millisecond, 0.20)),
 		grpc_retry.WithCodes(codes.Aborted),
 	}
+
+	creds := insecure.NewCredentials()
+	if tlsEnabled {
+		creds = credentials.NewTLS(tlsCfg)
+	}
+
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", serverAddress, serverPort),
-		grpc.WithInsecure(),
+		grpc.WithTransportCredentials(creds),
 		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(opts...)),
 		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)),
 	)
