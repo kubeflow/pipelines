@@ -21,7 +21,6 @@ from typing import (Any, cast, Dict, get_type_hints, List, Mapping,
 
 T = TypeVar('T')
 
-
 def verify_object_against_type(x: Any, typ: Type[T]) -> T:
     """Verifies that the object is compatible to the specified type (types from
     the typing package can be used)."""
