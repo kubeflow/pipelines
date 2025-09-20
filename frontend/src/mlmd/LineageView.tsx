@@ -254,14 +254,13 @@ export class LineageView extends React.Component<LineageViewProps, LineageViewSt
   }
 
   private buildExecutionCards(executions: Execution[]): CardDetails[] {
-    const executionsByTypeId = groupBy(executions, e => e.getTypeId());
-
+    const executionsByTypeId = groupBy(executions, (e: Execution) => e.getTypeId());
     return Object.keys(executionsByTypeId).map(typeId => {
       const executionTypeName = getExecutionTypeName(Number(typeId), this.executionTypes);
       const executionsForType = executionsByTypeId[typeId];
       return {
         title: executionTypeName,
-        elements: executionsForType.map(execution => ({
+        elements: executionsForType.map((execution: Execution) => ({
           typedResource: {
             type: 'execution',
             resource: execution,
