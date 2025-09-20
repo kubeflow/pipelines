@@ -35,7 +35,7 @@ deploymentSpec:
           \ *\n\ndef print_message_and_fail():\n    \"\"\"Prints a message and fails\"\
           \"\"\n    print(\"This is a test of failing task\")\n    raise ValueError(\"\
           Task failed!\")\n\n"
-        image: registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168
+        image: python:3.9
 pipelineInfo:
   description: Pipeline that prints a message and fails
   name: fail-pipeline

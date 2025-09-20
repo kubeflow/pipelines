@@ -80,7 +80,7 @@ deploymentSpec:
           \    normalized_iris_dataset.metadata[\"state\"] = \"Normalized\"\n    with\
           \ open(normalized_iris_dataset.path, \"w\") as f:\n        df.to_csv(f)\n\
           \n"
-        image: registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168
+        image: python:3.9
 pipelineInfo:
   name: my-pipe
 root:

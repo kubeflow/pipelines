@@ -10,9 +10,9 @@ spec:
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer
       value: '{"artifactUri":{"runtimeParameter":"uri"},"reimport":true,"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
-    - name: components-b60ee6f268a8ee9187eb910106d9907ed76dedc1d5ac9ba7d2fb96a2ff132456
+    - name: components-35e72db0aa0c9f3f658bdf4106261026ae722e5b716413f691cda4db8679a44e
       value: '{"executorLabel":"exec-normalize-dataset","inputDefinitions":{"artifacts":{"input_iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"standard_scaler":{"parameterType":"BOOLEAN"}}},"outputDefinitions":{"artifacts":{"normalized_iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-b60ee6f268a8ee9187eb910106d9907ed76dedc1d5ac9ba7d2fb96a2ff132456
+    - name: implementations-35e72db0aa0c9f3f658bdf4106261026ae722e5b716413f691cda4db8679a44e
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","normalize_dataset"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -30,7 +30,7 @@ spec:
         = pd.read_csv(f)\n    labels = df.pop(\"Labels\")\n\n    scaler = StandardScaler()
         if standard_scaler else MinMaxScaler()\n\n    df = pd.DataFrame(scaler.fit_transform(df))\n    df[\"Labels\"]
         = labels\n    normalized_iris_dataset.metadata[\"state\"] = \"Normalized\"\n    with
-        open(normalized_iris_dataset.path, \"w\") as f:\n        df.to_csv(f)\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+        open(normalized_iris_dataset.path, \"w\") as f:\n        df.to_csv(f)\n\n"],"image":"python:3.9"}'
     - name: components-root
       value: '{"dag":{"tasks":{"importer":{"cachingOptions":{},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"componentInputParameter":"artifact_uri"}}},"taskInfo":{"name":"importer"}},"normalize-dataset":{"cachingOptions":{},"componentRef":{"name":"comp-normalize-dataset"},"dependentTasks":["importer"],"inputs":{"artifacts":{"input_iris_dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}},"parameters":{"standard_scaler":{"componentInputParameter":"standard_scaler"}}},"taskInfo":{"name":"normalize-dataset"}}}},"inputDefinitions":{"parameters":{"artifact_uri":{"parameterType":"STRING"},"standard_scaler":{"defaultValue":true,"isOptional":true,"parameterType":"BOOLEAN"}}}}'
   entrypoint: entrypoint
@@ -282,11 +282,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b60ee6f268a8ee9187eb910106d9907ed76dedc1d5ac9ba7d2fb96a2ff132456}}'
+            value: '{{workflow.parameters.components-35e72db0aa0c9f3f658bdf4106261026ae722e5b716413f691cda4db8679a44e}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-normalize-dataset"},"dependentTasks":["importer"],"inputs":{"artifacts":{"input_iris_dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}},"parameters":{"standard_scaler":{"componentInputParameter":"standard_scaler"}}},"taskInfo":{"name":"normalize-dataset"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b60ee6f268a8ee9187eb910106d9907ed76dedc1d5ac9ba7d2fb96a2ff132456}}'
+            value: '{{workflow.parameters.implementations-35e72db0aa0c9f3f658bdf4106261026ae722e5b716413f691cda4db8679a44e}}'
           - name: task-name
             value: normalize-dataset
           - name: parent-dag-id

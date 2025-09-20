@@ -53,7 +53,7 @@ deploymentSpec:
           \"\"\n    from time import sleep  # noqa: PLC0415\n\n    print(f\"Sleeping\
           \ for {naptime_secs} seconds: Zzzzzz ...\")\n    sleep(naptime_secs)\n \
           \   return \"I'm awake now. Did I snore?\"\n\n"
-        image: registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168
+        image: python:3.9
     exec-wake-up:
       container:
         args:
@@ -82,7 +82,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef wake_up(message: str):\n    \"\"\"Wakes up from nap printing\
           \ a message\"\"\"\n    print(message)\n\n"
-        image: registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168
+        image: python:3.9
 pipelineInfo:
   description: Pipeline that sleeps for 15 mins (900 secs)
   name: take-nap-pipeline

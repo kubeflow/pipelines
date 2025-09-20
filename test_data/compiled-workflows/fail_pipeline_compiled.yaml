@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-4b061e32dbd31f1beb05402b9970ef96c931308737f6e919e01372c04776cf3e
+    - name: components-f9f0c84205886dd7b645e24678939ac0cd7cad1fd7049146f3095eaedbd69887
       value: '{"executorLabel":"exec-print-message-and-fail"}'
-    - name: implementations-4b061e32dbd31f1beb05402b9970ef96c931308737f6e919e01372c04776cf3e
+    - name: implementations-f9f0c84205886dd7b645e24678939ac0cd7cad1fd7049146f3095eaedbd69887
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_message_and_fail"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         print_message_and_fail():\n    \"\"\"Prints a message and fails\"\"\"\n    print(\"This
-        is a test of failing task\")\n    raise ValueError(\"Task failed!\")\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+        is a test of failing task\")\n    raise ValueError(\"Task failed!\")\n\n"],"image":"python:3.9"}'
     - name: components-root
       value: '{"dag":{"tasks":{"print-message-and-fail":{"cachingOptions":{},"componentRef":{"name":"comp-print-message-and-fail"},"taskInfo":{"name":"print-message-and-fail"}}}}}'
   entrypoint: entrypoint
@@ -202,11 +202,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-4b061e32dbd31f1beb05402b9970ef96c931308737f6e919e01372c04776cf3e}}'
+            value: '{{workflow.parameters.components-f9f0c84205886dd7b645e24678939ac0cd7cad1fd7049146f3095eaedbd69887}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-message-and-fail"},"taskInfo":{"name":"print-message-and-fail"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-4b061e32dbd31f1beb05402b9970ef96c931308737f6e919e01372c04776cf3e}}'
+            value: '{{workflow.parameters.implementations-f9f0c84205886dd7b645e24678939ac0cd7cad1fd7049146f3095eaedbd69887}}'
           - name: task-name
             value: print-message-and-fail
           - name: parent-dag-id

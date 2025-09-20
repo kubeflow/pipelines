@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-409ff7a6ff59a544cfbf12492433a703c5f884b121804b1d2c3e93c8886a1648
+    - name: components-552012c95d7a12c0cc2fce4c2551edb647009c6251ad2b10f712a7ed1a051814
       value: '{"executorLabel":"exec-print-message","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-409ff7a6ff59a544cfbf12492433a703c5f884b121804b1d2c3e93c8886a1648
+    - name: implementations-552012c95d7a12c0cc2fce4c2551edb647009c6251ad2b10f712a7ed1a051814
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,7 +21,7 @@ spec:
         print_message(message: str):\n    import datetime  # noqa: PLC0415\n    import
         time  # noqa: PLC0415\n\n    t_end = time.time() + 60\n    while time.time()
         \u003c t_end:\n        print(message + \" (\" + str(datetime.datetime.now())
-        + \")\")\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+        + \")\")\n\n"],"image":"python:3.9"}'
     - name: components-root
       value: '{"dag":{"tasks":{"print-message":{"cachingOptions":{},"componentRef":{"name":"comp-print-message"},"inputs":{"parameters":{"message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"print-message"}}}},"inputDefinitions":{"parameters":{"message":{"defaultValue":"Hello
         world","isOptional":true,"parameterType":"STRING"}}}}'
@@ -205,11 +205,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-409ff7a6ff59a544cfbf12492433a703c5f884b121804b1d2c3e93c8886a1648}}'
+            value: '{{workflow.parameters.components-552012c95d7a12c0cc2fce4c2551edb647009c6251ad2b10f712a7ed1a051814}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-message"},"inputs":{"parameters":{"message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"print-message"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-409ff7a6ff59a544cfbf12492433a703c5f884b121804b1d2c3e93c8886a1648}}'
+            value: '{{workflow.parameters.implementations-552012c95d7a12c0cc2fce4c2551edb647009c6251ad2b10f712a7ed1a051814}}'
           - name: task-name
             value: print-message
           - name: parent-dag-id

@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-4ef0eaf597b078cacedcb96b61d5a1a2977bebfc9ac4bfb214b89d522516ed49
+    - name: components-0f1627210ace683affbf33b983614856e386694fde0d2258433739065e9dbd9d
       value: '{"executorLabel":"exec-take-nap","inputDefinitions":{"parameters":{"naptime_secs":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-4ef0eaf597b078cacedcb96b61d5a1a2977bebfc9ac4bfb214b89d522516ed49
+    - name: implementations-0f1627210ace683affbf33b983614856e386694fde0d2258433739065e9dbd9d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","take_nap"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,10 +21,10 @@ spec:
         take_nap(naptime_secs: int) -\u003e str:\n    \"\"\"Sleeps for secs\"\"\"\n    from
         time import sleep  # noqa: PLC0415\n\n    print(f\"Sleeping for {naptime_secs}
         seconds: Zzzzzz ...\")\n    sleep(naptime_secs)\n    return \"I''m awake now.
-        Did I snore?\"\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
-    - name: components-5c6b01b7c1593cc23a5fb6d7f9ecde2f12d5e2bf7e3bd566bd1115fe8ef5531f
+        Did I snore?\"\n\n"],"image":"python:3.9"}'
+    - name: components-5c066abab2b3b84d191c48f50899af97472b8caf8dfbe135c98c038fcff38616
       value: '{"executorLabel":"exec-wake-up","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-5c6b01b7c1593cc23a5fb6d7f9ecde2f12d5e2bf7e3bd566bd1115fe8ef5531f
+    - name: implementations-5c066abab2b3b84d191c48f50899af97472b8caf8dfbe135c98c038fcff38616
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","wake_up"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -34,7 +34,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        wake_up(message: str):\n    \"\"\"Wakes up from nap printing a message\"\"\"\n    print(message)\n\n"],"image":"registry.redhat.io/ubi9/python-312@sha256:e80ff3673c95b91f0dafdbe97afb261eab8244d7fd8b47e20ffcbcfee27fb168"}'
+        wake_up(message: str):\n    \"\"\"Wakes up from nap printing a message\"\"\"\n    print(message)\n\n"],"image":"python:3.9"}'
     - name: components-root
       value: '{"dag":{"tasks":{"take-nap":{"cachingOptions":{},"componentRef":{"name":"comp-take-nap"},"inputs":{"parameters":{"naptime_secs":{"componentInputParameter":"naptime_secs"}}},"taskInfo":{"name":"take-nap"}},"wake-up":{"cachingOptions":{},"componentRef":{"name":"comp-wake-up"},"dependentTasks":["take-nap"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"take-nap"}}}},"taskInfo":{"name":"wake-up"}}}},"inputDefinitions":{"parameters":{"naptime_secs":{"defaultValue":900,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
   entrypoint: entrypoint
@@ -217,11 +217,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-4ef0eaf597b078cacedcb96b61d5a1a2977bebfc9ac4bfb214b89d522516ed49}}'
+            value: '{{workflow.parameters.components-0f1627210ace683affbf33b983614856e386694fde0d2258433739065e9dbd9d}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-take-nap"},"inputs":{"parameters":{"naptime_secs":{"componentInputParameter":"naptime_secs"}}},"taskInfo":{"name":"take-nap"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-4ef0eaf597b078cacedcb96b61d5a1a2977bebfc9ac4bfb214b89d522516ed49}}'
+            value: '{{workflow.parameters.implementations-0f1627210ace683affbf33b983614856e386694fde0d2258433739065e9dbd9d}}'
           - name: task-name
             value: take-nap
           - name: parent-dag-id
@@ -241,11 +241,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5c6b01b7c1593cc23a5fb6d7f9ecde2f12d5e2bf7e3bd566bd1115fe8ef5531f}}'
+            value: '{{workflow.parameters.components-5c066abab2b3b84d191c48f50899af97472b8caf8dfbe135c98c038fcff38616}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-wake-up"},"dependentTasks":["take-nap"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"take-nap"}}}},"taskInfo":{"name":"wake-up"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5c6b01b7c1593cc23a5fb6d7f9ecde2f12d5e2bf7e3bd566bd1115fe8ef5531f}}'
+            value: '{{workflow.parameters.implementations-5c066abab2b3b84d191c48f50899af97472b8caf8dfbe135c98c038fcff38616}}'
           - name: task-name
             value: wake-up
           - name: parent-dag-id
