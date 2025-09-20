@@ -16,6 +16,7 @@ package api_server_v2
 
 import (
 	"fmt"
+	httptransport "github.com/go-openapi/runtime/client"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
@@ -71,6 +72,24 @@ func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool) (
 	return &RecurringRunClient{
 		apiClient:      apiClient,
 		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
+	}, nil
+}
+
+func NewMultiUserRecurringRunClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool) (
+	*RecurringRunClient, error) {
+
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	if err != nil {
+		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
+	}
+
+	runtime.DefaultAuthentication = httptransport.BearerToken(userToken)
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating job client
+	return &RecurringRunClient{
+		apiClient:      apiClient,
+		authInfoWriter: api_server.TokenToAuthInfo(userToken),
 	}, nil
 }
 
