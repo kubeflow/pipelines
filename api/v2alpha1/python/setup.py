@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import setuptools
 import os
 from typing import List
+
+import setuptools
 
 NAME = 'kfp-pipeline-spec'
 VERSION = '2.14.0'

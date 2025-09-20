@@ -13,8 +13,8 @@
 # limitations under the License.
 import os
 
-from kfp import dsl
 from kfp import compiler
+from kfp import dsl
 
 
 @dsl.component()

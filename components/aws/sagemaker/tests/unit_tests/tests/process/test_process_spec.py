@@ -1,6 +1,7 @@
-from process.src.sagemaker_process_spec import SageMakerProcessSpec
-import unittest
 import json
+import unittest
+
+from process.src.sagemaker_process_spec import SageMakerProcessSpec
 
 
 class ProcessSpecTestCase(unittest.TestCase):

@@ -12,12 +12,13 @@
 
 from __future__ import absolute_import
 
-import unittest
 import datetime
+import unittest
 
 import kfp_server_api
 from kfp_server_api.models.v2beta1_cron_schedule import V2beta1CronSchedule  # noqa: E501
 from kfp_server_api.rest import ApiException
+
 
 class TestV2beta1CronSchedule(unittest.TestCase):
     """V2beta1CronSchedule unit test stubs"""

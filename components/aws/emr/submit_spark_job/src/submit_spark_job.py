@@ -23,12 +23,12 @@
 #   --output '' \
 
 import argparse
+from datetime import datetime
 import logging
 import random
-from datetime import datetime
-from pathlib2 import Path
 
 from common import _utils
+from pathlib2 import Path
 
 try:
   unicode

@@ -19,11 +19,10 @@ from typing import Any
 
 import google.auth
 import google.auth.transport.requests
+from google.protobuf import json_format
+from google_cloud_pipeline_components.container.utils import execution_context
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 import requests
-from google_cloud_pipeline_components.container.utils import execution_context
-
-from google.protobuf import json_format
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 

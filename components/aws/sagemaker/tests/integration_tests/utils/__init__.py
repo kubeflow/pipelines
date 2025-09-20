@@ -1,13 +1,13 @@
 import json
 import os
-import subprocess
-import pytest
-import tarfile
-from ruamel.yaml import YAML
 import random
-import string
 import shutil
+import string
+import subprocess
+import tarfile
 
+import pytest
+from ruamel.yaml import YAML
 from sagemaker.image_uris import retrieve
 
 

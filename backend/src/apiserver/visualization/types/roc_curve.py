@@ -14,10 +14,12 @@
 
 import json
 from pathlib import Path
+
+from bokeh.io import output_notebook
+from bokeh.io import show
 from bokeh.layouts import row
-from bokeh.plotting import figure
-from bokeh.io import output_notebook, show
 from bokeh.models import HoverTool
+from bokeh.plotting import figure
 # gcsfs is required for pandas GCS integration.
 import gcsfs
 import pandas as pd

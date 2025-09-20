@@ -19,7 +19,8 @@ import importlib
 import os
 import types
 
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from setuptools import setup
 
 
 def make_required_install_packages():

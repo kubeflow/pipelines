@@ -14,6 +14,7 @@
 """Endpoint batch predict component used in KFP pipelines."""
 
 from typing import Dict, List, NamedTuple, Optional, Union
+
 from google_cloud_pipeline_components import utils as gcpc_utils
 from google_cloud_pipeline_components._implementation.model_evaluation import utils
 from google_cloud_pipeline_components._implementation.model_evaluation import version

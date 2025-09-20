@@ -19,8 +19,12 @@
 # To output a directory, create a new directory at the output path location.
 import os
 
-from kfp import client, dsl
-from kfp.dsl import Input, Output, Artifact
+from kfp import client
+from kfp import dsl
+from kfp.dsl import Artifact
+from kfp.dsl import Input
+from kfp.dsl import Output
+
 # Outputting directories from Python-based components:
 
 # In tests, we install a KFP package from the PR under test. Users should not

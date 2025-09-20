@@ -21,6 +21,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Text
 import warnings
+
 from jupyter_client import KernelManager
 from nbconvert import HTMLExporter
 from nbconvert.preprocessors import ExecutePreprocessor

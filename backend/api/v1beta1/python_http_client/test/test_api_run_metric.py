@@ -12,12 +12,13 @@
 
 from __future__ import absolute_import
 
-import unittest
 import datetime
+import unittest
 
 import kfp_server_api
 from kfp_server_api.models.api_run_metric import ApiRunMetric  # noqa: E501
 from kfp_server_api.rest import ApiException
+
 
 class TestApiRunMetric(unittest.TestCase):
     """ApiRunMetric unit test stubs"""

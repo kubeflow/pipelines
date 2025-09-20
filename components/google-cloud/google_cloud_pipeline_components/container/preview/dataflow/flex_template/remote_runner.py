@@ -23,6 +23,7 @@ from typing import Any, Dict, Union
 import uuid
 
 import google.auth.transport.requests
+from google.protobuf import json_format
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
@@ -30,9 +31,6 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.sessions import Session
 from urllib3.util.retry import Retry
-
-from google.protobuf import json_format
-
 
 _CONNECTION_ERROR_RETRY_LIMIT = 5
 _CONNECTION_RETRY_BACKOFF_FACTOR = 2.0

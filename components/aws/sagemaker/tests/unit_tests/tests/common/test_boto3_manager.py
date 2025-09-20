@@ -1,9 +1,10 @@
-import unittest
 import os
+import unittest
+from unittest.mock import ANY
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from boto3.session import Session
-from unittest.mock import patch, MagicMock, ANY
-
 from common.boto3_manager import Boto3Manager
 
 

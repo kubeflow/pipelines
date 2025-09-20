@@ -16,17 +16,12 @@ import logging
 from typing import Dict
 
 from botocore.exceptions import ClientError
-
-from deploy.src.sagemaker_deploy_spec import (
-    SageMakerDeploySpec,
-    SageMakerDeployInputs,
-    SageMakerDeployOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from deploy.src.sagemaker_deploy_spec import SageMakerDeployInputs
+from deploy.src.sagemaker_deploy_spec import SageMakerDeployOutputs
+from deploy.src.sagemaker_deploy_spec import SageMakerDeploySpec
 
 
 @dataclass(frozen=True)

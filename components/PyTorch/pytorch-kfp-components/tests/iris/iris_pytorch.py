@@ -16,7 +16,6 @@
 from argparse import ArgumentParser
 
 import pytorch_lightning as pl
-
 from pytorch_pipeline.components.trainer.component import Trainer
 
 # Argument parser for user defined paths

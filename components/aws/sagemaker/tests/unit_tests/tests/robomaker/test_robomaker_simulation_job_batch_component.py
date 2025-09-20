@@ -1,18 +1,11 @@
-from yaml.parser import ParserError
+import unittest
+from unittest.mock import MagicMock
 
 from common.sagemaker_component import SageMakerJobStatus
-from simulation_job_batch.src.robomaker_simulation_job_batch_spec import (
-    RoboMakerSimulationJobBatchSpec,
-)
-from simulation_job_batch.src.robomaker_simulation_job_batch_component import (
-    RoboMakerSimulationJobBatchComponent,
-)
-from tests.unit_tests.tests.robomaker.test_robomaker_simulation_job_batch_spec import (
-    RoboMakerSimulationJobBatchSpecTestCase,
-)
-import unittest
-
-from unittest.mock import MagicMock
+from simulation_job_batch.src.robomaker_simulation_job_batch_component import RoboMakerSimulationJobBatchComponent
+from simulation_job_batch.src.robomaker_simulation_job_batch_spec import RoboMakerSimulationJobBatchSpec
+from tests.unit_tests.tests.robomaker.test_robomaker_simulation_job_batch_spec import RoboMakerSimulationJobBatchSpecTestCase
+from yaml.parser import ParserError
 
 
 class RoboMakerSimulationJobTestCase(unittest.TestCase):

@@ -13,23 +13,13 @@ SageMakerComponents."""
 # limitations under the License.
 
 import argparse
+from typing import Any, Callable, Dict, Generic, List, TypeVar
 
-from typing import (
-    Callable,
-    Generic,
-    List,
-    TypeVar,
-    Dict,
-    Any,
-)
-
-from commonv2.common_inputs import (
-    SageMakerComponentBaseInputs,
-    SageMakerComponentBaseOutputs,
-    SageMakerComponentInputValidator,
-    SageMakerComponentOutputValidator,
-    SageMakerIOValue,
-)
+from commonv2.common_inputs import SageMakerComponentBaseInputs
+from commonv2.common_inputs import SageMakerComponentBaseOutputs
+from commonv2.common_inputs import SageMakerComponentInputValidator
+from commonv2.common_inputs import SageMakerComponentOutputValidator
+from commonv2.common_inputs import SageMakerIOValue
 
 IT = TypeVar("IT", bound=SageMakerComponentBaseInputs)  # Input Type
 OT = TypeVar("OT", bound=SageMakerComponentBaseOutputs)  # Output Type

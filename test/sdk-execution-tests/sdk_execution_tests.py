@@ -16,16 +16,17 @@ import dataclasses
 import functools
 import os
 import sys
+from typing import Any, Dict, List, Tuple
+
+from kfp import client
+from kfp import dsl
 import kfp_server_api
 import kubernetes.client
 import kubernetes.client.rest
 import kubernetes.config
+from minio import Minio
 import pytest
 import yaml
-from typing import Any, Dict, List, Tuple
-from minio import Minio
-from kfp import client
-from kfp import dsl
 
 KFP_ENDPOINT = os.environ['KFP_ENDPOINT']
 KFP_NAMESPACE = os.getenv('KFP_NAMESPACE', 'kubeflow')

@@ -1,14 +1,12 @@
-from common.sagemaker_component import SageMakerJobStatus
-from ground_truth.src.sagemaker_ground_truth_spec import SageMakerGroundTruthSpec
-from ground_truth.src.sagemaker_ground_truth_component import (
-    SageMakerGroundTruthComponent,
-)
-from tests.unit_tests.tests.ground_truth.test_ground_truth_spec import (
-    GroundTruthSpecTestCase,
-)
 import unittest
+from unittest.mock import ANY
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from unittest.mock import patch, MagicMock, ANY
+from common.sagemaker_component import SageMakerJobStatus
+from ground_truth.src.sagemaker_ground_truth_component import SageMakerGroundTruthComponent
+from ground_truth.src.sagemaker_ground_truth_spec import SageMakerGroundTruthSpec
+from tests.unit_tests.tests.ground_truth.test_ground_truth_spec import GroundTruthSpecTestCase
 
 
 class GroundTruthComponentTestCase(unittest.TestCase):

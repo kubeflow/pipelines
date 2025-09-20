@@ -12,14 +12,8 @@
 # limitations under the License.
 
 from dataclasses import dataclass
+from typing import Callable, List, NewType, Optional, Union
 
-from typing import (
-    Callable,
-    List,
-    NewType,
-    Optional,
-    Union,
-)
 from .spec_input_parsers import SpecInputParsers
 
 

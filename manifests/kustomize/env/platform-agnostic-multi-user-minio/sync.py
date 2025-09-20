@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import base64
+from http.server import BaseHTTPRequestHandler
+from http.server import HTTPServer
 import json
 import os
-import base64
 
 
 def main():

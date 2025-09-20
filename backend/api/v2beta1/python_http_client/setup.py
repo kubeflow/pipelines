@@ -10,7 +10,8 @@
 """
 
 
-from setuptools import setup, find_packages  # noqa: H301
+from setuptools import find_packages  # noqa: H301
+from setuptools import setup
 
 NAME = "kfp-server-api"
 VERSION = "2.14.3"

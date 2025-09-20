@@ -20,7 +20,7 @@ from kfp import dsl
 def write_to_workspace(workspace_path: str) -> str:
     """Write a file to the workspace."""   
     import os
-    
+
     # Create a file in the workspace
     file_path = os.path.join(workspace_path, "data", "test_file.txt")
     os.makedirs(os.path.dirname(file_path), exist_ok=True)

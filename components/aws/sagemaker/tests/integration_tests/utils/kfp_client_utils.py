@@ -1,8 +1,8 @@
 import json
 import os
-import utils
-import pytest
 
+import pytest
+import utils
 from utils import argo_utils
 
 

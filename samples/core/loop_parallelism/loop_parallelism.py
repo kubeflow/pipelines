@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import compiler, dsl
+from kfp import compiler
+from kfp import dsl
+
 
 @dsl.component()
 def print_op(s: int):

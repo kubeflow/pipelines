@@ -15,6 +15,7 @@
 """Pipeline Base Executor class."""
 import abc
 import logging
+
 from six import with_metaclass
 
 

@@ -14,7 +14,8 @@
 from typing import Optional, Union
 
 from google.protobuf import json_format
-from kfp.dsl import PipelineTask, pipeline_channel
+from kfp.dsl import pipeline_channel
+from kfp.dsl import PipelineTask
 from kfp.kubernetes import common
 
 

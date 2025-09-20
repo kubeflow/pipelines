@@ -12,13 +12,13 @@
 
 
 import datetime
+import json
 import os
 import subprocess
 import time
 
 import boto3
 from botocore.exceptions import ClientError
-import json
 
 
 def get_client(region=None):

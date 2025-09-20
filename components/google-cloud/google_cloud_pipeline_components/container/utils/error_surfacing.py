@@ -16,6 +16,7 @@
 
 import json
 import os
+
 from google.protobuf import json_format
 from google_cloud_pipeline_components.proto import task_error_pb2
 

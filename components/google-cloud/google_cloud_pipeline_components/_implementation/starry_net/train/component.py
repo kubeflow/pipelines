@@ -16,7 +16,6 @@
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components import utils
 from google_cloud_pipeline_components._implementation.starry_net import version
-
 from kfp import dsl
 
 

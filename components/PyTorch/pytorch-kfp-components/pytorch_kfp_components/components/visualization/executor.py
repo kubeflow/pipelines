@@ -18,16 +18,15 @@
 # pylint: disable=R0201
 import json
 import os
-import tempfile
 from pathlib import Path
+import tempfile
 from urllib.parse import urlparse
 
 import pandas as pd
-from sklearn.metrics import confusion_matrix
-
 from pytorch_kfp_components.components.base.base_executor import BaseExecutor
 from pytorch_kfp_components.components.minio.component import MinIO
 from pytorch_kfp_components.types import standard_component_specs
+from sklearn.metrics import confusion_matrix
 
 
 class Executor(BaseExecutor):  # pylint: disable=R0903

@@ -14,7 +14,9 @@
 # limitations under the License.
 
 
-from kfp import dsl, compiler
+from kfp import compiler
+from kfp import dsl
+
 
 @dsl.container_component()
 def gcs_download_op(url: str, output: dsl.OutputPath(str)):

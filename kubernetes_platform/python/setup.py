@@ -72,7 +72,7 @@ setuptools.setup(
             'https://github.com/kubeflow/pipelines/tree/master/kubernetes_platform/python',
     },
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
-    python_requires='>=3.9.0',
+    python_requires='>=3.10.0',
     install_requires=get_requirements('requirements.txt'),
     include_package_data=True,
     extras_require={

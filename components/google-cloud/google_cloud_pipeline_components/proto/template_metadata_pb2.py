@@ -15,7 +15,6 @@ _sym_db = _symbol_database.Default()
 
 from google.protobuf import struct_pb2 as google_dot_protobuf_dot_struct__pb2
 
-
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
     b'\n\x13template_metadata.proto\x12\x11template_metadata\x1a\x1cgoogle/protobuf/struct.proto"\x89\x01\n\x10TemplateMetadata\x12\x32\n\x0bio_metadata\x18\x01'
     b' \x01(\x0b\x32\x1d.template_metadata.IOMetadata\x12\x41\n\x15preflight_validations\x18\x02'

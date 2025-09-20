@@ -2,7 +2,6 @@ import kfp
 from kfp import components
 from kfp import dsl
 
-
 sagemaker_hpo_op = components.load_component_from_file(
     "../../hyperparameter_tuning/component.yaml"
 )

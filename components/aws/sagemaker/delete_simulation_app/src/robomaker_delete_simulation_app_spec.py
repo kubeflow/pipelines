@@ -12,18 +12,16 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-
 from typing import List
+
+from common.common_inputs import COMMON_INPUTS
+from common.common_inputs import SageMakerComponentBaseOutputs
+from common.common_inputs import SageMakerComponentCommonInputs
+from common.common_inputs import SageMakerComponentInput as Input
+from common.common_inputs import SageMakerComponentInputValidator as InputValidator
+from common.common_inputs import SageMakerComponentOutput as Output
+from common.common_inputs import SageMakerComponentOutputValidator as OutputValidator
 from common.sagemaker_component_spec import SageMakerComponentSpec
-from common.common_inputs import (
-    COMMON_INPUTS,
-    SageMakerComponentCommonInputs,
-    SageMakerComponentInput as Input,
-    SageMakerComponentOutput as Output,
-    SageMakerComponentBaseOutputs,
-    SageMakerComponentInputValidator as InputValidator,
-    SageMakerComponentOutputValidator as OutputValidator,
-)
 
 
 @dataclass(frozen=True)

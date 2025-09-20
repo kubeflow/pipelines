@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Unit Tests for Minio Component."""
-import tempfile
 import os
+import tempfile
+
 import mock
 import pytest
 from pytorch_kfp_components.components.minio.component import MinIO

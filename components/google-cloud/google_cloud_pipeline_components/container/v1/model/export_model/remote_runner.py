@@ -14,10 +14,10 @@
 
 import json
 import re
+
 from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
-
 
 _MODEL_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/models/(?P<modelid>.*))'
 

@@ -44,10 +44,10 @@ from kfp.kubernetes.empty_dir import empty_dir_mount
 from kfp.kubernetes.field import use_field_path_as_env
 from kfp.kubernetes.image import set_image_pull_policy
 from kfp.kubernetes.image import set_image_pull_secrets
-from kfp.kubernetes.node_selector import add_node_selector
-from kfp.kubernetes.node_selector import add_node_selector_json
 from kfp.kubernetes.node_affinity import add_node_affinity
 from kfp.kubernetes.node_affinity import add_node_affinity_json
+from kfp.kubernetes.node_selector import add_node_selector
+from kfp.kubernetes.node_selector import add_node_selector_json
 from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.pod_metadata import add_pod_label
 from kfp.kubernetes.secret import use_secret_as_env

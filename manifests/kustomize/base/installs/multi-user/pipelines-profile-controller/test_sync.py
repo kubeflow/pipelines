@@ -1,11 +1,12 @@
-import os
-from unittest import mock
-import threading
-from sync import get_settings_from_env, server_factory
 import json
+import os
+import threading
+from unittest import mock
 
 import pytest
 import requests
+from sync import get_settings_from_env
+from sync import server_factory
 
 # Data sets passed to server
 DATA_INCORRECT_CHILDREN = {

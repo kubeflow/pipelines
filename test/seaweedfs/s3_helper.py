@@ -4,10 +4,12 @@ S3 helper script for SeaweedFS namespace isolation testing.
 Uses boto3 to perform S3 operations for security testing.
 """
 
-import sys
-import boto3
-from botocore.exceptions import ClientError, NoCredentialsError
 import argparse
+import sys
+
+import boto3
+from botocore.exceptions import ClientError
+from botocore.exceptions import NoCredentialsError
 
 
 def create_s3_client(access_key, secret_key, endpoint_url):

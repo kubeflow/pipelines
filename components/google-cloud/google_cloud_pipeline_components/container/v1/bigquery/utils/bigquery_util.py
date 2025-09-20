@@ -22,6 +22,7 @@ from typing import Optional
 
 import google.auth
 import google.auth.transport.requests
+from google.protobuf import json_format
 from google_cloud_pipeline_components.container.utils import artifact_utils
 from google_cloud_pipeline_components.container.utils import execution_context
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
@@ -29,8 +30,6 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import jso
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 import requests
-
-from google.protobuf import json_format
 
 ARTIFACT_PROPERTY_KEY_SCHEMA = 'schema'
 ARTIFACT_PROPERTY_KEY_ROWS = 'rows'

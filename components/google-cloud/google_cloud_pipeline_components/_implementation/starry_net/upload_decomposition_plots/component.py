@@ -46,6 +46,7 @@ def upload_decomposition_plots(
   """
   import os  # pylint: disable=g-import-not-at-top
   import uuid  # pylint: disable=g-import-not-at-top
+
   from google.cloud import aiplatform  # pylint: disable=g-import-not-at-top
 
   log_dir = os.path.join(trainer_dir, 'tensorboard', 'r=1:gc=0')

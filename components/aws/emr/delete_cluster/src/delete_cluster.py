@@ -15,6 +15,7 @@ import logging
 
 from common import _utils
 
+
 def main(argv=None):
   parser = argparse.ArgumentParser(description='Shutdown EMR cluster')
   parser.add_argument('--region', type=str, help='The region where the cluster launches.')

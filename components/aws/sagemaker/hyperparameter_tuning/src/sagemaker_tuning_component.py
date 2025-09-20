@@ -13,19 +13,15 @@
 
 import logging
 from typing import Dict
-from sagemaker.image_uris import retrieve
 
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from hyperparameter_tuning.src.sagemaker_tuning_spec import SageMakerTuningInputs
+from hyperparameter_tuning.src.sagemaker_tuning_spec import SageMakerTuningOutputs
+from hyperparameter_tuning.src.sagemaker_tuning_spec import SageMakerTuningSpec
+from sagemaker.image_uris import retrieve
 from train.src.built_in_algos import BUILT_IN_ALGOS
-from hyperparameter_tuning.src.sagemaker_tuning_spec import (
-    SageMakerTuningSpec,
-    SageMakerTuningInputs,
-    SageMakerTuningOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
 
 
 @ComponentMetadata(

@@ -1,8 +1,7 @@
-from simulation_job_batch.src.robomaker_simulation_job_batch_spec import (
-    RoboMakerSimulationJobBatchSpec,
-)
-import unittest
 import json
+import unittest
+
+from simulation_job_batch.src.robomaker_simulation_job_batch_spec import RoboMakerSimulationJobBatchSpec
 
 
 class RoboMakerSimulationJobBatchSpecTestCase(unittest.TestCase):

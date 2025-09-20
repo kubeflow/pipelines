@@ -17,6 +17,7 @@ from kfp import dsl
 from kfp import kubernetes
 from kfp.dsl import OutputPath
 
+
 class TestUseConfigMapAsVolume:
 
     def test_use_one(self):

@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl, compiler
 from typing import NamedTuple
+
+from kfp import compiler
+from kfp import dsl
 
 
 @dsl.component(base_image='pytorch/pytorch:1.7.1-cuda11.0-cudnn8-runtime')

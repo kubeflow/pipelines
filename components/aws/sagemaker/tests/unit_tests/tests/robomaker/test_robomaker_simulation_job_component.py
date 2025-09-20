@@ -1,14 +1,10 @@
-from common.sagemaker_component import SageMakerJobStatus
-from simulation_job.src.robomaker_simulation_job_spec import RoboMakerSimulationJobSpec
-from simulation_job.src.robomaker_simulation_job_component import (
-    RoboMakerSimulationJobComponent,
-)
-from tests.unit_tests.tests.robomaker.test_robomaker_simulation_job_spec import (
-    RoboMakerSimulationJobSpecTestCase,
-)
 import unittest
-
 from unittest.mock import MagicMock
+
+from common.sagemaker_component import SageMakerJobStatus
+from simulation_job.src.robomaker_simulation_job_component import RoboMakerSimulationJobComponent
+from simulation_job.src.robomaker_simulation_job_spec import RoboMakerSimulationJobSpec
+from tests.unit_tests.tests.robomaker.test_robomaker_simulation_job_spec import RoboMakerSimulationJobSpecTestCase
 
 
 class RoboMakerSimulationJobTestCase(unittest.TestCase):

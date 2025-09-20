@@ -1,7 +1,6 @@
-from create_simulation_app.src.robomaker_create_simulation_app_spec import (
-    RoboMakerCreateSimulationAppSpec,
-)
 import unittest
+
+from create_simulation_app.src.robomaker_create_simulation_app_spec import RoboMakerCreateSimulationAppSpec
 
 
 class RoboMakerCreateSimAppSpecTestCase(unittest.TestCase):

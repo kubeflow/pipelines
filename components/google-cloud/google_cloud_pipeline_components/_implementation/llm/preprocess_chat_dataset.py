@@ -50,9 +50,10 @@ def preprocess_chat_dataset(
   import json
   import os
   from typing import Any, Callable, List, Mapping
-  import apache_beam as beam
-  # pylint: enable=g-import-not-at-top
 
+  import apache_beam as beam
+
+  # pylint: enable=g-import-not-at-top
   # [ Define helper methods and classes for preprocessing
   # pylint: disable=invalid-name
   INPUT_TEXT_KEY = 'input_text'

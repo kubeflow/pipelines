@@ -19,13 +19,12 @@ import re
 import ssl
 
 import certifi
+from kfp_server_api.exceptions import ApiException
+from kfp_server_api.exceptions import ApiValueError
 # python 2 and python 3 compatibility library
 import six
 from six.moves.urllib.parse import urlencode
 import urllib3
-
-from kfp_server_api.exceptions import ApiException, ApiValueError
-
 
 logger = logging.getLogger(__name__)
 

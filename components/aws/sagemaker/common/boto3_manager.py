@@ -13,12 +13,10 @@
 
 from boto3.session import Session
 from botocore.config import Config
-from botocore.credentials import (
-    AssumeRoleCredentialFetcher,
-    CredentialResolver,
-    DeferredRefreshableCredentials,
-    JSONFileCache,
-)
+from botocore.credentials import AssumeRoleCredentialFetcher
+from botocore.credentials import CredentialResolver
+from botocore.credentials import DeferredRefreshableCredentials
+from botocore.credentials import JSONFileCache
 from botocore.session import Session as BotocoreSession
 from sagemaker.session import Session as SageMakerSession
 

@@ -10,21 +10,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 from typing import Dict
-import json
 
-from MonitoringSchedule.src.MonitoringSchedule_spec import (
-    SageMakerMonitoringScheduleInputs,
-    SageMakerMonitoringScheduleOutputs,
-    SageMakerMonitoringScheduleSpec,
-)
-from commonv2.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
 from commonv2 import snake_to_camel
+from commonv2.sagemaker_component import ComponentMetadata
+from commonv2.sagemaker_component import SageMakerComponent
+from commonv2.sagemaker_component import SageMakerJobStatus
+from MonitoringSchedule.src.MonitoringSchedule_spec import SageMakerMonitoringScheduleInputs
+from MonitoringSchedule.src.MonitoringSchedule_spec import SageMakerMonitoringScheduleOutputs
+from MonitoringSchedule.src.MonitoringSchedule_spec import SageMakerMonitoringScheduleSpec
 
 
 @ComponentMetadata(

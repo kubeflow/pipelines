@@ -13,9 +13,8 @@
 # limitations under the License.
 """Utility function to format the preference data."""
 
-from kfp import dsl
-
 from google_cloud_pipeline_components import _image
+from kfp import dsl
 
 
 # pylint: disable=g-import-not-at-top
@@ -38,11 +37,11 @@ def format_preference_input_data(
     The path to the new output file that saved the formatted input data for
     AutoSxs arbiter.
   """
-  import json
+  import glob
   import hashlib
+  import json
   import os
   import re
-  import glob
 
   model_a_inference_dir_uri = re.sub(
       '^gs://', '/gcs/', model_a_inference_dir_uri

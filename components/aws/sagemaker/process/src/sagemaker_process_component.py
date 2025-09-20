@@ -14,16 +14,12 @@
 import logging
 from typing import Dict
 
-from process.src.sagemaker_process_spec import (
-    SageMakerProcessSpec,
-    SageMakerProcessInputs,
-    SageMakerProcessOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from process.src.sagemaker_process_spec import SageMakerProcessInputs
+from process.src.sagemaker_process_spec import SageMakerProcessOutputs
+from process.src.sagemaker_process_spec import SageMakerProcessSpec
 
 
 @ComponentMetadata(

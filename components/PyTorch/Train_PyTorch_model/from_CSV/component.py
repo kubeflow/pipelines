@@ -1,4 +1,7 @@
-from kfp.components import create_component_from_func, InputPath, OutputPath
+from kfp.components import create_component_from_func
+from kfp.components import InputPath
+from kfp.components import OutputPath
+
 
 def train_pytorch_model_from_csv(
     model_path: InputPath('PyTorchScriptModule'),

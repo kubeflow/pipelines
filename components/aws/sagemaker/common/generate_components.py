@@ -17,7 +17,6 @@ import argparse
 from common.component_compiler import SageMakerComponentCompiler
 import common.sagemaker_component as component_module
 
-
 COMPONENT_DIRECTORIES = [
     "batch_transform",
     "create_simulation_app",

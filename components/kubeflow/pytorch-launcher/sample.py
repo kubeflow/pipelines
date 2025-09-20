@@ -1,11 +1,12 @@
-import kfp
-from kfp import dsl
-import uuid
 import datetime
 import logging
-from kubernetes import config
+import uuid
+
+import kfp
+from kfp import dsl
 from kubeflow.training import TrainingClient
 from kubeflow.training.utils import utils
+from kubernetes import config
 
 
 def get_current_namespace():

@@ -1,11 +1,13 @@
-from common.sagemaker_component import SageMakerJobStatus
-from workteam.src.sagemaker_workteam_spec import SageMakerWorkteamSpec
-from workteam.src.sagemaker_workteam_component import SageMakerWorkteamComponent
-from tests.unit_tests.tests.workteam.test_workteam_spec import WorkteamSpecTestCase
-import unittest
 import json
+import unittest
+from unittest.mock import ANY
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from unittest.mock import patch, MagicMock, ANY
+from common.sagemaker_component import SageMakerJobStatus
+from tests.unit_tests.tests.workteam.test_workteam_spec import WorkteamSpecTestCase
+from workteam.src.sagemaker_workteam_component import SageMakerWorkteamComponent
+from workteam.src.sagemaker_workteam_spec import SageMakerWorkteamSpec
 
 
 class WorkteamComponentTestCase(unittest.TestCase):

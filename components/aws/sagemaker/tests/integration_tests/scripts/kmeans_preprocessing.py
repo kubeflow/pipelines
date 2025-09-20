@@ -1,7 +1,8 @@
-import pickle
 import gzip
-import numpy
 import io
+import pickle
+
+import numpy
 from sagemaker.amazon.common import write_numpy_to_dense_tensor
 
 print("Extracting MNIST data set")

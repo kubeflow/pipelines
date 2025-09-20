@@ -1,5 +1,6 @@
-from ground_truth.src.sagemaker_ground_truth_spec import SageMakerGroundTruthSpec
 import unittest
+
+from ground_truth.src.sagemaker_ground_truth_spec import SageMakerGroundTruthSpec
 
 
 class GroundTruthSpecTestCase(unittest.TestCase):

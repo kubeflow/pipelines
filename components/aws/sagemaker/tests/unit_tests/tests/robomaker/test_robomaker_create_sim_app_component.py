@@ -1,16 +1,11 @@
-from common.sagemaker_component import SageMakerJobStatus
-from create_simulation_app.src.robomaker_create_simulation_app_spec import (
-    RoboMakerCreateSimulationAppSpec,
-)
-from create_simulation_app.src.robomaker_create_simulation_app_component import (
-    RoboMakerCreateSimulationAppComponent,
-)
-from tests.unit_tests.tests.robomaker.test_robomaker_create_sim_app_spec import (
-    RoboMakerCreateSimAppSpecTestCase,
-)
 import unittest
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from unittest.mock import patch, MagicMock
+from common.sagemaker_component import SageMakerJobStatus
+from create_simulation_app.src.robomaker_create_simulation_app_component import RoboMakerCreateSimulationAppComponent
+from create_simulation_app.src.robomaker_create_simulation_app_spec import RoboMakerCreateSimulationAppSpec
+from tests.unit_tests.tests.robomaker.test_robomaker_create_sim_app_spec import RoboMakerCreateSimAppSpecTestCase
 
 
 class RoboMakerCreateSimAppTestCase(unittest.TestCase):

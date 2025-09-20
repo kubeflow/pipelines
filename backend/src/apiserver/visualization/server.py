@@ -20,7 +20,8 @@ from pathlib import Path
 from typing import Text
 
 from nbformat import NotebookNode
-from nbformat.v4 import new_notebook, new_code_cell
+from nbformat.v4 import new_code_cell
+from nbformat.v4 import new_notebook
 import tornado.ioloop
 import tornado.web
 

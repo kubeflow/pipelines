@@ -17,8 +17,7 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import (Any, Callable, Dict, List, Mapping, Optional, Tuple, Type,
-                    Union)
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser

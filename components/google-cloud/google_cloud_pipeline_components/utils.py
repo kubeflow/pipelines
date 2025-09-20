@@ -18,14 +18,13 @@ import json
 import re
 from typing import Any, Callable, Dict, List, Optional
 
+from google.protobuf import json_format
 from google_cloud_pipeline_components import _image
 from kfp import components
 from kfp import dsl
 # do not follow this pattern!
 # we should not depend on non-public modules of the KFP SDK!
 from kfp.components import placeholders
-
-from google.protobuf import json_format
 
 # note: this is a slight dependency on KFP SDK implementation details
 # other code should not similarly depend on the stability of kfp.placeholders

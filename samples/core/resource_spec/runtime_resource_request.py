@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import dsl, compiler
 from typing import NamedTuple
+
+from kfp import compiler
+from kfp import dsl
+
 
 @dsl.component
 def training_op(n: int) -> int:

@@ -12,12 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Sample pipeline for passing data in KFP v2."""
-from typing import Dict, List
 import os
+from typing import Dict, List
 
 from kfp import dsl
-from kfp.dsl import Input, InputPath, Output, OutputPath, Dataset, Model, component
 import kfp.compiler as compiler
+from kfp.dsl import component
+from kfp.dsl import Dataset
+from kfp.dsl import Input
+from kfp.dsl import InputPath
+from kfp.dsl import Model
+from kfp.dsl import Output
+from kfp.dsl import OutputPath
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.

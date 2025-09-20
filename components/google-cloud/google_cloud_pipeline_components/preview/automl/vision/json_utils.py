@@ -15,8 +15,8 @@
 
 import json
 from typing import Any, Dict, List, Optional, Sequence, Union
-from kfp.dsl import placeholders
 
+from kfp.dsl import placeholders
 
 _InputType = Union[
     placeholders.Placeholder, str, int, bool, float, List[Any], Dict[Any, Any]

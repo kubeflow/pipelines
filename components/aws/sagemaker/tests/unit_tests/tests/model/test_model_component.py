@@ -1,10 +1,12 @@
-from common.sagemaker_component import SageMakerJobStatus
-from model.src.sagemaker_model_spec import SageMakerCreateModelSpec
-from model.src.sagemaker_model_component import SageMakerCreateModelComponent
-from tests.unit_tests.tests.model.test_model_spec import CreateModelSpecTestCase
 import unittest
+from unittest.mock import ANY
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from unittest.mock import patch, MagicMock, ANY
+from common.sagemaker_component import SageMakerJobStatus
+from model.src.sagemaker_model_component import SageMakerCreateModelComponent
+from model.src.sagemaker_model_spec import SageMakerCreateModelSpec
+from tests.unit_tests.tests.model.test_model_spec import CreateModelSpecTestCase
 
 
 class CreateModelComponentTestCase(unittest.TestCase):

@@ -16,13 +16,12 @@
 import json
 import logging
 import re
-from typing import (
-    Any,
-    Dict,
-)
+from typing import Any, Dict
 
 from google.api_core import retry
 from google.cloud.aiplatform import explain
+from google.protobuf import json_format
+from google.protobuf import struct_pb2
 from google_cloud_pipeline_components.container.utils import artifact_utils
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
@@ -31,9 +30,6 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import jso
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
 from kfp import dsl
-
-from google.protobuf import struct_pb2
-from google.protobuf import json_format
 
 UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME = 'unmanaged_container_model'
 LABELS_PAYLOAD_KEY = 'labels'

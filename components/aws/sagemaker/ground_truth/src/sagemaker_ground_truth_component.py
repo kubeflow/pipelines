@@ -14,16 +14,12 @@
 import logging
 from typing import Dict
 
-from ground_truth.src.sagemaker_ground_truth_spec import (
-    SageMakerGroundTruthSpec,
-    SageMakerGroundTruthInputs,
-    SageMakerGroundTruthOutputs,
-)
-from common.sagemaker_component import (
-    SageMakerComponent,
-    ComponentMetadata,
-    SageMakerJobStatus,
-)
+from common.sagemaker_component import ComponentMetadata
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from ground_truth.src.sagemaker_ground_truth_spec import SageMakerGroundTruthInputs
+from ground_truth.src.sagemaker_ground_truth_spec import SageMakerGroundTruthOutputs
+from ground_truth.src.sagemaker_ground_truth_spec import SageMakerGroundTruthSpec
 
 
 @ComponentMetadata(

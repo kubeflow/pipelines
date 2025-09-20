@@ -35,7 +35,6 @@ from google_cloud_pipeline_components._implementation.model_evaluation.llm_safet
 from google_cloud_pipeline_components._implementation.model_evaluation.model_name_preprocessor.component import model_name_preprocessor as ModelNamePreprocessorOp
 from google_cloud_pipeline_components._implementation.model_evaluation.target_field_data_remover.component import target_field_data_remover as TargetFieldDataRemoverOp
 
-
 __all__ = [
     'evaluation_llm_endpoint_batch_predict_pipeline_graph_component',
     'ChunkingOp',

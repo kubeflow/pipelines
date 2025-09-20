@@ -1,11 +1,13 @@
-from common.sagemaker_component import SageMakerJobStatus
-from process.src.sagemaker_process_spec import SageMakerProcessSpec
-from process.src.sagemaker_process_component import SageMakerProcessComponent
-from tests.unit_tests.tests.process.test_process_spec import ProcessSpecTestCase
-import unittest
 import json
+import unittest
+from unittest.mock import ANY
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from unittest.mock import patch, MagicMock, ANY
+from common.sagemaker_component import SageMakerJobStatus
+from process.src.sagemaker_process_component import SageMakerProcessComponent
+from process.src.sagemaker_process_spec import SageMakerProcessSpec
+from tests.unit_tests.tests.process.test_process_spec import ProcessSpecTestCase
 
 
 class ProcessComponentTestCase(unittest.TestCase):

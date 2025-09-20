@@ -18,12 +18,11 @@ import textwrap
 from typing import Callable, Dict, List, Optional, Union
 import warnings
 
+from google.protobuf import json_format
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components.v1.custom_job import component
 from kfp import components
 import yaml
-
-from google.protobuf import json_format
 
 
 def _replace_executor_placeholder(

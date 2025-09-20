@@ -19,12 +19,12 @@ import os
 import re
 import subprocess
 import tempfile
-from typing import Tuple, Optional
+from typing import Optional, Tuple
+
 from google.cloud import storage
+from google.protobuf import json_format
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
-
-from google.protobuf import json_format
 
 # Set logging level to info
 logging.basicConfig(level=logging.INFO)

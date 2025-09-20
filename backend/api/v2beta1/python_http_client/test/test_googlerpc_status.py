@@ -12,12 +12,13 @@
 
 from __future__ import absolute_import
 
-import unittest
 import datetime
+import unittest
 
 import kfp_server_api
 from kfp_server_api.models.googlerpc_status import GooglerpcStatus  # noqa: E501
 from kfp_server_api.rest import ApiException
+
 
 class TestGooglerpcStatus(unittest.TestCase):
     """GooglerpcStatus unit test stubs"""

@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import argparse
-import requests
-import yaml
 import os
 from pathlib import Path
+
 from kfp.dsl import utils
+import requests
+import yaml
 
 # Constants and defaults
 K8S_PIPELINE_API_VERSION = 'pipelines.kubeflow.org/v2beta1'

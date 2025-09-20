@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import subprocess
+
+from constants import DEFAULT_CONFIG
+from constants import RUN_LIST_PAGE_SIZE
+from kfp import Client
 import utils
 import yaml
-
-from constants import RUN_LIST_PAGE_SIZE, DEFAULT_CONFIG
-from kfp import Client
 
 
 class NoteBookChecker(object):

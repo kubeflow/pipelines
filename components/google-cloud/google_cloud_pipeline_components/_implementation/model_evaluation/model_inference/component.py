@@ -25,7 +25,6 @@ from kfp.dsl import Output
 from kfp.dsl import OutputPath
 from kfp.dsl import pipeline
 
-
 _IMAGE_URI = 'gcr.io/model-evaluation-dev/llm_eval:clyu-test'
 
 

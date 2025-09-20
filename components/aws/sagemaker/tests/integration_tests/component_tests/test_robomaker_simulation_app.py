@@ -1,11 +1,11 @@
-import pytest
 import os
-import utils
 
+import pytest
+import utils
+from utils import get_s3_data_bucket
 from utils import kfp_client_utils
 from utils import minio_utils
 from utils import robomaker_utils
-from utils import get_s3_data_bucket
 
 
 def create_simulation_app(kfp_client, experiment_id, creat_app_dir, app_name):

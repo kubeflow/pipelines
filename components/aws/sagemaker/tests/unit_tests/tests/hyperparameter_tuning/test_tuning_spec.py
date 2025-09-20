@@ -1,5 +1,6 @@
-from hyperparameter_tuning.src.sagemaker_tuning_spec import SageMakerTuningSpec
 import unittest
+
+from hyperparameter_tuning.src.sagemaker_tuning_spec import SageMakerTuningSpec
 
 
 class TuningSpecTestCase(unittest.TestCase):

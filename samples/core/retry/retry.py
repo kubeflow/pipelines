@@ -14,7 +14,8 @@
 # limitations under the License.
 
 
-from kfp import dsl, compiler
+from kfp import compiler
+from kfp import dsl
 
 
 @dsl.component

@@ -12,6 +12,7 @@
 
 import re
 
+
 def snake_to_camel(name):
     """Convert snake case to camel case."""
     overrides = {

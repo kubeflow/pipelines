@@ -3,8 +3,8 @@ kfp_endpoint = None
 import datetime
 import time
 
-import kfp as kfp
 from kfp import dsl
+import kfp as kfp
 
 
 @dsl.component

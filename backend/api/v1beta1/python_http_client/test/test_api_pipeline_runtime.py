@@ -12,12 +12,13 @@
 
 from __future__ import absolute_import
 
-import unittest
 import datetime
+import unittest
 
 import kfp_server_api
 from kfp_server_api.models.api_pipeline_runtime import ApiPipelineRuntime  # noqa: E501
 from kfp_server_api.rest import ApiException
+
 
 class TestApiPipelineRuntime(unittest.TestCase):
     """ApiPipelineRuntime unit test stubs"""

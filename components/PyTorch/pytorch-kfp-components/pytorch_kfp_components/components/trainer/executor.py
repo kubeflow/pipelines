@@ -14,14 +14,13 @@
 # limitations under the License.
 """Training Executor class."""
 
-import os
 from argparse import Namespace
+import os
+
+from pytorch_kfp_components.components.trainer.generic_executor import GenericExecutor
+from pytorch_kfp_components.types import standard_component_specs
 import pytorch_lightning as pl
 import torch
-from pytorch_kfp_components.components.trainer.generic_executor import (
-    GenericExecutor,
-)
-from pytorch_kfp_components.types import standard_component_specs
 
 
 class Executor(GenericExecutor):

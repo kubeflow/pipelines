@@ -1,14 +1,13 @@
-from common.sagemaker_component import SageMakerComponent, SageMakerJobStatus
-from batch_transform.src.sagemaker_transform_spec import SageMakerTransformSpec
-from batch_transform.src.sagemaker_transform_component import (
-    SageMakerTransformComponent,
-)
-from tests.unit_tests.tests.batch_transform.test_transform_spec import (
-    TransformSpecTestCase,
-)
 import unittest
+from unittest.mock import ANY
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-from unittest.mock import patch, MagicMock, ANY
+from batch_transform.src.sagemaker_transform_component import SageMakerTransformComponent
+from batch_transform.src.sagemaker_transform_spec import SageMakerTransformSpec
+from common.sagemaker_component import SageMakerComponent
+from common.sagemaker_component import SageMakerJobStatus
+from tests.unit_tests.tests.batch_transform.test_transform_spec import TransformSpecTestCase
 
 
 class TransformComponentTestCase(unittest.TestCase):

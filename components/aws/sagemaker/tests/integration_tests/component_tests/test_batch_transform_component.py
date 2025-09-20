@@ -1,12 +1,12 @@
-import utils
 import os
-import pytest
 
+import pytest
+import utils
+from utils import argo_utils
 from utils import kfp_client_utils
 from utils import minio_utils
-from utils import sagemaker_utils
 from utils import s3_utils
-from utils import argo_utils
+from utils import sagemaker_utils
 
 
 @pytest.mark.parametrize(

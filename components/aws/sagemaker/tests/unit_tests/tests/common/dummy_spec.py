@@ -1,18 +1,14 @@
-from common.spec_input_parsers import SpecInputParsers
-from common.sagemaker_component_spec import SageMakerComponentSpec
-
-from typing import List
 from dataclasses import dataclass
+from typing import List
 
+from common.common_inputs import SageMakerComponentBaseInputs
+from common.common_inputs import SageMakerComponentBaseOutputs
+from common.common_inputs import SageMakerComponentInput as Input
+from common.common_inputs import SageMakerComponentInputValidator as InputValidator
+from common.common_inputs import SageMakerComponentOutput as Output
+from common.common_inputs import SageMakerComponentOutputValidator as OutputValidator
 from common.sagemaker_component_spec import SageMakerComponentSpec
-from common.common_inputs import (
-    SageMakerComponentBaseInputs,
-    SageMakerComponentBaseOutputs,
-    SageMakerComponentInputValidator as InputValidator,
-    SageMakerComponentOutputValidator as OutputValidator,
-    SageMakerComponentInput as Input,
-    SageMakerComponentOutput as Output,
-)
+from common.spec_input_parsers import SpecInputParsers
 
 
 @dataclass(frozen=True)

@@ -11,29 +11,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from abc import abstractmethod
+from enum import auto
+from enum import Enum
+import json
+import logging
 import os
-import sys
+from pathlib import Path
+import random
 import re
 import signal
 import string
-import logging
-import json
-from enum import Enum, auto
+import sys
+from time import gmtime
+from time import sleep
+from time import strftime
 from types import FunctionType
-import yaml
-import random
-from pathlib import Path
-from time import sleep, strftime, gmtime
-from abc import abstractmethod
-from typing import Any, Type, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, Type
 
-from .sagemaker_component_spec import SageMakerComponentSpec
+import yaml
+
 from .boto3_manager import Boto3Manager
-from .common_inputs import (
-    SageMakerComponentBaseOutputs,
-    SageMakerComponentCommonInputs,
-    SpotInstanceInputs,
-)
+from .common_inputs import SageMakerComponentBaseOutputs
+from .common_inputs import SageMakerComponentCommonInputs
+from .common_inputs import SpotInstanceInputs
+from .sagemaker_component_spec import SageMakerComponentSpec
 
 # This handler is called whenever the @ComponentMetadata is applied.
 # It allows the command line compiler to detect every component spec class.
