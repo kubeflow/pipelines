@@ -80,10 +80,7 @@ runs:
         if [ -z $MULTI_USER ]; then
           MULTI_USER='false'
         fi
-        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true \
-          --nodes=${{ inputs.num_parallel_nodes }} -v --label-filter=${{ inputs.test_label }} -- \ 
-          -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY \ 
-          -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}}
+        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} -v --label-filter=${{ inputs.test_label }} -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}}
       continue-on-error: true
 
     - name: Collect Pod logs in case of Test Failures
