@@ -20,6 +20,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -30,8 +31,9 @@ type ExecutionCacheStoreInterface interface {
 }
 
 type ExecutionCacheStore struct {
-	db   *DB
-	time util.TimeInterface
+	db      *DB
+	time    util.TimeInterface
+	dialect dialect.DBDialect
 }
 
 func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error) {
@@ -72,8 +74,7 @@ func (s *ExecutionCacheStore) cleanDatabase(maximumCacheStaleness int64) (int64,
 	log.Printf("Cleaning cache entries older than maximumCacheStaleness=%d", maximumCacheStaleness)
 
 	cutoffTime := s.time.Now().UTC().Unix() - maximumCacheStaleness
-	result := s.db.Exec(
-		"DELETE FROM execution_caches WHERE StartedAtInSec < ?",
+	result := s.db.Exec(fmt.Sprintf("DELETE FROM %s WHERE %s < ?", s.dialect.QuoteIdentifier("execution_caches"), s.dialect.QuoteIdentifier("StartedAtInSec")),
 		cutoffTime)
 
 	if result.Error != nil {
@@ -176,9 +177,10 @@ func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.Executi
 }
 
 // factory function for execution cache store
-func NewExecutionCacheStore(db *DB, time util.TimeInterface) *ExecutionCacheStore {
+func NewExecutionCacheStore(db *DB, time util.TimeInterface, d dialect.DBDialect) *ExecutionCacheStore {
 	return &ExecutionCacheStore{
-		db:   db,
-		time: time,
+		db:      db,
+		time:    time,
+		dialect: d,
 	}
 }

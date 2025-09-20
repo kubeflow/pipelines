@@ -33,14 +33,14 @@ func NewFakeClientManager(time util.TimeInterface) (*FakeClientManager, error) {
 		glog.Fatalf("The time parameter must not be null.") // Must never happen
 	}
 	// Initialize GORM
-	db, err := storage.NewFakeDB()
+	db, dialect, err := storage.NewFakeDB()
 	if err != nil {
 		return nil, err
 	}
 
 	return &FakeClientManager{
 		db:                db,
-		cacheStore:        storage.NewExecutionCacheStore(db, time),
+		cacheStore:        storage.NewExecutionCacheStore(db, time, dialect),
 		k8sCoreClientFake: client.NewFakeKuberneteCoresClient(),
 		time:              time,
 	}, nil
