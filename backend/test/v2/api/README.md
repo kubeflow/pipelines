@@ -57,8 +57,11 @@ logger.Log("Created Pipeline Run with id: %s", runID)
 **Core Utility Files:**
 - `config_utils.go`: Client configuration and connection setup
 - `pipeline_utils.go`: Pipeline CRUD operations and validation
+- `pipeline_run_utils.go`: Pipeline run lifecycle management
+- `experiment_utils.go`: Experiment operations
 - `kubernetes_utils.go`: Kubernetes cluster interactions
 - `file_utils.go`: File system operations for test data
+- `test_utils.go`: Common test helpers and utilities
 
 **Example Utility Usage:**
 ```go
@@ -128,9 +131,15 @@ reporterConfig.JSONReport = filepath.Join(testReportDirectory, jsonReportFilenam
 
 Each API service has dedicated test files with comprehensive endpoint coverage:
 
-| API Service             | Test File                            | Primary Focus                        | 
-|-------------------------|--------------------------------------|--------------------------------------|
-| **Pipeline Upload API** | `pipeline_upload_api_test.go`        | File upload, validation, versioning  |
+| API Service             | Test File                            | Primary Focus                        | Test Count             |
+|-------------------------|--------------------------------------|--------------------------------------|------------------------|
+| **Pipeline API**        | `pipeline_api_test.go`               | Pipeline CRUD, versioning, listing   | 30+ test scenarios     |
+| **Pipeline Upload API** | `pipeline_upload_api_test.go`        | File upload, validation, versioning  | 15+ test scenarios     |
+| **Pipeline Run API**    | `pipeline_run_api_test.go`           | Run lifecycle, state management      | 45+ test scenarios     |
+| **Experiment API**      | `experiment_api_test.go`             | Experiment management, association   | 25+ test scenarios     |
+| **Recurring Run API**   | `pipeline_recurring_run_api_test.go` | Scheduled runs, cron jobs            | 20+ test scenarios     |
+| **Report API**          | `report_api_test.go`                 | Workflow reporting, metrics          | 10+ test scenarios     |
+| **E2E Pipeline**        | `pipeline_e2e_test.go`               | End-to-end pipeline execution        | 5+ comprehensive flows |
 
 ### Endpoint Coverage Details
 
@@ -281,9 +290,13 @@ backend/test/v2/api/
 │   └── pipeline_matcher.go           # Pipeline-specific matchers
 ├── utils/                            # Utility functions
 │   ├── config_utils.go               # Client configuration
+│   ├── experiment_utils.go           # Experiment operations
 │   ├── file_utils.go                 # File system operations
+│   ├── kubernetes_utils.go           # K8s cluster operations
+│   ├── pipeline_run_utils.go         # Pipeline run management
 │   ├── pipeline_utils.go             # Pipeline operations
 │   ├── pipeline_version_utils.go     # Version management
+│   └── test_utils.go                 # Common test helpers
 ├── logs/                             # Test execution logs
 ├── reports/                          # Generated test reports
 │   ├── api.xml                       # JUnit XML report
