@@ -16,10 +16,11 @@ package api
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	utils "github.com/kubeflow/pipelines/backend/test/test_utils"
-	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 )
@@ -40,7 +41,7 @@ import (
 // ########################################################## POSITIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = PDescribe("List Pipelines API Tests >", Label("Positive", "Pipeline", "PipelineList", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("List Pipelines API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineList", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Basic List Operations >", func() {
 		It("When no pipelines exist", func() {
@@ -94,7 +95,7 @@ var _ = PDescribe("List Pipelines API Tests >", Label("Positive", "Pipeline", "P
 	})
 })
 
-var _ = PDescribe("List Pipelines Versions API Tests >", Label("Positive", "Pipeline", "PipelineVersionList", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("List Pipelines Versions API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineVersionList", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Basic List Operations >", func() {
 		It("When no pipeline versions exist", func() {
@@ -150,7 +151,7 @@ var _ = PDescribe("List Pipelines Versions API Tests >", Label("Positive", "Pipe
 	})
 })
 
-var _ = PDescribe("Create Pipeline API Tests >", Label("Positive", "Pipeline", "PipelineCreate", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Create Pipeline API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineCreate", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Create a pipeline using '/pipelines' >", func() {
 		It("With just name", func() {
@@ -181,7 +182,7 @@ var _ = PDescribe("Create Pipeline API Tests >", Label("Positive", "Pipeline", "
 	})
 })
 
-var _ = PDescribe("Get Pipeline API Tests >", Label("Positive", "Pipeline", "PipelineGet", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Get Pipeline API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineGet", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Get by name '/pipelines/{name}' >", func() {
 		It("With full name", func() {
@@ -196,7 +197,7 @@ var _ = PDescribe("Get Pipeline API Tests >", Label("Positive", "Pipeline", "Pip
 	})
 })
 
-var _ = PDescribe("Get Pipeline Version API Tests >", Label("Positive", "Pipeline", "PipelineVersionGet", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Get Pipeline Version API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineVersionGet", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Get by id '/pipelines/{pipeline_id}/versions/{pipeline_version_id}' >", func() {
 		It("With valid pipeline id and version id", func() {
@@ -204,7 +205,7 @@ var _ = PDescribe("Get Pipeline Version API Tests >", Label("Positive", "Pipelin
 	})
 })
 
-var _ = PDescribe("Delete Pipeline API Tests >", Label("Positive", "Pipeline", "PipelineDelete", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Delete Pipeline API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineDelete", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Delete pipeline by ID '/pipelines/{pipeline_id}' >", func() {
 		It("Delete pipeline by ID that does not have any versions", func() {
@@ -219,14 +220,14 @@ var _ = PDescribe("Delete Pipeline API Tests >", Label("Positive", "Pipeline", "
 // ################################################################################################################
 // ########################################################## NEGATIVE TESTS ######################################
 // ################################################################################################################
-var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Pipeline", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", API_PIPELINE, API_SERVER_TESTS, FULL_REGRESSION), func() {
 	Context("Create a pipeline with version using '/pipelines/create' >", func() {
 		It("With a valid pipeline and pipeline version name but invalid pipeline spec file", func() {
 		})
 		It("With a valid pipeline and pipeline version name but invalid pipeline spec url", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -235,8 +236,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Pipelin
 		})
 		It("With CJK characters in the name", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -245,8 +246,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Pipelin
 		})
 		It("By ID containing ASCII characters", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -257,8 +258,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Pipelin
 		})
 		It("By valid version ID but with the pipeline ID that does not contain this version", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -269,8 +270,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Pipelin
 		})
 		It("Delete by ID containing ASCII characters", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -281,8 +282,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Pipelin
 		})
 		It("Delete by ID containing ASCII characters", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -295,8 +296,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Pipelin
 		})
 		It("By invalid ID containing ASCII characters", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})

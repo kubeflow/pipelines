@@ -96,7 +96,6 @@ func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExpe
 	// Make service call
 	parameters.Context = ctx
 	response, err := c.apiClient.ExperimentService.ExperimentServiceCreateExperiment(parameters)
-	println(response)
 	if err != nil {
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create experiment. Params: '%+v'. Body: '%+v'", parameters, parameters.Experiment),

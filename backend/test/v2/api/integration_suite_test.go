@@ -1,15 +1,21 @@
+// Copyright 2021-2023 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package api
 
 import (
 	"fmt"
-	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/strfmt"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	"github.com/kubeflow/pipelines/backend/test/config"
-	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	"log"
 	"os"
 	"path/filepath"
@@ -17,14 +23,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-
-	"k8s.io/client-go/kubernetes"
-
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
+	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"github.com/kubeflow/pipelines/backend/test/config"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
+
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Test Context
@@ -62,10 +72,10 @@ var _ = BeforeSuite(func() {
 	var newExperimentClient func() (*apiserver.ExperimentClient, error)
 	var newRecurringRunClient func() (*apiserver.RecurringRunClient, error)
 	clientConfig := test_utils.GetClientConfig(*config.Namespace)
-	k8Client, err = initK8sClient()
+	k8Client, err = test_utils.CreateK8sClient()
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
 
-	if *config.IsKubeflowMode {
+	if *config.KubeflowMode {
 		logger.Log("Creating API Clients for Kubeflow Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewKubeflowInClusterPipelineClient(*config.Namespace, *config.IsDebugMode)
@@ -79,12 +89,10 @@ var _ = BeforeSuite(func() {
 		newRecurringRunClient = func() (*apiserver.RecurringRunClient, error) {
 			return apiserver.NewKubeflowInClusterRecurringRunClient(*config.Namespace, *config.IsDebugMode)
 		}
-	} else if *config.IsMultiUserMode {
+	} else if *config.MultiUserMode {
 		logger.Log("Creating API Clients for Multi User Mode")
-		defaultUserToken, err = test_utils.CreateUserToken(k8Client, *config.Namespace, *config.ServiceAccountName)
-		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Error creating user token for '%s' in namespace '%s'", *config.ServiceAccountName, *config.Namespace))
-		userToken, err = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
-		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Error creating user token for '%s' in namespace '%s'", *config.ServiceAccountName, *config.Namespace))
+		defaultUserToken = test_utils.CreateUserToken(k8Client, *config.Namespace, *config.DefaultServiceAccountName)
+		userToken = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.IsDebugMode)
 		}
@@ -115,7 +123,7 @@ var _ = BeforeSuite(func() {
 
 	pipelineUploadClient, err = test_utils.GetPipelineUploadClient(
 		*config.UploadPipelinesWithKubernetes,
-		*config.IsKubeflowMode,
+		*config.KubeflowMode,
 		*config.IsDebugMode,
 		*config.Namespace,
 		clientConfig,
@@ -178,7 +186,9 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 		podLogs := test_utils.ReadContainerLogs(k8Client, *config.Namespace, "pipeline-api-server", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
 		AddReportEntry("Pod Log", podLogs)
 		AddReportEntry("Test Log", specReport.CapturedGinkgoWriterOutput)
-		writeLogFile(specReport)
+		currentDir, err := os.Getwd()
+		Expect(err).NotTo(HaveOccurred(), "Failed to get current directory")
+		test_utils.WriteLogFile(specReport, GinkgoT().Name(), filepath.Join(currentDir, testLogsDirectory))
 	} else {
 		log.Printf("Test passed")
 	}
@@ -186,50 +196,11 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
-	suiteConfig, reporterConfig := GinkgoConfiguration()
-	suiteConfig.FailFast = false
-	reporterConfig.ForceNewlines = true
-	reporterConfig.SilenceSkips = true
-	reporterConfig.JUnitReport = filepath.Join(testReportDirectory, junitReportFilename)
-	reporterConfig.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
-	RunSpecs(t, "API Tests Suite", suiteConfig, reporterConfig)
-}
-
-// ####################################################################################################################################################################
-// ################################################################### UTILITY METHODS ################################################################################
-// ####################################################################################################################################################################
-
-func initK8sClient() (*kubernetes.Clientset, error) {
-	restConfig, configErr := util.GetKubernetesConfig()
-	if configErr != nil {
-		return nil, configErr
-	}
-	k8sClient, clientErr := kubernetes.NewForConfig(restConfig)
-	if clientErr != nil {
-		return nil, clientErr
-	}
-	return k8sClient, nil
-}
-
-func writeLogFile(specReport types.SpecReport) {
-	stdOutput := specReport.CapturedGinkgoWriterOutput
-	testName := GinkgoT().Name()
-	testLogFile := filepath.Join(testLogsDirectory, testName+".log")
-	logFile, err := os.Create(testLogFile)
-	if err != nil {
-		logger.Log("Failed to create log file due to: %s", err.Error())
-	}
-	_, err = logFile.Write([]byte(stdOutput))
-	if err != nil {
-		logger.Log("Failed to write to the log file, due to: %s", err.Error())
-	}
-	logFile.Close()
-}
-
-func getAuthInfoWriter(token string) runtime.ClientAuthInfoWriter {
-	return runtime.ClientAuthInfoWriterFunc(
-		func(r runtime.ClientRequest, _ strfmt.Registry) error {
-			r.SetHeaderParam("Authorization", "Bearer "+token)
-			return nil
-		})
+	suiteConfigApi, reporterConfigApi := GinkgoConfiguration()
+	suiteConfigApi.FailFast = false
+	reporterConfigApi.ForceNewlines = true
+	reporterConfigApi.SilenceSkips = true
+	reporterConfigApi.JUnitReport = filepath.Join(testReportDirectory, junitReportFilename)
+	reporterConfigApi.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
+	RunSpecs(t, "API Tests Suite", suiteConfigApi, reporterConfigApi)
 }

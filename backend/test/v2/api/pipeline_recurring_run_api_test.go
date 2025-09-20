@@ -17,6 +17,7 @@ package api
 import (
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
+
 	. "github.com/onsi/ginkgo/v2"
 )
 
@@ -36,7 +37,7 @@ import (
 // ########################################################## POSITIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = PDescribe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "RecurringPipelineRun", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_SCHEDULED_RUN, API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Create reccurring pipeline run >", func() {
 		It("Create a Pipeline Run with cron that runs every 5min", func() {
@@ -66,7 +67,7 @@ var _ = PDescribe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "Rec
 	})
 })
 
-var _ = PDescribe("List Recurring Pipeline Runs >", Label("Positive", "PipelineRun", "RecurringPipelineRun", "ListRecurringPipelineRun", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("List Recurring Pipeline Runs >", Label(POSITIVE, API_PIPELINE_SCHEDULED_RUN, "ListRecurringPipelineRun", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Basic Operations >", func() {
 		It("Create 2 runs and list", func() {
@@ -103,7 +104,7 @@ var _ = PDescribe("List Recurring Pipeline Runs >", Label("Positive", "PipelineR
 	Context("Specify Page Size >", func() {
 		It("List by page size", func() {
 		})
-		It("List by page size and iterate over atleast 2 pages", func() {
+		It("List by page size and iterate over at least 2 pages", func() {
 		})
 	})
 	Context("Filtering >", func() {
@@ -137,18 +138,18 @@ var _ = PDescribe("List Recurring Pipeline Runs >", Label("Positive", "PipelineR
 // ################################################################################################################
 // ########################################################## NEGATIVE TESTS ######################################
 // ################################################################################################################
-var _ = PDescribe("Verify Pipeline Run Negative Tests >", Label("Negative", "PipelineRun", "RecurringPipelineRun", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Verify Pipeline Run Negative Tests >", Label(NEGATIVE, API_PIPELINE_SCHEDULED_RUN, API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Create reccurring pipeline run >", func() {
 		It("Create a Pipeline Run with invalid cron", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
 
-	if *config.IsKubeflowMode {
+	if *config.KubeflowMode {
 		Context("List reccurring pipeline runs in kubeflow mode >", func() {
 			It("List reccurring pipeline runs in a namespace you don't have access to", func() {})
 		})
@@ -161,8 +162,8 @@ var _ = PDescribe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pip
 		})
 		It("Disable already disabled recurring run", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -177,8 +178,8 @@ var _ = PDescribe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pip
 		})
 		It("Enable an recurring run for a run that's associated with an archived experiment", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -205,8 +206,8 @@ var _ = PDescribe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pip
 		})
 		It("Get Recurring pipeline Run for a non recurring run i.e. one-off run", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})

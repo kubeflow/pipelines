@@ -24,7 +24,7 @@ C_DIR="${BASH_SOURCE%/*}"
 if [[ ! -d "$C_DIR" ]]; then C_DIR="$PWD"; fi
 source "${C_DIR}/helper-functions.sh"
 
-TEST_MANIFESTS=".github/resources/manifests/argo"
+TEST_MANIFESTS=".github/resources/manifests"
 PIPELINES_STORE="database"
 USE_PROXY=false
 CACHE_DISABLED=false
@@ -130,18 +130,18 @@ if [ "${MULTI_USER}" == "true" ]; then
   kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s
 
   echo "Creating KF Profile..."
-  kubectl apply -f test/seaweedfs/test-profiles.yaml
+  kubectl apply -f test_data/kubernetes/seaweedfs/test-profiles.yaml
 
   echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
-  kubectl apply -f test/seaweedfs/kubeflow-edit-clusterrole.yaml
+  kubectl apply -f test_data/kubernetes/seaweedfs/kubeflow-edit-clusterrole.yaml
 
   echo "Applying network policy to allow user namespace access to kubeflow services..."
-  kubectl apply -f test/seaweedfs/allow-user-namespace-access.yaml
+  kubectl apply -f test_data/kubernetes/seaweedfs/allow-user-namespace-access.yaml
 fi
 
 # Manifests will be deployed according to the flag provided
 if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/standalone"
+  TEST_MANIFESTS="${TEST_MANIFESTS}/standalone"
   if $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
@@ -158,12 +158,12 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
   fi
 elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ]; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/kubernetes-native"
+  TEST_MANIFESTS="${TEST_MANIFESTS}/kubernetes-native"
   if $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
-  TEST_MANIFESTS="${TEST_MANIFESTS}/overlays/multiuser"
+  TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
   if [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
   elif $CACHE_DISABLED; then

@@ -16,22 +16,22 @@ package api
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
+
+	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
-	"path/filepath"
-	"strings"
-
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-
-	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	testutils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	"github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -63,7 +63,7 @@ var _ = BeforeEach(func() {
 // ########################################################## POSITIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = Describe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "ApiServerTests", FullRegression), func() {
+var _ = Describe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_RUN, API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	type TestParams struct {
 		pipelineCacheEnabled bool
@@ -82,7 +82,7 @@ var _ = Describe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "ApiS
 				It(fmt.Sprintf("Create a '%s' pipeline with cacheEnabled=%t and verify run", pipelineFilePath, param.pipelineCacheEnabled), func() {
 					pipelineFilePath := pipelineFilePath
 					pipelineFileName := filepath.Base(pipelineFilePath)
-					test_utils.SkipTest(pipelineFileName)
+					test_utils.CheckIfSkipping(pipelineFileName)
 					configuredPipelineSpecFile := configureCacheSettingAndGetPipelineFile(pipelineFilePath, param.pipelineCacheEnabled)
 					createdPipeline := uploadAPipeline(configuredPipelineSpecFile, &testContext.Pipeline.PipelineGeneratedName)
 					createdPipelineVersion := test_utils.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
@@ -93,7 +93,7 @@ var _ = Describe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "ApiS
 			}
 		}
 		pipelineFile := pipelineFilePaths[0]
-		It(fmt.Sprintf("Create a '%s' pipeline, create an experiement and verify run with associated experiment", pipelineFile), Label(Smoke), func() {
+		It(fmt.Sprintf("Create a '%s' pipeline, create an experiement and verify run with associated experiment", pipelineFile), Label(SMOKE), func() {
 			createdExperiment := createExperiment(experimentName)
 			createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
 			createdPipelineVersion := test_utils.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
@@ -252,7 +252,7 @@ var _ = Describe("Verify Pipeline Run >", Label("Positive", "PipelineRun", "ApiS
 // ################################################################################################################
 // ########################################################## NEGATIVE TESTS ######################################
 // ################################################################################################################
-var _ = Describe("Verify Pipeline Run Negative Tests >", Label("Negative", "PipelineRun", "ApiServerTests", FullRegression), func() {
+var _ = Describe("Verify Pipeline Run Negative Tests >", Label(NEGATIVE, API_PIPELINE_RUN, API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	var pipelineFile string
 	var createdPipeline *pipeline_upload_model.V2beta1Pipeline
@@ -266,7 +266,7 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pipe
 		pipelineRuntimeInputs = test_utils.GetPipelineRunTimeInputs(pipelineFile)
 	})
 
-	if *config.IsMultiUserMode || *config.IsKubeflowMode {
+	if *config.MultiUserMode || *config.KubeflowMode {
 		Context("Verify pipeline run creation failure in Multi User Mode", func() {
 
 			PIt("Create a run in an experiment that is not in the namespace that you have access to", func() {
@@ -287,8 +287,8 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pipe
 		})
 		It("Unarchive an available run", func() {
 		})
-		if *config.IsKubeflowMode || *config.IsMultiUserMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode || *config.MultiUserMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -299,8 +299,8 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pipe
 		})
 		It("Archive an already archived run", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -311,8 +311,8 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label("Negative", "Pipe
 		})
 		It("Terminate an already terminated run", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})

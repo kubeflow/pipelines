@@ -1,27 +1,40 @@
+// Copyright 2021-2023 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package end2end
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/test/config"
-	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
-	"github.com/kubeflow/pipelines/backend/test/v2"
-	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
-	. "github.com/onsi/gomega"
-	"k8s.io/client-go/kubernetes"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
-)
 
-// Test Context
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
+	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+	"github.com/kubeflow/pipelines/backend/test/config"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/v2"
+
+	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
+	. "github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes"
+)
 
 var randomName string
 var experimentID *string = nil
@@ -54,10 +67,10 @@ var _ = BeforeSuite(func() {
 	var newRunClient func() (*apiserver.RunClient, error)
 	var newExperimentClient func() (*apiserver.ExperimentClient, error)
 	clientConfig := test_utils.GetClientConfig(*config.Namespace)
-	k8Client, err = initK8sClient()
+	k8Client, err = test_utils.CreateK8sClient()
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
 
-	if *config.IsKubeflowMode {
+	if *config.KubeflowMode {
 		logger.Log("Creating API Clients for Kubeflow Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewKubeflowInClusterPipelineClient(*config.Namespace, *config.IsDebugMode)
@@ -68,10 +81,9 @@ var _ = BeforeSuite(func() {
 		newRunClient = func() (*apiserver.RunClient, error) {
 			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.IsDebugMode)
 		}
-	} else if *config.IsMultiUserMode {
+	} else if *config.MultiUserMode {
 		logger.Log("Creating API Clients for Multi User Mode")
-		userToken, err = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
-		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Error creating user token for '%s' in namespace '%s'", *config.ServiceAccountName, *config.Namespace))
+		userToken = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.IsDebugMode)
 		}
@@ -96,7 +108,7 @@ var _ = BeforeSuite(func() {
 
 	pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*config.UploadPipelinesWithKubernetes,
-		*config.IsKubeflowMode,
+		*config.KubeflowMode,
 		*config.IsDebugMode,
 		*config.Namespace,
 		clientConfig,
@@ -109,6 +121,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).To(BeNil(), "Failed to get Experiment client")
 	runClient, err = newRunClient()
 	Expect(err).To(BeNil(), "Failed to get Pipeline Run client")
+})
+
+var _ = BeforeEach(func() {
 
 	// Create Experiment so that we can use it to associate pipeline runs with
 	experimentName := fmt.Sprintf("E2EExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
@@ -124,7 +139,9 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 	if specReport.Failed() {
 		logger.Log("Test failed... Capturing logs")
 		AddReportEntry("Test Log", specReport.CapturedGinkgoWriterOutput)
-		writeLogFile(specReport)
+		currentDir, err := os.Getwd()
+		Expect(err).NotTo(HaveOccurred(), "Failed to get current directory")
+		test_utils.WriteLogFile(specReport, GinkgoT().Name(), filepath.Join(currentDir, testLogsDirectory))
 	} else {
 		log.Printf("Test passed")
 	}
@@ -132,42 +149,11 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
-	suiteConfig, reporterConfig := GinkgoConfiguration()
-	suiteConfig.FailFast = false
-	reporterConfig.ForceNewlines = true
-	reporterConfig.SilenceSkips = true
-	reporterConfig.JUnitReport = filepath.Join(testReportDirectory, junitReportFilename)
-	reporterConfig.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
-	RunSpecs(t, "E2E Tests Suite", suiteConfig, reporterConfig)
-}
-
-// ####################################################################################################################################################################
-// ################################################################### UTILITY METHODS ################################################################################
-// ####################################################################################################################################################################
-
-func initK8sClient() (*kubernetes.Clientset, error) {
-	restConfig, configErr := util.GetKubernetesConfig()
-	if configErr != nil {
-		return nil, configErr
-	}
-	k8sClient, clientErr := kubernetes.NewForConfig(restConfig)
-	if clientErr != nil {
-		return nil, clientErr
-	}
-	return k8sClient, nil
-}
-
-func writeLogFile(specReport types.SpecReport) {
-	stdOutput := specReport.CapturedGinkgoWriterOutput
-	testName := GinkgoT().Name()
-	testLogFile := filepath.Join(testLogsDirectory, testName+".log")
-	logFile, err := os.Create(testLogFile)
-	if err != nil {
-		logger.Log("Failed to create log file due to: %s", err.Error())
-	}
-	_, err = logFile.Write([]byte(stdOutput))
-	if err != nil {
-		logger.Log("Failed to write to the log file, due to: %s", err.Error())
-	}
-	logFile.Close()
+	suiteConfigE2E, reporterConfigE2E := GinkgoConfiguration()
+	suiteConfigE2E.FailFast = false
+	reporterConfigE2E.ForceNewlines = true
+	reporterConfigE2E.SilenceSkips = true
+	reporterConfigE2E.JUnitReport = filepath.Join(testReportDirectory, junitReportFilename)
+	reporterConfigE2E.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
+	RunSpecs(t, "E2E Tests Suite", suiteConfigE2E, reporterConfigE2E)
 }

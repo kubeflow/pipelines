@@ -101,14 +101,14 @@ var _ = Describe("Pipeline API Tests", Label(FullRegression), func() {
 Tests can also be labeled with any text, and these labels can further be used to filter out during execution
 **Example Labeling:**
 ```go
-var _ = Describe("Pipeline API Tests", Label("Positive", "Pipeline"), func() {
+var _ = Describe("Pipeline API Tests", Label(POSITIVE, "Pipeline"), func() {
     // Test implementation
 })
 ```
 
 **Current List of Labels**
 ```
-Smoke, CriticalOnly, FullRegression, "Positive", "Negative", "PipelineUpload", "ApiServerTests"
+Smoke, CriticalOnly, FullRegression, POSITIVE, "Negative", "PipelineUpload", API_SERVER_TESTS
 ```
 
 ### Reports Generation
@@ -178,7 +178,7 @@ Each API service has dedicated test files with comprehensive endpoint coverage:
 All tests follow a consistent BDD structure using Ginkgo's descriptive syntax:
 
 ```go
-var _ = Describe("API Feature Description >", Label("Positive", "ServiceName", FullRegression), func() {
+var _ = Describe("API Feature Description >", Label(POSITIVE, "ServiceName", FullRegression), func() {
     Context("Specific Scenario Group >", func() {
         It("Should perform specific action", func() {
             // Test implementation

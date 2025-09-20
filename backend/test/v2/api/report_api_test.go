@@ -16,12 +16,13 @@ package api
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
-	"path/filepath"
-
 	utils "github.com/kubeflow/pipelines/backend/test/test_utils"
+
 	. "github.com/onsi/ginkgo/v2"
 )
 
@@ -44,7 +45,7 @@ var workflowsDir = filepath.Join(projectDataDir, "compiled-workflows")
 // ########################################################## POSITIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = PDescribe("Create Workflow API Tests >", Label("Positive", "Report", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Create Workflow API Tests >", Label(POSITIVE, API_REPORT, API_SERVER_TESTS, FULL_REGRESSION), func() {
 	workflowFiles := test_utils.GetListOfFilesInADir(workflowsDir)
 	Context("Create Workflow >", func() {
 		for _, workflowFile := range workflowFiles {
@@ -59,13 +60,13 @@ var _ = PDescribe("Create Workflow API Tests >", Label("Positive", "Report", "Ap
 // ################################################################################################################
 // ########################################################## NEGATIVE TESTS ######################################
 // ################################################################################################################
-var _ = PDescribe("Create Workflow Negative Tests >", Label("Negative", "Report", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Create Workflow Negative Tests >", Label(NEGATIVE, API_REPORT, API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Create workflow >", func() {
 		It("With invalid workflow schema", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -75,8 +76,8 @@ var _ = PDescribe("Create Workflow Negative Tests >", Label("Negative", "Report"
 		})
 		It("With valid workflow schema but invalid cron", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})

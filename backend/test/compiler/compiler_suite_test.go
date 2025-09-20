@@ -1,14 +1,30 @@
+// Copyright 2021-2023 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package compiler
 
 import (
 	"flag"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
@@ -40,7 +56,11 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 	if specReport.Failed() {
 		logger.Log("Test failed... Capturing logs")
 		AddReportEntry("Test Log", specReport.CapturedGinkgoWriterOutput)
-		writeLogFile(specReport)
+		currentDir, err := os.Getwd()
+		Expect(err).NotTo(HaveOccurred(), "Failed to get current directory")
+		testName := GinkgoT().Name()
+		testNameSplit := strings.Split(testName, ">")
+		test_utils.WriteLogFile(specReport, testNameSplit[len(testNameSplit)-1], filepath.Join(currentDir, testLogsDirectory))
 	} else {
 		log.Printf("Test passed")
 	}
@@ -48,30 +68,15 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 
 func TestCompilation(t *testing.T) {
 	RegisterFailHandler(Fail)
-	suiteConfig, reporterConfig := GinkgoConfiguration()
-	suiteConfig.FailFast = false
-	reporterConfig.ForceNewlines = true
-	reporterConfig.SilenceSkips = true
-	reporterConfig.JUnitReport = filepath.Join(testReportDirectory, junitReportFilename)
-	reporterConfig.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
-	RunSpecs(t, "Compiler Tests", suiteConfig, reporterConfig)
+	suiteConfigCompiler, reporterConfigCompiler := GinkgoConfiguration()
+	suiteConfigCompiler.FailFast = false
+	reporterConfigCompiler.ForceNewlines = true
+	reporterConfigCompiler.SilenceSkips = true
+	reporterConfigCompiler.JUnitReport = filepath.Join(testReportDirectory, junitReportFilename)
+	reporterConfigCompiler.JSONReport = filepath.Join(testReportDirectory, jsonReportFilename)
+	RunSpecs(t, "Compiler Tests", suiteConfigCompiler, reporterConfigCompiler)
 }
 
 // ####################################################################################################################################################################
 // ################################################################### UTILITY METHODS ################################################################################
 // ####################################################################################################################################################################
-
-func writeLogFile(specReport types.SpecReport) {
-	stdOutput := specReport.CapturedGinkgoWriterOutput
-	testName := GinkgoT().Name()
-	testLogFile := filepath.Join(testLogsDirectory, testName+".log")
-	logFile, err := os.Create(testLogFile)
-	if err != nil {
-		logger.Log("Failed to create log file due to: %s", err.Error())
-	}
-	_, err = logFile.Write([]byte(stdOutput))
-	if err != nil {
-		logger.Log("Failed to write to the log file, due to: %s", err.Error())
-	}
-	logFile.Close()
-}

@@ -18,7 +18,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/onsi/gomega"
 	"io"
 	"slices"
 	"strings"
@@ -29,6 +31,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+func CreateK8sClient() (*kubernetes.Clientset, error) {
+	restConfig, configErr := util.GetKubernetesConfig()
+	if configErr != nil {
+		return nil, configErr
+	}
+	k8sClient, clientErr := kubernetes.NewForConfig(restConfig)
+	if clientErr != nil {
+		return nil, clientErr
+	}
+	return k8sClient, nil
+}
 
 // ReadContainerLogs - Read pod logs from a specific container
 func ReadContainerLogs(client *kubernetes.Clientset, namespace string, containerName string, follow *bool, sinceTime *time.Time, logLimit *int64) string {
@@ -131,7 +145,7 @@ func GetPodContainingContainer(client *kubernetes.Clientset, namespace, containe
 	return nil
 }
 
-func CreateUserToken(client *kubernetes.Clientset, namespace, serviceAccountName string) (string, error) {
+func CreateUserToken(client *kubernetes.Clientset, namespace, serviceAccountName string) string {
 	// Define TokenRequest
 	tokenReq := &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
@@ -142,5 +156,9 @@ func CreateUserToken(client *kubernetes.Clientset, namespace, serviceAccountName
 
 	// Create the token
 	tokenResponse, err := client.CoreV1().ServiceAccounts(namespace).CreateToken(context.TODO(), serviceAccountName, tokenReq, metav1.CreateOptions{})
-	return tokenResponse.Status.Token, err
+	gomega.Expect(err).ToNot(gomega.HaveOccurred(), fmt.Sprintf("Failed to create service account token for '%s' service account under '%s' namespace", serviceAccountName, namespace))
+	if tokenResponse != nil {
+		return tokenResponse.Status.Token
+	}
+	return ""
 }

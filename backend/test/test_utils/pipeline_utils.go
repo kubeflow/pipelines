@@ -17,15 +17,16 @@ package test_utils
 import (
 	"fmt"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/onsi/ginkgo/v2"
-	"k8s.io/client-go/tools/clientcmd"
 
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 func GetPipelineUploadClient(

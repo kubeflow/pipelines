@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	testconfig "github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/pkg/errors"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -47,27 +47,13 @@ var SATokenVolumeProjectionAuth runtime.ClientAuthInfoWriter = runtime.ClientAut
 		return nil
 	})
 
-func toDateTimeTestOnly(timeInSec int64) strfmt.DateTime {
-	result, err := strfmt.ParseDateTime(time.Unix(timeInSec, 0).String())
-	if err != nil {
-		return strfmt.NewDateTime()
-	}
-	return result
-}
-
-func toWorkflowTestOnly(workflow string) *workflowapi.Workflow {
-	var result workflowapi.Workflow
-	err := yaml.Unmarshal([]byte(workflow), &result)
-	if err != nil {
-		return nil
-	}
-	return &result
-}
-
 func TokenToAuthInfo(userToken string) runtime.ClientAuthInfoWriter {
 	return runtime.ClientAuthInfoWriterFunc(
 		func(r runtime.ClientRequest, _ strfmt.Registry) error {
-			r.SetHeaderParam("Authorization", "Bearer "+userToken)
+			err := r.SetHeaderParam("Authorization", "Bearer "+userToken)
+			if err != nil {
+				return err
+			}
 			return nil
 		})
 }
@@ -75,24 +61,27 @@ func TokenToAuthInfo(userToken string) runtime.ClientAuthInfoWriter {
 func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	*httptransport.Runtime, error,
 ) {
-	if os.Getenv("LOCAL_API_SERVER") == "true" {
+	if !*testconfig.InClusterRun {
 		httpClient := http.DefaultClient
-		scheme := []string{"http"}
-		useSsl, ok := os.LookupEnv("HTTP_USE_SSL")
-		if ok {
-			scheme = append(scheme, "https")
-			if useSsl == "false" {
-				tr := &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-				}
-				httpClient = &http.Client{Transport: tr}
+		var scheme []string
+		if strings.Contains(*testconfig.ApiUrl, "://") {
+			schemeFromUrl := strings.Replace(strings.Split(*testconfig.ApiUrl, "://")[0], "://", "", -1)
+			scheme = append(scheme, schemeFromUrl)
+		}
+		if testconfig.ApiScheme != nil {
+			scheme = append(scheme, *testconfig.ApiScheme)
+		}
+		if *testconfig.DisableTlsCheck {
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
+			httpClient = &http.Client{Transport: tr}
 		}
-		runtime := httptransport.NewWithClient("localhost:8888", "", scheme, httpClient)
+		runtimeClient := httptransport.NewWithClient(*testconfig.ApiUrl, "", scheme, httpClient)
 		if debug {
-			runtime.SetDebug(true)
+			runtimeClient.SetDebug(true)
 		}
-		return runtime, nil
+		return runtimeClient, nil
 	}
 
 	// Creating k8 client
@@ -104,22 +93,22 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	// Create API client
 	httpClient := k8Client.RESTClient().(*rest.RESTClient).Client
 	masterIPAndPort := util.ExtractMasterIPAndPort(config)
-	runtime := httptransport.NewWithClient(masterIPAndPort, fmt.Sprintf(apiServerBasePath, namespace),
+	runtimeClient := httptransport.NewWithClient(masterIPAndPort, fmt.Sprintf(apiServerBasePath, namespace),
 		nil, httpClient)
 
 	if debug {
-		runtime.SetDebug(true)
+		runtimeClient.SetDebug(true)
 	}
 
-	return runtime, err
+	return runtimeClient, err
 }
 
 func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool) *httptransport.Runtime {
 	schemes := []string{"http"}
 	httpClient := http.Client{}
-	runtime := httptransport.NewWithClient(fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, &httpClient)
-	runtime.SetDebug(debug)
-	return runtime
+	runtimeClient := httptransport.NewWithClient(fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, &httpClient)
+	runtimeClient.SetDebug(debug)
+	return runtimeClient
 }
 
 func CreateErrorFromAPIStatus(error string, code int32) error {
@@ -127,6 +116,6 @@ func CreateErrorFromAPIStatus(error string, code int32) error {
 }
 
 func CreateErrorCouldNotRecoverAPIStatus(err error) error {
-	return fmt.Errorf("Issue calling the service. Use the '--debug' flag to see the HTTP request/response. Raw error from the client: %v",
+	return fmt.Errorf("issue calling the service. Use the '--debug' flag to see the HTTP request/response. Raw error from the client: %v",
 		err.Error())
 }

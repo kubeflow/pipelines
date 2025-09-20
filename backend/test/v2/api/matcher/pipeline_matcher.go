@@ -2,18 +2,18 @@ package matcher
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
-	"github.com/kubeflow/pipelines/backend/test/config"
-	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
-	"github.com/onsi/ginkgo/v2"
-
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/test/config"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
+
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -28,7 +28,7 @@ func MatchPipelines(actual *model.V2beta1Pipeline, expected *model.V2beta1Pipeli
 		ginkgo.Fail(fmt.Sprintf("Pipeline creation time %v is before the test start time %v", actual.CreatedAt, expected.CreatedAt))
 	}
 	Expect(actual.DisplayName).To(Equal(expected.DisplayName), "Pipeline Display name not matching")
-	if *config.IsKubeflowMode {
+	if *config.KubeflowMode {
 		// Validate namespace only if the mode is kubeflow otherwise everything is in the same namespace and
 		// pipeline object in the response does not even have namespace
 		Expect(actual.Namespace).To(Equal(expected.Namespace), "Pipeline Namespace not matching")

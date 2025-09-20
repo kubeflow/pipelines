@@ -17,6 +17,7 @@ package api
 import (
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
+
 	. "github.com/onsi/ginkgo/v2"
 )
 
@@ -36,7 +37,7 @@ import (
 // ########################################################## POSITIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = PDescribe("List Experiments API Tests >", Label("Positive", "Experiment", "ExperimentList", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("List Experiments API Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentList", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Basic List Operations >", func() {
 		It("When no experiments exist", func() {
@@ -92,7 +93,7 @@ var _ = PDescribe("List Experiments API Tests >", Label("Positive", "Experiment"
 	})
 })
 
-var _ = PDescribe("Create Experiment API Tests >", Label("Positive", "Experiment", "ExperimentCreate", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Create Experiment API Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentCreate", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Create an experiment >", func() {
 		It("With just name", func() {
@@ -106,7 +107,7 @@ var _ = PDescribe("Create Experiment API Tests >", Label("Positive", "Experiment
 	})
 })
 
-var _ = PDescribe("Get Experiment API Tests >", Label("Positive", "Experiment", "ExperimentGet", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Get Experiment API Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentGet", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Get by ID >", func() {
 		It("With ID", func() {
@@ -114,7 +115,7 @@ var _ = PDescribe("Get Experiment API Tests >", Label("Positive", "Experiment", 
 	})
 })
 
-var _ = PDescribe("Archive an experiment Tests >", Label("Positive", "Experiment", "ExperimentArchive", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Archive an experiment Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentArchive", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("By ID >", func() {
 		It("One that does not have any run(s) or recurring run(s)", func() {
@@ -127,7 +128,7 @@ var _ = PDescribe("Archive an experiment Tests >", Label("Positive", "Experiment
 		})
 	})
 })
-var _ = PDescribe("UnArchive an experiment Tests >", Label("Positive", "Experiment", "ExperimentUnarchive", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("UnArchive an experiment Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentUnarchive", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("By ID >", func() {
 		It("One that does not have any run(s) or recurring run(s)", func() {
@@ -139,7 +140,7 @@ var _ = PDescribe("UnArchive an experiment Tests >", Label("Positive", "Experime
 	})
 })
 
-var _ = PDescribe("Delete Experiment API Tests >", Label("Positive", "Experiment", "ExperimentDelete", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Delete Experiment API Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentDelete", API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Delete by ID >", func() {
 		It("Delete an experiment by ID that does not have any run(s) or recurring run(s)", func() {
@@ -152,7 +153,7 @@ var _ = PDescribe("Delete Experiment API Tests >", Label("Positive", "Experiment
 // ################################################################################################################
 // ########################################################## NEGATIVE TESTS ######################################
 // ################################################################################################################
-var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Experiment", "ApiServerTests", FullRegression), func() {
+var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", API_EXPERIMENT, API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	Context("Create experiment >", func() {
 		It("With 500 char name", func() {
@@ -161,8 +162,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Experim
 		})
 		It("With 10000k char description", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -171,8 +172,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Experim
 		})
 		It("Delete by ID containing ASCII characters", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -183,8 +184,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Experim
 		})
 		It("Archive an archived experiment", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -195,8 +196,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Experim
 		})
 		It("UnArchive by ID containing ASCII characters", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})
@@ -209,8 +210,8 @@ var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", "Experim
 		})
 		It("By invalid ID containing ASCII characters", func() {
 		})
-		if *config.IsKubeflowMode {
-			It("In a namespace you don;t have access to", func() {
+		if *config.KubeflowMode {
+			It("In a namespace you don't have access to", func() {
 			})
 		}
 	})

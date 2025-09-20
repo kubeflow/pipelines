@@ -12,6 +12,19 @@ on:
   push:
     branches: [master]
 
+  pull_request:
+    paths:
+      - '.github/workflows/upgrade-test.yml'
+      - '.github/resources/**'
+      - 'api/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'backend/**'
+      - 'proxy/**'
+      - 'manifests/kustomize/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
 jobs:
   build:
     uses: ./.github/workflows/image-builds-with-cache.yml
@@ -77,69 +90,23 @@ jobs:
           go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradePreparation"
         continue-on-error: true
 
-      - name: Deploy Master
-        id: deploy-master
-        if: ${{ steps.prepare-upgrade.outcome == 'success' }}
-        shell: bash
-        run: |
-          kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=master
-          kubectl apply -k https://github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic?ref=master
-          source "./.github/resources/scripts/helper-functions.sh"
-          wait_for_pods || EXIT_CODE=$?
-          if [[ $EXIT_CODE -ne 0 ]]; then
-            echo "Deploy unsuccessful. Not all pods running."
-            exit 1
-          fi
 
-      - name: Forward API port
-        id: forward-api-port-after-upgrade
-        if: ${{ steps.deploy-master.outcome == 'success' }}
-        shell: bash
-        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
-        continue-on-error: true
+      - name: Deploy from Branch
+        uses: ./.github/actions/deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        id: deploy
+        with:
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
 
       - name: Verify Upgrade
-        working-directory: ${{ env.TESTS_DIR }}
-        if: ${{ steps.deploy-master.outcome == 'success' }}
-        id: verify-upgrade
-        run: |
-          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ env.NUMBER_OF_PARALLEL_NODES }} -v --label-filter="UpgradeVerification"
-        continue-on-error: true
-
-      - name: Collect Pod logs in case of Test Failures
-        id: collect-logs
-        if: ${{ steps.verify-upgrade.outcome != 'success' || steps.prepare-upgrade.outcome != 'success' }}
-        run: ./.github/resources/scripts/collect-logs.sh --ns ${{ env.NAMESPACE }} --output /tmp/tmp_pod_log.txt
-
-      - name: Publish Test Summary
-        id: publish
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
+        uses: ./.github/actions/test-and-report
+        if: ${{ steps.configure.outcome == 'success' }}
         with:
-          files: |
-            ${{ env.TESTS_DIR }}/reports/*.xml
-
-      - name: Install Junit2Html plugin and generate report
-        if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
-        run: |
-          pip install junit2html
-          junit2html ${{ env.TESTS_DIR }}/reports/junit.xml ${{ env.TESTS_DIR }}/reports/test-report.html
-        continue-on-error: true
-
-      - name: Upload HTML Report
-        id: upload
-        uses: actions/upload-artifact@v4
-        if: (!cancelled())
-        with:
-          name: HTML Report - Upgrade Tests
-          path: ${{ env.TESTS_DIR }}/reports/test-report.html
-          retention-days: 30
-        continue-on-error: true
-
-      - name: Mark Workflow failure if test step failed
-        if: (steps.prepare-upgrade.outcome != 'success' || steps.verify-upgrade.outcome != 'success' ) && !cancelled()
-        run: exit 1
-
-      - name: Mark Workflow failure if test reporting failed
-        if: (steps.publish.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
-        run: exit 1
+          test_directory: ${{ env.TESTS_DIR }}
+          test_label: "UpgradeVerification"
+          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "Upgrade Verification"

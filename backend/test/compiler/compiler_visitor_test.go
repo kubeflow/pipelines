@@ -16,14 +16,17 @@ package compiler
 
 import (
 	"fmt"
+	"google.golang.org/protobuf/types/known/structpb"
+	"path/filepath"
+
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
+	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"google.golang.org/protobuf/types/known/structpb"
-	"path/filepath"
 )
 
 type TestVisitor struct {
@@ -51,7 +54,7 @@ func (visitor *TestVisitor) AddKubernetesSpec(name string, kubernetesSpec *struc
 	return nil
 }
 
-var _ = Describe("Verify iteration over the pipeline components >", Label("Positive", "WorkflowCompiler", "WorkflowCompilerVisits"), func() {
+var _ = Describe("Verify iteration over the pipeline components >", Label(POSITIVE, WORKFLOW_COMPILER, WORKFLOW_COMPILER_VISITS), func() {
 	Context("Validate that compiler starts with the correct root", func() {
 
 		testParams := []struct {

@@ -104,6 +104,8 @@ runs:
       with:
         files: |
           ${{ inputs.test_directory }}/reports/*.xml
+      run: |
+        echo "::notice file=title=Test Summary available in the Summary Tab"
 
     - name: Install Junit2Html plugin and generate report
       if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
@@ -132,6 +134,8 @@ runs:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
         path: ${{ inputs.test_directory }}/reports/test-report.html
         retention-days: 30
+      run: |
+        echo "::notice file=${{ inputs.test_directory }}/reports/test-report.html,title=HTML Test Report Uploaded"
       continue-on-error: true
 
     - name: Mark Workflow failure if test step failed

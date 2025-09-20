@@ -16,34 +16,33 @@ package end2end
 
 import (
 	"fmt"
-	"github.com/go-openapi/strfmt"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/test/config"
-	. "github.com/kubeflow/pipelines/backend/test/constants"
-	"github.com/kubeflow/pipelines/backend/test/logger"
-	apitests "github.com/kubeflow/pipelines/backend/test/v2/api"
 	"maps"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
+	"github.com/kubeflow/pipelines/backend/test/config"
+	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	apitests "github.com/kubeflow/pipelines/backend/test/v2/api"
 
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 )
 
-var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func() {
+var _ = Describe("Upload and Verify Pipeline Run >", Label(FULL_REGRESSION), func() {
 	var testContext *apitests.TestContext
 
 	// ####################################################################################################################################################################
@@ -96,12 +95,12 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 	// ################################################################### TESTS ################################################################################
 	// ####################################################################################################################################################################
 
-	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", Label("E2ENonCritical"), func() {
+	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", Label(E2E_NON_CRITICAL), func() {
 		var pipelineDir = "valid"
 		pipelineFiles := test_utils.GetListOfFilesInADir(filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
-				test_utils.SkipTest(pipelineFile)
+				test_utils.CheckIfSkipping(pipelineFile)
 				pipelineFilePath := filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir, pipelineFile)
 				logger.Log("Uploading pipeline file %s", pipelineFile)
 				uploadedPipeline, uploadErr := uploadPipeline(testContext, pipelineDir, pipelineFile, &testContext.Pipeline.PipelineGeneratedName, nil)
@@ -117,12 +116,12 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			})
 		}
 	})
-	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label("Sample", "E2ECritical"), func() {
+	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label("Sample", E2E_CRITICAL), func() {
 		var pipelineDir = "valid/critical"
 		pipelineFiles := test_utils.GetListOfFilesInADir(filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
-				test_utils.SkipTest(pipelineFile)
+				test_utils.CheckIfSkipping(pipelineFile)
 				pipelineFilePath := filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir, pipelineFile)
 				logger.Log("Uploading pipeline file %s", pipelineFile)
 				uploadedPipeline, uploadErr := uploadPipeline(testContext, pipelineDir, pipelineFile, &testContext.Pipeline.PipelineGeneratedName, nil)
@@ -140,7 +139,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		}
 	})
 
-	Context("Create a pipeline run with HTTP proxy >", Label("E2EProxy"), func() {
+	Context("Create a pipeline run with HTTP proxy >", Label(E2E_PROXY), func() {
 		var pipelineDir = "valid"
 		pipelineFile := "env-var.yaml"
 		It(fmt.Sprintf("Create a pipeline run with http proxy, using specs: %s", pipelineFile), func() {
@@ -157,7 +156,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 				"env_var": "http_proxy",
 			}
 			createdRunId := createPipelineRunAndWaitForItToFinish(testContext, uploadedPipeline.PipelineID, uploadedPipeline.DisplayName, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
-			if *config.UseProxy {
+			if *config.RunProxyTests {
 				logger.Log("Deserializing expected compiled workflow file '%s' for the pipeline", pipelineFile)
 				compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(test_utils.GetCompiledWorkflowsFilesDir(), pipelineFile))
 				validateComponentStatuses(testContext, createdRunId, compiledWorkflow)

@@ -65,9 +65,9 @@ func GetClientConfig(namespace string) clientcmd.ClientConfig {
 }
 
 func GetDefaultPipelineRunnerServiceAccount() string {
-	if *config.IsKubeflowMode || *config.IsMultiUserMode {
-		return "default-editor"
+	if *config.KubeflowMode || *config.MultiUserMode {
+		return *config.UserServiceAccountName
 	} else {
-		return "pipeline-runner"
+		return *config.DefaultServiceAccountName
 	}
 }

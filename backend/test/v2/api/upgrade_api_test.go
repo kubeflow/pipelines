@@ -16,22 +16,22 @@ package api
 
 import (
 	"fmt"
+	"path/filepath"
+
+	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
+	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	recurringrunparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_model"
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
-	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
-	"path/filepath"
-
-	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
-	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
-	uploadparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -45,7 +45,7 @@ const (
 // ################################################################### UPGRADE TEST PREPARATION ################################################################################
 // ####################################################################################################################################################################
 
-var _ = Describe("Upgrade Test Preparation >", Label("Positive", "UpgradePreparation", FullRegression), func() {
+var _ = Describe("Upgrade Test Preparation >", Label(UPGRADE_PREPARATION, FULL_REGRESSION), func() {
 	Context("Prepare test data >", func() {
 
 		It("Upload pipelines and create experiments", func() {
@@ -70,7 +70,7 @@ var _ = Describe("Upgrade Test Preparation >", Label("Positive", "UpgradePrepara
 // ################################################################### UPGRADE TEST VERIFICATION ################################################################################
 // ####################################################################################################################################################################
 
-var _ = Describe("Upgrade Test Verification >", Label("Positive", "UpgradeVerification", FullRegression), func() {
+var _ = Describe("Upgrade Test Verification >", Label(UPGRADE_VERIFICATION, FULL_REGRESSION), func() {
 	Context("Verify resources after upgrade >", func() {
 		It("Verify that Pipelines & experiments should persist correctly", func() {
 			verifyExperiments()
@@ -103,7 +103,7 @@ var _ = Describe("Upgrade Test Verification >", Label("Positive", "UpgradeVerifi
 // ################################################################### EXPERIMENTS ################################################################################
 
 func getResourceNamespace() string {
-	if *config.IsKubeflowMode || *config.IsMultiUserMode {
+	if *config.KubeflowMode || *config.MultiUserMode {
 		return *config.UserNamespace
 	}
 	return *config.Namespace

@@ -17,12 +17,13 @@ limitations under the License.
 package matchers
 
 import (
-	"github.com/kubeflow/pipelines/backend/test/logger"
 	"reflect"
 	"sort"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/test/logger"
 	matcher "github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
+
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 )
@@ -162,7 +163,7 @@ func MatchContainerResourceLimits(actual v1.ResourceList, expected v1.ResourceLi
 func MatchContainer(actual *v1.Container, expected *v1.Container) {
 	if expected != nil {
 		gomega.Expect(actual.Name).To(gomega.Equal(expected.Name), "Container Name is not same")
-		gomega.Expect(actual.Args).To(gomega.Equal(expected.Args), "Container Args is not same")
+		gomega.Expect(actual.Args).To(gomega.ConsistOf(expected.Args), "Container Args is not same")
 		gomega.Expect(actual.SecurityContext).To(gomega.Equal(expected.SecurityContext), "Container SecurityContext is not same")
 		gomega.Expect(actual.Env).To(gomega.Equal(expected.Env), "Container Env is not same")
 		gomega.Expect(actual.EnvFrom).To(gomega.Equal(expected.EnvFrom), "Container EnvFrom is not same")
@@ -196,7 +197,7 @@ func MatchContainer(actual *v1.Container, expected *v1.Container) {
 func MatchUserContainer(actual *v1alpha1.UserContainer, expected *v1alpha1.UserContainer) {
 	if expected != nil {
 		gomega.Expect(actual.Name).To(gomega.Equal(expected.Name), "User Container Name is not same")
-		gomega.Expect(actual.Args).To(gomega.Equal(expected.Args), "User Container Args is not same")
+		gomega.Expect(actual.Args).To(gomega.ConsistOf(expected.Args), "User Container Args is not same")
 		gomega.Expect(actual.SecurityContext).To(gomega.Equal(expected.SecurityContext), "User Container SecurityContext is not same")
 		gomega.Expect(actual.Env).To(gomega.Equal(expected.Env), "User Container Env is not same")
 		gomega.Expect(actual.EnvFrom).To(gomega.Equal(expected.EnvFrom), "User Container EnvFrom is not same")

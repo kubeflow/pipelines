@@ -1,4 +1,4 @@
-// Package test
+// Package test_utils
 // Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +16,17 @@ package test_utils
 
 import (
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/test/config"
-	"github.com/onsi/ginkgo/v2"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/kubeflow/pipelines/backend/test/config"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 )
 
 // ParsePointersToString - convert a string pointer to string value
@@ -43,34 +49,34 @@ func GetRandomString(length int) string {
 	return string(b)
 }
 
-/*
-*
-Skip test if the provided string argument contains "GH-" (case insensitive)
-*/
-func SkipTest(stringValue string) {
+// CheckIfSkipping - test if the provided string argument contains "GH-" (case insensitive)
+func CheckIfSkipping(stringValue string) {
 	if strings.Contains(strings.ToLower(stringValue), "_gh-") {
 		issue := strings.Split(strings.ToLower(stringValue), "_gh-")[1]
 		ginkgo.Skip(fmt.Sprintf("Skipping pipeline run test because of a known issue: https://github.com/kubeflow/pipelines/issues/%s", issue))
 	}
 }
 
-// ChunkSlice - Split slice into given number of chunk size and return a list of chunked slices
-func ChunkSlice[T any](slice []T, chunkSize int) [][]T {
-	var chunks [][]T
-	for i := 0; i < len(slice); i += chunkSize {
-		end := i + chunkSize
-		// Handle the case where the last chunk might be smaller than chunkSize
-		if end > len(slice) {
-			end = len(slice)
-		}
-		chunks = append(chunks, slice[i:end])
+func WriteLogFile(specReport types.SpecReport, testName, logDirectory string) {
+	stdOutput := specReport.CapturedGinkgoWriterOutput
+	testLogFile := filepath.Join(logDirectory, testName+".log")
+	logFile, err := os.Create(testLogFile)
+	if err != nil {
+		logger.Log("Failed to create log file due to: %s", err.Error())
 	}
-	return chunks
+	_, err = logFile.Write([]byte(stdOutput))
+	if err != nil {
+		logger.Log("Failed to write to the log file, due to: %s", err.Error())
+	}
+	err = logFile.Close()
+	if err != nil {
+		return
+	}
 }
 
 // GetNamespace - Get Namespace based on the deployment mode
 func GetNamespace() string {
-	if *config.IsKubeflowMode || *config.IsMultiUserMode {
+	if *config.KubeflowMode || *config.MultiUserMode {
 		return *config.UserNamespace
 	}
 	return *config.Namespace

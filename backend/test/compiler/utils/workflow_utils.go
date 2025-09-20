@@ -19,18 +19,20 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"google.golang.org/protobuf/encoding/protojson"
+	"os"
+	"sigs.k8s.io/yaml"
+
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	utils "github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/test_utils"
+
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"google.golang.org/protobuf/encoding/protojson"
 	v1 "k8s.io/api/core/v1"
-	"os"
-	"sigs.k8s.io/yaml"
 )
 
 // LoadSpecsFromIR - Unmarshall Pipeline Spec IR into a tuple of (pipelinespec.PipelineJob, pipelinespec.SinglePlatformSpec)

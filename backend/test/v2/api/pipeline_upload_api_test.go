@@ -16,17 +16,18 @@ package api
 
 import (
 	"fmt"
+	"path/filepath"
+	"time"
+
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
-	"path/filepath"
-	"time"
+	"github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 
 	"github.com/go-openapi/strfmt"
-	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
-	"github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -51,7 +52,7 @@ var _ = BeforeEach(func() {
 	testContext.Pipeline.ExpectedPipeline = new(model.V2beta1Pipeline)
 	testContext.Pipeline.ExpectedPipeline.CreatedAt = testStartTime
 	testContext.Pipeline.PipelineGeneratedName = "apitest-" + randomName
-	if *config.IsKubeflowMode || *config.IsMultiUserMode {
+	if *config.KubeflowMode || *config.MultiUserMode {
 		testContext.Pipeline.ExpectedPipeline.Namespace = *config.UserNamespace
 	} else {
 		testContext.Pipeline.ExpectedPipeline.Namespace = *config.Namespace
@@ -66,7 +67,7 @@ var _ = BeforeEach(func() {
 // ########################################################## POSITIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload", "ApiServerTests", FullRegression), func() {
+var _ = Describe("Verify Pipeline Upload >", Label(POSITIVE, API_PIPELINE_UPLOAD, API_SERVER_TESTS, FULL_REGRESSION), func() {
 
 	/* Positive Scenarios of uploading a pipeline file */
 	Context("Upload a valid pipeline and verify pipeline metadata after upload >", func() {
@@ -97,13 +98,13 @@ var _ = Describe("Verify Pipeline Upload >", Label("Positive", "PipelineUpload",
 	})
 })
 
-var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "PipelineUpload", "ApiServerTests", FullRegression), func() {
+var _ = Describe("Verify Pipeline Upload Version >", Label(POSITIVE, "PipelineUpload", API_SERVER_TESTS, FULL_REGRESSION), func() {
 	var pipelineDir = "valid"
 	helloWorldPipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 	argParamPipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, pipelineWithArgsFileName)
 	/* Positive Scenarios of uploading a pipeline file */
 	Context("Upload a pipeline and upload the same pipeline to change version >", func() {
-		It(fmt.Sprintf("Upload %s pipeline file and upload a new version with the same file", helloWorldPipelineFileName), Label(Smoke), func() {
+		It(fmt.Sprintf("Upload %s pipeline file and upload a new version with the same file", helloWorldPipelineFileName), Label(SMOKE), func() {
 			uploadPipelineAndChangePipelineVersion(helloWorldPipelineSpecFilePath, helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 		})
 		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the different file %s", helloWorldPipelineFileName, pipelineWithArgsFileName), func() {
@@ -117,7 +118,7 @@ var _ = Describe("Verify Pipeline Upload Version >", Label("Positive", "Pipeline
 // ########################################################## NEGATIVE TESTS ######################################
 // ################################################################################################################
 
-var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "PipelineUpload", "ApiServerTests", FullRegression), func() {
+var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "PipelineUpload", API_SERVER_TESTS, FULL_REGRESSION), func() {
 	var pipelineDir = "invalid"
 	invalidPipelineFiles := test_utils.GetListOfFilesInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
 
@@ -139,7 +140,7 @@ var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "Pipeline
 	})
 })
 
-var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "PipelineUpload", "ApiServerTests", FullRegression), func() {
+var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "PipelineUpload", API_SERVER_TESTS, FULL_REGRESSION), func() {
 	var pipelineDir = "valid"
 	pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 	/* Negative Scenarios of uploading a pipeline file */
@@ -163,9 +164,9 @@ var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "
 	})
 
 	// TODO: To to be implemented
-	if *config.IsKubeflowMode {
+	if *config.KubeflowMode {
 		PContext("Upload a pipeline in MultiUser Mode >", func() {
-			It("Upload a pipeline in a namespace you don;t have access to", func() {
+			It("Upload a pipeline in a namespace you don't have access to", func() {
 			})
 		})
 	}

@@ -46,7 +46,7 @@ type PipelineClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool, userToken ...string) (
+func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*PipelineClient, error) {
 
 	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug)

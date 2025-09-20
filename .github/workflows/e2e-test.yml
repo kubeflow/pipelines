@@ -127,7 +127,7 @@ jobs:
             NAMESPACE=${{ env.USER_NAMESPACE }}
           fi
           echo "Apply test secrets"
-          kubectl -n $NAMESPACE apply -f ./.github/resources/manifests/secrets/test-secrets.yaml
+          kubectl -n $NAMESPACE apply -f ./test_data/kubernetes/secrets/test-secrets.yaml
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
