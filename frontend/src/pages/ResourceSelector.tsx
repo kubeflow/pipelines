@@ -47,6 +47,7 @@ export interface ResourceSelectorProps extends RouteComponentProps {
   title?: string;
   toolbarActionMap?: ToolbarActionMap;
   updateDialog: (dialogProps: DialogProps) => void;
+  isV1?: boolean;
 }
 
 interface ResourceSelectorState {
@@ -79,7 +80,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
         {title && <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={title} />}
 
         <CustomTable
-          isCalledByV1={false}
+          isCalledByV1={!!this.props.isV1}
           columns={columns}
           rows={rows}
           selectedIds={selectedIds}

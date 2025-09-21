@@ -58,6 +58,7 @@ const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): JSX.Element | n
       <ResourceSelector
         {...props}
         filterLabel='Filter pipelines'
+        isV1={true}
         listApi={async (...args) => {
           if (buildInfo?.apiServerMultiUser && view === NamespacedAndSharedTab.NAMESPACED) {
             args.push('NAMESPACE');
