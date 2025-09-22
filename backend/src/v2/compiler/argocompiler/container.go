@@ -145,10 +145,15 @@ func GetPipelineRunAsUser() *int64 {
 	return &runAsUser
 }
 
-func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
+func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs, error) {
+	template, err := c.addContainerDriverTemplate()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addContainerDriverTemplate(),
+		Template: template,
 		Arguments: wfapi.Arguments{
 			Parameters: []wfapi.Parameter{
 				{Name: paramComponent, Value: wfapi.AnyStringPtr(inputs.component)},
@@ -176,44 +181,44 @@ func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriv
 		cached:       taskOutputParameter(name, paramCachedDecision),
 		condition:    taskOutputParameter(name, paramCondition),
 	}
-	return dagTask, outputs
+	return dagTask, outputs, nil
 }
 
-func (c *workflowCompiler) addContainerDriverTemplate() string {
+func (c *workflowCompiler) addContainerDriverTemplate() (string, error) {
 	name := "system-container-driver"
 	_, ok := c.templates[name]
 	if ok {
-		return name
+		return name, nil
 	}
 
-	args := []string{
-		"--type", "CONTAINER",
-		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-		"--run_id", runID(),
-		"--run_name", runResourceName(),
-		"--run_display_name", c.job.DisplayName,
-		"--dag_execution_id", inputValue(paramParentDagID),
-		"--component", inputValue(paramComponent),
-		"--task", inputValue(paramTask),
-		"--task_name", inputValue(paramTaskName),
-		"--container", inputValue(paramContainer),
-		"--iteration_index", inputValue(paramIterationIndex),
-		"--cached_decision_path", outputPath(paramCachedDecision),
-		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
-		"--condition_path", outputPath(paramCondition),
-		"--kubernetes_config", inputValue(paramKubernetesConfig),
-		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
-		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
-		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-	}
-	if c.cacheDisabled {
-		args = append(args, "--cache_disabled")
-	}
-	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
-	}
-	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+	logLevel, _ := os.LookupEnv(PipelineLogLevelEnvVar)
+	publishLogs, _ := os.LookupEnv(PublishLogsEnvVar)
+
+	driverPlugin, err := driverPlugin(map[string]interface{}{
+		"type":                 "CONTAINER",
+		"pipeline_name":        c.spec.GetPipelineInfo().GetName(),
+		"run_id":               runID(),
+		"run_name":             runResourceName(),
+		"run_display_name":     c.job.DisplayName,
+		"dag_execution_id":     inputValue(paramParentDagID),
+		"component":            inputValue(paramComponent),
+		"task":                 inputValue(paramTask),
+		"task_name":            inputValue(paramTaskName),
+		"container":            inputValue(paramContainer),
+		"iteration_index":      inputValue(paramIterationIndex),
+		"cached_decision_path": outputPath(paramCachedDecision),
+		"pod_spec_patch_path":  outputPath(paramPodSpecPatch),
+		"condition_path":       outputPath(paramCondition),
+		"kubernetes_config":    inputValue(paramKubernetesConfig),
+		"http_proxy":           proxy.GetConfig().GetHttpProxy(),
+		"https_proxy":          proxy.GetConfig().GetHttpsProxy(),
+		"no_proxy":             proxy.GetConfig().GetNoProxy(),
+		"cache_disabled":       c.cacheDisabled,
+		"log_level":            logLevel,
+		"publish_logs":         publishLogs,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create container driver template: %w", err)
 	}
 
 	t := &wfapi.Template{
@@ -231,22 +236,16 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
-				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/cached-decision", Default: wfapi.AnyStringPtr("false")}},
-				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/condition", Default: wfapi.AnyStringPtr("true")}},
+				{Name: paramPodSpecPatch, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.pod-spec-patch", Default: wfapi.AnyStringPtr("")}},
+				{Name: paramCachedDecision, Default: wfapi.AnyStringPtr("false"), ValueFrom: &wfapi.ValueFrom{JSONPath: "$.cached-decision", Default: wfapi.AnyStringPtr("false")}},
+				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.condition", Default: wfapi.AnyStringPtr("true")}},
 			},
 		},
-		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
-			Args:      args,
-			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
-		},
+		Plugin: driverPlugin,
 	}
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
-	return name
+	return name, nil
 }
 
 type containerExecutorInputs struct {
