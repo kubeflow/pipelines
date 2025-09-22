@@ -17,7 +17,6 @@ import {
   CustomObjectsApi,
   KubeConfig,
   V1Pod,
-  V1EventList,
   V1ConfigMap,
 } from '@kubernetes/client-node';
 import * as crypto from 'crypto-js';
@@ -299,7 +298,7 @@ export type Result<T, E = K8sError> = [T, undefined] | [undefined, E];
 export async function listPodEvents(
   podName: string,
   podNamespace: string,
-): Promise<Result<V1EventList>> {
+): Promise<Result<any>> {
   try {
     const { body } = await k8sV1Client.listNamespacedEvent(
       podNamespace,
