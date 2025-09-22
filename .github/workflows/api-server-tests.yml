@@ -112,7 +112,7 @@ jobs:
             NAMESPACE=${{ inputs.namespace }}
           fi
           PROXY=${{ matrix.proxy }}
-          if [ -n PROXY ]; then
+          if [ -n "$PROXY" ]; then
             PROXY=false
           fi
           go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=$NUMBER_OF_NODES -v --label-filter=$TEST_LABEL -- -namespace=$NAMESPACE -useProxy=$PROXY -cacheEnabled=${{ matrix.cache_enabled }}
