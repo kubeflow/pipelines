@@ -26,10 +26,14 @@ Instructions:
 1. Update the versions listed in the compatibility matrix in [README.md](../../README.md).
 
 1. Consider bumping the minimum Argo version used in the GitHub workflows to match the prior version.
+    * Add the previous version of argo to the list of versions found in the `argo\_version` array found in e2e workflow: `.github/workflows/e2e-test.yml`
+    * Update the argo_versions for the various test matricies found in the samples workflow: `.github/workflows/kfp-samples.yml`
+    * Also in the kfp-samples test matrix, add an entry to test the previous version, and consider removing older (ie n-2) legacy checks if they fails CI.  (Note: we should still have n-1 legacy checks pass)
 
 1. Update [manifests](../../manifests) and other places in the code base that still uses the old argo image tag.
-    * Upgrade [Argo upstream manifests](https://github.com/kubeflow/pipelines/blob/master/manifests/kustomize/third-party/argo/README.md#upgrade-argo).
-    * Search for the old argo versions in the repo and update them to new versions based on the reference.
+    * This can be performed by simply running `make update` from `manifests/kustomize/third-party/argo`
+    * Verify all instances of the argo version have been updated.  A simple seach such as `grep "vX.Y.Z" * -R` usually is good enough
+    * Verify backend images still build by running `make image\_all` from the `backend` directory
 
 1. Commit these changes to a PR.
 
@@ -39,6 +43,5 @@ Instructions:
 
 Ideas to improve this process:
 
-* Write a script that auto updates all occurrences of old argo image
-tag to the new one.
+* Write a script that auto updates the GHAction workflow files alongside all the manifests when running `make update`
 * Reduce occurrences of argo image tag version, and let them use `./VERSION` programmatically when possible.
