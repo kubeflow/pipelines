@@ -11,3 +11,7 @@ check-diff:
 		git diff; \
 		exit 1; \
 	fi'
+
+.PHONY: test-kubeflow-pipelines-manifests
+test-kubeflow-pipelines-manifests:
+	./manifests/kustomize/hack/presubmit.sh
