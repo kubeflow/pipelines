@@ -68,7 +68,11 @@ spec:
           - name: DISABLE_GKE_METADATA
             value: "true"
           - name: ARTIFACTS_SERVICE_PROXY_ENABLED
-            value: 'false'
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ARTIFACTS_PROXY_ENABLED
+                optional: true
         readinessProbe:
           httpGet:
             path: /apis/v1beta1/healthz
