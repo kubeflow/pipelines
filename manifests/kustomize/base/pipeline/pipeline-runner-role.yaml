@@ -33,15 +33,19 @@ rules:
   - delete
   - get
 - apiGroups:
-  - argoproj.io
+    - argoproj.io
   resources:
   - workflows
+  - workflowtaskresults
+  - workflowtasksets
+  - "workflowtasksets/status"
   verbs:
   - get
-  - list
-  - watch
-  - update
+  - create
   - patch
+  - watch
+  - list
+  - update
 - apiGroups:
   - ""
   resources:
@@ -85,3 +89,44 @@ rules:
   verbs:
   - create
   - patch
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ml-pipeline-driver-agent-executor-plugin
+  labels:
+    application-crd-id: kubeflow-pipelines
+secrets:
+  - name: ml-pipeline-driver-agent-executor-plugin.service-account-token
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ml-pipeline-driver-agent-executor-plugin.service-account-token
+  annotations:
+    kubernetes.io/service-account.name: ml-pipeline-driver-agent-executor-plugin
+type: kubernetes.io/service-account-token
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: configmap-reader
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]  # права на чтение
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: configmap-reader-binding
+subjects:
+  - kind: ServiceAccount
+    name: ml-pipeline-driver-agent-executor-plugin
+roleRef:
+  kind: Role
+  name: configmap-reader
+  apiGroup: rbac.authorization.k8s.io
