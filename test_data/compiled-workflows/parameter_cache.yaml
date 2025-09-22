@@ -46,390 +46,353 @@ spec:
       pipelines.kubeflow.org/v2_component: "true"
   serviceAccountName: pipeline-runner
   templates:
-  - container:
-      args:
-      - --type
-      - CONTAINER
-      - --pipeline_name
-      - parameter-cache-pipeline
-      - --run_id
-      - '{{workflow.uid}}'
-      - --run_name
-      - '{{workflow.name}}'
-      - --run_display_name
-      - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
-      - --task_name
-      - '{{inputs.parameters.task-name}}'
-      - --container
-      - '{{inputs.parameters.container}}'
-      - --iteration_index
-      - '{{inputs.parameters.iteration-index}}'
-      - --cached_decision_path
-      - '{{outputs.parameters.cached-decision.path}}'
-      - --pod_spec_patch_path
-      - '{{outputs.parameters.pod-spec-patch.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
-      - --kubernetes_config
-      - '{{inputs.parameters.kubernetes-config}}'
-      - --http_proxy
-      - ""
-      - --https_proxy
-      - ""
-      - --no_proxy
-      - ""
-      command:
-      - driver
-      image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-    inputs:
-      parameters:
-      - name: component
-      - name: task
-      - name: container
-      - name: task-name
-      - name: parent-dag-id
-      - default: "-1"
-        name: iteration-index
-      - default: ""
-        name: kubernetes-config
-    metadata: {}
-    name: system-container-driver
-    outputs:
-      parameters:
-      - name: pod-spec-patch
-        valueFrom:
-          default: ""
-          path: /tmp/outputs/pod-spec-patch
-      - default: "false"
-        name: cached-decision
-        valueFrom:
-          default: "false"
-          path: /tmp/outputs/cached-decision
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: pod-spec-patch
-            value: '{{inputs.parameters.pod-spec-patch}}'
-        name: executor
-        template: system-container-impl
-        when: '{{inputs.parameters.cached-decision}} != true'
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-      - default: "false"
-        name: cached-decision
-    metadata: {}
-    name: system-container-executor
-    outputs: {}
-  - container:
-      command:
-      - should-be-overridden-during-runtime
-      env:
-      - name: KFP_POD_NAME
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.name
-      - name: KFP_POD_UID
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.uid
-      envFrom:
-      - configMapRef:
-          name: metadata-grpc-configmap
-          optional: true
-      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
-      name: ""
-      resources: {}
-      volumeMounts:
-      - mountPath: /kfp-launcher
-        name: kfp-launcher
-      - mountPath: /gcs
-        name: gcs-scratch
-      - mountPath: /s3
-        name: s3-scratch
-      - mountPath: /minio
-        name: minio-scratch
-      - mountPath: /.local
-        name: dot-local-scratch
-      - mountPath: /.cache
-        name: dot-cache-scratch
-      - mountPath: /.config
-        name: dot-config-scratch
-    initContainers:
-    - args:
-      - --copy
-      - /kfp-launcher/launch
-      command:
-      - launcher-v2
-      image: ghcr.io/kubeflow/kfp-launcher:latest
-      name: kfp-launcher
-      resources:
-        limits:
-          cpu: 500m
-          memory: 128Mi
-        requests:
-          cpu: 100m
-      volumeMounts:
-      - mountPath: /kfp-launcher
-        name: kfp-launcher
-    inputs:
-      parameters:
-      - name: pod-spec-patch
-    metadata: {}
-    name: system-container-impl
-    outputs: {}
-    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
-    volumes:
-    - emptyDir: {}
-      name: kfp-launcher
-    - emptyDir: {}
-      name: gcs-scratch
-    - emptyDir: {}
-      name: s3-scratch
-    - emptyDir: {}
-      name: minio-scratch
-    - emptyDir: {}
-      name: dot-local-scratch
-    - emptyDir: {}
-      name: dot-cache-scratch
-    - emptyDir: {}
-      name: dot-config-scratch
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
+    - inputs:
+        parameters:
           - name: component
-            value: '{{workflow.parameters.components-9c2adbce22e7223ac5155c235fbc1541b292d9e1f78a984687c391207f9bdbce}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-9c2adbce22e7223ac5155c235fbc1541b292d9e1f78a984687c391207f9bdbce}}'
           - name: task-name
-            value: core-comp
           - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-        name: core-comp-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
+          - default: "-1"
+            name: iteration-index
+          - default: ""
+            name: kubernetes-config
+      metadata: {}
+      name: system-container-driver
+      outputs:
+        parameters:
           - name: pod-spec-patch
-            value: '{{tasks.core-comp-driver.outputs.parameters.pod-spec-patch}}'
+            valueFrom:
+              default: ""
+              jsonPath: $.pod-spec-patch
           - default: "false"
             name: cached-decision
-            value: '{{tasks.core-comp-driver.outputs.parameters.cached-decision}}'
-        depends: core-comp-driver.Succeeded
-        name: core-comp
-        template: system-container-executor
-    inputs:
-      parameters:
-      - name: parent-dag-id
-    metadata: {}
-    name: comp-core
-    outputs: {}
-  - container:
-      args:
-      - --type
-      - '{{inputs.parameters.driver-type}}'
-      - --pipeline_name
-      - parameter-cache-pipeline
-      - --run_id
-      - '{{workflow.uid}}'
-      - --run_name
-      - '{{workflow.name}}'
-      - --run_display_name
-      - ""
-      - --dag_execution_id
-      - '{{inputs.parameters.parent-dag-id}}'
-      - --component
-      - '{{inputs.parameters.component}}'
-      - --task
-      - '{{inputs.parameters.task}}'
-      - --task_name
-      - '{{inputs.parameters.task-name}}'
-      - --runtime_config
-      - '{{inputs.parameters.runtime-config}}'
-      - --iteration_index
-      - '{{inputs.parameters.iteration-index}}'
-      - --execution_id_path
-      - '{{outputs.parameters.execution-id.path}}'
-      - --iteration_count_path
-      - '{{outputs.parameters.iteration-count.path}}'
-      - --condition_path
-      - '{{outputs.parameters.condition.path}}'
-      - --http_proxy
-      - ""
-      - --https_proxy
-      - ""
-      - --no_proxy
-      - ""
-      command:
-      - driver
-      image: ghcr.io/kubeflow/kfp-driver:latest
-      name: ""
-      resources:
-        limits:
-          cpu: 500m
-          memory: 512Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-    inputs:
-      parameters:
-      - name: component
-      - default: ""
-        name: runtime-config
-      - default: ""
-        name: task
-      - default: ""
-        name: task-name
-      - default: "0"
-        name: parent-dag-id
-      - default: "-1"
-        name: iteration-index
-      - default: DAG
-        name: driver-type
-    metadata: {}
-    name: system-dag-driver
-    outputs:
-      parameters:
-      - name: execution-id
-        valueFrom:
-          path: /tmp/outputs/execution-id
-      - name: iteration-count
-        valueFrom:
-          default: "0"
-          path: /tmp/outputs/iteration-count
-      - name: condition
-        valueFrom:
-          default: "true"
-          path: /tmp/outputs/condition
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-comp-core}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-core"},"taskInfo":{"name":"core"}}'
-          - name: task-name
-            value: core
-        name: core-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
-          - name: parent-dag-id
-            value: '{{tasks.core-driver.outputs.parameters.execution-id}}'
+            valueFrom:
+              default: "false"
+              jsonPath: $.cached-decision
           - name: condition
-            value: '{{tasks.core-driver.outputs.parameters.condition}}'
-        depends: core-driver.Succeeded
-        name: core
-        template: comp-core
-    inputs:
-      parameters:
-      - name: parent-dag-id
-    metadata: {}
-    name: comp-mantle
-    outputs: {}
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"parameters":{"input":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}}'
-          - name: container
-            value: '{{workflow.parameters.implementations-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3}}'
-          - name: task-name
-            value: crust-comp
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-        depends: mantle.Succeeded
-        name: crust-comp-driver
-        template: system-container-driver
-      - arguments:
-          parameters:
+            valueFrom:
+              default: "true"
+              jsonPath: $.condition
+      plugin:
+        driver-plugin:
+          args:
+            cache_disabled: false
+            cached_decision_path: '{{outputs.parameters.cached-decision.path}}'
+            component: '{{inputs.parameters.component}}'
+            condition_path: '{{outputs.parameters.condition.path}}'
+            container: '{{inputs.parameters.container}}'
+            dag_execution_id: '{{inputs.parameters.parent-dag-id}}'
+            http_proxy: ""
+            https_proxy: ""
+            iteration_index: '{{inputs.parameters.iteration-index}}'
+            kubernetes_config: '{{inputs.parameters.kubernetes-config}}'
+            log_level: ""
+            no_proxy: ""
+            pipeline_name: hello-world
+            pod_spec_patch_path: '{{outputs.parameters.pod-spec-patch.path}}'
+            publish_logs: ""
+            run_display_name: ""
+            run_id: '{{workflow.uid}}'
+            run_name: '{{workflow.name}}'
+            task: '{{inputs.parameters.task}}'
+            task_name: '{{inputs.parameters.task-name}}'
+            type: CONTAINER
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: pod-spec-patch
+                  value: '{{inputs.parameters.pod-spec-patch}}'
+                - name: retry-max-count
+                  value: '{{inputs.parameters.retry-max-count}}'
+                - name: retry-backoff-duration
+                  value: '{{inputs.parameters.retry-backoff-duration}}'
+                - name: retry-backoff-factor
+                  value: '{{inputs.parameters.retry-backoff-factor}}'
+                - name: retry-backoff-max-duration
+                  value: '{{inputs.parameters.retry-backoff-max-duration}}'
+            name: executor
+            template: retry-system-container-impl
+            when: '{{inputs.parameters.cached-decision}} != true'
+      inputs:
+        parameters:
           - name: pod-spec-patch
-            value: '{{tasks.crust-comp-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.crust-comp-driver.outputs.parameters.cached-decision}}'
-        depends: crust-comp-driver.Succeeded
-        name: crust-comp
-        template: system-container-executor
-      - arguments:
-          parameters:
+          - default: "0"
+            name: retry-max-count
+          - default: "0"
+            name: retry-backoff-duration
+          - default: "0"
+            name: retry-backoff-factor
+          - default: "0"
+            name: retry-backoff-max-duration
+      metadata: {}
+      name: retry-system-container-executor
+      outputs: {}
+    - container:
+        command:
+          - should-be-overridden-during-runtime
+        env:
+          - name: KFP_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: KFP_POD_UID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.uid
+        envFrom:
+          - configMapRef:
+              name: metadata-grpc-configmap
+              optional: true
+        image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+        name: ""
+        resources: {}
+        volumeMounts:
+          - mountPath: /kfp-launcher
+            name: kfp-launcher
+          - mountPath: /gcs
+            name: gcs-scratch
+          - mountPath: /s3
+            name: s3-scratch
+          - mountPath: /minio
+            name: minio-scratch
+          - mountPath: /.local
+            name: dot-local-scratch
+          - mountPath: /.cache
+            name: dot-cache-scratch
+          - mountPath: /.config
+            name: dot-config-scratch
+      initContainers:
+        - args:
+            - --copy
+            - /kfp-launcher/launch
+          command:
+            - launcher-v2
+          image: ghcr.io/kubeflow/kfp-launcher
+          name: kfp-launcher
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+          volumeMounts:
+            - mountPath: /kfp-launcher
+              name: kfp-launcher
+      inputs:
+        parameters:
+          - name: pod-spec-patch
+          - name: retry-max-count
+          - name: retry-backoff-duration
+          - name: retry-backoff-factor
+          - name: retry-backoff-max-duration
+      metadata: {}
+      name: retry-system-container-impl
+      outputs: {}
+      podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+      retryStrategy:
+        backoff:
+          duration: '{{inputs.parameters.retry-backoff-duration}}'
+          factor: '{{inputs.parameters.retry-backoff-factor}}'
+          maxDuration: '{{inputs.parameters.retry-backoff-max-duration}}'
+        limit: '{{inputs.parameters.retry-max-count}}'
+      volumes:
+        - emptyDir: {}
+          name: kfp-launcher
+        - emptyDir: {}
+          name: gcs-scratch
+        - emptyDir: {}
+          name: s3-scratch
+        - emptyDir: {}
+          name: minio-scratch
+        - emptyDir: {}
+          name: dot-local-scratch
+        - emptyDir: {}
+          name: dot-cache-scratch
+        - emptyDir: {}
+          name: dot-config-scratch
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-c76def800bcb5189543541034eefac9210e827c15dd15b6de8ea4c45c233f603}}'
+                - name: task
+                  value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-a"},"retryPolicy":{"backoffDuration":"0s","backoffFactor":1,"backoffMaxDuration":"1800s","maxRetryCount":1},"taskInfo":{"name":"component-a"}}'
+                - name: container
+                  value: '{{workflow.parameters.implementations-c76def800bcb5189543541034eefac9210e827c15dd15b6de8ea4c45c233f603}}'
+                - name: task-name
+                  value: component-a
+                - name: parent-dag-id
+                  value: '{{inputs.parameters.parent-dag-id}}'
+            name: component-a-driver
+            template: system-container-driver
+          - arguments:
+              parameters:
+                - name: pod-spec-patch
+                  value: '{{tasks.component-a-driver.outputs.parameters.pod-spec-patch}}'
+                - default: "false"
+                  name: cached-decision
+                  value: '{{tasks.component-a-driver.outputs.parameters.cached-decision}}'
+                - name: retry-max-count
+                  value: "1"
+                - name: retry-backoff-duration
+                  value: "0"
+                - name: retry-backoff-factor
+                  value: "1"
+                - name: retry-backoff-max-duration
+                  value: "1800"
+            depends: component-a-driver.Succeeded
+            name: component-a
+            template: retry-system-container-executor
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-1a8bd1be9f10fe6fd3a429c49087a6cf42986d8e5a4f3eb99a60bba174470e23}}'
+                - name: task
+                  value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-b"},"retryPolicy":{"backoffDuration":"0s","backoffFactor":2,"backoffMaxDuration":"3600s","maxRetryCount":2},"taskInfo":{"name":"component-b"}}'
+                - name: container
+                  value: '{{workflow.parameters.implementations-1a8bd1be9f10fe6fd3a429c49087a6cf42986d8e5a4f3eb99a60bba174470e23}}'
+                - name: task-name
+                  value: component-b
+                - name: parent-dag-id
+                  value: '{{inputs.parameters.parent-dag-id}}'
+            name: component-b-driver
+            template: system-container-driver
+          - arguments:
+              parameters:
+                - name: pod-spec-patch
+                  value: '{{tasks.component-b-driver.outputs.parameters.pod-spec-patch}}'
+                - default: "false"
+                  name: cached-decision
+                  value: '{{tasks.component-b-driver.outputs.parameters.cached-decision}}'
+                - name: retry-max-count
+                  value: "2"
+                - name: retry-backoff-duration
+                  value: "0"
+                - name: retry-backoff-factor
+                  value: "2"
+                - name: retry-backoff-max-duration
+                  value: "3600"
+            depends: component-b-driver.Succeeded
+            name: component-b
+            template: retry-system-container-executor
+      inputs:
+        parameters:
+          - name: parent-dag-id
+      metadata: {}
+      name: comp-nested-pipeline
+      outputs: {}
+    - inputs:
+        parameters:
           - name: component
-            value: '{{workflow.parameters.components-comp-mantle}}'
-          - name: parent-dag-id
-            value: '{{inputs.parameters.parent-dag-id}}'
-          - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-mantle"},"taskInfo":{"name":"mantle"}}'
-          - name: task-name
-            value: mantle
-        name: mantle-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
-          - name: parent-dag-id
-            value: '{{tasks.mantle-driver.outputs.parameters.execution-id}}'
+          - default: ""
+            name: runtime-config
+          - default: ""
+            name: task
+          - default: ""
+            name: task-name
+          - default: "0"
+            name: parent-dag-id
+          - default: "-1"
+            name: iteration-index
+          - default: DAG
+            name: driver-type
+      metadata: {}
+      name: system-dag-driver
+      outputs:
+        parameters:
+          - name: execution-id
+            valueFrom:
+              jsonPath: $.execution-id
+          - name: iteration-count
+            valueFrom:
+              default: "0"
+              jsonPath: $.iteration-count
           - name: condition
-            value: '{{tasks.mantle-driver.outputs.parameters.condition}}'
-        depends: mantle-driver.Succeeded
-        name: mantle
-        template: comp-mantle
-    inputs:
-      parameters:
-      - name: parent-dag-id
-    metadata: {}
-    name: root
-    outputs: {}
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: component
-            value: '{{workflow.parameters.components-root}}'
-          - name: runtime-config
-            value: '{}'
-          - name: driver-type
-            value: ROOT_DAG
-        name: root-driver
-        template: system-dag-driver
-      - arguments:
-          parameters:
+            valueFrom:
+              default: "true"
+              jsonPath: $.condition
+      plugin:
+        driver-plugin:
+          args:
+            cache_disabled: false
+            component: '{{inputs.parameters.component}}'
+            condition_path: '{{outputs.parameters.condition.path}}'
+            dag_execution_id: '{{inputs.parameters.parent-dag-id}}'
+            execution_id_path: '{{outputs.parameters.execution-id.path}}'
+            http_proxy: ""
+            https_proxy: ""
+            iteration_count_path: '{{outputs.parameters.iteration-count.path}}'
+            iteration_index: '{{inputs.parameters.iteration-index}}'
+            log_level: ""
+            no_proxy: ""
+            pipeline_name: hello-world
+            publish_logs: ""
+            run_display_name: ""
+            run_id: '{{workflow.uid}}'
+            run_name: '{{workflow.name}}'
+            runtime_config: '{{inputs.parameters.runtime-config}}'
+            task: '{{inputs.parameters.task}}'
+            task_name: '{{inputs.parameters.task-name}}'
+            type: '{{inputs.parameters.driver-type}}'
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-comp-nested-pipeline}}'
+                - name: parent-dag-id
+                  value: '{{inputs.parameters.parent-dag-id}}'
+                - name: task
+                  value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-nested-pipeline"},"retryPolicy":{"backoffDuration":"0s","backoffFactor":1,"backoffMaxDuration":"1800s","maxRetryCount":1},"taskInfo":{"name":"nested-pipeline"}}'
+                - name: task-name
+                  value: nested-pipeline
+            name: nested-pipeline-driver
+            template: system-dag-driver
+          - arguments:
+              parameters:
+                - name: parent-dag-id
+                  value: '{{tasks.nested-pipeline-driver.outputs.parameters.execution-id}}'
+                - name: condition
+                  value: '{{tasks.nested-pipeline-driver.outputs.parameters.condition}}'
+            depends: nested-pipeline-driver.Succeeded
+            name: nested-pipeline
+            template: comp-nested-pipeline
+      inputs:
+        parameters:
           - name: parent-dag-id
-            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
-          - name: condition
-            value: ""
-        depends: root-driver.Succeeded
-        name: root
-        template: root
-    inputs: {}
-    metadata: {}
-    name: entrypoint
-    outputs: {}
+      metadata: {}
+      name: root
+      outputs: {}
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-root}}'
+                - name: runtime-config
+                  value: '{}'
+                - name: driver-type
+                  value: ROOT_DAG
+            name: root-driver
+            template: system-dag-driver
+          - arguments:
+              parameters:
+                - name: parent-dag-id
+                  value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+                - name: condition
+                  value: ""
+            depends: root-driver.Succeeded
+            name: root
+            template: root
+      inputs: {}
+      metadata: {}
+      name: entrypoint
+      outputs: {}
 status:
   finishedAt: null
   startedAt: null
