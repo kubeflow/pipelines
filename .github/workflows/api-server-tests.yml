@@ -55,15 +55,15 @@ jobs:
         k8s_version: [ "v1.31.0" ]
         cache_enabled: [ "true", "false" ]
         proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.1", "v3.6.10" ]
+        argo_version: [ "v3.7.0", "v3.6.7" ]
         pipeline_store: [ "database" ]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
-            argo_version: "v3.6.10"
+            argo_version: "v3.6.7"
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
-            argo_version: "v3.5.15"
+            argo_version: "v3.5.14"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests Standalone - K8sVersion=${{ matrix.k8s_version }} argo_version=${{ matrix.argo_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }}
 
@@ -151,7 +151,7 @@ jobs:
         k8s_version: [ "v1.31.0", "v1.29.2" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.1", "v3.6.10" ]
+        argo_version: [ "v3.7.0", "v3.6.7" ]
         pipeline_store: [ "kubernetes" ]
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}

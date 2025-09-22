@@ -54,14 +54,14 @@ jobs:
       matrix:
         k8s_version: ["v1.31.0"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.1", "v3.6.10", "v3.5.15"]
+        argo_version: [ "v3.7.0", "v3.6.7", "v3.5.14"]
         storage: [ "seaweedfs", "minio"]
         proxy: [ "false" ]
         test_label: [ "E2ECritical" ]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "false"
-            argo_version: "v3.5.15"
+            argo_version: "v3.5.14"
             test_label: "E2ECritical"
           - k8s_version: "v1.31.0"
             cache_enabled: "false"
