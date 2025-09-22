@@ -24,7 +24,6 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
-	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -283,7 +282,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 			driverTaskName := name + "-driver"
 			// The following call will return an empty string for tasks without kubernetes-specific annotation.
 			kubernetesConfigPlaceholder, _ := c.useKubernetesImpl(componentName)
-			driver, driverOutputs := c.containerDriverTask(driverTaskName, containerDriverInputs{
+			driver, driverOutputs, err := c.containerDriverTask(driverTaskName, containerDriverInputs{
 				component:        componentSpecPlaceholder,
 				task:             taskSpecJson,
 				container:        containerPlaceholder,
@@ -292,6 +291,9 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				kubernetesConfig: kubernetesConfigPlaceholder,
 				taskName:         name,
 			})
+			if err != nil {
+				return nil, err
+			}
 			if task.GetTriggerPolicy().GetCondition() == "" {
 				driverOutputs.condition = ""
 			}
@@ -531,9 +533,13 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 			Value: wfapi.AnyStringPtr(inputs.taskName),
 		})
 	}
+	dagDriverTemplate, err := c.addDAGDriverTemplate()
+	if err != nil {
+		return nil, nil, err
+	}
 	t := &wfapi.DAGTask{
 		Name:     name,
-		Template: c.addDAGDriverTemplate(),
+		Template: dagDriverTemplate,
 		Arguments: wfapi.Arguments{
 			Parameters: params,
 		},
@@ -545,40 +551,40 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 	}, nil
 }
 
-func (c *workflowCompiler) addDAGDriverTemplate() string {
+func (c *workflowCompiler) addDAGDriverTemplate() (string, error) {
 	name := "system-dag-driver"
 	_, ok := c.templates[name]
 	if ok {
-		return name
+		return name, nil
 	}
 
-	args := []string{
-		"--type", inputValue(paramDriverType),
-		"--pipeline_name", c.spec.GetPipelineInfo().GetName(),
-		"--run_id", runID(),
-		"--run_name", runResourceName(),
-		"--run_display_name", c.job.DisplayName,
-		"--dag_execution_id", inputValue(paramParentDagID),
-		"--component", inputValue(paramComponent),
-		"--task", inputValue(paramTask),
-		"--task_name", inputValue(paramTaskName),
-		"--runtime_config", inputValue(paramRuntimeConfig),
-		"--iteration_index", inputValue(paramIterationIndex),
-		"--execution_id_path", outputPath(paramExecutionID),
-		"--iteration_count_path", outputPath(paramIterationCount),
-		"--condition_path", outputPath(paramCondition),
-		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
-		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
-		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-	}
-	if c.cacheDisabled {
-		args = append(args, "--cache_disabled")
-	}
-	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
-	}
-	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
+	logLevel, _ := os.LookupEnv(PipelineLogLevelEnvVar)
+	publishLogs, _ := os.LookupEnv(PublishLogsEnvVar)
+
+	driverPlugin, err := driverPlugin(map[string]interface{}{
+		"type":                 inputValue(paramDriverType),
+		"pipeline_name":        c.spec.GetPipelineInfo().GetName(),
+		"run_id":               runID(),
+		"run_name":             runResourceName(),
+		"run_display_name":     c.job.DisplayName,
+		"dag_execution_id":     inputValue(paramParentDagID),
+		"component":            inputValue(paramComponent),
+		"task":                 inputValue(paramTask),
+		"task_name":            inputValue(paramTaskName),
+		"runtime_config":       inputValue(paramRuntimeConfig),
+		"iteration_index":      inputValue(paramIterationIndex),
+		"execution_id_path":    outputPath(paramExecutionID),
+		"iteration_count_path": outputPath(paramIterationCount),
+		"condition_path":       outputPath(paramCondition),
+		"http_proxy":           proxy.GetConfig().GetHttpProxy(),
+		"https_proxy":          proxy.GetConfig().GetHttpsProxy(),
+		"no_proxy":             proxy.GetConfig().GetNoProxy(),
+		"cache_disabled":       c.cacheDisabled,
+		"log_level":            logLevel,
+		"publish_logs":         publishLogs,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create dag driver template: %w", err)
 	}
 
 	t := &wfapi.Template{
@@ -596,22 +602,16 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		},
 		Outputs: wfapi.Outputs{
 			Parameters: []wfapi.Parameter{
-				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/execution-id"}},
-				{Name: paramIterationCount, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/iteration-count", Default: wfapi.AnyStringPtr("0")}},
-				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{Path: "/tmp/outputs/condition", Default: wfapi.AnyStringPtr("true")}},
+				{Name: paramExecutionID, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.execution-id"}},
+				{Name: paramIterationCount, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.iteration-count", Default: wfapi.AnyStringPtr("0")}},
+				{Name: paramCondition, ValueFrom: &wfapi.ValueFrom{JSONPath: "$.condition", Default: wfapi.AnyStringPtr("true")}},
 			},
 		},
-		Container: &k8score.Container{
-			Image:     c.driverImage,
-			Command:   c.driverCommand,
-			Args:      args,
-			Resources: driverResources,
-			Env:       proxy.GetConfig().GetEnvVars(),
-		},
+		Plugin: driverPlugin,
 	}
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
-	return name
+	return name, nil
 }
 
 func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
