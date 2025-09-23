@@ -22,7 +22,7 @@
     "@types/crypto-js": "^3.1.43",
     "@types/express": "^4.11.1",
     "@types/gunzip-maybe": "^1.4.0",
-    "@types/http-proxy-middleware": "^0.17.5",
+    "@types/http-proxy-middleware": "^0.19.3",
     "@types/jest": "^24.9.1",
     "@types/node": "^14.14.20",
     "@types/node-fetch": "^2.1.2",
