@@ -1,0 +1,161 @@
+# PIPELINE DEFINITION
+# Name: multiple-parameters-namedtuple-pipeline
+components:
+  comp-core:
+    dag:
+      outputs:
+        parameters:
+          val1:
+            valueFromParameter:
+              outputParameterKey: val1
+              producerSubtask: core-comp
+          val2:
+            valueFromParameter:
+              outputParameterKey: val2
+              producerSubtask: core-comp
+      tasks:
+        core-comp:
+          cachingOptions: {}
+          componentRef:
+            name: comp-core-comp
+          taskInfo:
+            name: core-comp
+    outputDefinitions:
+      parameters:
+        val1:
+          parameterType: STRING
+        val2:
+          parameterType: STRING
+  comp-core-comp:
+    executorLabel: exec-core-comp
+    outputDefinitions:
+      parameters:
+        val1:
+          parameterType: STRING
+        val2:
+          parameterType: STRING
+  comp-crust-comp:
+    executorLabel: exec-crust-comp
+    inputDefinitions:
+      parameters:
+        val1:
+          parameterType: STRING
+        val2:
+          parameterType: STRING
+  comp-mantle:
+    dag:
+      outputs:
+        parameters:
+          val1:
+            valueFromParameter:
+              outputParameterKey: val1
+              producerSubtask: core
+          val2:
+            valueFromParameter:
+              outputParameterKey: val2
+              producerSubtask: core
+      tasks:
+        core:
+          cachingOptions: {}
+          componentRef:
+            name: comp-core
+          taskInfo:
+            name: core
+    outputDefinitions:
+      parameters:
+        val1:
+          parameterType: STRING
+        val2:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-core-comp:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - core_comp
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef core_comp() -> NamedTuple('outputs', val1=str, val2=str):  #\
+          \ type: ignore\n    outputs = NamedTuple('outputs', val1=str, val2=str)\n\
+          \    return outputs('foo', 'bar')\n\n"
+        image: python:3.9
+    exec-crust-comp:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - crust_comp
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef crust_comp(val1: str, val2: str):\n    print('val1: ', val1)\n\
+          \    print('val2: ', val2)\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: multiple-parameters-namedtuple-pipeline
+root:
+  dag:
+    tasks:
+      crust-comp:
+        cachingOptions: {}
+        componentRef:
+          name: comp-crust-comp
+        dependentTasks:
+        - mantle
+        inputs:
+          parameters:
+            val1:
+              taskOutputParameter:
+                outputParameterKey: val1
+                producerTask: mantle
+            val2:
+              taskOutputParameter:
+                outputParameterKey: val2
+                producerTask: mantle
+        taskInfo:
+          name: crust-comp
+      mantle:
+        cachingOptions: {}
+        componentRef:
+          name: comp-mantle
+        taskInfo:
+          name: mantle
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0

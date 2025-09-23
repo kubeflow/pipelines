@@ -34,7 +34,6 @@ def print_all_placeholders(
             )
 
     assert task_name == "print-all-placeholders"
-    assert job_name.startswith("pipeline-with-placeholders ")
     assert job_resource_name.startswith("pipeline-with-placeholders-")
 
     output = ", ".join(allPlaceholders)

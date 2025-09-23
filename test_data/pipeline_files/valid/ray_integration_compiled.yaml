@@ -1,0 +1,79 @@
+# PIPELINE DEFINITION
+# Name: ray-integration-test
+# Description: Ray Integration Test
+components:
+  comp-ray-fn:
+    executorLabel: exec-ray-fn
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-ray-fn:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - ray_fn
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'codeflare-sdk==v0.28.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef ray_fn() -> int:\n    import ray  # noqa: PLC0415\n    from codeflare_sdk\
+          \ import generate_cert  # noqa: PLC0415\n    from codeflare_sdk.ray.cluster\
+          \ import Cluster, ClusterConfiguration  # noqa: PLC0415\n\n    cluster =\
+          \ Cluster(\n        ClusterConfiguration(\n            name=\"raytest\"\
+          ,\n            num_workers=1,\n            head_cpu_requests=1,\n      \
+          \      head_cpu_limits=1,\n            head_memory_requests=4,\n       \
+          \     head_memory_limits=4,\n            worker_cpu_requests=1,\n      \
+          \      worker_cpu_limits=1,\n            worker_memory_requests=1,\n   \
+          \         worker_memory_limits=2,\n            image=\"quay.io/modh/ray@sha256:a5b7c04a14f180d7ca6d06a5697f6bb684e40a26b95a0c872cac23b552741707\"\
+          ,\n            verify_tls=False\n        )\n    )\n\n    # always clean\
+          \ the resources\n    cluster.down()\n    print(cluster.status())\n    cluster.up()\n\
+          \    cluster.wait_ready()\n    print(cluster.status())\n    print(cluster.details())\n\
+          \n    ray_dashboard_uri = cluster.cluster_dashboard_uri()\n    ray_cluster_uri\
+          \ = cluster.cluster_uri()\n    print(ray_dashboard_uri)\n    print(ray_cluster_uri)\n\
+          \n    # before proceeding make sure the cluster exists and the uri is not\
+          \ empty\n    assert ray_cluster_uri, \"Ray cluster needs to be started and\
+          \ set before proceeding\"\n\n    # reset the ray context in case there's\
+          \ already one.\n    ray.shutdown()\n    # establish connection to ray cluster\n\
+          \    generate_cert.generate_tls_cert(cluster.config.name, cluster.config.namespace)\n\
+          \    generate_cert.export_env(cluster.config.name, cluster.config.namespace)\n\
+          \    ray.init(address=cluster.cluster_uri(), logging_level=\"DEBUG\")\n\
+          \    print(\"Ray cluster is up and running: \", ray.is_initialized())\n\n\
+          \    @ray.remote\n    def train_fn():\n        return 100\n\n    result\
+          \ = ray.get(train_fn.remote())\n    assert 100 == result\n    ray.shutdown()\n\
+          \    cluster.down()\n    return result\n\n"
+        image: registry.redhat.io/ubi9/python-311@sha256:82a16d7c4da926081c0a4cc72a84d5ce37859b50a371d2f9364313f66b89adf7
+pipelineInfo:
+  description: Ray Integration Test
+  name: ray-integration-test
+root:
+  dag:
+    tasks:
+      ray-fn:
+        cachingOptions: {}
+        componentRef:
+          name: comp-ray-fn
+        taskInfo:
+          name: ray-fn
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
