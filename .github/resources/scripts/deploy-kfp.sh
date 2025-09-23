@@ -30,6 +30,7 @@ USE_PROXY=false
 CACHE_DISABLED=false
 MULTI_USER=false
 STORAGE_BACKEND="seaweedfs"
+DB_TYPE=""
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
 
@@ -56,6 +57,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --storage)
       STORAGE_BACKEND="$2"
+      shift 2
+      ;;
+    --db-type)
+      DB_TYPE="$2"
       shift 2
       ;;
     --argo-version)
@@ -155,6 +160,8 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
   elif $CACHE_DISABLED && $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy"
+  elif [ "${DB_TYPE}" == "pgx" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/postgresql"
   elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
   elif $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
