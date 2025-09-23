@@ -31,4 +31,4 @@ jobs:
           generate_golang_proto: "false"
 
       - name: Run SDK upgrade tests
-        run: ./test/presubmit-test-sdk-upgrade.sh
+        run: make test-sdk-upgrade
