@@ -18,12 +18,12 @@ import (
 	"testing"
 	"time"
 
+	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
-	cm "github.com/kubeflow/pipelines/backend/src/apiserver/client_manager"
 )
 
 type DBTestSuite struct {

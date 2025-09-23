@@ -49,12 +49,12 @@ type PipelineClient struct {
 func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*PipelineClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, fmt.Errorf("Error occurred when creating pipeline client: %w", err)
+		return nil, fmt.Errorf("error occurred when creating pipeline client: %w", err)
 	}
 
-	apiClient := apiclient.New(runtime, strfmt.Default)
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
 
 	// Creating pipeline client
 	return &PipelineClient{
@@ -65,14 +65,30 @@ func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterPipelineClient(namespace string, debug bool) (
 	*PipelineClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	httpRuntime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
 
-	apiClient := apiclient.New(runtime, strfmt.Default)
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
 
 	// Creating pipeline client
 	return &PipelineClient{
 		apiClient:      apiClient,
 		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
+	}, nil
+}
+
+func NewMultiUserPipelineClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool) (
+	*PipelineClient, error) {
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	if err != nil {
+		return nil, fmt.Errorf("error occurred when creating pipeline client: %w", err)
+	}
+
+	apiClient := apiclient.New(httpRuntime, strfmt.Default)
+
+	// Creating pipeline client
+	return &PipelineClient{
+		apiClient:      apiClient,
+		authInfoWriter: api_server.TokenToAuthInfo(userToken),
 	}, nil
 }
 
