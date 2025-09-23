@@ -6,16 +6,16 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/legacy-v2-api-integration-tests.yml'
-      - '.github/resources/**'
-      - 'api/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'backend/**'
-      - 'manifests/kustomize/**'
-      - 'test/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/legacy-v2-api-integration-tests.yml"
+      - ".github/resources/**"
+      - "api/**"
+      - "go.mod"
+      - "go.sum"
+      - "backend/**"
+      - "manifests/kustomize/**"
+      - "test/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   build:
@@ -26,8 +26,8 @@ jobs:
     needs: build
     strategy:
       matrix:
-        pipeline_store: [ "database", "kubernetes" ]
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        pipeline_store: ["database", "kubernetes"]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -72,6 +72,7 @@ jobs:
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
+          DB_NAME: mlpipeline-${{ matrix.pipeline_store }}-${{ matrix.k8s_version }}
         continue-on-error: true
 
       - name: Collect failed logs

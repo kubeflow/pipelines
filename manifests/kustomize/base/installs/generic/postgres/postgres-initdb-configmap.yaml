@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-initdb
+data:
+  01-create-databases.sql: |
+    CREATE DATABASE mlpipeline;
+    CREATE DATABASE cachedb;

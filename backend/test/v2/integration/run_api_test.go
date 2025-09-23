@@ -17,11 +17,12 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/types/known/structpb"
 	"os"
-	"sigs.k8s.io/yaml"
 	"testing"
 	"time"
+
+	"google.golang.org/protobuf/types/known/structpb"
+	"sigs.k8s.io/yaml"
 
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -136,7 +137,9 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world experiment ---------- */
-	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
+	uuid, err := util.NewUUIDGenerator().NewRandom()
+	assert.Nil(t, err)
+	experiment := test.MakeExperiment(fmt.Sprintf("hello world experiment %s", uuid.String()), "", s.resourceNamespace)
 	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
@@ -161,8 +164,9 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest := &experiment_params.ExperimentServiceCreateExperimentParams{
-		Experiment: test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace),
+		Experiment: test.MakeExperiment(fmt.Sprintf("argument parameter experiment %s", uuid.String()), "", s.resourceNamespace),
 	}
+	assert.Nil(t, err)
 	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
 	assert.Nil(t, err)
 

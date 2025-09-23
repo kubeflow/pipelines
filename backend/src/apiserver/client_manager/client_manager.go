@@ -446,8 +446,8 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 		// Note: postgreSQL does not have the option `ClientFoundRows`
 		// Config reference: https://www.postgresql.org/docs/current/libpq-connect.html
 		sqlConfig = client.CreatePostgreSQLConfig(
-			common.GetStringConfigWithDefault(postgresUser, "root"),
-			common.GetStringConfigWithDefault(postgresPassword, ""),
+			common.GetStringConfigWithDefault(postgresUser, "user"),
+			common.GetStringConfigWithDefault(postgresPassword, "password"),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
 			dbName,
 			uint16(common.GetIntConfigWithDefault(postgresPort, 5432)),
