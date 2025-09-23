@@ -2,12 +2,25 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- ../../base/installs/generic/postgres
-- ../../base/metadata/overlays/postgres
-- ../../third-party/argo/installs/namespace
-- ../../third-party/seaweedfs/base
-- ../../third-party/postgresql/base
+  - ../../base/installs/generic
+  - ../../base/metadata/overlays/postgres
+  - ../../third-party/argo/installs/namespace
+  - ../../third-party/seaweedfs/base
+  - ../../third-party/postgresql/base
 
+patches:
+  - path: apiserver-patch.yaml
+  - path: cache-server-patch.yaml
+
+configMapGenerator:
+  - name: pipeline-install-config
+    behavior: merge
+    literals:
+      - DBDriverName=pgx
+      - pipelineDb=mlpipeline
+      - cacheDb=cachedb
+      - postgresHost=postgres-service
+      - postgresPort=5432
 
 # !!! If you want to customize the namespace,
 # please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
@@ -17,6 +30,6 @@ namespace: kubeflow
 # The ownerReference ensures the resources get garbage collected
 # when application is deleted.
 labels:
-- includeSelectors: true
-  pairs:
-    application-crd-id: kubeflow-pipelines
+  - includeSelectors: true
+    pairs:
+      application-crd-id: kubeflow-pipelines

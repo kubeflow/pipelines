@@ -25,6 +25,8 @@ import (
 	"github.com/cenkalti/backoff"
 	mysqlStd "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
+	pgxStd "github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -374,6 +376,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*sql.DB, sqldrv.DBDialec
 func initDBDriver(driverName string, initConnectionTimeout time.Duration) string {
 	var sqlConfig, dbName string
 	var mysqlConfig *mysqlStd.Config
+	var pgxConfig *pgxStd.ConnConfig
 	switch driverName {
 	case "mysql":
 		mysqlConfig = client.CreateMySQLConfig(
@@ -388,13 +391,18 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 		sqlConfig = mysqlConfig.FormatDSN()
 		dbName = common.GetStringConfig(mysqlDBName)
 	case "pgx":
-		sqlConfig = client.CreatePostgreSQLConfig(
+		dsn := client.CreatePostgreSQLConfig(
 			common.GetStringConfigWithDefault(postgresUser, "user"),
 			common.GetStringConfigWithDefault(postgresPassword, "password"),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
 			"postgres",
 			uint16(common.GetIntConfigWithDefault(postgresPort, 5432)),
 		)
+		var err error
+		pgxConfig, err = pgxStd.ParseConfig(dsn)
+		util.TerminateIfError(err)
+
+		sqlConfig = pgxConfig.ConnString()
 		dbName = common.GetStringConfig(postgresDBName)
 	default:
 		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
@@ -446,8 +454,8 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 		// Note: postgreSQL does not have the option `ClientFoundRows`
 		// Config reference: https://www.postgresql.org/docs/current/libpq-connect.html
 		sqlConfig = client.CreatePostgreSQLConfig(
-			common.GetStringConfigWithDefault(postgresUser, "root"),
-			common.GetStringConfigWithDefault(postgresPassword, ""),
+			common.GetStringConfigWithDefault(postgresUser, "user"),
+			common.GetStringConfigWithDefault(postgresPassword, "password"),
 			common.GetStringConfigWithDefault(postgresHost, "postgresql"),
 			dbName,
 			uint16(common.GetIntConfigWithDefault(postgresPort, 5432)),

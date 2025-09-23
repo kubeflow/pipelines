@@ -20,6 +20,10 @@ if [ -z "${NAMESPACE}" ]; then
     exit
 fi
 
+# Define the IP address for port-forwarding the database for local testing.
+# This value should be kept in sync with the DB_FORWARD_IP in CI workflows.
+export DB_FORWARD_IP=${DB_FORWARD_IP:-"127.0.0.3"}
+
 echo "The api integration tests run against the cluster your kubectl communicates to.";
 echo "It's currently '$(kubectl config current-context)'."
 echo "WARNING: this will clear up all existing KFP data in this cluster."
@@ -42,11 +46,11 @@ echo "Starting integration tests..."
 
 if [ "$1" == "postgres" ]; then
     echo "Starting PostgreSQL DB port forwarding..."
-    kubectl -n "$NAMESPACE" port-forward svc/postgres-service 5432:5432 --address="127.0.0.3" & PORT_FORWARD_PID=$!
+    kubectl -n "$NAMESPACE" port-forward svc/postgres-service 5432:5432 --address="${DB_FORWARD_IP}" & PORT_FORWARD_PID=$!
     # wait for kubectl port forward
     sleep 10
-    command="go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true -runPostgreSQLTests=true -localTest=true"
-else 
+    command="go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true -runPostgreSQLTests=true -localTest=true -db_host=${DB_FORWARD_IP}"
+else
     echo "Starting MySQL DB port forwarding..."
     kubectl -n "$NAMESPACE" port-forward svc/mysql 3306:3306 --address=localhost & PORT_FORWARD_PID=$!
     # wait for kubectl port forward

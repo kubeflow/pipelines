@@ -64,8 +64,8 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 	t := s.T()
 	viper.Set("DBDriverName", "pgx")
 	viper.Set("DBConfig.PostgreSQLConfig.DBName", "mlpipeline")
-	// The default port-forwarding IP address that test uses is different compared to production
-	viper.Set("DBConfig.PostgreSQLConfig.Host", "127.0.0.3")
+	// The default port-forwarding IP address that test uses is different compared to production.
+	viper.SetDefault("DBConfig.PostgreSQLConfig.Host", "127.0.0.3")
 	viper.Set("DBConfig.PostgreSQLConfig.User", "user")
 	viper.Set("DBConfig.PostgreSQLConfig.Password", "password")
 	duration, _ := time.ParseDuration("1m")
