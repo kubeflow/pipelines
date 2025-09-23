@@ -295,10 +295,7 @@ export async function getConfigMap(
 
 // Golang style result type including an error.
 export type Result<T, E = K8sError> = [T, undefined] | [undefined, E];
-export async function listPodEvents(
-  podName: string,
-  podNamespace: string,
-): Promise<Result<any>> {
+export async function listPodEvents(podName: string, podNamespace: string): Promise<Result<any>> {
   try {
     const { body } = await k8sV1Client.listNamespacedEvent(
       podNamespace,

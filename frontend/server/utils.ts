@@ -13,7 +13,7 @@
 // limitations under the License.
 import { readFileSync } from 'fs';
 import { Transform, TransformOptions } from 'stream';
-import {posix as path} from 'path';
+import { posix as path } from 'path';
 
 /** get the server address from host, port, and schema (defaults to 'http'). */
 export function getAddress({
