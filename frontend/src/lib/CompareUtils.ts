@@ -40,17 +40,16 @@ export default class CompareUtils {
       logger.error('Numbers of passed in runs and workflows do not match');
     }
 
-    const yLabels = chain(flatten(workflowObjects.map(w => WorkflowParser.getParameters(w))))
-      .countBy(p => p.name) // count by parameter name
-      .map((k, v) => ({ name: v, count: k })) // convert to counter objects
+    const yLabels = (chain(flatten(workflowObjects.map(w => WorkflowParser.getParameters(w))))
+      .countBy((p: { name: string }) => p.name) // count by parameter name
+      .map((k: number, v: string) => ({ name: v, count: k })) // convert to counter objects
       .orderBy('count', 'desc') // sort on count field, descending
-      .map(o => o.name)
-      .value();
+      .map((o: { name: string; count: number }) => o.name) as any).value();
 
-    const rows = yLabels.map(name => {
+    const rows = yLabels.map((name: string) => {
       return workflowObjects.map(w => {
         const params = WorkflowParser.getParameters(w);
-        const param = params.find(p => p.name === name);
+        const param = params.find((p: { name: string }) => p.name === name);
         return param ? param.value || '' : '';
       });
     });

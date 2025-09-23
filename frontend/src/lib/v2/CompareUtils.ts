@@ -19,7 +19,7 @@ import { getArtifactName, getExecutionDisplayName, LinkedArtifact } from 'src/ml
 import { getMetadataValue } from 'src/mlmd/Utils';
 import { Execution, Value } from 'src/third_party/mlmd';
 import * as jspb from 'google-protobuf';
-import { chain, flatMapDeep, flatten } from 'lodash';
+import { flatMapDeep } from 'lodash';
 import { stylesheet } from 'typestyle';
 import { RuntimeParameters } from 'src/pages/NewRunV2';
 import { V2beta1Run } from 'src/apisv2beta1/run';
@@ -105,12 +105,16 @@ export const getParamsTableProps = (runs: V2beta1Run[]): CompareTableProps | und
     }
   }
 
-  const yLabels = chain(flatten(parameterNames))
-    .countBy(p => p) // count by parameter name
-    .map((k, v) => ({ name: v, count: k })) // convert to counter objects
-    .orderBy('count', 'desc') // sort on count field, descending
-    .map(o => o.name)
-    .value();
+  const flattenedNames = parameterNames.flat();
+  const counts = flattenedNames.reduce((acc, name: string) => {
+    acc[name] = (acc[name] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const yLabels: string[] = Object.entries(counts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .map(o => o.name);
 
   const rows: string[][] = yLabels.map(yLabel => {
     return runs.map(run => {
@@ -139,7 +143,7 @@ export const getValidRocCurveArtifactData = (
 ): RocCurveArtifactData => {
   const validRocCurveIdSet: Set<string> = new Set();
   const fullArtifactPathMap: FullArtifactPathMap = {};
-  const validLinkedArtifacts = flatMapDeep(
+  const validLinkedArtifacts: LinkedArtifact[] = flatMapDeep(
     rocCurveRunArtifacts.map(runArtifact =>
       runArtifact.executionArtifacts.map(executionArtifact => {
         const validArtifacts = getValidArtifacts(executionArtifact);
@@ -157,7 +161,8 @@ export const getValidRocCurveArtifactData = (
         return validArtifacts;
       }),
     ),
-  );
+  ) as LinkedArtifact[];
+
   return {
     validLinkedArtifacts,
     fullArtifactPathMap,
