@@ -32,6 +32,7 @@ MULTI_USER=false
 STORAGE_BACKEND="seaweedfs"
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
+SEAWEEDFS_INIT_TIMEOUT=300s
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -201,6 +202,17 @@ if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Not all pods running."
   exit 1
+fi
+
+# Ensure SeaweedFS S3 auth is configured before proceeding
+if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+  wait_for_seaweedfs_init kubeflow "${SEAWEEDFS_INIT_TIMEOUT}" || EXIT_CODE=$?
+  if [[ $EXIT_CODE -ne 0 ]]
+  then
+    echo "SeaweedFS init job did not complete successfully."
+    exit 1
+  fi
+  echo "SeaweedFS init job completed successfully."
 fi
 
 # Verify pipeline integration for multi-user mode
