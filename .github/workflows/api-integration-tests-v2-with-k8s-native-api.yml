@@ -30,7 +30,7 @@ jobs:
         k8s_version: [ "v1.31.0" ]
         pod_to_pod_tls_enabled: [ true, false ]
 
-    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
+    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -59,6 +59,7 @@ jobs:
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
           pipeline_store: ${{ matrix.pipeline_store }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
 
       - name: Forward MLMD port
         id: forward-mlmd-port
