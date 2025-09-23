@@ -27,6 +27,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/encoding/protojson"
 	"sigs.k8s.io/yaml"
 )
@@ -206,6 +207,63 @@ func Test_argo_compiler(t *testing.T) {
 
 	}
 
+}
+
+func TestSemaphoreAndMutex(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	job, platformSpec := load(t, "../testdata/hello_world.json", "")
+
+	// Test with both semaphore and mutex options
+	opts := &argocompiler.Options{
+		SemaphoreKey: "gpu-training",
+		MutexName:    "critical-resource",
+	}
+
+	wf, err := argocompiler.Compile(job, platformSpec, opts)
+	assert.NoError(t, err)
+	assert.NotNil(t, wf)
+
+	// Verify the workflow has synchronization configured
+	assert.NotNil(t, wf.Spec.Synchronization, "Workflow should have synchronization configured")
+
+	// Verify semaphore configuration
+	assert.NotNil(t, wf.Spec.Synchronization.Semaphore, "Semaphore should be configured")
+	assert.Equal(t, "semaphore-config", wf.Spec.Synchronization.Semaphore.ConfigMapKeyRef.Name)
+	assert.Equal(t, "gpu-training", wf.Spec.Synchronization.Semaphore.ConfigMapKeyRef.Key)
+
+	// Verify mutex configuration
+	assert.NotNil(t, wf.Spec.Synchronization.Mutex, "Mutex should be configured")
+	assert.Equal(t, "critical-resource", wf.Spec.Synchronization.Mutex.Name)
+
+	// Test with only semaphore
+	optsOnlySemaphore := &argocompiler.Options{
+		SemaphoreKey: "gpu-only",
+	}
+
+	wfSemaphore, err := argocompiler.Compile(job, platformSpec, optsOnlySemaphore)
+	assert.NoError(t, err)
+	assert.NotNil(t, wfSemaphore.Spec.Synchronization.Semaphore)
+	assert.Nil(t, wfSemaphore.Spec.Synchronization.Mutex)
+	assert.Equal(t, "gpu-only", wfSemaphore.Spec.Synchronization.Semaphore.ConfigMapKeyRef.Key)
+
+	// Test with only mutex
+	optsOnlyMutex := &argocompiler.Options{
+		MutexName: "mutex-only",
+	}
+
+	wfMutex, err := argocompiler.Compile(job, platformSpec, optsOnlyMutex)
+	assert.NoError(t, err)
+	assert.NotNil(t, wfMutex.Spec.Synchronization.Mutex)
+	assert.Nil(t, wfMutex.Spec.Synchronization.Semaphore)
+	assert.Equal(t, "mutex-only", wfMutex.Spec.Synchronization.Mutex.Name)
+
+	// Test with neither (should have no synchronization)
+	optsNone := &argocompiler.Options{}
+
+	wfNone, err := argocompiler.Compile(job, platformSpec, optsNone)
+	assert.NoError(t, err)
+	assert.Nil(t, wfNone.Spec.Synchronization)
 }
 
 func load(t *testing.T, path string, platformSpecPath string) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
