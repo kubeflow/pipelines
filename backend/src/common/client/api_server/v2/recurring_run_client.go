@@ -76,10 +76,10 @@ func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool, tlsCfg
 	}, nil
 }
 
-func NewMultiUserRecurringRunClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool) (
+func NewMultiUserRecurringRunClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool, tlsCfg *tls.Config) (
 	*RecurringRunClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
 	}

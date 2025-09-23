@@ -76,10 +76,10 @@ func NewKubeflowInClusterRunClient(namespace string, debug bool, tlsCfg *tls.Con
 	}, nil
 }
 
-func NewMultiUserRunClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool) (
+func NewMultiUserRunClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool, tlsCfg *tls.Config) (
 	*RunClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating run client: %w", err)
 	}
