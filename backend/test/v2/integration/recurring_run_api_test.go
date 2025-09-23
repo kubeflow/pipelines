@@ -84,8 +84,8 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 	var newRunClient func() (*api_server.RunClient, error)
 	var newRecurringRunClient func() (*api_server.RecurringRunClient, error)
 	var tlsCfg *tls.Config
-	if *tlsEnabled {
-		tlsCfg = test.GetTLSConfig(*caCertPath)
+	if *config.TlsEnabled {
+		tlsCfg = test.GetTLSConfig(*config.CaCertPath)
 	}
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
@@ -129,8 +129,8 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 		*isKubeflowMode,
 		*config.DebugMode,
 		s.namespace,
-		tlsCfg,
 		test.GetClientConfig(s.namespace),
+		tlsCfg,
 	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())

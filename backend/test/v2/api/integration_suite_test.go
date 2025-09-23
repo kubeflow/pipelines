@@ -15,7 +15,9 @@
 package api
 
 import (
+	"crypto/tls"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/test/v2"
 	"log"
 	"os"
 	"path/filepath"
@@ -73,50 +75,54 @@ var _ = BeforeSuite(func() {
 	clientConfig := test_utils.GetClientConfig(*config.Namespace)
 	k8Client, err = test_utils.CreateK8sClient()
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
+	var tlsCfg *tls.Config
+	if *config.TlsEnabled {
+		tlsCfg = test.GetTLSConfig(*config.CaCertPath)
+	}
 
 	if *config.KubeflowMode {
 		logger.Log("Creating API Clients for Kubeflow Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewKubeflowInClusterPipelineClient(*config.Namespace, *config.DebugMode)
+			return apiserver.NewKubeflowInClusterPipelineClient(*config.Namespace, *config.DebugMode, tlsCfg)
 		}
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewKubeflowInClusterExperimentClient(*config.Namespace, *config.DebugMode)
+			return apiserver.NewKubeflowInClusterExperimentClient(*config.Namespace, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.DebugMode)
+			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.DebugMode, tlsCfg)
 		}
 		newRecurringRunClient = func() (*apiserver.RecurringRunClient, error) {
-			return apiserver.NewKubeflowInClusterRecurringRunClient(*config.Namespace, *config.DebugMode)
+			return apiserver.NewKubeflowInClusterRecurringRunClient(*config.Namespace, *config.DebugMode, tlsCfg)
 		}
 	} else if *config.MultiUserMode {
 		logger.Log("Creating API Clients for Multi User Mode")
 		defaultUserToken = test_utils.CreateUserToken(k8Client, *config.Namespace, *config.DefaultServiceAccountName)
 		userToken = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.DebugMode)
+			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.DebugMode, tlsCfg)
 		}
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewMultiUserExperimentClient(clientConfig, userToken, *config.DebugMode)
+			return apiserver.NewMultiUserExperimentClient(clientConfig, userToken, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewMultiUserRunClient(clientConfig, userToken, *config.DebugMode)
+			return apiserver.NewMultiUserRunClient(clientConfig, userToken, *config.DebugMode, tlsCfg)
 		}
 		newRecurringRunClient = func() (*apiserver.RecurringRunClient, error) {
-			return apiserver.NewMultiUserRecurringRunClient(clientConfig, userToken, *config.DebugMode)
+			return apiserver.NewMultiUserRecurringRunClient(clientConfig, userToken, *config.DebugMode, tlsCfg)
 		}
 	} else {
 		logger.Log("Creating API Clients for Single User Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewPipelineClient(clientConfig, *config.DebugMode)
+			return apiserver.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewExperimentClient(clientConfig, *config.DebugMode)
+			return apiserver.NewExperimentClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewRunClient(clientConfig, *config.DebugMode)
+			return apiserver.NewRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newRecurringRunClient = func() (*apiserver.RecurringRunClient, error) {
-			return apiserver.NewRecurringRunClient(clientConfig, *config.DebugMode)
+			return apiserver.NewRecurringRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
@@ -126,6 +132,7 @@ var _ = BeforeSuite(func() {
 		*config.DebugMode,
 		*config.Namespace,
 		clientConfig,
+		tlsCfg,
 	)
 
 	Expect(err).To(BeNil(), "Failed to get Pipeline Upload Client")

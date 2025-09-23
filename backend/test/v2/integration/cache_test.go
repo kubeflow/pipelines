@@ -47,7 +47,7 @@ func TestCache(t *testing.T) {
 
 func (s *CacheTestSuite) SetupSuite() {
 	var err error
-	s.mlmdClient, err = testutils.NewTestMlmdClient("127.0.0.1", metadata.DefaultConfig().Port, *tlsEnabled, *caCertPath)
+	s.mlmdClient, err = testutils.NewTestMlmdClient("127.0.0.1", metadata.DefaultConfig().Port, *config.TlsEnabled, *config.CaCertPath)
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), s.mlmdClient)
 }
@@ -70,8 +70,8 @@ func (s *CacheTestSuite) SetupTest() {
 	var newRunClient func() (*apiServer.RunClient, error)
 	var newRecurringRunClient func() (*apiServer.RecurringRunClient, error)
 	var tlsCfg *tls.Config
-	if *tlsEnabled {
-		tlsCfg = test.GetTLSConfig(*caCertPath)
+	if *config.TlsEnabled {
+		tlsCfg = test.GetTLSConfig(*config.CaCertPath)
 	}
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
@@ -105,8 +105,8 @@ func (s *CacheTestSuite) SetupTest() {
 		*isKubeflowMode,
 		*config.DebugMode,
 		s.namespace,
-		tlsCfg,
 		test.GetClientConfig(s.namespace),
+		tlsCfg,
 	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())

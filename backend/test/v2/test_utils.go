@@ -227,8 +227,8 @@ func GetPipelineUploadClient(
 	isKubeflowMode bool,
 	isDebugMode bool,
 	namespace string,
-	tlsCfg *tls.Config,
 	clientConfig clientcmd.ClientConfig,
+	tlsCfg *tls.Config,
 ) (api_server.PipelineUploadInterface, error) {
 	if uploadPipelinesWithKubernetes {
 		return api_server.NewPipelineUploadClientKubernetes(clientConfig, namespace)

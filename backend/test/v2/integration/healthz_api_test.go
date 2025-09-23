@@ -51,8 +51,8 @@ func (s *HealthzApiTest) SetupTest() {
 	clientConfig := test.GetClientConfig(*config.Namespace)
 	var err error
 	var tlsCfg *tls.Config
-	if *tlsEnabled {
-		tlsCfg = test.GetTLSConfig(*caCertPath)
+	if *config.TlsEnabled {
+		tlsCfg = test.GetTLSConfig(*config.CaCertPath)
 	}
 	s.healthzClient, err = api_server.NewHealthzClient(clientConfig, false, tlsCfg)
 	if err != nil {

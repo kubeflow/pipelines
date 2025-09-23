@@ -68,8 +68,8 @@ func (s *PipelineVersionApiTest) SetupTest() {
 
 	s.namespace = *config.Namespace
 	var tlsCfg *tls.Config
-	if *tlsEnabled {
-		tlsCfg = test.GetTLSConfig(*caCertPath)
+	if *config.TlsEnabled {
+		tlsCfg = test.GetTLSConfig(*config.CaCertPath)
 	}
 	if *isKubeflowMode {
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
@@ -89,8 +89,8 @@ func (s *PipelineVersionApiTest) SetupTest() {
 		*isKubeflowMode,
 		*config.DebugMode,
 		s.namespace,
-		tlsCfg,
 		test.GetClientConfig(s.namespace),
+		tlsCfg,
 	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
