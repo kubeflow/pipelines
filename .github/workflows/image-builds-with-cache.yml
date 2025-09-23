@@ -90,9 +90,20 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
           outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
 
+      - name: Rebuild Images in case of failure
+        uses: docker/build-push-action@v5
+        if: ${{ steps.save-image.outcome != 'success' }}
+        id: rebuild
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+          outputs: type=docker,dest=${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
-        if: ${{ steps.save-image.outcome == 'success' }}
+        if: ${{ steps.save-image.outcome == 'success' || steps.rebuild.outcome == 'success' }}
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACTS_PATH }}/${{ env.ARTIFACT_NAME }}.tar

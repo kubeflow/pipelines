@@ -17,10 +17,12 @@ package initialization
 import (
 	"testing"
 
-	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/kubeflow/pipelines/backend/test/config"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -42,8 +44,8 @@ func (s *InitializationTest) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to initialize test. Error: %v", err)
 	}
-	s.namespace = *namespace
-	clientConfig := test.GetClientConfig(*namespace)
+	s.namespace = *config.Namespace
+	clientConfig := test.GetClientConfig(*config.Namespace)
 	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
