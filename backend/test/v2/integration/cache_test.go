@@ -129,6 +129,8 @@ func (s *CacheTestSuite) SetupTest() {
 		glog.Exitf("Failed to get recurring run client. Error: %s", err.Error())
 	}
 
+	// Clean up before each test to ensure test isolation.
+	// See comments on s.cleanUp() in run_api_test.go
 	s.cleanUp()
 }
 

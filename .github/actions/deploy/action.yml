@@ -4,16 +4,16 @@ description: "Step to start and configure KFP on Kind"
 inputs:
   pipeline_store:
     description: "Flag to deploy KFP with K8s Native API"
-    default: 'database'
+    default: "database"
     required: false
   proxy:
     description: "If KFP should be deployed with proxy configuration"
     required: false
-    default: 'false'
+    default: "false"
   cache_enabled:
     description: "If KFP should be deployed with cache enabled globally"
     required: false
-    default: 'true'
+    default: "true"
   image_tag:
     required: true
     description: "Provide the image tag your image was tagged with"
@@ -26,26 +26,30 @@ inputs:
   multi_user:
     description: "If KFP should be deployed in multi-user mode"
     required: false
-    default: 'false'
+    default: "false"
   artifact_proxy:
     description: "Enables artifact proxy"
     required: false
-    default: 'false'
+    default: "false"
   storage_backend:
     description: "Storage backend to use (minio or seaweedfs)"
     required: false
-    default: 'seaweedfs'
+    default: "seaweedfs"
   argo_version:
     required: false
     description: "Argo version to use for the cluster"
+  db_type:
+    description: "The type of database to deploy for testing (mysql or pgx)."
+    required: false
+    default: ""
   forward_port:
     required: false
-    default: 'true'
+    default: "true"
     description: "If you want to forward API server port to localhost:8888"
   pod_to_pod_tls_enabled:
     description: "If KFP should be deployed with TLS pod-to-pod communication."
     required: false
-    default: 'false'
+    default: "false"
 
 runs:
   using: "composite"
@@ -70,7 +74,7 @@ runs:
           docker push ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
           rm ${{ inputs.image_path }}/$app/$app.tar
           docker image rm ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}
-        done  
+        done
 
     - name: Configure Args
       shell: bash
@@ -122,7 +126,7 @@ runs:
       if: ${{ steps.configure.outcome == 'success' }}
       uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08
       with:
-        max_attempts: 2
+        max_attempts: 1
         timeout_minutes: 15
         command: ./.github/resources/scripts/deploy-kfp.sh ${{ steps.configure.outputs.ARGS }}
 

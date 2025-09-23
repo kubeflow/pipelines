@@ -1,22 +1,25 @@
 name: KFP API Integration V2 (Legacy)
 
 on:
+  workflow_dispatch: # lyk temp
   push:
-    branches: [master]
+    branches:
+      - master
+      - feature/replace-str-with-largetext-WIP # lyk
 
   pull_request:
     paths:
-      - '.github/workflows/legacy-v2-api-integration-tests.yml'
-      - '.github/actions/create-cluster/**'
-      - '.github/resources/**'
-      - 'api/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'backend/**'
-      - 'manifests/kustomize/**'
-      - 'test/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/legacy-v2-api-integration-tests.yml"
+      - ".github/actions/create-cluster/**"
+      - ".github/resources/**"
+      - "api/**"
+      - "go.mod"
+      - "go.sum"
+      - "backend/**"
+      - "manifests/kustomize/**"
+      - "test/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   build:
@@ -27,9 +30,9 @@ jobs:
     needs: build
     strategy:
       matrix:
-        pipeline_store: [ "database", "kubernetes" ]
-        k8s_version: [ "v1.31.0" ]
-        pod_to_pod_tls_enabled: [ true, false ]
+        pipeline_store: ["database", "kubernetes"]
+        k8s_version: ["v1.31.0"]
+        pod_to_pod_tls_enabled: [true, false]
         exclude:
           # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
           - pipeline_store: "kubernetes"
@@ -87,6 +90,7 @@ jobs:
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
+          DB_NAME: mlpipeline-${{ matrix.pipeline_store }}-${{ matrix.k8s_version }}
         continue-on-error: true
 
       - name: Collect failed logs
