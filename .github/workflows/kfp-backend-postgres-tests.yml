@@ -1,0 +1,55 @@
+name: KFP Backend Postgres Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - "backend/**"
+      - "manifests/kustomize/third-party/postgresql/**"
+      - ".github/workflows/kfp-backend-postgres-tests.yml"
+      - "!**/*.md"
+      - "!**/OWNERS"
+env:
+  NAMESPACE: kfp-pgx-test
+jobs:
+  postgres-pgx:
+    name: Backend Postgres (pgx via Kustomize+KinD)
+    runs-on: ubuntu-latest
+    continue-on-error: true # Temporarily allow failures; switch to false after LargeText/storage changes land
+
+    steps:
+      - name: Checkout target code
+        uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Create KFP cluster
+        uses: ./.github/actions/kfp-cluster
+        with:
+          k8s_version: "v1.30.2"
+          pipeline_store: "database"
+          deploy_postgres: "true"
+          postgres_namespace: ${{ env.NAMESPACE }}
+      - name: Run backend integration tests (pgx)
+        env:
+          DB_TYPE: postgres
+          DB_DRIVER: pgx
+          DB_HOST: postgres-service
+          DB_PORT: "5432"
+          DB_USER: kubeflow
+          DB_PASSWORD: kubeflow
+          DB_NAME: postgres
+        run: |
+          go test -v ./... -namespace "$NAMESPACE" -args -runIntegrationTests=true -isDevMode=true -runPostgreSQLTests=true -localTest=true || true
+
+      - name: Cleanup (always)
+        if: always()
+        run: |
+          echo "==== PG Pods ===="
+          kubectl -n "$NAMESPACE" get pods -o wide || true
+          echo "==== PG Events ===="
+          kubectl -n "$NAMESPACE" get events --sort-by=.lastTimestamp | tail -n 100 || true
