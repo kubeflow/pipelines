@@ -106,11 +106,12 @@ jobs:
           fi
 
           PROXY=${{ matrix.proxy }}
-          if [ -n "$PROXY" ]; then
+          if [ -z "$PROXY" ]; then
             PROXY=false
           fi
-          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=$NUMBER_OF_NODES -v --label-filter=$TEST_LABEL -- -namespace=$NAMESPACE -useProxy=$PROXY -cacheEnabled=${{ matrix.cache_enabled }}
-        continue-on-error: true
+          echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
+          echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
+          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
 
       - name: Collect Pod logs in case of Test Failures
         id: collect-logs
