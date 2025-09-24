@@ -69,7 +69,7 @@ We also have a slack channel (#kubeflow-pipelines) on the Cloud Native Computing
 
 ## Architecture
 
-Details about the KFP Architecture can be found at [Architecture.md](docs/Architecture.md)
+Details about the KFP Architecture can be found at [Architecture.md](docs/sdk/Architecture.md)
 
 ## Blog posts
 
