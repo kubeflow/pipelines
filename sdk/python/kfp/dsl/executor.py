@@ -20,6 +20,7 @@ import warnings
 
 from kfp import dsl
 from kfp.dsl import task_final_status
+from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 
@@ -132,7 +133,8 @@ class Executor:
     def get_output_artifact(self, name: str) -> Optional[dsl.Artifact]:
         return self.output_artifacts.get(name)
 
-    def get_input_parameter_value(self, parameter_name: str) -> Optional[str]:
+    def get_input_parameter_value(
+            self, parameter_name: str) -> Optional[Union[str, dict]]:
         parameter_values = self.executor_input.get('inputs', {}).get(
             'parameterValues', None)
 
@@ -346,6 +348,21 @@ class Executor:
                     pipeline_task_name=value.get(pipeline_task_name),
                     error_code=value.get('error', {}).get('code', None),
                     error_message=value.get('error', {}).get('message', None),
+                )
+
+            elif v == TaskConfig:
+                # The backend injects this struct under the actual input parameter name.
+                # If missing, pass an empty structure.
+                value = self.get_input_parameter_value(k)
+                value = value or {}
+                func_kwargs[k] = TaskConfig(
+                    affinity=value.get('affinity'),
+                    tolerations=value.get('tolerations'),
+                    node_selector=value.get('nodeSelector'),
+                    env=value.get('env'),
+                    volumes=value.get('volumes'),
+                    volume_mounts=value.get('volumeMounts'),
+                    resources=value.get('resources'),
                 )
 
             elif type_annotations.is_list_of_artifacts(v):

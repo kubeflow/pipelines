@@ -14,6 +14,7 @@
 package driver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -23,6 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -261,6 +263,8 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			taskConfig := &TaskConfig{}
+
 			podSpec, err := initPodSpecPatch(
 				tt.args.container,
 				tt.args.componentSpec,
@@ -268,9 +272,11 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.executionID,
 				tt.args.pipelineName,
 				tt.args.runID,
+				"my-run-name",
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
+				taskConfig,
 			)
 			if tt.wantErr {
 				assert.Nil(t, podSpec)
@@ -282,6 +288,9 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Contains(t, string(podSpecString), tt.want)
 			}
+
+			assert.Empty(t, taskConfig.Resources.Limits)
+			assert.Empty(t, taskConfig.Resources.Requests)
 		})
 	}
 }
@@ -370,6 +379,8 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		},
 	}
 
+	taskConfig := &TaskConfig{}
+
 	podSpec, err := initPodSpecPatch(
 		containerSpec,
 		componentSpec,
@@ -377,9 +388,11 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
+		taskConfig,
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -390,6 +403,9 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 	assert.Equal(t, k8sres.MustParse("100Mi"), res.Requests[k8score.ResourceMemory])
 	assert.Equal(t, k8sres.MustParse("500Mi"), res.Limits[k8score.ResourceMemory])
 	assert.Equal(t, k8sres.MustParse("1"), res.Limits[k8score.ResourceName("nvidia.com/gpu")])
+
+	assert.Empty(t, taskConfig.Resources.Limits)
+	assert.Empty(t, taskConfig.Resources.Requests)
 }
 
 func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
@@ -410,6 +426,7 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	}
 	componentSpec := &pipelinespec.ComponentSpec{}
 	executorInput := &pipelinespec.ExecutorInput{}
+	taskConfig := &TaskConfig{}
 
 	podSpec, err := initPodSpecPatch(
 		containerSpec,
@@ -418,9 +435,11 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
+		taskConfig,
 	)
 	assert.Nil(t, err)
 	assert.Len(t, podSpec.Containers, 1)
@@ -431,6 +450,9 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 	assert.Equal(t, k8sres.MustParse("100Mi"), res.Requests[k8score.ResourceMemory])
 	assert.Equal(t, k8sres.MustParse("500Mi"), res.Limits[k8score.ResourceMemory])
 	assert.Equal(t, k8sres.MustParse("1"), res.Limits[k8score.ResourceName("nvidia.com/gpu")])
+
+	assert.Empty(t, taskConfig.Resources.Limits)
+	assert.Empty(t, taskConfig.Resources.Requests)
 }
 
 func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
@@ -453,6 +475,7 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 			},
 		},
 	}
+	taskConfig := &TaskConfig{}
 
 	podSpec, err := initPodSpecPatch(
 		containerSpec,
@@ -461,9 +484,11 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
+		taskConfig,
 	)
 	assert.Nil(t, err)
 
@@ -487,6 +512,9 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].Name, "oci-0")
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].MountPath, "/oci/registry.domain.local_my-model:latest")
 	assert.Equal(t, podSpec.Containers[1].VolumeMounts[0].SubPath, "registry.domain.local_my-model:latest")
+
+	assert.Empty(t, taskConfig.Resources.Limits)
+	assert.Empty(t, taskConfig.Resources.Requests)
 }
 
 // Validate that setting publishLogs to true propagates to the driver container
@@ -500,9 +528,11 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"true",
 		"false",
+		nil,
 	)
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
@@ -513,7 +543,6 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 			assert.Equal(t, cmd[idx+1], "true")
 		}
 	}
-
 }
 
 func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
@@ -614,6 +643,8 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			taskConfig := &TaskConfig{}
+
 			podSpec, err := initPodSpecPatch(
 				tt.args.container,
 				tt.args.componentSpec,
@@ -621,9 +652,11 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.executionID,
 				tt.args.pipelineName,
 				tt.args.runID,
+				"my-run-name",
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
+				taskConfig,
 			)
 			assert.Nil(t, err)
 			assert.NotEmpty(t, podSpec)
@@ -635,8 +668,64 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			if tt.notWant != "" {
 				assert.NotContains(t, string(podSpecString), tt.notWant)
 			}
+
+			assert.Empty(t, taskConfig.Resources.Limits)
+			assert.Empty(t, taskConfig.Resources.Requests)
 		})
 	}
+}
+
+func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.9",
+		Args:    []string{"--function_to_execute", "add"},
+		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
+			ResourceCpuLimit:      "2.0",
+			ResourceMemoryLimit:   "1.5",
+			ResourceCpuRequest:    "1.0",
+			ResourceMemoryRequest: "0.65G",
+		},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{
+		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
+			{
+				Field:       pipelinespec.TaskConfigPassthroughType_RESOURCES,
+				ApplyToTask: false,
+			},
+		},
+	}
+	executorInput := &pipelinespec.ExecutorInput{}
+
+	taskCfg := &TaskConfig{}
+	podSpec, err := initPodSpecPatch(
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		taskCfg,
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, podSpec)
+	assert.Len(t, podSpec.Containers, 1)
+
+	assert.Empty(t, podSpec.Containers[0].Resources.Requests)
+	assert.Empty(t, podSpec.Containers[0].Resources.Limits)
+
+	// Forwarded resources captured in TaskConfig
+	res := taskCfg.Resources
+	assert.True(t, res.Requests[k8score.ResourceCPU].Equal(k8sres.MustParse("1")))
+	assert.True(t, res.Limits[k8score.ResourceCPU].Equal(k8sres.MustParse("2")))
+	assert.True(t, res.Requests[k8score.ResourceMemory].Equal(k8sres.MustParse("0.65G")))
+	assert.True(t, res.Limits[k8score.ResourceMemory].Equal(k8sres.MustParse("1.5")))
 }
 
 func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
@@ -679,9 +768,11 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 		27,
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
+		"my-run-name",
 		"1",
 		"false",
 		"false",
+		nil,
 	)
 	require.Nil(t, err)
 
@@ -829,50 +920,58 @@ func TestNeedsWorkspaceMount(t *testing.T) {
 	}
 }
 
-func TestAddWorkspaceMount(t *testing.T) {
-	podSpec := &k8score.PodSpec{
-		Containers: []k8score.Container{
-			{
-				Name: "main",
-			},
-		},
-	}
-
+func TestGetWorkspaceMount(t *testing.T) {
 	pvcName := "test-workflow-kfp-workspace"
 
-	addWorkspaceMount(podSpec, pvcName)
+	workspaceVolume, workspaceVolumeMount := getWorkspaceMount(pvcName)
 
-	// Check that volume was added
-	if len(podSpec.Volumes) != 1 {
-		t.Errorf("Expected 1 volume, got %d", len(podSpec.Volumes))
+	if workspaceVolume.Name != "kfp-workspace" {
+		t.Errorf("Expected volume name kfp-workspace, got %s", workspaceVolume.Name)
 	}
 
-	volume := podSpec.Volumes[0]
-	if volume.Name != "kfp-workspace" {
-		t.Errorf("Expected volume name kfp-workspace, got %s", volume.Name)
-	}
-
-	if volume.PersistentVolumeClaim == nil {
+	if workspaceVolume.PersistentVolumeClaim == nil {
 		t.Error("Expected PersistentVolumeClaim to be set")
 	}
 
-	if volume.PersistentVolumeClaim.ClaimName != pvcName {
-		t.Errorf("Expected claim name %s, got %s", pvcName, volume.PersistentVolumeClaim.ClaimName)
+	if workspaceVolume.PersistentVolumeClaim.ClaimName != pvcName {
+		t.Errorf("Expected claim name %s, got %s", pvcName, workspaceVolume.PersistentVolumeClaim.ClaimName)
 	}
 
-	// Check that volume mount was added
-	if len(podSpec.Containers[0].VolumeMounts) != 1 {
-		t.Errorf("Expected 1 volume mount, got %d", len(podSpec.Containers[0].VolumeMounts))
+	if workspaceVolumeMount.Name != "kfp-workspace" {
+		t.Errorf("Expected volume mount name kfp-workspace, got %s", workspaceVolumeMount.Name)
 	}
 
-	volumeMount := podSpec.Containers[0].VolumeMounts[0]
-	if volumeMount.Name != "kfp-workspace" {
-		t.Errorf("Expected volume mount name kfp-workspace, got %s", volumeMount.Name)
+	if workspaceVolumeMount.MountPath != "/kfp-workspace" {
+		t.Errorf("Expected mount path /kfp-workspace, got %s", workspaceVolumeMount.MountPath)
 	}
+}
 
-	if volumeMount.MountPath != "/kfp-workspace" {
-		t.Errorf("Expected mount path /kfp-workspace, got %s", volumeMount.MountPath)
+// Ensure that when workspace is used, missing RunName leads to an error during pod spec init.
+func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	componentSpec := &pipelinespec.ComponentSpec{}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"workspace_param": {Kind: &structpb.Value_StringValue{StringValue: "{{$.workspace_path}}"}},
+			},
+		},
 	}
+	taskCfg := &TaskConfig{}
+	_, err := initPodSpecPatch(
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"run-id",
+		"", // runName intentionally empty
+		"1",
+		"false",
+		"false",
+		taskCfg,
+	)
+	require.NotNil(t, err)
 }
 
 func TestValidateVolumeMounts(t *testing.T) {
@@ -961,5 +1060,407 @@ func TestValidateVolumeMounts(t *testing.T) {
 				t.Errorf("Expected no error but got: %v", err)
 			}
 		})
+	}
+}
+
+func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	componentSpec := &pipelinespec.ComponentSpec{
+		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
+			{
+				Field:       pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES,
+				ApplyToTask: false,
+			},
+		},
+	}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"workspace_param": {Kind: &structpb.Value_StringValue{StringValue: "{{$.workspace_path}}"}},
+			},
+		},
+	}
+	taskCfg := &TaskConfig{}
+	podSpec, err := initPodSpecPatch(
+		containerSpec, componentSpec, executorInput,
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg,
+	)
+	assert.Nil(t, err)
+
+	// Should not mount workspace to pod (no volumes on pod), only capture to TaskConfig
+	assert.Empty(t, podSpec.Volumes)
+	assert.Empty(t, podSpec.Containers[0].VolumeMounts)
+	assert.NotEmpty(t, taskCfg.Volumes)
+	assert.NotEmpty(t, taskCfg.VolumeMounts)
+
+	if assert.Len(t, taskCfg.Volumes, 1) {
+		assert.Equal(t, "kfp-workspace", taskCfg.Volumes[0].Name)
+		if assert.NotNil(t, taskCfg.Volumes[0].PersistentVolumeClaim) {
+			assert.Equal(t, "my-run-name-kfp-workspace", taskCfg.Volumes[0].PersistentVolumeClaim.ClaimName)
+		}
+	}
+
+	if assert.Len(t, taskCfg.VolumeMounts, 1) {
+		assert.Equal(t, "kfp-workspace", taskCfg.VolumeMounts[0].Name)
+		assert.Equal(t, "/kfp-workspace", taskCfg.VolumeMounts[0].MountPath)
+	}
+}
+
+func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	componentSpec := &pipelinespec.ComponentSpec{
+		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
+			{
+				Field:       pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES,
+				ApplyToTask: true,
+			},
+		},
+	}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"workspace_param": {Kind: &structpb.Value_StringValue{StringValue: "{{$.workspace_path}}"}},
+			},
+		},
+	}
+	taskCfg := &TaskConfig{}
+	podSpec, err := initPodSpecPatch(
+		containerSpec, componentSpec, executorInput,
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg,
+	)
+	assert.Nil(t, err)
+	// Should mount workspace to pod and also capture to TaskConfig
+	assert.NotEmpty(t, podSpec.Volumes)
+	assert.NotEmpty(t, podSpec.Containers[0].VolumeMounts)
+	assert.NotEmpty(t, taskCfg.Volumes)
+	assert.NotEmpty(t, taskCfg.VolumeMounts)
+
+	if assert.Len(t, podSpec.Volumes, 1) {
+		assert.Equal(t, "kfp-workspace", podSpec.Volumes[0].Name)
+		if assert.NotNil(t, podSpec.Volumes[0].PersistentVolumeClaim) {
+			assert.Equal(t, "my-run-name-kfp-workspace", podSpec.Volumes[0].PersistentVolumeClaim.ClaimName)
+		}
+	}
+
+	if assert.Len(t, podSpec.Containers, 1) {
+		if assert.Len(t, podSpec.Containers[0].VolumeMounts, 1) {
+			assert.Equal(t, "kfp-workspace", podSpec.Containers[0].VolumeMounts[0].Name)
+			assert.Equal(t, "/kfp-workspace", podSpec.Containers[0].VolumeMounts[0].MountPath)
+		}
+	}
+
+	if assert.Len(t, taskCfg.Volumes, 1) {
+		assert.Equal(t, "kfp-workspace", taskCfg.Volumes[0].Name)
+		if assert.NotNil(t, taskCfg.Volumes[0].PersistentVolumeClaim) {
+			assert.Equal(t, "my-run-name-kfp-workspace", taskCfg.Volumes[0].PersistentVolumeClaim.ClaimName)
+		}
+	}
+
+	if assert.Len(t, taskCfg.VolumeMounts, 1) {
+		assert.Equal(t, "kfp-workspace", taskCfg.VolumeMounts[0].Name)
+		assert.Equal(t, "/kfp-workspace", taskCfg.VolumeMounts[0].MountPath)
+	}
+}
+
+func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image: "python:3.9",
+		Env: []*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_EnvVar{{
+			Name:  "FOO",
+			Value: "bar",
+		}},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{
+		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
+			{Field: pipelinespec.TaskConfigPassthroughType_ENV, ApplyToTask: false},
+		},
+	}
+	executorInput := &pipelinespec.ExecutorInput{}
+	taskCfg := &TaskConfig{}
+	podSpec, err := initPodSpecPatch(
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"run",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		taskCfg,
+	)
+	assert.Nil(t, err)
+
+	// Env should be captured to TaskConfig only, not applied to pod
+	assert.Empty(t, podSpec.Containers[0].Env)
+
+	if assert.Len(t, taskCfg.Env, 1) {
+		assert.Equal(t, "FOO", taskCfg.Env[0].Name)
+		assert.Equal(t, "bar", taskCfg.Env[0].Value)
+	}
+}
+
+func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "python:3.9",
+		Args:    []string{"--function_to_execute", "add"},
+		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
+			CpuLimit:      2.0,
+			MemoryLimit:   1.5,
+			CpuRequest:    1.0,
+			MemoryRequest: 0.65,
+		},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{
+		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
+			{Field: pipelinespec.TaskConfigPassthroughType_RESOURCES, ApplyToTask: true},
+		},
+	}
+	executorInput := &pipelinespec.ExecutorInput{}
+	taskCfg := &TaskConfig{}
+	podSpec, err := initPodSpecPatch(
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"run",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		taskCfg,
+	)
+	assert.Nil(t, err)
+	// Resources should be both on pod and in TaskConfig
+	assert.NotEmpty(t, podSpec.Containers[0].Resources.Requests)
+	assert.NotEmpty(t, podSpec.Containers[0].Resources.Limits)
+	assert.NotEmpty(t, taskCfg.Resources.Requests)
+	assert.NotEmpty(t, taskCfg.Resources.Limits)
+
+	resPod := podSpec.Containers[0].Resources
+	assert.Equal(t, k8sres.MustParse("1"), resPod.Requests[k8score.ResourceCPU])
+	assert.Equal(t, k8sres.MustParse("2"), resPod.Limits[k8score.ResourceCPU])
+	assert.Equal(t, k8sres.MustParse("0.65G"), resPod.Requests[k8score.ResourceMemory])
+	assert.Equal(t, k8sres.MustParse("1.5G"), resPod.Limits[k8score.ResourceMemory])
+
+	resCfg := taskCfg.Resources
+	assert.Equal(t, k8sres.MustParse("1"), resCfg.Requests[k8score.ResourceCPU])
+	assert.Equal(t, k8sres.MustParse("2"), resCfg.Limits[k8score.ResourceCPU])
+	assert.Equal(t, k8sres.MustParse("0.65G"), resCfg.Requests[k8score.ResourceMemory])
+	assert.Equal(t, k8sres.MustParse("1.5G"), resCfg.Limits[k8score.ResourceMemory])
+}
+
+func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthrough(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	componentSpec := &pipelinespec.ComponentSpec{
+		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
+			{Field: pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY, ApplyToTask: false},
+			{Field: pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR, ApplyToTask: false},
+			{Field: pipelinespec.TaskConfigPassthroughType_KUBERNETES_TOLERATIONS, ApplyToTask: false},
+		},
+	}
+
+	secs := int64(3600)
+	k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{
+		NodeSelector: &kubernetesplatform.NodeSelector{Labels: map[string]string{"disktype": "ssd"}},
+		Tolerations: []*kubernetesplatform.Toleration{{
+			Key:               "example-key",
+			Operator:          "Exists",
+			Effect:            "NoExecute",
+			TolerationSeconds: &secs,
+		}},
+		NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{{
+			MatchExpressions: []*kubernetesplatform.SelectorRequirement{{
+				Key:      "zone",
+				Operator: "In",
+				Values:   []string{"us-west-1"},
+			}},
+		}},
+	}
+
+	opts := Options{
+		PipelineName:             "p",
+		RunID:                    "r",
+		Component:                componentSpec,
+		Container:                containerSpec,
+		KubernetesExecutorConfig: k8sExecCfg,
+	}
+
+	executorInput := &pipelinespec.ExecutorInput{Inputs: &pipelinespec.ExecutorInput_Inputs{ParameterValues: map[string]*structpb.Value{}}}
+
+	taskCfg := &TaskConfig{}
+
+	podSpec, err := initPodSpecPatch(
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"run",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		taskCfg,
+	)
+	assert.Nil(t, err)
+
+	err = extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		opts,
+		nil,
+		nil,
+		nil,
+		map[string]*structpb.Value{},
+		taskCfg,
+	)
+	assert.Nil(t, err)
+
+	assert.Nil(t, podSpec.Affinity)
+	assert.Empty(t, podSpec.NodeSelector)
+	assert.Empty(t, podSpec.Tolerations)
+
+	assert.Equal(t, map[string]string{"disktype": "ssd"}, taskCfg.NodeSelector)
+	if assert.Len(t, taskCfg.Tolerations, 1) {
+		assert.Equal(t, "example-key", taskCfg.Tolerations[0].Key)
+		assert.Equal(t, k8score.TaintEffect("NoExecute"), taskCfg.Tolerations[0].Effect)
+		if assert.NotNil(t, taskCfg.Tolerations[0].TolerationSeconds) {
+			assert.Equal(t, int64(3600), *taskCfg.Tolerations[0].TolerationSeconds)
+		}
+	}
+
+	if assert.NotNil(t, taskCfg.Affinity) && assert.NotNil(t, taskCfg.Affinity.NodeAffinity) {
+		if assert.NotNil(t, taskCfg.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution) {
+			terms := taskCfg.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms
+			if assert.NotEmpty(t, terms) && assert.NotEmpty(t, terms[0].MatchExpressions) {
+				expr := terms[0].MatchExpressions[0]
+				assert.Equal(t, "zone", expr.Key)
+				assert.Equal(t, k8score.NodeSelectorOpIn, expr.Operator)
+				assert.Equal(t, []string{"us-west-1"}, expr.Values)
+			}
+		}
+	}
+}
+
+func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAndCapture(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	componentSpec := &pipelinespec.ComponentSpec{
+		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
+			{Field: pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY, ApplyToTask: true},
+			{Field: pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR, ApplyToTask: true},
+			{Field: pipelinespec.TaskConfigPassthroughType_KUBERNETES_TOLERATIONS, ApplyToTask: true},
+		},
+	}
+
+	secs := int64(3600)
+	weight := int32(100)
+	k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{
+		NodeSelector: &kubernetesplatform.NodeSelector{Labels: map[string]string{"disktype": "ssd"}},
+		Tolerations: []*kubernetesplatform.Toleration{{
+			Key:               "example-key",
+			Operator:          "Exists",
+			Effect:            "NoExecute",
+			TolerationSeconds: &secs,
+		}},
+		NodeAffinity: []*kubernetesplatform.NodeAffinityTerm{{
+			MatchExpressions: []*kubernetesplatform.SelectorRequirement{{
+				Key:      "zone",
+				Operator: "In",
+				Values:   []string{"us-west-1"},
+			}},
+			Weight: &weight,
+		}},
+	}
+
+	opts := Options{
+		PipelineName:             "p",
+		RunID:                    "r",
+		Component:                componentSpec,
+		Container:                containerSpec,
+		KubernetesExecutorConfig: k8sExecCfg,
+	}
+
+	executorInput := &pipelinespec.ExecutorInput{Inputs: &pipelinespec.ExecutorInput_Inputs{ParameterValues: map[string]*structpb.Value{}}}
+	taskCfg := &TaskConfig{}
+
+	podSpec, err := initPodSpecPatch(
+		containerSpec,
+		componentSpec,
+		executorInput,
+		27,
+		"test",
+		"run",
+		"my-run-name",
+		"1",
+		"false",
+		"false",
+		taskCfg,
+	)
+	assert.Nil(t, err)
+
+	err = extendPodSpecPatch(
+		context.Background(),
+		podSpec,
+		opts,
+		nil,
+		nil,
+		nil,
+		map[string]*structpb.Value{},
+		taskCfg,
+	)
+	assert.Nil(t, err)
+
+	assert.Equal(t, map[string]string{"disktype": "ssd"}, podSpec.NodeSelector)
+	if assert.Len(t, podSpec.Tolerations, 1) {
+		assert.Equal(t, "example-key", podSpec.Tolerations[0].Key)
+		assert.Equal(t, k8score.TaintEffect("NoExecute"), podSpec.Tolerations[0].Effect)
+		if assert.NotNil(t, podSpec.Tolerations[0].TolerationSeconds) {
+			assert.Equal(t, int64(3600), *podSpec.Tolerations[0].TolerationSeconds)
+		}
+	}
+
+	if assert.NotNil(t, podSpec.Affinity) && assert.NotNil(t, podSpec.Affinity.NodeAffinity) {
+		prefs := podSpec.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution
+		if assert.NotEmpty(t, prefs) {
+			assert.Equal(t, int32(100), prefs[0].Weight)
+			if assert.NotEmpty(t, prefs[0].Preference.MatchExpressions) {
+				expr := prefs[0].Preference.MatchExpressions[0]
+				assert.Equal(t, "zone", expr.Key)
+				assert.Equal(t, k8score.NodeSelectorOpIn, expr.Operator)
+				assert.Equal(t, []string{"us-west-1"}, expr.Values)
+			}
+		}
+	}
+
+	assert.Equal(t, map[string]string{"disktype": "ssd"}, taskCfg.NodeSelector)
+	if assert.Len(t, taskCfg.Tolerations, 1) {
+		assert.Equal(t, "example-key", taskCfg.Tolerations[0].Key)
+		assert.Equal(t, k8score.TaintEffect("NoExecute"), taskCfg.Tolerations[0].Effect)
+		if assert.NotNil(t, taskCfg.Tolerations[0].TolerationSeconds) {
+			assert.Equal(t, int64(3600), *taskCfg.Tolerations[0].TolerationSeconds)
+		}
+	}
+
+	if assert.NotNil(t, taskCfg.Affinity) && assert.NotNil(t, taskCfg.Affinity.NodeAffinity) {
+		prefs := taskCfg.Affinity.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution
+		if assert.NotEmpty(t, prefs) {
+			assert.Equal(t, int32(100), prefs[0].Weight)
+			if assert.NotEmpty(t, prefs[0].Preference.MatchExpressions) {
+				expr := prefs[0].Preference.MatchExpressions[0]
+				assert.Equal(t, "zone", expr.Key)
+				assert.Equal(t, k8score.NodeSelectorOpIn, expr.Operator)
+				assert.Equal(t, []string{"us-west-1"}, expr.Values)
+			}
+		}
 	}
 }

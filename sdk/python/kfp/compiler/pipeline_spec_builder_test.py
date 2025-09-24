@@ -13,12 +13,19 @@
 # limitations under the License.
 """Tests for kfp.compiler.pipeline_spec_builder."""
 
+import os
+import tempfile
 import unittest
 
 from absl.testing import parameterized
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
+import kfp
+from kfp import dsl
+from kfp import kubernetes
+from kfp.compiler import compiler
 from kfp.compiler import pipeline_spec_builder
+from kfp.dsl import TaskConfigField
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 
@@ -404,6 +411,148 @@ class TestMergePlatformSpecs(unittest.TestCase):
 
         pipeline_spec_builder.merge_platform_specs(base_spec, sub_spec)
         self.assertEqual(base_spec, expected)
+
+
+class TestTaskConfigPassthroughValidation(unittest.TestCase):
+
+    def test_resources_set_without_passthrough_raises(self):
+
+        @dsl.component(task_config_passthroughs=[TaskConfigField.ENV])
+        def comp():
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Task 'comp' cannot handle resource type 'RESOURCES'"):
+
+            @dsl.pipeline
+            def pipe():
+                t = comp()
+                t.set_cpu_limit('1')
+
+    def test_env_set_without_passthrough_raises(self):
+
+        @dsl.component(task_config_passthroughs=[TaskConfigField.RESOURCES])
+        def comp():
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError, r"Task 'comp' cannot handle resource type 'ENV'"):
+
+            @dsl.pipeline
+            def pipe():
+                t = comp()
+                t.set_env_variable('A', 'B')
+
+    def test_tolerations_without_passthrough_raises(self):
+
+        @dsl.component(task_config_passthroughs=[TaskConfigField.RESOURCES])
+        def comp():
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Task 'comp' cannot handle resource type 'KUBERNETES_TOLERATIONS'"
+        ):
+
+            @dsl.pipeline
+            def pipe():
+                t = comp()
+                kubernetes.add_toleration(t, key='k', operator='Exists')
+
+    def test_node_selector_without_passthrough_raises(self):
+
+        @dsl.component(task_config_passthroughs=[TaskConfigField.RESOURCES])
+        def comp():
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Task 'comp' cannot handle resource type 'KUBERNETES_NODE_SELECTOR'"
+        ):
+
+            @dsl.pipeline
+            def pipe():
+                t = comp()
+                kubernetes.add_node_selector(t, label_key='k', label_value='v')
+
+    def test_affinity_without_passthrough_raises(self):
+
+        @dsl.component(task_config_passthroughs=[TaskConfigField.RESOURCES])
+        def comp():
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Task 'comp' cannot handle resource type 'KUBERNETES_AFFINITY'"
+        ):
+
+            @dsl.pipeline
+            def pipe():
+                t = comp()
+                kubernetes.add_node_affinity(
+                    t,
+                    match_expressions=[{
+                        'key': 'disktype',
+                        'operator': 'In',
+                        'values': ['ssd']
+                    }],
+                )
+
+    def test_volumes_without_passthrough_raises(self):
+
+        @dsl.component(task_config_passthroughs=[TaskConfigField.RESOURCES])
+        def comp():
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Task 'comp' cannot handle resource type 'KUBERNETES_VOLUMES'"
+        ):
+
+            @dsl.pipeline
+            def pipe():
+                t = comp()
+                kubernetes.mount_pvc(t, pvc_name='my-pvc', mount_path='/mnt')
+
+
+class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
+
+    def test_all_passthroughs_allow_all_settings_compiles(self):
+
+        @dsl.component(task_config_passthroughs=[
+            TaskConfigField.RESOURCES,
+            TaskConfigField.ENV,
+            TaskConfigField.KUBERNETES_TOLERATIONS,
+            TaskConfigField.KUBERNETES_NODE_SELECTOR,
+            TaskConfigField.KUBERNETES_AFFINITY,
+            TaskConfigField.KUBERNETES_VOLUMES,
+        ])
+        def comp():
+            pass
+
+        @dsl.pipeline
+        def pipe():
+            t = comp()
+            # Set container resources and env
+            t.set_cpu_limit('1')
+            t.set_env_variable('A', 'B')
+            # Set Kubernetes platform configs
+            kubernetes.add_toleration(t, key='k', operator='Exists')
+            kubernetes.add_node_selector(t, label_key='k', label_value='v')
+            kubernetes.add_node_affinity(
+                t,
+                match_expressions=[{
+                    'key': 'disktype',
+                    'operator': 'In',
+                    'values': ['ssd']
+                }])
+            kubernetes.mount_pvc(t, pvc_name='my-pvc', mount_path='/mnt')
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipe, package_path=package_path)
 
 
 def pipeline_spec_from_file(filepath: str) -> str:

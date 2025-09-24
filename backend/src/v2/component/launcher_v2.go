@@ -171,6 +171,11 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 	var outputArtifacts []*metadata.OutputArtifact
 	status := pb.Execution_FAILED
 	defer func() {
+		if execution == nil {
+			glog.Errorf("Skipping publish since execution is nil. Original err is: %v", err)
+			return
+		}
+
 		if perr := l.publish(ctx, execution, executorOutput, outputArtifacts, status); perr != nil {
 			if err != nil {
 				err = fmt.Errorf("failed to publish execution with error %s after execution failed: %s", perr.Error(), err.Error())
@@ -312,17 +317,25 @@ func (l *LauncherV2) publish(
 	outputArtifacts []*metadata.OutputArtifact,
 	status pb.Execution_State,
 ) (err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("failed to publish results to ML Metadata: %w", err)
-		}
-	}()
-	outputParameters := executorOutput.GetParameterValues()
+	if execution == nil {
+		return fmt.Errorf("failed to publish results to ML Metadata: execution is nil")
+	}
+
+	var outputParameters map[string]*structpb.Value
+	if executorOutput != nil {
+		outputParameters = executorOutput.GetParameterValues()
+	}
+
 	// TODO(Bobgy): upload output artifacts.
 	// TODO(Bobgy): when adding artifacts, we will need execution.pipeline to be non-nil, because we need
 	// to publish output artifacts to the context too.
 	// return l.metadataClient.PublishExecution(ctx, execution, outputParameters, outputArtifacts, pb.Execution_COMPLETE)
-	return l.clientManager.MetadataClient().PublishExecution(ctx, execution, outputParameters, outputArtifacts, status)
+	err = l.clientManager.MetadataClient().PublishExecution(ctx, execution, outputParameters, outputArtifacts, status)
+	if err != nil {
+		return fmt.Errorf("failed to publish results to ML Metadata: %w", err)
+	}
+
+	return nil
 }
 
 // executeV2 handles placeholder substitution for inputs, calls execute to

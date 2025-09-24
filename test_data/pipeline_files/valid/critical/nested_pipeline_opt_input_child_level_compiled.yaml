@@ -1,0 +1,340 @@
+# PIPELINE DEFINITION
+# Name: nested-pipeline-opt-input-child-level
+components:
+  comp-component-a-bool:
+    executorLabel: exec-component-a-bool
+    inputDefinitions:
+      parameters:
+        componentInputBool:
+          isOptional: true
+          parameterType: BOOLEAN
+  comp-component-a-int:
+    executorLabel: exec-component-a-int
+    inputDefinitions:
+      parameters:
+        componentInputInt:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+  comp-component-a-str:
+    executorLabel: exec-component-a-str
+    inputDefinitions:
+      parameters:
+        componentInputStr:
+          isOptional: true
+          parameterType: STRING
+  comp-component-b-bool:
+    executorLabel: exec-component-b-bool
+    inputDefinitions:
+      parameters:
+        componentInputBool:
+          isOptional: true
+          parameterType: BOOLEAN
+  comp-component-b-int:
+    executorLabel: exec-component-b-int
+    inputDefinitions:
+      parameters:
+        componentInputInt:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+  comp-component-b-str:
+    executorLabel: exec-component-b-str
+    inputDefinitions:
+      parameters:
+        componentInputStr:
+          isOptional: true
+          parameterType: STRING
+  comp-nested-pipeline:
+    dag:
+      tasks:
+        component-a-bool:
+          cachingOptions: {}
+          componentRef:
+            name: comp-component-a-bool
+          inputs:
+            parameters:
+              componentInputBool:
+                componentInputParameter: nestedInputBool1
+          taskInfo:
+            name: component-a-bool
+        component-a-int:
+          cachingOptions: {}
+          componentRef:
+            name: comp-component-a-int
+          inputs:
+            parameters:
+              componentInputInt:
+                componentInputParameter: nestedInputInt1
+          taskInfo:
+            name: component-a-int
+        component-a-str:
+          cachingOptions: {}
+          componentRef:
+            name: comp-component-a-str
+          inputs:
+            parameters:
+              componentInputStr:
+                componentInputParameter: nestedInputStr1
+          taskInfo:
+            name: component-a-str
+        component-b-bool:
+          cachingOptions: {}
+          componentRef:
+            name: comp-component-b-bool
+          inputs:
+            parameters:
+              componentInputBool:
+                componentInputParameter: nestedInputBool2
+          taskInfo:
+            name: component-b-bool
+        component-b-int:
+          cachingOptions: {}
+          componentRef:
+            name: comp-component-b-int
+          inputs:
+            parameters:
+              componentInputInt:
+                componentInputParameter: nestedInputInt2
+          taskInfo:
+            name: component-b-int
+        component-b-str:
+          cachingOptions: {}
+          componentRef:
+            name: comp-component-b-str
+          inputs:
+            parameters:
+              componentInputStr:
+                componentInputParameter: nestedInputStr2
+          taskInfo:
+            name: component-b-str
+    inputDefinitions:
+      parameters:
+        nestedInputBool1:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        nestedInputBool2:
+          defaultValue: false
+          isOptional: true
+          parameterType: BOOLEAN
+        nestedInputInt1:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        nestedInputInt2:
+          defaultValue: 0.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        nestedInputStr1:
+          defaultValue: Input 1 - nested pipeline
+          isOptional: true
+          parameterType: STRING
+        nestedInputStr2:
+          defaultValue: Input 2 - nested pipeline
+          isOptional: true
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-component-a-bool:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_a_bool
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_a_bool(componentInputBool: bool = None):\n    if componentInputBool\
+          \ != True:\n        raise ValueError(f\"componentInputBool should be True\
+          \ but is {componentInputBool}\")\n\n"
+        image: python:3.9
+    exec-component-a-int:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_a_int
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_a_int(componentInputInt: int = None):\n    if componentInputInt\
+          \ != 1:\n        raise ValueError(f\"componentInputInt should be 1 but is\
+          \ {componentInputInt}\")\n\n"
+        image: python:3.9
+    exec-component-a-str:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_a_str
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_a_str(componentInputStr: str = None):\n    if componentInputStr\
+          \ != 'Input - pipeline':\n        raise ValueError(f\"componentInputStr\
+          \ should be 'Input - pipeline' but is {componentInputStr}\")\n\n"
+        image: python:3.9
+    exec-component-b-bool:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_b_bool
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_b_bool(componentInputBool: bool = None):\n    if componentInputBool\
+          \ != False:\n        raise ValueError(f\"componentInputBool should be False\
+          \ but is {componentInputBool}\")\n\n"
+        image: python:3.9
+    exec-component-b-int:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_b_int
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_b_int(componentInputInt: int = None):\n    if componentInputInt\
+          \ != 0:\n        raise ValueError(f\"componentInputInt should be 0 but is\
+          \ {componentInputInt}\")\n\n"
+        image: python:3.9
+    exec-component-b-str:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_b_str
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_b_str(componentInputStr: str = None):\n    if componentInputStr\
+          \ != 'Input 2 - nested pipeline':\n        raise ValueError(f\"componentInputStr\
+          \ should be 'Input 2 - nested pipeline' but is {componentInputStr}\")\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: nested-pipeline-opt-input-child-level
+root:
+  dag:
+    tasks:
+      nested-pipeline:
+        cachingOptions: {}
+        componentRef:
+          name: comp-nested-pipeline
+        inputs:
+          parameters:
+            nestedInputBool1:
+              runtimeValue:
+                constant: true
+            nestedInputInt1:
+              runtimeValue:
+                constant: 1.0
+            nestedInputStr1:
+              runtimeValue:
+                constant: Input - pipeline
+        taskInfo:
+          name: nested-pipeline
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.2

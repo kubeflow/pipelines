@@ -1,8 +1,10 @@
 module github.com/kubeflow/pipelines/api
 
-go 1.23
+go 1.24.7
 
 require (
-	google.golang.org/genproto v0.0.0-20211026145609-4688e4c4e024
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250715232539-7130f93afb79
+	google.golang.org/protobuf v1.36.6
 )
+
+require github.com/google/go-cmp v0.6.0 // indirect

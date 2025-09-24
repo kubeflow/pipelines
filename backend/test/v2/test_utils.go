@@ -21,8 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cenkalti/backoff"
-	"github.com/golang/glog"
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
@@ -32,6 +30,9 @@ import (
 	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+
+	"github.com/cenkalti/backoff"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

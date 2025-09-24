@@ -1,0 +1,142 @@
+# PIPELINE DEFINITION
+# Name: parameter-cache-pipeline
+components:
+  comp-core:
+    dag:
+      outputs:
+        parameters:
+          Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: core-comp
+      tasks:
+        core-comp:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-core-comp
+          taskInfo:
+            name: core-comp
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-core-comp:
+    executorLabel: exec-core-comp
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-crust-comp:
+    executorLabel: exec-crust-comp
+    inputDefinitions:
+      parameters:
+        input:
+          parameterType: STRING
+  comp-mantle:
+    dag:
+      outputs:
+        parameters:
+          Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: core
+      tasks:
+        core:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-core
+          taskInfo:
+            name: core
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-core-comp:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - core_comp
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef core_comp() -> str:\n    return 'foo'\n\n"
+        image: python:3.9
+    exec-crust-comp:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - crust_comp
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.13.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef crust_comp(input: str):\n    print('input :', input)\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: parameter-cache-pipeline
+root:
+  dag:
+    tasks:
+      crust-comp:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-crust-comp
+        dependentTasks:
+        - mantle
+        inputs:
+          parameters:
+            input:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: mantle
+        taskInfo:
+          name: crust-comp
+      mantle:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-mantle
+        taskInfo:
+          name: mantle
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
