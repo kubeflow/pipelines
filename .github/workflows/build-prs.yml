@@ -159,7 +159,7 @@ jobs:
 
           To use and deploy a DSP stack with these images (assuming the DSPO is deployed), first save the following YAML to a file named `dspa.pr-${{ needs.fetch-data.outputs.pr_number}}.yaml`:
           ```yaml
-          apiVersion: datasciencepipelinesapplications.opendatahub.io/v1alpha1
+          apiVersion: datasciencepipelinesapplications.opendatahub.io/v1
           kind: DataSciencePipelinesApplication
           metadata:
             name: pr-${{ needs.fetch-data.outputs.pr_number}}
