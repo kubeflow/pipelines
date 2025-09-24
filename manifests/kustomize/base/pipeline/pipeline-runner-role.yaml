@@ -33,7 +33,7 @@ rules:
   - delete
   - get
 - apiGroups:
-    - argoproj.io
+  - argoproj.io
   resources:
   - workflows
   - workflowtaskresults
