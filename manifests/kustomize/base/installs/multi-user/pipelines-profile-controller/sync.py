@@ -37,7 +37,8 @@ def main():
 
 def get_settings_from_env(controller_port=None,
                           visualization_server_image=None, frontend_image=None,
-                          visualization_server_tag=None, frontend_tag=None, disable_istio_sidecar=None):
+                          visualization_server_tag=None, frontend_tag=None, disable_istio_sidecar=None,
+                          artifacts_proxy_enabled=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
 
@@ -67,6 +68,10 @@ def get_settings_from_env(controller_port=None,
         frontend_image or \
         os.environ.get("FRONTEND_IMAGE", "ghcr.io/kubeflow/kfp-frontend")
 
+    settings["artifacts_proxy_enabled"] = \
+        artifacts_proxy_enabled or \
+        os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
+
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
@@ -89,7 +94,7 @@ def get_settings_from_env(controller_port=None,
 
 def server_factory(visualization_server_image,
                    visualization_server_tag, frontend_image, frontend_tag,
-                   disable_istio_sidecar, url="", controller_port=8080):
+                   disable_istio_sidecar, artifacts_proxy_enabled=True, url="", controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
     """
@@ -125,16 +130,22 @@ def server_factory(visualization_server_image,
 
             if pipeline_enabled != "true":
                 return {"status": {}, "attachments": []}
+            
+            # Set desired resource counts
+            desired_deployment_count = 0
+            desired_service_count = 0
+            
+            if artifacts_proxy_enabled:
+                desired_deployment_count += 1  # ml-pipeline-ui-artifact
+                desired_service_count += 1     # ml-pipeline-ui-artifact
 
             # Compute status based on observed state.
             desired_status = {
                 "kubeflow-pipelines-ready":
                     len(attachments["Secret.v1"]) == 1 and
                     len(attachments["ConfigMap.v1"]) == 3 and
-                    len(attachments["Deployment.apps/v1"]) == 2 and
-                    len(attachments["Service.v1"]) == 2 and
-                    len(attachments["DestinationRule.networking.istio.io/v1alpha3"]) == 1 and
-                    len(attachments["AuthorizationPolicy.security.istio.io/v1beta1"]) == 1 and
+                    len(attachments["Deployment.apps/v1"]) == desired_deployment_count and
+                    len(attachments["Service.v1"]) == desired_service_count and
                     "True" or "False"
             }
 
@@ -195,6 +206,107 @@ def server_factory(visualization_server_image,
                     }
                 },
             ]
+            
+            # Add artifact fetcher related resources if enabled
+            if artifacts_proxy_enabled:
+                desired_resources.extend([
+                    {
+                        "apiVersion": "apps/v1",
+                        "kind": "Deployment",
+                        "metadata": {
+                            "labels": {
+                                "app": "ml-pipeline-ui-artifact"
+                            },
+                            "name": "ml-pipeline-ui-artifact",
+                            "namespace": namespace,
+                        },
+                        "spec": {
+                            "selector": {
+                                "matchLabels": {
+                                    "app": "ml-pipeline-ui-artifact"
+                                }
+                            },
+                            "template": {
+                                "metadata": {
+                                    "labels": {
+                                        "app": "ml-pipeline-ui-artifact"
+                                    },
+                                    "annotations": disable_istio_sidecar and {
+                                        "sidecar.istio.io/inject": "false"
+                                    } or {},
+                                },
+                                "spec": {
+                                    "containers": [{
+                                        "name":
+                                            "ml-pipeline-ui-artifact",
+                                        "image": f"{frontend_image}:{frontend_tag}",
+                                        "imagePullPolicy":
+                                            "IfNotPresent",
+                                        "ports": [{
+                                            "containerPort": 3000
+                                        }],
+                                        "env": [
+                                            {
+                                                "name": "MINIO_ACCESS_KEY",
+                                                "valueFrom": {
+                                                    "secretKeyRef": {
+                                                        "key": "accesskey",
+                                                        "name": "mlpipeline-minio-artifact"
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "name": "MINIO_SECRET_KEY",
+                                                "valueFrom": {
+                                                    "secretKeyRef": {
+                                                        "key": "secretkey",
+                                                        "name": "mlpipeline-minio-artifact"
+                                                    }
+                                                }
+                                            }
+                                        ],
+                                        "resources": {
+                                            "requests": {
+                                                "cpu": "10m",
+                                                "memory": "70Mi"
+                                            },
+                                            "limits": {
+                                                "cpu": "100m",
+                                                "memory": "500Mi"
+                                            },
+                                        }
+                                    }],
+                                    "serviceAccountName":
+                                        "default-editor"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "apiVersion": "v1",
+                        "kind": "Service",
+                        "metadata": {
+                            "name": "ml-pipeline-ui-artifact",
+                            "namespace": namespace,
+                            "labels": {
+                                "app": "ml-pipeline-ui-artifact"
+                            }
+                        },
+                        "spec": {
+                            "ports": [{
+                                "name":
+                                    "http",  # name is required to let istio understand request protocol
+                                "port": 80,
+                                "protocol": "TCP",
+                                "targetPort": 3000
+                            }],
+                            "selector": {
+                                "app": "ml-pipeline-ui-artifact"
+                            }
+                        }
+                    },
+                ])
+            
             print('Received request:\n', json.dumps(parent, sort_keys=True))
             print('Desired resources except secrets:\n', json.dumps(desired_resources, sort_keys=True))
 
