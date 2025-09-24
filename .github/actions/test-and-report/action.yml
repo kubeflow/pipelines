@@ -49,6 +49,10 @@ inputs:
     default: ""
     description: "Override it if you want a custom name for your test report file"
 
+outputs:
+  report_artifact_name:
+    description: "Artifact name for the HTML report"
+    value: ${{ steps.name_gen.outputs.REPORT_NAME }}
 
 runs:
   using: "composite"
@@ -106,12 +110,19 @@ runs:
     - name: Configure report name
       id: name_gen
       shell: bash
+      env:
+        RUN_STATUS: ${{ steps.run-tests.outcome }}
       run: |
         REPORT_NAME="HTML Report - ${{ inputs.report_name }}"
-        if [ -z ${{ inputs.report_name }} ]; then
+        if [ -z "${{ inputs.report_name }}" ]; then
           uuid=$(uuidgen)
           REPORT_NAME="HTML Report - ${{ github.run_id }}_${{ github.job }}_$uuid"
         fi
+        PREFIX="✅ "
+        if [ "${RUN_STATUS}" != "success" ]; then
+          PREFIX="❌ "
+        fi
+        REPORT_NAME="${PREFIX}${REPORT_NAME}"
         echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_OUTPUT
 
     - name: Upload HTML Report
@@ -123,6 +134,16 @@ runs:
         path: ${{ inputs.test_directory }}/reports/test-report.html
         retention-days: 30
       continue-on-error: true
+
+    - name: Add report links to job summary
+      if: always()
+      shell: bash
+      env:
+        ARTIFACT_NAME: ${{ steps.name_gen.outputs.REPORT_NAME }}
+      run: |
+        {
+          echo "HTML report artifact: [${ARTIFACT_NAME}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}#artifacts)"
+        } >> "$GITHUB_STEP_SUMMARY"
 
     - name: Mark Workflow failure if test step failed
       if: steps.run-tests.outcome != 'success' && !cancelled()
