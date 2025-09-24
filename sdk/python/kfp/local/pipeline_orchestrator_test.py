@@ -703,7 +703,9 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
                 with open(file_path, 'r') as f:
                     return f.read()
 
-            @dsl.pipeline
+            @dsl.pipeline(
+                pipeline_config=dsl.PipelineConfig(
+                    workspace=dsl.WorkspaceConfig(size='1Gi')))
             def my_pipeline(text: str = 'Hello workspace!') -> str:
                 # Write to workspace
                 write_task = write_to_workspace(

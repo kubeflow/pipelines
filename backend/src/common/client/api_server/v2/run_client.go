@@ -16,6 +16,7 @@ package api_server_v2
 
 import (
 	"fmt"
+	httptransport "github.com/go-openapi/runtime/client"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
@@ -71,6 +72,24 @@ func NewKubeflowInClusterRunClient(namespace string, debug bool) (
 	return &RunClient{
 		apiClient:      apiClient,
 		authInfoWriter: api_server.SATokenVolumeProjectionAuth,
+	}, nil
+}
+
+func NewMultiUserRunClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool) (
+	*RunClient, error) {
+
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	if err != nil {
+		return nil, fmt.Errorf("Error occurred when creating run client: %w", err)
+	}
+
+	runtime.DefaultAuthentication = httptransport.BearerToken(userToken)
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating run client
+	return &RunClient{
+		apiClient:      apiClient,
+		authInfoWriter: api_server.TokenToAuthInfo(userToken),
 	}, nil
 }
 
