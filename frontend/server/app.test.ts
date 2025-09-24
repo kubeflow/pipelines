@@ -374,7 +374,7 @@ describe('UIServer apis', () => {
     beforeEach(() => {
       const kfpApiPort = 3001;
       kfpApiServer = express()
-        .all('/{*splat}', (_, res) => {
+        .all('/*', (_, res) => {
           res.status(200).send('KFP API is working');
         })
         .listen(kfpApiPort);
