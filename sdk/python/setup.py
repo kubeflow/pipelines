@@ -54,12 +54,13 @@ def read_readme() -> str:
         return f.read()
 
 
+_version = find_version('kfp', 'version.py')
 docker = ['docker']
-kubernetes = ['kfp-kubernetes<2']
+kubernetes = [f'kfp-kubernetes=={_version}']
 
 setuptools.setup(
     name='kfp',
-    version=find_version('kfp', 'version.py'),
+    version=_version,
     description='Kubeflow Pipelines SDK',
     long_description=read_readme(),
     long_description_content_type='text/markdown',
