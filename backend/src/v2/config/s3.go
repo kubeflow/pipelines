@@ -37,6 +37,8 @@ type S3ProviderDefault struct {
 	DisableSSL *bool `json:"disableSSL"`
 	// optional
 	ForcePathStyle *bool `json:"forcePathStyle"`
+	// optional
+	MaxRetries *int `json:"maxRetries"`
 }
 
 type S3Credentials struct {
@@ -57,6 +59,8 @@ type S3Override struct {
 	Credentials *S3Credentials `json:"credentials"`
 	// optional
 	ForcePathStyle *bool `json:"forcePathStyle"`
+	// optional
+	MaxRetries *int `json:"maxRetries"`
 }
 type S3SecretRef struct {
 	SecretName string `json:"secretName"`
@@ -109,6 +113,11 @@ func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionIn
 	} else {
 		params["forcePathStyle"] = strconv.FormatBool(*p.Default.ForcePathStyle)
 	}
+	if p.Default.MaxRetries == nil {
+		params["maxRetries"] = strconv.FormatInt(5, 10)
+	} else {
+		params["maxRetries"] = strconv.FormatInt(int64(*p.Default.MaxRetries), 10)
+	}
 
 	params["fromEnv"] = strconv.FormatBool(p.Default.Credentials.FromEnv)
 	if !p.Default.Credentials.FromEnv {
@@ -137,6 +146,9 @@ func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionIn
 		}
 		if override.ForcePathStyle != nil {
 			sessionInfo.Params["forcePathStyle"] = strconv.FormatBool(*override.ForcePathStyle)
+		}
+		if override.MaxRetries != nil {
+			sessionInfo.Params["maxRetries"] = strconv.FormatInt(int64(*p.Default.MaxRetries), 10)
 		}
 		if override.Credentials == nil {
 			return objectstore.SessionInfo{}, invalidConfigErr(fmt.Errorf("missing override credentials"))
