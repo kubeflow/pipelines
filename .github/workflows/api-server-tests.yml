@@ -115,7 +115,7 @@ jobs:
       - name: Collect Pod logs in case of Test Failures
         id: collect-logs
         if: ${{ steps.api-tests.outcome != 'success' || steps.create-kfp-cluster.outcome != 'success' }}
-
+        run: |
           echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
           echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
           echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
