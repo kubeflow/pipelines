@@ -18,9 +18,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"runtime"
 
 	"github.com/cenkalti/backoff"
 	mysqlStd "github.com/go-sql-driver/mysql"
@@ -39,7 +43,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"k8s.io/apimachinery/pkg/runtime"
+	apiruntime "k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -72,10 +76,10 @@ const (
 	clientBurst = "ClientBurst"
 )
 
-var scheme *runtime.Scheme
+var scheme *apiruntime.Scheme
 
 func init() {
-	scheme = runtime.NewScheme()
+	scheme = apiruntime.NewScheme()
 
 	err := k8sapi.AddToScheme(scheme)
 	if err != nil {
@@ -202,6 +206,26 @@ func (c *ClientManager) DBDialect() sqldrv.DBDialect {
 	return c.dbDialect
 }
 
+func logHeapUsage(stage string) {
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	glog.Infof("[mem] %s: HeapAlloc=%.2f MB, TotalAlloc=%.2f MB, Sys=%.2f MB", stage,
+		float64(ms.HeapAlloc)/1024/1024,
+		float64(ms.TotalAlloc)/1024/1024,
+		float64(ms.Sys)/1024/1024)
+}
+
+func profilingSleep(stage string) {
+	dur := 2 * time.Second
+	if v := os.Getenv("CLIENT_MANAGER_PROFILING_SLEEP_SECONDS"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil && parsed > 0 {
+			dur = time.Duration(parsed) * time.Second
+		}
+	}
+	glog.Infof("[profiling] sleeping %v %s", dur, stage)
+	time.Sleep(dur)
+}
+
 func (c *ClientManager) init(options *Options) error {
 	// time
 	c.time = util.NewRealTime()
@@ -269,10 +293,14 @@ func (c *ClientManager) init(options *Options) error {
 	}
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
+	profilingSleep("before InitDBClient")
+	logHeapUsage("before InitDBClient")
 	db, dbDialect := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
 	c.dbDialect = dbDialect
 	glog.Info("DB client initialized successfully")
+	logHeapUsage("after InitDBClient")
+	profilingSleep("after InitDBClient")
 
 	c.db = db
 	if !options.UsePipelineKubernetesStorage {
@@ -285,8 +313,12 @@ func (c *ClientManager) init(options *Options) error {
 	c.dBStatusStore = storage.NewDBStatusStore(db, c.dbDialect)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db, c.dbDialect)
 	glog.Info("Initializing Object store client...")
+	profilingSleep("before initMinioClient")
+	logHeapUsage("before initMinioClient")
 	c.objectStore = initMinioClient(options.Context, common.GetDurationConfig(initConnectionTimeout))
 	glog.Info("Object store client initialized successfully")
+	logHeapUsage("after initMinioClient")
+	profilingSleep("after initMinioClient")
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	clientParams := util.ClientParameters{
