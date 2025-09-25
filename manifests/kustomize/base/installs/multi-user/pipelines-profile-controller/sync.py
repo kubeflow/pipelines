@@ -35,9 +35,8 @@ def main():
     server.serve_forever()
 
 
-def get_settings_from_env(controller_port=None,
-                          visualization_server_image=None, frontend_image=None,
-                          visualization_server_tag=None, frontend_tag=None, disable_istio_sidecar=None,
+def get_settings_from_env(controller_port=None, frontend_image=None,
+                          frontend_tag=None, disable_istio_sidecar=None,
                           artifacts_proxy_enabled=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
@@ -47,22 +46,14 @@ def get_settings_from_env(controller_port=None,
     Settings are pulled from the all-caps version of the setting name.  The
     following defaults are used if those environment variables are not set
     to enable backwards compatibility with previous versions of this script:
-        visualization_server_image: ghcr.io/kubeflow/kfp-visualization-server
-        visualization_server_tag: value of KFP_VERSION environment variable
         frontend_image: ghcr.io/kubeflow/kfp-frontend
         frontend_tag: value of KFP_VERSION environment variable
         disable_istio_sidecar: Required (no default)
-        minio_access_key: Required (no default)
-        minio_secret_key: Required (no default)
     """
     settings = dict()
     settings["controller_port"] = \
         controller_port or \
         os.environ.get("CONTROLLER_PORT", "8080")
-
-    settings["visualization_server_image"] = \
-        visualization_server_image or \
-        os.environ.get("VISUALIZATION_SERVER_IMAGE", "ghcr.io/kubeflow/kfp-visualization-server")
 
     settings["frontend_image"] = \
         frontend_image or \
@@ -75,11 +66,6 @@ def get_settings_from_env(controller_port=None,
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
     # compatibility
-    settings["visualization_server_tag"] = \
-        visualization_server_tag or \
-        os.environ.get("VISUALIZATION_SERVER_TAG") or \
-        os.environ["KFP_VERSION"]
-
     settings["frontend_tag"] = \
         frontend_tag or \
         os.environ.get("FRONTEND_TAG") or \
@@ -92,8 +78,7 @@ def get_settings_from_env(controller_port=None,
     return settings
 
 
-def server_factory(visualization_server_image,
-                   visualization_server_tag, frontend_image, frontend_tag,
+def server_factory(frontend_image, frontend_tag,
                    disable_istio_sidecar, artifacts_proxy_enabled=True, url="", controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
@@ -130,8 +115,7 @@ def server_factory(visualization_server_image,
 
             if pipeline_enabled != "true":
                 return {"status": {}, "attachments": []}
-            
-            # Set desired resource counts
+
             desired_deployment_count = 0
             desired_service_count = 0
             
