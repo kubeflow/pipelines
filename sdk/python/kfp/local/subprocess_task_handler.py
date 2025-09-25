@@ -116,7 +116,8 @@ def run_local_subprocess(full_command: List[str]) -> int:
 def replace_python_executable(full_command: List[str],
                               new_executable: str) -> List[str]:
     """Replaces the 'python3' string in each element of the full_command with
-    the new_executable.
+    the new_executable. It does not replace the python executable in the user
+    code.
 
     Args:
         full_command: Commands and args.
@@ -125,7 +126,20 @@ def replace_python_executable(full_command: List[str],
     Returns:
         The updated commands and args.
     """
-    return [el.replace('python3', f'{new_executable}') for el in full_command]
+    user_code_index = None
+    new_full_command = []
+
+    for i, el in enumerate(full_command):
+        if user_code_index is None and '"$program_path/ephemeral_component.py"' in el and '"$@"' in el:
+            user_code_index = i + 1
+
+        if i != user_code_index:
+            new_full_command.append(el.replace('python3', f'{new_executable}'))
+        else:
+            # It's important to skip the user code so we don't errantly replace the Jupyter Notebook kernel name.
+            new_full_command.append(el)
+
+    return new_full_command
 
 
 @contextlib.contextmanager

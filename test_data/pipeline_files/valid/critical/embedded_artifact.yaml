@@ -1,0 +1,112 @@
+# PIPELINE DEFINITION
+# Name: nb-simple
+components:
+  comp-read-embedded-artifact-dir:
+    executorLabel: exec-read-embedded-artifact-dir
+  comp-read-embedded-artifact-file:
+    executorLabel: exec-read-embedded-artifact-file
+deploymentSpec:
+  executors:
+    exec-read-embedded-artifact-dir:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_embedded_artifact_dir
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'git+https://github.com/mprahl/pipelines@jupyter-conversion#egg=kfp&subdirectory=sdk/python'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\n__KFP_EMBEDDED_ARCHIVE_B64 = 'H4sIADyu1mgC/+3UTwuCMBgG8J37FOsec/9ep4ego8e+wkCpYGKYkR8/pUNGSCcF8/ld3rENdhjPIyIRHY6+zQqfFzWbhHwZm1Ia+173+0pqpRlv2Qzut8bX3fNsnXTCy+ZSFnvlKEnS1DktUqdSY82Gwd8T0fRv9KF2REwaaUgN5iDzimRMpF13sc9/rB3jNGf+y2vtz2H83q/zxf4/+h/9/93/RIT+X0X/h+okmraZuP9ja8f7v1t/9r9WlhiX6P/JZUUI1Y4/qjrkW8QBAAAAAAAAAAAAAAAAYNGeIssMOAAoAAA='\n\
+          \nimport base64 as __kfp_b64\nimport io as __kfp_io\nimport os as __kfp_os\n\
+          import sys as __kfp_sys\nimport tarfile as __kfp_tarfile\nimport tempfile\
+          \ as __kfp_tempfile\n\n# Extract embedded archive at import time to ensure\
+          \ sys.path and globals are set\n__kfp_tmpdir = __kfp_tempfile.TemporaryDirectory()\n\
+          __KFP_EMBEDDED_ASSET_DIR = __kfp_tmpdir.name\ntry:\n    __kfp_bytes = __kfp_b64.b64decode(__KFP_EMBEDDED_ARCHIVE_B64.encode('ascii'))\n\
+          \    with __kfp_tarfile.open(fileobj=__kfp_io.BytesIO(__kfp_bytes), mode='r:gz')\
+          \ as __kfp_tar:\n        __kfp_tar.extractall(path=__KFP_EMBEDDED_ASSET_DIR)\n\
+          except Exception as __kfp_e:\n    raise RuntimeError(f'Failed to extract\
+          \ embedded archive: {__kfp_e}')\n\n# Always prepend the extracted directory\
+          \ to sys.path for import resolution\nif __KFP_EMBEDDED_ASSET_DIR not in\
+          \ __kfp_sys.path:\n    __kfp_sys.path.insert(0, __KFP_EMBEDDED_ASSET_DIR)\n\
+          \n\n\n\ndef read_embedded_artifact_dir(artifact: dsl.EmbeddedInput[dsl.Dataset]):\n\
+          \    import os\n\n    with open(os.path.join(artifact.path, \"log.txt\"\
+          ), \"r\", encoding=\"utf-8\") as f:\n        log = f.read()\n\n    assert\
+          \ log == \"Hello, world!\"\n\n"
+        image: python:3.9
+    exec-read-embedded-artifact-file:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_embedded_artifact_file
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'git+https://github.com/mprahl/pipelines@jupyter-conversion#egg=kfp&subdirectory=sdk/python'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\n__KFP_EMBEDDED_ARCHIVE_B64 = 'H4sIADyu1mgC/+3UsQrCMBDG8cw+Rd2lJmmvaQfBsaOvUGhRIaVSK/bxjYh0EicL6v+33HEJ3PRdvI7X2101lk1VN736CP3wqmqdpFN/nxttjVXRqGZwOQ9VH9ar/2TzqB2ObbMxTvK8KJyzceFMISILhZ/nu308jMNHd9xDnaUh44lOxMhUn0JvRGci1mkX5saGE6AiPWf+21NfHfzrf+/ev1TZeN+tomvX+3pJHAAAAAAAAAAAAAAAAL7ODaH3u14AKAAA'\n\
+          \nimport base64 as __kfp_b64\nimport io as __kfp_io\nimport os as __kfp_os\n\
+          import sys as __kfp_sys\nimport tarfile as __kfp_tarfile\nimport tempfile\
+          \ as __kfp_tempfile\n\n# Extract embedded archive at import time to ensure\
+          \ sys.path and globals are set\n__kfp_tmpdir = __kfp_tempfile.TemporaryDirectory()\n\
+          __KFP_EMBEDDED_ASSET_DIR = __kfp_tmpdir.name\ntry:\n    __kfp_bytes = __kfp_b64.b64decode(__KFP_EMBEDDED_ARCHIVE_B64.encode('ascii'))\n\
+          \    with __kfp_tarfile.open(fileobj=__kfp_io.BytesIO(__kfp_bytes), mode='r:gz')\
+          \ as __kfp_tar:\n        __kfp_tar.extractall(path=__KFP_EMBEDDED_ASSET_DIR)\n\
+          except Exception as __kfp_e:\n    raise RuntimeError(f'Failed to extract\
+          \ embedded archive: {__kfp_e}')\n\n# Always prepend the extracted directory\
+          \ to sys.path for import resolution\nif __KFP_EMBEDDED_ASSET_DIR not in\
+          \ __kfp_sys.path:\n    __kfp_sys.path.insert(0, __KFP_EMBEDDED_ASSET_DIR)\n\
+          \n__KFP_EMBEDDED_ASSET_FILE = __kfp_os.path.join(__KFP_EMBEDDED_ASSET_DIR,\
+          \ 'log.txt')\n\n\n\n\ndef read_embedded_artifact_file(artifact: dsl.EmbeddedInput[dsl.Dataset]):\n\
+          \    with open(artifact.path, \"r\", encoding=\"utf-8\") as f:\n       \
+          \ log = f.read()\n\n    assert log == \"Hello, world!\"\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: nb-simple
+root:
+  dag:
+    tasks:
+      read-embedded-artifact-dir:
+        cachingOptions: {}
+        componentRef:
+          name: comp-read-embedded-artifact-dir
+        taskInfo:
+          name: read-embedded-artifact-dir
+      read-embedded-artifact-file:
+        cachingOptions: {}
+        componentRef:
+          name: comp-read-embedded-artifact-file
+        taskInfo:
+          name: read-embedded-artifact-file
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.2

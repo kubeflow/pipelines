@@ -379,6 +379,26 @@ class Executor:
                 if type_annotations.is_artifact_wrapped_in_Output(v):
                     func_kwargs[k] = self.get_output_artifact(k)
 
+            elif type_annotations.is_embedded_input_annotation(v):
+                # Inject a runtime-only artifact pointing to the extracted embedded asset
+                inner_type = type_annotations.strip_Input_or_Output_marker(v)
+                artifact_cls = inner_type if type_annotations.is_artifact_class(
+                    inner_type) else artifact_types.Artifact
+                embedded_dir = self.func.__globals__.get(
+                    '__KFP_EMBEDDED_ASSET_DIR')
+                embedded_file = self.func.__globals__.get(
+                    '__KFP_EMBEDDED_ASSET_FILE')
+                artifact_instance = artifact_cls()
+                if embedded_file:
+                    artifact_instance.path = embedded_file
+                elif embedded_dir:
+                    artifact_instance.path = embedded_dir
+                else:
+                    raise RuntimeError(
+                        'EmbeddedInput was specified but no embedded asset was found at runtime.'
+                    )
+                func_kwargs[k] = artifact_instance
+
             elif is_artifact(v):
                 func_kwargs[k] = self.get_input_artifact(k)
 

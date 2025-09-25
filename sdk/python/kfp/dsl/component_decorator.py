@@ -34,6 +34,7 @@ def component(
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
     additional_funcs: Optional[List[Callable]] = None,
+    embedded_artifact_path: Optional[str] = None,
     task_config_passthroughs: Optional[List[Union[TaskConfigPassthrough,
                                                   TaskConfigField]]] = None):
     """Decorator for Python-function based components.
@@ -70,6 +71,16 @@ def component(
             shareable/loadable version of the component spec into this file.
 
             **Warning:** This compilation approach is deprecated.
+        embedded_artifact_path: Optional path to a local file or directory to
+            embed into the component. At runtime the embedded content is
+            extracted into a temporary directory and made available via
+            parameters annotated as ``dsl.EmbeddedInput[T]`` (e.g.,
+            ``dsl.EmbeddedInput[dsl.Dataset]``). For a directory, the injected
+            artifact's ``path`` points to the extraction root (the temporary
+            directory containing the directory's contents). For a single file,
+            the injected artifact's ``path`` points to the extracted file. The
+            extraction root is also prepended to ``sys.path`` to enable
+            importing embedded Python modules.
         install_kfp_package: Specifies if the KFP SDK should add the ``kfp`` Python package to
             ``packages_to_install``. Lightweight Python functions always require
             an installation of KFP in ``base_image`` to work. If you specify
@@ -141,6 +152,7 @@ def component(
             base_image=base_image,
             target_image=target_image,
             packages_to_install=packages_to_install,
+            embedded_artifact_path=embedded_artifact_path,
             pip_index_urls=pip_index_urls,
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
@@ -154,6 +166,7 @@ def component(
         func,
         base_image=base_image,
         target_image=target_image,
+        embedded_artifact_path=embedded_artifact_path,
         packages_to_install=packages_to_install,
         pip_index_urls=pip_index_urls,
         output_component_file=output_component_file,
