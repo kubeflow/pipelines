@@ -99,3 +99,6 @@ backend/src/crd/kubernetes/bin
 reports/
 logs/
 *.out
+
+# Project-local tools
+bin/
