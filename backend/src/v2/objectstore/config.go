@@ -57,6 +57,7 @@ type S3Params struct {
 	Endpoint       string
 	DisableSSL     bool
 	ForcePathStyle bool
+	MaxRetries     int
 }
 
 func (b *Config) bucketURL() string {
@@ -212,6 +213,13 @@ func StructuredS3Params(p map[string]string) (*S3Params, error) {
 		sparams.ForcePathStyle = boolVal
 	} else {
 		sparams.ForcePathStyle = true
+	}
+	if val, ok := p["maxRetries"]; ok {
+		intVal, err := strconv.ParseInt(val, 10, 0)
+		if err != nil {
+			return nil, err
+		}
+		sparams.MaxRetries = int(intVal)
 	}
 	return sparams, nil
 }

@@ -23,9 +23,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/golang/glog"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
@@ -45,16 +47,17 @@ func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace s
 	}()
 	if config.SessionInfo != nil {
 		if config.SessionInfo.Provider == "minio" || config.SessionInfo.Provider == "s3" {
-			sess, err1 := createS3BucketSession(ctx, namespace, config.SessionInfo, k8sClient)
+			s3Client, err1 := createS3BucketSession(ctx, namespace, config.SessionInfo, k8sClient)
 			if err1 != nil {
 				return nil, fmt.Errorf("Failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
 			}
-			if sess != nil {
-				openedBucket, err2 := s3blob.OpenBucket(ctx, sess, config.BucketName, nil)
+			if s3Client != nil {
+				// Use s3blob.OpenBucketV2 with the configured S3 client to leverage retry logic
+				openedBucket, err2 := s3blob.OpenBucketV2(ctx, s3Client, config.BucketName, nil)
 				if err2 != nil {
 					return nil, err2
 				}
-				// Directly calling s3blob.OpenBucket does not allow overriding prefix via bucketConfig.BucketURL().
+				// Directly calling s3blob.OpenBucketV2 does not allow overriding prefix via bucketConfig.BucketURL().
 				// Therefore, we need to explicitly configure the prefixed bucket.
 				return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 			}
@@ -239,11 +242,10 @@ func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *Sessi
 	return client, nil
 }
 
-func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *SessionInfo, client kubernetes.Interface) (*session.Session, error) {
+func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *SessionInfo, client kubernetes.Interface) (*s3.Client, error) {
 	if sessionInfo == nil {
 		return nil, nil
 	}
-	config := &aws.Config{}
 	params, err := StructuredS3Params(sessionInfo.Params)
 	if err != nil {
 		return nil, err
@@ -255,11 +257,19 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	if err != nil {
 		return nil, err
 	}
-	config.Credentials = creds
-	config.Region = aws.String(params.Region)
-	config.DisableSSL = aws.Bool(params.DisableSSL)
-	config.S3ForcePathStyle = aws.Bool(params.ForcePathStyle)
-
+	s3Config, err := config.LoadDefaultConfig(ctx,
+		config.WithRetryer(func() aws.Retryer {
+			// Use standard retry logic with exponential backoff for transient S3 connection failures.
+			// The standard retryer implements exponential backoff with jitter, starting with a base delay
+			// and doubling the wait time between retries up to a maximum, helping to avoid thundering herd problems.
+			return retry.AddWithMaxAttempts(retry.NewStandard(), params.MaxRetries)
+		}),
+		config.WithCredentialsProvider(*creds),
+		config.WithRegion(*aws.String(params.Region)),
+	)
+	if err != nil {
+		return nil, err
+	}
 	// AWS Specific:
 	// Path-style S3 endpoints, which are commonly used, may fall into either of two subdomains:
 	// 1) [https://]s3.amazonaws.com
@@ -268,15 +278,27 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	// https://aws.amazon.com/blogs/infrastructure-and-automation/best-practices-for-using-amazon-s3-endpoints-in-aws-cloudformation-templates/
 	// https://docs.aws.amazon.com/sdk-for-go/api/aws/session/
 	awsEndpoint, _ := regexp.MatchString(`^(https://)?s3.amazonaws.com`, strings.ToLower(params.Endpoint))
-	if !awsEndpoint {
-		config.Endpoint = aws.String(params.Endpoint)
+	s3Options := func(o *s3.Options) {
+		o.UsePathStyle = *aws.Bool(params.ForcePathStyle)
+		o.EndpointOptions.DisableHTTPS = *aws.Bool(params.DisableSSL)
+		if !awsEndpoint {
+			// AWS SDK v2 requires BaseEndpoint to be a valid URI with scheme
+			endpoint := params.Endpoint
+			if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
+				if params.DisableSSL {
+					endpoint = "http://" + endpoint
+				} else {
+					endpoint = "https://" + endpoint
+				}
+			}
+			o.BaseEndpoint = aws.String(endpoint)
+		}
 	}
-
-	sess, err := session.NewSession(config)
-	if err != nil {
+	s3Client := s3.NewFromConfig(s3Config, s3Options)
+	if s3Client == nil {
 		return nil, fmt.Errorf("Failed to create object store session, %v", err)
 	}
-	return sess, nil
+	return s3Client, nil
 }
 
 func getS3BucketCredential(
@@ -286,7 +308,7 @@ func getS3BucketCredential(
 	secretName string,
 	bucketSecretKeyKey string,
 	bucketAccessKeyKey string,
-) (cred *credentials.Credentials, err error) {
+) (cred *credentials.StaticCredentialsProvider, err error) {
 	defer func() {
 		if err != nil {
 			// wrap error before returning
@@ -305,8 +327,8 @@ func getS3BucketCredential(
 	secretKey := string(secret.Data[bucketSecretKeyKey])
 
 	if accessKey != "" && secretKey != "" {
-		cred = credentials.NewStaticCredentials(accessKey, secretKey, "")
-		return cred, err
+		s3Creds := credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")
+		return &s3Creds, err
 	}
 	return nil, fmt.Errorf("could not find specified keys '%s' or '%s'", bucketAccessKeyKey, bucketSecretKeyKey)
 }
