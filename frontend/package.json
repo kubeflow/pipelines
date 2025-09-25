@@ -173,6 +173,7 @@
     "react-dev-utils": {
       "ansi-regex": "5.0.1"
     },
+    "node-fetch": "2.6.7",
     "@testing-library/dom": {
       "ansi-regex": "5.0.1"
     },
