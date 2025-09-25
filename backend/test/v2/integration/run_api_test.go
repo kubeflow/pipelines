@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -65,30 +66,33 @@ func (s *RunApiTestSuite) SetupTest() {
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var newRunClient func() (*api_server.RunClient, error)
-
+	var tlsCfg *tls.Config
+	if *config.TlsEnabled {
+		tlsCfg = test.GetTLSConfig(*config.CaCertPath)
+	}
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *config.DebugMode)
+			return api_server.NewExperimentClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *config.DebugMode)
+			return api_server.NewRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
@@ -103,6 +107,7 @@ func (s *RunApiTestSuite) SetupTest() {
 		*config.DebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),
+		tlsCfg,
 	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())

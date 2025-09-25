@@ -57,6 +57,7 @@ jobs:
         proxy: [ "true", "false" ]
         argo_version: [ "v3.7.1", "v3.6.10" ]
         pipeline_store: [ "database" ]
+        pod_to_pod_tls_enabled: [ false ]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
@@ -64,8 +65,11 @@ jobs:
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
             argo_version: "v3.5.15"
+          - k8s_version: "v1.31.0"
+            cache_enabled: "true"
+            pod_to_pod_tls_enabled: true
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
-    name: KFP API Server tests Standalone - K8sVersion=${{ matrix.k8s_version }} argo_version=${{ matrix.argo_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }}
+    name: KFP API Server tests Standalone - K8sVersion=${{ matrix.k8s_version }} argo_version=${{ matrix.argo_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
 
     steps:
       - name: Checkout code
@@ -87,6 +91,7 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           proxy: ${{ matrix.proxy }}
           argo_version: ${{ matrix.argo_version }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
@@ -153,6 +158,13 @@ jobs:
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
         argo_version: [ "v3.7.1", "v3.6.10" ]
         pipeline_store: [ "kubernetes" ]
+        pod_to_pod_tls_enabled: [ false ]
+        include:
+          - k8s_version: "v1.31.0"
+            cache_enabled: "true"
+            pipeline_store: "kubernetes"
+            pod_to_pod_tls_enabled: true
+            uploadPipelinesWithKubernetesClient: "true"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
 

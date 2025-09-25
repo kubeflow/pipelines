@@ -15,6 +15,7 @@
 package api_server_v2
 
 import (
+	"crypto/tls"
 	"fmt"
 	httptransport "github.com/go-openapi/runtime/client"
 
@@ -42,12 +43,12 @@ type ExperimentClient struct {
 	apiClient *apiclient.Experiment
 }
 
-func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*ExperimentClient, error) {
 
-	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
-		return nil, fmt.Errorf("Error occurred when creating experiment client: %w", err)
+		return nil, fmt.Errorf("error occurred when creating experiment client: %w", err)
 	}
 
 	apiClient := apiclient.New(httpRuntime, strfmt.Default)
@@ -58,10 +59,10 @@ func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
-func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
+func NewKubeflowInClusterExperimentClient(namespace string, debug bool, tlsCfg *tls.Config) (
 	*ExperimentClient, error) {
 
-	httpRuntime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	httpRuntime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsCfg)
 
 	apiClient := apiclient.New(httpRuntime, strfmt.Default)
 
@@ -71,10 +72,10 @@ func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
 	}, nil
 }
 
-func NewMultiUserExperimentClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool) (
+func NewMultiUserExperimentClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool, tlsCfg *tls.Config) (
 	*ExperimentClient, error) {
 
-	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("error occurred when creating experiment client: %w", err)
 	}

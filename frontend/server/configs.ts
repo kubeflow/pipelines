@@ -75,6 +75,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ML_PIPELINE_SERVICE_HOST = 'localhost',
     /** API service will listen to this port */
     ML_PIPELINE_SERVICE_PORT = '3001',
+    /** API service will listen via this transfer protocol */
+    ML_PIPELINE_SERVICE_SCHEME = 'http',
     /** path to viewer:tensorboard pod template spec */
     VIEWER_TENSORBOARD_POD_TEMPLATE_SPEC_PATH,
     /** Tensorflow image used for tensorboard viewer */
@@ -85,6 +87,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     METADATA_ENVOY_SERVICE_SERVICE_HOST = 'localhost',
     /** Envoy service will listen to this port */
     METADATA_ENVOY_SERVICE_SERVICE_PORT = '9090',
+    /** Envoy service will listen via this transfer protocol */
+    METADATA_ENVOY_SERVICE_SERVICE_SCHEME = 'http',
     /** Is Argo log archive enabled? */
     ARGO_ARCHIVE_LOGS = 'false',
     /** Use minio or s3 client to retrieve archives. */
@@ -177,11 +181,13 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       envoyService: {
         host: METADATA_ENVOY_SERVICE_SERVICE_HOST,
         port: METADATA_ENVOY_SERVICE_SERVICE_PORT,
+        schema: METADATA_ENVOY_SERVICE_SERVICE_SCHEME,
       },
     },
     pipeline: {
       host: ML_PIPELINE_SERVICE_HOST,
       port: ML_PIPELINE_SERVICE_PORT,
+      schema: ML_PIPELINE_SERVICE_SCHEME,
     },
     server: {
       apiVersion1Prefix,
@@ -245,6 +251,7 @@ export interface HttpConfigs {
 export interface PipelineConfigs {
   host: string;
   port: string | number;
+  schema: string;
 }
 export interface ViewerTensorboardConfig {
   podTemplateSpec?: object;
@@ -260,6 +267,7 @@ export interface MetadataConfigs {
   envoyService: {
     host: string;
     port: string | number;
+    schema: string;
   };
 }
 export interface ArgoConfigs {

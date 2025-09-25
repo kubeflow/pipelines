@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"crypto/tls"
 	"fmt"
 	"os"
 	"testing"
@@ -64,18 +65,21 @@ func (s *PipelineApiTest) SetupTest() {
 	s.namespace = *config.Namespace
 
 	var newPipelineClient func() (*api_server.PipelineClient, error)
-
+	var tlsCfg *tls.Config
+	if *config.TlsEnabled {
+		tlsCfg = test.GetTLSConfig(*config.CaCertPath)
+	}
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
@@ -86,6 +90,7 @@ func (s *PipelineApiTest) SetupTest() {
 		*config.DebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),
+		tlsCfg,
 	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())

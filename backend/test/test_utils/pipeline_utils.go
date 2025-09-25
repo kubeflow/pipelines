@@ -15,6 +15,7 @@
 package test_utils
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
@@ -35,16 +36,17 @@ func GetPipelineUploadClient(
 	isDebugMode bool,
 	namespace string,
 	clientConfig clientcmd.ClientConfig,
+	tlsCfg *tls.Config,
 ) (api_server.PipelineUploadInterface, error) {
 	if uploadPipelinesWithKubernetes {
 		return api_server.NewPipelineUploadClientKubernetes(clientConfig, namespace)
 	}
 
 	if isKubeflowMode {
-		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode)
+		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode, tlsCfg)
 	}
 
-	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode)
+	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode, tlsCfg)
 }
 
 func ListPipelines(client *api_server.PipelineClient, namespace *string) []*pipeline_model.V2beta1Pipeline {
