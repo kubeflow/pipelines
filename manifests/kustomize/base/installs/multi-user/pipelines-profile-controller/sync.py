@@ -153,13 +153,8 @@ def server_factory(frontend_image, frontend_tag,
             if pipeline_enabled != "true":
                 return {"status": {}, "attachments": []}
 
-            desired_deployment_count = 0
-            desired_service_count = 0
-            
-            if artifacts_proxy_enabled:
-                desired_deployment_count += 1  # ml-pipeline-ui-artifact
-                desired_service_count += 1     # ml-pipeline-ui-artifact
-
+            desired_deployment_count = 1 if artifacts_proxy_enabled.lower() == "true" else 0
+            desired_service_count = 1 if artifacts_proxy_enabled.lower() == "true" else 0
             # Compute status based on observed state.
             desired_status = {
                 "kubeflow-pipelines-ready":
@@ -229,7 +224,7 @@ def server_factory(frontend_image, frontend_tag,
             ]
             
             # Add artifact fetcher related resources if enabled
-            if artifacts_proxy_enabled:
+            if artifacts_proxy_enabled.lower() == "true":
                 desired_resources.extend([
                     {
                         "apiVersion": "apps/v1",
