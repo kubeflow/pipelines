@@ -16,9 +16,9 @@ package test_utils
 
 import (
 	"fmt"
-
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
+	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -56,6 +56,20 @@ func ListPipelines(client *api_server.PipelineClient, namespace *string) []*pipe
 	pipelines, _, _, err := client.List(parameters)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Error listing pipelines")
 	return pipelines
+}
+
+// UploadPipeline - Upload a pipeline
+func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) (*model.V2beta1Pipeline, error) {
+	uploadParams := upload_params.NewUploadPipelineParams()
+	uploadParams.SetName(pipelineName)
+	if pipelineDisplayName != nil {
+		uploadParams.SetDisplayName(pipelineDisplayName)
+	}
+	logger.Log("Creating temp pipeline file with overridden SDK Version")
+	overriddenPipelineFileWithSDKVersion := ReplaceSDKInPipelineSpec(pipelineFilePath, false, nil)
+	tempPipelineFile := CreateTempFile(overriddenPipelineFileWithSDKVersion)
+	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFilePath)
+	return pipelineUploadClient.UploadFile(tempPipelineFile.Name(), uploadParams)
 }
 
 /*

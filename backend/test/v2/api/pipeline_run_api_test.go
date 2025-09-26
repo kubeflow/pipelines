@@ -28,8 +28,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	testutils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	testutils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	"github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -334,7 +334,7 @@ func uploadAPipeline(pipelineFile string, pipelineName *string) *pipeline_upload
 	logger.Log("Create a pipeline")
 	testContext.Pipeline.UploadParams.SetName(pipelineName)
 	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
-	createdPipeline, uploadErr := pipelineUploadClient.UploadFile(pipelineFile, testContext.Pipeline.UploadParams)
+	createdPipeline, uploadErr := test_utils.UploadPipeline(pipelineUploadClient, pipelineFile, pipelineName, nil)
 	Expect(uploadErr).NotTo(HaveOccurred(), "Failed to upload pipeline")
 	testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, createdPipeline)
 	return createdPipeline
