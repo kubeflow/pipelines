@@ -16,8 +16,9 @@ package compiler
 
 import (
 	"fmt"
-	"google.golang.org/protobuf/types/known/structpb"
 	"path/filepath"
+
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"

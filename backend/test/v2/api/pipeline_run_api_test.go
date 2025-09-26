@@ -28,7 +28,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	testutils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	"github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 
@@ -325,7 +324,7 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label(NEGATIVE, API_PIP
 // ################## UTILITY METHODS ##################
 
 func configureCacheSettingAndGetPipelineFile(pipelineFilePath string, cacheDisabled bool) string {
-	pipelineSpecsFromFile := testutils.ParseFileToSpecs(pipelineFilePath, cacheDisabled, nil)
+	pipelineSpecsFromFile := test_utils.ParseFileToSpecs(pipelineFilePath, cacheDisabled, nil)
 	newPipelineFile := test_utils.CreateTempFile(pipelineSpecsFromFile.Bytes())
 	return newPipelineFile.Name()
 }

@@ -16,11 +16,12 @@ package proto_tests
 
 import (
 	"encoding/json"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/google/go-cmp/cmp"
 )
