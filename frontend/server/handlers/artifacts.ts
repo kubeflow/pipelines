@@ -19,7 +19,7 @@ import { createMinioClient, getObjectStream } from '../minio-helper';
 import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
-import createProxyMiddleware from 'http-proxy-middleware';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
 
 import * as fs from 'fs';

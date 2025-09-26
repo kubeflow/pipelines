@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import express from 'express';
-import createProxyMiddleware from 'http-proxy-middleware';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from './consts';
 

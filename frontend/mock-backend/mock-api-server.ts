@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import express from 'express';
-import createProxyMiddleware from 'http-proxy-middleware';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import mockApiMiddleware from './mock-api-middleware';
 
 const app = express();
