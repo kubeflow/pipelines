@@ -1,4 +1,4 @@
-name: KFP API Integration V2 with K8s native API tests
+name: KFP API Integration V2 (Legacy)
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/api-integration-tests-v2-with-k8s-native-api.yml'
+      - '.github/workflows/legacy-v2-api-integration-tests.yml'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'

@@ -101,7 +101,7 @@ function createUIServer(options: UIConfigs) {
   const registerHandler = getRegisterHandler(app, basePath);
 
   /** log to stdout */
-  app.use((req, _, next) => {
+  app.use((req, res, next) => {
     console.info(req.method + ' ' + req.originalUrl);
     next();
   });

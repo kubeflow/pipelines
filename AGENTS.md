@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2025-09-19
+- Last updated: 2025-09-24
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 16)
 
 ### Maintenance (agents and contributors)
@@ -72,6 +72,24 @@ make -C kubernetes_platform python-dev
 pip install -e api/v2alpha1/python --config-settings editable_mode=strict
 pip install -e sdk/python --config-settings editable_mode=strict
 pip install -e kubernetes_platform/python --config-settings editable_mode=strict
+```
+
+### Required CLI tools
+
+- Ginkgo CLI for running Go-based test suites.
+
+Install locally into `./bin`:
+
+```bash
+make ginkgo
+export PATH="$PWD/bin:$PATH"  # ensure the ginkgo binary is on PATH
+```
+
+Or install directly with `go install` into a project-local `./bin`:
+
+```bash
+GOBIN=$PWD/bin go install github.com/onsi/ginkgo/v2/ginkgo@latest
+export PATH="$PWD/bin:$PATH"
 ```
 
 ## Local cluster deployment
@@ -144,7 +162,7 @@ pytest -v sdk/python/kfp
 pytest -v kubernetes_platform/python/test
 ```
 
-- Go (backend) unit tests only, excluding integration/API tests:
+- Go (backend) unit tests only, excluding integration/API/Compiler/E2E tests:
 
 ```bash
 go test -v $(go list ./backend/... | \
@@ -152,11 +170,51 @@ go test -v $(go list ./backend/... | \
   grep -v backend/test/integration | \
   grep -v backend/test/v2/integration | \
   grep -v backend/test/initialization | \
-  grep -v backend/test/v2/initialization)
+  grep -v backend/test/v2/initialization | \
+  grep -v backend/test/compiler | \
+  grep -v backend/test/end2end)
 ```
 
-Note: API Server tests under `backend/test/v2/api` are integration tests run with Ginkgo; they require a running cluster
-and are not part of unit tests.
+Notes:
+
+- API Server tests under `backend/test/v2/api` are integration tests run with Ginkgo; they require a running cluster and are not part of unit tests.
+- Compiler tests live under `backend/test/compiler` and E2E tests under `backend/test/end2end`; both are Ginkgo-based and excluded from unit presubmits.
+
+### Backend Ginkgo test suites
+
+- Compiler tests:
+
+```bash
+# Run compiler tests
+ginkgo -v ./backend/test/compiler
+
+# Update compiled workflow goldens when intended
+ginkgo -v -args -updateCompiledFiles=true ./backend/test/compiler
+
+# Auto-create missing goldens (default true); disable with:
+ginkgo -v -args -createGoldenFiles=false ./backend/test/compiler
+```
+
+- v2 API integration tests (label-filterable):
+
+```bash
+# All API tests
+ginkgo -v ./backend/test/v2/api
+
+# Example: run only Smoke-labeled tests with ginkgo
+ginkgo -v --label-filter="Smoke" ./backend/test/v2/api
+```
+
+- End-to-end tests:
+
+```bash
+ginkgo -v ./backend/test/end2end -- -namespace=kubeflow -isDebugMode=true
+```
+
+Test data is centralized under:
+
+- `test_data/pipeline_files/valid/` (inputs) with a `valid/critical/` subset for smoke lanes
+- `test_data/compiled-workflows/` (expected compiled Argo Workflows)
 
 ## Local execution
 
@@ -245,8 +303,11 @@ The following files are generated; edit their sources and regenerate:
 - Platform spec proto: `kubernetes_platform/proto/`
 - API definitions (Protobufs): `api/`
 - Backend (API server, driver, launcher, etc.): `backend/`
+- Backend test suites: `backend/test/compiler`, `backend/test/v2/api`, `backend/test/end2end`
 - Frontend: `frontend/` (React TypeScript, see `frontend/CONTRIBUTING.md`)
 - Manifests (Kustomize bases/overlays for deployments): `manifests/`
+- CI manifests and overlays used by workflows: `.github/resources/manifests/{kubernetes-native,multiuser,standalone}`
+- Test data (inputs/goldens): `test_data/pipeline_files/valid/`, `test_data/compiled-workflows/`
 
 ## Documentation
 
@@ -371,13 +432,13 @@ The frontend includes several generated code components:
 ## CI/CD (GitHub Actions)
 
 - Workflows: `.github/workflows/` (build, test, lint, release)
-- Composite actions: `.github/actions/` (e.g., `kfp-k8s`)
+- Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
 
 - Kubernetes versions: CI runs a matrix across a low and high supported version, commonly `v1.29.2` and `v1.31.0`.
-  - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `periodic.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `kfp-samples.yml`, `api-server-tests.yml`, and frontend integration in `e2e-test.yml`.
+  - Examples: `e2e-test.yml`, `sdk-execution.yml`, `upgrade-test.yml`, `kfp-kubernetes-execution-tests.yml`, `kfp-webhooks.yml`, `api-server-tests.yml`, `compiler-tests.yml`, `legacy-v2-api-integration-tests.yml`, `integration-tests-v1.yml`, and frontend integration in `e2e-test-frontend.yml`.
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
 - Argo Workflows version matrix for compatibility (where relevant): e.g., `e2e-test.yml` includes an Argo job (e.g., `v3.5.14`).
@@ -387,7 +448,7 @@ The frontend includes several generated code components:
 ### CI cluster setup and helpers
 
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
-- The `kfp-k8s` composite action installs SDK components from source inside jobs that execute Python-based tests.
+- The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
 - The `protobuf` composite action prepares `protoc` and related dependencies when compiling Python protobufs.
 
 ### Code style and formatting
@@ -398,6 +459,10 @@ The frontend includes several generated code components:
   - Check: `npm run format:check`
 - **ESLint** extends `react-app` with custom rules in `.eslintrc.yaml`
 - **Auto-format on save**: Configure your IDE with the Prettier extension
+
+Notes:
+
+- Legacy `kfp-samples.yml` and `periodic.yml` workflows were removed.
 
 ### Feature flags
 
@@ -473,7 +538,10 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Deploy local cluster (standalone): `make -C backend kind-cluster-agnostic`
 - Deploy local cluster (development) and run the API server in the IDE: `make -C backend dev-kind-cluster`
 - Run SDK tests: `pytest -v sdk/python/kfp`
-- Run backend tests: `go test -v ./backend/...`
+- Run backend unit tests: `go test -v $(go list ./backend/... | grep -v backend/test/)`
+- Run compiler tests: `ginkgo -v ./backend/test/compiler`
+- Run API tests: `ginkgo -v --label-filter="Smoke" ./backend/test/v2/api`
+- Run E2E tests: `ginkgo -v ./backend/test/end2end -- -namespace=kubeflow`
 - Check formatting:
   `yapf --recursive --diff sdk/python/ && pycln --check sdk/python && isort --check --profile google sdk/python`
 - Frontend dev server: `cd frontend && npm start`

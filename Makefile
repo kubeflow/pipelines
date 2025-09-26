@@ -11,3 +11,12 @@ check-diff:
 		git diff; \
 		exit 1; \
 	fi'
+
+# Tools
+BIN_DIR ?= $(CURDIR)/bin
+
+.PHONY: ginkgo
+ginkgo:
+	mkdir -p $(BIN_DIR)
+	GOBIN=$(BIN_DIR) go install github.com/onsi/ginkgo/v2/ginkgo@latest
+	@echo "Ginkgo installed to $(BIN_DIR)/ginkgo"
