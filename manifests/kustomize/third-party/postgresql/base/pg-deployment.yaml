@@ -36,13 +36,19 @@ spec:
               name: postgres
           readinessProbe:
             exec:
-              command: ["psql", "-U", "user", "-d", "postgres", "-c", "SELECT 1"]
+              command:
+                ["psql", "-U", "user", "-d", "postgres", "-c", "SELECT 1"]
             initialDelaySeconds: 15
             timeoutSeconds: 2
           volumeMounts:
             - name: postgres-stateful-data
               mountPath: /var/lib/postgresql/data
+            - name: postgres-initdb
+              mountPath: /docker-entrypoint-initdb.d
       volumes:
         - name: postgres-stateful-data
           persistentVolumeClaim:
             claimName: postgres-pvc
+        - name: postgres-initdb
+          configMap:
+            name: postgres-initdb

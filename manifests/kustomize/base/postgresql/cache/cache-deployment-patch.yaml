@@ -49,12 +49,12 @@ spec:
           - name: DBCONFIG_USER
             valueFrom:
               secretKeyRef:
-                name: postgres-secret-extended
+                name: postgres-secret
                 key: username
           - name: DBCONFIG_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: postgres-secret-extended
+                name: postgres-secret
                 key: password
           - name: NAMESPACE_TO_WATCH
             valueFrom:

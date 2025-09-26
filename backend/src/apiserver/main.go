@@ -23,6 +23,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"strconv"
 	"strings"
 	"sync"
@@ -80,6 +81,13 @@ type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.Serv
 
 func main() {
 	flag.Parse()
+
+	go func() {
+		addr := "localhost:6060"
+		if err := http.ListenAndServe(addr, nil); err != nil {
+			glog.Fatalf("pprof server failed: %v", err)
+		}
+	}()
 
 	initConfig()
 	// check ExecutionType Settings if presents

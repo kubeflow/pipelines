@@ -155,9 +155,10 @@ spec:
             httpGet:
               path: /apis/v1beta1/healthz
               port: 8888
-            failureThreshold: 12
+            initialDelaySeconds: 90 # delay until the sleep is over
             periodSeconds: 5
             timeoutSeconds: 2
+            failureThreshold: 40
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
@@ -169,5 +170,5 @@ spec:
           resources:
             requests:
               cpu: 250m
-              memory: 500Mi
+              memory: 2Gi
       serviceAccountName: ml-pipeline
