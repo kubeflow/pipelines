@@ -193,8 +193,16 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 	s.checkArgParamsRunDetail(t, argParamsRunDetail, argParamsExperiment.ExperimentID)
 
+	filterByExperiments := fmt.Sprintf(`{"predicates": [{"key": "experiment_id", "operation": "IN", "string_values": {"values": ["%s", "%s"]}}]}`,
+		helloWorldExperiment.ExperimentID, argParamsExperiment.ExperimentID)
+
 	/* ---------- List all the runs. Both runs should be returned ---------- */
-	runs, totalSize, _, err := test.ListAllRuns(s.runClient, s.resourceNamespace)
+	runs, totalSize, _, err := test.ListRuns(
+		s.runClient,
+		&run_params.RunServiceListRunsParams{
+			Filter: util.StringPointer(filterByExperiments),
+		},
+		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))
 	assert.Equal(t, 2, totalSize)
@@ -205,6 +213,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 		&run_params.RunServiceListRunsParams{
 			PageSize: util.Int32Pointer(1),
 			SortBy:   util.StringPointer("created_at"),
+			Filter:   util.StringPointer(filterByExperiments),
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
@@ -217,6 +226,8 @@ func (s *RunApiTestSuite) TestRunApis() {
 		&run_params.RunServiceListRunsParams{
 			PageSize:  util.Int32Pointer(1),
 			PageToken: util.StringPointer(nextPageToken),
+			SortBy:    util.StringPointer("created_at"),
+			Filter:    util.StringPointer(filterByExperiments),
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
@@ -231,6 +242,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 		&run_params.RunServiceListRunsParams{
 			PageSize: util.Int32Pointer(1),
 			SortBy:   util.StringPointer("name"),
+			Filter:   util.StringPointer(filterByExperiments),
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
@@ -243,6 +255,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 			PageSize:  util.Int32Pointer(1),
 			SortBy:    util.StringPointer("name"),
 			PageToken: util.StringPointer(nextPageToken),
+			Filter:    util.StringPointer(filterByExperiments),
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
@@ -253,7 +266,11 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- List the runs, sort by unsupported field ---------- */
 	_, _, _, err = test.ListRuns(
 		s.runClient,
-		&run_params.RunServiceListRunsParams{PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknownfield")},
+		&run_params.RunServiceListRunsParams{
+			PageSize: util.Int32Pointer(2),
+			SortBy:   util.StringPointer("unknownfield"),
+			Filter:   util.StringPointer(filterByExperiments),
+		},
 		s.resourceNamespace)
 	assert.NotNil(t, err)
 
@@ -275,15 +292,25 @@ func (s *RunApiTestSuite) TestRunApis() {
 	_, err = s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	// Check total number of runs is 3
-	runs, totalSize, _, err = test.ListAllRuns(s.runClient, s.resourceNamespace)
+	runs, totalSize, _, err = test.ListRuns(
+		s.runClient,
+		&run_params.RunServiceListRunsParams{
+			Filter: util.StringPointer(filterByExperiments),
+		},
+		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(runs))
 	assert.Equal(t, 3, totalSize)
 	// Check number of filtered runs created before filterTime to be 2
+	createdBeforeFilter := fmt.Sprintf(`{"predicates": [
+		{"key": "experiment_id", "operation": "IN", "string_values": {"values": ["%s", "%s"]}},
+		{"key": "created_at", "operation": "LESS_THAN", "string_value": "%d"}
+	]}`,
+		helloWorldExperiment.ExperimentID, argParamsExperiment.ExperimentID, filterTime)
 	runs, totalSize, _, err = test.ListRuns(
 		s.runClient,
 		&run_params.RunServiceListRunsParams{
-			Filter: util.StringPointer(`{"predicates": [{"key": "created_at", "operation": "LESS_THAN", "string_value": "` + fmt.Sprint(filterTime) + `"}]}`),
+			Filter: util.StringPointer(createdBeforeFilter),
 		},
 		s.resourceNamespace)
 	assert.Nil(t, err)
