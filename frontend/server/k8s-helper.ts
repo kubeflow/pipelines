@@ -259,7 +259,6 @@ export function getPodLogs(
 
 export interface K8sError {
   message: string;
-  additionalInfo: any;
 }
 export async function getPod(
   podName: string,
@@ -269,9 +268,8 @@ export async function getPod(
     const { body } = await k8sV1Client.readNamespacedPod(podName, podNamespace);
     return [body, undefined];
   } catch (error) {
-    const { message, additionalInfo } = await parseError(error);
-    const userMessage = `Could not get pod ${podName} in namespace ${podNamespace}: ${message}`;
-    return [undefined, { message: userMessage, additionalInfo }];
+    const userMessage = `Could not get pod ${podName} in namespace ${podNamespace}`;
+    return [undefined, { message: userMessage }];
   }
 }
 
@@ -288,9 +286,8 @@ export async function getConfigMap(
     const { body } = await k8sV1Client.readNamespacedConfigMap(configMapName, configMapNamespace);
     return [body, undefined];
   } catch (error) {
-    const { message, additionalInfo } = await parseError(error);
-    const userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}: ${message}`;
-    return [undefined, { message: userMessage, additionalInfo }];
+    const userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}`;
+    return [undefined, { message: userMessage }];
   }
 }
 
@@ -313,9 +310,8 @@ export async function listPodEvents(
     );
     return [body, undefined];
   } catch (error) {
-    const { message, additionalInfo } = await parseError(error);
-    const userMessage = `Error when listing pod events for pod "${podName}" in "${podNamespace}" namespace: ${message}`;
-    return [undefined, { message: userMessage, additionalInfo }];
+    const userMessage = `Error when listing pod events for pod "${podName}" in "${podNamespace}" namespace`;
+    return [undefined, { message: userMessage }];
   }
 }
 
