@@ -64,27 +64,30 @@ func (s *PipelineApiTest) SetupTest() {
 	s.namespace = *config.Namespace
 
 	var newPipelineClient func() (*api_server.PipelineClient, error)
-
+	tlsCfg, err := test.GetTLSConfig(*caCertPath)
+	if err != nil {
+		glog.Exitf("Failed to get TLS config. Error: %s", err.Error())
+	}
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
-	var err error
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
 		*config.DebugMode,
 		s.namespace,
+		tlsCfg,
 		test.GetClientConfig(s.namespace),
 	)
 	if err != nil {

@@ -23,6 +23,7 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -574,6 +575,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	if common.GetMLPipelineServiceTLSEnabled() {
+		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
+	}
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -608,6 +612,10 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Resources: driverResources,
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
+	}
+	// If the apiserver is TLS-enabled, add the custom CA bundle to the DAG driver template.
+	if common.GetMLPipelineServiceTLSEnabled() {
+		ConfigureCustomCABundle(t)
 	}
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)

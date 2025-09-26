@@ -45,6 +45,7 @@ var (
 	logLevel          = flag.String("log_level", "1", "The verbosity level to log.")
 	publishLogs       = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 	cacheDisabledFlag = flag.Bool("cache_disabled", false, "Disable cache globally.")
+	caCertPath        = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 )
 
 func main() {
@@ -74,6 +75,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
 	launcherV2Opts := &component.LauncherV2Options{
 		Namespace:         namespace,
 		PodName:           *podName,
@@ -84,6 +86,7 @@ func run() error {
 		RunID:             *runID,
 		PublishLogs:       *publishLogs,
 		CacheDisabled:     *cacheDisabledFlag,
+		CaCertPath:        *caCertPath,
 	}
 
 	switch *executorType {
@@ -106,6 +109,7 @@ func run() error {
 			MLMDServerAddress: launcherV2Opts.MLMDServerAddress,
 			MLMDServerPort:    launcherV2Opts.MLMDServerPort,
 			CacheDisabled:     launcherV2Opts.CacheDisabled,
+			CaCertPath:        launcherV2Opts.CaCertPath,
 		}
 		clientManager, err := client_manager.NewClientManager(clientOptions)
 		if err != nil {

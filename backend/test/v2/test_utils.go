@@ -16,6 +16,8 @@ package test
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"net/http"
 	"os"
 	"testing"
@@ -225,6 +227,7 @@ func GetPipelineUploadClient(
 	isKubeflowMode bool,
 	isDebugMode bool,
 	namespace string,
+	tlsCfg *tls.Config,
 	clientConfig clientcmd.ClientConfig,
 ) (api_server.PipelineUploadInterface, error) {
 	if uploadPipelinesWithKubernetes {
@@ -232,8 +235,28 @@ func GetPipelineUploadClient(
 	}
 
 	if isKubeflowMode {
-		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode)
+		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode, tlsCfg)
 	}
 
-	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode)
+	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode, tlsCfg)
+}
+
+// GetTLSConfig returns TLS config set with system CA certs as well as custom CA stored at input caCertPath if provided.
+func GetTLSConfig(caCertPath string) (*tls.Config, error) {
+	caCertPool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, err
+	}
+	if caCertPath != "" {
+		caCert, err := os.ReadFile(caCertPath)
+		if err != nil {
+			return nil, err
+		}
+		if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+			return nil, err
+		}
+	}
+	return &tls.Config{
+		RootCAs: caCertPool,
+	}, nil
 }

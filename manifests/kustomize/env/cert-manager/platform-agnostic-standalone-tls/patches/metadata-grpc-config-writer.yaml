@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metadata-grpc-config-writer
+data:
+  generate-config.sh: |-
+    #!/bin/sh
+    set -e
+
+    escape() {
+      sed ':a;N;$!ba;s/\n/\\n/g' "$1"
+    }
+
+    cat <<EOF >/etc/grpc/config.proto
+    connection_config {
+      mysql {
+        host: "${MYSQL_HOST}"
+        port: ${MYSQL_PORT}
+        database: "${MYSQL_DATABASE}"
+        user: "${DBCONFIG_USER}"
+        password: "${DBCONFIG_PASSWORD}"
+      }
+    }
+    ssl_config {
+      server_key: "$(escape /etc/pki/tls/certs/tls.key)"
+      server_cert: "$(escape /etc/pki/tls/certs/tls.crt)"
+      custom_ca: "$(escape /etc/pki/tls/certs/ca.crt)"
+      client_verify: false
+    }
+    
+    EOF

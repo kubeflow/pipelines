@@ -78,4 +78,3 @@ runs:
           wheels: ${{ inputs.wheels_version }}
           protobuf: ${{ inputs.protobuf_python_version }}
         EOF
-        

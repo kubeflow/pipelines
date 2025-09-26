@@ -32,6 +32,8 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+	MLPipelineTLSEnabled                    string = "ML_PIPELINE_TLS_ENABLED"
+	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -126,4 +128,12 @@ func GetKubeflowUserIDPrefix() string {
 
 func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
+}
+
+func GetMLPipelineServiceTLSEnabled() bool {
+	return GetBoolConfigWithDefault(MLPipelineTLSEnabled, DefaultMLPipelineTLSEnabled)
+}
+
+func GetCaBundleSecretName() string {
+	return GetStringConfigWithDefault(CaBundleSecretName, "")
 }

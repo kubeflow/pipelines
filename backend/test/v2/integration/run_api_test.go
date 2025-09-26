@@ -65,34 +65,37 @@ func (s *RunApiTestSuite) SetupTest() {
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var newRunClient func() (*api_server.RunClient, error)
+	tlsCfg, err := test.GetTLSConfig(*caCertPath)
+	if err != nil {
+		glog.Exitf("Failed to get TLS config. Error: %s", err.Error())
+	}
 
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *config.DebugMode)
+			return api_server.NewExperimentClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *config.DebugMode)
+			return api_server.NewRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
-	var err error
 	s.experimentClient, err = newExperimentClient()
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
@@ -102,6 +105,7 @@ func (s *RunApiTestSuite) SetupTest() {
 		*isKubeflowMode,
 		*config.DebugMode,
 		s.namespace,
+		tlsCfg,
 		test.GetClientConfig(s.namespace),
 	)
 	if err != nil {

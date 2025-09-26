@@ -228,6 +228,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.PublishLogs,
 		strconv.FormatBool(opts.CacheDisabled),
 		taskConfig,
+		opts.CaCertPath,
 	)
 	if err != nil {
 		return execution, err

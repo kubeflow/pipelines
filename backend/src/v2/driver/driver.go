@@ -71,6 +71,15 @@ type Options struct {
 	DriverType string
 
 	TaskName string // the original name of the task, used for input resolution
+
+	// set to true if ml pipeline server is serving over tls
+	MLPipelineTLSEnabled bool
+
+	MLMDServerAddress string
+
+	MLMDServerPort string
+
+	CaCertPath string
 }
 
 // TaskConfig needs to stay aligned with the TaskConfig in the SDK.
@@ -220,6 +229,7 @@ func initPodSpecPatch(
 	publishLogs string,
 	cacheDisabled string,
 	taskConfig *TaskConfig,
+	caCertPath string,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -265,6 +275,9 @@ func initPodSpecPatch(
 		"--mlmd_server_port",
 		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
 		"--publish_logs", publishLogs,
+	}
+	if caCertPath != "" {
+		launcherCmd = append(launcherCmd, "--ca_cert_path", caCertPath)
 	}
 	if cacheDisabled == "true" {
 		launcherCmd = append(launcherCmd, "--cache_disabled")
