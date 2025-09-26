@@ -18,10 +18,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 	"time"
+
+	"sigs.k8s.io/yaml"
 
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"

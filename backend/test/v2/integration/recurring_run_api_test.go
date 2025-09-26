@@ -17,12 +17,13 @@ package integration
 import (
 	"context"
 	"fmt"
-	"google.golang.org/protobuf/types/known/structpb"
 	"os"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 	"time"
+
+	"google.golang.org/protobuf/types/known/structpb"
+	"sigs.k8s.io/yaml"
 
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
