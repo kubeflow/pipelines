@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import * as express from 'express';
-import proxy from 'http-proxy-middleware';
+import createProxyMiddleware from 'http-proxy-middleware';
 import { URL, URLSearchParams } from 'url';
 
 export function _extractUrlFromReferer(proxyPrefix: string, referer = ''): string {
@@ -68,7 +68,7 @@ export default (app: express.Application, apisPrefix: string) => {
 
   app.all(
     proxyPrefix + '*',
-    proxy({
+    createProxyMiddleware({
       changeOrigin: true,
       logLevel: 'debug',
       target: 'http://127.0.0.1',
