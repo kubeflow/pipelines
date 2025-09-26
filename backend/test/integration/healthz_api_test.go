@@ -17,9 +17,11 @@ package integration
 import (
 	"testing"
 
-	"github.com/golang/glog"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/kubeflow/pipelines/backend/test/config"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -45,7 +47,7 @@ func (s *HealthzApiTest) SetupTest() {
 		}
 	}
 
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
 	var newHealthzClient func() (*api_server.HealthzClient, error)
 
@@ -53,13 +55,13 @@ func (s *HealthzApiTest) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newHealthzClient = func() (*api_server.HealthzClient, error) {
-			return api_server.NewKubeflowInClusterHealthzClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterHealthzClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newHealthzClient = func() (*api_server.HealthzClient, error) {
-			return api_server.NewHealthzClient(clientConfig, *isDebugMode)
+			return api_server.NewHealthzClient(clientConfig, *config.DebugMode)
 		}
 	}
 

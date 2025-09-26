@@ -1,0 +1,135 @@
+name: "Create Kind Cluster and Run Tests"
+description: "Step to set up a kind cluster and run tests against it"
+
+inputs:
+  pipeline_store:
+    description: "Flag to deploy KFP with K8s Native API"
+    default: 'database'
+    required: false
+  proxy:
+    description: "If KFP should be deployed with proxy configuration"
+    required: false
+    default: 'false'
+  cache_enabled:
+    description: "If KFP should be deployed with cache enabled globally"
+    required: false
+    default: 'true'
+  multi_user:
+    description: "If KFP should be deployed in multi-user mode"
+    required: false
+    default: 'false'
+  user_namespace:
+    description: "User namespace name if KFP was deployed in multi-user mode"
+    required: false
+    default: 'kubeflow-user-example-com'
+  default_namespace:
+    description: "Default namespace when deploying KFP on a Kind Cluster"
+    required: false
+    default: 'kubeflow'
+  python_version:
+    required: false
+    default: '3.9'
+    description: "Python version to use"
+  test_directory:
+    required: true
+    description: "Test Working Directory"
+  num_parallel_nodes:
+    required: false
+    description: "Number of ginkgo nodes to run in parallel"
+    default: "10"
+  test_label:
+    required: true
+    description: "Test Label to filter on, for e.g. Regression, Smoke, APIServerTests etc."
+  upload_pipelines_with_kubernetes_client:
+    required: false
+    default: 'false'
+    description: "Set to true if you want to upload pipelines and pipeline versions with Native K8s API as CRDs"
+  report_name:
+    required: false
+    default: ""
+    description: "Override it if you want a custom name for your test report file"
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python_version }}
+
+    - name: Run Tests
+      id: run-tests
+      shell: bash
+      working-directory: ${{ inputs.test_directory }}
+      env:
+        PIPELINE_STORE: ${{ inputs.pipeline_store }}
+      run: |
+        USE_PROXY=${{ inputs.proxy }}
+        if [ -z $USE_PROXY ]; then
+            USE_PROXY='false'
+        fi
+        MULTI_USER=${{ inputs.multi_user}}
+        if [ -z $MULTI_USER ]; then
+          MULTI_USER='false'
+        fi
+        go run github.com/onsi/ginkgo/v2/ginkgo -r -v --cover -p --keep-going --github-output=true --nodes=${{ inputs.num_parallel_nodes }} -v --label-filter=${{ inputs.test_label }} -- -namespace=${{ inputs.default_namespace }} -multiUserMode=$MULTI_USER -useProxy=$USE_PROXY -userNamespace=${{ inputs.user_namespace }} -uploadPipelinesWithKubernetes=${{ inputs.upload_pipelines_with_kubernetes_client}}
+      continue-on-error: true
+
+    - name: Collect Pod logs in case of Test Failures
+      id: collect-logs
+      shell: bash
+      if: ${{ steps.run-tests.outcome != 'success' }}
+      run: |
+        NAMESPACE=${{ env.NAMESPACE }}
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          NAMESPACE=${{ inputs.namespace }}
+        fi
+        ./.github/resources/scripts/collect-logs.sh --ns $NAMESPACE --output /tmp/tmp_pod_log.txt
+
+    - name: Publish Test Summary
+      id: publish
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
+      with:
+        files: |
+          ${{ inputs.test_directory }}/reports/*.xml
+
+    - name: Install Junit2Html plugin and generate report
+      if: (!cancelled()) && steps.collect-logs.outcome != 'failure'
+      shell: bash
+      run: |
+        pip install junit2html
+        junit2html ${{ inputs.test_directory }}/reports/junit.xml ${{ inputs.test_directory }}/reports/test-report.html
+      continue-on-error: true
+
+    - name: Configure report name
+      id: name_gen
+      shell: bash
+      run: |
+        REPORT_NAME="HTML Report - ${{ inputs.report_name }}"
+        if [ -z ${{ inputs.report_name }} ]; then
+          uuid=$(uuidgen)
+          REPORT_NAME="HTML Report - ${{ github.run_id }}_${{ github.job }}_$uuid"
+        fi
+        echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_OUTPUT
+
+    - name: Upload HTML Report
+      id: upload
+      uses: actions/upload-artifact@v4
+      if: (!cancelled())
+      with:
+        name: ${{ steps.name_gen.outputs.REPORT_NAME }}
+        path: ${{ inputs.test_directory }}/reports/test-report.html
+        retention-days: 30
+      continue-on-error: true
+
+    - name: Mark Workflow failure if test step failed
+      if: steps.run-tests.outcome != 'success' && !cancelled()
+      shell: bash
+      run: exit 1
+
+    - name: Mark Workflow failure if test reporting failed
+      if: (steps.publish.outcome == 'failure' || steps.upload.outcome != 'success') && !cancelled()
+      shell: bash
+      run: exit 1

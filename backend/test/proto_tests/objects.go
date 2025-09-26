@@ -15,17 +15,18 @@
 package proto_tests
 
 import (
+	"google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/golang/glog"
 	specPB "github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	pb "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
-	"google.golang.org/genproto/googleapis/rpc/status"
-	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/golang/glog"
 )
 
 const mockPipelineID = "9b187b86-7c0a-42ae-a0bc-2a746b6eb7a3"

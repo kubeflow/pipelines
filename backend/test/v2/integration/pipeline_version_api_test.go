@@ -18,21 +18,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test/config"
 	test "github.com/kubeflow/pipelines/backend/test/v2"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"sigs.k8s.io/yaml"
 )
 
 // This test suit tests various methods to import pipeline to pipeline system, including
@@ -63,17 +65,17 @@ func (s *PipelineVersionApiTest) SetupTest() {
 
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
 	if *isKubeflowMode {
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 	}
 
@@ -81,7 +83,7 @@ func (s *PipelineVersionApiTest) SetupTest() {
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
-		*isDebugMode,
+		*config.DebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),
 	)

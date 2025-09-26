@@ -68,6 +68,7 @@ _build
 
 # virtualenv
 .venv/
+venv/
 
 # python sdk package
 *.tar.gz
@@ -98,3 +99,7 @@ backend/src/crd/kubernetes/bin
 **/*.html
 reports/
 logs/
+*.out
+
+# Project-local tools
+bin/

@@ -30,24 +30,30 @@ jobs:
 
       - name: Create KFP cluster
         id: create-kfp-cluster
-        uses: ./.github/actions/kfp-cluster
+        uses: ./.github/actions/create-cluster
         with:
           k8s_version: ${{ matrix.k8s_version }}
-          pipeline_store: kubernetes
+        continue-on-error: true
+
+      - name: Deploy
+        id: deploy
+        uses: ./.github/actions/deploy
+        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        with:
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
-        continue-on-error: true
+          pipeline_store: kubernetes
 
       - name: Run Webhook Integration Tests
         id: tests
-        if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
+        if: ${{ steps.deploy.outcome == 'success' }}
         run: |
           make -C backend/test/integration test-webhook
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.tests.outcome != 'success' }}
+        if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.deploy.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1

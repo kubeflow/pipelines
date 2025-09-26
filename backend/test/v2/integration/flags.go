@@ -16,21 +16,21 @@ package integration
 
 import (
 	"flag"
-	"time"
-
 	"go.uber.org/zap/zapcore"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"time"
+
+	"github.com/kubeflow/pipelines/backend/test/config"
 )
 
 var (
-	namespace                     = flag.String("namespace", "kubeflow", "The namespace ml pipeline deployed to")
 	initializeTimeout             = flag.Duration("initializeTimeout", 2*time.Minute, "Duration to wait for test initialization")
 	runIntegrationTests           = flag.Bool("runIntegrationTests", false, "Whether to also run integration tests that call the service")
 	runUpgradeTests               = flag.Bool("runUpgradeTests", false, "Whether to run upgrade tests")
-	useProxy                      = flag.Bool("useProxy", false, "Whether to run the proxy tests")
+	useProxy                      = config.RunProxyTests
 	cacheEnabled                  = flag.Bool("cacheEnabled", true, "Whether cache is enabled tests")
-	uploadPipelinesWithKubernetes = flag.Bool("uploadPipelinesWithKubernetes", false, "Whether to use Kubernetes for uploading pipelines or use the REST API")
+	uploadPipelinesWithKubernetes = config.UploadPipelinesWithKubernetes
 )
 
 /**
@@ -39,8 +39,6 @@ var (
  * 2. One step that doesn't work locally is skipped.
  */
 var isDevMode = flag.Bool("isDevMode", false, "Dev mode helps local development of integration tests")
-
-var isDebugMode = flag.Bool("isDebugMode", false, "Whether to enable debug mode. Debug mode will log more diagnostics messages.")
 
 var (
 	isKubeflowMode    = flag.Bool("isKubeflowMode", false, "Runs tests in full Kubeflow mode")

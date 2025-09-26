@@ -1,0 +1,62 @@
+name: Build tools images
+
+on:
+  push:
+    branches:
+      - master
+      - 'release-*'
+  pull_request:
+    branches:
+      - master
+      - 'release-*'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_ORG: ${{ github.repository_owner }}
+  IMAGE_TAG: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
+
+concurrency:
+  group: build-tools-images-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build-tools:
+    name: Build tools images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push api-generator
+        id: build_api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/api/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}
+
+      - name: Build and push release tools
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: test/release/Dockerfile.release
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            BASE_IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-api-generator:${{ env.IMAGE_TAG }}
+          tags: |
+            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/kfp-release:${{ env.IMAGE_TAG }}

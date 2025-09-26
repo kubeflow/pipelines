@@ -77,13 +77,16 @@ API definitions in this folder are used to generate [`v1beta1`](https://www.kube
 
 4. Create a PR with the changes in [kubeflow.org website repository](https://github.com/kubeflow/website). See an example [here](https://github.com/kubeflow/website/pull/3444).
 
-## Updating API generator image
+## Updating API generator image (Manual)
+
+This is now automatic on pushes to GitHub branches, but the instructions are kept here in case you need to do it
+manually.
 
 API generator image is defined in [Dockerfile](`./Dockerfile`). If you need to update the container, follow these steps:
 
 1. Login to GHCR container registry: `echo "<PAT>" | docker login ghcr.io -u <USERNAME> --password-stdin` 
    * Replace `<PAT>` with a GitHub Personal Access Token (PAT) with the write:packages and `read:packages` scopes, as well as `delete:packages` if needed. 
-1. Update the [Dockerfile](`./Dockerfile`) and build the image by running `docker build -t ghcr.io/kubeflow/kfp-api-generator:$VERSION .`
-1. Push the new container by running `docker push ghcr.io/kubeflow/kfp-api-generator:$VERSION`.
+1. Update the [Dockerfile](`./Dockerfile`) and build the image by running `docker build -t ghcr.io/kubeflow/kfp-api-generator:$BRANCH .`
+1. Push the new container by running `docker push ghcr.io/kubeflow/kfp-api-generator:$BRANCH`.
 1. Update the `PREBUILT_REMOTE_IMAGE` variable in the [Makefile](./Makefile) to point to your new image.
-1. Similarly, push a new version of the release tools image to `ghcr.io/kubeflow/kfp-release:$VERSION` and run `make push` in [test/release/Makefile](../../test/release/Makefile).
+1. Similarly, push a new version of the release tools image to `ghcr.io/kubeflow/kfp-release:$BRANCH` and run `make push` in [test/release/Makefile](../../test/release/Makefile).

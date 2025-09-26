@@ -11,15 +11,15 @@ are available at their corresponding GitHub repositories.
 ### fnm
 
 ```bash
-fnm install 22.14.0
-fnm use 22.14.0
+fnm install 22.19.0
+fnm use 22.19.0
 ```
 
 ### nvm
 
 ```bash
-nvm install 22.14.0
-nvm use 22.14.0
+nvm install 22.19.0
+nvm use 22.19.0
 ```
 
 ## Manage dev environment with npm

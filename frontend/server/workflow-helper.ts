@@ -181,7 +181,7 @@ export async function getKeyFormatFromArtifactRepositories(
         `artifact-repositories configmap in ${namespace} namespace is missing an artifact-repositories field.`,
       );
     }
-    const artifactRepositoriesValue = JsYaml.safeLoad(
+    const artifactRepositoriesValue = JsYaml.load(
       artifactRepositories,
     ) as PartialArtifactRepositoriesValue;
     if ('s3' in artifactRepositoriesValue) {

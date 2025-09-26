@@ -13,15 +13,15 @@
 # limitations under the License.
 
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.24 as generator
-ENV GRPC_GATEWAY_VERSION v2.27.1
-ENV GO_SWAGGER_VERSION v0.32.3
-ENV GRPC_VERSION v1.73.0
-ENV PROTOC_VERSION 31.1
+FROM golang:1.24 AS generator
+ENV GRPC_GATEWAY_VERSION=v2.27.1
+ENV GO_SWAGGER_VERSION=v0.32.3
+ENV GRPC_VERSION=v1.73.0
+ENV PROTOC_VERSION=31.1
 ENV GOBIN=/go/bin
 # The googleapis repo doesn't use GitHub releases or version tags,
 # so we pin a specific commit to make the clone reproducible.
-ENV GOOGLEAPIS_COMMIT 68d5196a529174df97c28c70622ffc1c3721815f
+ENV GOOGLEAPIS_COMMIT=68d5196a529174df97c28c70622ffc1c3721815f
 
 # **Note** that protoc-gen-go-grpc is packaged with grpc-go but is versioned
 # separately. You can find the releases for protoc-gen-go-grpc here:
@@ -37,7 +37,7 @@ ENV GOOGLEAPIS_COMMIT 68d5196a529174df97c28c70622ffc1c3721815f
 # **Note** That BOTH PROTOC_GEN_GO_GRPC & PROTOBUF_GO here are used for
 # Generating GO Code. These versions should be identical to the
 # runtime Go packages (in the project go.mod)
-ENV PROTOC_GEN_GO_GRPC v1.5.1
+ENV PROTOC_GEN_GO_GRPC=v1.5.1
 ENV PROTOBUF_GO=v1.36.6
 
 # Install protoc.
@@ -49,8 +49,8 @@ RUN unzip -o protoc.zip -d /tmp/protoc && \
 RUN unzip -o protoc.zip 'include/*' -d /tmp/protoc && \
     mv /tmp/protoc/include/* /usr/include
 RUN rm -f protoc.zip
-ENV PROTOCCOMPILER /usr/bin/protoc
-ENV PROTOCINCLUDE /usr/include/google/protobuf
+ENV PROTOCCOMPILER=/usr/bin/protoc
+ENV PROTOCINCLUDE=/usr/include/google/protobuf
 
 # Need grpc-gateway source code for -I in protoc command.
 # Install protoc-gen-rpc-gateway && protoc-gen-swagger.
@@ -77,10 +77,10 @@ RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@${PROTOC_GEN_GO_GRP
 
 # Needed for buildling python packages requiring protoc
 RUN apt-get update && apt-get install -y python3-pip
-RUN pip3 install --upgrade pip setuptools wheel --break-system-packages
+RUN apt-get -y upgrade python3-pip && pip3 install --upgrade setuptools wheel --break-system-packages
 
 # WORKAROUND: https://github.com/docker-library/golang/issues/225#issuecomment-403170792
-ENV XDG_CACHE_HOME /tmp/.cache
+ENV XDG_CACHE_HOME=/tmp/.cache
 # Make all files accessible to non-root users.
 RUN chmod -R 777 /usr/bin/
 RUN chmod -R 777 /usr/include/google

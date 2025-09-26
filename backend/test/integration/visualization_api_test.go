@@ -17,11 +17,13 @@ package integration
 import (
 	"testing"
 
-	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_client/visualization_service"
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/kubeflow/pipelines/backend/test/config"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -46,7 +48,7 @@ func (s *VisualizationApiTest) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %v", err)
 		}
 	}
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
 	var newVisualizationClient func() (*api_server.VisualizationClient, error)
 
@@ -54,13 +56,13 @@ func (s *VisualizationApiTest) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newVisualizationClient = func() (*api_server.VisualizationClient, error) {
-			return api_server.NewKubeflowInClusterVisualizationClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterVisualizationClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newVisualizationClient = func() (*api_server.VisualizationClient, error) {
-			return api_server.NewVisualizationClient(clientConfig, *isDebugMode)
+			return api_server.NewVisualizationClient(clientConfig, *config.DebugMode)
 		}
 	}
 

@@ -27,10 +27,10 @@ The Kubeflow pipelines service has the following goals:
 
 ### Dependencies Compatibility Matrix
 
-| Dependency     | Versions    |
-| -------------- | ----------  |
-| Argo Workflows | v3.5, v3.6  |
-| MySQL          | v8          |
+| Dependency     | Versions         |
+| -------------- |------------------|
+| Argo Workflows | v3.5, v3.6, v3.7 |
+| MySQL          | v8               |
 
 ## Documentation
 
@@ -69,7 +69,7 @@ We also have a slack channel (#kubeflow-pipelines) on the Cloud Native Computing
 
 ## Architecture
 
-Details about the KFP Architecture can be found at [Architecture.md](docs/Architecture.md)
+Details about the KFP Architecture can be found at [Architecture.md](docs/sdk/Architecture.md)
 
 ## Blog posts
 

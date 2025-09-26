@@ -20,10 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/google/go-cmp/cmp"
-
-	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -32,6 +28,11 @@ import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/kubeflow/pipelines/backend/test/config"
+
+	"github.com/go-openapi/strfmt"
+	"github.com/golang/glog"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -66,7 +67,7 @@ func (s *RunApiTestSuite) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
 	}
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
 	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
@@ -77,31 +78,31 @@ func (s *RunApiTestSuite) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode)
 		}
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
+			return api_server.NewExperimentClient(clientConfig, *config.DebugMode)
 		}
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineUploadClient(clientConfig, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRunClient(clientConfig, *config.DebugMode)
 		}
 	}
 
