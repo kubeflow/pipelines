@@ -26,7 +26,8 @@ session = botocore.session.get_session()
 # To interact with seaweedfs user management. Region does not matter.
 iam = session.create_client('iam', region_name='foobar')
 # S3 client for lifecycle policy management
-s3 = session.create_client('s3', region_name='foobar')
+s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs:8333")
+s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_url)
 
 
 def main():
@@ -37,7 +38,7 @@ def main():
 
 def get_settings_from_env(controller_port=None, frontend_image=None,
                           frontend_tag=None, disable_istio_sidecar=None,
-                          artifacts_proxy_enabled=None):
+                          artifacts_proxy_enabled=None, time_to_live_str=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
 
@@ -62,6 +63,10 @@ def get_settings_from_env(controller_port=None, frontend_image=None,
     settings["artifacts_proxy_enabled"] = \
         artifacts_proxy_enabled or \
         os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
+    
+    settings["time_to_live_str"] = \
+        time_to_live_str or \
+        os.environ.get("TIME_TO_LIVE", -1)
 
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
@@ -79,24 +84,52 @@ def get_settings_from_env(controller_port=None, frontend_image=None,
 
 
 def server_factory(frontend_image, frontend_tag,
-                   disable_istio_sidecar, artifacts_proxy_enabled=True, url="", controller_port=8080):
+                   disable_istio_sidecar, artifacts_proxy_enabled, time_to_live_str, url="", controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
     """
     class Controller(BaseHTTPRequestHandler):
-        def upsert_lifecycle_policy(self, bucket_name):
-            """Configure TTL lifecycle policy for SeaweedFS using S3 API"""
+        def upsert_lifecycle_policy(self, bucket_name, time_to_live_str):
+            """Configures or deletes the TTL lifecycle policy based on the time_to_live string."""
+            try:
+                ttl_int = int(time_to_live_str)
+            except ValueError:
+                print(f"ERROR: TIME_TO_LIVE value '{time_to_live_str}' is not a valid integer. Aborting policy update.")
+                return
+            
+            # To disable lifecycle policy we need to delete it
+            if ttl_int <= 0:
+                print(f"TTL is non-positive ({ttl_int} days). Attempting to delete lifecycle policy.")
+                try:
+                    response = s3.get_bucket_lifecycle_configuration(Bucket=bucket_name)
+                    # Check if there are any enabled rules
+                    has_enabled_rules = any(rule.get('Status') == 'Enabled' for rule in response.get('Rules', []))
+                    
+                    if has_enabled_rules:
+                        s3.delete_bucket_lifecycle(Bucket=bucket_name)
+                        print("Successfully deleted lifecycle policy.")
+                    else:
+                        print("No enabled lifecycle rules found to delete.")
+                except Exception as e:
+                    if hasattr(e, 'response') and 'Error' in e.response:
+                        print(f"Warning: Failed to delete policy: {e.response['Error']['Code']} - {e}")
+                    else:
+                        print(f"Warning: Failed to delete policy: {e}")
+                return
+            
+            # Create/update lifecycle policy
             lfc = {
                 "Rules": [
                     {
                         "Status": "Enabled",
-                        "Filter": {"Prefix": "private-artifacts/"},
-                        "Expiration": {"Days": 183},
+                        "Filter": {"Prefix": "private-artifacts"},
+                        "Expiration": {"Days": ttl_int},
                         "ID": "private-artifacts",
                     },
                 ]
             }
             print('upsert_lifecycle_policy:', lfc)
+            
             try:
                 api_response = s3.put_bucket_lifecycle_configuration(
                     Bucket=bucket_name,
@@ -104,7 +137,11 @@ def server_factory(frontend_image, frontend_tag,
                 )
                 print('Lifecycle policy configured successfully:', api_response)
             except Exception as e:
-                print(f'Warning: Failed to configure lifecycle policy: {e}')
+                if hasattr(e, 'response') and 'Error' in e.response:
+                    print(f"ERROR: Failed to configure lifecycle policy: {e.response['Error']['Code']} - {e}")
+                else:
+                    print(f"ERROR: Failed to configure lifecycle policy: {e}")
+
 
         def sync(self, parent, attachments):
             # parent is a namespace
@@ -329,7 +366,7 @@ def server_factory(frontend_image, frontend_tag,
                         })
                 )
                 
-                self.upsert_lifecycle_policy(S3_BUCKET_NAME)
+                self.upsert_lifecycle_policy(S3_BUCKET_NAME, time_to_live_str)
                 
                 desired_resources.insert(
                     0,
