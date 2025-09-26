@@ -295,9 +295,30 @@ describe('UIServer apis', () => {
       const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
       request
         .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
-        .expect(500, 'Could not get pod test-pod in namespace test-ns: pod not found', () => {
+        .expect(500, 'Could not get pod test-pod in namespace test-ns', () => {
           expect(spyError).toHaveBeenCalledTimes(1);
           done();
+        });
+    });
+
+    it('responds with error when invalid resource name', done => {
+      const readPodSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'readNamespacedPod');
+      readPodSpy.mockImplementation(() =>
+        Promise.reject({
+          body: {
+            message: 'pod not found',
+            code: 404,
+          },
+        } as any),
+      );
+      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      request
+        .get(
+          '/k8s/pod?podname=test-pod-name&podnamespace=test-namespace%7d%7dt93g1%3Cscript%3Ealert(1)%3C%2fscript%3Ej66h',
+        )
+        .expect(500, 'Invalid resource name', err => {
+          expect(spyError).toHaveBeenCalledTimes(1);
+          done(err);
         });
     });
   });
@@ -353,14 +374,31 @@ describe('UIServer apis', () => {
       const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
       request
         .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
-        .expect(
-          500,
-          'Error when listing pod events for pod "test-pod" in "test-ns" namespace: no events',
-          err => {
-            expect(spyError).toHaveBeenCalledTimes(1);
-            done(err);
+        .expect(500, 'Error when listing pod events for pod test-pod in namespace test-ns', err => {
+          expect(spyError).toHaveBeenCalledTimes(1);
+          done(err);
+        });
+    });
+
+    it('responds with error when invalid resource name', done => {
+      const listEventSpy = jest.spyOn(K8S_TEST_EXPORT.k8sV1Client, 'listNamespacedEvent');
+      listEventSpy.mockImplementation(() =>
+        Promise.reject({
+          body: {
+            message: 'no events',
+            code: 404,
           },
-        );
+        } as any),
+      );
+      const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
+      request
+        .get(
+          '/k8s/pod/events?podname=test-pod-name&podnamespace=test-namespace%7d%7dt93g1%3Cscript%3Ealert(1)%3C%2fscript%3Ej66h',
+        )
+        .expect(500, 'Invalid resource name', err => {
+          expect(spyError).toHaveBeenCalledTimes(1);
+          done(err);
+        });
     });
   });
 
