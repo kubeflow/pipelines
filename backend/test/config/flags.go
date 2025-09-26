@@ -34,6 +34,12 @@ var (
 	InClusterRun                  = flag.Bool("runInCluster", false, "Whether to run your tests from within the K8s cluster")
 )
 
+var (
+	REPO_NAME   = flag.String("repoName", "kubeflow/pipelines", "The name of the repository")
+	PULL_NUMBER = flag.String("pullNumber", "", "The pull number")
+	BRANCH_NAME = flag.String("branchName", "master", "The branch name")
+)
+
 var DebugMode = flag.Bool("debugMode", false, "Whether to enable debug mode. Debug mode will log more diagnostics messages.")
 var PodLogLimit = flag.Int64("podLogLimit", 50000000, "Limit the pod logs size to this limit")
 
