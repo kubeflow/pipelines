@@ -96,5 +96,57 @@ class WorkspaceConfig:
 class PipelineConfig:
     """PipelineConfig contains pipeline-level config options."""
 
-    def __init__(self, workspace: Optional[WorkspaceConfig] = None):
+    def __init__(self,
+                 workspace: Optional[WorkspaceConfig] = None,
+                 semaphore_key: Optional[str] = None,
+                 mutex_name: Optional[str] = None):
         self.workspace = workspace
+        self._semaphore_key = semaphore_key
+        self._mutex_name = mutex_name
+
+    @property
+    def semaphore_key(self) -> Optional[str]:
+        """Get the semaphore key for controlling pipeline concurrency.
+
+        Returns:
+            Optional[str]: The semaphore key, or None if not set.
+        """
+        return self._semaphore_key
+
+    @semaphore_key.setter
+    def semaphore_key(self, value: str):
+        """Set the semaphore key to control pipeline concurrency.
+
+        Pipelines with the same semaphore key will be limited to a configured maximum
+        number of concurrent executions. This allows you to control resource usage by
+        ensuring that only a specific number of pipelines can run simultaneously.
+
+        Note: A pipeline can use both semaphores and mutexes together. The pipeline
+        will wait until all required locks are available before starting.
+
+        Args:
+            value (str): The semaphore key name for controlling concurrent executions.
+        """
+        self._semaphore_key = (value and value.strip()) or None
+
+    @property
+    def mutex_name(self) -> Optional[str]:
+        """Get the mutex name for exclusive pipeline execution.
+
+        Returns:
+            Optional[str]: The mutex name, or None if not set.
+        """
+        return self._mutex_name
+
+    @mutex_name.setter
+    def mutex_name(self, value: str):
+        """Set the name of the mutex to ensure mutual exclusion.
+
+        Pipelines with the same mutex name will only run one at a time. This ensures
+        exclusive access to shared resources and prevents conflicts when multiple
+        pipelines would otherwise compete for the same resources.
+
+        Args:
+            value (str): Name of the mutex for exclusive pipeline execution.
+        """
+        self._mutex_name = (value and value.strip()) or None
