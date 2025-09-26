@@ -48,7 +48,7 @@ describe('/artifacts/get namespaced proxy', () => {
     const receivedUrls: string[] = [];
     const artifactService = express();
     const response = `artifact service in ${namespace}`;
-    artifactService.all('/*', (req, res) => {
+    artifactService.use((req, res) => {
       receivedUrls.push(req.url);
       res.status(200).send(response);
     });
