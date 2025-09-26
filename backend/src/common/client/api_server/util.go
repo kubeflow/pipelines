@@ -64,9 +64,12 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	if !*testconfig.InClusterRun {
 		httpClient := http.DefaultClient
 		var scheme []string
+		host := fmt.Sprintf("%s:%s", *testconfig.ApiHost, *testconfig.ApiPort)
 		if strings.Contains(*testconfig.ApiUrl, "://") {
-			schemeFromUrl := strings.Replace(strings.Split(*testconfig.ApiUrl, "://")[0], "://", "", -1)
+			urlSplit := strings.Split(*testconfig.ApiUrl, "://")
+			schemeFromUrl := strings.Replace(urlSplit[0], "://", "", -1)
 			scheme = append(scheme, schemeFromUrl)
+			host = urlSplit[1]
 		}
 		if testconfig.ApiScheme != nil {
 			scheme = append(scheme, *testconfig.ApiScheme)
@@ -77,7 +80,8 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 			}
 			httpClient = &http.Client{Transport: tr}
 		}
-		runtimeClient := httptransport.NewWithClient(*testconfig.ApiUrl, "", scheme, httpClient)
+
+		runtimeClient := httptransport.NewWithClient(host, "", scheme, httpClient)
 		if debug {
 			runtimeClient.SetDebug(true)
 		}

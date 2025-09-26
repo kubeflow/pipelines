@@ -16,9 +16,6 @@ package api
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
-
 	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
@@ -31,6 +28,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	testutils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	"github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
+	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -71,6 +70,7 @@ var _ = Describe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_RUN, API_
 		for _, param := range testParams {
 			for _, pipelineFilePath := range pipelineFilePaths {
 				It(fmt.Sprintf("Create a '%s' pipeline with cacheEnabled=%t and verify run", pipelineFilePath, param.pipelineCacheEnabled), func() {
+					createdExperiment := createExperiment(experimentName)
 					pipelineFilePath := pipelineFilePath
 					pipelineFileName := filepath.Base(pipelineFilePath)
 					test_utils.CheckIfSkipping(pipelineFileName)
@@ -78,8 +78,8 @@ var _ = Describe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_RUN, API_
 					createdPipeline := uploadAPipeline(configuredPipelineSpecFile, &testContext.Pipeline.PipelineGeneratedName)
 					createdPipelineVersion := test_utils.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 					pipelineRuntimeInputs := test_utils.GetPipelineRunTimeInputs(configuredPipelineSpecFile)
-					createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs)
-					createdExpectedRunAndVerify(createdPipelineRun, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs)
+					createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+					createdExpectedRunAndVerify(createdPipelineRun, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
 				})
 			}
 		}

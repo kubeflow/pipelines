@@ -192,6 +192,7 @@ func uploadPipelineAndChangePipelineVersion(pipelineFilePathForCreation string, 
 }
 
 func uploadPipeline(pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) (*model.V2beta1Pipeline, error) {
+	testContext.Pipeline.UploadParams.SetName(pipelineName)
 	if pipelineDisplayName != nil {
 		testContext.Pipeline.ExpectedPipeline.DisplayName = *pipelineDisplayName
 		testContext.Pipeline.UploadParams.SetDisplayName(pipelineDisplayName)
@@ -199,7 +200,7 @@ func uploadPipeline(pipelineFilePath string, pipelineName *string, pipelineDispl
 		testContext.Pipeline.ExpectedPipeline.DisplayName = *pipelineName
 	}
 	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFilePath)
-	return test_utils.UploadPipeline(pipelineUploadClient, pipelineFilePath, pipelineName, pipelineDisplayName)
+	return pipelineUploadClient.UploadFile(pipelineFilePath, testContext.Pipeline.UploadParams)
 }
 
 func uploadPipelineAndVerify(pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) *model.V2beta1Pipeline {

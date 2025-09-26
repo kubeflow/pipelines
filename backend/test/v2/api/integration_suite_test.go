@@ -144,17 +144,11 @@ var _ = BeforeEach(func() {
 	testContext = &TestContext{
 		TestStartTimeUTC: time.Now(),
 	}
-
-	experimentName := fmt.Sprintf("APIServerTestsExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
-	experiment := test_utils.CreateExperiment(experimentClient, experimentName, test_utils.GetNamespace())
-	experimentID = &experiment.ExperimentID
-
 	randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
 	testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
 	testContext.Pipeline.UploadParams = uploadparams.NewUploadPipelineParams()
 	testContext.PipelineRun.CreatedRunIds = make([]string, 0)
 	testContext.Experiment.CreatedExperimentIds = make([]string, 0)
-	testContext.Experiment.CreatedExperimentIds = append(testContext.Experiment.CreatedExperimentIds, *experimentID)
 })
 
 var _ = AfterEach(func() {
