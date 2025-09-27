@@ -27,8 +27,7 @@ from kfp.dsl import placeholders
 from kfp.dsl import utils
 from kfp.dsl import v1_structures
 from kfp.dsl.component_task_config import TaskConfigPassthrough
-from kfp.dsl.container_component_artifact_channel import \
-    ContainerComponentArtifactChannel
+from kfp.dsl.container_component_artifact_channel import ContainerComponentArtifactChannel
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
