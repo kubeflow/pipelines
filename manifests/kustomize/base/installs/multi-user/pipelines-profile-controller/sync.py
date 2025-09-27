@@ -38,7 +38,7 @@ def main():
 
 def get_settings_from_env(controller_port=None, frontend_image=None,
                           frontend_tag=None, disable_istio_sidecar=None,
-                          artifacts_proxy_enabled=None, time_to_live_str=None):
+                          artifacts_proxy_enabled=None, artifact_retention_days=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
 
@@ -64,9 +64,9 @@ def get_settings_from_env(controller_port=None, frontend_image=None,
         artifacts_proxy_enabled or \
         os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
     
-    settings["time_to_live_str"] = \
-        time_to_live_str or \
-        os.environ.get("TIME_TO_LIVE", -1)
+    settings["artifact_retention_days"] = \
+        artifact_retention_days or \
+        os.environ.get("ARTIFACT_RETENTION_DAYS", -1)
 
     # Look for specific tags for each image first, falling back to
     # previously used KFP_VERSION environment variable for backwards
@@ -84,22 +84,22 @@ def get_settings_from_env(controller_port=None, frontend_image=None,
 
 
 def server_factory(frontend_image, frontend_tag,
-                   disable_istio_sidecar, artifacts_proxy_enabled, time_to_live_str, url="", controller_port=8080):
+                   disable_istio_sidecar, artifacts_proxy_enabled, artifact_retention_days, url="", controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
     """
     class Controller(BaseHTTPRequestHandler):
-        def upsert_lifecycle_policy(self, bucket_name, time_to_live_str):
-            """Configures or deletes the TTL lifecycle policy based on the time_to_live string."""
+        def upsert_lifecycle_policy(self, bucket_name, artifact_retention_days):
+            """Configures or deletes the lifecycle policy based on the artifact_retention_days string."""
             try:
-                ttl_int = int(time_to_live_str)
+                retention_days = int(artifact_retention_days)
             except ValueError:
-                print(f"ERROR: TIME_TO_LIVE value '{time_to_live_str}' is not a valid integer. Aborting policy update.")
+                print(f"ERROR: ARTIFACT_RETENTION_DAYS value '{artifact_retention_days}' is not a valid integer. Aborting policy update.")
                 return
             
             # To disable lifecycle policy we need to delete it
-            if ttl_int <= 0:
-                print(f"TTL is non-positive ({ttl_int} days). Attempting to delete lifecycle policy.")
+            if retention_days <= 0:
+                print(f"ARTIFACT_RETENTION_DAYS is non-positive ({retention_days} days). Attempting to delete lifecycle policy.")
                 try:
                     response = s3.get_bucket_lifecycle_configuration(Bucket=bucket_name)
                     # Check if there are any enabled rules
@@ -110,11 +110,8 @@ def server_factory(frontend_image, frontend_tag,
                         print("Successfully deleted lifecycle policy.")
                     else:
                         print("No enabled lifecycle rules found to delete.")
-                except Exception as e:
-                    if hasattr(e, 'response') and 'Error' in e.response:
-                        print(f"Warning: Failed to delete policy: {e.response['Error']['Code']} - {e}")
-                    else:
-                        print(f"Warning: Failed to delete policy: {e}")
+                except Exception:
+                    print(f"Warning: No lifecycle policy exists")
                 return
             
             # Create/update lifecycle policy
@@ -123,7 +120,7 @@ def server_factory(frontend_image, frontend_tag,
                     {
                         "Status": "Enabled",
                         "Filter": {"Prefix": "private-artifacts"},
-                        "Expiration": {"Days": ttl_int},
+                        "Expiration": {"Days": retention_days},
                         "ID": "private-artifacts",
                     },
                 ]
@@ -153,15 +150,13 @@ def server_factory(frontend_image, frontend_tag,
             if pipeline_enabled != "true":
                 return {"status": {}, "attachments": []}
 
-            desired_deployment_count = 1 if artifacts_proxy_enabled.lower() == "true" else 0
-            desired_service_count = 1 if artifacts_proxy_enabled.lower() == "true" else 0
             # Compute status based on observed state.
             desired_status = {
                 "kubeflow-pipelines-ready":
                     len(attachments["Secret.v1"]) == 1 and
                     len(attachments["ConfigMap.v1"]) == 3 and
-                    len(attachments["Deployment.apps/v1"]) == desired_deployment_count and
-                    len(attachments["Service.v1"]) == desired_service_count and
+                    len(attachments["Deployment.apps/v1"]) == 1 if artifacts_proxy_enabled.lower() == "true" else 0 and
+                    len(attachments["Service.v1"]) == 1 if artifacts_proxy_enabled.lower() == "true" else 0 and
                     "True" or "False"
             }
 
@@ -361,7 +356,7 @@ def server_factory(frontend_image, frontend_tag,
                         })
                 )
                 
-                self.upsert_lifecycle_policy(S3_BUCKET_NAME, time_to_live_str)
+                self.upsert_lifecycle_policy(S3_BUCKET_NAME, artifact_retention_days)
                 
                 desired_resources.insert(
                     0,
