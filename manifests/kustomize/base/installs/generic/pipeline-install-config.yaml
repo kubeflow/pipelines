@@ -102,9 +102,9 @@ data:
   ## Valid values are 'true' and 'false'. Defaults to 'false'.
   ## For more information see: https://github.com/kubeflow/pipelines/pull/11965
   ARTIFACTS_PROXY_ENABLED: "false"
-  ## TIME_TO_LIVE: Defines the retention period (in days) for artifacts stored in SeaweedFS.  
+  ## ARTIFACT_RETENTION_DAYS: Defines the retention period (in days) for artifacts stored in SeaweedFS.  
   ## - A positive integer specifies the number of days after which the artifact will be automatically deleted.  
   ## - A negative integer (e.g., -1) disables automatic deletion, meaning artifacts are retained indefinitely.  
   ## Note: The unit of this configuration is always in days.  
-  TIME_TO_LIVE: "-1"
+  ARTIFACT_RETENTION_DAYS: "-1"
 
