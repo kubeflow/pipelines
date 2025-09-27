@@ -150,7 +150,7 @@ describe('/artifacts/get namespaced proxy', () => {
           namespace: undefined,
         })}`,
       )
-      .expect(200, 'text-data2', done);
+      .expect(400, 'namespace parameter is required for artifact access', done);
   });
 
   it('proxies a request with basePath too', done => {
