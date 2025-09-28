@@ -116,12 +116,6 @@ service RunService {
     };
   }
 
-  // Finds a run's artifact data.
-  rpc ReadArtifactV1(ReadArtifactRequest) returns (ReadArtifactResponse) {
-    option (google.api.http) = {
-      get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
-    };
-  }
 
   // Terminates an active run.
   rpc TerminateRunV1(TerminateRunRequest) returns (google.protobuf.Empty) {
