@@ -129,7 +129,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FULL_REGRESSION), fun
 				test_utils.CheckIfSkipping(pipelineFile)
 				pipelineFilePath := filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir, pipelineFile)
 				logger.Log("Uploading pipeline file %s", pipelineFile)
-				uploadedPipeline, uploadErr := e2e_utils.UploadPipeline(pipelineUploadClient, testContext, pipelineDir, pipelineFile, &testContext.Pipeline.PipelineGeneratedName, nil)
+				uploadedPipeline, uploadErr := test_utils.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 				Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
 				testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
 				logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
@@ -152,7 +152,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FULL_REGRESSION), fun
 				test_utils.CheckIfSkipping(pipelineFile)
 				pipelineFilePath := filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir, pipelineFile)
 				logger.Log("Uploading pipeline file %s", pipelineFile)
-				uploadedPipeline, uploadErr := e2e_utils.UploadPipeline(pipelineUploadClient, testContext, pipelineDir, pipelineFile, &testContext.Pipeline.PipelineGeneratedName, nil)
+				uploadedPipeline, uploadErr := test_utils.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 				Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
 				testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
 				logger.Log("Upload of pipeline file '%s' successful", pipelineFile)
@@ -171,7 +171,8 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FULL_REGRESSION), fun
 		var pipelineDir = "valid"
 		pipelineFile := "env-var.yaml"
 		It(fmt.Sprintf("Create a pipeline run with http proxy, using specs: %s", pipelineFile), func() {
-			uploadedPipeline, uploadErr := e2e_utils.UploadPipeline(pipelineUploadClient, testContext, pipelineDir, pipelineFile, &testContext.Pipeline.PipelineGeneratedName, nil)
+			pipelineFilePath := filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir, pipelineFile)
+			uploadedPipeline, uploadErr := test_utils.UploadPipeline(pipelineUploadClient, pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 			Expect(uploadErr).To(BeNil(), "Failed to upload pipeline %s", pipelineFile)
 			testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, uploadedPipeline)
 			createdPipelineVersion := test_utils.GetLatestPipelineVersion(pipelineClient, &uploadedPipeline.PipelineID)
