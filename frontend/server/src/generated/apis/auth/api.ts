@@ -35,7 +35,7 @@ export const COLLECTION_FORMATS = {
  * @interface FetchAPI
  */
 export interface FetchAPI {
-  (url: string, init?: any): Promise<Response>;
+  (url: string, init?: any): Promise<any>;
 }
 
 /**
@@ -203,7 +203,7 @@ export const AuthServiceApiFetchParamCreator = function(configuration?: Configur
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      delete (localVarUrlObj as any).search;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {

@@ -21,6 +21,7 @@ import { Handler, Request, Response } from 'express';
 import { Storage } from '@google-cloud/storage';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts';
+import { URL } from 'url';
 
 import * as fs from 'fs';
 import { isAllowedDomain } from './domain-checker';
@@ -94,9 +95,9 @@ export function getArtifactsHandler({
 }): Handler {
   const { aws, http, minio, allowedDomain } = artifactsConfigs;
   return async (req, res) => {
-    const source = useParameter ? req.params.source : req.query.source;
-    const bucket = useParameter ? req.params.bucket : req.query.bucket;
-    const key = useParameter ? req.params[0] : req.query.key;
+    const source = (useParameter ? req.params.source : req.query.source) as string | undefined;
+    const bucket = (useParameter ? req.params.bucket : req.query.bucket) as string | undefined;
+    const key = (useParameter ? req.params[0] : req.query.key) as string | undefined;
     const {
       peek = 0,
       providerInfo = '',
