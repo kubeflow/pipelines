@@ -19,10 +19,11 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/encoding/protojson"
 	"os"
-	"sigs.k8s.io/yaml"
 	"slices"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
