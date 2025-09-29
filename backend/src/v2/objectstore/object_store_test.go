@@ -203,16 +203,16 @@ func Test_bucketConfig_KeyFromURI(t *testing.T) {
 
 func Test_createS3BucketSession(t *testing.T) {
 	tt := []struct {
-		msg                string
-		ns                 string
-		sessionInfo        *SessionInfo
-		sessionSecret      *corev1.Secret
-		expectValidClient  bool
-		expectedRegion     string
-		expectedEndpoint   string
-		expectedPathStyle  bool
-		wantErr            bool
-		errorMsg           string
+		msg               string
+		ns                string
+		sessionInfo       *SessionInfo
+		sessionSecret     *corev1.Secret
+		expectValidClient bool
+		expectedRegion    string
+		expectedEndpoint  string
+		expectedPathStyle bool
+		wantErr           bool
+		errorMsg          string
 	}{
 		{
 			msg: "Bucket with session",

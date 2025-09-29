@@ -16,10 +16,11 @@ package integration
 
 import (
 	"flag"
+	"time"
+
 	"go.uber.org/zap/zapcore"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"time"
 
 	"github.com/kubeflow/pipelines/backend/test/config"
 )
