@@ -115,7 +115,7 @@ def server_factory(frontend_image, frontend_tag,
                 return
             
             # Create/update lifecycle policy
-            lfc = {
+            life_cycle_policy = {
                 "Rules": [
                     {
                         "Status": "Enabled",
@@ -125,19 +125,19 @@ def server_factory(frontend_image, frontend_tag,
                     },
                 ]
             }
-            print('upsert_lifecycle_policy:', lfc)
+            print('upsert_lifecycle_policy:', life_cycle_policy)
             
             try:
                 api_response = s3.put_bucket_lifecycle_configuration(
                     Bucket=bucket_name,
-                    LifecycleConfiguration=lfc
+                    LifecycleConfiguration = life_cycle_policy
                 )
                 print('Lifecycle policy configured successfully:', api_response)
-            except Exception as e:
-                if hasattr(e, 'response') and 'Error' in e.response:
-                    print(f"ERROR: Failed to configure lifecycle policy: {e.response['Error']['Code']} - {e}")
+            except Exception as exception:
+                if hasattr(exception, 'response') and 'Error' in exception.response:
+                    print(f"ERROR: Failed to configure lifecycle policy: {exception.response['Error']['Code']} - {exception}")
                 else:
-                    print(f"ERROR: Failed to configure lifecycle policy: {e}")
+                    print(f"ERROR: Failed to configure lifecycle policy: {exception}")
 
 
         def sync(self, parent, attachments):
