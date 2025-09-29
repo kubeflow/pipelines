@@ -13,6 +13,12 @@
 
 ## Documentation updates
 
+# 2.14.4
+
+## Bug Fixes
+
+* **sdk:**  fix(sdk): Align the versions on kfp-kubernetes install (#12283)
+
 # 2.14.3
 
 ## Bug Fixes
