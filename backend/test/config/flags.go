@@ -29,9 +29,16 @@ var (
 	ApiScheme                     = flag.String("apiScheme", "http", "The scheme to use for a connection to the api server")
 	ApiHost                       = flag.String("apiHost", "localhost", "The hostname of the API server")
 	ApiPort                       = flag.String("apiPort", "8888", "The port on which the API server is listening")
-	ApiUrl                        = flag.String("apiUrl", fmt.Sprintf("%s:%s", *ApiHost, *ApiPort), "The URL of the API server (without the scheme)")
+	ApiUrl                        = flag.String("apiUrl", fmt.Sprintf("%s://%s:%s", *ApiScheme, *ApiHost, *ApiPort), "The URL of the API server")
 	DisableTlsCheck               = flag.Bool("disableTlsCheck", false, "Whether to use server certificate chain and hostname.")
 	InClusterRun                  = flag.Bool("runInCluster", false, "Whether to run your tests from within the K8s cluster")
+	AuthToken                     = flag.String("authToken", "", "The default auth token that will be injected to all your API request")
+)
+
+var (
+	REPO_NAME   = flag.String("repoName", "kubeflow/pipelines", "The name of the repository")
+	PULL_NUMBER = flag.String("pullNumber", "", "The pull number")
+	BRANCH_NAME = flag.String("branchName", "master", "The branch name")
 )
 
 var DebugMode = flag.Bool("debugMode", false, "Whether to enable debug mode. Debug mode will log more diagnostics messages.")

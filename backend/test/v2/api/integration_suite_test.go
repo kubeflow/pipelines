@@ -41,7 +41,6 @@ var testContext *TestContext
 var randomName string
 var pipelineFilesRootDir = test_utils.GetPipelineFilesDir()
 var experimentID *string
-var defaultUserToken string
 var userToken string
 
 var (
@@ -88,10 +87,14 @@ var _ = BeforeSuite(func() {
 		newRecurringRunClient = func() (*apiserver.RecurringRunClient, error) {
 			return apiserver.NewKubeflowInClusterRecurringRunClient(*config.Namespace, *config.DebugMode)
 		}
-	} else if *config.MultiUserMode {
-		logger.Log("Creating API Clients for Multi User Mode")
-		defaultUserToken = test_utils.CreateUserToken(k8Client, *config.Namespace, *config.DefaultServiceAccountName)
-		userToken = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
+	} else if *config.MultiUserMode || *config.AuthToken != "" {
+		if *config.AuthToken != "" {
+			logger.Log("Creating API Clients With Auth Token")
+			userToken = *config.AuthToken
+		} else {
+			logger.Log("Creating API Clients for Multi User Mode")
+			userToken = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
+		}
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.DebugMode)
 		}
@@ -144,17 +147,11 @@ var _ = BeforeEach(func() {
 	testContext = &TestContext{
 		TestStartTimeUTC: time.Now(),
 	}
-
-	experimentName := fmt.Sprintf("APIServerTestsExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
-	experiment := test_utils.CreateExperiment(experimentClient, experimentName, test_utils.GetNamespace())
-	experimentID = &experiment.ExperimentID
-
 	randomName = strconv.FormatInt(time.Now().UnixNano(), 10)
 	testContext.Pipeline.CreatedPipelines = make([]*pipeline_upload_model.V2beta1Pipeline, 0)
 	testContext.Pipeline.UploadParams = uploadparams.NewUploadPipelineParams()
 	testContext.PipelineRun.CreatedRunIds = make([]string, 0)
 	testContext.Experiment.CreatedExperimentIds = make([]string, 0)
-	testContext.Experiment.CreatedExperimentIds = append(testContext.Experiment.CreatedExperimentIds, *experimentID)
 })
 
 var _ = AfterEach(func() {

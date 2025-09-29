@@ -3,11 +3,9 @@ package utils
 import (
 	"fmt"
 	"maps"
-	"path/filepath"
 	"sort"
 	"time"
 
-	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
@@ -22,20 +20,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-// UploadPipeline - Upload a pipeline
-func UploadPipeline(pipelineUploadClient apiserver.PipelineUploadInterface, testContext *apitests.TestContext, pipelineDir string, pipelineFileName string, pipelineName *string, pipelineDisplayName *string) (*model.V2beta1Pipeline, error) {
-	pipelineFile := filepath.Join(test_utils.GetPipelineFilesDir(), pipelineDir, pipelineFileName)
-	testContext.Pipeline.UploadParams.SetName(pipelineName)
-	if pipelineDisplayName != nil {
-		testContext.Pipeline.ExpectedPipeline.DisplayName = *pipelineDisplayName
-		testContext.Pipeline.UploadParams.SetDisplayName(pipelineDisplayName)
-	} else {
-		testContext.Pipeline.ExpectedPipeline.DisplayName = *pipelineName
-	}
-	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
-	return pipelineUploadClient.UploadFile(pipelineFile, testContext.Pipeline.UploadParams)
-}
 
 // CreatePipelineRun - Create a pipeline run
 func CreatePipelineRun(runClient *apiserver.RunClient, testContext *apitests.TestContext, pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2beta1Run {
