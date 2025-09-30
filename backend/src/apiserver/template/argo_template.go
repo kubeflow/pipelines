@@ -231,6 +231,6 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 func AddRuntimeMetadata(wf *workflowapi.Workflow) {
 	template := wf.Spec.Templates[0]
 	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
-	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
+	template.Metadata.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000", "pipelines.kubeflow.org/cache_enabled": "true"}
 	wf.Spec.Templates[0] = template
 }
