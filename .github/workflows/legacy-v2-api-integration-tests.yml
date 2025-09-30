@@ -1,16 +1,12 @@
 name: KFP API Integration V2 (Legacy)
 
 on:
-  workflow_dispatch: # lyk temp
   push:
-    branches:
-      - master
-      - feature/replace-str-with-largetext-WIP # lyk
+    branches: [master]
 
   pull_request:
     paths:
       - ".github/workflows/legacy-v2-api-integration-tests.yml"
-      - ".github/actions/create-cluster/**"
       - ".github/resources/**"
       - "api/**"
       - "go.mod"
@@ -90,7 +86,6 @@ jobs:
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
-          DB_NAME: mlpipeline-${{ matrix.pipeline_store }}-${{ matrix.k8s_version }}
         continue-on-error: true
 
       - name: Collect failed logs

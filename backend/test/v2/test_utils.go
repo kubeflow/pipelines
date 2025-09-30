@@ -129,8 +129,34 @@ func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.V
 func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T) {
 	runs, _, _, err := ListAllRuns(client, namespace)
 	assert.Nil(t, err)
-	for _, r := range runs {
-		assert.Nil(t, client.Delete(&run_params.RunServiceDeleteRunParams{RunID: r.RunID}))
+	for _, run := range runs {
+		err := client.Delete(&run_params.RunServiceDeleteRunParams{RunID: run.RunID})
+		// In some cases, the run may have been deleted by other tests.
+		// We can ignore the not found error.
+		if err != nil {
+			assert.Contains(t, err.Error(), "not found")
+		}
+	}
+	// Wait for runs to be deleted.
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(15*time.Second))
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			remainingRuns, _, _, _ := ListAllRuns(client, namespace)
+			var remainingRunNames []string
+			for _, r := range remainingRuns {
+				remainingRunNames = append(remainingRunNames, r.DisplayName)
+			}
+			require.FailNowf(t, "Runs were not deleted after 15 seconds", "Remaining runs: %v", remainingRunNames)
+		default:
+			remainingRuns, _, _, _ := ListAllRuns(client, namespace)
+			if len(remainingRuns) == 0 {
+				return
+			}
+			time.Sleep(1 * time.Second)
+		}
 	}
 }
 
@@ -148,8 +174,34 @@ func ListAllRecurringRuns(client *api_server.RecurringRunClient, namespace strin
 func DeleteAllRecurringRuns(client *api_server.RecurringRunClient, namespace string, t *testing.T) {
 	recurringRuns, _, _, err := ListAllRecurringRuns(client, namespace)
 	assert.Nil(t, err)
-	for _, r := range recurringRuns {
-		assert.Nil(t, client.Delete(&recurring_run_params.RecurringRunServiceDeleteRecurringRunParams{RecurringRunID: r.RecurringRunID}))
+	for _, recurringRun := range recurringRuns {
+		err := client.Delete(&recurring_run_params.RecurringRunServiceDeleteRecurringRunParams{RecurringRunID: recurringRun.RecurringRunID})
+		// In some cases, the recurring run may have been deleted by other tests.
+		// We can ignore the not found error.
+		if err != nil {
+			assert.Contains(t, err.Error(), "not found")
+		}
+	}
+	// Wait for recurring runs to be deleted.
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(15*time.Second))
+	defer cancel()
+
+	for {
+		select {
+		case <-ctx.Done():
+			remainingRuns, _, _, _ := ListAllRecurringRuns(client, namespace)
+			var remainingRunNames []string
+			for _, r := range remainingRuns {
+				remainingRunNames = append(remainingRunNames, r.DisplayName)
+			}
+			require.FailNowf(t, "Recurring runs were not deleted after 15 seconds", "Remaining recurring runs: %v", remainingRunNames)
+		default:
+			remainingRuns, _, _, _ := ListAllRecurringRuns(client, namespace)
+			if len(remainingRuns) == 0 {
+				return
+			}
+			time.Sleep(1 * time.Second)
+		}
 	}
 }
 
