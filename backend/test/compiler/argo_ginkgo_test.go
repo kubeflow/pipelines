@@ -15,14 +15,17 @@
 package compiler
 
 import (
+	"flag"
 	"fmt"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	matcher "github.com/kubeflow/pipelines/backend/test/compiler/matchers"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/yaml"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
-	matcher "github.com/kubeflow/pipelines/backend/test/compiler/matchers"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
@@ -31,6 +34,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+var regenerateAllSkipTests = flag.Bool("regenerate", false, "Regenerate all compiled workflow and skip tests")
 
 var _ = BeforeEach(func() {
 	logger.Log("Initializing proxy config...")
@@ -67,10 +72,26 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WORKFL
 				fileNameWithoutExtension := strings.TrimSuffix(pipelineSpecFileName, fileExtension)
 				compiledWorkflowFileName := fileNameWithoutExtension + ".yaml"
 				compiledWorkflowFilePath := filepath.Join(argoYAMLDir, compiledWorkflowFileName)
+
+				if *regenerateAllSkipTests {
+					pipelineSpecs, platformSpec := workflowutils.LoadPipelineSpecsFromIR(
+						pipelineSpecFilePath,
+						param.compilerOptions.CacheDisabled,
+						nil,
+					)
+					regeneratedWf := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &param.compilerOptions)
+					err := RegenerateSpec(compiledWorkflowFilePath, *regeneratedWf)
+					if err != nil {
+						Fail(fmt.Sprintf("Critical error: %v", err))
+					}
+					continue
+				}
 				It(fmt.Sprintf("When I compile %s pipeline spec, then the compiled yaml should be %s", pipelineSpecFileName, compiledWorkflowFileName), func() {
 					test_utils.CheckIfSkipping(pipelineSpecFileName)
+
 					pipelineSpecs, platformSpec := workflowutils.LoadPipelineSpecsFromIR(pipelineSpecFilePath, param.compilerOptions.CacheDisabled, nil)
 					compiledWorkflow := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &param.compilerOptions)
+
 					if *createMissingGoldenFiles || *updateGoldenFiles {
 						configuredWorkflow := workflowutils.ConfigureCacheSettings(compiledWorkflow, true)
 						_, err := os.Stat(compiledWorkflowFilePath)
@@ -82,6 +103,7 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WORKFL
 						}
 					}
 					expectedWorkflow := workflowutils.UnmarshallWorkflowYAML(compiledWorkflowFilePath)
+
 					if param.compilerOptions.CacheDisabled {
 						expectedWorkflow = workflowutils.ConfigureCacheSettings(expectedWorkflow, false)
 					}
@@ -107,3 +129,23 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WORKFL
 		})
 	}
 })
+
+func RegenerateSpec(path string, wf v1alpha1.Workflow) error {
+	wfYml, _ := yaml.Marshal(wf)
+	wfYmlStr := string(wfYml)
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	var wfLines []string
+	for _, line := range strings.Split(wfYmlStr, "\n") {
+		if !strings.Contains(line, "- --cache_disabled") {
+			wfLines = append(wfLines, line)
+		}
+	}
+	_, err = file.WriteString(strings.Join(wfLines, "\n"))
+	if err != nil {
+		return err
+	}
+	return nil
+}
