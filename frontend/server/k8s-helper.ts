@@ -258,6 +258,7 @@ export function getPodLogs(
 
 export interface K8sError {
   message: string;
+  additionalInfo?: any;
 }
 export async function getPod(
   podName: string,
