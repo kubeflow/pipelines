@@ -82,7 +82,13 @@ jobs:
       - name: Collect failed logs
         if: ${{ steps.deploy.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
+          echo "--- Collecting pod logs ---"
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          echo "--- Dumping database tables for debugging ---"
+          MYSQL_POD=$(kubectl get pods -n kubeflow -l app=mariadb -o jsonpath='{.items[0].metadata.name}')
+          MYSQL_POD=$(kubectl get pods -n kubeflow -l app=mysql -o jsonpath='{.items[0].metadata.name}')
+          echo "--- DUMPING run_details TABLE ---" >> /tmp/tmp_pod_log.txt
+          kubectl exec -n kubeflow $MYSQL_POD -- mysql -u root -e "USE mlpipeline; SELECT * FROM run_details;" >> /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
