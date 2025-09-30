@@ -208,9 +208,7 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	/* ---------- List all the runs. Both runs should be returned ---------- */
 	runs, totalSize, _, err := test.ListAllRuns(s.runClient, s.resourceNamespace)
 	assert.Nil(t, err)
-	for i, run := range runs { // lyk debug
-		t.Logf("ListAllRuns[%d]: DisplayName=%q RunID=%q", i, run.DisplayName, run.RunID)
-	}
+
 	assert.Equal(t, 2, len(runs))
 	assert.Equal(t, 2, totalSize)
 
@@ -450,7 +448,12 @@ func TestRunAPI(t *testing.T) {
 
 func (s *RunAPITestSuite) TearDownSuite() {
 	if *runIntegrationTests {
-		if !*isDevMode {
+		// If the test has failed, and we are in CI (not dev mode), skip cleanup to preserve the state for debugging.
+		if s.T().Failed() && !*isDevMode {
+			s.T().Log("Skipping cleanup to preserve state for debugging CI failure.")
+			return
+		}
+		if !*isDevMode { // In dev mode, we never clean up.
 			s.cleanUp()
 		}
 	}
