@@ -135,16 +135,16 @@ spec:
       - name: pod-spec-patch
         valueFrom:
           default: ""
-          path: /tmp/outputs/pod-spec-patch
+          jsonPath: $.pod-spec-patch
       - default: "false"
         name: cached-decision
         valueFrom:
           default: "false"
-          path: /tmp/outputs/cached-decision
+          jsonPath: $.cached-decision
       - name: condition
         valueFrom:
           default: "true"
-          path: /tmp/outputs/condition
+          jsonPath: $.condition
   - dag:
       tasks:
       - arguments:
@@ -368,15 +368,15 @@ spec:
       parameters:
       - name: execution-id
         valueFrom:
-          path: /tmp/outputs/execution-id
+          jsonPath: $.execution-id
       - name: iteration-count
         valueFrom:
           default: "0"
-          path: /tmp/outputs/iteration-count
+          jsonPath: $.iteration-count
       - name: condition
         valueFrom:
           default: "true"
-          path: /tmp/outputs/condition
+          jsonPath: $.condition
   - dag:
       tasks:
       - arguments:
