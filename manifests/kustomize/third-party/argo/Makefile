@@ -6,6 +6,9 @@ update: update_manifests update_backend update_tests update_docs
 update_manifests:
 	@echo "Updating Argo Workflows version references in manifests..."
 	@VERSION=$$(cat $(REPO_ROOT)/third_party/argo/VERSION); \
+	echo "Updating go depedency..."; \
+	sed -i.bak -E "s|github.com/argoproj/argo-workflows/v3 v[0-9]+\.[0-9]+\.[0-9]+|github.com/argoproj/argo-workflows/v3 $$VERSION|g" $(REPO_ROOT)/go.mod; \
+	go mod tidy; \
 	echo "Using Argo Workflows version: $$VERSION"; \
 	echo "Updating Manifests..."; \
 	sed -i.bak -E "s|ref=v[0-9]+\.[0-9]+\.[0-9]+|ref=$$VERSION|g" base/kustomization.yaml && \
