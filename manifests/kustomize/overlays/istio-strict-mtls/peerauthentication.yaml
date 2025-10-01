@@ -1,0 +1,9 @@
+# Enable STRICT mTLS for Kubeflow namespace
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: kfp-strict-mtls
+  namespace: kubeflow
+spec:
+  mtls:
+    mode: STRICT

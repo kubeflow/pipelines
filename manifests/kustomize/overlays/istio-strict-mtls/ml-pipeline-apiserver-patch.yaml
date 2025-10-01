@@ -1,0 +1,39 @@
+# Patch for ml-pipeline API server deployment in Istio STRICT mTLS environment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    metadata:
+      annotations:
+        # Enable Istio sidecar injection for the API server
+        sidecar.istio.io/inject: "true"
+        # Ensure proxy starts before the main container
+        proxy.istio.io/config: |
+          {"holdApplicationUntilProxyStarts": true}
+    spec:
+      containers:
+        - name: ml-pipeline-api-server
+          env:
+            # Set driver pod labels for Istio sidecar injection
+            - name: DRIVER_POD_LABELS
+              value: |
+                {
+                  "sidecar.istio.io/inject": "true",
+                  "app.kubernetes.io/component": "kfp-driver",
+                  "version": "v2"
+                }
+            # Set driver pod annotations for Istio configuration
+            - name: DRIVER_POD_ANNOTATIONS
+              value: |
+                {
+                  "proxy.istio.io/config": "{\"holdApplicationUntilProxyStarts\": true}",
+                  "traffic.sidecar.istio.io/includeInboundPorts": "*",
+                  "traffic.sidecar.istio.io/excludeOutboundPorts": "15090,15021"
+                }
+            # Additional Istio-specific configuration
+            - name: ISTIO_ENABLED
+              value: "true"
+            - name: STRICT_MTLS_ENABLED
+              value: "true"
