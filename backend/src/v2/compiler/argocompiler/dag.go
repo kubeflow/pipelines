@@ -14,7 +14,6 @@
 package argocompiler
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
