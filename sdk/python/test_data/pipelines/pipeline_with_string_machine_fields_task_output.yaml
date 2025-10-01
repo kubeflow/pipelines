@@ -66,7 +66,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef accelerator_limit() -> str:\n    return '1'\n\n"
-        image: python:3.9
+        image: python:3.10
     exec-accelerator-type:
       container:
         args:
@@ -94,7 +94,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef accelerator_type() -> str:\n    return 'NVIDIA_TESLA_P4'\n\n"
-        image: python:3.9
+        image: python:3.10
     exec-cpu-limit:
       container:
         args:
@@ -122,7 +122,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef cpu_limit() -> str:\n    return '4000m'\n\n"
-        image: python:3.9
+        image: python:3.10
     exec-memory-limit:
       container:
         args:
@@ -150,7 +150,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef memory_limit() -> str:\n    return '15G'\n\n"
-        image: python:3.9
+        image: python:3.10
     exec-sum-numbers:
       container:
         args:
@@ -178,7 +178,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef sum_numbers(a: int, b: int) -> int:\n    return a + b\n\n"
-        image: python:3.9
+        image: python:3.10
         resources:
           accelerator:
             resourceCount: '{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}'

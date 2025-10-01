@@ -700,7 +700,7 @@ inputs:
 - {name: message, type: PipelineTaskFinalStatus}
 implementation:
   container:
-    image: python:3.9
+    image: python:3.10
     command:
     - echo
     - {inputValue: message}
@@ -975,14 +975,14 @@ implementation:
     def test_pipeline_with_parameterized_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            @dsl.component(base_image='docker.io/python:3.9.17')
+            @dsl.component(base_image='docker.io/python:3.10.17')
             def empty_component():
                 pass
 
             @dsl.pipeline()
             def simple_pipeline(img: str):
                 task = empty_component()
-                # overwrite base_image="docker.io/python:3.9.17"
+                # overwrite base_image="docker.io/python:3.10.17"
                 task.set_container_image(img)
 
             output_yaml = os.path.join(tmpdir, 'result.yaml')
@@ -1010,14 +1010,14 @@ implementation:
     def test_pipeline_with_constant_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            @dsl.component(base_image='docker.io/python:3.9.17')
+            @dsl.component(base_image='docker.io/python:3.10.17')
             def empty_component():
                 pass
 
             @dsl.pipeline()
             def simple_pipeline():
                 task = empty_component()
-                # overwrite base_image="docker.io/python:3.9.17"
+                # overwrite base_image="docker.io/python:3.10.17"
                 task.set_container_image('constant-value')
 
             output_yaml = os.path.join(tmpdir, 'result.yaml')
@@ -1504,7 +1504,7 @@ class TestCompileComponent(parameterized.TestCase):
         def hello_world_container() -> dsl.ContainerSpec:
             """Hello world component."""
             return dsl.ContainerSpec(
-                image='python:3.9',
+                image='python:3.10',
                 command=['echo', 'hello world'],
                 args=[],
             )
@@ -1527,7 +1527,7 @@ class TestCompileComponent(parameterized.TestCase):
         @dsl.container_component
         def container_simple_io(text: str, output_path: dsl.OutputPath(str)):
             return dsl.ContainerSpec(
-                image='python:3.9',
+                image='python:3.10',
                 command=['my_program', text],
                 args=['--output_path', output_path])
 
@@ -2575,7 +2575,7 @@ class TestYamlComments(unittest.TestCase):
         def my_container_component(text: str, output_path: OutputPath(str)):
             """component description."""
             return ContainerSpec(
-                image='python:3.9',
+                image='python:3.10',
                 command=['my_program', text],
                 args=['--output_path', output_path])
 
