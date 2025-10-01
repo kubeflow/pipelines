@@ -54,8 +54,8 @@ github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8TVTI=
 github.com/antlr4-go/antlr/v4 v4.13.0/go.mod h1:pfChB/xh/Unjila75QW7+VU4TSnWnnk9UTnmpPaOR2g=
-github.com/argoproj/argo-workflows/v3 v3.7.0 h1:TDijZztm6dLruB7yZLH+Ps4OJKRwu0YSAJ4/NvceON0=
-github.com/argoproj/argo-workflows/v3 v3.7.0/go.mod h1:ihOGFcNuD9Y17qiKKCtzQlPTuD0UZJYaALFpzqLOiqY=
+github.com/argoproj/argo-workflows/v3 v3.7.2 h1:Fi6j0q2sCg6cfkntKde5KA+TfJgMrq1MzJCmOESlWNw=
+github.com/argoproj/argo-workflows/v3 v3.7.2/go.mod h1:KYUYfOFHnNsfoOxwRILM+4FYSmQ1OLdZVk5X9iVNHlY=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
