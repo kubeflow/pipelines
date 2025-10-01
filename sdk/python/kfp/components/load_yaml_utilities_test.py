@@ -17,6 +17,7 @@ import os
 import tempfile
 import textwrap
 import unittest
+from unittest.mock import patch
 
 from kfp import components
 from kfp.dsl import structures
@@ -70,19 +71,6 @@ schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.3
         """)
 
-V1_COMPONENTS_TEST_DATA_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), 'compiler', 'test_data',
-    'v1_component_yaml')
-
-V1_COMPONENT_YAML_TEST_CASES = [
-    'concat_placeholder_component.yaml',
-    'ingestion_component.yaml',
-    'serving_component.yaml',
-    'if_placeholder_component.yaml',
-    'trainer_component.yaml',
-    'add_component.yaml',
-]
-
 
 class LoadYamlTests(unittest.TestCase):
 
@@ -110,18 +98,21 @@ class LoadYamlTests(unittest.TestCase):
         self.assertEqual(
             component.component_spec.implementation.container.image, 'alpine')
 
-    def test_load_component_from_url(self):
-        component_url = 'https://raw.githubusercontent.com/kubeflow/pipelines/5d0ace427d55ee04da028cb19613018aed0b2042/sdk/python/test_data/components/identity.yaml'
+    @patch('kfp.components._python_component._download_yaml_from_url')
+    def test_load_component_from_url(self, mock_download):
+        # Mock the URL download to return local SAMPLE_YAML
+        mock_download.return_value = SAMPLE_YAML
+
+        component_url = 'https://raw.githubusercontent.com/kubeflow/pipelines/fake/path/identity.yaml'
         component = components.load_component_from_url(component_url)
 
-        self.assertEqual(component.component_spec.name, 'identity')
+        self.assertEqual(component.component_spec.name, 'component-1')
         self.assertEqual(component.component_spec.outputs,
-                         {'Output': structures.OutputSpec(type='String')})
-        self.assertEqual(component._component_inputs, {'value'})
-        self.assertEqual(component.name, 'identity')
+                         {'output1': structures.OutputSpec(type='String')})
+        self.assertEqual(component._component_inputs, {'input1'})
+        self.assertEqual(component.name, 'component-1')
         self.assertEqual(
-            component.component_spec.implementation.container.image,
-            'python:3.10')
+            component.component_spec.implementation.container.image, 'alpine')
 
 
 if __name__ == '__main__':
