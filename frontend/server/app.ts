@@ -125,6 +125,9 @@ function createUIServer(options: UIConfigs) {
     }),
   );
 
+  /** Authorize function */
+  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
+
   /** Artifact */
   registerHandler(
     app.get,
@@ -144,6 +147,7 @@ function createUIServer(options: UIConfigs) {
       useParameter: false,
       tryExtract: true,
       options: options,
+      authorizeFn: authorizeFn,
     }),
   );
   // /artifacts/ endpoint downloads the artifact as is, it does not try to unzip or untar.
@@ -160,11 +164,9 @@ function createUIServer(options: UIConfigs) {
       useParameter: true,
       tryExtract: false,
       options: options,
+      authorizeFn: authorizeFn,
     }),
   );
-
-  /** Authorize function */
-  const authorizeFn = getAuthorizeFn(options.auth, { apiServerAddress });
 
   /** Tensorboard viewer */
   const {

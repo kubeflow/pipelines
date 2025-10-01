@@ -27,6 +27,8 @@ import { isAllowedDomain } from './domain-checker';
 import { getK8sSecret } from '../k8s-helper';
 import { StorageOptions } from '@google-cloud/storage/build/src/storage';
 import { CredentialBody } from 'google-auth-library/build/src/auth/credentials';
+import { AuthorizeFn } from '../helpers/auth';
+import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -81,6 +83,7 @@ export function getArtifactsHandler({
   useParameter,
   tryExtract,
   options,
+  authorizeFn,
 }: {
   artifactsConfigs: {
     aws: AWSConfigs;
@@ -91,17 +94,17 @@ export function getArtifactsHandler({
   tryExtract: boolean;
   useParameter: boolean;
   options: UIConfigs;
+  authorizeFn?: AuthorizeFn;
 }): Handler {
   const { aws, http, minio, allowedDomain } = artifactsConfigs;
   return async (req, res) => {
     const source = useParameter ? req.params.source : req.query.source;
     const bucket = useParameter ? req.params.bucket : req.query.bucket;
     const key = useParameter ? req.params[0] : req.query.key;
-    const {
-      peek = 0,
-      providerInfo = '',
-      namespace = options.server.serverNamespace,
-    } = req.query as Partial<ArtifactsQueryStrings>;
+    const { peek = 0, providerInfo = '', namespace: requestedNamespace } = req.query as Partial<
+      ArtifactsQueryStrings
+    >;
+
     if (!source) {
       res.status(500).send('Storage source is missing from artifact request');
       return;
@@ -114,7 +117,41 @@ export function getArtifactsHandler({
       res.status(500).send('Storage key is missing from artifact request');
       return;
     }
-    console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
+
+    // Security: Namespace parameter must be provided and user must be authorized for it
+    let namespace: string;
+    if (!requestedNamespace) {
+      // If no namespace provided, reject the request to prevent unauthorized access
+      res.status(400).send('namespace parameter is required for artifact access');
+      return;
+    }
+
+    // Authorize user for the requested namespace when authorization is enabled
+    if (authorizeFn) {
+      try {
+        const authError = await authorizeFn(
+          {
+            verb: AuthorizeRequestVerb.GET,
+            resources: AuthorizeRequestResources.VIEWERS,
+            namespace: requestedNamespace,
+          },
+          req,
+        );
+        if (authError) {
+          res.status(401).send(authError.message);
+          return;
+        }
+      } catch (error) {
+        console.error('Authorization check failed:', error);
+        res.status(500).send('Failed to authorize artifact access');
+        return;
+      }
+    }
+
+    namespace = requestedNamespace;
+    console.log(
+      `Getting storage artifact at: ${source}: ${bucket}/${key} in namespace: ${namespace}`,
+    );
 
     let client: MinioClient;
     switch (source) {
@@ -202,13 +239,15 @@ function getHttpArtifactsHandler(
   peek: number = 0,
 ) {
   return async (req: Request, res: Response) => {
-    const headers = {};
+    const headers: { [key: string]: string } = {};
 
     // add authorization header to fetch request if key is non-empty
     if (auth.key.length > 0) {
       // inject original request's value if exists, otherwise default to provided default value
-      headers[auth.key] =
-        req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
+      const headerValue = req.headers[auth.key] || req.headers[auth.key.toLowerCase()];
+      headers[auth.key] = Array.isArray(headerValue)
+        ? headerValue[0]
+        : headerValue || auth.defaultValue;
     }
     if (!isAllowedDomain(url, allowedDomain)) {
       res.status(500).send(`Domain not allowed.`);
