@@ -96,36 +96,42 @@ func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.
 	for _, template := range configuredWorkflow.Spec.Templates {
 		if template.Container != nil {
 			if len(template.Container.Args) > 0 {
-				if remove && slices.Contains(template.Container.Args, cacheDisabledArg) {
-					containerArgs := make([]string, len(template.Container.Args)-1)
-					for index, arg := range template.Container.Args {
-						if arg == cacheDisabledArg {
-							containerArgs = append(template.Container.Args[:index], template.Container.Args[index+1:]...)
-							break
+				if remove {
+					// Remove cache_disabled arg if it exists
+					if slices.Contains(template.Container.Args, cacheDisabledArg) {
+						for index, arg := range template.Container.Args {
+							if arg == cacheDisabledArg {
+								template.Container.Args = append(template.Container.Args[:index], template.Container.Args[index+1:]...)
+								break
+							}
 						}
 					}
-					template.Container.Args = containerArgs
 				} else {
-					if slices.Contains(template.Container.Args, "--run_id") {
+					// Add cache_disabled arg if it doesn't exist and this is a driver container
+					if slices.Contains(template.Container.Args, "--run_id") && !slices.Contains(template.Container.Args, cacheDisabledArg) {
 						template.Container.Args = append(template.Container.Args, cacheDisabledArg)
 					}
 				}
 			}
 			for index, userContainer := range template.InitContainers {
 				if remove {
-					userArgs := make([]string, len(userContainer.Args)-1)
-					for userArgsIndex, arg := range userContainer.Args {
-						if arg == cacheDisabledArg {
-							userArgs = append(userContainer.Args[:userArgsIndex], userContainer.Args[userArgsIndex+1:]...)
-							break
+					// Remove cache_disabled arg if it exists
+					if slices.Contains(userContainer.Args, cacheDisabledArg) {
+						for userArgsIndex, arg := range userContainer.Args {
+							if arg == cacheDisabledArg {
+								userContainer.Args = append(userContainer.Args[:userArgsIndex], userContainer.Args[userArgsIndex+1:]...)
+								break
+							}
 						}
 					}
-					userContainer.Args = userArgs
 				} else {
-					if len(userContainer.Args) > 0 {
-						userContainer.Args = append(userContainer.Args, cacheDisabledArg)
-					} else {
-						userContainer.Args = []string{cacheDisabledArg}
+					// Add cache_disabled arg if it doesn't exist
+					if !slices.Contains(userContainer.Args, cacheDisabledArg) {
+						if len(userContainer.Args) > 0 {
+							userContainer.Args = append(userContainer.Args, cacheDisabledArg)
+						} else {
+							userContainer.Args = []string{cacheDisabledArg}
+						}
 					}
 				}
 				template.InitContainers[index].Args = userContainer.Args
