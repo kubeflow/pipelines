@@ -29,8 +29,8 @@ export const podInfoHandler: Handler = async (req, res) => {
     res.status(422).send('podnamespace argument is required');
     return;
   }
-  const podName = decodeURIComponent(podname);
-  const podNamespace = decodeURIComponent(podnamespace);
+  const podName = decodeURIComponent(podname as string);
+  const podNamespace = decodeURIComponent(podnamespace as string);
 
   const [pod, err] = await k8sHelper.getPod(podName, podNamespace);
   if (err) {
@@ -52,8 +52,8 @@ export const podEventsHandler: Handler = async (req, res) => {
     res.status(422).send('podnamespace argument is required');
     return;
   }
-  const podName = decodeURIComponent(podname);
-  const podNamespace = decodeURIComponent(podnamespace);
+  const podName = decodeURIComponent(podname as string);
+  const podNamespace = decodeURIComponent(podnamespace as string);
 
   const [eventList, err] = await k8sHelper.listPodEvents(podName, podNamespace);
   if (err) {
