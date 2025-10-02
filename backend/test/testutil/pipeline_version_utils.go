@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package test_utils
+package testutil
 
 import (
 	"fmt"
@@ -27,15 +27,15 @@ import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 
-	. "github.com/onsi/gomega"
+	gomega "github.com/onsi/gomega"
 )
 
-// JsonFromYAML - Construct expected Pipeline Spec from the uploaded file
-func JsonFromYAML(pipelineFilePath string) []byte {
+// JSONFromYAML - Construct expected Pipeline Spec from the uploaded file
+func JSONFromYAML(pipelineFilePath string) []byte {
 	pipelineSpec, err := os.ReadFile(pipelineFilePath)
-	Expect(err).NotTo(HaveOccurred())
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	jsonSpecFromFile, errDataConversion := yaml.YAMLToJSON(pipelineSpec)
-	Expect(errDataConversion).NotTo(HaveOccurred())
+	gomega.Expect(errDataConversion).NotTo(gomega.HaveOccurred())
 	return jsonSpecFromFile
 }
 
@@ -50,22 +50,22 @@ func ListPipelineVersions(client *api_server.PipelineClient, pipelineID string) 
 func DeletePipelineVersion(client *api_server.PipelineClient, pipelineID string, pipelineVersionID string) {
 	logger.Log("Deleting pipeline versions for pipeline %s with version id=%s", pipelineID, pipelineVersionID)
 	err := client.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{PipelineID: pipelineID, PipelineVersionID: pipelineVersionID})
-	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Pipeline version with id=%s of pipelineID=%s failed", pipelineVersionID, pipelineID))
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Pipeline version with id=%s of pipelineID=%s failed", pipelineVersionID, pipelineID))
 }
 
 // GetLatestPipelineVersion - list all pipeline versions of a pipeline by ID and return the one with the latest createdAt date
 func GetLatestPipelineVersion(pipelineClient *api_server.PipelineClient, pipelineID *string) *pipeline_model.V2beta1PipelineVersion {
 	var pipelineVersion *pipeline_model.V2beta1PipelineVersion
-	EventuallyWithOffset(1, func(g Gomega) {
+	gomega.EventuallyWithOffset(1, func(g gomega.Gomega) {
 		pipelineVersions, _, _, listPipelineVersionErr := ListPipelineVersions(pipelineClient, *pipelineID)
-		g.Expect(listPipelineVersionErr).NotTo(HaveOccurred(), "Failed to list pipeline versions for pipeline with id="+*pipelineID)
-		g.Expect(pipelineVersions).NotTo(BeEmpty(), "No pipeline versions found for pipeline with id="+*pipelineID)
+		g.Expect(listPipelineVersionErr).NotTo(gomega.HaveOccurred(), "Failed to list pipeline versions for pipeline with id="+*pipelineID)
+		g.Expect(pipelineVersions).NotTo(gomega.BeEmpty(), "No pipeline versions found for pipeline with id="+*pipelineID)
 		sort.Slice(pipelineVersions, func(i, j int) bool {
 			return time.Time(pipelineVersions[i].CreatedAt).After(time.Time(pipelineVersions[j].CreatedAt))
 		})
 
 		pipelineVersion = pipelineVersions[0]
-	}).WithTimeout(5 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+	}).WithTimeout(5 * time.Second).WithPolling(500 * time.Millisecond).Should(gomega.Succeed())
 
 	return pipelineVersion
 }
@@ -74,14 +74,14 @@ func GetLatestPipelineVersion(pipelineClient *api_server.PipelineClient, pipelin
 func DeleteAllPipelineVersions(client *api_server.PipelineClient, pipelineID string) {
 	logger.Log("Deleting all pipeline versions for pipeline %s", pipelineID)
 	pipelineVersions, _, _, err := ListPipelineVersions(client, pipelineID)
-	Expect(err).NotTo(HaveOccurred(), "Error occurred while listing pipeline versions")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Error occurred while listing pipeline versions")
 	logger.Log("Found %d pipeline versions for pipeline %s", len(pipelineVersions), pipelineID)
 	for _, pv := range pipelineVersions {
 		logger.Log("Deleting pipeline version %s", pv.PipelineVersionID)
-		Expect(client.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{PipelineID: pipelineID, PipelineVersionID: pv.PipelineVersionID})).NotTo(HaveOccurred(), fmt.Sprintf("Pipeline version with id=%s of pipelineID=%s failed", pv.PipelineVersionID, pipelineID))
+		gomega.Expect(client.DeletePipelineVersion(&pipeline_params.PipelineServiceDeletePipelineVersionParams{PipelineID: pipelineID, PipelineVersionID: pv.PipelineVersionID})).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Pipeline version with id=%s of pipelineID=%s failed", pv.PipelineVersionID, pipelineID))
 	}
 	pipelineVersions, _, _, err = ListPipelineVersions(client, pipelineID)
-	Expect(err).NotTo(HaveOccurred(), "Error occurred while listing pipeline versions")
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Error occurred while listing pipeline versions")
 	if len(pipelineVersions) > 0 {
 		logger.Log("Failed to delete all pipeline versions")
 	}

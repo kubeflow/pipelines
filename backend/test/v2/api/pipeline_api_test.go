@@ -20,7 +20,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
-	utils "github.com/kubeflow/pipelines/backend/test/test_utils"
+	utils "github.com/kubeflow/pipelines/backend/test/testutil"
 
 	. "github.com/onsi/ginkgo/v2"
 )

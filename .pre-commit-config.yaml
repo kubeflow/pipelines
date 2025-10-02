@@ -18,9 +18,9 @@ repos:
   - repo: https://github.com/PyCQA/flake8
     rev: 7.1.1
     hooks:
-    -   id: flake8
+      - id: flake8
         args:
-        - --select=W605
+          - --select=W605
   # required formatting jobs (run these last)
 
   # add comment "noqa" to ignore an import that should not be removed
@@ -60,7 +60,7 @@ repos:
       - id: golangci-lint
         name: golangci-lint
         description: Fast linters runner for Go.
-        entry: golangci-lint run --new-from-rev HEAD --fix
+        entry: golangci-lint run --new-from-rev HEAD --fix --whole-files
         types: [go]
         language: golang
         require_serial: true
