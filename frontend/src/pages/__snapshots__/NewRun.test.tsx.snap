@@ -144,6 +144,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -253,6 +254,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -633,6 +635,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -742,6 +745,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -1122,6 +1126,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -1231,6 +1236,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -1629,6 +1635,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -1738,6 +1745,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -2118,6 +2126,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -2227,6 +2236,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -2605,6 +2615,7 @@ exports[`NewRun renders the new run page 1`] = `
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -2714,6 +2725,7 @@ exports[`NewRun renders the new run page 1`] = `
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -3094,6 +3106,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -3203,6 +3216,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -3601,6 +3615,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
@@ -3710,6 +3725,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
             }
           }
           initialSortColumn="created_at"
+          isV1={true}
           listApi={[Function]}
           location={
             Object {
