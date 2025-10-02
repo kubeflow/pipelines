@@ -14,7 +14,7 @@
 import path from 'path';
 import express from 'express';
 import { Application, static as StaticHandler } from 'express';
-import proxy from 'http-proxy-middleware';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 import { UIConfigs } from './configs';
 import { getAddress } from './utils';
@@ -180,7 +180,7 @@ function createUIServer(options: UIConfigs) {
   if (options.artifacts.streamLogsFromServerApi) {
     app.all(
       '/k8s/pod/logs',
-      proxy({
+      createProxyMiddleware({
         changeOrigin: true,
         onProxyReq: proxyReq => {
           console.log('Proxied log request: ', proxyReq.path);
@@ -206,7 +206,7 @@ function createUIServer(options: UIConfigs) {
   if (options.artifacts.streamLogsFromServerApi) {
     app.all(
       '/k8s/pod/logs',
-      proxy({
+      createProxyMiddleware({
         changeOrigin: true,
         onProxyReq: proxyReq => {
           console.log('Proxied log request: ', proxyReq.path);
@@ -247,7 +247,7 @@ function createUIServer(options: UIConfigs) {
   /** Proxy metadata requests to the Envoy instance which will handle routing to the metadata gRPC server */
   app.all(
     '/ml_metadata.*',
-    proxy({
+    createProxyMiddleware({
       changeOrigin: true,
       onProxyReq: proxyReq => {
         console.log('Metadata proxied request: ', (proxyReq as any).path);
@@ -282,7 +282,7 @@ function createUIServer(options: UIConfigs) {
   /** Proxy to ml-pipeline api server */
   app.all(
     `/${apiVersion1Prefix}/*`,
-    proxy({
+    createProxyMiddleware({
       changeOrigin: true,
       onProxyReq: proxyReq => {
         console.log('Proxied request: ', proxyReq.path);
@@ -293,7 +293,7 @@ function createUIServer(options: UIConfigs) {
   );
   app.all(
     `/${apiVersion2Prefix}/*`,
-    proxy({
+    createProxyMiddleware({
       changeOrigin: true,
       onProxyReq: proxyReq => {
         console.log('Proxied request: ', proxyReq.path);
@@ -305,7 +305,7 @@ function createUIServer(options: UIConfigs) {
 
   app.all(
     `${basePath}/${apiVersion1Prefix}/*`,
-    proxy({
+    createProxyMiddleware({
       changeOrigin: true,
       onProxyReq: proxyReq => {
         console.log('Proxied request: ', proxyReq.path);
@@ -318,7 +318,7 @@ function createUIServer(options: UIConfigs) {
   );
   app.all(
     `${basePath}/${apiVersion2Prefix}/*`,
-    proxy({
+    createProxyMiddleware({
       changeOrigin: true,
       onProxyReq: proxyReq => {
         console.log('Proxied request: ', proxyReq.path);
