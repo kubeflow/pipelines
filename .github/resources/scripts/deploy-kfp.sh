@@ -94,7 +94,7 @@ fi
 if [ -n "${AWF_VERSION}"  ]; then
   echo "NOTE: Argo version ${AWF_VERSION} specified, updating Argo Workflow manifests..."
   echo "${AWF_VERSION}" > third_party/argo/VERSION
-  make -C ./manifests/kustomize/third-party/argo update_manifests
+  make -C ./third_party/argo update_manifests
   echo "Manifests updated for Argo version ${AWF_VERSION}."
 fi
 
