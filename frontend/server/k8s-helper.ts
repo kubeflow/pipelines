@@ -268,7 +268,7 @@ export async function getPod(
     const { body } = await k8sV1Client.readNamespacedPod(podName, podNamespace);
     return [body, undefined];
   } catch (error) {
-    const userMessage = `Could not get pod ${podName} in namespace ${podNamespace}`;
+    const userMessage = `Could not get pod in namespace`;
     return [undefined, { message: userMessage }];
   }
 }
@@ -286,7 +286,7 @@ export async function getConfigMap(
     const { body } = await k8sV1Client.readNamespacedConfigMap(configMapName, configMapNamespace);
     return [body, undefined];
   } catch (error) {
-    const userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}`;
+    const userMessage = `Could not get configMap in namespace`;
     return [undefined, { message: userMessage }];
   }
 }
@@ -307,7 +307,7 @@ export async function listPodEvents(podName: string, podNamespace: string): Prom
     );
     return [body, undefined];
   } catch (error) {
-    const userMessage = `Error when listing pod events for pod "${podName}" in "${podNamespace}" namespace`;
+    const userMessage = `Error when listing pod events for pod in namespace`;
     return [undefined, { message: userMessage }];
   }
 }

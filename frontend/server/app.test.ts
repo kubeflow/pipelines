@@ -295,7 +295,7 @@ describe('UIServer apis', () => {
       const spyError = jest.spyOn(console, 'error').mockImplementation(() => null);
       request
         .get('/k8s/pod?podname=test-pod&podnamespace=test-ns')
-        .expect(500, 'Could not get pod test-pod in namespace test-ns', () => {
+        .expect(500, 'Could not get pod in namespace', () => {
           expect(spyError).toHaveBeenCalledTimes(1);
           done();
         });
@@ -355,7 +355,7 @@ describe('UIServer apis', () => {
         .get('/k8s/pod/events?podname=test-pod&podnamespace=test-ns')
         .expect(
           500,
-          'Error when listing pod events for pod "test-pod" in "test-ns" namespace',
+          'Error when listing pod events for pod in namespace',
           err => {
             expect(spyError).toHaveBeenCalledTimes(1);
             done(err);
