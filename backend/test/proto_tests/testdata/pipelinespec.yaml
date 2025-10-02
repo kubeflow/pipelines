@@ -32,7 +32,7 @@ deploymentSpec:
           '
           - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef hello_world():\n    print(\"hello world\")\n\n"
-        image: python:3.9
+        image: python:3.10
 pipelineInfo:
   name: pipeline-hello-world
 root:

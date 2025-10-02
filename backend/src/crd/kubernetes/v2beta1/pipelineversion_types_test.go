@@ -675,7 +675,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef hello_world(msg: str):\n    print(msg)\n\n"
-        image: python:3.9
+        image: python:3.10
 pipelineInfo:
   name: hello-world
 root:
