@@ -975,14 +975,14 @@ implementation:
     def test_pipeline_with_parameterized_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            @dsl.component(base_image='docker.io/python:3.10.17')
+            @dsl.component(base_image='docker.io/python:3.10.18')
             def empty_component():
                 pass
 
             @dsl.pipeline()
             def simple_pipeline(img: str):
                 task = empty_component()
-                # overwrite base_image="docker.io/python:3.10.17"
+                # overwrite base_image="docker.io/python:3.10.18"
                 task.set_container_image(img)
 
             output_yaml = os.path.join(tmpdir, 'result.yaml')
@@ -1010,14 +1010,14 @@ implementation:
     def test_pipeline_with_constant_container_image(self):
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            @dsl.component(base_image='docker.io/python:3.10.17')
+            @dsl.component(base_image='docker.io/python:3.10.18')
             def empty_component():
                 pass
 
             @dsl.pipeline()
             def simple_pipeline():
                 task = empty_component()
-                # overwrite base_image="docker.io/python:3.10.17"
+                # overwrite base_image="docker.io/python:3.10.18"
                 task.set_container_image('constant-value')
 
             output_yaml = os.path.join(tmpdir, 'result.yaml')
