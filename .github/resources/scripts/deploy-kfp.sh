@@ -28,6 +28,7 @@ TEST_MANIFESTS=".github/resources/manifests"
 PIPELINES_STORE="database"
 USE_PROXY=false
 CACHE_DISABLED=false
+ARTIFACT_PROXY_ENABLED=false
 MULTI_USER=false
 STORAGE_BACKEND="seaweedfs"
 AWF_VERSION=""
@@ -53,6 +54,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --multi-user)
       MULTI_USER=true
+      shift
+      ;;
+    --artifact-proxy)
+      ARTIFACT_PROXY_ENABLED=true
       shift
       ;;
     --storage)
@@ -152,6 +157,8 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $USE_PROXY; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy"
+  elif $ARTIFACT_PROXY_ENABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
   elif [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
   elif $CACHE_DISABLED && $USE_PROXY; then
