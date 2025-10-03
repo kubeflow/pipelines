@@ -22,7 +22,7 @@ import {
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper';
-import { parseError, findFileOnPodVolume } from './utils';
+import { parseError, findFileOnPodVolume, isAllowedResourceName } from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -268,7 +268,10 @@ export async function getPod(
     const { body } = await k8sV1Client.readNamespacedPod(podName, podNamespace);
     return [body, undefined];
   } catch (error) {
-    const userMessage = `Could not get pod in namespace`;
+    let userMessage = `Could not get pod ${podName} in namespace ${podNamespace}`;
+    if (!isAllowedResourceName(podName) || !isAllowedResourceName(podNamespace)) {
+      userMessage = `Invlaid resource name`
+    }
     return [undefined, { message: userMessage }];
   }
 }
@@ -286,7 +289,10 @@ export async function getConfigMap(
     const { body } = await k8sV1Client.readNamespacedConfigMap(configMapName, configMapNamespace);
     return [body, undefined];
   } catch (error) {
-    const userMessage = `Could not get configMap in namespace`;
+    let userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}`;
+    if (!isAllowedResourceName(configMapName) || !isAllowedResourceName(configMapNamespace)) {
+      userMessage = `Invlaid resource name`
+    }
     return [undefined, { message: userMessage }];
   }
 }
@@ -307,7 +313,10 @@ export async function listPodEvents(podName: string, podNamespace: string): Prom
     );
     return [body, undefined];
   } catch (error) {
-    const userMessage = `Error when listing pod events for pod in namespace`;
+    let userMessage = `Error when listing pod events for pod ${podName} in namespace ${podNamespace}`;
+    if (!isAllowedResourceName(podName) || !isAllowedResourceName(podNamespace)) {
+      userMessage = `Invlaid resource name`
+    }
     return [undefined, { message: userMessage }];
   }
 }

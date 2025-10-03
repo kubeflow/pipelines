@@ -98,14 +98,14 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	glog.Infof("Upload pipeline called")
 	file, header, err := r.FormFile(FormFileKey)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to read a pipeline"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read pipeline from file"))
 		return
 	}
 	defer file.Close()
 
 	pipelineFile, err := ReadPipelineFile(header.Filename, file, common.MaxFileLength)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to read a pipeline"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to read a pipeline spec file"))
 		return
 	}
 
@@ -121,7 +121,7 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	}
 	err = s.canUploadVersionedPipeline(r, "", resourceAttributes)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline due to authorization error"))
 		return
 	}
 
@@ -157,10 +157,10 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	newPipeline, newPipelineVersion, err := s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
 	if err != nil {
 		if util.IsUserErrorCodeMatch(err, codes.AlreadyExists) {
-			s.writeErrorToResponse(w, http.StatusConflict, errors.New("Failed to create a pipeline"))
+			s.writeErrorToResponse(w, http.StatusConflict, util.Wrap(err, "Failed to create a pipeline and a pipeline version. The pipeline already exists."))
 			return
 		}
-		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline and a pipeline version"))
 		return
 	}
 
@@ -174,7 +174,7 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	} else if api_version == "v2beta1" {
 		messageToMarshal = toApiPipeline(newPipeline)
 	} else {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Invalid API version"))
 		return
 	}
 
@@ -185,12 +185,12 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	}
 	data, err := marshaler.Marshal(messageToMarshal)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Marshaling error"))
 		return
 	}
 	_, err = w.Write(data)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Write error."))
 		return
 	}
 }
@@ -218,19 +218,19 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 	glog.Infof("Upload pipeline version called")
 	file, header, err := r.FormFile(FormFileKey)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline version due to error parsing pipeline spec filename"))
 		return
 	}
 	defer file.Close()
 
 	pipelineFile, err := ReadPipelineFile(header.Filename, file, common.MaxFileLength)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline version due to error reading pipeline spec file"))
 		return
 	}
 	pipelineId := r.URL.Query().Get(PipelineKey)
 	if pipelineId == "" {
-		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version due to error reading pipeline id"))
 		return
 	}
 
@@ -251,7 +251,7 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 
 	namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline version due to error reading namespace"))
 		return
 	}
 
@@ -261,7 +261,7 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 	}
 	err = s.canUploadVersionedPipeline(r, pipelineId, resourceAttributes)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline version due to authorization error"))
 		return
 	}
 
@@ -278,10 +278,10 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 	)
 	if err != nil {
 		if util.IsUserErrorCodeMatch(err, codes.AlreadyExists) {
-			s.writeErrorToResponse(w, http.StatusConflict, util.Wrap(err, "Failed to create a pipeline"))
+			s.writeErrorToResponse(w, http.StatusConflict, util.Wrap(err, "Failed to create a pipeline version. The pipeline already exists."))
 			return
 		}
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version"))
 		return
 	}
 
@@ -291,7 +291,7 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 	} else if api_version == "v2beta1" {
 		messageToMarshal = toApiPipelineVersion(newPipelineVersion)
 	} else {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Invalid API version"))
 		return
 	}
 	// Marshal the message to bytes
@@ -301,12 +301,12 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 	}
 	data, err := marshaler.Marshal(messageToMarshal)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Marshaling error"))
 		return
 	}
 	_, err = w.Write(data)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Write error."))
 		return
 	}
 

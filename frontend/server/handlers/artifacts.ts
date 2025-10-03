@@ -14,7 +14,7 @@
 import fetch from 'node-fetch';
 import { AWSConfigs, HttpConfigs, MinioConfigs, ProcessEnv, UIConfigs } from '../configs';
 import { Client as MinioClient } from 'minio';
-import { PreviewStream, findFileOnPodVolume, parseJSONString } from '../utils';
+import { PreviewStream, findFileOnPodVolume, parseJSONString, isAllowedResourceName } from '../utils';
 import { createMinioClient, getObjectStream } from '../minio-helper';
 import * as serverInfo from '../helpers/server-info';
 import { Handler, Request, Response } from 'express';
@@ -109,6 +109,10 @@ export function getArtifactsHandler({
     }
     if (!bucket) {
       res.status(500).send('Storage bucket is missing from artifact request');
+      return;
+    }
+    if (!isAllowedResourceName(bucket)) {
+      res.status(500).send('Invalid bucket name');
       return;
     }
     if (!key) {
@@ -231,12 +235,12 @@ function getMinioArtifactHandler(
     try {
       const stream = await getObjectStream(options);
       stream
-        .on('error', err => res.status(500).send(`Failed to get object in bucket`))
+        .on('error', err => res.status(500).send(`Failed to get object in bucket: ${err}`))
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
       console.error(err);
-      res.status(500).send(`Failed to get object in bucket`);
+      res.status(500).send(`Failed to get object in bucket: ${err}`);
     }
   };
 }
