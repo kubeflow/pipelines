@@ -24,7 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -116,7 +116,7 @@ var _ = Describe("Verify iteration over the pipeline components >", Label(POSITI
 			},
 		}
 		for _, testParam := range testParams {
-			pipelineSpecFilePath := filepath.Join(test_utils.GetValidPipelineFilesDir(), testParam.pipelineSpecPath)
+			pipelineSpecFilePath := filepath.Join(testutil.GetValidPipelineFilesDir(), testParam.pipelineSpecPath)
 			It(fmt.Sprintf("Load the the pipeline IR yaml %s, and verify the visited component", testParam.pipelineSpecPath), func() {
 				pipelineJob, platformSpec := workflowutils.LoadPipelineSpecsFromIR(pipelineSpecFilePath, false, nil)
 
