@@ -48,6 +48,14 @@ inputs:
     required: false
     default: ""
     description: "Override it if you want a custom name for your test report file"
+  tls_enabled:
+    description: "If KFP should be deployed with TLS pod-to-pod communication."
+    required: false
+    default: 'false'
+  ca_cert_path:
+    description: "Path to the CA certificate file."
+    required: false
+    default: ""
 
 
 runs:

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metadata-writer
+spec:
+  template:
+    spec:
+      containers:
+        - name: main
+          env:
+            - name: METADATA_GRPC_SERVICE_SERVICE_HOST
+              value: "metadata-grpc-service.kubeflow"
+            - name: METADATA_GRPC_SERVICE_SERVICE_PORT
+              value: "8080"
+            - name: METADATA_TLS_ENABLED
+              value: "true"
+            - name: CA_CERT_PATH
+              value: "/etc/pki/tls/certs/ca.crt"
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /etc/pki/tls/certs
+              readOnly: true
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: kfp-api-tls-cert

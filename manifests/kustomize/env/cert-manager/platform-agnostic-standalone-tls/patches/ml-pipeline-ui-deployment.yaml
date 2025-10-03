@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline-ui
+spec:
+  template:
+    spec:
+      containers:
+        - name: ml-pipeline-ui
+          env:
+            - name: ML_PIPELINE_SERVICE_SCHEME
+              value: "https"
+            - name: METADATA_ENVOY_SERVICE_SERVICE_HOST
+              value: "metadata-envoy-service"
+            - name: METADATA_ENVOY_SERVICE_SERVICE_PORT
+              value: "9090"
+            - name: METADATA_ENVOY_SERVICE_SERVICE_SCHEME
+              value: "https"
+            - name: NODE_EXTRA_CA_CERTS
+              value: "/etc/pki/tls/certs/ca.crt"
+            - name: ML_PIPELINE_SERVICE_HOST
+              value: "ml-pipeline.kubeflow"
+            - name: DISABLE_GKE_METADATA
+              value: "true"
+
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /etc/pki/tls/certs
+              readOnly: true
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: kfp-api-tls-cert

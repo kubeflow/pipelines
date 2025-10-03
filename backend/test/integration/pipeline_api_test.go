@@ -23,6 +23,7 @@ import (
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -241,8 +242,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	verifyPipeline(t, pipeline)
 
-	/* ---------- Verify get template works ---------- */
-	template, err := s.pipelineClient.GetTemplate(&params.PipelineServiceGetTemplateParams{ID: argumentYAMLPipeline.ID})
+	/* ---------- Verify get tmpl works ---------- */
+	tmpl, err := s.pipelineClient.GetTemplate(&params.PipelineServiceGetTemplateParams{ID: argumentYAMLPipeline.ID})
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
@@ -252,15 +253,15 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 		},
 		StorageClassName: util.StringPointer("my-storage"),
 	}
-	expected, _ := pipelinetemplate.New(bytes, true, defaultPVC)
-	assert.Equal(t, expected, template)
+	expected, _ := pipelinetemplate.New(bytes, template.TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
+	assert.Equal(t, expected, tmpl)
 
-	template, err = s.pipelineClient.GetTemplate(&params.PipelineServiceGetTemplateParams{ID: v2HelloPipeline.ID})
+	tmpl, err = s.pipelineClient.GetTemplate(&params.PipelineServiceGetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
 	bytes, err = os.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, _ = pipelinetemplate.New(bytes, true, nil)
-	assert.Equal(t, expected, template)
+	expected, _ = pipelinetemplate.New(bytes, template.TemplateOptions{CacheDisabled: true})
+	assert.Equal(t, expected, tmpl)
 }
 
 func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {

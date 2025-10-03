@@ -1,0 +1,128 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-external-request
+# Description: A pipeline that requests both in-cluster & external URLs.
+components:
+  comp-submit-request:
+    executorLabel: exec-submit-request
+    inputDefinitions:
+      parameters:
+        url:
+          parameterType: STRING
+  comp-submit-request-2:
+    executorLabel: exec-submit-request-2
+    inputDefinitions:
+      parameters:
+        url:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-submit-request:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - submit_request
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'requests'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.4'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef submit_request(url: str):\n    import requests\n    import os\n\
+          \n    # If running pipeline in multi-user mode, skip submitting request\
+          \ to external address.\n    multi_user = os.getenv('MULTI_USER', 'false')\n\
+          \    if multi_user.lower() != 'true':\n        return\n\n    scheme = os.getenv('SCHEME',\
+          \ 'http')\n    if scheme not in ['http', 'https']:\n        raise Exception(f\"\
+          Invalid scheme: {scheme}\")\n\n    url = f'{scheme}://{url}'\n    # Submit\
+          \ HTTP or HTTPS request to in-cluster endpoint and external address, depending\
+          \ on the scheme specified by env var.\n    try:\n        response = requests.get(url,\
+          \ verify=True, timeout=5)\n        print(response.status_code)\n    except\
+          \ Exception as e:\n        raise Exception(f\"Failed to request {url}: {e}\"\
+          )\n    if response.status_code != 200:\n        raise Exception(f\"Failed\
+          \ to request {url}: {response.status_code}\")\n\n"
+        image: python:3.11
+    exec-submit-request-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - submit_request
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'requests'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.4'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef submit_request(url: str):\n    import requests\n    import os\n\
+          \n    # If running pipeline in multi-user mode, skip submitting request\
+          \ to external address.\n    multi_user = os.getenv('MULTI_USER', 'false')\n\
+          \    if multi_user.lower() != 'true':\n        return\n\n    scheme = os.getenv('SCHEME',\
+          \ 'http')\n    if scheme not in ['http', 'https']:\n        raise Exception(f\"\
+          Invalid scheme: {scheme}\")\n\n    url = f'{scheme}://{url}'\n    # Submit\
+          \ HTTP or HTTPS request to in-cluster endpoint and external address, depending\
+          \ on the scheme specified by env var.\n    try:\n        response = requests.get(url,\
+          \ verify=True, timeout=5)\n        print(response.status_code)\n    except\
+          \ Exception as e:\n        raise Exception(f\"Failed to request {url}: {e}\"\
+          )\n    if response.status_code != 200:\n        raise Exception(f\"Failed\
+          \ to request {url}: {response.status_code}\")\n\n"
+        image: python:3.11
+pipelineInfo:
+  description: A pipeline that requests both in-cluster & external URLs.
+  name: pipeline-with-external-request
+root:
+  dag:
+    tasks:
+      submit-request:
+        cachingOptions: {}
+        componentRef:
+          name: comp-submit-request
+        inputs:
+          parameters:
+            url:
+              runtimeValue:
+                constant: httpbin.org/get
+        taskInfo:
+          name: submit-request
+      submit-request-2:
+        cachingOptions: {}
+        componentRef:
+          name: comp-submit-request-2
+        inputs:
+          parameters:
+            url:
+              runtimeValue:
+                constant: ml-pipeline:8888/apis/v2beta1/healthz
+        taskInfo:
+          name: submit-request-2
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.4

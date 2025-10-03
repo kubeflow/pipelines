@@ -69,9 +69,9 @@ func (c *PipelineClient) UpdateDefaultVersion(parameters *params.PipelineService
 }
 
 func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
-	*PipelineClient, error) {
-
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	*PipelineClient, error,
+) {
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating pipeline client: %w", err)
 	}
@@ -85,9 +85,9 @@ func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
 }
 
 func NewKubeflowInClusterPipelineClient(namespace string, debug bool) (
-	*PipelineClient, error) {
-
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	*PipelineClient, error,
+) {
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, nil)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
@@ -99,7 +99,8 @@ func NewKubeflowInClusterPipelineClient(namespace string, debug bool) (
 }
 
 func (c *PipelineClient) Create(parameters *params.PipelineServiceCreatePipelineV1Params) (*model.APIPipeline,
-	error) {
+	error,
+) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -122,7 +123,8 @@ func (c *PipelineClient) Create(parameters *params.PipelineServiceCreatePipeline
 }
 
 func (c *PipelineClient) Get(parameters *params.PipelineServiceGetPipelineV1Params) (*model.APIPipeline,
-	error) {
+	error,
+) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -211,11 +213,12 @@ func (c *PipelineClient) GetTemplate(parameters *params.PipelineServiceGetTempla
 	}
 
 	// Unmarshal response
-	return template.New([]byte(response.Payload.Template), true, nil)
+	return template.New([]byte(response.Payload.Template), template.TemplateOptions{CacheDisabled: true})
 }
 
 func (c *PipelineClient) List(parameters *params.PipelineServiceListPipelinesV1Params) (
-	[]*model.APIPipeline, int, string, error) {
+	[]*model.APIPipeline, int, string, error,
+) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -239,12 +242,14 @@ func (c *PipelineClient) List(parameters *params.PipelineServiceListPipelinesV1P
 }
 
 func (c *PipelineClient) ListAll(parameters *params.PipelineServiceListPipelinesV1Params, maxResultSize int) (
-	[]*model.APIPipeline, error) {
+	[]*model.APIPipeline, error,
+) {
 	return listAllForPipeline(c, parameters, maxResultSize)
 }
 
 func listAllForPipeline(client PipelineInterface, parameters *params.PipelineServiceListPipelinesV1Params,
-	maxResultSize int) ([]*model.APIPipeline, error) {
+	maxResultSize int,
+) ([]*model.APIPipeline, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
 	}
@@ -269,7 +274,8 @@ func listAllForPipeline(client PipelineInterface, parameters *params.PipelineSer
 }
 
 func (c *PipelineClient) CreatePipelineVersion(parameters *params.PipelineServiceCreatePipelineVersionV1Params) (*model.APIPipelineVersion,
-	error) {
+	error,
+) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -292,7 +298,8 @@ func (c *PipelineClient) CreatePipelineVersion(parameters *params.PipelineServic
 }
 
 func (c *PipelineClient) ListPipelineVersions(parameters *params.PipelineServiceListPipelineVersionsV1Params) (
-	[]*model.APIPipelineVersion, int, string, error) {
+	[]*model.APIPipelineVersion, int, string, error,
+) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -316,7 +323,8 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.PipelineService
 }
 
 func (c *PipelineClient) GetPipelineVersion(parameters *params.PipelineServiceGetPipelineVersionV1Params) (*model.APIPipelineVersion,
-	error) {
+	error,
+) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -340,7 +348,8 @@ func (c *PipelineClient) GetPipelineVersion(parameters *params.PipelineServiceGe
 }
 
 func (c *PipelineClient) GetPipelineVersionTemplate(parameters *params.PipelineServiceGetPipelineVersionTemplateParams) (
-	template.Template, error) {
+	template.Template, error,
+) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
@@ -361,5 +370,5 @@ func (c *PipelineClient) GetPipelineVersionTemplate(parameters *params.PipelineS
 	}
 
 	// Unmarshal response
-	return template.New([]byte(response.Payload.Template), true, nil)
+	return template.New([]byte(response.Payload.Template), template.TemplateOptions{CacheDisabled: true})
 }
