@@ -17,6 +17,10 @@ on:
       - 'kubernetes_platform/**/*.go'
       - 'backend/src/crd/kubernetes/**/*.go'
       - 'manifests/kustomize/base/crds/*.yaml'
+      - 'frontend/src/apis/**'
+      - 'frontend/src/apisv2beta1/**'
+      - 'frontend/server/src/generated/apis/**'
+      - 'frontend/server/src/generated/apisv2beta1/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -78,6 +82,16 @@ jobs:
         env:
           API_VERSION: v1beta1
         run: make generate-kfp-server-api-package
+
+      - name: Install swagger-codegen 2.4.7
+        working-directory: ./frontend
+        run: |
+          curl -sSLO https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/2.4.7/swagger-codegen-cli-2.4.7.jar
+          mv swagger-codegen-cli-2.4.7.jar swagger-codegen-cli.jar
+
+      - name: Generate frontend proto code
+        working-directory: ./frontend
+        run: npm run apis && npm run apis:v2beta1
 
       - name: Check for Changes
         run: make check-diff

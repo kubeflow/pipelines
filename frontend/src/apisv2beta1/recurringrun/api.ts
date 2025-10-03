@@ -108,27 +108,23 @@ export interface GooglerpcStatus {
 }
 
 /**
- * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := anypb.New(foo)      if err != nil {        ...      }      ...      foo := &pb.Foo{}      if err := any.UnmarshalTo(foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".   JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
+ * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }     // or ...     if (any.isSameTypeAs(Foo.getDefaultInstance())) {       foo = any.unpack(Foo.getDefaultInstance());     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := anypb.New(foo)      if err != nil {        ...      }      ...      foo := &pb.Foo{}      if err := any.UnmarshalTo(foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".  JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
  * @export
  * @interface ProtobufAny
  */
 export interface ProtobufAny {
+  [key: string]: any | any;
+
   /**
-   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
+   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com. As of May 2023, there are no widely used type server implementations and no plans to implement one.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
    * @type {string}
    * @memberof ProtobufAny
    */
-  type_url?: string;
-  /**
-   * Must be a valid serialized protocol buffer of the above specified type.
-   * @type {string}
-   * @memberof ProtobufAny
-   */
-  value?: string;
+  type?: string;
 }
 
 /**
- * `NullValue` is a singleton enumeration to represent the null value for the `Value` type union.   The JSON representation for `NullValue` is JSON `null`.   - NULL_VALUE: Null value.
+ * `NullValue` is a singleton enumeration to represent the null value for the `Value` type union.  The JSON representation for `NullValue` is JSON `null`.   - NULL_VALUE: Null value.
  * @export
  * @enum {string}
  */
@@ -238,7 +234,7 @@ export interface V2beta1PipelineVersionReference {
    */
   pipeline_id?: string;
   /**
-   * Input. Required. Unique ID of an existing pipeline version.
+   * Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.
    * @type {string}
    * @memberof V2beta1PipelineVersionReference
    */
@@ -270,7 +266,7 @@ export interface V2beta1RecurringRun {
    */
   description?: string;
   /**
-   * The ID of the pipeline version used for creating runs.
+   * This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.
    * @type {string}
    * @memberof V2beta1RecurringRun
    */
@@ -421,16 +417,19 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
     /**
      *
      * @summary Creates a new recurring run in an experiment, given the experiment ID.
-     * @param {V2beta1RecurringRun} body The recurring run to be created.
+     * @param {V2beta1RecurringRun} recurring_run The recurring run to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createRecurringRun(body: V2beta1RecurringRun, options: any = {}): FetchArgs {
-      // verify required parameter 'body' is not null or undefined
-      if (body === null || body === undefined) {
+    recurringRunServiceCreateRecurringRun(
+      recurring_run: V2beta1RecurringRun,
+      options: any = {},
+    ): FetchArgs {
+      // verify required parameter 'recurring_run' is not null or undefined
+      if (recurring_run === null || recurring_run === undefined) {
         throw new RequiredError(
-          'body',
-          'Required parameter body was null or undefined when calling createRecurringRun.',
+          'recurring_run',
+          'Required parameter recurring_run was null or undefined when calling recurringRunServiceCreateRecurringRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/recurringruns`;
@@ -448,12 +447,14 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization =
         <any>'V2beta1RecurringRun' !== 'string' ||
         localVarRequestOptions.headers['Content-Type'] === 'application/json';
-      localVarRequestOptions.body = needsSerialization ? JSON.stringify(body || {}) : body || '';
+      localVarRequestOptions.body = needsSerialization
+        ? JSON.stringify(recurring_run || {})
+        : recurring_run || '';
 
       return {
         url: url.format(localVarUrlObj),
@@ -467,12 +468,12 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deleteRecurringRun(recurring_run_id: string, options: any = {}): FetchArgs {
+    recurringRunServiceDeleteRecurringRun(recurring_run_id: string, options: any = {}): FetchArgs {
       // verify required parameter 'recurring_run_id' is not null or undefined
       if (recurring_run_id === null || recurring_run_id === undefined) {
         throw new RequiredError(
           'recurring_run_id',
-          'Required parameter recurring_run_id was null or undefined when calling deleteRecurringRun.',
+          'Required parameter recurring_run_id was null or undefined when calling recurringRunServiceDeleteRecurringRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/recurringruns/{recurring_run_id}`.replace(
@@ -491,7 +492,7 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -506,12 +507,12 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    disableRecurringRun(recurring_run_id: string, options: any = {}): FetchArgs {
+    recurringRunServiceDisableRecurringRun(recurring_run_id: string, options: any = {}): FetchArgs {
       // verify required parameter 'recurring_run_id' is not null or undefined
       if (recurring_run_id === null || recurring_run_id === undefined) {
         throw new RequiredError(
           'recurring_run_id',
-          'Required parameter recurring_run_id was null or undefined when calling disableRecurringRun.',
+          'Required parameter recurring_run_id was null or undefined when calling recurringRunServiceDisableRecurringRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/recurringruns/{recurring_run_id}:disable`.replace(
@@ -530,7 +531,7 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -545,12 +546,12 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    enableRecurringRun(recurring_run_id: string, options: any = {}): FetchArgs {
+    recurringRunServiceEnableRecurringRun(recurring_run_id: string, options: any = {}): FetchArgs {
       // verify required parameter 'recurring_run_id' is not null or undefined
       if (recurring_run_id === null || recurring_run_id === undefined) {
         throw new RequiredError(
           'recurring_run_id',
-          'Required parameter recurring_run_id was null or undefined when calling enableRecurringRun.',
+          'Required parameter recurring_run_id was null or undefined when calling recurringRunServiceEnableRecurringRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/recurringruns/{recurring_run_id}:enable`.replace(
@@ -569,7 +570,7 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -584,12 +585,12 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getRecurringRun(recurring_run_id: string, options: any = {}): FetchArgs {
+    recurringRunServiceGetRecurringRun(recurring_run_id: string, options: any = {}): FetchArgs {
       // verify required parameter 'recurring_run_id' is not null or undefined
       if (recurring_run_id === null || recurring_run_id === undefined) {
         throw new RequiredError(
           'recurring_run_id',
-          'Required parameter recurring_run_id was null or undefined when calling getRecurringRun.',
+          'Required parameter recurring_run_id was null or undefined when calling recurringRunServiceGetRecurringRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/recurringruns/{recurring_run_id}`.replace(
@@ -608,7 +609,7 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -628,7 +629,7 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listRecurringRuns(
+    recurringRunServiceListRecurringRuns(
       page_token?: string,
       page_size?: number,
       sort_by?: string,
@@ -674,7 +675,7 @@ export const RecurringRunServiceApiFetchParamCreator = function(configuration?: 
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -694,17 +695,17 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
     /**
      *
      * @summary Creates a new recurring run in an experiment, given the experiment ID.
-     * @param {V2beta1RecurringRun} body The recurring run to be created.
+     * @param {V2beta1RecurringRun} recurring_run The recurring run to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createRecurringRun(
-      body: V2beta1RecurringRun,
+    recurringRunServiceCreateRecurringRun(
+      recurring_run: V2beta1RecurringRun,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1RecurringRun> {
       const localVarFetchArgs = RecurringRunServiceApiFetchParamCreator(
         configuration,
-      ).createRecurringRun(body, options);
+      ).recurringRunServiceCreateRecurringRun(recurring_run, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -722,13 +723,13 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deleteRecurringRun(
+    recurringRunServiceDeleteRecurringRun(
       recurring_run_id: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
       const localVarFetchArgs = RecurringRunServiceApiFetchParamCreator(
         configuration,
-      ).deleteRecurringRun(recurring_run_id, options);
+      ).recurringRunServiceDeleteRecurringRun(recurring_run_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -746,13 +747,13 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    disableRecurringRun(
+    recurringRunServiceDisableRecurringRun(
       recurring_run_id: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
       const localVarFetchArgs = RecurringRunServiceApiFetchParamCreator(
         configuration,
-      ).disableRecurringRun(recurring_run_id, options);
+      ).recurringRunServiceDisableRecurringRun(recurring_run_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -770,13 +771,13 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    enableRecurringRun(
+    recurringRunServiceEnableRecurringRun(
       recurring_run_id: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
       const localVarFetchArgs = RecurringRunServiceApiFetchParamCreator(
         configuration,
-      ).enableRecurringRun(recurring_run_id, options);
+      ).recurringRunServiceEnableRecurringRun(recurring_run_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -794,13 +795,13 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getRecurringRun(
+    recurringRunServiceGetRecurringRun(
       recurring_run_id: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1RecurringRun> {
       const localVarFetchArgs = RecurringRunServiceApiFetchParamCreator(
         configuration,
-      ).getRecurringRun(recurring_run_id, options);
+      ).recurringRunServiceGetRecurringRun(recurring_run_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -823,7 +824,7 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listRecurringRuns(
+    recurringRunServiceListRecurringRuns(
       page_token?: string,
       page_size?: number,
       sort_by?: string,
@@ -834,7 +835,7 @@ export const RecurringRunServiceApiFp = function(configuration?: Configuration) 
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1ListRecurringRunsResponse> {
       const localVarFetchArgs = RecurringRunServiceApiFetchParamCreator(
         configuration,
-      ).listRecurringRuns(
+      ).recurringRunServiceListRecurringRuns(
         page_token,
         page_size,
         sort_by,
@@ -869,15 +870,15 @@ export const RecurringRunServiceApiFactory = function(
     /**
      *
      * @summary Creates a new recurring run in an experiment, given the experiment ID.
-     * @param {V2beta1RecurringRun} body The recurring run to be created.
+     * @param {V2beta1RecurringRun} recurring_run The recurring run to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createRecurringRun(body: V2beta1RecurringRun, options?: any) {
-      return RecurringRunServiceApiFp(configuration).createRecurringRun(body, options)(
-        fetch,
-        basePath,
-      );
+    recurringRunServiceCreateRecurringRun(recurring_run: V2beta1RecurringRun, options?: any) {
+      return RecurringRunServiceApiFp(configuration).recurringRunServiceCreateRecurringRun(
+        recurring_run,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -886,11 +887,11 @@ export const RecurringRunServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deleteRecurringRun(recurring_run_id: string, options?: any) {
-      return RecurringRunServiceApiFp(configuration).deleteRecurringRun(recurring_run_id, options)(
-        fetch,
-        basePath,
-      );
+    recurringRunServiceDeleteRecurringRun(recurring_run_id: string, options?: any) {
+      return RecurringRunServiceApiFp(configuration).recurringRunServiceDeleteRecurringRun(
+        recurring_run_id,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -899,11 +900,11 @@ export const RecurringRunServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    disableRecurringRun(recurring_run_id: string, options?: any) {
-      return RecurringRunServiceApiFp(configuration).disableRecurringRun(recurring_run_id, options)(
-        fetch,
-        basePath,
-      );
+    recurringRunServiceDisableRecurringRun(recurring_run_id: string, options?: any) {
+      return RecurringRunServiceApiFp(configuration).recurringRunServiceDisableRecurringRun(
+        recurring_run_id,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -912,11 +913,11 @@ export const RecurringRunServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    enableRecurringRun(recurring_run_id: string, options?: any) {
-      return RecurringRunServiceApiFp(configuration).enableRecurringRun(recurring_run_id, options)(
-        fetch,
-        basePath,
-      );
+    recurringRunServiceEnableRecurringRun(recurring_run_id: string, options?: any) {
+      return RecurringRunServiceApiFp(configuration).recurringRunServiceEnableRecurringRun(
+        recurring_run_id,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -925,11 +926,11 @@ export const RecurringRunServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getRecurringRun(recurring_run_id: string, options?: any) {
-      return RecurringRunServiceApiFp(configuration).getRecurringRun(recurring_run_id, options)(
-        fetch,
-        basePath,
-      );
+    recurringRunServiceGetRecurringRun(recurring_run_id: string, options?: any) {
+      return RecurringRunServiceApiFp(configuration).recurringRunServiceGetRecurringRun(
+        recurring_run_id,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -943,7 +944,7 @@ export const RecurringRunServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listRecurringRuns(
+    recurringRunServiceListRecurringRuns(
       page_token?: string,
       page_size?: number,
       sort_by?: string,
@@ -952,7 +953,7 @@ export const RecurringRunServiceApiFactory = function(
       experiment_id?: string,
       options?: any,
     ) {
-      return RecurringRunServiceApiFp(configuration).listRecurringRuns(
+      return RecurringRunServiceApiFp(configuration).recurringRunServiceListRecurringRuns(
         page_token,
         page_size,
         sort_by,
@@ -975,16 +976,16 @@ export class RecurringRunServiceApi extends BaseAPI {
   /**
    *
    * @summary Creates a new recurring run in an experiment, given the experiment ID.
-   * @param {V2beta1RecurringRun} body The recurring run to be created.
+   * @param {V2beta1RecurringRun} recurring_run The recurring run to be created.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RecurringRunServiceApi
    */
-  public createRecurringRun(body: V2beta1RecurringRun, options?: any) {
-    return RecurringRunServiceApiFp(this.configuration).createRecurringRun(body, options)(
-      this.fetch,
-      this.basePath,
-    );
+  public recurringRunServiceCreateRecurringRun(recurring_run: V2beta1RecurringRun, options?: any) {
+    return RecurringRunServiceApiFp(this.configuration).recurringRunServiceCreateRecurringRun(
+      recurring_run,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**
@@ -995,8 +996,8 @@ export class RecurringRunServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof RecurringRunServiceApi
    */
-  public deleteRecurringRun(recurring_run_id: string, options?: any) {
-    return RecurringRunServiceApiFp(this.configuration).deleteRecurringRun(
+  public recurringRunServiceDeleteRecurringRun(recurring_run_id: string, options?: any) {
+    return RecurringRunServiceApiFp(this.configuration).recurringRunServiceDeleteRecurringRun(
       recurring_run_id,
       options,
     )(this.fetch, this.basePath);
@@ -1010,8 +1011,8 @@ export class RecurringRunServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof RecurringRunServiceApi
    */
-  public disableRecurringRun(recurring_run_id: string, options?: any) {
-    return RecurringRunServiceApiFp(this.configuration).disableRecurringRun(
+  public recurringRunServiceDisableRecurringRun(recurring_run_id: string, options?: any) {
+    return RecurringRunServiceApiFp(this.configuration).recurringRunServiceDisableRecurringRun(
       recurring_run_id,
       options,
     )(this.fetch, this.basePath);
@@ -1025,8 +1026,8 @@ export class RecurringRunServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof RecurringRunServiceApi
    */
-  public enableRecurringRun(recurring_run_id: string, options?: any) {
-    return RecurringRunServiceApiFp(this.configuration).enableRecurringRun(
+  public recurringRunServiceEnableRecurringRun(recurring_run_id: string, options?: any) {
+    return RecurringRunServiceApiFp(this.configuration).recurringRunServiceEnableRecurringRun(
       recurring_run_id,
       options,
     )(this.fetch, this.basePath);
@@ -1040,11 +1041,11 @@ export class RecurringRunServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof RecurringRunServiceApi
    */
-  public getRecurringRun(recurring_run_id: string, options?: any) {
-    return RecurringRunServiceApiFp(this.configuration).getRecurringRun(recurring_run_id, options)(
-      this.fetch,
-      this.basePath,
-    );
+  public recurringRunServiceGetRecurringRun(recurring_run_id: string, options?: any) {
+    return RecurringRunServiceApiFp(this.configuration).recurringRunServiceGetRecurringRun(
+      recurring_run_id,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**
@@ -1060,7 +1061,7 @@ export class RecurringRunServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof RecurringRunServiceApi
    */
-  public listRecurringRuns(
+  public recurringRunServiceListRecurringRuns(
     page_token?: string,
     page_size?: number,
     sort_by?: string,
@@ -1069,7 +1070,7 @@ export class RecurringRunServiceApi extends BaseAPI {
     experiment_id?: string,
     options?: any,
   ) {
-    return RecurringRunServiceApiFp(this.configuration).listRecurringRuns(
+    return RecurringRunServiceApiFp(this.configuration).recurringRunServiceListRecurringRuns(
       page_token,
       page_size,
       sort_by,
