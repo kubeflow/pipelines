@@ -267,14 +267,15 @@ This feature does not introduce additional security risks beyond those inherent 
 - Large-notebook warning logic.
 - KFP local executing a pipeline with embedded artifacts.
 - KFP local executing a pipeline with notebooks.
+- Large notebook over 1 MB.
+- Failure path: invalid notebook JSON; notebook cell raises execution error.
 
 #### Integration tests
 
-- Execute a pipele with two parameterized notebooks that writes to an output artifact.
+- Execute a pipeline that leverages `embedded_artifact_path`.
+- Execute a pipeline with two parameterized notebooks that writes to an output artifact.
   - One notebook should have no `parameters` cell.
   - The other notebook should have a `parameters` cell with some overrides.
-- Failure path: invalid notebook JSON; notebook cell raises execution error.
-- Large notebook over 1 MB.
 
 ### Graduation Criteria
 
