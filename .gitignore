@@ -1,88 +1,192 @@
-# Logs
-logs
+# ==============================================================================
+# OS FILES
+# ==============================================================================
+.DS_Store
+Thumbs.db
+
+# ==============================================================================
+# IDE AND EDITOR FILES
+# ==============================================================================
+.idea/
+.ijwb/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
+vcs.xml
+
+# ==============================================================================
+# LOGS
+# ==============================================================================
+logs/
 *.log
 npm-debug.log*
+*.out
 
-# JS Sourcemaps
-*.js.map
-
-# Dependencies
+# ==============================================================================
+# DEPENDENCIES
+# ==============================================================================
 node_modules/
 bower_components/
+vendor/
+.vendor/
 
-# Build output
-dist
+# ==============================================================================
+# BUILD OUTPUT AND ARTIFACTS
+# ==============================================================================
+dist/
+build/
+out/
+gen/
 __debug_bin*
+bazel-*
+*.o
+*.a
+*.js.map
 
-# Web server
-frontend/server/dist
+# ==============================================================================
+# BINARY FILES
+# ==============================================================================
+*.exe
+*.dll
+*.so
+*.dylib
+**/main
+**/cmd
+!**/cmd/
+!cmd/
 
-# Python built package
+# ==============================================================================
+# DATABASE FILES
+# ==============================================================================
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite-wal
+
+# ==============================================================================
+# PYTHON SPECIFIC
+# ==============================================================================
+*.pyc
+__pycache__/
 *.egg-info
-dist
 .tox
+.pytest_cache
+.ipynb_checkpoints
+.venv/
+venv/
+.coverage
+.coverage*
+_build
+
+# ==============================================================================
+# GO SPECIFIC
+# ==============================================================================
+backend/pkg/mod/cache
+
+# ==============================================================================
+# JAVA/ANDROID SPECIFIC
+# ==============================================================================
+*.class
+*.dex
+*.apk
+*.aab
+*.jks
+*.keystore
+.gradle/
+.gradle/buildOutputCleanup/buildOutputCleanup.lock
+local.properties
+proguard/
+.navigation/
+captures/
+.externalNativeBuild
+.cxx/
+google-services.json
+freeline.py
+freeline/
+freeline_project_description.json
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/
+lint-results*.xml
+
+# ==============================================================================
+# FASTLANE
+# ==============================================================================
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# ==============================================================================
+# TEST FILES
+# ==============================================================================
+_artifacts
+coverage/
+*.coverprofile
+**/allure-*
+reports/
 
 # UI test outputs
 frontend/test/ui/visual-regression/errorShots
 frontend/test/ui/visual-regression/screenshots/diff
 frontend/test/ui/visual-regression/screenshots/screen
 
-# sqlite db
-*.db
-
-# IDE
-.idea/
-.ijwb/
-*.iml
-
-# Merge files
+# ==============================================================================
+# TEMPORARY FILES
+# ==============================================================================
+tmp/
+temp/
+.tmp/
 *.orig
-
-*.pyc
-.DS_Store
-build
-
-.ipynb_checkpoints
-*.egg-info
-
-# go vendor
-vendor
-
-# Go module cache
-backend/pkg/mod/cache
-
-# Bazel output artifacts
-bazel-*
-
-# VSCode
-.vscode
-
-# Test temporary files
-_artifacts
-
-# Generated Python SDK documentation
-_build
-
-# sed backups
 *.bak
 
-# virtualenv
-.venv/
-venv/
-
-# python sdk package
+# ==============================================================================
+# DOCKER AND CONTAINER IMAGES
+# ==============================================================================
+*.tar
 *.tar.gz
+*.tgz
+docker-images/
 
-# Copy from kubeflow/frontend
-coverage/
+# ==============================================================================
+# LARGE FILES (>100MB)
+# ==============================================================================
+*.bin
+*.iso
+*.img
+*.qcow2
+*.vmdk
 
-# Python cache
-__pycache__
-.pytest_cache
+# ==============================================================================
+# SECURITY AND SENSITIVE FILES
+# ==============================================================================
+*.kubeconfig
+*.pem
+*.key
+!**/testdata/**/*.key
 
-# Coverage
-.coverage
-.coverage*
+# ==============================================================================
+# PERFORMANCE AND PROFILING
+# ==============================================================================
+*.prof
+*.pprof
+*.trace
+
+# ==============================================================================
+# PROJECT SPECIFIC
+# ==============================================================================
+# Web server
+frontend/server/dist
 
 # kfp local execution default directory
 local_outputs/
@@ -90,16 +194,60 @@ local_outputs/
 # Ignore the Kind cluster kubeconfig
 kubeconfig_dev-pipelines-api
 
-# Ignore debug Driver Dockerfile produced from `make -C backend image_driver_debug`
+# Ignore debug Driver Dockerfile
 backend/Dockerfile.driver-debug
 
+# Backend CRD binaries
 backend/src/crd/kubernetes/bin
-
-**/allure-*
-**/*.html
-reports/
-logs/
-*.out
 
 # Project-local tools
 bin/
+
+# HTML reports
+**/*.html
+
+# ==============================================================================
+# CLAUDE AI RELATED FILES - DO NOT COMMIT
+# ==============================================================================
+.claude/
+.claude-flow/
+.swarm/
+.hive-mind/
+claude_code-gemini-mcp/
+memory/
+coordination/
+CLAUDE.md
+.mcp.json
+claude-flow.config.json
+hive-mind-prompt-*.txt
+claude-flow.ps1
+claude-flow.bat
+claude-flow.cmd
+claude-flow
+
+# Claude Flow generated files
+.claude/settings.local.json
+.mcp.json
+claude-flow.config.json
+.swarm/
+.hive-mind/
+.claude-flow/
+memory/
+coordination/
+memory/claude-flow-data.json
+memory/sessions/*
+!memory/sessions/README.md
+memory/agents/*
+!memory/agents/README.md
+coordination/memory_bank/*
+coordination/subtasks/*
+coordination/orchestration/*
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+claude-flow
+# Removed Windows wrapper files per user request
+hive-mind-prompt-*.txt
