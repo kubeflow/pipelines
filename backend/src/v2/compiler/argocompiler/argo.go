@@ -185,8 +185,17 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 
 	// compile
 	err = compiler.Accept(job, kubernetesSpec, c)
+	if err != nil {
+		return nil, err
+	}
 
-	return c.wf, err
+	// Apply any workflow spec patches from environment variable
+	patchJSON := common.GetCompiledPipelineSpecPatch()
+	if err := c.ApplyWorkflowSpecPatch(patchJSON); err != nil {
+		return nil, fmt.Errorf("failed to apply workflow spec patch: %w", err)
+	}
+
+	return c.wf, nil
 }
 
 func retrieveLastValidString(s string) string {
