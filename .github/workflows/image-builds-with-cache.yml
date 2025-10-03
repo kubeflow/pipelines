@@ -42,6 +42,10 @@ jobs:
           - image: driver
             dockerfile: backend/Dockerfile.driver
             context: .
+
+          - image: frontend
+            dockerfile: frontend/Dockerfile
+            context: .
     env:
       ARTIFACT_NAME: "${{ matrix.image }}"
       ARTIFACTS_PATH: "images_${{ github.sha }}"
