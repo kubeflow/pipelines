@@ -20,13 +20,12 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
-	utils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
 
 	. "github.com/onsi/ginkgo/v2"
 )
 
-var projectDataDir = utils.GetTestDataDir()
+var projectDataDir = test_utils.GetTestDataDir()
 var workflowsDir = filepath.Join(projectDataDir, "compiled-workflows")
 
 // ################## TESTS ##################

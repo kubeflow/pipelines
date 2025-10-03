@@ -42,7 +42,7 @@ export const getTensorboardHandlers = (
         {
           verb: AuthorizeRequestVerb.GET,
           resources: AuthorizeRequestResources.VIEWERS,
-          namespace,
+          namespace: namespace as string,
         },
         req,
       );
@@ -50,7 +50,7 @@ export const getTensorboardHandlers = (
         res.status(401).send(authError.message);
         return;
       }
-      res.send(await k8sHelper.getTensorboardInstance(logdir, namespace));
+      res.send(await k8sHelper.getTensorboardInstance(logdir as string, namespace as string));
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to list Tensorboard pods: ${details.message}`, details.additionalInfo);
@@ -90,7 +90,7 @@ export const getTensorboardHandlers = (
     let podTemplateSpec: any | undefined;
     if (podTemplateSpecRaw) {
       try {
-        podTemplateSpec = JSON.parse(podTemplateSpecRaw);
+        podTemplateSpec = JSON.parse(podTemplateSpecRaw as string);
       } catch (err) {
         res.status(400).send(`podtemplatespec is not valid JSON: ${err}`);
         return;
@@ -102,7 +102,7 @@ export const getTensorboardHandlers = (
         {
           verb: AuthorizeRequestVerb.CREATE,
           resources: AuthorizeRequestResources.VIEWERS,
-          namespace,
+          namespace: namespace as string,
         },
         req,
       );
@@ -111,15 +111,15 @@ export const getTensorboardHandlers = (
         return;
       }
       await k8sHelper.newTensorboardInstance(
-        logdir,
-        namespace,
-        image || tensorboardConfig.tfImageName,
-        tfversion,
+        logdir as string,
+        namespace as string,
+        (image || tensorboardConfig.tfImageName) as string,
+        (tfversion as string) || '',
         podTemplateSpec || tensorboardConfig.podTemplateSpec,
       );
       const tensorboardAddress = await k8sHelper.waitForTensorboardInstance(
-        logdir,
-        namespace,
+        logdir as string,
+        namespace as string,
         60 * 1000,
       );
       res.send(tensorboardAddress);
@@ -150,7 +150,7 @@ export const getTensorboardHandlers = (
         {
           verb: AuthorizeRequestVerb.DELETE,
           resources: AuthorizeRequestResources.VIEWERS,
-          namespace,
+          namespace: namespace as string,
         },
         req,
       );
@@ -158,7 +158,7 @@ export const getTensorboardHandlers = (
         res.status(401).send(authError.message);
         return;
       }
-      await k8sHelper.deleteTensorboardInstance(logdir, namespace);
+      await k8sHelper.deleteTensorboardInstance(logdir as string, namespace as string);
       res.send('Tensorboard deleted.');
     } catch (err) {
       const details = await parseError(err);

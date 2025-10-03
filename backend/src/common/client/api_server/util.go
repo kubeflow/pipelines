@@ -4,8 +4,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -64,9 +64,13 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	if !*testconfig.InClusterRun {
 		httpClient := http.DefaultClient
 		var scheme []string
-		if strings.Contains(*testconfig.ApiUrl, "://") {
-			schemeFromUrl := strings.Replace(strings.Split(*testconfig.ApiUrl, "://")[0], "://", "", -1)
-			scheme = append(scheme, schemeFromUrl)
+		parsedUrl, err := url.Parse(*testconfig.ApiUrl)
+		if err != nil {
+			return nil, err
+		}
+		host := parsedUrl.Host
+		if parsedUrl.Scheme != "" {
+			scheme = append(scheme, parsedUrl.Scheme)
 		}
 		if testconfig.ApiScheme != nil {
 			scheme = append(scheme, *testconfig.ApiScheme)
@@ -77,7 +81,8 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 			}
 			httpClient = &http.Client{Transport: tr}
 		}
-		runtimeClient := httptransport.NewWithClient(*testconfig.ApiUrl, "", scheme, httpClient)
+
+		runtimeClient := httptransport.NewWithClient(host, "", scheme, httpClient)
 		if debug {
 			runtimeClient.SetDebug(true)
 		}

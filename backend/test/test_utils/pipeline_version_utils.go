@@ -17,9 +17,10 @@ package test_utils
 import (
 	"fmt"
 	"os"
-	"sigs.k8s.io/yaml"
 	"sort"
 	"time"
+
+	"sigs.k8s.io/yaml"
 
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"

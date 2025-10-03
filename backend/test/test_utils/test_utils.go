@@ -16,9 +16,12 @@ package test_utils
 
 import (
 	"fmt"
+	"github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -80,4 +83,31 @@ func GetNamespace() string {
 		return *config.UserNamespace
 	}
 	return *config.Namespace
+}
+
+// getPackagePath generates the package path based on environment variables
+// Equivalent to the Python function get_package_path
+func getPackagePath(subdir string) string {
+	repoName := *config.REPO_NAME
+
+	pullNumber := *config.PULL_NUMBER
+	if pullNumber != "" {
+		return fmt.Sprintf("git+https://github.com/%s.git@refs/pull/%s/merge#subdirectory=%s", repoName, pullNumber, subdir)
+	}
+	return fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", repoName, *config.BRANCH_NAME, subdir)
+}
+
+func ReplaceSDKInPipelineSpec(pipelineFilePath string, cacheDisabled bool, defaultWorkspace *v1.PersistentVolumeClaimSpec) []byte {
+	pipelineFileBytes, err := os.ReadFile(pipelineFilePath)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to read pipeline file: "+pipelineFilePath)
+	pipelineFileString := string(pipelineFileBytes)
+
+	// Define regex pattern to match kfp==[version] (e.g., kfp==2.8.0)
+	kfpPattern := regexp.MustCompile(`kfp==[0-9]+\.[0-9]+\.[0-9]+`)
+
+	// Replace all occurrences with the new package path
+	newPackagePath := getPackagePath("sdk/python")
+	modifiedPipelineSpec := kfpPattern.ReplaceAllString(pipelineFileString, newPackagePath)
+
+	return []byte(modifiedPipelineSpec)
 }

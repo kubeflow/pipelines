@@ -189,10 +189,10 @@ Notes:
 ginkgo -v ./backend/test/compiler
 
 # Update compiled workflow goldens when intended
-ginkgo -v -args -updateCompiledFiles=true ./backend/test/compiler
+ginkgo -v ./backend/test/compiler -- -updateCompiledFiles=true
 
 # Auto-create missing goldens (default true); disable with:
-ginkgo -v -args -createGoldenFiles=false ./backend/test/compiler
+ginkgo -v ./backend/test/compiler -- -createGoldenFiles=false
 ```
 
 - v2 API integration tests (label-filterable):

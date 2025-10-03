@@ -16,9 +16,6 @@ package api
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
-
 	experimentparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
@@ -28,9 +25,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	testutils "github.com/kubeflow/pipelines/backend/test/test_utils"
 	"github.com/kubeflow/pipelines/backend/test/test_utils"
 	"github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
+	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -71,6 +69,7 @@ var _ = Describe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_RUN, API_
 		for _, param := range testParams {
 			for _, pipelineFilePath := range pipelineFilePaths {
 				It(fmt.Sprintf("Create a '%s' pipeline with cacheEnabled=%t and verify run", pipelineFilePath, param.pipelineCacheEnabled), func() {
+					createdExperiment := createExperiment(experimentName)
 					pipelineFilePath := pipelineFilePath
 					pipelineFileName := filepath.Base(pipelineFilePath)
 					test_utils.CheckIfSkipping(pipelineFileName)
@@ -78,8 +77,8 @@ var _ = Describe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_RUN, API_
 					createdPipeline := uploadAPipeline(configuredPipelineSpecFile, &testContext.Pipeline.PipelineGeneratedName)
 					createdPipelineVersion := test_utils.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 					pipelineRuntimeInputs := test_utils.GetPipelineRunTimeInputs(configuredPipelineSpecFile)
-					createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs)
-					createdExpectedRunAndVerify(createdPipelineRun, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, experimentID, pipelineRuntimeInputs)
+					createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+					createdExpectedRunAndVerify(createdPipelineRun, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
 				})
 			}
 		}
@@ -325,7 +324,7 @@ var _ = Describe("Verify Pipeline Run Negative Tests >", Label(NEGATIVE, API_PIP
 // ################## UTILITY METHODS ##################
 
 func configureCacheSettingAndGetPipelineFile(pipelineFilePath string, cacheDisabled bool) string {
-	pipelineSpecsFromFile := testutils.ParseFileToSpecs(pipelineFilePath, cacheDisabled, nil)
+	pipelineSpecsFromFile := test_utils.ParseFileToSpecs(pipelineFilePath, cacheDisabled, nil)
 	newPipelineFile := test_utils.CreateTempFile(pipelineSpecsFromFile.Bytes())
 	return newPipelineFile.Name()
 }
@@ -334,7 +333,7 @@ func uploadAPipeline(pipelineFile string, pipelineName *string) *pipeline_upload
 	logger.Log("Create a pipeline")
 	testContext.Pipeline.UploadParams.SetName(pipelineName)
 	logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineName, pipelineFile)
-	createdPipeline, uploadErr := pipelineUploadClient.UploadFile(pipelineFile, testContext.Pipeline.UploadParams)
+	createdPipeline, uploadErr := test_utils.UploadPipeline(pipelineUploadClient, pipelineFile, pipelineName, nil)
 	Expect(uploadErr).NotTo(HaveOccurred(), "Failed to upload pipeline")
 	testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, createdPipeline)
 	return createdPipeline

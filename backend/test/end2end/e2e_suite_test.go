@@ -80,9 +80,14 @@ var _ = BeforeSuite(func() {
 		newRunClient = func() (*apiserver.RunClient, error) {
 			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.DebugMode)
 		}
-	} else if *config.MultiUserMode {
-		logger.Log("Creating API Clients for Multi User Mode")
-		userToken = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
+	} else if *config.MultiUserMode || *config.AuthToken != "" {
+		if *config.AuthToken != "" {
+			logger.Log("Creating API Clients With Auth Token")
+			userToken = *config.AuthToken
+		} else {
+			logger.Log("Creating API Clients for Multi User Mode")
+			userToken = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
+		}
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.DebugMode)
 		}

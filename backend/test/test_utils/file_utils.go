@@ -16,12 +16,13 @@ package test_utils
 
 import (
 	"fmt"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/yaml"
 	"slices"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
