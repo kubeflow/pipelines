@@ -100,7 +100,7 @@ runs:
 
         if [ "${{ inputs.artifact_proxy }}" = "true" ]; then
           echo "Enabling artifact proxy"
-          ARGS="${ARGS}" --artifact-proxy
+          ARGS="${ARGS} --artifact-proxy"
         fi
 
         if [ "${{ inputs.storage_backend }}" != "seaweedfs" ] && [ -n "${{ inputs.storage_backend }}" ]; then
