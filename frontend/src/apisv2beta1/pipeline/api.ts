@@ -108,32 +108,48 @@ export interface GooglerpcStatus {
 }
 
 /**
- * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := anypb.New(foo)      if err != nil {        ...      }      ...      foo := &pb.Foo{}      if err := any.UnmarshalTo(foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".   JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
+ * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }     // or ...     if (any.isSameTypeAs(Foo.getDefaultInstance())) {       foo = any.unpack(Foo.getDefaultInstance());     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := anypb.New(foo)      if err != nil {        ...      }      ...      foo := &pb.Foo{}      if err := any.UnmarshalTo(foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".  JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
  * @export
  * @interface ProtobufAny
  */
 export interface ProtobufAny {
+  [key: string]: any | any;
+
   /**
-   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
+   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com. As of May 2023, there are no widely used type server implementations and no plans to implement one.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
    * @type {string}
    * @memberof ProtobufAny
    */
-  type_url?: string;
-  /**
-   * Must be a valid serialized protocol buffer of the above specified type.
-   * @type {string}
-   * @memberof ProtobufAny
-   */
-  value?: string;
+  type?: string;
 }
 
 /**
- * `NullValue` is a singleton enumeration to represent the null value for the `Value` type union.   The JSON representation for `NullValue` is JSON `null`.   - NULL_VALUE: Null value.
+ * `NullValue` is a singleton enumeration to represent the null value for the `Value` type union.  The JSON representation for `NullValue` is JSON `null`.   - NULL_VALUE: Null value.
  * @export
  * @enum {string}
  */
 export enum ProtobufNullValue {
   NULLVALUE = <any>'NULL_VALUE',
+}
+
+/**
+ *
+ * @export
+ * @interface V2beta1CreatePipelineAndVersionRequest
+ */
+export interface V2beta1CreatePipelineAndVersionRequest {
+  /**
+   * Required input. Pipeline (parent) to be created.
+   * @type {V2beta1Pipeline}
+   * @memberof V2beta1CreatePipelineAndVersionRequest
+   */
+  pipeline?: V2beta1Pipeline;
+  /**
+   * Required input. Pipeline version (child) to be created. Pipeline spec will be downloaded from pipeline_version.package_url.
+   * @type {V2beta1PipelineVersion}
+   * @memberof V2beta1CreatePipelineAndVersionRequest
+   */
+  pipeline_version?: V2beta1PipelineVersion;
 }
 
 /**
@@ -201,13 +217,13 @@ export interface V2beta1Pipeline {
    */
   pipeline_id?: string;
   /**
-   * Required input field. Pipeline display name provided by user.
+   * Required if name is not provided. Pipeline display name provided by user.
    * @type {string}
    * @memberof V2beta1Pipeline
    */
   display_name?: string;
   /**
-   * Required input field. Pipeline name provided by user.
+   * Required if display_name is not provided. Pipeline name provided by user.
    * @type {string}
    * @memberof V2beta1Pipeline
    */
@@ -245,7 +261,7 @@ export interface V2beta1Pipeline {
  */
 export interface V2beta1PipelineVersion {
   /**
-   * Required input field. Unique ID of the parent pipeline.
+   * Required input field. Unique ID of the parent pipeline. This is ignored in CreatePipelineAndVersion API.
    * @type {string}
    * @memberof V2beta1PipelineVersion
    */
@@ -257,19 +273,19 @@ export interface V2beta1PipelineVersion {
    */
   pipeline_version_id?: string;
   /**
-   * Required input field. Pipeline version name provided by user.
+   * Required if name is not provided. Pipeline version display name provided by user. This is ignored in CreatePipelineAndVersion API.
    * @type {string}
    * @memberof V2beta1PipelineVersion
    */
   display_name?: string;
   /**
-   * Required input field. Pipeline version name provided by user.
+   * Required if display_name is not provided. Pipeline version name provided by user. This is ignored in CreatePipelineAndVersion API.
    * @type {string}
    * @memberof V2beta1PipelineVersion
    */
   name?: string;
   /**
-   * Optional input field. Short description of the pipeline version.
+   * Optional input field. Short description of the pipeline version. This is ignored in CreatePipelineAndVersion API.
    * @type {string}
    * @memberof V2beta1PipelineVersion
    */
@@ -281,7 +297,7 @@ export interface V2beta1PipelineVersion {
    */
   created_at?: Date;
   /**
-   * Input. Required. The URL to the source of the pipeline version. This is required when creating the pipeine version through CreatePipelineVersion API.
+   * Input. Required. The URL to the source of the pipeline version. This is required when creating the pipeine version through CreatePipelineVersion or CreatePipelineAndVersion API.
    * @type {V2beta1Url}
    * @memberof V2beta1PipelineVersion
    */
@@ -329,16 +345,16 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     /**
      *
      * @summary Creates a pipeline.
-     * @param {V2beta1Pipeline} body Required input. Pipeline that needs to be created.
+     * @param {V2beta1Pipeline} pipeline Required input. Pipeline that needs to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createPipeline(body: V2beta1Pipeline, options: any = {}): FetchArgs {
-      // verify required parameter 'body' is not null or undefined
-      if (body === null || body === undefined) {
+    pipelineServiceCreatePipeline(pipeline: V2beta1Pipeline, options: any = {}): FetchArgs {
+      // verify required parameter 'pipeline' is not null or undefined
+      if (pipeline === null || pipeline === undefined) {
         throw new RequiredError(
-          'body',
-          'Required parameter body was null or undefined when calling createPipeline.',
+          'pipeline',
+          'Required parameter pipeline was null or undefined when calling pipelineServiceCreatePipeline.',
         );
       }
       const localVarPath = `/apis/v2beta1/pipelines`;
@@ -365,10 +381,66 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization =
         <any>'V2beta1Pipeline' !== 'string' ||
+        localVarRequestOptions.headers['Content-Type'] === 'application/json';
+      localVarRequestOptions.body = needsSerialization
+        ? JSON.stringify(pipeline || {})
+        : pipeline || '';
+
+      return {
+        url: url.format(localVarUrlObj),
+        options: localVarRequestOptions,
+      };
+    },
+    /**
+     *
+     * @summary Creates a new pipeline and a new pipeline version in a single transaction.
+     * @param {V2beta1CreatePipelineAndVersionRequest} body
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    pipelineServiceCreatePipelineAndVersion(
+      body: V2beta1CreatePipelineAndVersionRequest,
+      options: any = {},
+    ): FetchArgs {
+      // verify required parameter 'body' is not null or undefined
+      if (body === null || body === undefined) {
+        throw new RequiredError(
+          'body',
+          'Required parameter body was null or undefined when calling pipelineServiceCreatePipelineAndVersion.',
+        );
+      }
+      const localVarPath = `/apis/v2beta1/pipelines/create`;
+      const localVarUrlObj = url.parse(localVarPath, true);
+      const localVarRequestOptions = Object.assign({ method: 'POST' }, options);
+      const localVarHeaderParameter = {} as any;
+      const localVarQueryParameter = {} as any;
+
+      // authentication Bearer required
+      if (configuration && configuration.apiKey) {
+        const localVarApiKeyValue =
+          typeof configuration.apiKey === 'function'
+            ? configuration.apiKey('authorization')
+            : configuration.apiKey;
+        localVarHeaderParameter['authorization'] = localVarApiKeyValue;
+      }
+
+      localVarHeaderParameter['Content-Type'] = 'application/json';
+
+      localVarUrlObj.query = Object.assign(
+        {},
+        localVarUrlObj.query,
+        localVarQueryParameter,
+        options.query,
+      );
+      // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
+      localVarUrlObj.search = undefined;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+      const needsSerialization =
+        <any>'V2beta1CreatePipelineAndVersionRequest' !== 'string' ||
         localVarRequestOptions.headers['Content-Type'] === 'application/json';
       localVarRequestOptions.body = needsSerialization ? JSON.stringify(body || {}) : body || '';
 
@@ -381,27 +453,27 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      *
      * @summary Adds a pipeline version to the specified pipeline ID.
      * @param {string} pipeline_id Required input. ID of the parent pipeline.
-     * @param {V2beta1PipelineVersion} body Required input. Pipeline version ID to be created.
+     * @param {V2beta1PipelineVersion} pipeline_version Required input. Pipeline version ID to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createPipelineVersion(
+    pipelineServiceCreatePipelineVersion(
       pipeline_id: string,
-      body: V2beta1PipelineVersion,
+      pipeline_version: V2beta1PipelineVersion,
       options: any = {},
     ): FetchArgs {
       // verify required parameter 'pipeline_id' is not null or undefined
       if (pipeline_id === null || pipeline_id === undefined) {
         throw new RequiredError(
           'pipeline_id',
-          'Required parameter pipeline_id was null or undefined when calling createPipelineVersion.',
+          'Required parameter pipeline_id was null or undefined when calling pipelineServiceCreatePipelineVersion.',
         );
       }
-      // verify required parameter 'body' is not null or undefined
-      if (body === null || body === undefined) {
+      // verify required parameter 'pipeline_version' is not null or undefined
+      if (pipeline_version === null || pipeline_version === undefined) {
         throw new RequiredError(
-          'body',
-          'Required parameter body was null or undefined when calling createPipelineVersion.',
+          'pipeline_version',
+          'Required parameter pipeline_version was null or undefined when calling pipelineServiceCreatePipelineVersion.',
         );
       }
       const localVarPath = `/apis/v2beta1/pipelines/{pipeline_id}/versions`.replace(
@@ -431,12 +503,14 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization =
         <any>'V2beta1PipelineVersion' !== 'string' ||
         localVarRequestOptions.headers['Content-Type'] === 'application/json';
-      localVarRequestOptions.body = needsSerialization ? JSON.stringify(body || {}) : body || '';
+      localVarRequestOptions.body = needsSerialization
+        ? JSON.stringify(pipeline_version || {})
+        : pipeline_version || '';
 
       return {
         url: url.format(localVarUrlObj),
@@ -445,20 +519,22 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
     },
     /**
      *
-     * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
+     * @summary Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
      * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
-     * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
+     * @param {boolean} [cascade] Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deletePipeline(pipeline_id: string, cascade?: boolean, options?: any): FetchArgs {
-      // Set default options if not provided
-      const requestOptions = options || {};
+    pipelineServiceDeletePipeline(
+      pipeline_id: string,
+      cascade?: boolean,
+      options: any = {},
+    ): FetchArgs {
       // verify required parameter 'pipeline_id' is not null or undefined
       if (pipeline_id === null || pipeline_id === undefined) {
         throw new RequiredError(
           'pipeline_id',
-          'Required parameter pipeline_id was null or undefined when calling deletePipeline.',
+          'Required parameter pipeline_id was null or undefined when calling pipelineServiceDeletePipeline.',
         );
       }
       const localVarPath = `/apis/v2beta1/pipelines/{pipeline_id}`.replace(
@@ -466,13 +542,9 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         encodeURIComponent(String(pipeline_id)),
       );
       const localVarUrlObj = url.parse(localVarPath, true);
-      const localVarRequestOptions = Object.assign({ method: 'DELETE' }, requestOptions);
+      const localVarRequestOptions = Object.assign({ method: 'DELETE' }, options);
       const localVarHeaderParameter = {} as any;
       const localVarQueryParameter = {} as any;
-
-      if (cascade !== undefined) {
-        localVarQueryParameter['cascade'] = cascade;
-      }
 
       // authentication Bearer required
       if (configuration && configuration.apiKey) {
@@ -483,19 +555,19 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         localVarHeaderParameter['authorization'] = localVarApiKeyValue;
       }
 
+      if (cascade !== undefined) {
+        localVarQueryParameter['cascade'] = cascade;
+      }
+
       localVarUrlObj.query = Object.assign(
         {},
         localVarUrlObj.query,
         localVarQueryParameter,
-        requestOptions.query,
+        options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
-      localVarRequestOptions.headers = Object.assign(
-        {},
-        localVarHeaderParameter,
-        requestOptions.headers,
-      );
+      localVarUrlObj.search = undefined;
+      localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
         url: url.format(localVarUrlObj),
@@ -510,7 +582,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deletePipelineVersion(
+    pipelineServiceDeletePipelineVersion(
       pipeline_id: string,
       pipeline_version_id: string,
       options: any = {},
@@ -519,14 +591,14 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
       if (pipeline_id === null || pipeline_id === undefined) {
         throw new RequiredError(
           'pipeline_id',
-          'Required parameter pipeline_id was null or undefined when calling deletePipelineVersion.',
+          'Required parameter pipeline_id was null or undefined when calling pipelineServiceDeletePipelineVersion.',
         );
       }
       // verify required parameter 'pipeline_version_id' is not null or undefined
       if (pipeline_version_id === null || pipeline_version_id === undefined) {
         throw new RequiredError(
           'pipeline_version_id',
-          'Required parameter pipeline_version_id was null or undefined when calling deletePipelineVersion.',
+          'Required parameter pipeline_version_id was null or undefined when calling pipelineServiceDeletePipelineVersion.',
         );
       }
       const localVarPath = `/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}`
@@ -553,7 +625,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -568,12 +640,12 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPipeline(pipeline_id: string, options: any = {}): FetchArgs {
+    pipelineServiceGetPipeline(pipeline_id: string, options: any = {}): FetchArgs {
       // verify required parameter 'pipeline_id' is not null or undefined
       if (pipeline_id === null || pipeline_id === undefined) {
         throw new RequiredError(
           'pipeline_id',
-          'Required parameter pipeline_id was null or undefined when calling getPipeline.',
+          'Required parameter pipeline_id was null or undefined when calling pipelineServiceGetPipeline.',
         );
       }
       const localVarPath = `/apis/v2beta1/pipelines/{pipeline_id}`.replace(
@@ -601,7 +673,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -617,12 +689,16 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPipelineByName(name: string, namespace?: string, options: any = {}): FetchArgs {
+    pipelineServiceGetPipelineByName(
+      name: string,
+      namespace?: string,
+      options: any = {},
+    ): FetchArgs {
       // verify required parameter 'name' is not null or undefined
       if (name === null || name === undefined) {
         throw new RequiredError(
           'name',
-          'Required parameter name was null or undefined when calling getPipelineByName.',
+          'Required parameter name was null or undefined when calling pipelineServiceGetPipelineByName.',
         );
       }
       const localVarPath = `/apis/v2beta1/pipelines/names/{name}`.replace(
@@ -654,7 +730,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -670,7 +746,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPipelineVersion(
+    pipelineServiceGetPipelineVersion(
       pipeline_id: string,
       pipeline_version_id: string,
       options: any = {},
@@ -679,14 +755,14 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
       if (pipeline_id === null || pipeline_id === undefined) {
         throw new RequiredError(
           'pipeline_id',
-          'Required parameter pipeline_id was null or undefined when calling getPipelineVersion.',
+          'Required parameter pipeline_id was null or undefined when calling pipelineServiceGetPipelineVersion.',
         );
       }
       // verify required parameter 'pipeline_version_id' is not null or undefined
       if (pipeline_version_id === null || pipeline_version_id === undefined) {
         throw new RequiredError(
           'pipeline_version_id',
-          'Required parameter pipeline_version_id was null or undefined when calling getPipelineVersion.',
+          'Required parameter pipeline_version_id was null or undefined when calling pipelineServiceGetPipelineVersion.',
         );
       }
       const localVarPath = `/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}`
@@ -713,7 +789,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -732,7 +808,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listPipelineVersions(
+    pipelineServiceListPipelineVersions(
       pipeline_id: string,
       page_token?: string,
       page_size?: number,
@@ -744,7 +820,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
       if (pipeline_id === null || pipeline_id === undefined) {
         throw new RequiredError(
           'pipeline_id',
-          'Required parameter pipeline_id was null or undefined when calling listPipelineVersions.',
+          'Required parameter pipeline_id was null or undefined when calling pipelineServiceListPipelineVersions.',
         );
       }
       const localVarPath = `/apis/v2beta1/pipelines/{pipeline_id}/versions`.replace(
@@ -788,7 +864,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -807,7 +883,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listPipelines(
+    pipelineServiceListPipelines(
       namespace?: string,
       page_token?: string,
       page_size?: number,
@@ -857,7 +933,7 @@ export const PipelineServiceApiFetchParamCreator = function(configuration?: Conf
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -877,18 +953,41 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     /**
      *
      * @summary Creates a pipeline.
-     * @param {V2beta1Pipeline} body Required input. Pipeline that needs to be created.
+     * @param {V2beta1Pipeline} pipeline Required input. Pipeline that needs to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createPipeline(
-      body: V2beta1Pipeline,
+    pipelineServiceCreatePipeline(
+      pipeline: V2beta1Pipeline,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1Pipeline> {
-      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).createPipeline(
-        body,
-        options,
-      );
+      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
+        configuration,
+      ).pipelineServiceCreatePipeline(pipeline, options);
+      return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
+        return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
+          if (response.status >= 200 && response.status < 300) {
+            return response.json();
+          } else {
+            throw response;
+          }
+        });
+      };
+    },
+    /**
+     *
+     * @summary Creates a new pipeline and a new pipeline version in a single transaction.
+     * @param {V2beta1CreatePipelineAndVersionRequest} body
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    pipelineServiceCreatePipelineAndVersion(
+      body: V2beta1CreatePipelineAndVersionRequest,
+      options?: any,
+    ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1Pipeline> {
+      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
+        configuration,
+      ).pipelineServiceCreatePipelineAndVersion(body, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -903,18 +1002,18 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      *
      * @summary Adds a pipeline version to the specified pipeline ID.
      * @param {string} pipeline_id Required input. ID of the parent pipeline.
-     * @param {V2beta1PipelineVersion} body Required input. Pipeline version ID to be created.
+     * @param {V2beta1PipelineVersion} pipeline_version Required input. Pipeline version ID to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createPipelineVersion(
+    pipelineServiceCreatePipelineVersion(
       pipeline_id: string,
-      body: V2beta1PipelineVersion,
+      pipeline_version: V2beta1PipelineVersion,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1PipelineVersion> {
       const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
         configuration,
-      ).createPipelineVersion(pipeline_id, body, options);
+      ).pipelineServiceCreatePipelineVersion(pipeline_id, pipeline_version, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -927,22 +1026,20 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
+     * @summary Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
      * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
-     * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
+     * @param {boolean} [cascade] Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deletePipeline(
+    pipelineServiceDeletePipeline(
       pipeline_id: string,
       cascade?: boolean,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
-      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).deletePipeline(
-        pipeline_id,
-        cascade,
-        options,
-      );
+      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
+        configuration,
+      ).pipelineServiceDeletePipeline(pipeline_id, cascade, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -961,14 +1058,14 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deletePipelineVersion(
+    pipelineServiceDeletePipelineVersion(
       pipeline_id: string,
       pipeline_version_id: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
       const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
         configuration,
-      ).deletePipelineVersion(pipeline_id, pipeline_version_id, options);
+      ).pipelineServiceDeletePipelineVersion(pipeline_id, pipeline_version_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -986,14 +1083,13 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPipeline(
+    pipelineServiceGetPipeline(
       pipeline_id: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1Pipeline> {
-      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).getPipeline(
-        pipeline_id,
-        options,
-      );
+      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
+        configuration,
+      ).pipelineServiceGetPipeline(pipeline_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -1012,14 +1108,14 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPipelineByName(
+    pipelineServiceGetPipelineByName(
       name: string,
       namespace?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1Pipeline> {
       const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
         configuration,
-      ).getPipelineByName(name, namespace, options);
+      ).pipelineServiceGetPipelineByName(name, namespace, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -1038,14 +1134,14 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPipelineVersion(
+    pipelineServiceGetPipelineVersion(
       pipeline_id: string,
       pipeline_version_id: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1PipelineVersion> {
       const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
         configuration,
-      ).getPipelineVersion(pipeline_id, pipeline_version_id, options);
+      ).pipelineServiceGetPipelineVersion(pipeline_id, pipeline_version_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -1067,7 +1163,7 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listPipelineVersions(
+    pipelineServiceListPipelineVersions(
       pipeline_id: string,
       page_token?: string,
       page_size?: number,
@@ -1077,7 +1173,14 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1ListPipelineVersionsResponse> {
       const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
         configuration,
-      ).listPipelineVersions(pipeline_id, page_token, page_size, sort_by, filter, options);
+      ).pipelineServiceListPipelineVersions(
+        pipeline_id,
+        page_token,
+        page_size,
+        sort_by,
+        filter,
+        options,
+      );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -1099,7 +1202,7 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listPipelines(
+    pipelineServiceListPipelines(
       namespace?: string,
       page_token?: string,
       page_size?: number,
@@ -1107,14 +1210,9 @@ export const PipelineServiceApiFp = function(configuration?: Configuration) {
       filter?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1ListPipelinesResponse> {
-      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(configuration).listPipelines(
-        namespace,
-        page_token,
-        page_size,
-        sort_by,
-        filter,
-        options,
-      );
+      const localVarFetchArgs = PipelineServiceApiFetchParamCreator(
+        configuration,
+      ).pipelineServiceListPipelines(namespace, page_token, page_size, sort_by, filter, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -1141,38 +1239,61 @@ export const PipelineServiceApiFactory = function(
     /**
      *
      * @summary Creates a pipeline.
-     * @param {V2beta1Pipeline} body Required input. Pipeline that needs to be created.
+     * @param {V2beta1Pipeline} pipeline Required input. Pipeline that needs to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createPipeline(body: V2beta1Pipeline, options?: any) {
-      return PipelineServiceApiFp(configuration).createPipeline(body, options)(fetch, basePath);
+    pipelineServiceCreatePipeline(pipeline: V2beta1Pipeline, options?: any) {
+      return PipelineServiceApiFp(configuration).pipelineServiceCreatePipeline(pipeline, options)(
+        fetch,
+        basePath,
+      );
     },
     /**
      *
-     * @summary Adds a pipeline version to the specified pipeline ID.
-     * @param {string} pipeline_id Required input. ID of the parent pipeline.
-     * @param {V2beta1PipelineVersion} body Required input. Pipeline version ID to be created.
+     * @summary Creates a new pipeline and a new pipeline version in a single transaction.
+     * @param {V2beta1CreatePipelineAndVersionRequest} body
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createPipelineVersion(pipeline_id: string, body: V2beta1PipelineVersion, options?: any) {
-      return PipelineServiceApiFp(configuration).createPipelineVersion(
-        pipeline_id,
+    pipelineServiceCreatePipelineAndVersion(
+      body: V2beta1CreatePipelineAndVersionRequest,
+      options?: any,
+    ) {
+      return PipelineServiceApiFp(configuration).pipelineServiceCreatePipelineAndVersion(
         body,
         options,
       )(fetch, basePath);
     },
     /**
      *
-     * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
-     * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
-     * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
+     * @summary Adds a pipeline version to the specified pipeline ID.
+     * @param {string} pipeline_id Required input. ID of the parent pipeline.
+     * @param {V2beta1PipelineVersion} pipeline_version Required input. Pipeline version ID to be created.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deletePipeline(pipeline_id: string, cascade?: boolean, options?: any) {
-      return PipelineServiceApiFp(configuration).deletePipeline(
+    pipelineServiceCreatePipelineVersion(
+      pipeline_id: string,
+      pipeline_version: V2beta1PipelineVersion,
+      options?: any,
+    ) {
+      return PipelineServiceApiFp(configuration).pipelineServiceCreatePipelineVersion(
+        pipeline_id,
+        pipeline_version,
+        options,
+      )(fetch, basePath);
+    },
+    /**
+     *
+     * @summary Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
+     * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
+     * @param {boolean} [cascade] Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    pipelineServiceDeletePipeline(pipeline_id: string, cascade?: boolean, options?: any) {
+      return PipelineServiceApiFp(configuration).pipelineServiceDeletePipeline(
         pipeline_id,
         cascade,
         options,
@@ -1186,8 +1307,12 @@ export const PipelineServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deletePipelineVersion(pipeline_id: string, pipeline_version_id: string, options?: any) {
-      return PipelineServiceApiFp(configuration).deletePipelineVersion(
+    pipelineServiceDeletePipelineVersion(
+      pipeline_id: string,
+      pipeline_version_id: string,
+      options?: any,
+    ) {
+      return PipelineServiceApiFp(configuration).pipelineServiceDeletePipelineVersion(
         pipeline_id,
         pipeline_version_id,
         options,
@@ -1200,8 +1325,11 @@ export const PipelineServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPipeline(pipeline_id: string, options?: any) {
-      return PipelineServiceApiFp(configuration).getPipeline(pipeline_id, options)(fetch, basePath);
+    pipelineServiceGetPipeline(pipeline_id: string, options?: any) {
+      return PipelineServiceApiFp(configuration).pipelineServiceGetPipeline(pipeline_id, options)(
+        fetch,
+        basePath,
+      );
     },
     /**
      *
@@ -1211,8 +1339,8 @@ export const PipelineServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPipelineByName(name: string, namespace?: string, options?: any) {
-      return PipelineServiceApiFp(configuration).getPipelineByName(
+    pipelineServiceGetPipelineByName(name: string, namespace?: string, options?: any) {
+      return PipelineServiceApiFp(configuration).pipelineServiceGetPipelineByName(
         name,
         namespace,
         options,
@@ -1226,8 +1354,12 @@ export const PipelineServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPipelineVersion(pipeline_id: string, pipeline_version_id: string, options?: any) {
-      return PipelineServiceApiFp(configuration).getPipelineVersion(
+    pipelineServiceGetPipelineVersion(
+      pipeline_id: string,
+      pipeline_version_id: string,
+      options?: any,
+    ) {
+      return PipelineServiceApiFp(configuration).pipelineServiceGetPipelineVersion(
         pipeline_id,
         pipeline_version_id,
         options,
@@ -1244,7 +1376,7 @@ export const PipelineServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listPipelineVersions(
+    pipelineServiceListPipelineVersions(
       pipeline_id: string,
       page_token?: string,
       page_size?: number,
@@ -1252,7 +1384,7 @@ export const PipelineServiceApiFactory = function(
       filter?: string,
       options?: any,
     ) {
-      return PipelineServiceApiFp(configuration).listPipelineVersions(
+      return PipelineServiceApiFp(configuration).pipelineServiceListPipelineVersions(
         pipeline_id,
         page_token,
         page_size,
@@ -1272,7 +1404,7 @@ export const PipelineServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listPipelines(
+    pipelineServiceListPipelines(
       namespace?: string,
       page_token?: string,
       page_size?: number,
@@ -1280,7 +1412,7 @@ export const PipelineServiceApiFactory = function(
       filter?: string,
       options?: any,
     ) {
-      return PipelineServiceApiFp(configuration).listPipelines(
+      return PipelineServiceApiFp(configuration).pipelineServiceListPipelines(
         namespace,
         page_token,
         page_size,
@@ -1302,30 +1434,31 @@ export class PipelineServiceApi extends BaseAPI {
   /**
    *
    * @summary Creates a pipeline.
-   * @param {V2beta1Pipeline} body Required input. Pipeline that needs to be created.
+   * @param {V2beta1Pipeline} pipeline Required input. Pipeline that needs to be created.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public createPipeline(body: V2beta1Pipeline, options?: any) {
-    return PipelineServiceApiFp(this.configuration).createPipeline(body, options)(
-      this.fetch,
-      this.basePath,
-    );
+  public pipelineServiceCreatePipeline(pipeline: V2beta1Pipeline, options?: any) {
+    return PipelineServiceApiFp(this.configuration).pipelineServiceCreatePipeline(
+      pipeline,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**
    *
-   * @summary Adds a pipeline version to the specified pipeline ID.
-   * @param {string} pipeline_id Required input. ID of the parent pipeline.
-   * @param {V2beta1PipelineVersion} body Required input. Pipeline version ID to be created.
+   * @summary Creates a new pipeline and a new pipeline version in a single transaction.
+   * @param {V2beta1CreatePipelineAndVersionRequest} body
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public createPipelineVersion(pipeline_id: string, body: V2beta1PipelineVersion, options?: any) {
-    return PipelineServiceApiFp(this.configuration).createPipelineVersion(
-      pipeline_id,
+  public pipelineServiceCreatePipelineAndVersion(
+    body: V2beta1CreatePipelineAndVersionRequest,
+    options?: any,
+  ) {
+    return PipelineServiceApiFp(this.configuration).pipelineServiceCreatePipelineAndVersion(
       body,
       options,
     )(this.fetch, this.basePath);
@@ -1333,15 +1466,36 @@ export class PipelineServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
-   * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
-   * @param {boolean} [cascade] Optional input. If true, deletes pipeline versions along with the pipeline.
+   * @summary Adds a pipeline version to the specified pipeline ID.
+   * @param {string} pipeline_id Required input. ID of the parent pipeline.
+   * @param {V2beta1PipelineVersion} pipeline_version Required input. Pipeline version ID to be created.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public deletePipeline(pipeline_id: string, cascade?: boolean, options?: any) {
-    return PipelineServiceApiFp(this.configuration).deletePipeline(
+  public pipelineServiceCreatePipelineVersion(
+    pipeline_id: string,
+    pipeline_version: V2beta1PipelineVersion,
+    options?: any,
+  ) {
+    return PipelineServiceApiFp(this.configuration).pipelineServiceCreatePipelineVersion(
+      pipeline_id,
+      pipeline_version,
+      options,
+    )(this.fetch, this.basePath);
+  }
+
+  /**
+   *
+   * @summary Deletes a pipeline by ID. If cascade is false (default), it returns an error if the pipeline has any versions. If cascade is true, it will also delete all pipeline versions.
+   * @param {string} pipeline_id Required input. ID of the pipeline to be deleted.
+   * @param {boolean} [cascade] Optional. If true, the pipeline and all its versions will be deleted. If false (default), only the pipeline will be deleted if it has no versions.
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof PipelineServiceApi
+   */
+  public pipelineServiceDeletePipeline(pipeline_id: string, cascade?: boolean, options?: any) {
+    return PipelineServiceApiFp(this.configuration).pipelineServiceDeletePipeline(
       pipeline_id,
       cascade,
       options,
@@ -1357,8 +1511,12 @@ export class PipelineServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public deletePipelineVersion(pipeline_id: string, pipeline_version_id: string, options?: any) {
-    return PipelineServiceApiFp(this.configuration).deletePipelineVersion(
+  public pipelineServiceDeletePipelineVersion(
+    pipeline_id: string,
+    pipeline_version_id: string,
+    options?: any,
+  ) {
+    return PipelineServiceApiFp(this.configuration).pipelineServiceDeletePipelineVersion(
       pipeline_id,
       pipeline_version_id,
       options,
@@ -1373,11 +1531,11 @@ export class PipelineServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public getPipeline(pipeline_id: string, options?: any) {
-    return PipelineServiceApiFp(this.configuration).getPipeline(pipeline_id, options)(
-      this.fetch,
-      this.basePath,
-    );
+  public pipelineServiceGetPipeline(pipeline_id: string, options?: any) {
+    return PipelineServiceApiFp(this.configuration).pipelineServiceGetPipeline(
+      pipeline_id,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**
@@ -1389,8 +1547,8 @@ export class PipelineServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public getPipelineByName(name: string, namespace?: string, options?: any) {
-    return PipelineServiceApiFp(this.configuration).getPipelineByName(
+  public pipelineServiceGetPipelineByName(name: string, namespace?: string, options?: any) {
+    return PipelineServiceApiFp(this.configuration).pipelineServiceGetPipelineByName(
       name,
       namespace,
       options,
@@ -1406,8 +1564,12 @@ export class PipelineServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public getPipelineVersion(pipeline_id: string, pipeline_version_id: string, options?: any) {
-    return PipelineServiceApiFp(this.configuration).getPipelineVersion(
+  public pipelineServiceGetPipelineVersion(
+    pipeline_id: string,
+    pipeline_version_id: string,
+    options?: any,
+  ) {
+    return PipelineServiceApiFp(this.configuration).pipelineServiceGetPipelineVersion(
       pipeline_id,
       pipeline_version_id,
       options,
@@ -1426,7 +1588,7 @@ export class PipelineServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public listPipelineVersions(
+  public pipelineServiceListPipelineVersions(
     pipeline_id: string,
     page_token?: string,
     page_size?: number,
@@ -1434,7 +1596,7 @@ export class PipelineServiceApi extends BaseAPI {
     filter?: string,
     options?: any,
   ) {
-    return PipelineServiceApiFp(this.configuration).listPipelineVersions(
+    return PipelineServiceApiFp(this.configuration).pipelineServiceListPipelineVersions(
       pipeline_id,
       page_token,
       page_size,
@@ -1456,7 +1618,7 @@ export class PipelineServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof PipelineServiceApi
    */
-  public listPipelines(
+  public pipelineServiceListPipelines(
     namespace?: string,
     page_token?: string,
     page_size?: number,
@@ -1464,7 +1626,7 @@ export class PipelineServiceApi extends BaseAPI {
     filter?: string,
     options?: any,
   ) {
-    return PipelineServiceApiFp(this.configuration).listPipelines(
+    return PipelineServiceApiFp(this.configuration).pipelineServiceListPipelines(
       namespace,
       page_token,
       page_size,

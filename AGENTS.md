@@ -286,9 +286,10 @@ The following files are generated; edit their sources and regenerate:
 - `kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2.py`
   - Source: `kubernetes_platform/proto/kubernetes_executor_config.proto`
   - Generate: `make -C kubernetes_platform python` (or `make -C kubernetes_platform python-dev`)
-- Frontend API clients under `frontend/src/apis` and `frontend/src/apisv2beta1`
+- Frontend API clients under `frontend/src/apis`, `frontend/src/apisv2beta1`, and `frontend/server/src/generated`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
   - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1`
+  - Post-process: `npm run postprocess:swagger` rewrites generated TypeScript clients to replace unsafe `delete localVarUrlObj.search` usage with `localVarUrlObj.search = null;`.
 - Frontend MLMD proto outputs under `frontend/src/third_party/mlmd/generated`
   - Sources: `third_party/ml-metadata/*.proto`
   - Generate: `cd frontend && npm run build:protos`

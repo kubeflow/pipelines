@@ -128,27 +128,23 @@ export interface PipelineTaskDetailChildTask {
 }
 
 /**
- * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := anypb.New(foo)      if err != nil {        ...      }      ...      foo := &pb.Foo{}      if err := any.UnmarshalTo(foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".   JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
+ * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }     // or ...     if (any.isSameTypeAs(Foo.getDefaultInstance())) {       foo = any.unpack(Foo.getDefaultInstance());     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := anypb.New(foo)      if err != nil {        ...      }      ...      foo := &pb.Foo{}      if err := any.UnmarshalTo(foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".  JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
  * @export
  * @interface ProtobufAny
  */
 export interface ProtobufAny {
+  [key: string]: any | any;
+
   /**
-   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
+   * A URL/resource name that uniquely identifies the type of the serialized protocol buffer message. This string must contain at least one \"/\" character. The last segment of the URL's path must represent the fully qualified name of the type (as in `path/google.protobuf.Duration`). The name should be in a canonical form (e.g., leading \".\" is not accepted).  In practice, teams usually precompile into the binary all types that they expect it to use in the context of Any. However, for URLs which use the scheme `http`, `https`, or no scheme, one can optionally set up a type server that maps type URLs to message definitions as follows:  * If no scheme is provided, `https` is assumed. * An HTTP GET on the URL must yield a [google.protobuf.Type][]   value in binary format, or produce an error. * Applications are allowed to cache lookup results based on the   URL, or have them precompiled into a binary to avoid any   lookup. Therefore, binary compatibility needs to be preserved   on changes to types. (Use versioned type names to manage   breaking changes.)  Note: this functionality is not currently available in the official protobuf release, and it is not used for type URLs beginning with type.googleapis.com. As of May 2023, there are no widely used type server implementations and no plans to implement one.  Schemes other than `http`, `https` (or the empty scheme) might be used with implementation specific semantics.
    * @type {string}
    * @memberof ProtobufAny
    */
-  type_url?: string;
-  /**
-   * Must be a valid serialized protocol buffer of the above specified type.
-   * @type {string}
-   * @memberof ProtobufAny
-   */
-  value?: string;
+  type?: string;
 }
 
 /**
- * `NullValue` is a singleton enumeration to represent the null value for the `Value` type union.   The JSON representation for `NullValue` is JSON `null`.   - NULL_VALUE: Null value.
+ * `NullValue` is a singleton enumeration to represent the null value for the `Value` type union.  The JSON representation for `NullValue` is JSON `null`.   - NULL_VALUE: Null value.
  * @export
  * @enum {string}
  */
@@ -281,7 +277,7 @@ export interface V2beta1PipelineTaskDetail {
    */
   parent_task_id?: string;
   /**
-   * A sequence of task statuses. This field keeps a record  of state transitions.
+   * A sequence of task statuses. This field keeps a record of state transitions.
    * @type {Array<V2beta1RuntimeStatus>}
    * @memberof V2beta1PipelineTaskDetail
    */
@@ -345,7 +341,7 @@ export interface V2beta1PipelineVersionReference {
    */
   pipeline_id?: string;
   /**
-   * Input. Required. Unique ID of an existing pipeline version.
+   * Input. Optional. Unique ID of an existing pipeline version. If unset, the latest pipeline version is used.
    * @type {string}
    * @memberof V2beta1PipelineVersionReference
    */
@@ -403,7 +399,7 @@ export interface V2beta1Run {
    */
   description?: string;
   /**
-   * ID of an existing pipeline version.
+   * This field is Deprecated. The pipeline version id is under pipeline_version_reference for v2.
    * @type {string}
    * @memberof V2beta1Run
    */
@@ -415,7 +411,7 @@ export interface V2beta1Run {
    */
   pipeline_spec?: any;
   /**
-   * Reference to a pipeline version containing pipeline_id and pipeline_version_id.
+   * Reference to a pipeline containing pipeline_id and optionally the pipeline_version_id.
    * @type {V2beta1PipelineVersionReference}
    * @memberof V2beta1Run
    */
@@ -475,7 +471,7 @@ export interface V2beta1Run {
    */
   recurring_run_id?: string;
   /**
-   * Output. A sequence of run statuses. This field keeps a record  of state transitions.
+   * Output. A sequence of run statuses. This field keeps a record of state transitions.
    * @type {Array<V2beta1RuntimeStatus>}
    * @memberof V2beta1Run
    */
@@ -575,7 +571,7 @@ export interface V2beta1RuntimeStatus {
    */
   state?: V2beta1RuntimeState;
   /**
-   * The error that occurred during the state. May be set when the state is any of the non-final states (PENDING/RUNNING/CANCELING) or FAILED state. If the state is FAILED, the error here is final and not going to be retried. If the state is a non-final state, the error indicates that a  system-error being retried.
+   * The error that occurred during the state. May be set when the state is any of the non-final states (PENDING/RUNNING/CANCELING) or FAILED state. If the state is FAILED, the error here is final and not going to be retried. If the state is a non-final state, the error indicates that a system-error being retried.
    * @type {GooglerpcStatus}
    * @memberof V2beta1RuntimeStatus
    */
@@ -592,15 +588,16 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
      *
      * @summary Archives a run in an experiment given by run ID and experiment ID.
      * @param {string} run_id The ID of the run to be archived.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    archiveRun(run_id: string, options: any = {}): FetchArgs {
+    runServiceArchiveRun(run_id: string, experiment_id?: string, options: any = {}): FetchArgs {
       // verify required parameter 'run_id' is not null or undefined
       if (run_id === null || run_id === undefined) {
         throw new RequiredError(
           'run_id',
-          'Required parameter run_id was null or undefined when calling archiveRun.',
+          'Required parameter run_id was null or undefined when calling runServiceArchiveRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/runs/{run_id}:archive`.replace(
@@ -621,6 +618,10 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         localVarHeaderParameter['authorization'] = localVarApiKeyValue;
       }
 
+      if (experiment_id !== undefined) {
+        localVarQueryParameter['experiment_id'] = experiment_id;
+      }
+
       localVarUrlObj.query = Object.assign(
         {},
         localVarUrlObj.query,
@@ -628,7 +629,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -638,17 +639,18 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.
-     * @param {V2beta1Run} body Run to be created.
+     * @summary Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
+     * @param {V2beta1Run} run Run to be created.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createRun(body: V2beta1Run, options: any = {}): FetchArgs {
-      // verify required parameter 'body' is not null or undefined
-      if (body === null || body === undefined) {
+    runServiceCreateRun(run: V2beta1Run, experiment_id?: string, options: any = {}): FetchArgs {
+      // verify required parameter 'run' is not null or undefined
+      if (run === null || run === undefined) {
         throw new RequiredError(
-          'body',
-          'Required parameter body was null or undefined when calling createRun.',
+          'run',
+          'Required parameter run was null or undefined when calling runServiceCreateRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/runs`;
@@ -666,6 +668,10 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         localVarHeaderParameter['authorization'] = localVarApiKeyValue;
       }
 
+      if (experiment_id !== undefined) {
+        localVarQueryParameter['experiment_id'] = experiment_id;
+      }
+
       localVarHeaderParameter['Content-Type'] = 'application/json';
 
       localVarUrlObj.query = Object.assign(
@@ -675,12 +681,12 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
       const needsSerialization =
         <any>'V2beta1Run' !== 'string' ||
         localVarRequestOptions.headers['Content-Type'] === 'application/json';
-      localVarRequestOptions.body = needsSerialization ? JSON.stringify(body || {}) : body || '';
+      localVarRequestOptions.body = needsSerialization ? JSON.stringify(run || {}) : run || '';
 
       return {
         url: url.format(localVarUrlObj),
@@ -695,12 +701,12 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deleteRun(run_id: string, experiment_id?: string, options: any = {}): FetchArgs {
+    runServiceDeleteRun(run_id: string, experiment_id?: string, options: any = {}): FetchArgs {
       // verify required parameter 'run_id' is not null or undefined
       if (run_id === null || run_id === undefined) {
         throw new RequiredError(
           'run_id',
-          'Required parameter run_id was null or undefined when calling deleteRun.',
+          'Required parameter run_id was null or undefined when calling runServiceDeleteRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/runs/{run_id}`.replace(
@@ -732,7 +738,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -748,12 +754,12 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getRun(run_id: string, experiment_id?: string, options: any = {}): FetchArgs {
+    runServiceGetRun(run_id: string, experiment_id?: string, options: any = {}): FetchArgs {
       // verify required parameter 'run_id' is not null or undefined
       if (run_id === null || run_id === undefined) {
         throw new RequiredError(
           'run_id',
-          'Required parameter run_id was null or undefined when calling getRun.',
+          'Required parameter run_id was null or undefined when calling runServiceGetRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/runs/{run_id}`.replace(
@@ -785,7 +791,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -795,7 +801,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
     },
     /**
      *
-     * @summary Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.
+     * @summary Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
      * @param {string} [namespace] Optional input field. Filters based on the namespace.
      * @param {string} [experiment_id] The ID of the parent experiment. If empty, response includes runs across all experiments.
      * @param {string} [page_token] A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
@@ -805,7 +811,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listRuns(
+    runServiceListRuns(
       namespace?: string,
       experiment_id?: string,
       page_token?: string,
@@ -860,7 +866,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -878,7 +884,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    readArtifact(
+    runServiceReadArtifact(
       run_id: string,
       node_id: string,
       artifact_name: string,
@@ -889,21 +895,21 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
       if (run_id === null || run_id === undefined) {
         throw new RequiredError(
           'run_id',
-          'Required parameter run_id was null or undefined when calling readArtifact.',
+          'Required parameter run_id was null or undefined when calling runServiceReadArtifact.',
         );
       }
       // verify required parameter 'node_id' is not null or undefined
       if (node_id === null || node_id === undefined) {
         throw new RequiredError(
           'node_id',
-          'Required parameter node_id was null or undefined when calling readArtifact.',
+          'Required parameter node_id was null or undefined when calling runServiceReadArtifact.',
         );
       }
       // verify required parameter 'artifact_name' is not null or undefined
       if (artifact_name === null || artifact_name === undefined) {
         throw new RequiredError(
           'artifact_name',
-          'Required parameter artifact_name was null or undefined when calling readArtifact.',
+          'Required parameter artifact_name was null or undefined when calling runServiceReadArtifact.',
         );
       }
       const localVarPath = `/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read`
@@ -935,7 +941,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -947,15 +953,16 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
      *
      * @summary Re-initiates a failed or terminated run.
      * @param {string} run_id The ID of the run to be retried.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    retryRun(run_id: string, options: any = {}): FetchArgs {
+    runServiceRetryRun(run_id: string, experiment_id?: string, options: any = {}): FetchArgs {
       // verify required parameter 'run_id' is not null or undefined
       if (run_id === null || run_id === undefined) {
         throw new RequiredError(
           'run_id',
-          'Required parameter run_id was null or undefined when calling retryRun.',
+          'Required parameter run_id was null or undefined when calling runServiceRetryRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/runs/{run_id}:retry`.replace(
@@ -976,6 +983,10 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         localVarHeaderParameter['authorization'] = localVarApiKeyValue;
       }
 
+      if (experiment_id !== undefined) {
+        localVarQueryParameter['experiment_id'] = experiment_id;
+      }
+
       localVarUrlObj.query = Object.assign(
         {},
         localVarUrlObj.query,
@@ -983,7 +994,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -995,15 +1006,16 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
      *
      * @summary Terminates an active run.
      * @param {string} run_id The ID of the run to be terminated.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    terminateRun(run_id: string, options: any = {}): FetchArgs {
+    runServiceTerminateRun(run_id: string, experiment_id?: string, options: any = {}): FetchArgs {
       // verify required parameter 'run_id' is not null or undefined
       if (run_id === null || run_id === undefined) {
         throw new RequiredError(
           'run_id',
-          'Required parameter run_id was null or undefined when calling terminateRun.',
+          'Required parameter run_id was null or undefined when calling runServiceTerminateRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/runs/{run_id}:terminate`.replace(
@@ -1024,6 +1036,10 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         localVarHeaderParameter['authorization'] = localVarApiKeyValue;
       }
 
+      if (experiment_id !== undefined) {
+        localVarQueryParameter['experiment_id'] = experiment_id;
+      }
+
       localVarUrlObj.query = Object.assign(
         {},
         localVarUrlObj.query,
@@ -1031,7 +1047,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -1043,15 +1059,16 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
      *
      * @summary Restores an archived run in an experiment given by run ID and experiment ID.
      * @param {string} run_id The ID of the run to be restored.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    unarchiveRun(run_id: string, options: any = {}): FetchArgs {
+    runServiceUnarchiveRun(run_id: string, experiment_id?: string, options: any = {}): FetchArgs {
       // verify required parameter 'run_id' is not null or undefined
       if (run_id === null || run_id === undefined) {
         throw new RequiredError(
           'run_id',
-          'Required parameter run_id was null or undefined when calling unarchiveRun.',
+          'Required parameter run_id was null or undefined when calling runServiceUnarchiveRun.',
         );
       }
       const localVarPath = `/apis/v2beta1/runs/{run_id}:unarchive`.replace(
@@ -1072,6 +1089,10 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         localVarHeaderParameter['authorization'] = localVarApiKeyValue;
       }
 
+      if (experiment_id !== undefined) {
+        localVarQueryParameter['experiment_id'] = experiment_id;
+      }
+
       localVarUrlObj.query = Object.assign(
         {},
         localVarUrlObj.query,
@@ -1079,7 +1100,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
         options.query,
       );
       // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-      delete localVarUrlObj.search;
+      localVarUrlObj.search = undefined;
       localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
 
       return {
@@ -1100,15 +1121,18 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
      *
      * @summary Archives a run in an experiment given by run ID and experiment ID.
      * @param {string} run_id The ID of the run to be archived.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    archiveRun(
+    runServiceArchiveRun(
       run_id: string,
+      experiment_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
-      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).archiveRun(
+      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).runServiceArchiveRun(
         run_id,
+        experiment_id,
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
@@ -1123,17 +1147,20 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.
-     * @param {V2beta1Run} body Run to be created.
+     * @summary Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
+     * @param {V2beta1Run} run Run to be created.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createRun(
-      body: V2beta1Run,
+    runServiceCreateRun(
+      run: V2beta1Run,
+      experiment_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1Run> {
-      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).createRun(
-        body,
+      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).runServiceCreateRun(
+        run,
+        experiment_id,
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
@@ -1154,12 +1181,12 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deleteRun(
+    runServiceDeleteRun(
       run_id: string,
       experiment_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
-      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).deleteRun(
+      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).runServiceDeleteRun(
         run_id,
         experiment_id,
         options,
@@ -1182,12 +1209,12 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getRun(
+    runServiceGetRun(
       run_id: string,
       experiment_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1Run> {
-      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).getRun(
+      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).runServiceGetRun(
         run_id,
         experiment_id,
         options,
@@ -1204,7 +1231,7 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
     },
     /**
      *
-     * @summary Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.
+     * @summary Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
      * @param {string} [namespace] Optional input field. Filters based on the namespace.
      * @param {string} [experiment_id] The ID of the parent experiment. If empty, response includes runs across all experiments.
      * @param {string} [page_token] A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
@@ -1214,7 +1241,7 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listRuns(
+    runServiceListRuns(
       namespace?: string,
       experiment_id?: string,
       page_token?: string,
@@ -1223,7 +1250,7 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
       filter?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1ListRunsResponse> {
-      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).listRuns(
+      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).runServiceListRuns(
         namespace,
         experiment_id,
         page_token,
@@ -1252,20 +1279,16 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    readArtifact(
+    runServiceReadArtifact(
       run_id: string,
       node_id: string,
       artifact_name: string,
       experiment_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<V2beta1ReadArtifactResponse> {
-      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).readArtifact(
-        run_id,
-        node_id,
-        artifact_name,
-        experiment_id,
-        options,
-      );
+      const localVarFetchArgs = RunServiceApiFetchParamCreator(
+        configuration,
+      ).runServiceReadArtifact(run_id, node_id, artifact_name, experiment_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -1280,12 +1303,18 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
      *
      * @summary Re-initiates a failed or terminated run.
      * @param {string} run_id The ID of the run to be retried.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    retryRun(run_id: string, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
-      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).retryRun(
+    runServiceRetryRun(
+      run_id: string,
+      experiment_id?: string,
+      options?: any,
+    ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
+      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).runServiceRetryRun(
         run_id,
+        experiment_id,
         options,
       );
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
@@ -1302,17 +1331,18 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
      *
      * @summary Terminates an active run.
      * @param {string} run_id The ID of the run to be terminated.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    terminateRun(
+    runServiceTerminateRun(
       run_id: string,
+      experiment_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
-      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).terminateRun(
-        run_id,
-        options,
-      );
+      const localVarFetchArgs = RunServiceApiFetchParamCreator(
+        configuration,
+      ).runServiceTerminateRun(run_id, experiment_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -1327,17 +1357,18 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
      *
      * @summary Restores an archived run in an experiment given by run ID and experiment ID.
      * @param {string} run_id The ID of the run to be restored.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    unarchiveRun(
+    runServiceUnarchiveRun(
       run_id: string,
+      experiment_id?: string,
       options?: any,
     ): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
-      const localVarFetchArgs = RunServiceApiFetchParamCreator(configuration).unarchiveRun(
-        run_id,
-        options,
-      );
+      const localVarFetchArgs = RunServiceApiFetchParamCreator(
+        configuration,
+      ).runServiceUnarchiveRun(run_id, experiment_id, options);
       return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
         return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then(response => {
           if (response.status >= 200 && response.status < 300) {
@@ -1365,21 +1396,31 @@ export const RunServiceApiFactory = function(
      *
      * @summary Archives a run in an experiment given by run ID and experiment ID.
      * @param {string} run_id The ID of the run to be archived.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    archiveRun(run_id: string, options?: any) {
-      return RunServiceApiFp(configuration).archiveRun(run_id, options)(fetch, basePath);
+    runServiceArchiveRun(run_id: string, experiment_id?: string, options?: any) {
+      return RunServiceApiFp(configuration).runServiceArchiveRun(
+        run_id,
+        experiment_id,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
-     * @summary Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.
-     * @param {V2beta1Run} body Run to be created.
+     * @summary Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
+     * @param {V2beta1Run} run Run to be created.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createRun(body: V2beta1Run, options?: any) {
-      return RunServiceApiFp(configuration).createRun(body, options)(fetch, basePath);
+    runServiceCreateRun(run: V2beta1Run, experiment_id?: string, options?: any) {
+      return RunServiceApiFp(configuration).runServiceCreateRun(
+        run,
+        experiment_id,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
@@ -1389,8 +1430,8 @@ export const RunServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deleteRun(run_id: string, experiment_id?: string, options?: any) {
-      return RunServiceApiFp(configuration).deleteRun(
+    runServiceDeleteRun(run_id: string, experiment_id?: string, options?: any) {
+      return RunServiceApiFp(configuration).runServiceDeleteRun(
         run_id,
         experiment_id,
         options,
@@ -1404,12 +1445,16 @@ export const RunServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getRun(run_id: string, experiment_id?: string, options?: any) {
-      return RunServiceApiFp(configuration).getRun(run_id, experiment_id, options)(fetch, basePath);
+    runServiceGetRun(run_id: string, experiment_id?: string, options?: any) {
+      return RunServiceApiFp(configuration).runServiceGetRun(
+        run_id,
+        experiment_id,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
-     * @summary Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.
+     * @summary Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
      * @param {string} [namespace] Optional input field. Filters based on the namespace.
      * @param {string} [experiment_id] The ID of the parent experiment. If empty, response includes runs across all experiments.
      * @param {string} [page_token] A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
@@ -1419,7 +1464,7 @@ export const RunServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    listRuns(
+    runServiceListRuns(
       namespace?: string,
       experiment_id?: string,
       page_token?: string,
@@ -1428,7 +1473,7 @@ export const RunServiceApiFactory = function(
       filter?: string,
       options?: any,
     ) {
-      return RunServiceApiFp(configuration).listRuns(
+      return RunServiceApiFp(configuration).runServiceListRuns(
         namespace,
         experiment_id,
         page_token,
@@ -1448,14 +1493,14 @@ export const RunServiceApiFactory = function(
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    readArtifact(
+    runServiceReadArtifact(
       run_id: string,
       node_id: string,
       artifact_name: string,
       experiment_id?: string,
       options?: any,
     ) {
-      return RunServiceApiFp(configuration).readArtifact(
+      return RunServiceApiFp(configuration).runServiceReadArtifact(
         run_id,
         node_id,
         artifact_name,
@@ -1467,31 +1512,46 @@ export const RunServiceApiFactory = function(
      *
      * @summary Re-initiates a failed or terminated run.
      * @param {string} run_id The ID of the run to be retried.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    retryRun(run_id: string, options?: any) {
-      return RunServiceApiFp(configuration).retryRun(run_id, options)(fetch, basePath);
+    runServiceRetryRun(run_id: string, experiment_id?: string, options?: any) {
+      return RunServiceApiFp(configuration).runServiceRetryRun(
+        run_id,
+        experiment_id,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
      * @summary Terminates an active run.
      * @param {string} run_id The ID of the run to be terminated.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    terminateRun(run_id: string, options?: any) {
-      return RunServiceApiFp(configuration).terminateRun(run_id, options)(fetch, basePath);
+    runServiceTerminateRun(run_id: string, experiment_id?: string, options?: any) {
+      return RunServiceApiFp(configuration).runServiceTerminateRun(
+        run_id,
+        experiment_id,
+        options,
+      )(fetch, basePath);
     },
     /**
      *
      * @summary Restores an archived run in an experiment given by run ID and experiment ID.
      * @param {string} run_id The ID of the run to be restored.
+     * @param {string} [experiment_id] The ID of the parent experiment.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    unarchiveRun(run_id: string, options?: any) {
-      return RunServiceApiFp(configuration).unarchiveRun(run_id, options)(fetch, basePath);
+    runServiceUnarchiveRun(run_id: string, experiment_id?: string, options?: any) {
+      return RunServiceApiFp(configuration).runServiceUnarchiveRun(
+        run_id,
+        experiment_id,
+        options,
+      )(fetch, basePath);
     },
   };
 };
@@ -1507,27 +1567,34 @@ export class RunServiceApi extends BaseAPI {
    *
    * @summary Archives a run in an experiment given by run ID and experiment ID.
    * @param {string} run_id The ID of the run to be archived.
+   * @param {string} [experiment_id] The ID of the parent experiment.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi
    */
-  public archiveRun(run_id: string, options?: any) {
-    return RunServiceApiFp(this.configuration).archiveRun(run_id, options)(
-      this.fetch,
-      this.basePath,
-    );
+  public runServiceArchiveRun(run_id: string, experiment_id?: string, options?: any) {
+    return RunServiceApiFp(this.configuration).runServiceArchiveRun(
+      run_id,
+      experiment_id,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**
    *
-   * @summary Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.
-   * @param {V2beta1Run} body Run to be created.
+   * @summary Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
+   * @param {V2beta1Run} run Run to be created.
+   * @param {string} [experiment_id] The ID of the parent experiment.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi
    */
-  public createRun(body: V2beta1Run, options?: any) {
-    return RunServiceApiFp(this.configuration).createRun(body, options)(this.fetch, this.basePath);
+  public runServiceCreateRun(run: V2beta1Run, experiment_id?: string, options?: any) {
+    return RunServiceApiFp(this.configuration).runServiceCreateRun(
+      run,
+      experiment_id,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**
@@ -1539,8 +1606,8 @@ export class RunServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof RunServiceApi
    */
-  public deleteRun(run_id: string, experiment_id?: string, options?: any) {
-    return RunServiceApiFp(this.configuration).deleteRun(
+  public runServiceDeleteRun(run_id: string, experiment_id?: string, options?: any) {
+    return RunServiceApiFp(this.configuration).runServiceDeleteRun(
       run_id,
       experiment_id,
       options,
@@ -1556,8 +1623,8 @@ export class RunServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof RunServiceApi
    */
-  public getRun(run_id: string, experiment_id?: string, options?: any) {
-    return RunServiceApiFp(this.configuration).getRun(
+  public runServiceGetRun(run_id: string, experiment_id?: string, options?: any) {
+    return RunServiceApiFp(this.configuration).runServiceGetRun(
       run_id,
       experiment_id,
       options,
@@ -1566,7 +1633,7 @@ export class RunServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.
+   * @summary Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
    * @param {string} [namespace] Optional input field. Filters based on the namespace.
    * @param {string} [experiment_id] The ID of the parent experiment. If empty, response includes runs across all experiments.
    * @param {string} [page_token] A page token to request the next page of results. The token is acquired from the nextPageToken field of the response from the previous ListRuns call or can be omitted when fetching the first page.
@@ -1577,7 +1644,7 @@ export class RunServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof RunServiceApi
    */
-  public listRuns(
+  public runServiceListRuns(
     namespace?: string,
     experiment_id?: string,
     page_token?: string,
@@ -1586,7 +1653,7 @@ export class RunServiceApi extends BaseAPI {
     filter?: string,
     options?: any,
   ) {
-    return RunServiceApiFp(this.configuration).listRuns(
+    return RunServiceApiFp(this.configuration).runServiceListRuns(
       namespace,
       experiment_id,
       page_token,
@@ -1608,14 +1675,14 @@ export class RunServiceApi extends BaseAPI {
    * @throws {RequiredError}
    * @memberof RunServiceApi
    */
-  public readArtifact(
+  public runServiceReadArtifact(
     run_id: string,
     node_id: string,
     artifact_name: string,
     experiment_id?: string,
     options?: any,
   ) {
-    return RunServiceApiFp(this.configuration).readArtifact(
+    return RunServiceApiFp(this.configuration).runServiceReadArtifact(
       run_id,
       node_id,
       artifact_name,
@@ -1628,41 +1695,50 @@ export class RunServiceApi extends BaseAPI {
    *
    * @summary Re-initiates a failed or terminated run.
    * @param {string} run_id The ID of the run to be retried.
+   * @param {string} [experiment_id] The ID of the parent experiment.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi
    */
-  public retryRun(run_id: string, options?: any) {
-    return RunServiceApiFp(this.configuration).retryRun(run_id, options)(this.fetch, this.basePath);
+  public runServiceRetryRun(run_id: string, experiment_id?: string, options?: any) {
+    return RunServiceApiFp(this.configuration).runServiceRetryRun(
+      run_id,
+      experiment_id,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**
    *
    * @summary Terminates an active run.
    * @param {string} run_id The ID of the run to be terminated.
+   * @param {string} [experiment_id] The ID of the parent experiment.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi
    */
-  public terminateRun(run_id: string, options?: any) {
-    return RunServiceApiFp(this.configuration).terminateRun(run_id, options)(
-      this.fetch,
-      this.basePath,
-    );
+  public runServiceTerminateRun(run_id: string, experiment_id?: string, options?: any) {
+    return RunServiceApiFp(this.configuration).runServiceTerminateRun(
+      run_id,
+      experiment_id,
+      options,
+    )(this.fetch, this.basePath);
   }
 
   /**
    *
    * @summary Restores an archived run in an experiment given by run ID and experiment ID.
    * @param {string} run_id The ID of the run to be restored.
+   * @param {string} [experiment_id] The ID of the parent experiment.
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi
    */
-  public unarchiveRun(run_id: string, options?: any) {
-    return RunServiceApiFp(this.configuration).unarchiveRun(run_id, options)(
-      this.fetch,
-      this.basePath,
-    );
+  public runServiceUnarchiveRun(run_id: string, experiment_id?: string, options?: any) {
+    return RunServiceApiFp(this.configuration).runServiceUnarchiveRun(
+      run_id,
+      experiment_id,
+      options,
+    )(this.fetch, this.basePath);
   }
 }
