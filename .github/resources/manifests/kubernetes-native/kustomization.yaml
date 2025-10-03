@@ -14,6 +14,9 @@ images:
 - name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
   newName: kind-registry:5000/scheduledworkflow
   newTag: latest
+- name: ghcr.io/kubeflow/kfp-frontend
+  newName: kind-registry:5000/frontend
+  newTag: latest
 
 patches:
   - path: apiserver-env.yaml
