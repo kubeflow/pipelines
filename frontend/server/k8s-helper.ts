@@ -270,7 +270,7 @@ export async function getPod(
   } catch (error) {
     let userMessage = `Could not get pod ${podName} in namespace ${podNamespace}`;
     if (!isAllowedResourceName(podName) || !isAllowedResourceName(podNamespace)) {
-      userMessage = `Invlaid resource name`
+      userMessage = `Invalid resource name`
     }
     return [undefined, { message: userMessage }];
   }
@@ -291,7 +291,7 @@ export async function getConfigMap(
   } catch (error) {
     let userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}`;
     if (!isAllowedResourceName(configMapName) || !isAllowedResourceName(configMapNamespace)) {
-      userMessage = `Invlaid resource name`
+      userMessage = `Invalid resource name`
     }
     return [undefined, { message: userMessage }];
   }
@@ -315,7 +315,7 @@ export async function listPodEvents(podName: string, podNamespace: string): Prom
   } catch (error) {
     let userMessage = `Error when listing pod events for pod ${podName} in namespace ${podNamespace}`;
     if (!isAllowedResourceName(podName) || !isAllowedResourceName(podNamespace)) {
-      userMessage = `Invlaid resource name`
+      userMessage = `Invalid resource name`
     }
     return [undefined, { message: userMessage }];
   }
