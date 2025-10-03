@@ -32,6 +32,7 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+	CompiledPipelineSpecPatch               string = "COMPILED_PIPELINE_SPEC_PATCH"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -126,4 +127,8 @@ func GetKubeflowUserIDPrefix() string {
 
 func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
+}
+
+func GetCompiledPipelineSpecPatch() string {
+	return GetStringConfigWithDefault(CompiledPipelineSpecPatch, "{}")
 }
