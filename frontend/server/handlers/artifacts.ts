@@ -231,12 +231,12 @@ function getMinioArtifactHandler(
     try {
       const stream = await getObjectStream(options);
       stream
-        .on('error', err => res.status(500).send(`Failed to get object in bucket: ${err}`))
+        .on('error', err => res.status(500).send(`Failed to get object in bucket`))
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
       console.error(err);
-      res.status(500).send(`Failed to get object in bucket: ${err}`);
+      res.status(500).send(`Failed to get object in bucket`);
     }
   };
 }
