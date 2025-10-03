@@ -27,6 +27,10 @@ inputs:
     description: "If KFP should be deployed in multi-user mode"
     required: false
     default: 'false'
+  artifact_proxy:
+    description: "Enables artifact proxy"
+    required: false
+    default: 'false'
   storage_backend:
     description: "Storage backend to use (minio or seaweedfs)"
     required: false
@@ -92,6 +96,11 @@ runs:
         if [ "${{ inputs.multi_user }}" = "true" ]; then
           echo "Deploying in Multi User Mode"
           ARGS="${ARGS} --multi-user"
+        fi
+
+        if [ "${{ inputs.artifact_proxy }}" = "true" ]; then
+          echo "Enabling artifact proxy"
+          ARGS="${ARGS}" --artifact-proxy
         fi
 
         if [ "${{ inputs.storage_backend }}" != "seaweedfs" ] && [ -n "${{ inputs.storage_backend }}" ]; then
