@@ -1,4 +1,3 @@
-// Package test
 // Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package test_utils
+
+// Package testutil provides helpers for working with test data files.
+package testutil
 
 import (
 	"fmt"
@@ -173,6 +174,6 @@ func CreateTempFile(fileContents []byte) *os.File {
 			logger.Log("Failed to close temporary file: %s", err.Error())
 		}
 	}(tmpFile)
-	_, err = tmpFile.Write(fileContents)
+	_, _ = tmpFile.Write(fileContents)
 	return tmpFile
 }

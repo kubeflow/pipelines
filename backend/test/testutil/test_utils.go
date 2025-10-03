@@ -1,4 +1,3 @@
-// Package test_utils
 // Copyright 2018-2023 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,18 +11,21 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package test_utils
+
+// Package testutil gathers shared helpers used across backend integration tests.
+package testutil
 
 import (
 	"fmt"
-	"github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"

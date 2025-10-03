@@ -24,7 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 	"github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
 
 	"github.com/go-openapi/strfmt"
@@ -64,7 +64,7 @@ var _ = Describe("Verify Pipeline Upload >", Label(POSITIVE, API_PIPELINE_UPLOAD
 	/* Positive Scenarios of uploading a pipeline file */
 	Context("Upload a valid pipeline and verify pipeline metadata after upload >", func() {
 		var pipelineDir = "valid"
-		validPipelineFilePaths := test_utils.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDir))
+		validPipelineFilePaths := testutil.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDir))
 		for _, pipelineFilePath := range validPipelineFilePaths {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFilePath), func() {
 				uploadPipelineAndVerify(pipelineFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
@@ -99,7 +99,7 @@ var _ = Describe("Verify Pipeline Upload Version >", Label(POSITIVE, "PipelineUp
 		It(fmt.Sprintf("Upload %s pipeline file and upload a new version with the same file", helloWorldPipelineFileName), Label(SMOKE), func() {
 			uploadPipelineAndChangePipelineVersion(helloWorldPipelineSpecFilePath, helloWorldPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 		})
-		It(fmt.Sprintf("Upload %s pipeline file and upload a new verison with the different file %s", helloWorldPipelineFileName, pipelineWithArgsFileName), func() {
+		It(fmt.Sprintf("Upload %s pipeline file and upload a new version with the different file %s", helloWorldPipelineFileName, pipelineWithArgsFileName), func() {
 			uploadPipelineAndChangePipelineVersion(helloWorldPipelineSpecFilePath, argParamPipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 		})
 
@@ -110,7 +110,7 @@ var _ = Describe("Verify Pipeline Upload Version >", Label(POSITIVE, "PipelineUp
 
 var _ = Describe("Verify Pipeline Upload Failure >", Label("Negative", "PipelineUpload", API_SERVER_TESTS, FULL_REGRESSION), func() {
 	var pipelineDir = "invalid"
-	invalidPipelineFiles := test_utils.GetListOfFilesInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
+	invalidPipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(pipelineFilesRootDir, pipelineDir))
 
 	/* Negative scenarios of uploading a pipeline  */
 	Context("Upload an invalid pipeline spec and verify the error in the response >", func() {
@@ -147,8 +147,8 @@ var _ = Describe("Verify Pipeline Upload Version Failure >", Label("Negative", "
 			uploadPipelineAndVerify(pipelineSpecFilePath, &testContext.Pipeline.PipelineGeneratedName, nil)
 
 			parameters := upload_params.NewUploadPipelineVersionParams()
-			fakePipelineId := "12345"
-			parameters.Pipelineid = &fakePipelineId
+			fakePipelineID := "12345"
+			parameters.Pipelineid = &fakePipelineID
 			uploadPipelineVersionAndVerifyFailure(pipelineSpecFilePath, parameters, "Failed to upload pipeline version")
 		})
 	})
@@ -182,7 +182,7 @@ func uploadPipelineAndChangePipelineVersion(pipelineFilePathForCreation string, 
 	parameters.SetName(&pipelineNameNew)
 
 	// Construct expected Pipeline Spec from the uploaded file
-	inputFileContent := test_utils.ParseFileToSpecs(pipelineFilePathWhenChangingVersion, true, nil)
+	inputFileContent := testutil.ParseFileToSpecs(pipelineFilePathWhenChangingVersion, true, nil)
 
 	// Construct expected pipeline version object for comparison
 	expectedPipelineVersion.Description = descriptionNew
@@ -209,14 +209,14 @@ func uploadPipelineAndVerify(pipelineFilePath string, pipelineName *string, pipe
 	Expect(err).NotTo(HaveOccurred())
 	testContext.Pipeline.CreatedPipelines = append(testContext.Pipeline.CreatedPipelines, createdPipeline)
 
-	createdPipelineFromDB := test_utils.GetPipeline(pipelineClient, createdPipeline.PipelineID)
+	createdPipelineFromDB := testutil.GetPipeline(pipelineClient, createdPipeline.PipelineID)
 	Expect(createdPipelineFromDB).To(Equal(*createdPipeline))
 	matcher.MatchPipelines(&createdPipelineFromDB, testContext.Pipeline.ExpectedPipeline)
 
 	// Validate the created pipeline spec (by API server) matches the input file
-	expectedPipelineSpec := test_utils.ParseFileToSpecs(pipelineFilePath, true, nil)
+	expectedPipelineSpec := testutil.ParseFileToSpecs(pipelineFilePath, true, nil)
 	logger.Log("Verifying that the generated pipeline spec matches the input yaml file")
-	versions := test_utils.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
+	versions := testutil.GetSortedPipelineVersionsByCreatedAt(pipelineClient, createdPipeline.PipelineID, nil)
 	Expect(versions).Should(HaveLen(1), "Expected to find only one pipeline version after pipeline upload")
 	actualPipelineSpec := versions[0].PipelineSpec.(map[string]interface{})
 	matcher.MatchPipelineSpecs(actualPipelineSpec, expectedPipelineSpec)
