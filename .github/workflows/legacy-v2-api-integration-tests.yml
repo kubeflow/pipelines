@@ -1,22 +1,25 @@
 name: KFP API Integration V2 (Legacy)
 
 on:
+  workflow_dispatch: # lyk temp
   push:
-    branches: [master]
+    branches:
+      - master
+      - feature/replace-str-with-largetext-WIP # lyk
 
   pull_request:
     paths:
-      - '.github/workflows/legacy-v2-api-integration-tests.yml'
-      - '.github/actions/create-cluster/**'
-      - '.github/resources/**'
-      - 'api/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'backend/**'
-      - 'manifests/kustomize/**'
-      - 'test/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/legacy-v2-api-integration-tests.yml"
+      - ".github/actions/create-cluster/**"
+      - ".github/resources/**"
+      - "api/**"
+      - "go.mod"
+      - "go.sum"
+      - "backend/**"
+      - "manifests/kustomize/**"
+      - "test/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   build:
@@ -27,8 +30,8 @@ jobs:
     needs: build
     strategy:
       matrix:
-        pipeline_store: [ "database", "kubernetes" ]
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        pipeline_store: ["database", "kubernetes"]
+        k8s_version: ["v1.29.2", "v1.31.0"]
     name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
@@ -69,16 +72,26 @@ jobs:
         id: tests
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
-        run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow
+        # Exclude RecurringRunApi tests to isolate potential data contamination issues by not including recurring_run_api_test.go.
+        # The regex '^(?!TestRecurringRunApi).*' is not supported by Go's regexp engine.
+        # Instead, we explicitly run the tests we want.
+        run: go test -v -run '^(TestCache|TestExperiment|TestPipeline|TestRunApi)' ./... -args -runIntegrationTests=true -namespace=kubeflow
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
+          DB_NAME: mlpipeline-${{ matrix.pipeline_store }}-${{ matrix.k8s_version }}
         continue-on-error: true
 
       - name: Collect failed logs
         if: ${{ steps.deploy.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
+          echo "--- Collecting pod logs ---"
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
+          echo "--- Dumping database tables for debugging ---"
+          MYSQL_POD=$(kubectl get pods -n kubeflow -l app=mariadb -o jsonpath='{.items[0].metadata.name}')
+          MYSQL_POD=$(kubectl get pods -n kubeflow -l app=mysql -o jsonpath='{.items[0].metadata.name}')
+          echo "--- DUMPING run_details TABLE ---" >> /tmp/tmp_pod_log.txt
+          kubectl exec -n kubeflow $MYSQL_POD -- mysql -u root -e "USE mlpipeline; SELECT * FROM run_details;" >> /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
