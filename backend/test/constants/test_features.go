@@ -30,7 +30,7 @@ const (
 	PipelineRun          string = "PipelineRun"
 	PipelineScheduledRun string = "PipelineRecurringRun"
 	PipelineUpload       string = "PipelineUpload"
-	Report               string = "Report"
+	ReportTests          string = "Report"
 
 	UpgradePreparation  string = "UpgradePreparation"
 	UpgradeVerification string = "UpgradeVerification"

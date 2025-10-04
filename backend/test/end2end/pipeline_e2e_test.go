@@ -26,7 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	"github.com/kubeflow/pipelines/backend/test/config"
-	"github.com/kubeflow/pipelines/backend/test/constants"
+	. "github.com/kubeflow/pipelines/backend/test/constants"
 	e2e_utils "github.com/kubeflow/pipelines/backend/test/end2end/utils"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
@@ -39,7 +39,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Upload and Verify Pipeline Run >", Label(constants.FullRegression), func() {
+var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func() {
 	var testContext *apitests.TestContext
 
 	// ################## SET AND TEARDOWN ##################
@@ -120,7 +120,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(constants.FullRegress
 
 	// ################## TESTS ##################
 
-	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", Label(constants.E2eEssential), func() {
+	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", Label(E2eEssential), func() {
 		var pipelineDir = "valid/essential"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
@@ -143,7 +143,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(constants.FullRegress
 	})
 
 	// Few of the following pipelines randomly fail in Multi User Mode during CI run - which is why a FlakeAttempt is added, but we need to investigate, create ticket and fix it in the future
-	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label("Sample", constants.E2eCritical), func() {
+	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label("Sample", E2eCritical), func() {
 		var pipelineDir = "valid/critical"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
@@ -166,7 +166,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(constants.FullRegress
 		}
 	})
 
-	Context("Create a pipeline run with HTTP proxy >", Label(constants.E2eProxy), func() {
+	Context("Create a pipeline run with HTTP proxy >", Label(E2eProxy), func() {
 		var pipelineDir = "valid"
 		pipelineFile := "env-var.yaml"
 		It(fmt.Sprintf("Create a pipeline run with http proxy, using specs: %s", pipelineFile), func() {
@@ -196,7 +196,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(constants.FullRegress
 		})
 	})
 
-	Context("Upload a pipeline file, run it and verify that pipeline run fails >", Label(constants.E2eFailed), func() {
+	Context("Upload a pipeline file, run it and verify that pipeline run fails >", Label(E2eFailed), func() {
 		var pipelineDir = "valid/failing"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
