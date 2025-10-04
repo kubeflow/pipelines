@@ -1,0 +1,433 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: nb-simple-
+spec:
+  arguments:
+    parameters:
+    - name: components-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92
+      value: '{"executorLabel":"exec-run-train-notebook","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}}}'
+    - name: implementations-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","run_train_notebook"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''nbclient\u003e=0.10,\u003c1''
+        ''ipykernel\u003e=6,\u003c7'' ''jupyter_client\u003e=7,\u003c9''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''kfp==2.14.2'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\n__KFP_EMBEDDED_ARCHIVE_B64
+        = ''H4sIACap1mgC/+2VTW+jMBCGOedXWFxI1S7fJLRSpD3ucQ8r7WFTIQdMYgVsZMYKUdT/voZSKqpWe2pXu51HyIZ3PB/yaITrud7X77T7xmjBlPUu+I+8tft+FD+/93rgh0Fokc76AHQLVJn01uckTEkNvGabYJ2k6W3qJ4kb366DIEoWFvLfI3YZKMpF1vK6qZjLm7PYvcP8r2Iz45EfJUHyvD8SRKFvBYm/SpIwWvlrM//xah1ZxP/I+a8bRQ/V2+f+ZP9HuSwIsXNWVa19R36ZD0IuwzrKGZwbZkx2Lgtm3zyZWMdyDVyKLJdagDkgdFVN5poBLShQo18eJlVqaDQMie4nsZVa5WxKPmjAOgjJhjgFK6muIHTs0Xg/7GPIv1+omRmpgMh2K6aUvX/r1vTICq7apeNB3XjHssnMqI2BnRvCOt5CJo+bH0qzq7l7o7iA5db+qThwsScgyStBvEruXehga79wP3E4ENkw8WruJzdTg3PqCxHmwkyWjaOh/JI6V4S2pLybh+yX0j2Zetiybw65Jlu7f67J0Ku+gnmHzDpc3eyGB5NdUbHXdM8yLko5ycYgaD10sDnDQY4B+0BDY2yxK6Wqad/CeCZkNRdSGTlcPOA/C0EQBEEQBEEQBEEQBEEQBEEQBEEQBPmU/AbrYhlkACgAAA==''\n__KFP_NOTEBOOK_REL_PATH
+        = ''nb_train_simple.ipynb''\n\nimport base64 as __kfp_b64\nimport gzip as
+        __kfp_gzip\nimport io as __kfp_io\nimport os as __kfp_os\nimport sys as __kfp_sys\nimport
+        tarfile as __kfp_tarfile\nimport tempfile as __kfp_tempfile\nfrom nbclient
+        import NotebookClient\n\n# Extract embedded archive at import time to ensure
+        sys.path and globals are set\nprint(''[KFP] Extracting embedded notebook archive...'',
+        flush=True)\n__kfp_tmpdir = __kfp_tempfile.TemporaryDirectory()\n__KFP_EMBEDDED_ASSET_DIR
+        = __kfp_tmpdir.name\ntry:\n    __kfp_bytes = __kfp_b64.b64decode(__KFP_EMBEDDED_ARCHIVE_B64.encode(''ascii''))\n    with
+        __kfp_tarfile.open(fileobj=__kfp_io.BytesIO(__kfp_bytes), mode=''r:gz'') as
+        __kfp_tar:\n        __kfp_tar.extractall(path=__KFP_EMBEDDED_ASSET_DIR)\n    print(f''[KFP]
+        Notebook archive extracted to: {__KFP_EMBEDDED_ASSET_DIR}'', flush=True)\nexcept
+        Exception as __kfp_e:\n    raise RuntimeError(f''Failed to extract embedded
+        notebook archive: {__kfp_e}'')\n\n# Always prepend the extracted directory
+        to sys.path for import resolution\nif __KFP_EMBEDDED_ASSET_DIR not in __kfp_sys.path:\n    __kfp_sys.path.insert(0,
+        __KFP_EMBEDDED_ASSET_DIR)\n    print(f''[KFP] Added notebook archive directory
+        to Python path'', flush=True)\n\n# Optional convenience for generic embedded
+        file variable name\n__KFP_EMBEDDED_ASSET_FILE = __kfp_os.path.join(__KFP_EMBEDDED_ASSET_DIR,
+        __KFP_NOTEBOOK_REL_PATH)\n\n\nclass KFPStreamingNotebookClient(NotebookClient):\n    #
+        Streams outputs in real-time by emitting outputs during message processing.\n    def
+        process_message(self, msg, cell, cell_index):\n        # Call the parent implementation
+        to handle the message normally\n        output = super().process_message(msg,
+        cell, cell_index)\n\n        # If an output was created, stream it immediately\n        if
+        output is not None:\n            _kfp_stream_single_output(output, cell_index)\n\n        return
+        output\n\ndef __kfp_write_parameters_cell(nb, params):\n    \"\"\"Inject parameters
+        following Papermill semantics.\n\n    - If a cell tagged with ''parameters''
+        exists, insert an overriding\n      ''injected-parameters'' cell immediately
+        after it.\n    - Otherwise, insert the ''injected-parameters'' cell at the
+        top.\n    \"\"\"\n    import json\n\n    import nbformat\n\n    if not params:\n        return\n\n    #
+        Build the injected parameters cell\n    assignments = []\n    for key, value
+        in params.items():\n        serialized = json.dumps(value)\n        assignments.append(key
+        + '' = json.loads('' + repr(serialized) + '')'')\n    source = ''import json\\n''
+        + ''\\n''.join(assignments) + ''\\n''\n    cell = nbformat.v4.new_code_cell(source=source)\n    cell.metadata.setdefault(''tags'',
+        [])\n    if ''injected-parameters'' not in cell.metadata[''tags'']:\n        cell.metadata[''tags''].append(''injected-parameters'')\n\n    #
+        Locate the first ''parameters'' tagged cell\n    insert_idx = 0\n    for idx,
+        existing in enumerate(nb.get(''cells'', [])):\n        if existing.get(''cell_type'')
+        != ''code'':\n            continue\n        tags = existing.get(''metadata'',
+        {}).get(''tags'', []) or []\n        if ''parameters'' in tags:\n            insert_idx
+        = idx + 1\n            break\n\n    nb.cells.insert(insert_idx, cell)\n\ndef
+        _kfp_stream_single_output(output, cell_idx):\n    \"\"\"Stream a single notebook
+        output immediately during execution.\n\n    Prints stdout/stderr and text/plain
+        display outputs to the console so users\n    see cell output as it happens
+        (no need to wait until the notebook finishes).\n    \"\"\"\n    import sys\n    output_type
+        = output.get(''output_type'')\n\n    if output_type == ''stream'':\n        text
+        = output.get(''text'', '''')\n        if text:\n            try:\n                print(f''[nb
+        cell {cell_idx} stream] '', end='''', flush=False)\n            except Exception:\n                pass\n            print(text,
+        end='''' if text.endswith(''\\n'') else ''\\n'', flush=True)\n    elif output_type
+        == ''error'':\n        for line in output.get(''traceback'', []):\n            print(line,
+        file=sys.stderr, flush=True)\n    else:\n        # Handle display_data and
+        execute_result\n        data = output.get(''data'', {})\n        if ''text/plain''
+        in data:\n            print(data[''text/plain''], flush=True)\n        elif
+        ''application/json'' in data:\n            try:\n                import json
+        as __kfp_json\n                parsed = data[''application/json'']\n                #
+        Some kernels send JSON as string; try to parse if needed\n                if
+        isinstance(parsed, str):\n                    try:\n                        parsed
+        = __kfp_json.loads(parsed)\n                    except Exception:\n                        pass\n                print(__kfp_json.dumps(parsed,
+        indent=2, ensure_ascii=False), flush=True)\n            except Exception:\n                #
+        Fallback to raw\n                print(str(data.get(''application/json'')),
+        flush=True)\n        elif ''text/markdown'' in data:\n            # Print
+        markdown as-is; frontends may render, logs will show raw markdown\n            print(data[''text/markdown''],
+        flush=True)\n\ndef kfp_run_notebook(**kwargs):\n    \"\"\"Execute the embedded
+        notebook with injected parameters.\n\n    Parameters provided via kwargs are
+        injected into the notebook following\n    Papermill semantics (after a parameters
+        cell if present, otherwise at top).\n    Execution uses a Python kernel; nbclient
+        and ipykernel must be available at\n    runtime (installed via packages_to_install
+        for notebook components).\n    \"\"\"\n    import os\n    import subprocess\n    import
+        sys\n\n    from nbclient import NotebookClient\n    import nbformat\n\n    #
+        Ensure a usable ''python3'' kernel is present; install kernelspec if missing\n    print(''[KFP
+        Notebook] Checking for Python kernel...'', flush=True)\n    try:\n        from
+        jupyter_client.kernelspec import KernelSpecManager  # type: ignore\n        ksm
+        = KernelSpecManager()\n        have_py3 = ''python3'' in ksm.find_kernel_specs()\n        if
+        not have_py3:\n            print(\n                ''[KFP Notebook] Python3
+        kernel not found, installing...'',\n                flush=True)\n            try:\n                subprocess.run([\n                    sys.executable,
+        ''-m'', ''ipykernel'', ''install'', ''--user'',\n                    ''--name'',
+        ''python3'', ''--display-name'', ''Python 3''\n                ],\n                               check=True,\n                               stdout=subprocess.DEVNULL,\n                               stderr=subprocess.DEVNULL)\n                print(\n                    ''[KFP
+        Notebook] Python3 kernel installed successfully'',\n                    flush=True)\n            except
+        subprocess.CalledProcessError as e:\n                raise RuntimeError(\n                    \"Failed
+        to install ''python3'' kernelspec for ipykernel. \"\n                    \"Ensure
+        ipykernel is available in the environment or include it via packages_to_install.
+        \"\n                    f\"Error: {e}\") from e\n        else:\n            print(''[KFP
+        Notebook] Python3 kernel found'', flush=True)\n    except ImportError as e:\n        raise
+        RuntimeError(\n            \"jupyter_client is not available. Ensure it''s
+        installed in the environment or include it via packages_to_install. \"\n            f\"Error:
+        {e}\") from e\n\n    nb_path = os.path.join(__KFP_EMBEDDED_ASSET_DIR, __KFP_NOTEBOOK_REL_PATH)\n\n    try:\n        nb
+        = nbformat.read(nb_path, as_version=4)\n    except Exception as e:\n        raise
+        RuntimeError(\n            f''Failed to read notebook {nb_path}. Ensure it
+        is a valid Jupyter notebook. Error: {e}''\n        ) from e\n\n    try:\n        __kfp_write_parameters_cell(nb,
+        kwargs)\n        print(\n            f''[KFP Notebook] Executing notebook
+        with {len(nb.get(\"cells\", []))} cells'',\n            flush=True)\n\n        #
+        Use our custom streaming client for real-time output (defined in the\n        #
+        generated ephemeral source)\n        client = KFPStreamingNotebookClient(\n            nb,\n            timeout=None,\n            allow_errors=False,\n            store_widget_state=False,\n            kernel_name=''python3'')\n        client.execute(cwd=__KFP_EMBEDDED_ASSET_DIR)\n\n        print(''[KFP
+        Notebook] Execution complete'', flush=True)\n\n    except Exception as e:\n        raise
+        RuntimeError(f''Notebook execution failed. Error: {e}'') from e\n\n\n# Bind
+        helper into dsl namespace so user code can call dsl.run_notebook(...)\ndsl.run_notebook
+        = kfp_run_notebook\n\n\ndef run_train_notebook(text: str):\n    # text is
+        not defined in the notebook but text2 is defined\n    dsl.run_notebook(text=text)\n\n    with
+        open(\"/tmp/kfp_nb_outputs/log.txt\", \"r\", encoding=\"utf-8\") as f:\n        log
+        = f.read()\n\n    assert log == text + \" \" + \"default2\"\n\n"],"image":"python:3.9"}'
+    - name: components-root
+      value: '{"dag":{"tasks":{"run-train-notebook":{"cachingOptions":{},"componentRef":{"name":"comp-run-train-notebook"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"run-train-notebook"}}}},"inputDefinitions":{"parameters":{"text":{"defaultValue":"hello","isOptional":true,"parameterType":"STRING"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - nb-simple
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92}}'
+          - name: task
+            value: '{"cachingOptions":{},"componentRef":{"name":"comp-run-train-notebook"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"run-train-notebook"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92}}'
+          - name: task-name
+            value: run-train-notebook
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: run-train-notebook-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.run-train-notebook-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.run-train-notebook-driver.outputs.parameters.cached-decision}}'
+        depends: run-train-notebook-driver.Succeeded
+        name: run-train-notebook
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - nb-simple
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: ""
+        name: task-name
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{"parameterValues":{"text":"hello"}}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

@@ -94,7 +94,9 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             my_pipeline()
 
     def test_no_io(self):
-        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
+        local.init(
+            local.SubprocessRunner(use_venv=False),
+            pipeline_root=ROOT_FOR_TESTING)
 
         @dsl.component()
         def pass_op():
@@ -304,6 +306,134 @@ class TestRunLocalPipeline(testing_utilities.LocalRunnerEnvironmentTestCase):
             }
         })
         self.assert_output_dir_contents(1, 2)
+
+    def test_notebook_component_local_exec(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
+
+        import json as _json
+        import os as _os
+        import tempfile as _tempfile
+
+        nb = {
+            'cells': [
+                {
+                    'cell_type': 'code',
+                    'execution_count': None,
+                    'metadata': {
+                        'tags': ['parameters']
+                    },
+                    'outputs': [],
+                    'source': ['# parameters\n', "text='hello'\n"],
+                },
+                {
+                    'cell_type':
+                        'code',
+                    'execution_count':
+                        None,
+                    'metadata': {},
+                    'outputs': [],
+                    'source': [
+                        'import os\n',
+                        "os.makedirs('/tmp/kfp_nb_outputs', exist_ok=True)\n",
+                        "with open('/tmp/kfp_nb_outputs/log.txt','w') as f: f.write(text)\n",
+                    ],
+                },
+            ],
+            'metadata': {
+                'kernelspec': {
+                    'display_name': 'Python 3',
+                    'language': 'python',
+                    'name': 'python3',
+                },
+                'language_info': {
+                    'name': 'python',
+                    'version': '3.11'
+                },
+            },
+            'nbformat': 4,
+            'nbformat_minor': 5,
+        }
+
+        with _tempfile.TemporaryDirectory() as tmpdir:
+            nb_path = _os.path.join(tmpdir, 'nb.ipynb')
+            with open(nb_path, 'w', encoding='utf-8') as f:
+                _json.dump(nb, f)
+
+            @dsl.notebook_component(
+                notebook_path=nb_path,)
+            def nb_comp(msg: str) -> str:
+                dsl.run_notebook(text=msg)
+
+                with open(
+                        '/tmp/kfp_nb_outputs/log.txt', 'r',
+                        encoding='utf-8') as f:
+                    return f.read()
+
+            @dsl.pipeline
+            def my_pipeline() -> str:
+                comp_result = nb_comp(msg='hi')
+                return comp_result.output
+
+            result = my_pipeline()
+            self.assertEqual(result.output, 'hi')
+
+        self.assert_output_dir_contents(1, 1)
+
+    def test_embedded_artifact_local_exec(self):
+        local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)
+
+        import os as _os
+        import tempfile as _tempfile
+
+        with _tempfile.TemporaryDirectory() as srcdir:
+            with open(
+                    _os.path.join(srcdir, 'data.txt'), 'w',
+                    encoding='utf-8') as f:
+                f.write('EMBED')
+
+            @dsl.component(embedded_artifact_path=srcdir)
+            def use_embed(cfg: dsl.EmbeddedInput[dsl.Dataset]) -> dsl.Dataset:
+                out = dsl.Dataset(uri=dsl.get_uri('out'))
+                import os
+                import shutil
+                shutil.copy(os.path.join(cfg.path, 'data.txt'), out.path)
+                return out
+
+            @dsl.pipeline
+            def my_pipeline() -> dsl.Dataset:
+                return use_embed().output
+
+            task = my_pipeline()
+            out_ds = task.output
+            with open(out_ds.path, 'r', encoding='utf-8') as f:
+                self.assertEqual(f.read(), 'EMBED')
+            self.assert_output_dir_contents(1, 1)
+
+    def test_notebook_component_invalid_notebook_raises(self):
+        local.init(
+            local.SubprocessRunner(),
+            pipeline_root=ROOT_FOR_TESTING,
+            raise_on_error=True)
+
+        import os as _os
+        import tempfile as _tempfile
+
+        tmpdir = _tempfile.mkdtemp()
+        bad_nb = _os.path.join(tmpdir, 'bad.ipynb')
+        with open(bad_nb, 'w', encoding='utf-8') as f:
+            f.write('not a json')
+
+        @dsl.notebook_component(
+            notebook_path=bad_nb,)
+        def nb_comp():
+            dsl.run_notebook()
+
+        @dsl.pipeline
+        def my_pipeline():
+            nb_comp()
+
+        with self.assertRaises(RuntimeError):
+            my_pipeline()
 
     def test_input_artifact_constant_not_permitted(self):
         local.init(local.SubprocessRunner(), pipeline_root=ROOT_FOR_TESTING)

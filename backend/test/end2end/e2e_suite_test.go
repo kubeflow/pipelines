@@ -26,7 +26,7 @@ import (
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 	"github.com/kubeflow/pipelines/backend/test/v2"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -65,8 +65,8 @@ var _ = BeforeSuite(func() {
 	var newPipelineClient func() (*apiserver.PipelineClient, error)
 	var newRunClient func() (*apiserver.RunClient, error)
 	var newExperimentClient func() (*apiserver.ExperimentClient, error)
-	clientConfig := test_utils.GetClientConfig(*config.Namespace)
-	k8Client, err = test_utils.CreateK8sClient()
+	clientConfig := testutil.GetClientConfig(*config.Namespace)
+	k8Client, err = testutil.CreateK8sClient()
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
 
 	if *config.KubeflowMode {
@@ -86,7 +86,7 @@ var _ = BeforeSuite(func() {
 			userToken = *config.AuthToken
 		} else {
 			logger.Log("Creating API Clients for Multi User Mode")
-			userToken = test_utils.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
+			userToken = testutil.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
 		}
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
 			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.DebugMode)
@@ -131,7 +131,7 @@ var _ = BeforeEach(func() {
 
 	// Create Experiment so that we can use it to associate pipeline runs with
 	experimentName := fmt.Sprintf("E2EExperiment-%s", strconv.FormatInt(time.Now().UnixNano(), 10))
-	experiment := test_utils.CreateExperiment(experimentClient, experimentName, test_utils.GetNamespace())
+	experiment := testutil.CreateExperiment(experimentClient, experimentName, testutil.GetNamespace())
 	experimentID = &experiment.ExperimentID
 })
 
@@ -141,7 +141,7 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 		AddReportEntry("Test Log", specReport.CapturedGinkgoWriterOutput)
 		currentDir, err := os.Getwd()
 		Expect(err).NotTo(HaveOccurred(), "Failed to get current directory")
-		test_utils.WriteLogFile(specReport, GinkgoT().Name(), filepath.Join(currentDir, testLogsDirectory))
+		testutil.WriteLogFile(specReport, GinkgoT().Name(), filepath.Join(currentDir, testLogsDirectory))
 	} else {
 		log.Printf("Test passed")
 	}

@@ -28,8 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
-	utils "github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/onsi/ginkgo/v2"
@@ -39,7 +38,7 @@ import (
 
 // LoadPipelineSpecsFromIR - Unmarshall Pipeline Spec IR into a tuple of (pipelinespec.PipelineJob, pipelinespec.SinglePlatformSpec)
 func LoadPipelineSpecsFromIR(pipelineIRFilePath string, cacheDisabled bool, defaultWorkspace *v1.PersistentVolumeClaimSpec) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
-	pipelineSpecsFromFile := utils.ParseFileToSpecs(pipelineIRFilePath, cacheDisabled, defaultWorkspace)
+	pipelineSpecsFromFile := testutil.ParseFileToSpecs(pipelineIRFilePath, cacheDisabled, defaultWorkspace)
 	platformSpec := pipelineSpecsFromFile.PlatformSpec()
 	var singlePlatformSpec *pipelinespec.SinglePlatformSpec = nil
 	if platformSpec != nil {
@@ -49,6 +48,7 @@ func LoadPipelineSpecsFromIR(pipelineIRFilePath string, cacheDisabled bool, defa
 	pipelineSpecBytes, marshallingError := protojson.Marshal(pipelineSpecsFromFile.PipelineSpec())
 	gomega.Expect(marshallingError).NotTo(gomega.HaveOccurred(), "Failed to marshall pipeline spec")
 	err := json.Unmarshal(pipelineSpecBytes, &pipelineSpecMap)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to unmarshal pipeline spec into map")
 	pipelineSpecMapNew := make(map[string]interface{})
 	pipelineSpecMapNew["pipelineSpec"] = pipelineSpecMap
 	pipelineSpecBytes, marshallingError = json.Marshal(pipelineSpecMapNew)
@@ -86,7 +86,7 @@ func CreateCompiledWorkflowFile(compiledWorflow *v1alpha1.Workflow, compiledWork
 	ginkgo.GinkgoHelper()
 	fileContents, err := yaml.Marshal(compiledWorflow)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return test_utils.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
+	return testutil.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
 }
 
 // ConfigureCacheSettings - Add/Remove cache_disabled args in the workflow

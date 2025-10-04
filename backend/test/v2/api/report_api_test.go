@@ -20,12 +20,12 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/test/config"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 
 	. "github.com/onsi/ginkgo/v2"
 )
 
-var projectDataDir = test_utils.GetTestDataDir()
+var projectDataDir = testutil.GetTestDataDir()
 var workflowsDir = filepath.Join(projectDataDir, "compiled-workflows")
 
 // ################## TESTS ##################
@@ -33,7 +33,7 @@ var workflowsDir = filepath.Join(projectDataDir, "compiled-workflows")
 // ################## POSITIVE TESTS ##################
 
 var _ = PDescribe("Create Workflow API Tests >", Label(POSITIVE, API_REPORT, API_SERVER_TESTS, FULL_REGRESSION), func() {
-	workflowFiles := test_utils.GetListOfFilesInADir(workflowsDir)
+	workflowFiles := testutil.GetListOfFilesInADir(workflowsDir)
 	Context("Create Workflow >", func() {
 		for _, workflowFile := range workflowFiles {
 			It(fmt.Sprintf("Create a workflow from: %s", workflowFile), func() {

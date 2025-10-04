@@ -75,12 +75,12 @@ export function getPodLogsHandler(
       res.status(400).send('podname argument is required');
       return;
     }
-    const podName = decodeURIComponent(req.query.podname);
-    const createdAt = decodeURIComponent(req.query.createdat);
+    const podName = decodeURIComponent(req.query.podname as string);
+    const createdAt = decodeURIComponent((req.query.createdat as string) || '');
 
     // This is optional.
     // Note decodeURIComponent(undefined) === 'undefined', so I cannot pass the argument directly.
-    const podNamespace = decodeURIComponent(req.query.podnamespace || '') || undefined;
+    const podNamespace = decodeURIComponent((req.query.podnamespace as string) || '') || undefined;
 
     try {
       const stream = await getPodLogsStream(podName, createdAt, podNamespace);

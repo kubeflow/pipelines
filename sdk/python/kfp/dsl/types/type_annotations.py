@@ -125,6 +125,15 @@ class OutputAnnotation:
     """Marker type for output artifacts."""
 
 
+class EmbeddedAnnotation:
+    """Marker type for embedded runtime-only inputs.
+
+    Parameters annotated with ``dsl.EmbeddedInput[T]`` are not part of
+    the component interface and are injected at runtime by the SDK. They
+    provide access to an extracted embedded artifact's filesystem path.
+    """
+
+
 def is_Input_Output_artifact_annotation(typ) -> bool:
     if not hasattr(typ, '__metadata__'):
         return False
@@ -133,6 +142,14 @@ def is_Input_Output_artifact_annotation(typ) -> bool:
         return False
 
     return True
+
+
+def is_embedded_input_annotation(typ) -> bool:
+    """Returns True if typ is of type EmbeddedInput[T]."""
+    if not hasattr(typ, '__metadata__'):
+        return False
+
+    return typ.__metadata__[0] == EmbeddedAnnotation
 
 
 def is_artifact_wrapped_in_Input(typ: Any) -> bool:

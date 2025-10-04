@@ -34,6 +34,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/api-server-tests.yml'
+      - '.github/actions/create-cluster/**'
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'

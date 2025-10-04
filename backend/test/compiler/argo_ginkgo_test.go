@@ -26,7 +26,7 @@ import (
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -38,7 +38,7 @@ var _ = BeforeEach(func() {
 })
 
 var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WORKFLOW_COMPILER), func() {
-	pipelineFilePaths := test_utils.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
+	pipelineFilePaths := testutil.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
 
 	testParams := []struct {
 		compilerOptions argocompiler.Options
@@ -68,7 +68,7 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WORKFL
 				compiledWorkflowFileName := fileNameWithoutExtension + ".yaml"
 				compiledWorkflowFilePath := filepath.Join(argoYAMLDir, compiledWorkflowFileName)
 				It(fmt.Sprintf("When I compile %s pipeline spec, then the compiled yaml should be %s", pipelineSpecFileName, compiledWorkflowFileName), func() {
-					test_utils.CheckIfSkipping(pipelineSpecFileName)
+					testutil.CheckIfSkipping(pipelineSpecFileName)
 					pipelineSpecs, platformSpec := workflowutils.LoadPipelineSpecsFromIR(pipelineSpecFilePath, param.compilerOptions.CacheDisabled, nil)
 					compiledWorkflow := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &param.compilerOptions)
 					if *createMissingGoldenFiles || *updateGoldenFiles {

@@ -56,7 +56,7 @@ runs:
     - name: Load Docker Images
       shell: bash
       run: |
-        APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent")
+        APPS=("apiserver" "driver" "launcher" "scheduledworkflow" "persistenceagent" "frontend")
         for app in "${APPS[@]}"; do
           docker image load -i ${{ inputs.image_path }}/$app/$app.tar
           docker push ${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}

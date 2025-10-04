@@ -17,11 +17,12 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/types/known/structpb"
 	"os"
-	"sigs.k8s.io/yaml"
 	"testing"
 	"time"
+
+	"google.golang.org/protobuf/types/known/structpb"
+	"sigs.k8s.io/yaml"
 
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -37,7 +38,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type RunApiTestSuite struct {
+type RunAPITestSuite struct {
 	suite.Suite
 	namespace            string
 	resourceNamespace    string
@@ -48,7 +49,7 @@ type RunApiTestSuite struct {
 }
 
 // Check the namespace have ML pipeline installed and ready
-func (s *RunApiTestSuite) SetupTest() {
+func (s *RunAPITestSuite) SetupTest() {
 	if !*runIntegrationTests {
 		s.T().SkipNow()
 		return
@@ -119,7 +120,7 @@ func (s *RunApiTestSuite) SetupTest() {
 	s.cleanUp()
 }
 
-func (s *RunApiTestSuite) TestRunApis() {
+func (s *RunAPITestSuite) TestRunAPIs() {
 	t := s.T()
 
 	/* ---------- Upload pipelines YAML ---------- */
@@ -169,14 +170,14 @@ func (s *RunApiTestSuite) TestRunApis() {
 	/* ---------- Create a new argument parameter run by uploading workflow manifest ---------- */
 	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
-	pipeline_spec := &structpb.Struct{}
-	err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
+	pipelineSpec := &structpb.Struct{}
+	err = yaml.Unmarshal(argParamsBytes, pipelineSpec)
 	assert.Nil(t, err)
 
 	createRunRequest = &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "argument parameter",
 		Description:  "this is argument parameter",
-		PipelineSpec: pipeline_spec,
+		PipelineSpec: pipelineSpec,
 		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
 			Parameters: map[string]interface{}{
 				"param1": "goodbye",
@@ -339,7 +340,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	s.checkTerminatedRunDetail(t, longRunningRun, helloWorldExperiment.ExperimentID, longRunningPipelineVersion.PipelineID, longRunningPipelineVersion.PipelineVersionID)
 }
 
-func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentId string, pipelineId string, pipelineVersionId string) {
+func (s *RunAPITestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentID string, pipelineID string, pipelineVersionID string) {
 
 	expectedRun := &run_model.V2beta1Run{
 		RunID:          run.RunID,
@@ -350,10 +351,10 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.
 		StorageState:   run.StorageState,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec:   run.PipelineSpec,
-		ExperimentID:   experimentId,
+		ExperimentID:   experimentID,
 		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
-			PipelineID:        pipelineId,
-			PipelineVersionID: pipelineVersionId,
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
 		},
 		CreatedAt:   run.CreatedAt,
 		ScheduledAt: run.ScheduledAt,
@@ -363,7 +364,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, run *run_model.
 	assert.Equal(t, expectedRun, run)
 }
 
-func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentId string, pipelineId string, pipelineVersionId string) {
+func (s *RunAPITestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentID string, pipelineID string, pipelineVersionID string) {
 
 	expectedRun := &run_model.V2beta1Run{
 		RunID:          run.RunID,
@@ -374,10 +375,10 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.
 		StorageState:   run.StorageState,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec:   run.PipelineSpec,
-		ExperimentID:   experimentId,
+		ExperimentID:   experimentID,
 		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
-			PipelineID:        pipelineId,
-			PipelineVersionID: pipelineVersionId,
+			PipelineID:        pipelineID,
+			PipelineVersionID: pipelineVersionID,
 		},
 		CreatedAt:   run.CreatedAt,
 		ScheduledAt: run.ScheduledAt,
@@ -387,7 +388,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, run *run_model.
 	assert.Equal(t, expectedRun, run)
 }
 
-func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentId string) {
+func (s *RunAPITestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V2beta1Run, experimentID string) {
 
 	// Compare the pipeline spec first.
 	argParamsBytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
@@ -395,11 +396,11 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 	// pipeline_spec := &structpb.Struct{}
 	// err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
 	// assert.Nil(t, err)
-	expected_bytes, err := yaml.YAMLToJSON(argParamsBytes)
+	expectedBytes, err := yaml.YAMLToJSON(argParamsBytes)
 	assert.Nil(t, err)
-	actual_bytes, err := json.Marshal(run.PipelineSpec)
+	actualBytes, err := json.Marshal(run.PipelineSpec)
 	assert.Nil(t, err)
-	assert.Equal(t, string(expected_bytes), string(actual_bytes))
+	assert.Equal(t, string(expectedBytes), string(actualBytes))
 
 	expectedRun := &run_model.V2beta1Run{
 		RunID:          run.RunID,
@@ -416,7 +417,7 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 				"param2": "world",
 			},
 		},
-		ExperimentID: experimentId,
+		ExperimentID: experimentID,
 		CreatedAt:    run.CreatedAt,
 		ScheduledAt:  run.ScheduledAt,
 		FinishedAt:   run.FinishedAt,
@@ -425,11 +426,11 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, run *run_model.V
 	assert.Equal(t, expectedRun, run)
 }
 
-func TestRunApi(t *testing.T) {
-	suite.Run(t, new(RunApiTestSuite))
+func TestRunAPI(t *testing.T) {
+	suite.Run(t, new(RunAPITestSuite))
 }
 
-func (s *RunApiTestSuite) TearDownSuite() {
+func (s *RunAPITestSuite) TearDownSuite() {
 	if *runIntegrationTests {
 		if !*isDevMode {
 			s.cleanUp()
@@ -437,7 +438,7 @@ func (s *RunApiTestSuite) TearDownSuite() {
 	}
 }
 
-func (s *RunApiTestSuite) cleanUp() {
+func (s *RunAPITestSuite) cleanUp() {
 	/* ---------- Clean up ---------- */
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
