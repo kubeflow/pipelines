@@ -17,11 +17,14 @@ package storage
 import (
 	"bytes"
 	"context"
+	"io"
 	"path"
 	"regexp"
+	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	minio "github.com/minio/minio-go/v7"
+	"gocloud.dev/blob"
 	"sigs.k8s.io/yaml"
 )
 
@@ -34,6 +37,7 @@ type ObjectStoreInterface interface {
 	AddFile(ctx context.Context, template []byte, filePath string) error
 	DeleteFile(ctx context.Context, filePath string) error
 	GetFile(ctx context.Context, filePath string) ([]byte, error)
+	GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error)
 	AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error
 	GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error
 	GetPipelineKey(pipelineId string) string
@@ -45,6 +49,7 @@ type MinioObjectStore struct {
 	bucketName       string
 	baseFolder       string
 	disableMultipart bool
+	blobBucket       *blob.Bucket
 }
 
 // GetPipelineKey adds the configured base folder to pipeline id.
@@ -99,6 +104,22 @@ func (m *MinioObjectStore) GetFile(ctx context.Context, filePath string) ([]byte
 	return bytes, nil
 }
 
+func (m *MinioObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	if m.blobBucket != nil {
+		reader, err := m.blobBucket.NewReader(ctx, filePath, nil)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to get blob reader for %v", filePath)
+		}
+		return reader, nil
+	}
+
+	data, err := m.GetFile(ctx, filePath)
+	if err != nil {
+		return nil, err
+	}
+	return io.NopCloser(strings.NewReader(string(data))), nil
+}
+
 func (m *MinioObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
 	bytes, err := yaml.Marshal(o)
 	if err != nil {
@@ -125,4 +146,14 @@ func (m *MinioObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, f
 
 func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {
 	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName, baseFolder: baseFolder, disableMultipart: disableMultipart}
+}
+
+func NewMinioObjectStoreWithBlob(minioClient MinioClientInterface, bucketName string, baseFolder string, disableMultipart bool, blobBucket *blob.Bucket) *MinioObjectStore {
+	return &MinioObjectStore{
+		minioClient:      minioClient,
+		bucketName:       bucketName,
+		baseFolder:       baseFolder,
+		disableMultipart: disableMultipart,
+		blobBucket:       blobBucket,
+	}
 }

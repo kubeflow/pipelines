@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -65,6 +66,10 @@ func (m *FakeBadObjectStore) DeleteFile(ctx context.Context, filePath string) er
 
 func (m *FakeBadObjectStore) GetFile(ctx context.Context, filePath string) ([]byte, error) {
 	return []byte(""), nil
+}
+
+func (m *FakeBadObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	return nil, util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
 func (m *FakeBadObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
@@ -3299,104 +3304,6 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.(*util.UserError).String(), "database is closed")
-}
-
-func TestReadArtifact_Succeed(t *testing.T) {
-	store, manager, job := initWithJob(t)
-	defer store.Close()
-
-	expectedContent := "test"
-	filePath := "test/file.txt"
-	store.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
-
-	// Create a scheduled run
-	// job, _ := manager.CreateJob(model.Job{
-	// 	Name:       "pp1",
-	// 	PipelineId: p.UUID,
-	// 	Enabled:    true,
-	// })
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "MY_NAME",
-			Namespace:         "MY_NAMESPACE",
-			UID:               "run-1",
-			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
-			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID(job.UUID),
-			}},
-		},
-		Status: v1alpha1.WorkflowStatus{
-			Nodes: map[string]v1alpha1.NodeStatus{
-				"node-1": {
-					Outputs: &v1alpha1.Outputs{
-						Artifacts: []v1alpha1.Artifact{
-							{
-								Name: "artifact-1",
-								ArtifactLocation: v1alpha1.ArtifactLocation{
-									S3: &v1alpha1.S3Artifact{
-										Key: filePath,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	artifactContent, err := manager.ReadArtifact("run-1", "node-1", "artifact-1")
-	assert.Nil(t, err)
-	assert.Equal(t, expectedContent, string(artifactContent))
-}
-
-func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
-	store, manager, job := initWithJob(t)
-	defer store.Close()
-	// report workflow
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "MY_NAME",
-			Namespace:         "MY_NAMESPACE",
-			UID:               "run-1",
-			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
-			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
-				UID:        types.UID(job.UUID),
-			}},
-		},
-	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	_, err = manager.ReadArtifact("run-1", "node-1", "artifact-1")
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
-}
-
-func TestReadArtifact_NoRun_NotFound(t *testing.T) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	defer store.Close()
-	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-
-	_, err := manager.ReadArtifact("run-1", "node-1", "artifact-1")
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 }
 
 const (

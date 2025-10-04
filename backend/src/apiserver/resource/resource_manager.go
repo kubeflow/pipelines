@@ -15,8 +15,10 @@
 package resource
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -38,7 +40,7 @@ import (
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/codes"
@@ -129,6 +131,7 @@ type ResourceManager struct {
 }
 
 func NewResourceManager(clientManager ClientManagerInterface, options *ResourceManagerOptions) *ResourceManager {
+	k8sCoreClient := clientManager.KubernetesCoreClient()
 	return &ResourceManager{
 		experimentStore:           clientManager.ExperimentStore(),
 		pipelineStore:             clientManager.PipelineStore(),
@@ -141,7 +144,7 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		objectStore:               clientManager.ObjectStore(),
 		execClient:                clientManager.ExecClient(),
 		swfClient:                 clientManager.SwfClient(),
-		k8sCoreClient:             clientManager.KubernetesCoreClient(),
+		k8sCoreClient:             k8sCoreClient,
 		subjectAccessReviewClient: clientManager.SubjectAccessReviewClient(),
 		tokenReviewClient:         clientManager.TokenReviewClient(),
 		logArchive:                clientManager.LogArchive(),
@@ -666,7 +669,7 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 				if err != nil {
 					if apierrors.IsConflict(errors.Unwrap(err)) {
 						continue
-					} else if util.IsNotFound(errors.Cause(err)) {
+					} else if util.IsNotFound(pkgerrors.Cause(err)) {
 						break
 					}
 					return failedToReconcileSwfCrsError(err)
@@ -1543,13 +1546,13 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 	} else {
 		// Try reading object store from pipeline_spec_uri
 		// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-		template, errUri := r.objectStore.GetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
+		template, errUri := r.readFileStreaming(context.TODO(), string(pipelineVersion.PipelineSpecURI))
 		if errUri != nil {
 			// Try reading object store from pipeline_version_id
-			template, errUUID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
+			template, errUUID := r.readFileStreaming(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineId := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				template, errPipelineId := r.readFileStreaming(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
 				if errPipelineId != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
@@ -1565,6 +1568,36 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		}
 		return template, "", nil
 	}
+}
+
+func (r *ResourceManager) readFileStreaming(ctx context.Context, filePath string) ([]byte, error) {
+	reader, err := r.objectStore.GetFileReader(ctx, filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	return r.loadFileWithSizeLimit(reader, common.MaxFileLength)
+}
+
+func (r *ResourceManager) loadFileWithSizeLimit(fileReader io.Reader, maxFileLength int) ([]byte, error) {
+	reader := bufio.NewReaderSize(fileReader, maxFileLength)
+	var fileContent []byte
+	for {
+		currentRead := make([]byte, bufio.MaxScanTokenSize)
+		size, err := reader.Read(currentRead)
+		fileContent = append(fileContent, currentRead[:size]...)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Error reading file from object store")
+		}
+	}
+	if len(fileContent) > maxFileLength {
+		return nil, util.NewInternalServerError(nil, "File size too large. Maximum supported size: %v", maxFileLength)
+	}
+	return fileContent, nil
 }
 
 // Creates the default experiment entry.
@@ -1617,28 +1650,8 @@ func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
 	return nil
 }
 
-// ReadArtifact parses run's workflow to find artifact file path and reads the content of the file
-// from object store.
-func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName string) ([]byte, error) {
-	run, err := r.runStore.GetRun(runID)
-	if err != nil {
-		return nil, err
-	}
-	if run.WorkflowRuntimeManifest == "" {
-		return nil, util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
-	}
-	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
-	if err != nil {
-		// This should never happen.
-		return nil, util.NewInternalServerError(
-			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
-	}
-	artifactPath := execSpec.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
-	if artifactPath == "" {
-		return nil, util.NewResourceNotFoundError(
-			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
-	}
-	return r.objectStore.GetFile(context.TODO(), artifactPath)
+func (r *ResourceManager) GetObjectStore() storage.ObjectStoreInterface {
+	return r.objectStore
 }
 
 // Fetches the default experiment id.

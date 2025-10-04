@@ -324,6 +324,57 @@ func startHttpProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	runLogServer := server.NewRunLogServer(resourceManager)
 	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", runLogServer.ReadRunLogV1)
 
+	topMux.HandleFunc("/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+
+		runId := vars["run_id"]
+		nodeId := vars["node_id"]
+		artifactName := vars["artifact_name"]
+
+		if runId == "" || nodeId == "" || artifactName == "" {
+			http.Error(w, "Missing required parameters", http.StatusBadRequest)
+			return
+		}
+
+		run, err := resourceManager.GetRun(runId)
+		if err != nil {
+			http.Error(w, "Run not found", http.StatusNotFound)
+			return
+		}
+
+		if run.WorkflowRuntimeManifest == "" {
+			http.Error(w, "V2 IR spec not supported", http.StatusBadRequest)
+			return
+		}
+
+		execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+		if err != nil {
+			http.Error(w, "Failed to parse workflow", http.StatusInternalServerError)
+			return
+		}
+
+		artifactPath := execSpec.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(nodeId, artifactName)
+		if artifactPath == "" {
+			http.Error(w, "Artifact not found", http.StatusNotFound)
+			return
+		}
+
+		reader, err := resourceManager.GetObjectStore().GetFileReader(r.Context(), artifactPath)
+		if err != nil {
+			http.Error(w, "File not found", http.StatusNotFound)
+			return
+		}
+		defer reader.Close()
+
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Cache-Control", "no-cache, private")
+
+		if _, err := io.Copy(w, reader); err != nil {
+			glog.Errorf("Failed to stream artifact: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
+	})
+
 	topMux.PathPrefix("/apis/").Handler(runtimeMux)
 
 	// Register a handler for Prometheus to poll.

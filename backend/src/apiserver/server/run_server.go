@@ -16,6 +16,8 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"io"
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -460,28 +462,6 @@ func (s *RunServerV1) ReportRunMetricsV1(ctx context.Context, request *apiv1beta
 	return &apiv1beta1.ReportRunMetricsResponse{Results: apiResults}, nil
 }
 
-// Reads an artifact.
-// Supports v1beta1 behavior.
-func (s *RunServerV1) ReadArtifactV1(ctx context.Context, request *apiv1beta1.ReadArtifactRequest) (*apiv1beta1.ReadArtifactResponse, error) {
-	if s.options.CollectMetrics {
-		readArtifactRequests.Inc()
-	}
-
-	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReadArtifact})
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request")
-	}
-
-	content, err := s.resourceManager.ReadArtifact(
-		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
-	if err != nil {
-		return nil, util.Wrapf(err, "failed to read artifact '%+v'", request)
-	}
-	return &apiv1beta1.ReadArtifactResponse{
-		Data: content,
-	}, nil
-}
-
 // Terminates a run.
 // Applies common logic on v1beta1 and v2beta1 API.
 func (s *BaseRunServer) terminateRun(ctx context.Context, runId string) error {
@@ -626,28 +606,6 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRun
 	return &emptypb.Empty{}, nil
 }
 
-// Reads an artifact.
-// Supports v2beta1 behavior.
-func (s *RunServer) ReadArtifact(ctx context.Context, request *apiv2beta1.ReadArtifactRequest) (*apiv2beta1.ReadArtifactResponse, error) {
-	if s.options.CollectMetrics {
-		readArtifactRequests.Inc()
-	}
-
-	err := s.canAccessRun(ctx, request.GetRunId(), &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReadArtifact})
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request")
-	}
-
-	content, err := s.resourceManager.ReadArtifact(
-		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
-	if err != nil {
-		return nil, util.Wrapf(err, "failed to read artifact '%+v'", request)
-	}
-	return &apiv2beta1.ReadArtifactResponse{
-		Data: content,
-	}, nil
-}
-
 // Terminates a run.
 // Supports v2beta1 behavior.
 func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2beta1.TerminateRunRequest) (*emptypb.Empty, error) {
@@ -674,6 +632,51 @@ func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRe
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+// Reads artifact data from a run.
+// Supports v2beta1 behavior.
+func (s *RunServer) ReadArtifact(ctx context.Context, request *apiv2beta1.ReadArtifactRequest) (*apiv2beta1.ReadArtifactResponse, error) {
+	if s.options.CollectMetrics {
+		readArtifactRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.GetRunId(), &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	run, err := s.resourceManager.GetRun(request.GetRunId())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get run")
+	}
+
+	if run.WorkflowRuntimeManifest == "" {
+		return nil, util.NewInvalidInputError("V2 IR spec not supported")
+	}
+
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to parse workflow")
+	}
+
+	artifactPath := execSpec.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(request.GetNodeId(), request.GetArtifactName())
+	if artifactPath == "" {
+		return nil, util.NewResourceNotFoundError("artifact", fmt.Sprintf("run:%s/node:%s/artifact:%s", request.GetRunId(), request.GetNodeId(), request.GetArtifactName()))
+	}
+
+	reader, err := s.resourceManager.GetObjectStore().GetFileReader(ctx, artifactPath)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to read artifact")
+	}
+	defer reader.Close()
+
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to read artifact data")
+	}
+
+	return &apiv2beta1.ReadArtifactResponse{Data: data}, nil
 }
 
 // Checks if a user can access a run.
