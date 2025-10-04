@@ -42,9 +42,11 @@ __all__ = [
     'PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER',
     'PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER',
     'WORKSPACE_PATH_PLACEHOLDER',
+    'run_notebook',
 ]
 import os
 
+from kfp.dsl.notebook_helpers import run_notebook
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.task_final_status import PipelineTaskFinalStatus
 from kfp.dsl.types.artifact_types import Artifact
@@ -56,6 +58,7 @@ from kfp.dsl.types.artifact_types import Markdown
 from kfp.dsl.types.artifact_types import Metrics
 from kfp.dsl.types.artifact_types import Model
 from kfp.dsl.types.artifact_types import SlicedClassificationMetrics
+from kfp.dsl.types.type_annotations import EmbeddedAnnotation
 from kfp.dsl.types.type_annotations import InputAnnotation
 from kfp.dsl.types.type_annotations import InputPath
 from kfp.dsl.types.type_annotations import OutputAnnotation
@@ -257,6 +260,8 @@ Example:
 """
 
 Output = Annotated[T, OutputAnnotation]
+# Runtime-only input for accessing embedded artifacts extracted at runtime.
+EmbeddedInput = Annotated[T, EmbeddedAnnotation]
 """A type generic used to represent an output artifact of type ``T``, where ``T`` is an artifact class. The argument typed with this annotation is provided at runtime by the executing backend and does not need to be passed as an input by the pipeline author (see example).
 
 Use ``Input[Artifact]`` or ``Output[Artifact]`` to indicate whether the enclosed artifact is a component input or output.
@@ -291,6 +296,7 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
     # TODO: Collected should be moved to pipeline_channel.py, consistent with OneOf
     from kfp.dsl.for_loop import Collected
     from kfp.dsl.importer_node import importer
+    from kfp.dsl.notebook_component_decorator import notebook_component
     from kfp.dsl.pipeline_channel import OneOf
     from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
     from kfp.dsl.pipeline_config import PipelineConfig
@@ -312,5 +318,5 @@ if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
         'ExitHandler', 'ParallelFor', 'Collected', 'IfPresentPlaceholder',
         'ConcatPlaceholder', 'PipelineTask', 'PipelineConfig',
         'WorkspaceConfig', 'KubernetesWorkspaceConfig', 'TaskConfigField',
-        'TaskConfigPassthrough'
+        'TaskConfigPassthrough', 'notebook_component'
     ])

@@ -3,6 +3,7 @@ docformatter==1.4
 docker==5.0.3
 isort==5.10.1
 mypy==0.941
+nbformat==5.10.4
 pip-tools==6.0.0
 pre-commit==2.19.0
 pycln==2.1.1
