@@ -16,6 +16,9 @@ spec:
             - workflow-controller-configmap
             - --executor-image
             - quay.io/argoproj/argoexec:v3.6.7
+          env:
+            - name: ARGO_EXECUTOR_PLUGINS
+              value: "true"
           securityContext:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
