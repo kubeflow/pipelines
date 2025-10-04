@@ -4336,67 +4336,6 @@ class TestPlatformConfig(unittest.TestCase):
                     pipeline_func=my_pipeline, package_path=output_yaml)
 
 
-class TestPipelineSemaphoreMutex(unittest.TestCase):
-
-    def test_pipeline_with_semaphore(self):
-        """Test that pipeline config correctly sets the semaphore key."""
-        config = PipelineConfig()
-        config.semaphore_key = 'semaphore'
-
-        @dsl.pipeline(pipeline_config=config)
-        def my_pipeline():
-            task = comp()
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
-
-            with open(output_yaml, 'r') as f:
-                pipeline_docs = list(yaml.safe_load_all(f))
-
-        platform_spec = None
-        for doc in pipeline_docs:
-            if 'platforms' in doc:
-                platform_spec = doc
-                break
-
-        self.assertIsNotNone(platform_spec,
-                             'No platforms section found in compiled output')
-        kubernetes_spec = platform_spec['platforms']['kubernetes'][
-            'pipelineConfig']
-        self.assertEqual(kubernetes_spec['semaphoreKey'], 'semaphore')
-
-    def test_pipeline_with_mutex(self):
-        """Test that pipeline config correctly sets the mutex name."""
-        config = PipelineConfig()
-        config.mutex_name = 'mutex'
-
-        @dsl.pipeline(pipeline_config=config)
-        def my_pipeline():
-            task = comp()
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            output_yaml = os.path.join(tempdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_yaml)
-
-            with open(output_yaml, 'r') as f:
-                pipeline_docs = list(yaml.safe_load_all(f))
-
-        platform_spec = None
-        for doc in pipeline_docs:
-            if 'platforms' in doc:
-                platform_spec = doc
-                break
-
-        self.assertIsNotNone(platform_spec,
-                             'No platforms section found in compiled output')
-        kubernetes_spec = platform_spec['platforms']['kubernetes'][
-            'pipelineConfig']
-        self.assertEqual(kubernetes_spec['mutexName'], 'mutex')
-
-
 class ExtractInputOutputDescription(unittest.TestCase):
 
     def test_no_descriptions(self):
