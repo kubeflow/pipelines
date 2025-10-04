@@ -384,7 +384,10 @@ func (w *Workflow) ScheduledWorkflowUUIDAsStringOrEmpty() string {
 // This behaviour can be reverted by setting POD_NAMES=v1 on the workflow controller
 // https://argo-workflows.readthedocs.io/en/release-3.5/upgrading/#e5b131a33-feat-add-template-node-to-pod-name-fixes-1319-6712
 func RetrievePodName(wf workflowapi.Workflow, node workflowapi.NodeStatus) string {
-	if wf.APIVersion == "v1" || wf.Annotations["workflows.argoproj.io/pod-name-format"] == "v1" {
+	if wf.APIVersion == "v1" {
+		return node.ID
+	}
+	if v, ok := wf.Annotations["workflows.argoproj.io/pod-name-format"]; ok && v == "v1" {
 		return node.ID
 	}
 	if wf.Name == node.Name {
