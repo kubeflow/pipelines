@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   creationTimestamp: null
-  generateName: two-step-pipeline-containerized-
+  generateName: containerized-two-step-pipeline-
 spec:
   arguments:
     parameters:
@@ -16,7 +16,8 @@ spec:
     - name: implementations-a251b98b01e63019fbe86cccecda6133320b517f80c2594d7119857a86df7195
       value: '{"args":["{{$.inputs.artifacts[''input_gcs''].path}}"],"command":["cat"],"image":"alpine"}'
     - name: components-root
-      value: '{"dag":{"tasks":{"component1":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component1"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"hi"}}}},"taskInfo":{"name":"component1"}},"component2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component2"},"dependentTasks":["component1"],"inputs":{"artifacts":{"input_gcs":{"taskOutputArtifact":{"outputArtifactKey":"output_gcs","producerTask":"component1"}}}},"taskInfo":{"name":"component2"}}}}}'
+      value: '{"dag":{"tasks":{"component1":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component1"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"component1"}},"component2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component2"},"dependentTasks":["component1"],"inputs":{"artifacts":{"input_gcs":{"taskOutputArtifact":{"outputArtifactKey":"output_gcs","producerTask":"component1"}}}},"taskInfo":{"name":"component2"}}}},"inputDefinitions":{"parameters":{"text":{"defaultValue":"Hello
+        KFP Containerized!","parameterType":"STRING"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -30,7 +31,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - two-step-pipeline-containerized
+      - containerized-two-step-pipeline
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -199,7 +200,7 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-475bac6023d1f786e45ff58ef0f9941e93c80c64a148e28d3506f4a41ec6e102}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component1"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"hi"}}}},"taskInfo":{"name":"component1"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component1"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"component1"}}'
           - name: container
             value: '{{workflow.parameters.implementations-475bac6023d1f786e45ff58ef0f9941e93c80c64a148e28d3506f4a41ec6e102}}'
           - name: task-name
@@ -254,7 +255,7 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - two-step-pipeline-containerized
+      - containerized-two-step-pipeline
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -333,7 +334,7 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
-            value: '{}'
+            value: '{"parameterValues":{"text":"Hello KFP Containerized!"}}'
           - name: driver-type
             value: ROOT_DAG
         name: root-driver

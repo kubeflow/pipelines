@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-2523e1bef19ae3f138cd1dd4d99931d6e23938a61e88de241c33cbe2ff1836ae
+    - name: components-1c2d9ee5193f6bab323886b46d1c14a22e2f07a25c79fd4e264b5f797275a7cb
       value: '{"executorLabel":"exec-print-all-placeholders","inputDefinitions":{"parameters":{"job_id":{"parameterType":"STRING"},"job_name":{"parameterType":"STRING"},"job_resource_name":{"parameterType":"STRING"},"task_id":{"parameterType":"STRING"},"task_name":{"parameterType":"STRING"}}}}'
-    - name: implementations-2523e1bef19ae3f138cd1dd4d99931d6e23938a61e88de241c33cbe2ff1836ae
+    - name: implementations-1c2d9ee5193f6bab323886b46d1c14a22e2f07a25c79fd4e264b5f797275a7cb
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_all_placeholders"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -18,13 +18,13 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_all_placeholders(\n    job_name: str,\n    job_resource_name: str,\n    job_id:
-        str,\n    task_name: str,\n    task_id: str,\n):\n    allPlaceholders = [job_name,
-        job_resource_name, job_id, task_name, task_id]\n\n    for placeholder in allPlaceholders:\n        if
-        \"\\{\\{\" in placeholder or placeholder == \"\":\n            raise RuntimeError(\n                \"Expected
-        the placeholder to be replaced with a value: \" + placeholder\n            )\n\n    print(f\"Received
-        placeholders:\\n {allPlaceholders}\")\n    assert task_name == \"print-all-placeholders\"\n    assert
-        job_resource_name.startswith(\"pipeline-with-placeholders-\")\n\n    output
+        print_all_placeholders(\n        job_name: str,\n        job_resource_name:
+        str,\n        job_id: str,\n        task_name: str,\n        task_id: str,\n):\n    allPlaceholders
+        = [job_name, job_resource_name, job_id, task_name, task_id]\n\n    for placeholder
+        in allPlaceholders:\n        if \"\\{\\{\" in placeholder or placeholder ==
+        \"\":\n            raise RuntimeError(\n                \"Expected the placeholder
+        to be replaced with a value: \" + placeholder\n            )\n\n    assert
+        task_name == \"print-all-placeholders\"\n    assert job_resource_name.startswith(\"pipeline-with-placeholders-\")\n\n    output
         = \", \".join(allPlaceholders)\n    print(output)\n\n"],"image":"python:3.9"}'
     - name: components-root
       value: '{"dag":{"tasks":{"print-all-placeholders":{"cachingOptions":{},"componentRef":{"name":"comp-print-all-placeholders"},"inputs":{"parameters":{"job_id":{"runtimeValue":{"constant":"{{$.pipeline_job_uuid}}"}},"job_name":{"runtimeValue":{"constant":"{{$.pipeline_job_name}}"}},"job_resource_name":{"runtimeValue":{"constant":"{{$.pipeline_job_resource_name}}"}},"task_id":{"runtimeValue":{"constant":"{{$.pipeline_task_uuid}}"}},"task_name":{"runtimeValue":{"constant":"{{$.pipeline_task_name}}"}}}},"taskInfo":{"name":"print-all-placeholders"}}}}}'
@@ -208,11 +208,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-2523e1bef19ae3f138cd1dd4d99931d6e23938a61e88de241c33cbe2ff1836ae}}'
+            value: '{{workflow.parameters.components-1c2d9ee5193f6bab323886b46d1c14a22e2f07a25c79fd4e264b5f797275a7cb}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-all-placeholders"},"inputs":{"parameters":{"job_id":{"runtimeValue":{"constant":"{{$.pipeline_job_uuid}}"}},"job_name":{"runtimeValue":{"constant":"{{$.pipeline_job_name}}"}},"job_resource_name":{"runtimeValue":{"constant":"{{$.pipeline_job_resource_name}}"}},"task_id":{"runtimeValue":{"constant":"{{$.pipeline_task_uuid}}"}},"task_name":{"runtimeValue":{"constant":"{{$.pipeline_task_name}}"}}}},"taskInfo":{"name":"print-all-placeholders"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-2523e1bef19ae3f138cd1dd4d99931d6e23938a61e88de241c33cbe2ff1836ae}}'
+            value: '{{workflow.parameters.implementations-1c2d9ee5193f6bab323886b46d1c14a22e2f07a25c79fd4e264b5f797275a7cb}}'
           - name: task-name
             value: print-all-placeholders
           - name: parent-dag-id

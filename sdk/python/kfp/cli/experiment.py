@@ -109,8 +109,8 @@ either_option_required = 'Either --experiment-id or --experiment-name is require
     '--experiment-id',
     default=None,
     help=parsing.get_param_descr(client.Client.archive_experiment,
-                                 'experiment_id') + ' ' + either_option_required
-)
+                                 'experiment_id') + ' ' +
+    either_option_required)
 @click.option(
     '--experiment-name',
     default=None,
@@ -145,8 +145,8 @@ def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
     '--experiment-id',
     default=None,
     help=parsing.get_param_descr(client.Client.unarchive_experiment,
-                                 'experiment_id') + ' ' + either_option_required
-)
+                                 'experiment_id') + ' ' +
+    either_option_required)
 @click.option(
     '--experiment-name',
     default=None,

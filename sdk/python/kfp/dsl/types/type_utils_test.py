@@ -83,10 +83,9 @@ class _VertexDummy(artifact_types.Artifact):
 
 class TypeUtilsTest(parameterized.TestCase):
 
-    @parameterized.parameters(
-        [(item, True) for item in _PARAMETER_TYPES] +
-        [(item, False)
-         for item in _KNOWN_ARTIFACT_TYPES + _UNKNOWN_ARTIFACT_TYPES])
+    @parameterized.parameters([(item, True) for item in _PARAMETER_TYPES] +
+                              [(item, False) for item in _KNOWN_ARTIFACT_TYPES +
+                               _UNKNOWN_ARTIFACT_TYPES])
     def test_is_parameter_type_true(self, type_name, expected_result):
         self.assertEqual(expected_result,
                          type_utils.is_parameter_type(type_name))

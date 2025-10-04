@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-8ff2c59cd310bf86ddbde2385ea63167b4d20945fde680ecf386c95dd6dd4da0
+    - name: components-95a95a4327246937049bccce9f1ac13270fef5003171f5e78e231b5aab3aee6d
       value: '{"executorLabel":"exec-ray-fn","inputDefinitions":{"parameters":{"AWS_ACCESS_KEY_ID":{"parameterType":"STRING"},"AWS_DEFAULT_ENDPOINT":{"parameterType":"STRING"},"AWS_SECRET_ACCESS_KEY":{"parameterType":"STRING"},"AWS_STORAGE_BUCKET":{"parameterType":"STRING"},"AWS_STORAGE_BUCKET_MNIST_DIR":{"parameterType":"STRING"}}}}'
-    - name: implementations-8ff2c59cd310bf86ddbde2385ea63167b4d20945fde680ecf386c95dd6dd4da0
+    - name: implementations-95a95a4327246937049bccce9f1ac13270fef5003171f5e78e231b5aab3aee6d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","ray_fn"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
         -m pip install --quiet --no-warn-script-location ''codeflare-sdk==v0.28.1''
         \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf
@@ -328,11 +328,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8ff2c59cd310bf86ddbde2385ea63167b4d20945fde680ecf386c95dd6dd4da0}}'
+            value: '{{workflow.parameters.components-95a95a4327246937049bccce9f1ac13270fef5003171f5e78e231b5aab3aee6d}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-ray-fn"},"inputs":{"parameters":{"AWS_ACCESS_KEY_ID":{"componentInputParameter":"AWS_ACCESS_KEY_ID"},"AWS_DEFAULT_ENDPOINT":{"componentInputParameter":"AWS_DEFAULT_ENDPOINT"},"AWS_SECRET_ACCESS_KEY":{"componentInputParameter":"AWS_SECRET_ACCESS_KEY"},"AWS_STORAGE_BUCKET":{"componentInputParameter":"AWS_STORAGE_BUCKET"},"AWS_STORAGE_BUCKET_MNIST_DIR":{"componentInputParameter":"AWS_STORAGE_BUCKET_MNIST_DIR"}}},"taskInfo":{"name":"ray-fn"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8ff2c59cd310bf86ddbde2385ea63167b4d20945fde680ecf386c95dd6dd4da0}}'
+            value: '{{workflow.parameters.implementations-95a95a4327246937049bccce9f1ac13270fef5003171f5e78e231b5aab3aee6d}}'
           - name: task-name
             value: ray-fn
           - name: parent-dag-id

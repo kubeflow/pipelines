@@ -1619,8 +1619,7 @@ def pipeline_spec_from_file(filepath: str) -> str:
 
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
-_TEST_DATA_DIR = os.path.join(_PROJECT_ROOT, 'sdk', 'python', 'test_data')
-PIPELINES_TEST_DATA_DIR = os.path.join(_TEST_DATA_DIR, 'pipelines')
+_TEST_DATA_DIR = os.path.join(_PROJECT_ROOT, 'test_data')
 UNSUPPORTED_COMPONENTS_TEST_DATA_DIR = os.path.join(_TEST_DATA_DIR,
                                                     'components', 'unsupported')
 
@@ -1636,9 +1635,11 @@ class TestReadWriteEquality(parameterized.TestCase):
                       directory: str,
                       fn: Optional[str] = None,
                       additional_arguments: Optional[List[str]] = None) -> None:
-        py_file = os.path.join(directory, f'{file_base_name}.py')
+        py_file = os.path.join(directory, 'python_functions',
+                               f'{file_base_name}.py')
 
-        golden_compiled_file = os.path.join(directory, f'{file_base_name}.yaml')
+        golden_compiled_file = os.path.join(directory, 'pipeline_files',
+                                            'valid', f'{file_base_name}.yaml')
 
         if additional_arguments is None:
             additional_arguments = []
@@ -1669,7 +1670,7 @@ class TestReadWriteEquality(parameterized.TestCase):
     def test_two_step_pipeline(self):
         self._test_compile(
             'two_step_pipeline',
-            directory=PIPELINES_TEST_DATA_DIR,
+            directory=_TEST_DATA_DIR,
             additional_arguments=[
                 '--pipeline-parameters', '{"text":"Hello KFP!"}'
             ])
@@ -1679,7 +1680,7 @@ class TestReadWriteEquality(parameterized.TestCase):
                                     r'Unterminated string starting at:'):
             self._test_compile(
                 'two_step_pipeline',
-                directory=PIPELINES_TEST_DATA_DIR,
+                directory=_TEST_DATA_DIR,
                 additional_arguments=[
                     '--pipeline-parameters', '{"text":"Hello KFP!}'
                 ])
@@ -1690,9 +1691,7 @@ class TestReadWriteEquality(parameterized.TestCase):
                 r'Pipeline function or component "step1" not found in module two_step_pipeline\.py\.'
         ):
             self._test_compile(
-                'two_step_pipeline',
-                directory=PIPELINES_TEST_DATA_DIR,
-                fn='step1')
+                'two_step_pipeline', directory=_TEST_DATA_DIR, fn='step1')
 
     def test_deprecation_warning(self):
         res = subprocess.run(['dsl-compile', '--help'], capture_output=True)

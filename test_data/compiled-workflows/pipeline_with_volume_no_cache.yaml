@@ -8,13 +8,13 @@ spec:
     parameters:
     - name: kubernetes-comp-consumer
       value: '{"pvcMount":[{"mountPath":"/data","pvcNameParameter":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}},"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-1b522aee8fb5d61c1a9a7ebfad504ce69d5c2b2ff71daa757e89c8723c9de172
+    - name: components-522286ff8480712f50be32c25dedca8517bb73693bea29170288afdd11255e1d
       value: '{"executorLabel":"exec-consumer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-1b522aee8fb5d61c1a9a7ebfad504ce69d5c2b2ff71daa757e89c8723c9de172
+    - name: implementations-522286ff8480712f50be32c25dedca8517bb73693bea29170288afdd11255e1d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","consumer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -52,13 +52,13 @@ spec:
       value: '{"image":"argostub/deletepvc"}'
     - name: kubernetes-comp-producer
       value: '{"pvcMount":[{"mountPath":"/data","pvcNameParameter":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}},"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-d69d67847cbabf54bbdf7ec9203928694d6d34b235766b1f662b2ce1c8440032
+    - name: components-c83a4f299993efdf1e9a883b7d05cb035219013b529f03866c0be2efd4da651d
       value: '{"executorLabel":"exec-producer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-d69d67847cbabf54bbdf7ec9203928694d6d34b235766b1f662b2ce1c8440032
+    - name: implementations-c83a4f299993efdf1e9a883b7d05cb035219013b529f03866c0be2efd4da651d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","producer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -249,11 +249,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-1b522aee8fb5d61c1a9a7ebfad504ce69d5c2b2ff71daa757e89c8723c9de172}}'
+            value: '{{workflow.parameters.components-522286ff8480712f50be32c25dedca8517bb73693bea29170288afdd11255e1d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["createpvc","producer"],"taskInfo":{"name":"consumer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-1b522aee8fb5d61c1a9a7ebfad504ce69d5c2b2ff71daa757e89c8723c9de172}}'
+            value: '{{workflow.parameters.implementations-522286ff8480712f50be32c25dedca8517bb73693bea29170288afdd11255e1d}}'
           - name: task-name
             value: consumer
           - name: parent-dag-id
@@ -305,11 +305,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-d69d67847cbabf54bbdf7ec9203928694d6d34b235766b1f662b2ce1c8440032}}'
+            value: '{{workflow.parameters.components-c83a4f299993efdf1e9a883b7d05cb035219013b529f03866c0be2efd4da651d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"dependentTasks":["createpvc"],"taskInfo":{"name":"producer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-d69d67847cbabf54bbdf7ec9203928694d6d34b235766b1f662b2ce1c8440032}}'
+            value: '{{workflow.parameters.implementations-c83a4f299993efdf1e9a883b7d05cb035219013b529f03866c0be2efd4da651d}}'
           - name: task-name
             value: producer
           - name: parent-dag-id

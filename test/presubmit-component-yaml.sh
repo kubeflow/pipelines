@@ -15,6 +15,8 @@
 
 source_root=$(pwd)
 
+python3 -m pip install pytest
+python3 -m pip install pytest-asyncio-cooperative==0.37.0
 python3 -m pip install --upgrade pip
 python3 -m pip install sdk/python
 apt-get update && apt-get install -y protobuf-compiler

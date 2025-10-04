@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-51afa5bea7ae414a11eb9468a9b018d12b110fdd62b44ad21b14f7e8490333b2
+    - name: components-7af5009b3d45dcf8a4432f8c675e83fecaf54125510a1a4ec938ecaadc07eac0
       value: '{"executorLabel":"exec-concat-message","inputDefinitions":{"parameters":{"message1":{"parameterType":"STRING"},"message2":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-51afa5bea7ae414a11eb9468a9b018d12b110fdd62b44ad21b14f7e8490333b2
+    - name: implementations-7af5009b3d45dcf8a4432f8c675e83fecaf54125510a1a4ec938ecaadc07eac0
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","concat_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -202,11 +202,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-51afa5bea7ae414a11eb9468a9b018d12b110fdd62b44ad21b14f7e8490333b2}}'
+            value: '{{workflow.parameters.components-7af5009b3d45dcf8a4432f8c675e83fecaf54125510a1a4ec938ecaadc07eac0}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-concat-message"},"inputs":{"parameters":{"message1":{"componentInputParameter":"message1"},"message2":{"componentInputParameter":"message2"}}},"taskInfo":{"name":"concat-message"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-51afa5bea7ae414a11eb9468a9b018d12b110fdd62b44ad21b14f7e8490333b2}}'
+            value: '{{workflow.parameters.implementations-7af5009b3d45dcf8a4432f8c675e83fecaf54125510a1a4ec938ecaadc07eac0}}'
           - name: task-name
             value: concat-message
           - name: parent-dag-id

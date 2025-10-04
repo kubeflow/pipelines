@@ -10,13 +10,13 @@ spec:
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer
       value: '{"artifactUri":{"runtimeParameter":"uri"},"reimport":true,"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
-    - name: components-35e72db0aa0c9f3f658bdf4106261026ae722e5b716413f691cda4db8679a44e
+    - name: components-8449ec34664176c1b587ca57db361e90df4e3f8f467eb9367376055758f34f1a
       value: '{"executorLabel":"exec-normalize-dataset","inputDefinitions":{"artifacts":{"input_iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"standard_scaler":{"parameterType":"BOOLEAN"}}},"outputDefinitions":{"artifacts":{"normalized_iris_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-35e72db0aa0c9f3f658bdf4106261026ae722e5b716413f691cda4db8679a44e
+    - name: implementations-8449ec34664176c1b587ca57db361e90df4e3f8f467eb9367376055758f34f1a
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","normalize_dataset"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
         -m pip install --quiet --no-warn-script-location ''pandas==2.2.0'' ''scikit-learn==1.4.0''
         \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf
@@ -282,11 +282,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-35e72db0aa0c9f3f658bdf4106261026ae722e5b716413f691cda4db8679a44e}}'
+            value: '{{workflow.parameters.components-8449ec34664176c1b587ca57db361e90df4e3f8f467eb9367376055758f34f1a}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-normalize-dataset"},"dependentTasks":["importer"],"inputs":{"artifacts":{"input_iris_dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}},"parameters":{"standard_scaler":{"componentInputParameter":"standard_scaler"}}},"taskInfo":{"name":"normalize-dataset"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-35e72db0aa0c9f3f658bdf4106261026ae722e5b716413f691cda4db8679a44e}}'
+            value: '{{workflow.parameters.implementations-8449ec34664176c1b587ca57db361e90df4e3f8f467eb9367376055758f34f1a}}'
           - name: task-name
             value: normalize-dataset
           - name: parent-dag-id

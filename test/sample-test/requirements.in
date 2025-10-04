@@ -1,8 +1,0 @@
-kfp==2.14.2
-junit-xml
-minio
-black
-papermill
-fire
-yamale
-kubernetes

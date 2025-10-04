@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-fab3351a106d30bf27d438b6f9480f83cc05253a4823342f3f955f7b9eddaadd
+    - name: components-685cc8721e4d47ea4a7b1a8012621f5d72de4fa023d17bce3261c2c91f95ee2d
       value: '{"executorLabel":"exec-component-with-optional-inputs","inputDefinitions":{"parameters":{"optional_input_1":{"isOptional":true,"parameterType":"STRING"},"optional_input_2":{"isOptional":true,"parameterType":"STRING"},"required_input":{"parameterType":"STRING"}}}}'
-    - name: implementations-fab3351a106d30bf27d438b6f9480f83cc05253a4823342f3f955f7b9eddaadd
+    - name: implementations-685cc8721e4d47ea4a7b1a8012621f5d72de4fa023d17bce3261c2c91f95ee2d
       value: '{"args":["--arg0","{{$.inputs.parameters[''required_input'']}}","{\"IfPresent\":
         {\"InputName\": \"optional_input_1\", \"Then\": [\"--arg1\", \"{{$.inputs.parameters[''optional_input_1'']}}\"]}}","{\"IfPresent\":
         {\"InputName\": \"optional_input_2\", \"Then\": [\"--arg2\", \"{{$.inputs.parameters[''optional_input_2'']}}\"],
-        \"Else\": [\"--arg2\", \"default value\"]}}"],"command":["echo"],"image":"registry.k8s.io/busybox"}'
+        \"Else\": [\"--arg2\", \"default value\"]}}"],"command":["echo"],"image":"ghcr.io/containerd/busybox"}'
     - name: components-root
       value: '{"dag":{"tasks":{"component-with-optional-inputs":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-optional-inputs"},"inputs":{"parameters":{"required_input":{"componentInputParameter":"input0"}}},"taskInfo":{"name":"component-with-optional-inputs"}}}},"inputDefinitions":{"parameters":{"input0":{"defaultValue":"input0","isOptional":true,"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
@@ -195,11 +195,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-fab3351a106d30bf27d438b6f9480f83cc05253a4823342f3f955f7b9eddaadd}}'
+            value: '{{workflow.parameters.components-685cc8721e4d47ea4a7b1a8012621f5d72de4fa023d17bce3261c2c91f95ee2d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-optional-inputs"},"inputs":{"parameters":{"required_input":{"componentInputParameter":"input0"}}},"taskInfo":{"name":"component-with-optional-inputs"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-fab3351a106d30bf27d438b6f9480f83cc05253a4823342f3f955f7b9eddaadd}}'
+            value: '{{workflow.parameters.implementations-685cc8721e4d47ea4a7b1a8012621f5d72de4fa023d17bce3261c2c91f95ee2d}}'
           - name: task-name
             value: component-with-optional-inputs
           - name: parent-dag-id

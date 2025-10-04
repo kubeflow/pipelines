@@ -40,9 +40,9 @@ class TestAuth(parameterized.TestCase):
             mock.side_effect = ImportError
             self.assertFalse(auth.is_ipython())
 
-    @patch('builtins.input', lambda *args:
-           'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
-          )
+    @patch(
+        'builtins.input', lambda *args:
+        'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
     @patch('kfp.client.auth.is_ipython', lambda *args: True)
     @patch.dict(os.environ, dict(), clear=True)
     def test_get_auth_code_from_ipython(self):
@@ -50,9 +50,9 @@ class TestAuth(parameterized.TestCase):
         self.assertEqual(token, '4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
         self.assertEqual(redirect_uri, 'http://localhost:9901')
 
-    @patch('builtins.input', lambda *args:
-           'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
-          )
+    @patch(
+        'builtins.input', lambda *args:
+        'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
     @patch.dict(os.environ, {'SSH_CONNECTION': 'ENABLED'}, clear=True)
     def test_get_auth_code_from_remote_connection(self):
@@ -60,9 +60,9 @@ class TestAuth(parameterized.TestCase):
         self.assertEqual(token, '4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
         self.assertEqual(redirect_uri, 'http://localhost:9901')
 
-    @patch('builtins.input', lambda *args:
-           'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
-          )
+    @patch(
+        'builtins.input', lambda *args:
+        'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
     @patch.dict(os.environ, {'SSH_CLIENT': 'ENABLED'}, clear=True)
     def test_get_auth_code_from_remote_client(self):
@@ -76,9 +76,9 @@ class TestAuth(parameterized.TestCase):
     def test_get_auth_code_from_remote_client_missing_code(self):
         self.assertRaises(KeyError, auth.get_auth_code, 'sample-client-id')
 
-    @patch('kfp.client.auth.get_auth_response_local', lambda *args:
-           'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7'
-          )
+    @patch(
+        'kfp.client.auth.get_auth_response_local', lambda *args:
+        'https://oauth2.example.com/auth?code=4/P7q7W91a-oMsCeLvIaQm6bTrgtp7')
     @patch('kfp.client.auth.is_ipython', lambda *args: False)
     @patch.dict(os.environ, dict(), clear=True)
     def test_get_auth_code_from_local(self):

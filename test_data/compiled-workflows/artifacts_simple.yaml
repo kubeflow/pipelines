@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-c5d9db90f808f80ef1002c853a9b5388683cd76916be6e81c7fb456ba39e776b
+    - name: components-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1
       value: '{"executorLabel":"exec-add","inputDefinitions":{"artifacts":{"in_datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-c5d9db90f808f80ef1002c853a9b5388683cd76916be6e81c7fb456ba39e776b
+    - name: implementations-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -32,13 +32,13 @@ spec:
         ''/gcs/'')\n    os.makedirs(os.path.dirname(outpath), exist_ok=True)\n    with
         open(outpath, ''w'') as f:\n        f.write(str(total))\n\nparser = argparse.ArgumentParser()\nparser.add_argument(''in_datasets'')\nparser.add_argument(''out_dataset_uri'')\nargs
         = parser.parse_args()\n\nmain(args.in_datasets, args.out_dataset_uri)\n","{{$.inputs.artifacts[''in_datasets'']}}","{{$.outputs.artifacts[''out_dataset''].uri}}"],"command":["python","-c"],"image":"python:3.9"}'
-    - name: components-776356678670bc84a962f73cfc40766728bfe72e32a8c19cc74dccb3ad860c27
+    - name: components-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b
       value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-776356678670bc84a962f73cfc40766728bfe72e32a8c19cc74dccb3ad860c27
+    - name: implementations-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","double"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -231,11 +231,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-776356678670bc84a962f73cfc40766728bfe72e32a8c19cc74dccb3ad860c27}}'
+            value: '{{workflow.parameters.components-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-776356678670bc84a962f73cfc40766728bfe72e32a8c19cc74dccb3ad860c27}}'
+            value: '{{workflow.parameters.implementations-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b}}'
           - name: task-name
             value: double
           - name: parent-dag-id
@@ -401,11 +401,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c5d9db90f808f80ef1002c853a9b5388683cd76916be6e81c7fb456ba39e776b}}'
+            value: '{{workflow.parameters.components-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"in_datasets":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-out_dataset","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c5d9db90f808f80ef1002c853a9b5388683cd76916be6e81c7fb456ba39e776b}}'
+            value: '{{workflow.parameters.implementations-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1}}'
           - name: task-name
             value: add
           - name: parent-dag-id

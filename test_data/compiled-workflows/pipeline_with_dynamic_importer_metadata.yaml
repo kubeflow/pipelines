@@ -14,13 +14,13 @@ spec:
       value: '{"executorLabel":"exec-importer-2","inputDefinitions":{"parameters":{"metadata":{"parameterType":"STRING"},"metadata-2":{"parameterType":"STRING"},"metadata-3":{"parameterType":"NUMBER_INTEGER"},"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer-2
       value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"metadata":{"containerSpec":{"imageUri":"us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest"},"list-of-data":["{{$.inputs.parameters[''metadata'']}}","{{$.inputs.parameters[''metadata-2'']}}","{{$.inputs.parameters[''metadata-3'']}}"],"name":"prefix-{{$.inputs.parameters[''metadata'']}}","{{$.inputs.parameters[''metadata'']}}":"{{$.inputs.parameters[''metadata'']}}","{{$.inputs.parameters[''metadata-2'']}}":"us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
-    - name: components-f3bd45ffcf1d4a638b268bffc38dd3c8c4d6ef1bc1edcdc990008c6208474ca7
+    - name: components-958372f93b012956585660b34fdee7e4ee56bc8305edc68a225e8d9fd0e274f2
       value: '{"executorLabel":"exec-make-name","inputDefinitions":{"parameters":{"name":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-f3bd45ffcf1d4a638b268bffc38dd3c8c4d6ef1bc1edcdc990008c6208474ca7
+    - name: implementations-958372f93b012956585660b34fdee7e4ee56bc8305edc68a225e8d9fd0e274f2
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","make_name"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -290,11 +290,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f3bd45ffcf1d4a638b268bffc38dd3c8c4d6ef1bc1edcdc990008c6208474ca7}}'
+            value: '{{workflow.parameters.components-958372f93b012956585660b34fdee7e4ee56bc8305edc68a225e8d9fd0e274f2}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-name"},"inputs":{"parameters":{"name":{"runtimeValue":{"constant":"a-different-name"}}}},"taskInfo":{"name":"make-name"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f3bd45ffcf1d4a638b268bffc38dd3c8c4d6ef1bc1edcdc990008c6208474ca7}}'
+            value: '{{workflow.parameters.implementations-958372f93b012956585660b34fdee7e4ee56bc8305edc68a225e8d9fd0e274f2}}'
           - name: task-name
             value: make-name
           - name: parent-dag-id

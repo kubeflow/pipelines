@@ -156,11 +156,15 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
   elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
+  else
+    TEST_MANIFESTS="${TEST_MANIFESTS}/regular"
   fi
 elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/kubernetes-native"
   if $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
+  else
+    TEST_MANIFESTS="${TEST_MANIFESTS}/regular"
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
@@ -170,6 +174,8 @@ elif [ "${MULTI_USER}" == "true" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
+  else
+    TEST_MANIFESTS="${TEST_MANIFESTS}/regular"
   fi
 fi
 

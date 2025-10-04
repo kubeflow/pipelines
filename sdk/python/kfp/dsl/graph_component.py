@@ -22,7 +22,6 @@ from kfp.compiler import pipeline_spec_builder as builder
 from kfp.dsl import base_component
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_config
-from kfp.dsl import pipeline_context
 from kfp.dsl import pipeline_task
 from kfp.dsl import structures
 from kfp.dsl import tasks_group
@@ -43,6 +42,8 @@ class GraphComponent(base_component.BaseComponent):
         display_name: Optional[str] = None,
         pipeline_config: pipeline_config.PipelineConfig = None,
     ):
+
+        from kfp.dsl import pipeline_context
         super().__init__(component_spec=component_spec)
         self.pipeline_func = pipeline_func
         self.pipeline_config = pipeline_config
@@ -138,7 +139,7 @@ class GraphComponent(base_component.BaseComponent):
         return False
 
     def _validate_workspace_requirements(
-            self, pipeline: pipeline_context.Pipeline,
+            self, pipeline: 'pipeline_context.Pipeline',
             pipeline_config: Optional[pipeline_config.PipelineConfig]) -> None:
         """Validates that workspace is configured if workspace features are
         used in the pipeline.

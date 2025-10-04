@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api
+package constants
 
 const (
-	PARENT_DIRECTORY            string = "backend"
-	TEST_DATA_DIR               string = "test_data"
-	PIPELINE_FILES_DIR          string = "pipeline_files"
-	VALID_PIPELINE_FILES_DIR    string = "valid"
-	COMPILED_PIPELINE_FILES_DIR string = "compiled-workflows"
+	ParentDirectory          string = "backend"
+	TestDataDir              string = "test_data"
+	PipelineFilesDir         string = "pipeline_files"
+	ValidPipelineFilesDir    string = "valid"
+	CompiledPipelineFilesDir string = "compiled-workflows"
 )

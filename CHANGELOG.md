@@ -4596,8 +4596,6 @@
 * **SDK:** require PyYAML>=5.3 ([\#5063](https://github.com/kubeflow/pipelines/issues/5063)) ([2e7eb9d](https://github.com/kubeflow/pipelines/commit/2e7eb9d356f1c8ab7716a556dbb9732de43c0e4a))
 * **sdk.v2:** Fix the bug where pipeline_parameters is not used. ([\#5002](https://github.com/kubeflow/pipelines/issues/5002)) ([0c600a2](https://github.com/kubeflow/pipelines/commit/0c600a2cb8c8e55b3214745154732af661799b55))
 * **test:** Fix presubmit with python version upgrade ([\#5033](https://github.com/kubeflow/pipelines/issues/5033)) ([a8b7fc9](https://github.com/kubeflow/pipelines/commit/a8b7fc97b177b8fd835315d116482bf293cfa8a4))
-* **test:** Pin pip version in presubmit-tests-tfx.sh Fixes [\#5049](https://github.com/kubeflow/pipelines/issues/5049) ([\#5050](https://github.com/kubeflow/pipelines/issues/5050)) ([cad02dc](https://github.com/kubeflow/pipelines/commit/cad02dc2836ee25dac7c29658d0c0f6dea6fc17e))
-
 
 ### Other Pull Requests
 
@@ -4651,8 +4649,6 @@
 * **SDK:** require PyYAML>=5.3 ([\#5063](https://github.com/kubeflow/pipelines/issues/5063)) ([2e7eb9d](https://github.com/kubeflow/pipelines/commit/2e7eb9d356f1c8ab7716a556dbb9732de43c0e4a))
 * **sdk.v2:** Fix the bug where pipeline_parameters is not used. ([\#5002](https://github.com/kubeflow/pipelines/issues/5002)) ([0c600a2](https://github.com/kubeflow/pipelines/commit/0c600a2cb8c8e55b3214745154732af661799b55))
 * **test:** Fix presubmit with python version upgrade ([\#5033](https://github.com/kubeflow/pipelines/issues/5033)) ([a8b7fc9](https://github.com/kubeflow/pipelines/commit/a8b7fc97b177b8fd835315d116482bf293cfa8a4))
-* **test:** Pin pip version in presubmit-tests-tfx.sh Fixes [\#5049](https://github.com/kubeflow/pipelines/issues/5049) ([\#5050](https://github.com/kubeflow/pipelines/issues/5050)) ([cad02dc](https://github.com/kubeflow/pipelines/commit/cad02dc2836ee25dac7c29658d0c0f6dea6fc17e))
-
 
 ### Other Pull Requests
 

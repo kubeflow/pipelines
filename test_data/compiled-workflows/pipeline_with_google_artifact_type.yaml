@@ -10,15 +10,15 @@ spec:
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"google.VertexDataset","schemaVersion":"0.0.0"}}}}}'
     - name: implementations-comp-importer
       value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"metadata":{"key":"value"},"typeSchema":{"schemaTitle":"google.VertexDataset","schemaVersion":"0.0.0"}}'
-    - name: components-a4de2da00e21a830cb7e8d8a99d39a4ccfa8135f246cde4bb0f427c77f4082a1
+    - name: components-294c7093bd6007beda02527c7a120966fc8e353153d9512485700a047f484f0b
       value: '{"executorLabel":"exec-model-consumer","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"google.VertexDataset","schemaVersion":"0.0.0"}},"model":{"artifactType":{"schemaTitle":"google.VertexModel","schemaVersion":"0.0.0"}}}}}'
-    - name: implementations-a4de2da00e21a830cb7e8d8a99d39a4ccfa8135f246cde4bb0f427c77f4082a1
+    - name: implementations-294c7093bd6007beda02527c7a120966fc8e353153d9512485700a047f484f0b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","model_consumer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
-        -m pip install --quiet --no-warn-script-location ''aiplatform'' \u0026\u0026
+        python3 -m pip install --quiet --no-warn-script-location ''aiplatform''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
@@ -29,15 +29,15 @@ spec:
         '', model.uri)\n    print(''artifact.metadata: '', model.metadata)\n\n    print(''Dataset'')\n    print(''artifact.type:
         '', type(dataset))\n    print(''artifact.name: '', dataset.name)\n    print(''artifact.uri:
         '', dataset.uri)\n    print(''artifact.metadata: '', dataset.metadata)\n\n"],"image":"python:3.9"}'
-    - name: components-4928f6ea1637abdcae96b8a73aed24e3045f639c588854037fc861491cbd5a87
+    - name: components-3d4953dfcdcfe41d72b761df76bfc76edf185ecf8415d539fd17c4c6f8f29200
       value: '{"executorLabel":"exec-model-producer","outputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"google.VertexModel","schemaVersion":"0.0.0"}}}}}'
-    - name: implementations-4928f6ea1637abdcae96b8a73aed24e3045f639c588854037fc861491cbd5a87
+    - name: implementations-3d4953dfcdcfe41d72b761df76bfc76edf185ecf8415d539fd17c4c6f8f29200
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","model_producer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"''  \u0026\u0026  python3
-        -m pip install --quiet --no-warn-script-location ''aiplatform'' \u0026\u0026
+        python3 -m pip install --quiet --no-warn-script-location ''aiplatform''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
@@ -296,11 +296,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a4de2da00e21a830cb7e8d8a99d39a4ccfa8135f246cde4bb0f427c77f4082a1}}'
+            value: '{{workflow.parameters.components-294c7093bd6007beda02527c7a120966fc8e353153d9512485700a047f484f0b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-model-consumer"},"dependentTasks":["importer","model-producer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}},"model":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"model-producer"}}}},"taskInfo":{"name":"model-consumer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a4de2da00e21a830cb7e8d8a99d39a4ccfa8135f246cde4bb0f427c77f4082a1}}'
+            value: '{{workflow.parameters.implementations-294c7093bd6007beda02527c7a120966fc8e353153d9512485700a047f484f0b}}'
           - name: task-name
             value: model-consumer
           - name: parent-dag-id
@@ -321,11 +321,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-4928f6ea1637abdcae96b8a73aed24e3045f639c588854037fc861491cbd5a87}}'
+            value: '{{workflow.parameters.components-3d4953dfcdcfe41d72b761df76bfc76edf185ecf8415d539fd17c4c6f8f29200}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-model-producer"},"taskInfo":{"name":"model-producer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-4928f6ea1637abdcae96b8a73aed24e3045f639c588854037fc861491cbd5a87}}'
+            value: '{{workflow.parameters.implementations-3d4953dfcdcfe41d72b761df76bfc76edf185ecf8415d539fd17c4c6f8f29200}}'
           - name: task-name
             value: model-producer
           - name: parent-dag-id
