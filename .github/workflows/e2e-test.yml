@@ -233,10 +233,8 @@ jobs:
         shell: bash
         env:
           USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
-          KUBEFLOW_NAMESPACE: ${{ env.NAMESPACE }}
         run: |
-          echo "Running artifact proxy E2E tests..."
-          ./.github/resources/scripts/test-artifact-proxy.sh "$USER_NAMESPACE"
+          ./test/artifact-proxy/test-artifact-proxy.sh "$USER_NAMESPACE"
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report

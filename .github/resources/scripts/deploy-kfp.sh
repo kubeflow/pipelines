@@ -176,7 +176,7 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
-  elif $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+  if $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
   if [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
