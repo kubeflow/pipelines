@@ -39,7 +39,8 @@ jobs:
 
     - name: Install Test dependencies
       run: |
-        pip install requests==2.31.0
+        pip install requests==2.32.5
+        pip install urllib3==2.5.0
         pip install -r sdk/python/requirements-dev.txt
         pip install pytest
         pip install docker
@@ -48,6 +49,12 @@ jobs:
 
     - name: Set up Docker for local execution tests
       run: |
+        # Ensure Docker daemon is running and accessible
+        sudo systemctl start docker
+        sudo systemctl enable docker
+        sudo usermod -aG docker $USER
+        # Wait for Docker to be ready
+        timeout 30 bash -c 'until docker info > /dev/null 2>&1; do sleep 1; done'
         docker info
 
     - name: Run SDK Tests
