@@ -1,3 +1,13 @@
+SHELL := /bin/bash
+
+.PHONY: setup-python
+setup-python:
+	python3 -m venv .venv && \
+	source .venv/bin/activate
+
+.PHONY: test-backend-visualization-test
+test-backend-visualization-test:
+	./test/presubmit-backend-visualization.sh
 
 # Check diff for generated files
 .PHONY: check-diff
