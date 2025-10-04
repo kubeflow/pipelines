@@ -39,13 +39,13 @@ jobs:
 
     - name: Install Test dependencies
       run: |
-        pip install requests==2.32.5
-        pip install urllib3==2.5.0
         pip install -r sdk/python/requirements-dev.txt
         pip install pytest
         pip install docker
         pip install pytest-cov
         pip install google_cloud_pipeline_components
+        pip install requests<2.2.29
+        pip install urllib3<2
 
     - name: Set up Docker for local execution tests
       run: |

@@ -1117,30 +1117,35 @@ class TestPipelineCompilation:
     def test_compilation(self, pipeline_data: TestData):
         temp_compiled_pipeline_file = os.path.join(
             tempfile.gettempdir(), pipeline_data.compiled_file_name)
-
-        Compiler().compile(
-            pipeline_func=pipeline_data.pipeline_func,
-            pipeline_name=pipeline_data.pipeline_name,
-            pipeline_parameters=pipeline_data.pipline_func_args,
-            package_path=temp_compiled_pipeline_file,
-        )
-        print(f'Pipeline Created at : {temp_compiled_pipeline_file}')
-        print(
-            f'Parsing expected yaml {pipeline_data.expected_compiled_file_path} for comparison'
-        )
-        expected_pipeline_specs, expected_platform_specs = FileUtils.read_yaml_file(
-            pipeline_data.expected_compiled_file_path)
-        print(
-            f'Parsing compiled yaml {temp_compiled_pipeline_file} for comparison'
-        )
-        generated_pipeline_specs, generated_platform_specs = FileUtils.read_yaml_file(
-            temp_compiled_pipeline_file)
-        print('Verify that the generated yaml matches expected yaml or not')
-        ComparisonUtils.compare_pipeline_spec_dicts(
-            actual=generated_pipeline_specs,
-            expected=expected_pipeline_specs,
-            name=pipeline_data.pipeline_name,
-            runtime_params=pipeline_data.pipline_func_args,
-        )
-        ComparisonUtils.compare_pipeline_spec_dicts(
-            actual=generated_platform_specs, expected=expected_platform_specs)
+        try:
+            Compiler().compile(
+                pipeline_func=pipeline_data.pipeline_func,
+                pipeline_name=pipeline_data.pipeline_name,
+                pipeline_parameters=pipeline_data.pipline_func_args,
+                package_path=temp_compiled_pipeline_file,
+            )
+            print(f'Pipeline Created at : {temp_compiled_pipeline_file}')
+            print(
+                f'Parsing expected yaml {pipeline_data.expected_compiled_file_path} for comparison'
+            )
+            expected_pipeline_specs, expected_platform_specs = FileUtils.read_yaml_file(
+                pipeline_data.expected_compiled_file_path)
+            print(
+                f'Parsing compiled yaml {temp_compiled_pipeline_file} for comparison'
+            )
+            generated_pipeline_specs, generated_platform_specs = FileUtils.read_yaml_file(
+                temp_compiled_pipeline_file)
+            print('Verify that the generated yaml matches expected yaml or not')
+            ComparisonUtils.compare_pipeline_spec_dicts(
+                actual=generated_pipeline_specs,
+                expected=expected_pipeline_specs,
+                name=pipeline_data.pipeline_name,
+                runtime_params=pipeline_data.pipline_func_args,
+            )
+            ComparisonUtils.compare_pipeline_spec_dicts(
+                actual=generated_platform_specs,
+                expected=expected_platform_specs)
+        finally:
+            print(f'Deleting temp compiled file: {temp_compiled_pipeline_file}')
+            os.remove(temp_compiled_pipeline_file)
+            print(f'Deleted temp compiled file: {temp_compiled_pipeline_file}')
