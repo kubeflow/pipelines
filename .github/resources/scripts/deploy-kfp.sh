@@ -91,11 +91,6 @@ if [ "${MULTI_USER}" == "true" ] && [ "${USE_PROXY}" == "true" ]; then
   exit 1
 fi
 
-if [ "${STORAGE_BACKEND}" != "minio" ] && [ "${STORAGE_BACKEND}" != "seaweedfs" ]; then
-  echo "ERROR: Storage backend must be either 'minio' or 'seaweedfs'."
-  exit 1
-fi
-
 if [ -n "${AWF_VERSION}"  ]; then
   echo "NOTE: Argo version ${AWF_VERSION} specified, updating Argo Workflow manifests..."
   echo "${AWF_VERSION}" > third_party/argo/VERSION
