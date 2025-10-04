@@ -227,6 +227,17 @@ jobs:
           kind --name kfp load docker-image registry.domain.local/modelcar:test
         continue-on-error: true
 
+      - name: Test Artifact Proxy
+        id: test-artifact-proxy
+        if: ${{ steps.deploy.outcome == 'success' && matrix.artifact_proxy == 'true' }}
+        shell: bash
+        env:
+          USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
+          KUBEFLOW_NAMESPACE: ${{ env.NAMESPACE }}
+        run: |
+          echo "Running artifact proxy E2E tests..."
+          ./.github/resources/scripts/test-artifact-proxy.sh "$USER_NAMESPACE"
+
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         if: ${{ steps.configure.outcome == 'success' }}
