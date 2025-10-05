@@ -88,5 +88,5 @@ fi
 echo "Test 3 PASSED"
 
 # Cleanup
-kubectl -n "$NAMESPACE" delete wf "$WF_NAME" --ignore-not-found=true
+kubectl -n "$NAMESPACE" delete wf "$WORKFLOW_NAME" --ignore-not-found=true
 kubectl -n "$NAMESPACE" delete pod kfp-proxy-curl --ignore-not-found=true
