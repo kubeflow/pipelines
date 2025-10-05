@@ -61,7 +61,7 @@ spec:
 EOF
 )"
 
-WORKFLOW_NAME=$(kubectl -n "$NS" create -f - -o name <<<$"$WORKFLOW_MANIFEST" | awk -F/ '{print $2}')
+WORKFLOW_NAME=$(kubectl -n "$NAMESPACE" create -f - -o name <<<$"$WORKFLOW_MANIFEST" | awk -F/ '{print $2}')
 echo "Waiting for workflow $WORKFLOW_NAME to complete..."
 kubectl -n "$NAMESPACE" wait --for=condition=Completed "wf/${WORKFLOW_NAME}" --timeout=300s
 
