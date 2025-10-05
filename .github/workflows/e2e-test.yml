@@ -171,7 +171,7 @@ jobs:
         cache_enabled: ["true", "false"]
         storage: [ "seaweedfs", "minio"]
         multi_user: [ "true" ]
-        artifact_proxy: [ "true" ]
+        artifact_proxy: [ "true", "false"]
         test_label: [ "E2ECritical" ]
       fail-fast: false
     name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }} artifactProxy=${{ matrix.artifact_proxy }}
