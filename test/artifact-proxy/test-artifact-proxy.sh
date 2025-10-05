@@ -18,7 +18,7 @@ kubectl -n "$NAMESPACE" wait --for=condition=Ready pod/kfp-proxy-curl --timeout=
 # Test 1: Verify artifact proxy health endpoint
 HEALTH_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \
   curl -fsS -H 'kubeflow-userid: user@example.com' \
-  "http://ml-pipeline-ui-artifact.${NS}.svc.cluster.local/apis/v1beta1/healthz")
+  "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v1beta1/healthz")
 
 if ! echo "$HEALTH_RESPONSE" | grep -q '"apiServerReady":true'; then
   echo "ERROR: apiServerReady=false"
@@ -30,7 +30,7 @@ fi
 # Test 2: Verify proxy can list pipelines
 PIPELINES_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \
   curl -fsS -H 'kubeflow-userid: user@example.com' \
-  "http://ml-pipeline-ui-artifact.${NS}.svc.cluster.local/apis/v2beta1/pipelines?page_size=1")
+  "http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/apis/v2beta1/pipelines?page_size=1")
 
 if ! echo "$PIPELINES_RESPONSE" | grep -q '"pipelines"'; then
   echo "ERROR: Failed to list pipelines"
@@ -63,30 +63,24 @@ EOF
 
 WORKFLOW_NAME=$(kubectl -n "$NAMESPACE" create -f - -o name <<<$"$WORKFLOW_MANIFEST" | awk -F/ '{print $2}')
 echo "Waiting for workflow $WORKFLOW_NAME to complete..."
-kubectl -n "$NAMESPACE" wait --for=condition=Completed "wf/${WORKFLOW_NAME}" --timeout=300s
+kubectl -n "$NAMESPACE" wait --for=condition=Completed "workflow/${WORKFLOW_NAME}" --timeout=300s
 
-# Check workflow succeeded
-WORKFLOW_PHASE=$(kubectl -n "$NAMESPACE" get wf "$WORKFLOW_NAME" -o jsonpath='{.status.phase}')
+WORKFLOW_PHASE=$(kubectl -n "$NAMESPACE" get workflow "$WORKFLOW_NAME" -o jsonpath='{.status.phase}')
 if [[ "$WORKFLOW_PHASE" != "Succeeded" ]]; then
   echo "ERROR: Workflow phase: $WORKFLOW_PHASE"
-  kubectl -n "$NAMESPACE" get wf "$WORKFLOW_NAME" -o jsonpath='{.status.message}'
+  kubectl -n "$NAMESPACE" get workflow "$WORKFLOW_NAME" -o jsonpath='{.status.message}'
   exit 1
 fi
 
-# Get artifact key from workflow
-KEY=$(kubectl -n "$NAMESPACE" get wf "$WORKFLOW_NAME" -o jsonpath='{.status.nodes.*.outputs.artifacts[?(@.name=="out")].s3.key}')
-
-echo "Fetching artifact via proxy..."
+KEY=$(kubectl -n "$NAMESPACE" get workflow "$WORKFLOW_NAME" -o jsonpath='{.status.nodes.*.outputs.artifacts[?(@.name=="out")].s3.key}')
 ART_URL="http://ml-pipeline-ui-artifact.${NAMESPACE}.svc.cluster.local/artifacts/get?source=minio&bucket=mlpipeline&key=${KEY}"
-
 if ! kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- sh -c \
   "curl -fsS -H 'kubeflow-userid: user@example.com' '${ART_URL}' 2>/dev/null | grep -qx 'artifact-proxy-e2e-test-content'"; then
   echo "ERROR: Artifact content validation failed"
   kubectl -n "$NAMESPACE" logs deploy/ml-pipeline-ui-artifact -c ml-pipeline-ui-artifact --tail=50 || true
   exit 1
 fi
-echo "Test 3 PASSED"
 
 # Cleanup
-kubectl -n "$NAMESPACE" delete wf "$WORKFLOW_NAME" --ignore-not-found=true
+kubectl -n "$NAMESPACE" delete workflow "$WORKFLOW_NAME" --ignore-not-found=true
 kubectl -n "$NAMESPACE" delete pod kfp-proxy-curl --ignore-not-found=true
