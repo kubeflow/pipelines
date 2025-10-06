@@ -127,6 +127,8 @@ if [ "${MULTI_USER}" == "true" ]; then
   echo "Waiting for all Istio Pods to become ready..."
   kubectl wait --for=condition=Ready pods --all -n istio-system --timeout=300s
 
+  kubectl label namespace kubeflow istio-injection=enabled --overwrite
+
   echo "Deploying Metacontroller CRD..."
   kubectl apply -f manifests/kustomize/third-party/metacontroller/base/crd.yaml
   kubectl wait --for condition=established --timeout=30s crd/compositecontrollers.metacontroller.k8s.io
@@ -178,7 +180,6 @@ elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
   if $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
-    echo "--------------------------------"
   fi
   if [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"

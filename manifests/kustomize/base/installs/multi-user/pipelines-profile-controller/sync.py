@@ -274,6 +274,14 @@ def server_factory(frontend_image, frontend_tag,
                                                         "name": "mlpipeline-minio-artifact"
                                                     }
                                                 }
+                                            },
+                                            {
+                                                "name": "ML_PIPELINE_SERVICE_HOST",
+                                                "value": "ml-pipeline-ui.kubeflow"
+                                            },
+                                            {
+                                                "name": "ML_PIPELINE_SERVICE_PORT",
+                                                "value": "80"
                                             }
                                         ],
                                         "resources": {

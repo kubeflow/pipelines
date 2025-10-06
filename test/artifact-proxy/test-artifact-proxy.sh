@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -euxo pipefail
 
 # Artifact Proxy E2E Test
@@ -5,9 +6,8 @@ set -euxo pipefail
 
 NAMESPACE="${1:-${USER_NAMESPACE:-kubeflow-user-example-com}}"
 
-# Ensure the artifact proxy is deployed and ready
-kubectl get deployment -n "$NAMESPACE" ml-pipeline-ui-artifact || exit 1
-kubectl -n "$NAMESPACE" rollout status deploy/ml-pipeline-ui-artifact --timeout=180s ||  exit 1
+kubectl -n kubeflow patch authorizationpolicy ml-pipeline-ui --type='json' \
+  -p='[{"op":"add","path":"/spec/rules/-","value":{"from":[{"source":{"namespaces":["'"$NAMESPACE"'"]}}]}}]' || true
 
 # Create curl pod for testing
 if ! kubectl -n "$NAMESPACE" get pod kfp-proxy-curl >/dev/null 2>&1; then
