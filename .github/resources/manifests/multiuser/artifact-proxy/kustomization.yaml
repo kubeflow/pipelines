@@ -17,3 +17,4 @@ images:
 
 patches:
 - path: pipeline-install-config-patch.yaml
+- path: disable-istio-injection.yaml
