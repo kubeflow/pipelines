@@ -13,7 +13,7 @@ kubectl -n kubeflow patch authorizationpolicy ml-pipeline-ui --type='json' \
 if ! kubectl -n "$NAMESPACE" get pod kfp-proxy-curl >/dev/null 2>&1; then
   kubectl -n "$NAMESPACE" run kfp-proxy-curl --image=curlimages/curl:8.7.1 --restart=Never --command -- sleep 3600
 fi
-kubectl -n "$NAMESPACE" wait --for=condition=Ready pod/kfp-proxy-curl --timeout=120s
+kubectl -n "$NAMESPACE" wait --for=condition=Ready pod/kfp-proxy-curl --timeout=300s
 
 # Test 1: Verify artifact proxy health endpoint
 HEALTH_RESPONSE=$(kubectl -n "$NAMESPACE" exec kfp-proxy-curl -- \
