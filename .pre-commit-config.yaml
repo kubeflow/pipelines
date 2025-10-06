@@ -60,7 +60,7 @@ repos:
       - id: golangci-lint
         name: golangci-lint
         description: Fast linters runner for Go.
-        entry: golangci-lint run --new-from-rev HEAD --fix --whole-files
+        entry: golangci-lint run --new-from-rev HEAD --fix
         types: [go]
         language: golang
         require_serial: true
