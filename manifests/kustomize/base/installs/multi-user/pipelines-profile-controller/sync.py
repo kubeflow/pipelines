@@ -36,9 +36,12 @@ def main():
     server.serve_forever()
 
 
-def get_settings_from_env(controller_port=None, frontend_image=None,
-                          frontend_tag=None, disable_istio_sidecar=None,
-                          artifacts_proxy_enabled=None, artifact_retention_days=None):
+def get_settings_from_env(controller_port=None,
+                          frontend_image=None,
+                          frontend_tag=None,
+                          disable_istio_sidecar=None,
+                          artifacts_proxy_enabled=None,
+                          artifact_retention_days=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
 
@@ -83,8 +86,13 @@ def get_settings_from_env(controller_port=None, frontend_image=None,
     return settings
 
 
-def server_factory(frontend_image, frontend_tag,
-                   disable_istio_sidecar, artifacts_proxy_enabled, artifact_retention_days, url="", controller_port=8080):
+def server_factory(frontend_image,
+                   frontend_tag,
+                   disable_istio_sidecar,
+                   artifacts_proxy_enabled,
+                   artifact_retention_days,
+                   url="",
+                   controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
     """
