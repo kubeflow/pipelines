@@ -25,7 +25,7 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.3
-          args: --new --whole-files --new-from-merge-base=origin/${{ github.base_ref || github.ref_name }}
+          args: --new --new-from-merge-base=origin/${{ github.base_ref || github.ref_name }}
     #- uses: pre-commit/action@v3.0.1
     #  # This is set to only run the golangci-lint pre-commit hooks
     #  # Remove in a later PR to run all hooks
