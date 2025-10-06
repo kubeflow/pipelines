@@ -11,7 +11,8 @@ kubectl -n kubeflow patch authorizationpolicy ml-pipeline-ui --type='json' \
 
 # Create curl pod for testing
 if ! kubectl -n "$NAMESPACE" get pod kfp-proxy-curl >/dev/null 2>&1; then
-  kubectl -n "$NAMESPACE" run kfp-proxy-curl --image=curlimages/curl:8.7.1 --restart=Never --command -- sleep 3600
+  kubectl -n "$NAMESPACE" run kfp-proxy-curl --image=curlimages/curl:8.7.1 --restart=Never \
+    --annotations="sidecar.istio.io/inject=false" --command -- sleep 3600
 fi
 if ! kubectl -n "$NAMESPACE" wait --for=condition=Ready pod/kfp-proxy-curl --timeout=300s; then
   echo "..."
@@ -54,6 +55,9 @@ metadata:
 spec:
   serviceAccountName: default-editor
   entrypoint: main
+  podMetadata:
+    annotations:
+      sidecar.istio.io/inject: "false"
   templates:
   - name: main
     script:
