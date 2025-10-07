@@ -169,17 +169,17 @@ elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
   if $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
-  fi
-  if [ "${STORAGE_BACKEND}" == "minio" ]; then
+  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
-  elif $CACHE_DISABLED; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
+  elif $CACHE_DISABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
 fi
+
 
 echo "Deploying ${TEST_MANIFESTS}..."
 
