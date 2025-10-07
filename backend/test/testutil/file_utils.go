@@ -110,7 +110,6 @@ func GetListOfAllFilesInDir(directoryPath string) []string {
 		}
 		return nil
 	})
-
 	if err != nil {
 		fmt.Printf("Error walking the directory tree: %v\n", err)
 	}
@@ -139,13 +138,16 @@ func ToBytes(objectToConvert any) []byte {
 
 // ParseFileToSpecs - Read a file and unmarshall it into a template.V2Spec
 func ParseFileToSpecs(pipelineFilePath string, cacheDisabled bool, defaultWorkspace *v1.PersistentVolumeClaimSpec) *template.V2Spec {
-
-	specFromFile, err := os.OpenFile(pipelineFilePath, os.O_RDWR, 0644)
+	specFromFile, err := os.OpenFile(pipelineFilePath, os.O_RDWR, 0o644)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to read pipeline file")
 	defer specFromFile.Close()
 	pipelineSpecBytes, pipelineUnmarshallError := server.ReadPipelineFile(pipelineFilePath, specFromFile, common.MaxFileLength)
 	gomega.Expect(pipelineUnmarshallError).To(gomega.BeNil(), "Failed to read pipeline spec")
-	specs, templateErr := template.NewV2SpecTemplate(pipelineSpecBytes, cacheDisabled, defaultWorkspace)
+	templateOptions := template.TemplateOptions{
+		CacheDisabled:    cacheDisabled,
+		DefaultWorkspace: defaultWorkspace,
+	}
+	specs, templateErr := template.NewV2SpecTemplate(pipelineSpecBytes, templateOptions)
 	gomega.Expect(templateErr).To(gomega.BeNil(), "Failed to parse spec bytes into a spec object")
 	return specs
 }

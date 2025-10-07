@@ -15,8 +15,8 @@
 package api_server_v2
 
 import (
+	"crypto/tls"
 	"fmt"
-
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client"
@@ -46,10 +46,10 @@ type PipelineClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*PipelineClient, error) {
 
-	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("error occurred when creating pipeline client: %w", err)
 	}
@@ -62,10 +62,10 @@ func NewPipelineClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	}, nil
 }
 
-func NewKubeflowInClusterPipelineClient(namespace string, debug bool) (
+func NewKubeflowInClusterPipelineClient(namespace string, debug bool, tlsCfg *tls.Config) (
 	*PipelineClient, error) {
 
-	httpRuntime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	httpRuntime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, tlsCfg)
 
 	apiClient := apiclient.New(httpRuntime, strfmt.Default)
 
@@ -76,9 +76,9 @@ func NewKubeflowInClusterPipelineClient(namespace string, debug bool) (
 	}, nil
 }
 
-func NewMultiUserPipelineClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool) (
+func NewMultiUserPipelineClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool, tlsCfg *tls.Config) (
 	*PipelineClient, error) {
-	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	httpRuntime, err := api_server.NewHTTPRuntime(clientConfig, debug, tlsCfg)
 	if err != nil {
 		return nil, fmt.Errorf("error occurred when creating pipeline client: %w", err)
 	}

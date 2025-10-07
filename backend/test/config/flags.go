@@ -30,9 +30,11 @@ var (
 	ApiHost                       = flag.String("apiHost", "localhost", "The hostname of the API server")
 	ApiPort                       = flag.String("apiPort", "8888", "The port on which the API server is listening")
 	ApiUrl                        = flag.String("apiUrl", fmt.Sprintf("%s://%s:%s", *ApiScheme, *ApiHost, *ApiPort), "The URL of the API server")
-	DisableTlsCheck               = flag.Bool("disableTlsCheck", false, "Whether to use server certificate chain and hostname.")
+	DisableTLSCheck               = flag.Bool("disableTlsCheck", false, "Whether to use server certificate chain and hostname")
 	InClusterRun                  = flag.Bool("runInCluster", false, "Whether to run your tests from within the K8s cluster")
 	AuthToken                     = flag.String("authToken", "", "The default auth token that will be injected to all your API request")
+	TLSEnabled                    = flag.Bool("tlsEnabled", false, "Set to true if mlpipeline API server and metadata server serve over TLS")
+	CaCertPath                    = flag.String("caCertPath", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server")
 )
 
 var (

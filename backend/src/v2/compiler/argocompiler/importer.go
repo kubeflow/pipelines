@@ -110,6 +110,11 @@ func (c *workflowCompiler) addImporterTemplate() string {
 			Resources: driverResources,
 		},
 	}
+
+	// If the apiserver is TLS-enabled, add the custom CA bundle to the importer template.
+	if c.mlPipelineTLSEnabled {
+		ConfigureCustomCABundle(importerTemplate)
+	}
 	c.templates[name] = importerTemplate
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *importerTemplate)
 	return name

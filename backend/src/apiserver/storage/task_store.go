@@ -119,7 +119,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				"UUID":              newTask.UUID,
 				"Namespace":         newTask.Namespace,
 				"PipelineName":      newTask.PipelineName,
-				"RunUUID":           newTask.RunId,
+				"RunUUID":           newTask.RunID,
 				"PodName":           newTask.PodName,
 				"MLMDExecutionID":   newTask.MLMDExecutionID,
 				"CreatedTimestamp":  newTask.CreatedTimestamp,
@@ -190,7 +190,7 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			UUID:              uuid,
 			Namespace:         namespace,
 			PipelineName:      pipelineName,
-			RunId:             runUUID,
+			RunID:             runUUID,
 			PodName:           podName,
 			MLMDExecutionID:   mlmdExecutionID,
 			CreatedTimestamp:  createdTimestamp.Int64,
@@ -383,7 +383,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task) ([]*model.Task, err
 				t.UUID,
 				t.Namespace,
 				t.PipelineName,
-				t.RunId,
+				t.RunID,
 				t.PodName,
 				t.MLMDExecutionID,
 				t.CreatedTimestamp,
@@ -448,8 +448,8 @@ func patchTask(original *model.Task, patch *model.Task) {
 	if original.Namespace == "" {
 		original.Namespace = patch.Namespace
 	}
-	if original.RunId == "" {
-		original.RunId = patch.RunId
+	if original.RunID == "" {
+		original.RunID = patch.RunID
 	}
 	if original.PodName == "" {
 		original.PodName = patch.PodName
