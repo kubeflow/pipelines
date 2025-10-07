@@ -15,6 +15,7 @@
 package end2end
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"os"
@@ -68,17 +69,23 @@ var _ = BeforeSuite(func() {
 	clientConfig := testutil.GetClientConfig(*config.Namespace)
 	k8Client, err = testutil.CreateK8sClient()
 	Expect(err).To(BeNil(), "Failed to initialize K8s client")
-
+	var tlsCfg *tls.Config
+	if *config.TLSEnabled {
+		tlsCfg, err = test.GetTLSConfig(*config.CaCertPath)
+		if err != nil {
+			log.Fatalf("Error getting TLS Config: %v", err)
+		}
+	}
 	if *config.KubeflowMode {
 		logger.Log("Creating API Clients for Kubeflow Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewKubeflowInClusterPipelineClient(*config.Namespace, *config.DebugMode)
+			return apiserver.NewKubeflowInClusterPipelineClient(*config.Namespace, *config.DebugMode, tlsCfg)
 		}
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewKubeflowInClusterExperimentClient(*config.Namespace, *config.DebugMode)
+			return apiserver.NewKubeflowInClusterExperimentClient(*config.Namespace, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.DebugMode)
+			return apiserver.NewKubeflowInClusterRunClient(*config.Namespace, *config.DebugMode, tlsCfg)
 		}
 	} else if *config.MultiUserMode || *config.AuthToken != "" {
 		if *config.AuthToken != "" {
@@ -89,24 +96,24 @@ var _ = BeforeSuite(func() {
 			userToken = testutil.CreateUserToken(k8Client, *config.UserNamespace, *config.UserServiceAccountName)
 		}
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.DebugMode)
+			return apiserver.NewMultiUserPipelineClient(clientConfig, userToken, *config.DebugMode, tlsCfg)
 		}
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewMultiUserExperimentClient(clientConfig, userToken, *config.DebugMode)
+			return apiserver.NewMultiUserExperimentClient(clientConfig, userToken, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewMultiUserRunClient(clientConfig, userToken, *config.DebugMode)
+			return apiserver.NewMultiUserRunClient(clientConfig, userToken, *config.DebugMode, tlsCfg)
 		}
 	} else {
 		logger.Log("Creating API Clients for Single User Mode")
 		newPipelineClient = func() (*apiserver.PipelineClient, error) {
-			return apiserver.NewPipelineClient(clientConfig, *config.DebugMode)
+			return apiserver.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newExperimentClient = func() (*apiserver.ExperimentClient, error) {
-			return apiserver.NewExperimentClient(clientConfig, *config.DebugMode)
+			return apiserver.NewExperimentClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiserver.RunClient, error) {
-			return apiserver.NewRunClient(clientConfig, *config.DebugMode)
+			return apiserver.NewRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
@@ -116,6 +123,7 @@ var _ = BeforeSuite(func() {
 		*config.DebugMode,
 		*config.Namespace,
 		clientConfig,
+		tlsCfg,
 	)
 
 	Expect(err).To(BeNil(), "Failed to get Pipeline Upload Client")

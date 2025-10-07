@@ -48,7 +48,7 @@ type RunClient struct {
 func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*RunClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating run client: %w", err)
 	}
@@ -64,7 +64,7 @@ func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterRunClient(namespace string, debug bool) (
 	*RunClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, nil)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 

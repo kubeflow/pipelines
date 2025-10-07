@@ -259,7 +259,6 @@ func (s *UpgradeTests) VerifyExperiments() {
 	assert.Equal(t, "", experiments[4].Description)
 	assert.NotEmpty(t, experiments[4].ID)
 	assert.NotEmpty(t, experiments[4].CreatedAt)
-
 }
 
 // TODO(jingzhang36): prepare pipeline versions.
@@ -334,7 +333,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	verifyPipeline(t, pipelines[0])
 
 	/* ---------- Verify get template works ---------- */
-	template, err := s.pipelineClient.GetTemplate(&pipelineParams.PipelineServiceGetTemplateParams{ID: pipelines[0].ID})
+	tmpl, err := s.pipelineClient.GetTemplate(&pipelineParams.PipelineServiceGetTemplateParams{ID: pipelines[0].ID})
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
@@ -344,9 +343,9 @@ func (s *UpgradeTests) VerifyPipelines() {
 		},
 		StorageClassName: util.StringPointer("my-storage"),
 	}
-	expected, err := pipelinetemplate.New(bytes, true, defaultPVC)
+	expected, err := pipelinetemplate.New(bytes, pipelinetemplate.TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
 	require.Nil(t, err)
-	assert.Equal(t, expected, template)
+	assert.Equal(t, expected, tmpl)
 }
 
 func (s *UpgradeTests) PrepareRuns() {

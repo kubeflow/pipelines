@@ -1,0 +1,10 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: metadata-envoy-service
+spec:
+  ports:
+    - name: tls
+      port: 9090
+      protocol: TCP
+      appProtocol: https

@@ -46,7 +46,7 @@ type ExperimentClient struct {
 func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*ExperimentClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating experiment client: %w", err)
 	}
@@ -63,7 +63,7 @@ func NewExperimentClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
 	*ExperimentClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, nil)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
