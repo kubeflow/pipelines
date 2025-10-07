@@ -126,6 +126,37 @@ spec:
               value: ghcr.io/kubeflow/kfp-driver:2.14.3
             - name: V2_LAUNCHER_IMAGE
               value: ghcr.io/kubeflow/kfp-launcher:2.14.3
+            # Driver configuration with optional ConfigMap reference
+            - name: V2_DRIVER_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: kfp-driver-config
+                  key: driver-config
+                  optional: true
+            - name: DRIVER_RESOURCE_LIMITS_CPU
+              valueFrom:
+                configMapKeyRef:
+                  name: kfp-driver-config
+                  key: driverResourceLimitsCpu
+                  optional: true
+            - name: DRIVER_RESOURCE_LIMITS_MEMORY
+              valueFrom:
+                configMapKeyRef:
+                  name: kfp-driver-config
+                  key: driverResourceLimitsMemory
+                  optional: true
+            - name: DRIVER_RESOURCE_REQUESTS_CPU
+              valueFrom:
+                configMapKeyRef:
+                  name: kfp-driver-config
+                  key: driverResourceRequestsCpu
+                  optional: true
+            - name: DRIVER_RESOURCE_REQUESTS_MEMORY
+              valueFrom:
+                configMapKeyRef:
+                  name: kfp-driver-config
+                  key: driverResourceRequestsMemory
+                  optional: true
           image: ghcr.io/kubeflow/kfp-api-server:dummy
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server

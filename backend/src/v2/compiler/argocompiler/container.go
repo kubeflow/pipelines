@@ -15,6 +15,7 @@
 package argocompiler
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -143,6 +144,29 @@ func GetPipelineRunAsUser() *int64 {
 	}
 
 	return &runAsUser
+}
+
+// loadDriverPodConfig loads driver pod labels and annotations from environment variables
+func loadDriverPodConfig() *driverPodConfig {
+	config := &driverPodConfig{}
+
+	// Load labels from DRIVER_POD_LABELS env var (JSON format)
+	if labelsStr := os.Getenv("DRIVER_POD_LABELS"); labelsStr != "" {
+		var labels map[string]string
+		if err := json.Unmarshal([]byte(labelsStr), &labels); err == nil {
+			config.Labels = labels
+		}
+	}
+
+	// Load annotations from DRIVER_POD_ANNOTATIONS env var (JSON format)
+	if annotationsStr := os.Getenv("DRIVER_POD_ANNOTATIONS"); annotationsStr != "" {
+		var annotations map[string]string
+		if err := json.Unmarshal([]byte(annotationsStr), &annotations); err == nil {
+			config.Annotations = annotations
+		}
+	}
+
+	return config
 }
 
 func (c *workflowCompiler) containerDriverTask(name string, inputs containerDriverInputs) (*wfapi.DAGTask, *containerDriverOutputs) {
