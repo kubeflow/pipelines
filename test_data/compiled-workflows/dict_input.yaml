@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-ad34ccfb38dd37789911de71149bcf7f9c413a59602a851919d36e4da8d5a0c5
+    - name: components-e11c23af71b1b107d01e28b0c31e9994727d3eff7eef1dbb87fdd8868ff80e84
       value: '{"executorLabel":"exec-dict-input","inputDefinitions":{"parameters":{"struct":{"parameterType":"STRUCT"}}}}'
-    - name: implementations-ad34ccfb38dd37789911de71149bcf7f9c413a59602a851919d36e4da8d5a0c5
+    - name: implementations-e11c23af71b1b107d01e28b0c31e9994727d3eff7eef1dbb87fdd8868ff80e84
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","dict_input"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -201,11 +201,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ad34ccfb38dd37789911de71149bcf7f9c413a59602a851919d36e4da8d5a0c5}}'
+            value: '{{workflow.parameters.components-e11c23af71b1b107d01e28b0c31e9994727d3eff7eef1dbb87fdd8868ff80e84}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-dict-input"},"inputs":{"parameters":{"struct":{"componentInputParameter":"struct"}}},"taskInfo":{"name":"dict-input"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ad34ccfb38dd37789911de71149bcf7f9c413a59602a851919d36e4da8d5a0c5}}'
+            value: '{{workflow.parameters.implementations-e11c23af71b1b107d01e28b0c31e9994727d3eff7eef1dbb87fdd8868ff80e84}}'
           - name: task-name
             value: dict-input
           - name: parent-dag-id

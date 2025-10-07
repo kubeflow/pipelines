@@ -6,26 +6,26 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3
+    - name: components-2f694fdbcf4a9d3446e12aa9fca457c7e2882290abceb728d2f702c4d450df8d
       value: '{"executorLabel":"exec-crust-comp","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}}}'
-    - name: implementations-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3
+    - name: implementations-2f694fdbcf4a9d3446e12aa9fca457c7e2882290abceb728d2f702c4d450df8d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","crust_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         crust_comp(input: str):\n    print(''input :'', input)\n\n"],"image":"python:3.9"}'
-    - name: components-ab33a83b93454ce3d2aaf2cae2440bc7dd213c96638a015b0f9bd905412612b6
+    - name: components-a7bb13e035d75f1941d4a901687d98eb7be27da4abc34edc24ecdb00bb99d745
       value: '{"executorLabel":"exec-core-comp","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-ab33a83b93454ce3d2aaf2cae2440bc7dd213c96638a015b0f9bd905412612b6
+    - name: implementations-a7bb13e035d75f1941d4a901687d98eb7be27da4abc34edc24ecdb00bb99d745
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","core_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -36,13 +36,13 @@ spec:
     - name: components-comp-condition-2
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--core-comp-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"core-comp"}}}},"tasks":{"core-comp":{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"Got
         heads!"}}}},"taskInfo":{"name":"core-comp"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--core-comp-Output":{"parameterType":"STRING"}}}}'
-    - name: components-a240600c851a66d5ff25e885663b201936874f062058071f77c0bf7578d1c092
+    - name: components-991bfbeac7bb7d91fb9d139f44d5e5b5f220227052409ae8a4c3f88b486f84dc
       value: '{"executorLabel":"exec-core-output-comp","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"output_key":{"parameterType":"STRING"}}}}'
-    - name: implementations-a240600c851a66d5ff25e885663b201936874f062058071f77c0bf7578d1c092
+    - name: implementations-991bfbeac7bb7d91fb9d139f44d5e5b5f220227052409ae8a4c3f88b486f84dc
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","core_output_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -57,13 +57,13 @@ spec:
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--condition-branches-1-oneof-1":{"valueFromOneof":{"parameterSelectors":[{"outputParameterKey":"pipelinechannel--core-comp-Output","producerSubtask":"condition-2"},{"outputParameterKey":"pipelinechannel--core-output-comp-output_key","producerSubtask":"condition-3"}]}}}},"tasks":{"condition-2":{"componentRef":{"name":"comp-condition-2"},"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
         == ''heads''"}},"condition-3":{"componentRef":{"name":"comp-condition-3"},"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
         == ''heads'')"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--condition-branches-1-oneof-1":{"parameterType":"STRING"}}}}'
-    - name: components-6c2c106fa6033cd7ff2ef59eaa38e74162d751f14228f3a6ee0fb80af867772c
+    - name: components-63c60d1934695443fbf91b71abd177ac69246c9328099025670d1d75e5f45f14
       value: '{"executorLabel":"exec-flip-coin","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-6c2c106fa6033cd7ff2ef59eaa38e74162d751f14228f3a6ee0fb80af867772c
+    - name: implementations-63c60d1934695443fbf91b71abd177ac69246c9328099025670d1d75e5f45f14
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_coin"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -257,12 +257,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ab33a83b93454ce3d2aaf2cae2440bc7dd213c96638a015b0f9bd905412612b6}}'
+            value: '{{workflow.parameters.components-a7bb13e035d75f1941d4a901687d98eb7be27da4abc34edc24ecdb00bb99d745}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"Got
               heads!"}}}},"taskInfo":{"name":"core-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ab33a83b93454ce3d2aaf2cae2440bc7dd213c96638a015b0f9bd905412612b6}}'
+            value: '{{workflow.parameters.implementations-a7bb13e035d75f1941d4a901687d98eb7be27da4abc34edc24ecdb00bb99d745}}'
           - name: task-name
             value: core-comp
           - name: parent-dag-id
@@ -290,12 +290,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a240600c851a66d5ff25e885663b201936874f062058071f77c0bf7578d1c092}}'
+            value: '{{workflow.parameters.components-991bfbeac7bb7d91fb9d139f44d5e5b5f220227052409ae8a4c3f88b486f84dc}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-core-output-comp"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"Got
               tails!"}}}},"taskInfo":{"name":"core-output-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a240600c851a66d5ff25e885663b201936874f062058071f77c0bf7578d1c092}}'
+            value: '{{workflow.parameters.implementations-991bfbeac7bb7d91fb9d139f44d5e5b5f220227052409ae8a4c3f88b486f84dc}}'
           - name: task-name
             value: core-output-comp
           - name: parent-dag-id
@@ -476,11 +476,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6c2c106fa6033cd7ff2ef59eaa38e74162d751f14228f3a6ee0fb80af867772c}}'
+            value: '{{workflow.parameters.components-63c60d1934695443fbf91b71abd177ac69246c9328099025670d1d75e5f45f14}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6c2c106fa6033cd7ff2ef59eaa38e74162d751f14228f3a6ee0fb80af867772c}}'
+            value: '{{workflow.parameters.implementations-63c60d1934695443fbf91b71abd177ac69246c9328099025670d1d75e5f45f14}}'
           - name: task-name
             value: flip-coin
           - name: parent-dag-id
@@ -537,11 +537,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3}}'
+            value: '{{workflow.parameters.components-2f694fdbcf4a9d3446e12aa9fca457c7e2882290abceb728d2f702c4d450df8d}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"parameters":{"input":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c2d514fad77a56dbbca5ace4aea88a97d5d0872463870c829ae73b6e7c7706b3}}'
+            value: '{{workflow.parameters.implementations-2f694fdbcf4a9d3446e12aa9fca457c7e2882290abceb728d2f702c4d450df8d}}'
           - name: task-name
             value: crust-comp
           - name: parent-dag-id

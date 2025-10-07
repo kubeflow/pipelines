@@ -1,3 +1,4 @@
+// Package utils provides helpers shared across end-to-end tests.
 package utils
 
 import (
@@ -11,7 +12,7 @@ import (
 	apiserver "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 	apitests "github.com/kubeflow/pipelines/backend/test/v2/api"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -43,11 +44,11 @@ func CreatePipelineRunPayload(runName string, runDescription string, pipelineID 
 	return &run_model.V2beta1Run{
 		DisplayName:    runName,
 		Description:    runDescription,
-		ExperimentID:   test_utils.ParsePointersToString(experimentID),
-		ServiceAccount: test_utils.GetDefaultPipelineRunnerServiceAccount(),
+		ExperimentID:   testutil.ParsePointersToString(experimentID),
+		ServiceAccount: testutil.GetDefaultPipelineRunnerServiceAccount(),
 		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
-			PipelineID:        test_utils.ParsePointersToString(pipelineID),
-			PipelineVersionID: test_utils.ParsePointersToString(pipelineVersionID),
+			PipelineID:        testutil.ParsePointersToString(pipelineID),
+			PipelineVersionID: testutil.ParsePointersToString(pipelineVersionID),
 		},
 		RuntimeConfig: &run_model.V2beta1RuntimeConfig{
 			Parameters: inputParams,
@@ -61,14 +62,14 @@ func CreatePipelineRunAndWaitForItToFinish(runClient *apiserver.RunClient, testC
 	uploadedPipelineRun := CreatePipelineRun(runClient, testContext, &pipelineID, pipelineVersionID, experimentID, runTimeParams)
 	logger.Log("Created Pipeline Run with id: %s for pipeline with id: %s", uploadedPipelineRun.RunID, pipelineID)
 	timeout := time.Duration(maxPipelineWaitTime)
-	test_utils.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateCANCELED}, &timeout)
+	testutil.WaitForRunToBeInState(runClient, &uploadedPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateCANCELED}, &timeout)
 	return uploadedPipelineRun.RunID
 }
 
 // ValidateComponentStatuses - Validate that all the components of a pipeline run ran successfully
 func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kubernetes.Clientset, testContext *apitests.TestContext, runID string, compiledWorkflow *v1alpha1.Workflow) {
 	logger.Log("Fetching updated pipeline run details for run with id=%s", runID)
-	updatedRun := test_utils.GetPipelineRun(runClient, &runID)
+	updatedRun := testutil.GetPipelineRun(runClient, &runID)
 	actualTaskDetails := updatedRun.RunDetails.TaskDetails
 	logger.Log("Updated pipeline run details")
 	expectedTaskDetails := GetTasksFromWorkflow(compiledWorkflow)
@@ -116,7 +117,7 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 						podName := childTask.PodName
 						if podName != "" {
 							logger.Log("Capturing pod logs for task %s, with pod name %s", task.DisplayName, podName)
-							podLog := test_utils.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
+							podLog := testutil.ReadPodLogs(k8Client, *config.Namespace, podName, nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
 							logger.Log("Pod logs captured for task %s in pod %s", task.DisplayName, podName)
 							logger.Log("Attaching pod logs to the report")
 							ginkgo.AddReportEntry(fmt.Sprintf("Failing '%s' Component Log", task.DisplayName), podLog)
@@ -156,6 +157,9 @@ func GetTasksFromWorkflow(workflow *v1alpha1.Workflow) []TaskDetails {
 	for _, template := range workflow.Spec.Templates {
 		if template.DAG != nil {
 			for _, task := range template.DAG.Tasks {
+				if task.When == "" {
+					continue
+				}
 				container, containerExists := containers[task.Template]
 				taskToAppend := TaskDetails{
 					TaskName:  task.Name,

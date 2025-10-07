@@ -3,6 +3,7 @@ docformatter==1.4
 docker==5.0.3
 isort==5.10.1
 mypy==0.941
+nbformat==5.10.4
 pip-tools==6.0.0
 pre-commit==2.19.0
 pycln==2.1.1
@@ -14,4 +15,4 @@ types-protobuf==3.19.15
 types-PyYAML==6.0.5
 types-requests==2.27.14
 types-tabulate==0.8.6
-yapf==0.32.0
+yapf==0.43.0

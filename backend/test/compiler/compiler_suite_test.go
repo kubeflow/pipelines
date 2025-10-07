@@ -24,18 +24,18 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 )
 
-var pipelineFilesRootDir = test_utils.GetPipelineFilesDir()
+var pipelineFilesRootDir = testutil.GetPipelineFilesDir()
 var pipelineDirectory = "valid"
-var argoYAMLDir = filepath.Join(test_utils.GetTestDataDir(), "compiled-workflows")
+var argoYAMLDir = filepath.Join(testutil.GetTestDataDir(), "compiled-workflows")
 var updateGoldenFiles = flag.Bool("updateCompiledFiles", false, "update golden/expected compiled workflow files")
-var createMissingGoldenFiles = flag.Bool("createGoldenFiles", true, "create missing golden/expected compiled workflow files")
+var createMissingGoldenFiles = flag.Bool("createGoldenFiles", false, "create missing golden/expected compiled workflow files")
 
 // Test Reporting Variables
 var (
@@ -60,7 +60,7 @@ var _ = ReportAfterEach(func(specReport types.SpecReport) {
 		Expect(err).NotTo(HaveOccurred(), "Failed to get current directory")
 		testName := GinkgoT().Name()
 		testNameSplit := strings.Split(testName, ">")
-		test_utils.WriteLogFile(specReport, testNameSplit[len(testNameSplit)-1], filepath.Join(currentDir, testLogsDirectory))
+		testutil.WriteLogFile(specReport, testNameSplit[len(testNameSplit)-1], filepath.Join(currentDir, testLogsDirectory))
 	} else {
 		log.Printf("Test passed")
 	}

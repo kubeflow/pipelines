@@ -200,6 +200,13 @@ backend/Dockerfile.driver-debug
 # Backend CRD binaries
 backend/src/crd/kubernetes/bin
 
+**/allure-*
+**/*.html
+reports/
+logs/
+*.out
+*test_*output*
+
 # Project-local tools
 bin/
 

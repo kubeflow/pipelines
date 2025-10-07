@@ -61,8 +61,8 @@ either_option_required = 'Either --experiment-id or --experiment-name is require
 @click.option(
     '--experiment-id',
     help=parsing.get_param_descr(client.Client.create_recurring_run,
-                                 'experiment_id') + ' ' + either_option_required
-)
+                                 'experiment_id') + ' ' +
+    either_option_required)
 @click.option(
     '--experiment-name',
     help='The name of the experiment to create the recurring run under.' + ' ' +

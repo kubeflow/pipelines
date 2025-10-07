@@ -20,13 +20,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	matcher "github.com/kubeflow/pipelines/backend/test/compiler/matchers"
 	workflowutils "github.com/kubeflow/pipelines/backend/test/compiler/utils"
 	. "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -37,8 +38,8 @@ var _ = BeforeEach(func() {
 	proxy.InitializeConfigWithEmptyForTests()
 })
 
-var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WORKFLOW_COMPILER), func() {
-	pipelineFilePaths := test_utils.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
+var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WorkflowCompiler), func() {
+	pipelineFilePaths := testutil.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
 
 	testParams := []struct {
 		compilerOptions argocompiler.Options
@@ -68,18 +69,18 @@ var _ = Describe("Verify Spec Compilation to Workflow >", Label(POSITIVE, WORKFL
 				compiledWorkflowFileName := fileNameWithoutExtension + ".yaml"
 				compiledWorkflowFilePath := filepath.Join(argoYAMLDir, compiledWorkflowFileName)
 				It(fmt.Sprintf("When I compile %s pipeline spec, then the compiled yaml should be %s", pipelineSpecFileName, compiledWorkflowFileName), func() {
-					test_utils.CheckIfSkipping(pipelineSpecFileName)
+					testutil.CheckIfSkipping(pipelineSpecFileName)
 					pipelineSpecs, platformSpec := workflowutils.LoadPipelineSpecsFromIR(pipelineSpecFilePath, param.compilerOptions.CacheDisabled, nil)
 					compiledWorkflow := workflowutils.GetCompiledArgoWorkflow(pipelineSpecs, platformSpec, &param.compilerOptions)
 					if *createMissingGoldenFiles || *updateGoldenFiles {
-						configuredWorkflow := workflowutils.ConfigureCacheSettings(compiledWorkflow, true)
-						_, err := os.Stat(compiledWorkflowFilePath)
-						if err != nil {
-							logger.Log("Creating/Updating Compiled Workflow File '%s'", compiledWorkflowFilePath)
-							workflowutils.CreateCompiledWorkflowFile(configuredWorkflow, compiledWorkflowFilePath)
+						var configuredWorkflow *v1alpha1.Workflow
+						if param.compilerOptions.CacheDisabled {
+							configuredWorkflow = workflowutils.ConfigureCacheSettings(compiledWorkflow, true)
 						} else {
-							logger.Log("Compiled Workflow File '%s' either already exists or is up to date", compiledWorkflowFilePath)
+							configuredWorkflow = compiledWorkflow
 						}
+						logger.Log("Updating/Creating Compiled Workflow File '%s'", compiledWorkflowFilePath)
+						workflowutils.CreateCompiledWorkflowFile(configuredWorkflow, compiledWorkflowFilePath)
 					}
 					expectedWorkflow := workflowutils.UnmarshallWorkflowYAML(compiledWorkflowFilePath)
 					if param.compilerOptions.CacheDisabled {

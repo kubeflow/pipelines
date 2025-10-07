@@ -29,9 +29,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
-	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
-	"github.com/kubeflow/pipelines/backend/test/test_utils"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -43,7 +43,7 @@ const (
 
 // ################## UPGRADE TEST PREPARATION ##################
 
-var _ = Describe("Upgrade Test Preparation >", Label(UPGRADE_PREPARATION, FULL_REGRESSION), func() {
+var _ = Describe("Upgrade Test Preparation >", Label(constants.UpgradePreparation, constants.FullRegression), func() {
 	Context("Prepare test data >", func() {
 
 		It("Upload pipelines and create experiments", func() {
@@ -55,7 +55,7 @@ var _ = Describe("Upgrade Test Preparation >", Label(UPGRADE_PREPARATION, FULL_R
 		})
 		It("Create pipeline run and wait it to go to RUNNING state", func() {
 			run := preparePipelineRun(longRunningPipelineFileName, "Pipeline 3", "Experiment 3", "Run 3")
-			test_utils.WaitForRunToBeInState(runClient, &run.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING}, nil)
+			testutil.WaitForRunToBeInState(runClient, &run.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING}, nil)
 		})
 		It("Create scheduled pipeline run", func() {
 			prepareScheduledPipelineRun(helloWorldPipelineFileName, "Pipeline 4", "Experiment 4", "Scheduled Run 1")
@@ -66,7 +66,7 @@ var _ = Describe("Upgrade Test Preparation >", Label(UPGRADE_PREPARATION, FULL_R
 
 // ################## UPGRADE TEST VERIFICATION ##################
 
-var _ = Describe("Upgrade Test Verification >", Label(UPGRADE_VERIFICATION, FULL_REGRESSION), func() {
+var _ = Describe("Upgrade Test Verification >", Label(constants.UpgradeVerification, constants.FullRegression), func() {
 	Context("Verify resources after upgrade >", func() {
 		It("Verify that Pipelines & experiments should persist correctly", func() {
 			verifyExperiments()
@@ -127,13 +127,13 @@ func getExpectedExperiments() []*experiment_model.V2beta1Experiment {
 func prepareExperiments() {
 	experiments := getExpectedExperiments()
 	for _, experiment := range experiments {
-		test_utils.CreateExperimentWithParams(experimentClient, experiment)
+		testutil.CreateExperimentWithParams(experimentClient, experiment)
 	}
 }
 
 func verifyExperiments() {
 	namespace := getResourceNamespace()
-	allExperiments := test_utils.ListExperiments(
+	allExperiments := testutil.ListExperiments(
 		experimentClient,
 		&experimentparams.ExperimentServiceListExperimentsParams{
 			Namespace: &namespace,
@@ -152,7 +152,7 @@ func verifyExperiments() {
 		Expect(existingExperiment).ToNot(BeNil())
 		Expect(existingExperiment.Description).To(Equal(exp.Description), fmt.Sprintf("Experiment %s description is not same", exp.DisplayName))
 		// Experiment API response does not currently return populated Namespace field
-		//Expect(existingExperiment.Namespace).To(Equal(exp.Namespace), fmt.Sprintf("Experiment %s namespace is not same"))
+		// Expect(existingExperiment.Namespace).To(Equal(exp.Namespace), fmt.Sprintf("Experiment %s namespace is not same"))
 	}
 }
 
@@ -190,7 +190,7 @@ func getExpectedPipelines() []*uploadparams.UploadPipelineParams {
 func getPipelineAndExperimentForRun(pipelineToUpload string, pipelineName string, experimentName string) (string, string, string) {
 	// Check if pipeline already exists or not, if not, then upload a new one
 	namespace := getResourceNamespace()
-	pipelineFilePath := filepath.Join(test_utils.GetValidPipelineFilesDir(), pipelineToUpload)
+	pipelineFilePath := filepath.Join(testutil.GetValidPipelineFilesDir(), pipelineToUpload)
 	var uploadedPipeline *pipeline_upload_model.V2beta1Pipeline
 	var err error
 	pipelineDisplayName := "Pipeline to Run"
@@ -199,7 +199,7 @@ func getPipelineAndExperimentForRun(pipelineToUpload string, pipelineName string
 	pipelineUploadParams.SetName(&pipelineName)
 	pipelineUploadParams.SetDescription(&pipelineDescription)
 	pipelineUploadParams.SetDisplayName(&pipelineDisplayName)
-	existingPipelines := test_utils.ListPipelines(pipelineClient, &namespace)
+	existingPipelines := testutil.ListPipelines(pipelineClient, &namespace)
 	for _, pipeline := range existingPipelines {
 		if pipeline.Name == pipelineName {
 			logger.Log("Pipeline with name=%s, already exists", *pipelineUploadParams.Name)
@@ -222,7 +222,7 @@ func getPipelineAndExperimentForRun(pipelineToUpload string, pipelineName string
 
 	// Get pipeline versions associated with the above pipeline
 	logger.Log("Fetch pipeline versions for pipeline with id= %s", uploadedPipeline.PipelineID)
-	uploadedPipelineVersions, _, _, pipelineVersionError := test_utils.ListPipelineVersions(pipelineClient, uploadedPipeline.PipelineID)
+	uploadedPipelineVersions, _, _, pipelineVersionError := testutil.ListPipelineVersions(pipelineClient, uploadedPipeline.PipelineID)
 	Expect(pipelineVersionError).To(BeNil(), fmt.Sprintf("Failed to list uploaded pipeline versions for pipeline with id=%s", uploadedPipeline.PipelineID))
 	logger.Log("Fetched %d pipeline versions for pipeline with id= %s", len(uploadedPipelineVersions), uploadedPipeline.PipelineID)
 
@@ -233,7 +233,7 @@ func getPipelineAndExperimentForRun(pipelineToUpload string, pipelineName string
 		Description: "my first experiment",
 	}
 	logger.Log("Fetching all experiments")
-	allExperiments := test_utils.ListExperiments(
+	allExperiments := testutil.ListExperiments(
 		experimentClient,
 		&experimentparams.ExperimentServiceListExperimentsParams{
 			SortBy:   util.StringPointer("created_at"),
@@ -248,7 +248,7 @@ func getPipelineAndExperimentForRun(pipelineToUpload string, pipelineName string
 	}
 	if createdExperiment == nil {
 		logger.Log("No existing experiment found with name '%s', so Creating new experiment", experimentParams.DisplayName)
-		createdExperiment = test_utils.CreateExperimentWithParams(experimentClient, experimentParams)
+		createdExperiment = testutil.CreateExperimentWithParams(experimentClient, experimentParams)
 	}
 	return uploadedPipeline.PipelineID, uploadedPipelineVersions[0].PipelineVersionID, createdExperiment.ExperimentID
 }
@@ -260,7 +260,7 @@ func getExpectedPipelineRun(pipelineToUpload string, pipelineName string, experi
 		DisplayName:    pipelineRunName,
 		Description:    "This is my first pipeline run",
 		ExperimentID:   experimentID,
-		ServiceAccount: test_utils.GetDefaultPipelineRunnerServiceAccount(),
+		ServiceAccount: testutil.GetDefaultPipelineRunnerServiceAccount(),
 		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
 			PipelineID:        pipelineID,
 			PipelineVersionID: pipelineVersionID,
@@ -275,7 +275,7 @@ func getExpectedRecurringPipelineRun(pipelineToUpload string, pipelineName strin
 		DisplayName:    pipelineRunName,
 		Description:    "This is my first recurring pipeline run",
 		ExperimentID:   experimentID,
-		ServiceAccount: test_utils.GetDefaultPipelineRunnerServiceAccount(),
+		ServiceAccount: testutil.GetDefaultPipelineRunnerServiceAccount(),
 		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
 			PipelineID:        pipelineID,
 			PipelineVersionID: pipelineVersionID,
@@ -291,7 +291,7 @@ func getExpectedRecurringPipelineRun(pipelineToUpload string, pipelineName strin
 }
 
 func preparePipelines() {
-	pipelineFilePath := filepath.Join(test_utils.GetValidPipelineFilesDir(), helloWorldPipelineFileName)
+	pipelineFilePath := filepath.Join(testutil.GetValidPipelineFilesDir(), helloWorldPipelineFileName)
 	for _, pipelineParams := range getExpectedPipelines() {
 		logger.Log("Uploading pipeline with name=%s, from file %s", *pipelineParams.Name, pipelineFilePath)
 		_, err := pipelineUploadClient.UploadFile(pipelineFilePath, pipelineParams)
@@ -301,7 +301,7 @@ func preparePipelines() {
 
 func verifyPipelines() {
 	namespace := getResourceNamespace()
-	existingPipelines := test_utils.ListPipelines(pipelineClient, &namespace)
+	existingPipelines := testutil.ListPipelines(pipelineClient, &namespace)
 	expectedPipelines := getExpectedPipelines()
 	Expect(len(existingPipelines)).To(BeNumerically(">=", len(expectedPipelines)))
 	existingPipelinesMap := make(map[string]*pipeline_model.V2beta1Pipeline)
@@ -336,7 +336,7 @@ func verifyPipelineRun(uploadedPipeline string, pipelineName string, experimentN
 	for _, run := range allRuns {
 		if run.DisplayName == expectedRun.DisplayName && run.PipelineVersionID == expectedRun.PipelineVersionID {
 			Expect(run.ExperimentID).To(Equal(expectedRun.ExperimentID), fmt.Sprintf("Experiment id for runid=%s is not same", expectedRun.DisplayName))
-			Expect(run.Description).To(Equal(expectedRun.Description), fmt.Sprintf("Run description is not same"))
+			Expect(run.Description).To(Equal(expectedRun.Description), "Run description is not same")
 			runPassed = true
 		}
 	}

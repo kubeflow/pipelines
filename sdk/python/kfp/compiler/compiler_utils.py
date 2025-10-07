@@ -466,7 +466,7 @@ def get_outputs_for_all_groups(
     group_name_to_group = {group.name: group for group in all_groups}
     group_name_to_children = {
         group.name: [group.name for group in group.groups] +
-        [task.name for task in group.tasks] for group in all_groups
+                    [task.name for task in group.tasks] for group in all_groups
     }
 
     outputs = collections.defaultdict(dict)
