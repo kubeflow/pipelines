@@ -194,7 +194,7 @@ func (c *RecurringRunClient) List(parameters *params.RecurringRunServiceListRecu
 	if err != nil {
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list jobs. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list jobs"))
+			"Failed to list jobs")
 	}
 
 	return response.Payload.RecurringRuns, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil

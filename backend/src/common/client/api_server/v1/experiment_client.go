@@ -140,7 +140,7 @@ func (c *ExperimentClient) List(parameters *params.ExperimentServiceListExperime
 
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list experiments"))
+			"Failed to list experiments")
 	}
 
 	return response.Payload.Experiments, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
@@ -163,7 +163,7 @@ func (c *ExperimentClient) Delete(parameters *params.ExperimentServiceDeleteExpe
 
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to delete experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to delete experiment"))
+			"Failed to delete experiment")
 	}
 
 	return nil
@@ -217,7 +217,7 @@ func (c *ExperimentClient) Archive(parameters *params.ExperimentServiceArchiveEx
 
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to archive experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to archive experiments"))
+			"Failed to archive experiments")
 	}
 
 	return nil
@@ -241,7 +241,7 @@ func (c *ExperimentClient) Unarchive(parameters *params.ExperimentServiceUnarchi
 
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to unarchive experiments. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to unarchive experiments"))
+			"Failed to unarchive experiments")
 	}
 
 	return nil

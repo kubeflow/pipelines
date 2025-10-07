@@ -56,7 +56,7 @@ func collectOutputArtifactMetadataFromCache(ctx context.Context, executorInput *
 func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.ExecutorInput, mlmd *metadata.Client, cachedMLMDExecutionID string) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 	cachedMLMDExecutionIDInt64, err := strconv.ParseInt(cachedMLMDExecutionID, 10, 64)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failure while transfering cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
+		return nil, nil, fmt.Errorf("failure while transferring cachedMLMDExecutionID %s from string to int64: %w", cachedMLMDExecutionID, err)
 	}
 	execution, err := mlmd.GetExecution(ctx, cachedMLMDExecutionIDInt64)
 	if err != nil {
@@ -146,7 +146,7 @@ func createCache(
 		return fmt.Errorf("failed to get id from createdExecution")
 	}
 	task := &api.Task{
-		//TODO how to differentiate between shared pipeline and namespaced pipeline
+		// TODO how to differentiate between shared pipeline and namespaced pipeline
 		PipelineName:    "pipeline/" + opts.PipelineName,
 		Namespace:       opts.Namespace,
 		RunId:           opts.RunID,

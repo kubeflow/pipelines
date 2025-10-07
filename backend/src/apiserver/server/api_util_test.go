@@ -400,7 +400,7 @@ func TestPipelineSpecStructToYamlString_DirectSpec(t *testing.T) {
 	actualPipeline, err := YamlStringToPipelineSpecStruct(actualTemplate)
 	assert.Nil(t, err)
 
-	// Compare the marshalled JSON due to flakiness of structpb values
+	// Compare the marshaled JSON due to flakiness of structpb values
 	// See https://github.com/stretchr/testify/issues/758
 	j1, _ := pipeline.MarshalJSON()
 	j2, _ := actualPipeline.MarshalJSON()
@@ -436,7 +436,7 @@ func TestPipelineSpecStructToYamlString_WithPlatform(t *testing.T) {
 	actualPipeline, err := YamlStringToPipelineSpecStruct(actualTemplate)
 	assert.Nil(t, err)
 
-	// Compare the marshalled JSON due to flakiness of structpb values
+	// Compare the marshaled JSON due to flakiness of structpb values
 	// See https://github.com/stretchr/testify/issues/758
 	j1, _ := pipeline.MarshalJSON()
 	j2, _ := actualPipeline.MarshalJSON()
@@ -467,7 +467,7 @@ func TestPipelineSpecStructToYamlString_NestedPipelineSpec(t *testing.T) {
 	actualPipeline, err := YamlStringToPipelineSpecStruct(actualTemplate)
 	assert.Nil(t, err)
 
-	// Compare the marshalled JSON due to flakiness of structpb values
+	// Compare the marshaled JSON due to flakiness of structpb values
 	// See https://github.com/stretchr/testify/issues/758
 	j1, _ := pipelineSpec.MarshalJSON()
 	j2, _ := actualPipeline.MarshalJSON()

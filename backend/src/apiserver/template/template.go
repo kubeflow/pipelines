@@ -193,7 +193,7 @@ func StringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter
 	for name, value := range parameters {
 		valueBytes, err := value.MarshalJSON()
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "error marshalling model parameters")
+			return nil, util.NewInternalServerError(err, "error marshaling model parameters")
 		}
 		swParam := scheduledworkflow.Parameter{
 			Name:  name,

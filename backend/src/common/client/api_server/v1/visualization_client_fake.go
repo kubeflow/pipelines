@@ -2,7 +2,7 @@ package api_server
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_client/visualization_service"
 	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_model"
@@ -26,7 +26,7 @@ func (c *VisualizationClientFake) Create(params *params.VisualizationServiceCrea
 		return nil, err
 	}
 	if arguments.fail {
-		return nil, fmt.Errorf(ClientErrorString)
+		return nil, errors.New(ClientErrorString)
 	}
 	return params.Visualization, nil
 }

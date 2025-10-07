@@ -89,7 +89,7 @@ func (s *UpgradeTests) SetupSuite() {
 	// Integration tests also run these tests to first ensure they work, so that
 	// when integration tests pass and upgrade tests fail, we know for sure
 	// upgrade process went wrong somehow.
-	if !(*runIntegrationTests || *runUpgradeTests) {
+	if !*runIntegrationTests && !*runUpgradeTests {
 		s.T().SkipNow()
 		return
 	}
