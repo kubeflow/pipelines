@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-5d7fc6baaabfd398be20a34cdc8953ca180e9117e70592b5d9d53cb7d9a8f20c
+    - name: components-bdc598acad507af0648cefd0773f42b1236c6c71afe115dd49ee06605c3e7a6e
       value: '{"executorLabel":"exec-print-op2","inputDefinitions":{"parameters":{"text1":{"parameterType":"STRING"},"text2":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-5d7fc6baaabfd398be20a34cdc8953ca180e9117e70592b5d9d53cb7d9a8f20c
+    - name: implementations-bdc598acad507af0648cefd0773f42b1236c6c71afe115dd49ee06605c3e7a6e
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op2"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -23,13 +23,13 @@ spec:
     - name: components-comp-for-loop-2
       value: '{"dag":{"tasks":{"print-op2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op2"},"inputs":{"parameters":{"pipelinechannel--name":{"componentInputParameter":"pipelinechannel--name"},"text1":{"componentInputParameter":"pipelinechannel--loop-item-param-1"},"text2":{"runtimeValue":{"constant":"
         and {{$.inputs.parameters[''pipelinechannel--name'']}}."}}}},"taskInfo":{"name":"print-op2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"STRING"},"pipelinechannel--name":{"parameterType":"STRING"}}}}'
-    - name: components-f8de69ff5c0c247d8ff00651a9ceac29a319a299aa04d9e2a5afb817106c0881
+    - name: components-984f43d1ff549827aa35bc616c4b5b6479714c835e683349f065c2da19055b4f
       value: '{"executorLabel":"exec-print-op","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-f8de69ff5c0c247d8ff00651a9ceac29a319a299aa04d9e2a5afb817106c0881
+    - name: implementations-984f43d1ff549827aa35bc616c4b5b6479714c835e683349f065c2da19055b4f
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -221,12 +221,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5d7fc6baaabfd398be20a34cdc8953ca180e9117e70592b5d9d53cb7d9a8f20c}}'
+            value: '{{workflow.parameters.components-bdc598acad507af0648cefd0773f42b1236c6c71afe115dd49ee06605c3e7a6e}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op2"},"inputs":{"parameters":{"pipelinechannel--name":{"componentInputParameter":"pipelinechannel--name"},"text1":{"componentInputParameter":"pipelinechannel--loop-item-param-1"},"text2":{"runtimeValue":{"constant":"
               and {{$.inputs.parameters[''pipelinechannel--name'']}}."}}}},"taskInfo":{"name":"print-op2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5d7fc6baaabfd398be20a34cdc8953ca180e9117e70592b5d9d53cb7d9a8f20c}}'
+            value: '{{workflow.parameters.implementations-bdc598acad507af0648cefd0773f42b1236c6c71afe115dd49ee06605c3e7a6e}}'
           - name: task-name
             value: print-op2
           - name: parent-dag-id
@@ -398,12 +398,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f8de69ff5c0c247d8ff00651a9ceac29a319a299aa04d9e2a5afb817106c0881}}'
+            value: '{{workflow.parameters.components-984f43d1ff549827aa35bc616c4b5b6479714c835e683349f065c2da19055b4f}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"pipelinechannel--name":{"componentInputParameter":"name"},"text":{"runtimeValue":{"constant":"Hello
               {{$.inputs.parameters[''pipelinechannel--name'']}}"}}}},"taskInfo":{"name":"print-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f8de69ff5c0c247d8ff00651a9ceac29a319a299aa04d9e2a5afb817106c0881}}'
+            value: '{{workflow.parameters.implementations-984f43d1ff549827aa35bc616c4b5b6479714c835e683349f065c2da19055b4f}}'
           - name: task-name
             value: print-op
           - name: parent-dag-id
@@ -423,12 +423,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f8de69ff5c0c247d8ff00651a9ceac29a319a299aa04d9e2a5afb817106c0881}}'
+            value: '{{workflow.parameters.components-984f43d1ff549827aa35bc616c4b5b6479714c835e683349f065c2da19055b4f}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"dependentTasks":["print-op"],"inputs":{"parameters":{"pipelinechannel--print-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"print-op"}},"text":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--print-op-Output'']}},
               again."}}}},"taskInfo":{"name":"print-op-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f8de69ff5c0c247d8ff00651a9ceac29a319a299aa04d9e2a5afb817106c0881}}'
+            value: '{{workflow.parameters.implementations-984f43d1ff549827aa35bc616c4b5b6479714c835e683349f065c2da19055b4f}}'
           - name: task-name
             value: print-op-2
           - name: parent-dag-id

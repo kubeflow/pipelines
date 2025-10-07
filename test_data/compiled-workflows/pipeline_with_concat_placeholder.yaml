@@ -6,14 +6,14 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-880cc364a5119d2f7bad110b0f7f3ff6d19e329c98e5fa65fbf14f9c7ca72701
-      value: '{"executorLabel":"exec-component-with-concat-placeholder","inputDefinitions":{"parameters":{"input_prefix":{"parameterType":"STRING"}}}}'
-    - name: implementations-880cc364a5119d2f7bad110b0f7f3ff6d19e329c98e5fa65fbf14f9c7ca72701
-      value: '{"args":["--arg0","{\"Concat\": [\"{{$.inputs.parameters[''input_prefix'']}}\",
-        \"some value\"]}"],"image":"gcr.io/my-project/my-image"}'
+    - name: components-7c45df434efc6e206df6b6c77b2f4f28cdab5c72c61199ad34c83ad5f3ecd460
+      value: '{"executorLabel":"exec-component-with-concat-placeholder","inputDefinitions":{"parameters":{"input_one":{"parameterType":"STRING"},"input_two":{"parameterType":"STRING"}}}}'
+    - name: implementations-7c45df434efc6e206df6b6c77b2f4f28cdab5c72c61199ad34c83ad5f3ecd460
+      value: '{"args":["echo \"$0\" \u003e /tmp/test \u0026\u0026 [[ \"$0\" == ''one+two=three''
+        ]]","{\"Concat\": [\"{{$.inputs.parameters[''input_one'']}}\", \"+\", \"{{$.inputs.parameters[''input_two'']}}\",
+        \"=three\"]}"],"command":["sh","-ec"],"image":"ghcr.io/containerd/busybox"}'
     - name: components-root
-      value: '{"dag":{"tasks":{"component-with-concat-placeholder":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-concat-placeholder"},"inputs":{"parameters":{"input_prefix":{"runtimeValue":{"constant":"some
-        prefix:"}}}},"taskInfo":{"name":"component-with-concat-placeholder"}}}}}'
+      value: '{"dag":{"tasks":{"component-with-concat-placeholder":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-concat-placeholder"},"inputs":{"parameters":{"input_one":{"runtimeValue":{"constant":"one"}},"input_two":{"runtimeValue":{"constant":"two"}}}},"taskInfo":{"name":"component-with-concat-placeholder"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -194,12 +194,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-880cc364a5119d2f7bad110b0f7f3ff6d19e329c98e5fa65fbf14f9c7ca72701}}'
+            value: '{{workflow.parameters.components-7c45df434efc6e206df6b6c77b2f4f28cdab5c72c61199ad34c83ad5f3ecd460}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-concat-placeholder"},"inputs":{"parameters":{"input_prefix":{"runtimeValue":{"constant":"some
-              prefix:"}}}},"taskInfo":{"name":"component-with-concat-placeholder"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-concat-placeholder"},"inputs":{"parameters":{"input_one":{"runtimeValue":{"constant":"one"}},"input_two":{"runtimeValue":{"constant":"two"}}}},"taskInfo":{"name":"component-with-concat-placeholder"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-880cc364a5119d2f7bad110b0f7f3ff6d19e329c98e5fa65fbf14f9c7ca72701}}'
+            value: '{{workflow.parameters.implementations-7c45df434efc6e206df6b6c77b2f4f28cdab5c72c61199ad34c83ad5f3ecd460}}'
           - name: task-name
             value: component-with-concat-placeholder
           - name: parent-dag-id

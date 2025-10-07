@@ -11,13 +11,13 @@ spec:
     - name: implementations-507ec52d0dba96e88845f3ca614b4262d4b5b44fa204a91cd13cb60c8a78d4fe
       value: '{"command":["sh","-c","set -e -x\necho \"$ENV1\"\necho \"$ENV2\"\necho
         \"$ENV3\"\n"],"env":[{"name":"ENV1","value":"val0"},{"name":"ENV2","value":"val2"},{"name":"ENV3","value":"val3"}],"image":"alpine"}'
-    - name: components-87b3fda5cd34139439d1b30d072c0f79279b23cfe88b33460e0df0259771fa5c
+    - name: components-62080971c5693dd5ee364f93012c4d84ed64ae7e434d0b5b1e61b3ab408ccc53
       value: '{"executorLabel":"exec-print-env-op"}'
-    - name: implementations-87b3fda5cd34139439d1b30d072c0f79279b23cfe88b33460e0df0259771fa5c
+    - name: implementations-62080971c5693dd5ee364f93012c4d84ed64ae7e434d0b5b1e61b3ab408ccc53
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_env_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -231,11 +231,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-87b3fda5cd34139439d1b30d072c0f79279b23cfe88b33460e0df0259771fa5c}}'
+            value: '{{workflow.parameters.components-62080971c5693dd5ee364f93012c4d84ed64ae7e434d0b5b1e61b3ab408ccc53}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-env-op"},"taskInfo":{"name":"print-env-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-87b3fda5cd34139439d1b30d072c0f79279b23cfe88b33460e0df0259771fa5c}}'
+            value: '{{workflow.parameters.implementations-62080971c5693dd5ee364f93012c4d84ed64ae7e434d0b5b1e61b3ab408ccc53}}'
           - name: task-name
             value: print-env-op
           - name: parent-dag-id

@@ -217,7 +217,7 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
             inner_value_type = type_args[1]
             return {
                 parse_object_from_struct_based_on_type(k, inner_key_type):
-                parse_object_from_struct_based_on_type(v, inner_value_type)
+                    parse_object_from_struct_based_on_type(v, inner_value_type)
                 for k, v in struct.items()
             }
 
@@ -370,7 +370,9 @@ class ModelBase:
     def __eq__(self, other):
         return self.__class__ == other.__class__ and {
             k: getattr(self, k) for k in self._get_field_names()
-        } == {k: getattr(other, k) for k in other._get_field_names()}
+        } == {
+            k: getattr(other, k) for k in other._get_field_names()
+        }
 
     def __ne__(self, other):
         return not self == other
