@@ -6,13 +6,21 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad
-      value: '{"executorLabel":"exec-add","inputDefinitions":{"parameters":{"op2":{"parameterType":"NUMBER_INTEGER"},"op_1":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"sum":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad
-      value: '{"command":["sh","-c","set -e -x\necho \"$(($0+$1))\" | gsutil cp -
-        \"$2\"\n","{{$.inputs.parameters[''op_1'']}}","{{$.inputs.parameters[''op2'']}}","{{$.outputs.parameters[''sum''].output_file}}"],"image":"google/cloud-sdk:latest"}'
+    - name: components-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a
+      value: '{"executorLabel":"exec-add-numbers","inputDefinitions":{"parameters":{"a":{"parameterType":"NUMBER_INTEGER"},"b":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
+    - name: implementations-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","add_numbers"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        add_numbers(a: int, b: int) -\u003e int:\n    return a + b\n\n"],"image":"python:3.9"}'
     - name: components-root
-      value: '{"dag":{"tasks":{"add":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"op2":{"runtimeValue":{"constant":3}},"op_1":{"componentInputParameter":"a"}}},"taskInfo":{"name":"add"}},"add-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"dependentTasks":["add"],"inputs":{"parameters":{"op2":{"componentInputParameter":"b"},"op_1":{"taskOutputParameter":{"outputParameterKey":"sum","producerTask":"add"}}}},"taskInfo":{"name":"add-2"}},"add-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-3"},"dependentTasks":["add-2"],"inputs":{"parameters":{"op2":{"runtimeValue":{"constant":7}},"op_1":{"taskOutputParameter":{"outputParameterKey":"sum","producerTask":"add-2"}}}},"taskInfo":{"name":"add-3"}}}},"inputDefinitions":{"parameters":{"a":{"defaultValue":2,"isOptional":true,"parameterType":"NUMBER_INTEGER"},"b":{"defaultValue":5,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
+      value: '{"dag":{"tasks":{"add-numbers":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"runtimeValue":{"constant":3}}}},"taskInfo":{"name":"add-numbers"}},"add-numbers-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers-2"},"dependentTasks":["add-numbers"],"inputs":{"parameters":{"a":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"add-numbers"}},"b":{"componentInputParameter":"b"}}},"taskInfo":{"name":"add-numbers-2"}},"add-numbers-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers-3"},"dependentTasks":["add-numbers-2"],"inputs":{"parameters":{"a":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"add-numbers-2"}},"b":{"runtimeValue":{"constant":7}}}},"taskInfo":{"name":"add-numbers-3"}}}},"inputDefinitions":{"parameters":{"a":{"defaultValue":2,"isOptional":true,"parameterType":"NUMBER_INTEGER"},"b":{"defaultValue":5,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -193,76 +201,76 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad}}'
+            value: '{{workflow.parameters.components-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"op2":{"runtimeValue":{"constant":3}},"op_1":{"componentInputParameter":"a"}}},"taskInfo":{"name":"add"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"runtimeValue":{"constant":3}}}},"taskInfo":{"name":"add-numbers"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad}}'
+            value: '{{workflow.parameters.implementations-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a}}'
           - name: task-name
-            value: add
+            value: add-numbers
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        name: add-driver
+        name: add-numbers-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.add-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.add-numbers-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.add-driver.outputs.parameters.cached-decision}}'
-        depends: add-driver.Succeeded
-        name: add
+            value: '{{tasks.add-numbers-driver.outputs.parameters.cached-decision}}'
+        depends: add-numbers-driver.Succeeded
+        name: add-numbers
         template: system-container-executor
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad}}'
+            value: '{{workflow.parameters.components-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"dependentTasks":["add"],"inputs":{"parameters":{"op2":{"componentInputParameter":"b"},"op_1":{"taskOutputParameter":{"outputParameterKey":"sum","producerTask":"add"}}}},"taskInfo":{"name":"add-2"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers-2"},"dependentTasks":["add-numbers"],"inputs":{"parameters":{"a":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"add-numbers"}},"b":{"componentInputParameter":"b"}}},"taskInfo":{"name":"add-numbers-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad}}'
+            value: '{{workflow.parameters.implementations-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a}}'
           - name: task-name
-            value: add-2
+            value: add-numbers-2
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        depends: add.Succeeded
-        name: add-2-driver
+        depends: add-numbers.Succeeded
+        name: add-numbers-2-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.add-2-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.add-numbers-2-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.add-2-driver.outputs.parameters.cached-decision}}'
-        depends: add-2-driver.Succeeded
-        name: add-2
+            value: '{{tasks.add-numbers-2-driver.outputs.parameters.cached-decision}}'
+        depends: add-numbers-2-driver.Succeeded
+        name: add-numbers-2
         template: system-container-executor
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad}}'
+            value: '{{workflow.parameters.components-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-3"},"dependentTasks":["add-2"],"inputs":{"parameters":{"op2":{"runtimeValue":{"constant":7}},"op_1":{"taskOutputParameter":{"outputParameterKey":"sum","producerTask":"add-2"}}}},"taskInfo":{"name":"add-3"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers-3"},"dependentTasks":["add-numbers-2"],"inputs":{"parameters":{"a":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"add-numbers-2"}},"b":{"runtimeValue":{"constant":7}}}},"taskInfo":{"name":"add-numbers-3"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-21bd4924ff43783e66d3c7f7ad32238214d18915017d57ab8149f7191d4b88ad}}'
+            value: '{{workflow.parameters.implementations-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a}}'
           - name: task-name
-            value: add-3
+            value: add-numbers-3
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        depends: add-2.Succeeded
-        name: add-3-driver
+        depends: add-numbers-2.Succeeded
+        name: add-numbers-3-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.add-3-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.add-numbers-3-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.add-3-driver.outputs.parameters.cached-decision}}'
-        depends: add-3-driver.Succeeded
-        name: add-3
+            value: '{{tasks.add-numbers-3-driver.outputs.parameters.cached-decision}}'
+        depends: add-numbers-3-driver.Succeeded
+        name: add-numbers-3
         template: system-container-executor
     inputs:
       parameters:

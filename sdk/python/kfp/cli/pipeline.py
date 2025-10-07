@@ -82,8 +82,8 @@ either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
     '--pipeline-name',
     required=False,
     help=parsing.get_param_descr(client.Client.upload_pipeline_version,
-                                 'pipeline_name') + ' ' + either_option_required
-)
+                                 'pipeline_name') + ' ' +
+    either_option_required)
 @click.option(
     '-d',
     '--description',

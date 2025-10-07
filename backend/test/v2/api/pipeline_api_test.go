@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 
 	"github.com/kubeflow/pipelines/backend/test/config"
-	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/constants"
 	utils "github.com/kubeflow/pipelines/backend/test/testutil"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,7 +31,7 @@ import (
 
 // ################## POSITIVE TESTS ##################
 
-var _ = PDescribe("List Pipelines API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineList", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("List Pipelines API Tests >", Label(constants.POSITIVE, constants.Pipeline, "PipelineList", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Basic List Operations >", func() {
 		It("When no pipelines exist", func() {
@@ -85,7 +85,7 @@ var _ = PDescribe("List Pipelines API Tests >", Label(POSITIVE, API_PIPELINE, "P
 	})
 })
 
-var _ = PDescribe("List Pipelines Versions API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineVersionList", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("List Pipelines Versions API Tests >", Label(constants.POSITIVE, constants.Pipeline, "PipelineVersionList", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Basic List Operations >", func() {
 		It("When no pipeline versions exist", func() {
@@ -141,7 +141,7 @@ var _ = PDescribe("List Pipelines Versions API Tests >", Label(POSITIVE, API_PIP
 	})
 })
 
-var _ = PDescribe("Create Pipeline API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineCreate", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Create Pipeline API Tests >", Label(constants.POSITIVE, constants.Pipeline, "PipelineCreate", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Create a pipeline using '/pipelines' >", func() {
 		It("With just name", func() {
@@ -169,7 +169,7 @@ var _ = PDescribe("Create Pipeline API Tests >", Label(POSITIVE, API_PIPELINE, "
 	})
 })
 
-var _ = PDescribe("Get Pipeline API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineGet", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Get Pipeline API Tests >", Label(constants.POSITIVE, constants.Pipeline, "PipelineGet", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Get by name '/pipelines/{name}' >", func() {
 		It("With full name", func() {
@@ -184,7 +184,7 @@ var _ = PDescribe("Get Pipeline API Tests >", Label(POSITIVE, API_PIPELINE, "Pip
 	})
 })
 
-var _ = PDescribe("Get Pipeline Version API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineVersionGet", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, constants.Pipeline, "PipelineVersionGet", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Get by id '/pipelines/{pipeline_id}/versions/{pipeline_version_id}' >", func() {
 		It("With valid pipeline id and version id", func() {
@@ -192,7 +192,7 @@ var _ = PDescribe("Get Pipeline Version API Tests >", Label(POSITIVE, API_PIPELI
 	})
 })
 
-var _ = PDescribe("Delete Pipeline API Tests >", Label(POSITIVE, API_PIPELINE, "PipelineDelete", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Delete Pipeline API Tests >", Label(constants.POSITIVE, constants.Pipeline, "PipelineDelete", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Delete pipeline by ID '/pipelines/{pipeline_id}' >", func() {
 		It("Delete pipeline by ID that does not have any versions", func() {
@@ -206,7 +206,7 @@ var _ = PDescribe("Delete Pipeline API Tests >", Label(POSITIVE, API_PIPELINE, "
 
 // ################## NEGATIVE TESTS ##################
 
-var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", API_PIPELINE, API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", constants.Pipeline, constants.APIServerTests, constants.FullRegression), func() {
 	Context("Create a pipeline with version using '/pipelines/create' >", func() {
 		It("With a valid pipeline and pipeline version name but invalid pipeline spec file", func() {
 		})

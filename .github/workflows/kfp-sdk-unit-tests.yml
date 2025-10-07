@@ -1,0 +1,49 @@
+name: KFP SDK Unit Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    paths:
+      - 'api/**'
+      - 'sdk/**'
+      - './test/presubmit-tests-sdk-unit.sh'
+      - '.github/workflows/kfp-sdk-unit-tests.yml'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
+jobs:
+  sdk-unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.13']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install protobuf dependencies & kfp-pipeline-spec
+      id: install-protobuf-deps
+      uses: ./.github/actions/protobuf
+
+    - name: Install kfp & kfp-kubernetes from source
+      id: install-kfp-k8s-deps
+      uses: ./.github/actions/kfp-k8s
+
+    - name: Install Test dependencies
+      run: |
+        pip install pytest-cov
+        pip install -r sdk/python/requirements-dev.txt
+
+    - name: Run SDK Tests
+      env:
+        # We setup the env in the CI
+        SETUP_ENV: false
+      run: |
+        ./test/presubmit-tests-sdk-unit.sh

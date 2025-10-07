@@ -2,37 +2,37 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   creationTimestamp: null
-  generateName: pipeline-
+  generateName: pipeline-with-dynamic-condition-output-
 spec:
   arguments:
     parameters:
-    - name: components-bd65112bbc0d0923fa0ea45c093bd74f6f773ae9d69864eeca1ebf5b3e0d2dcb
+    - name: components-4ff7c4319829a8830447ba783584f0f40734ff010482a6b9b234ceda17ba214c
       value: '{"executorLabel":"exec-accelerator-count","outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-bd65112bbc0d0923fa0ea45c093bd74f6f773ae9d69864eeca1ebf5b3e0d2dcb
+    - name: implementations-4ff7c4319829a8830447ba783584f0f40734ff010482a6b9b234ceda17ba214c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","accelerator_count"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         accelerator_count() -\u003e int:\n    return 1\n\n"],"image":"python:3.9"}'
-    - name: components-a906e47ab9ae1c7250e454d3466ecfd04e1bdaad95ff8373292249509aef84f0
+    - name: components-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b
       value: '{"executorLabel":"exec-accelerator-type","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-a906e47ab9ae1c7250e454d3466ecfd04e1bdaad95ff8373292249509aef84f0
+    - name: implementations-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","accelerator_type"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.9"}'
-    - name: components-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871
+    - name: components-5c3db471413bc5e6b0f2f0865964176bec80d4d3e1dca8ac3332029d1bd0e525
       value: '{"executorLabel":"exec-custom-training-job","inputDefinitions":{"parameters":{"base_output_directory":{"defaultValue":"","description":"The
         Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob.
         See [more information ](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination).","isOptional":true,"parameterType":"STRING"},"display_name":{"description":"The
@@ -42,16 +42,31 @@ spec:
         URIs given by [CustomJob.web_access_uris][].","isOptional":true,"parameterType":"BOOLEAN"},"encryption_spec_key_name":{"defaultValue":"","description":"Customer-managed
         encryption key options for the CustomJob. If this is set, then all resources
         created by the CustomJob will be encrypted with the provided encryption key.","isOptional":true,"parameterType":"STRING"},"labels":{"defaultValue":{},"description":"The
-        labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).","isOptional":true,"parameterType":"STRUCT"},"location":{"defaultValue":"us-central1","description":"Location
-        for creating the custom training job. If not set, default to us-central1.","isOptional":true,"parameterType":"STRING"},"network":{"defaultValue":"","description":"The
+        labels with user-defined metadata to organize the CustomJob. See [more information](https://goo.gl/xmQnxf).","isOptional":true,"parameterType":"STRUCT"},"location":{"defaultValue":"{{$.pipeline_google_cloud_location}}","description":"Location
+        for creating the custom training job. If not set, default to the location
+        where the PipelineJob is run.","isOptional":true,"parameterType":"STRING"},"max_wait_duration":{"defaultValue":"86400s","description":"The
+        maximum time to wait for the custom training job to be scheduled only if the
+        scheduling strategy is set to FLEX_START. If set to 0, the job will wait indefinitely.
+        The default is 24 hours. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).","isOptional":true,"parameterType":"STRING"},"network":{"defaultValue":"","description":"The
         full name of the Compute Engine network to which the job should be peered.
         For example, `projects/12345/global/networks/myVPC`. Format is of the form
         `projects/{project}/global/networks/{network}`. Where `{project}` is a project
         number, as in `12345`, and `{network}` is a network name. Private services
         access must already be configured for the network. If left unspecified, the
-        job is not peered with any network.","isOptional":true,"parameterType":"STRING"},"project":{"defaultValue":"{{$.pipeline_google_cloud_project_id}}","description":"Project
+        job is not peered with any network.","isOptional":true,"parameterType":"STRING"},"persistent_resource_id":{"defaultValue":"{{$.pipeline_persistent_resource_id}}","description":"The
+        ID of the PersistentResource in the same Project and Location which to run.
+        The default value is a placeholder that will be resolved to the PipelineJob
+        [RuntimeConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.pipelineJobs#PipelineJob.RuntimeConfig)''s
+        persistent resource id at runtime. However, if the PipelineJob doesn''t set
+        Persistent Resource as the job level runtime, the placedholder will be resolved
+        to an empty string and the custom job will be run on demand. If the value
+        is set explicitly, the custom job will runs in the specified persistent resource,
+        in this case, please note the network and CMEK configs on the job should be
+        consistent with those on the PersistentResource, otherwise, the job will be
+        rejected.","isOptional":true,"parameterType":"STRING"},"project":{"defaultValue":"{{$.pipeline_google_cloud_project_id}}","description":"Project
         to create the custom training job in. Defaults to the project in which the
-        PipelineJob is run.","isOptional":true,"parameterType":"STRING"},"reserved_ip_ranges":{"defaultValue":[],"description":"A
+        PipelineJob is run.","isOptional":true,"parameterType":"STRING"},"psc_interface_config":{"defaultValue":{},"description":"Configuration
+        CustomJob with PSC-I. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#PscInterfaceConfig).","isOptional":true,"parameterType":"STRUCT"},"reserved_ip_ranges":{"defaultValue":[],"description":"A
         list of names for the reserved IP ranges under the VPC network that can be
         used for this job. If set, we will deploy the job within the provided IP ranges.
         Otherwise, the job will be deployed to any IP ranges under the provided VPC
@@ -63,7 +78,9 @@ spec:
         ](https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
         running the pipeline submitting jobs must have act-as permission on this run-as
         account. If unspecified, the Vertex AI Custom Code [Service Agent ](https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
-        for the CustomJob''s project.","isOptional":true,"parameterType":"STRING"},"tensorboard":{"defaultValue":"","description":"The
+        for the CustomJob''s project.","isOptional":true,"parameterType":"STRING"},"strategy":{"defaultValue":"STANDARD","description":"The
+        strategy to use for the custom training job. The default is ''STANDARD''.
+        See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).","isOptional":true,"parameterType":"STRING"},"tensorboard":{"defaultValue":"","description":"The
         name of a Vertex AI TensorBoard resource to which this CustomJob will upload
         TensorBoard logs.","isOptional":true,"parameterType":"STRING"},"timeout":{"defaultValue":"604800s","description":"The
         maximum job running time. The default is 7 days. A duration in seconds with
@@ -73,26 +90,30 @@ spec:
         an empty value. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#WorkerPoolSpec).","isOptional":true,"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"gcp_resources":{"description":"Serialized
         JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto)
         which tracks the CustomJob.","parameterType":"STRING"}}}}'
-    - name: implementations-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871
+    - name: implementations-5c3db471413bc5e6b0f2f0865964176bec80d4d3e1dca8ac3332029d1bd0e525
       value: '{"args":["--type","CustomJob","--payload","{\"display_name\": \"{{$.inputs.parameters[''display_name'']}}\",
         \"job_spec\": {\"worker_pool_specs\": {{$.inputs.parameters[''worker_pool_specs'']}},
         \"scheduling\": {\"timeout\": \"{{$.inputs.parameters[''timeout'']}}\", \"restart_job_on_worker_restart\":
-        {{$.inputs.parameters[''restart_job_on_worker_restart'']}}}, \"service_account\":
-        \"{{$.inputs.parameters[''service_account'']}}\", \"tensorboard\": \"{{$.inputs.parameters[''tensorboard'']}}\",
-        \"enable_web_access\": {{$.inputs.parameters[''enable_web_access'']}}, \"network\":
-        \"{{$.inputs.parameters[''network'']}}\", \"reserved_ip_ranges\": {{$.inputs.parameters[''reserved_ip_ranges'']}},
-        \"base_output_directory\": {\"output_uri_prefix\": \"{{$.inputs.parameters[''base_output_directory'']}}\"}},
+        {{$.inputs.parameters[''restart_job_on_worker_restart'']}}, \"strategy\":
+        \"{{$.inputs.parameters[''strategy'']}}\", \"max_wait_duration\": \"{{$.inputs.parameters[''max_wait_duration'']}}\"},
+        \"service_account\": \"{{$.inputs.parameters[''service_account'']}}\", \"tensorboard\":
+        \"{{$.inputs.parameters[''tensorboard'']}}\", \"enable_web_access\": {{$.inputs.parameters[''enable_web_access'']}},
+        \"network\": \"{{$.inputs.parameters[''network'']}}\", \"reserved_ip_ranges\":
+        {{$.inputs.parameters[''reserved_ip_ranges'']}}, \"base_output_directory\":
+        {\"output_uri_prefix\": \"{{$.inputs.parameters[''base_output_directory'']}}\"},
+        \"persistent_resource_id\": \"{{$.inputs.parameters[''persistent_resource_id'']}}\",
+        \"psc_interface_config\": {{$.inputs.parameters[''psc_interface_config'']}}},
         \"labels\": {{$.inputs.parameters[''labels'']}}, \"encryption_spec\": {\"kms_key_name\":
-        \"{{$.inputs.parameters[''encryption_spec_key_name'']}}\"}}","--project","{{$.inputs.parameters[''project'']}}","--location","{{$.inputs.parameters[''location'']}}","--gcp_resources","{{$.outputs.parameters[''gcp_resources''].output_file}}"],"command":["python3","-u","-m","google_cloud_pipeline_components.container.v1.custom_job.launcher"],"image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.14.1"}'
+        \"{{$.inputs.parameters[''encryption_spec_key_name'']}}\"}}","--project","{{$.inputs.parameters[''project'']}}","--location","{{$.inputs.parameters[''location'']}}","--gcp_resources","{{$.outputs.parameters[''gcp_resources''].output_file}}"],"command":["python3","-u","-m","google_cloud_pipeline_components.container.v1.custom_job.launcher"],"image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.21.0"}'
     - name: components-comp-condition-1
       value: '{"dag":{"tasks":{"custom-training-job":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-training-job"},"inputs":{"parameters":{"display_name":{"runtimeValue":{"constant":"add-numbers"}},"encryption_spec_key_name":{"componentInputParameter":"pipelinechannel--encryption_spec_key_name"},"location":{"componentInputParameter":"pipelinechannel--location"},"pipelinechannel--accelerator-count-Output":{"componentInputParameter":"pipelinechannel--accelerator-count-Output"},"pipelinechannel--accelerator-type-Output":{"componentInputParameter":"pipelinechannel--accelerator-type-Output"},"pipelinechannel--machine-type-Output":{"componentInputParameter":"pipelinechannel--machine-type-Output"},"project":{"componentInputParameter":"pipelinechannel--project"},"worker_pool_specs":{"runtimeValue":{"constant":[{"container_spec":{"args":["foo"],"command":["echo"],"image_uri":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0"},"machine_spec":{"accelerator_count":"{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}","accelerator_type":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}","machine_type":"{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}"},"replica_count":1}]}}}},"taskInfo":{"name":"custom-training-job"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--accelerator-count-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--accelerator-type-Output":{"parameterType":"STRING"},"pipelinechannel--encryption_spec_key_name":{"parameterType":"STRING"},"pipelinechannel--flip-biased-coin-op-Output":{"parameterType":"STRING"},"pipelinechannel--location":{"parameterType":"STRING"},"pipelinechannel--machine-type-Output":{"parameterType":"STRING"},"pipelinechannel--project":{"parameterType":"STRING"}}}}'
-    - name: components-a34b14897c3c729b01d4f83a2c66d05293087d32e806433b5fbf5133ae8d3a33
+    - name: components-51b3f8664f2ff23be29076a65342b8eb091ec17bd73e4295c973baea3dd5f073
       value: '{"executorLabel":"exec-flip-biased-coin-op","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-a34b14897c3c729b01d4f83a2c66d05293087d32e806433b5fbf5133ae8d3a33
+    - name: implementations-51b3f8664f2ff23be29076a65342b8eb091ec17bd73e4295c973baea3dd5f073
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_biased_coin_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -100,13 +121,13 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         flip_biased_coin_op() -\u003e str:\n    \"\"\"Flip a coin and output heads.\"\"\"\n    return
         ''heads''\n\n"],"image":"python:3.9"}'
-    - name: components-7e26d83a9218730385ce7df0a9ef1cfbe837bc3a801aafd136c5266bdb0a50f4
+    - name: components-cc24d59ed416d6169227e7ef954078b09337657b6eb903c1ee2afe6e0d9a5972
       value: '{"executorLabel":"exec-machine-type","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-7e26d83a9218730385ce7df0a9ef1cfbe837bc3a801aafd136c5266bdb0a50f4
+    - name: implementations-cc24d59ed416d6169227e7ef954078b09337657b6eb903c1ee2afe6e0d9a5972
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","machine_type"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -129,7 +150,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - pipeline
+      - pipeline-with-dynamic-condition-output
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -296,11 +317,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871}}'
+            value: '{{workflow.parameters.components-5c3db471413bc5e6b0f2f0865964176bec80d4d3e1dca8ac3332029d1bd0e525}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-training-job"},"inputs":{"parameters":{"display_name":{"runtimeValue":{"constant":"add-numbers"}},"encryption_spec_key_name":{"componentInputParameter":"pipelinechannel--encryption_spec_key_name"},"location":{"componentInputParameter":"pipelinechannel--location"},"pipelinechannel--accelerator-count-Output":{"componentInputParameter":"pipelinechannel--accelerator-count-Output"},"pipelinechannel--accelerator-type-Output":{"componentInputParameter":"pipelinechannel--accelerator-type-Output"},"pipelinechannel--machine-type-Output":{"componentInputParameter":"pipelinechannel--machine-type-Output"},"project":{"componentInputParameter":"pipelinechannel--project"},"worker_pool_specs":{"runtimeValue":{"constant":[{"container_spec":{"args":["foo"],"command":["echo"],"image_uri":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0"},"machine_spec":{"accelerator_count":"{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}","accelerator_type":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}","machine_type":"{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}"},"replica_count":1}]}}}},"taskInfo":{"name":"custom-training-job"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871}}'
+            value: '{{workflow.parameters.implementations-5c3db471413bc5e6b0f2f0865964176bec80d4d3e1dca8ac3332029d1bd0e525}}'
           - name: task-name
             value: custom-training-job
           - name: parent-dag-id
@@ -328,7 +349,7 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - pipeline
+      - pipeline-with-dynamic-condition-output
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -405,11 +426,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-bd65112bbc0d0923fa0ea45c093bd74f6f773ae9d69864eeca1ebf5b3e0d2dcb}}'
+            value: '{{workflow.parameters.components-4ff7c4319829a8830447ba783584f0f40734ff010482a6b9b234ceda17ba214c}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-count"},"taskInfo":{"name":"accelerator-count"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-bd65112bbc0d0923fa0ea45c093bd74f6f773ae9d69864eeca1ebf5b3e0d2dcb}}'
+            value: '{{workflow.parameters.implementations-4ff7c4319829a8830447ba783584f0f40734ff010482a6b9b234ceda17ba214c}}'
           - name: task-name
             value: accelerator-count
           - name: parent-dag-id
@@ -429,11 +450,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a906e47ab9ae1c7250e454d3466ecfd04e1bdaad95ff8373292249509aef84f0}}'
+            value: '{{workflow.parameters.components-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a906e47ab9ae1c7250e454d3466ecfd04e1bdaad95ff8373292249509aef84f0}}'
+            value: '{{workflow.parameters.implementations-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b}}'
           - name: task-name
             value: accelerator-type
           - name: parent-dag-id
@@ -478,11 +499,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a34b14897c3c729b01d4f83a2c66d05293087d32e806433b5fbf5133ae8d3a33}}'
+            value: '{{workflow.parameters.components-51b3f8664f2ff23be29076a65342b8eb091ec17bd73e4295c973baea3dd5f073}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-flip-biased-coin-op"},"taskInfo":{"name":"flip-biased-coin-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a34b14897c3c729b01d4f83a2c66d05293087d32e806433b5fbf5133ae8d3a33}}'
+            value: '{{workflow.parameters.implementations-51b3f8664f2ff23be29076a65342b8eb091ec17bd73e4295c973baea3dd5f073}}'
           - name: task-name
             value: flip-biased-coin-op
           - name: parent-dag-id
@@ -502,11 +523,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-7e26d83a9218730385ce7df0a9ef1cfbe837bc3a801aafd136c5266bdb0a50f4}}'
+            value: '{{workflow.parameters.components-cc24d59ed416d6169227e7ef954078b09337657b6eb903c1ee2afe6e0d9a5972}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-machine-type"},"taskInfo":{"name":"machine-type"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-7e26d83a9218730385ce7df0a9ef1cfbe837bc3a801aafd136c5266bdb0a50f4}}'
+            value: '{{workflow.parameters.implementations-cc24d59ed416d6169227e7ef954078b09337657b6eb903c1ee2afe6e0d9a5972}}'
           - name: task-name
             value: machine-type
           - name: parent-dag-id

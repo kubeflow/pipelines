@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -28,7 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
-	test_constants "github.com/kubeflow/pipelines/backend/test/constants"
+	testconstants "github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 
 	"github.com/onsi/gomega"
@@ -40,7 +41,7 @@ import (
 func GetProjectRoot() string {
 	dirFiles := make([]string, 0)
 	dir, _ := os.Getwd()
-	for !slices.Contains(dirFiles, test_constants.PARENT_DIRECTORY) && !slices.Contains(dirFiles, test_constants.TEST_DATA_DIR) {
+	for !slices.Contains(dirFiles, testconstants.ParentDirectory) && !slices.Contains(dirFiles, testconstants.TestDataDir) {
 		dirFiles = make([]string, 0)
 		dir = filepath.Join(dir, "..")
 		files, err := os.ReadDir(dir)
@@ -56,22 +57,22 @@ func GetProjectRoot() string {
 
 // GetTestDataDir Get the directory location for all the test data
 func GetTestDataDir() string {
-	return filepath.Join(GetProjectRoot(), test_constants.TEST_DATA_DIR)
+	return filepath.Join(GetProjectRoot(), testconstants.TestDataDir)
 }
 
 // GetPipelineFilesDir Get the directory location of the main list of pipeline files
 func GetPipelineFilesDir() string {
-	return filepath.Join(GetTestDataDir(), test_constants.PIPELINE_FILES_DIR)
+	return filepath.Join(GetTestDataDir(), testconstants.PipelineFilesDir)
 }
 
 // GetValidPipelineFilesDir Get the directory location of the main list of pipeline files
 func GetValidPipelineFilesDir() string {
-	return filepath.Join(GetPipelineFilesDir(), test_constants.VALID_PIPELINE_FILES_DIR)
+	return filepath.Join(GetPipelineFilesDir(), testconstants.ValidPipelineFilesDir)
 }
 
 // GetCompiledWorkflowsFilesDir Get the directory location of the main list of pipeline files
 func GetCompiledWorkflowsFilesDir() string {
-	return filepath.Join(GetTestDataDir(), test_constants.COMPILED_PIPELINE_FILES_DIR)
+	return filepath.Join(GetTestDataDir(), testconstants.CompiledPipelineFilesDir)
 }
 
 // GetListOfFilesInADir - Get list of files in a dir (not nested)
@@ -84,7 +85,9 @@ func GetListOfFilesInADir(directoryPath string) []string {
 
 	for _, file := range files {
 		if !file.IsDir() {
-			fileNames = append(fileNames, file.Name())
+			if !strings.Contains(file.Name(), ".py") && (file.Name() != "Dockerfile") && !strings.Contains(file.Name(), ".md") && !strings.Contains(file.Name(), ".ipynb") {
+				fileNames = append(fileNames, file.Name())
+			}
 		}
 	}
 	return fileNames
@@ -101,7 +104,9 @@ func GetListOfAllFilesInDir(directoryPath string) []string {
 
 		// Check if it's a regular file (not a directory)
 		if !d.IsDir() {
-			filePaths = append(filePaths, path)
+			if !strings.Contains(d.Name(), ".py") && (d.Name() != "Dockerfile") && !strings.Contains(d.Name(), ".md") && !strings.Contains(d.Name(), ".ipynb") {
+				filePaths = append(filePaths, path)
+			}
 		}
 		return nil
 	})

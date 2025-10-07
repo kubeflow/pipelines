@@ -136,6 +136,10 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.Contains(t, err.Error(), "Failed to upload pipeline version")
 
 	/* ---------- Import pipeline version YAML by URL ---------- */
+	pipelineURL := "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/test_data/sdk_compiled_pipelines/valid/sequential_v2.yaml"
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/sequential_v2.yaml", pullNumber)
+	}
 	time.Sleep(1 * time.Second)
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
 		PipelineID: pipelineId,
@@ -143,7 +147,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 			Name:        "sequential-v2",
 			DisplayName: "sequential",
 			PackageURL: &pipeline_model.V2beta1URL{
-				PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
+				PipelineURL: pipelineURL,
 			},
 			PipelineID: pipelineId,
 		},
@@ -163,10 +167,10 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipelineVersion.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+	pipelineURL = "https://github.com/kubeflow/pipelines/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip"
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip", pullNumber)
 	}
 
 	time.Sleep(1 * time.Second)
