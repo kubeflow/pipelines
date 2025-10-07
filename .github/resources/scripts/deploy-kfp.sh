@@ -133,15 +133,6 @@ if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Profile Controller Resources..."
   kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master
   kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s
-
-  echo "Creating KF Profile..."
-  kubectl apply -f test_data/kubernetes/seaweedfs/test-profiles.yaml
-
-  echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
-  kubectl apply -f test_data/kubernetes/seaweedfs/kubeflow-edit-clusterrole.yaml
-
-  echo "Applying network policy to allow user namespace access to kubeflow services..."
-  kubectl apply -f test_data/kubernetes/seaweedfs/allow-user-namespace-access.yaml
 fi
 
 # Manifests will be deployed according to the flag provided
@@ -204,6 +195,19 @@ if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Not all pods running."
   exit 1
+fi
+
+
+if [ "${MULTI_USER}" == "true" ]; then
+  echo "Creating KF Profile..."
+  kubectl apply -f test_data/kubernetes/seaweedfs/test-profiles.yaml
+  sleep 30 # Let the profile controler reconcile the namespace
+
+  echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
+  kubectl apply -f test_data/kubernetes/seaweedfs/kubeflow-edit-clusterrole.yaml
+
+  echo "Applying network policy to allow user namespace access to kubeflow services..."
+  kubectl apply -f test_data/kubernetes/seaweedfs/allow-user-namespace-access.yaml
 fi
 
 # Verify pipeline integration for multi-user mode
