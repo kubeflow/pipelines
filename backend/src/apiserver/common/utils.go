@@ -101,7 +101,7 @@ func PatchPipelineDefaultParameter(text string) (string, error) {
 		"{{kfp-project-id}}":     projectId,
 	}
 	for key, value := range toPatch {
-		text = strings.Replace(text, key, value, -1)
+		text = strings.ReplaceAll(text, key, value)
 	}
 	return text, nil
 }

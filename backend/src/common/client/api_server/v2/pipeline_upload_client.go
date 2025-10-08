@@ -112,7 +112,7 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to upload pipeline. Params: '%v'", parameters),
-			fmt.Sprintf("Failed to upload pipeline"))
+			"Failed to upload pipeline")
 	}
 
 	return response.Payload, nil
@@ -147,7 +147,7 @@ func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters
 
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to upload pipeline version. Params: '%v'", parameters),
-			fmt.Sprintf("Failed to upload pipeline version"))
+			"Failed to upload pipeline version")
 	}
 
 	return response.Payload, nil
