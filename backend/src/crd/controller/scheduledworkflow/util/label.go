@@ -12,7 +12,7 @@ import (
 // whether a workflow is completed.
 func GetRequirementForCompletedWorkflowOrFatal(completed bool) *labels.Requirement {
 	operator := selection.NotEquals
-	if completed == true {
+	if completed {
 		operator = selection.Equals
 	}
 	req, err := labels.NewRequirement(common.LabelKeyCompleted, operator,

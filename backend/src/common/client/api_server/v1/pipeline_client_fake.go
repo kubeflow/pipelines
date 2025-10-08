@@ -15,6 +15,7 @@
 package api_server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -81,7 +82,7 @@ func (c *PipelineClientFake) Create(params *pipelineparams.PipelineServiceCreate
 	*pipelinemodel.APIPipeline, error) {
 	switch params.Pipeline.URL.PipelineURL {
 	case PipelineInvalidURL:
-		return nil, fmt.Errorf(ClientErrorString)
+		return nil, errors.New(ClientErrorString)
 	default:
 		return getDefaultPipeline(path.Base(params.Pipeline.URL.PipelineURL)), nil
 	}
@@ -91,7 +92,7 @@ func (c *PipelineClientFake) Get(params *pipelineparams.PipelineServiceGetPipeli
 	*pipelinemodel.APIPipeline, error) {
 	switch params.ID {
 	case PipelineForClientErrorTest:
-		return nil, fmt.Errorf(ClientErrorString)
+		return nil, errors.New(ClientErrorString)
 	default:
 		return getDefaultPipeline(params.ID), nil
 	}
@@ -100,7 +101,7 @@ func (c *PipelineClientFake) Get(params *pipelineparams.PipelineServiceGetPipeli
 func (c *PipelineClientFake) Delete(params *pipelineparams.PipelineServiceDeletePipelineV1Params) error {
 	switch params.ID {
 	case PipelineForClientErrorTest:
-		return fmt.Errorf(ClientErrorString)
+		return errors.New(ClientErrorString)
 	default:
 		return nil
 	}
@@ -110,7 +111,7 @@ func (c *PipelineClientFake) GetTemplate(params *pipelineparams.PipelineServiceG
 	template.Template, error) {
 	switch params.ID {
 	case PipelineForClientErrorTest:
-		return nil, fmt.Errorf(ClientErrorString)
+		return nil, errors.New(ClientErrorString)
 	default:
 		return getDefaultTemplate(), nil
 	}
@@ -153,7 +154,7 @@ func (c *PipelineClientFake) ListAll(params *pipelineparams.PipelineServiceListP
 func (c *PipelineClientFake) UpdateDefaultVersion(params *params.PipelineServiceUpdatePipelineDefaultVersionV1Params) error {
 	switch params.PipelineID {
 	case PipelineForClientErrorTest:
-		return fmt.Errorf(ClientErrorString)
+		return errors.New(ClientErrorString)
 	default:
 		return nil
 	}

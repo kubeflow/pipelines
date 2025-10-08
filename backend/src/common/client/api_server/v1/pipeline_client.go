@@ -235,7 +235,7 @@ func (c *PipelineClient) List(parameters *params.PipelineServiceListPipelinesV1P
 
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list pipelines. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list pipelines"))
+			"Failed to list pipelines")
 	}
 
 	return response.Payload.Pipelines, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
@@ -316,7 +316,7 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.PipelineService
 
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list pipeline versions. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list pipeline versions"))
+			"Failed to list pipeline versions")
 	}
 
 	return response.Payload.Versions, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil

@@ -248,7 +248,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			return fmt.Errorf("failed to get id from createdExecution")
 		}
 		task := &api.Task{
-			//TODO how to differentiate between shared pipeline and namespaced pipeline
+			// TODO how to differentiate between shared pipeline and namespaced pipeline
 			PipelineName:    "pipeline/" + l.options.PipelineName,
 			Namespace:       l.options.Namespace,
 			RunId:           l.options.RunID,
@@ -452,7 +452,7 @@ func prettyPrint(jsonStr string) string {
 	if err != nil {
 		return jsonStr
 	}
-	return string(prettyJSON.Bytes())
+	return prettyJSON.String()
 }
 
 const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
