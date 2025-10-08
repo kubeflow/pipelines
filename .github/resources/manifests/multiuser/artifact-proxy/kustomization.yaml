@@ -19,6 +19,6 @@ patches:
     - op: add
       path: /spec/template/spec/containers/0/env/-
       value:
-        name: DISABLE_ISTIO_SIDECAR
-        value: "true"
+        name: DISABLE_ISTIO_SIDECAR 
+        value: "true" # Dangerous and only for CI/CD, not production usage
 
