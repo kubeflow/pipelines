@@ -159,15 +159,16 @@ def test_k8s_mode_pipeline_execution(kfp_client):
     
     print(f"Found {len(migrated_pipelines)} migrated pipelines: {migrated_pipelines}")
    
-    first_pipeline_name = migrated_pipelines[0]
+    # Use the 'hello-world' pipeline explicitly for this test
+    test_pipeline_name = 'hello-world'
    
-    migrated_pipeline_obj = get_pipeline_resource(first_pipeline_name)
-    assert migrated_pipeline_obj.get_name() == first_pipeline_name
+    migrated_pipeline_obj = get_pipeline_resource(test_pipeline_name)
+    assert migrated_pipeline_obj.get_name() == test_pipeline_name
     assert migrated_pipeline_obj.get_original_id() is not None and migrated_pipeline_obj.get_original_id() != "", \
         "Migrated pipeline should have original-id annotation"
     
-    k8s_versions = get_pipeline_versions_for_pipeline(first_pipeline_name)
-    assert len(k8s_versions) > 0, f"Pipeline {first_pipeline_name} should have at least one PipelineVersion"
+    k8s_versions = get_pipeline_versions_for_pipeline(test_pipeline_name)
+    assert len(k8s_versions) > 0, f"Pipeline {test_pipeline_name} should have at least one PipelineVersion"
     first_version = k8s_versions[0]
     assert first_version.get_original_id() is not None and first_version.get_original_id() != "", \
         "PipelineVersion should have original-id annotation"
@@ -189,11 +190,11 @@ def test_k8s_mode_pipeline_execution(kfp_client):
     migrated_pipeline = None
     for pipeline in pipeline_list:
         pipeline_name = getattr(pipeline, 'display_name', None)
-        if pipeline_name == first_pipeline_name:
+        if pipeline_name == test_pipeline_name:
             migrated_pipeline = pipeline
             break
     
-    assert migrated_pipeline is not None, f"Pipeline {first_pipeline_name} should be discoverable via KFP client"
+    assert migrated_pipeline is not None, f"Pipeline {test_pipeline_name} should be discoverable via KFP client"
     
     pipeline_id = migrated_pipeline.pipeline_id
     assert pipeline_id is not None, "Pipeline should have an ID"
@@ -202,21 +203,22 @@ def test_k8s_mode_pipeline_execution(kfp_client):
     versions = kfp_client.list_pipeline_versions(pipeline_id=pipeline_id)
     version_list = versions.pipeline_versions if hasattr(versions, 'pipeline_versions') else []
     assert len(version_list) > 0, "Pipeline should have at least one version"
-    
-    migrated_version = version_list[0]
+
+    # Get the version whose spec indicates the hello-world pipeline
+    def _is_hello_world_version(v):
+        v_spec = getattr(v, 'pipeline_spec', None)
+        if isinstance(v_spec, dict):
+            info = v_spec.get('pipelineInfo')
+            if isinstance(info, dict):
+                return info.get('name') == 'hello-world'
+        return False
+
+    migrated_version = next((v for v in version_list if _is_hello_world_version(v)), version_list[0])
     version_id = migrated_version.pipeline_version_id
     assert version_id is not None, "Pipeline version should have an ID"
     
     # Create and execute a run
-    # Provide default parameters only when the selected version declares them
-    spec = first_version.get_pipeline_spec() or {}
-    pipeline_info_name = (spec.get('pipelineInfo') or {}).get('name')
-    declared_params = (((spec.get('root') or {}).get('inputDefinitions') or {}).get('parameters') or {})
-    if pipeline_info_name == 'add-numbers' and {'a', 'b'}.issubset(declared_params):
-        test_params = {'a': 5, 'b': 3}
-    else:
-        test_params = {}
-    
+    test_params = {}
     run_data = kfp_client.run_pipeline(
         experiment_id=experiment_id,
         job_name="k8s-execution-test-run",
