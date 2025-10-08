@@ -2,19 +2,23 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../../../../manifests/kustomize/env/platform-agnostic-multi-user
-
-images:
-- name: ghcr.io/kubeflow/kfp-api-server
-  newName: kind-registry:5000/apiserver
-  newTag: latest
-- name: ghcr.io/kubeflow/kfp-persistence-agent
-  newName: kind-registry:5000/persistenceagent
-  newTag: latest
-- name: ghcr.io/kubeflow/kfp-scheduled-workflow-controller
-  newName: kind-registry:5000/scheduledworkflow
-  newTag: latest
+  - ../base
 
 patches:
-- path: pipeline-install-config-patch.yaml
-- path: disable-istio-injection.yaml
+- target:
+    kind: ConfigMap
+    name: pipeline-install-config
+  patch: |
+    - op: add
+      path: /data/ARTIFACTS_PROXY_ENABLED
+      value: "true"
+- target:
+    kind: Deployment
+    name: kubeflow-pipelines-profile-controller
+  patch: |
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: DISABLE_ISTIO_SIDECAR
+        value: "true"
+
