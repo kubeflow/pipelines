@@ -26,7 +26,7 @@ session = botocore.session.get_session()
 # To interact with seaweedfs user management. Region does not matter.
 iam = session.create_client('iam', region_name='foobar')
 # S3 client for lifecycle policy management
-s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs:8333")
+s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333")
 s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_url)
 
 
