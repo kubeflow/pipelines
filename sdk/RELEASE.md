@@ -10,6 +10,12 @@
 
 ## Documentation updates
 
+# 2.14.5
+
+## Bug Fixes
+
+* **sdk:**  fix: include requirements files in python sdist (#12330) 
+
 # 2.14.4
 
 ## Bug Fixes
