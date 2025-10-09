@@ -1,0 +1,126 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-importer-workspace
+# Description: Importer downloads an artifact into workspace; downstream reads it
+# Outputs:
+#    Output: str
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-read-imported:
+    executorLabel: exec-read-imported
+    inputDefinitions:
+      artifacts:
+        data:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: minio://mlpipeline/sample/sample.txt
+        downloadToWorkspace: true
+        metadata:
+          source: sample
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-read-imported:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - read_imported
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef read_imported(data: dsl.Input[dsl.Dataset]) -> str:\n    with\
+          \ open(data.path, \"r\") as f:\n        content = f.read()\n    print(f\"\
+          Imported content length: {len(content)}\")\n    return content\n\n"
+        image: python:3.9
+pipelineInfo:
+  description: Importer downloads an artifact into workspace; downstream reads it
+  name: pipeline-with-importer-workspace
+root:
+  dag:
+    outputs:
+      parameters:
+        Output:
+          valueFromParameter:
+            outputParameterKey: Output
+            producerSubtask: read-imported
+    tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: minio://mlpipeline/sample/sample.txt
+        taskInfo:
+          name: importer
+      read-imported:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-read-imported
+        dependentTasks:
+        - importer
+        inputs:
+          artifacts:
+            data:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+        taskInfo:
+          name: read-imported
+  outputDefinitions:
+    parameters:
+      Output:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.3
+---
+platforms:
+  kubernetes:
+    pipelineConfig:
+      workspace:
+        kubernetes:
+          pvcSpecPatch:
+            storageClassName: standard
+        size: 1Gi

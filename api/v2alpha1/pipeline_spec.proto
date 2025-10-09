@@ -873,6 +873,9 @@ message PipelineDeploymentConfig {
 
     // Whether or not import an artifact regardless it has been imported before.
     bool reimport = 5;
+
+    // If true, download artifact into the pipeline workspace.
+    bool download_to_workspace = 7;
   }
 
   // ResolverSpec resolves artifacts from historical metadata and returns them

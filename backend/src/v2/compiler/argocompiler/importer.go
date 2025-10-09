@@ -91,6 +91,32 @@ func (c *workflowCompiler) addImporterTemplate() string {
 	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
 		args = append(args, "--publish_logs", value)
 	}
+	// Add workspace volume only if the workflow defines a workspace PVC
+	hasWorkspacePVC := false
+	for _, pvc := range c.wf.Spec.VolumeClaimTemplates {
+		if pvc.Name == workspaceVolumeName {
+			hasWorkspacePVC = true
+			break
+		}
+	}
+
+	var volumeMounts []k8score.VolumeMount
+	var volumes []k8score.Volume
+	if hasWorkspacePVC {
+		volumeMounts = append(volumeMounts, k8score.VolumeMount{
+			Name:      workspaceVolumeName,
+			MountPath: component.WorkspaceMountPath,
+		})
+		volumes = append(volumes, k8score.Volume{
+			Name: workspaceVolumeName,
+			VolumeSource: k8score.VolumeSource{
+				PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
+					ClaimName: fmt.Sprintf("{{workflow.name}}-%s", workspaceVolumeName),
+				},
+			},
+		})
+	}
+
 	importerTemplate := &wfapi.Template{
 		Name: name,
 		Inputs: wfapi.Inputs{
@@ -102,13 +128,15 @@ func (c *workflowCompiler) addImporterTemplate() string {
 			},
 		},
 		Container: &k8score.Container{
-			Image:     c.launcherImage,
-			Command:   c.launcherCommand,
-			Args:      args,
-			EnvFrom:   []k8score.EnvFromSource{metadataEnvFrom},
-			Env:       commonEnvs,
-			Resources: driverResources,
+			Image:        c.launcherImage,
+			Command:      c.launcherCommand,
+			Args:         args,
+			EnvFrom:      []k8score.EnvFromSource{metadataEnvFrom},
+			Env:          commonEnvs,
+			Resources:    driverResources,
+			VolumeMounts: volumeMounts,
 		},
+		Volumes: volumes,
 	}
 
 	// If the apiserver is TLS-enabled, add the custom CA bundle to the importer template.

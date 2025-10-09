@@ -1189,6 +1189,68 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 	}
 }
 
+func TestWorkspaceMount_TriggeredByArtifactMetadata(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{Image: "python:3.9"}
+	componentSpec := &pipelinespec.ComponentSpec{
+		TaskConfigPassthroughs: []*pipelinespec.TaskConfigPassthrough{
+			{
+				Field:       pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES,
+				ApplyToTask: true,
+			},
+		},
+	}
+
+	// Build an ExecutorInput that does NOT reference workspace path in params,
+	// but contains an input artifact marked as already in workspace.
+	execInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri: "minio://mlpipeline/sample/sample.txt",
+							Metadata: &structpb.Struct{Fields: map[string]*structpb.Value{
+								"_kfp_workspace": structpb.NewBoolValue(true),
+							}},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	taskCfg := &TaskConfig{}
+	podSpec, err := initPodSpecPatch(
+		containerSpec, componentSpec, execInput,
+		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg, false, false, "",
+	)
+	assert.Nil(t, err)
+
+	// Expect workspace volume mounted
+	if assert.Len(t, podSpec.Volumes, 1) {
+		assert.Equal(t, "kfp-workspace", podSpec.Volumes[0].Name)
+		if assert.NotNil(t, podSpec.Volumes[0].PersistentVolumeClaim) {
+			assert.Equal(t, "my-run-name-kfp-workspace", podSpec.Volumes[0].PersistentVolumeClaim.ClaimName)
+		}
+	}
+	if assert.Len(t, podSpec.Containers, 1) {
+		if assert.Len(t, podSpec.Containers[0].VolumeMounts, 1) {
+			assert.Equal(t, "kfp-workspace", podSpec.Containers[0].VolumeMounts[0].Name)
+			assert.Equal(t, "/kfp-workspace", podSpec.Containers[0].VolumeMounts[0].MountPath)
+		}
+	}
+
+	// Also captured to TaskConfig
+	if assert.Len(t, taskCfg.Volumes, 1) {
+		assert.Equal(t, "kfp-workspace", taskCfg.Volumes[0].Name)
+	}
+	if assert.Len(t, taskCfg.VolumeMounts, 1) {
+		assert.Equal(t, "kfp-workspace", taskCfg.VolumeMounts[0].Name)
+		assert.Equal(t, "/kfp-workspace", taskCfg.VolumeMounts[0].MountPath)
+	}
+}
+
 func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{

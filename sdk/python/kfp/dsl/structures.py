@@ -449,6 +449,7 @@ class ImporterSpec:
     schema_version: str
     reimport: bool
     metadata: Optional[Mapping[str, Any]] = None
+    download_to_workspace: bool = False
 
 
 @dataclasses.dataclass

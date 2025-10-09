@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
@@ -173,6 +174,29 @@ func Test_executeV2_publishLogs(t *testing.T) {
 
 			}
 		})
+	}
+}
+
+func Test_getPlaceholders_WorkspaceArtifactPath(t *testing.T) {
+	execIn := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"data": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{Uri: "minio://mlpipeline/sample/sample.txt", Metadata: &structpb.Struct{Fields: map[string]*structpb.Value{"_kfp_workspace": structpb.NewBoolValue(true)}}},
+					},
+				},
+			},
+		},
+	}
+	ph, err := getPlaceholders(execIn)
+	if err != nil {
+		t.Fatalf("getPlaceholders error: %v", err)
+	}
+	got := ph["{{$.inputs.artifacts['data'].path}}"]
+	want := filepath.Join(WorkspaceMountPath, ".artifacts", "sample", "sample.txt")
+	if got != want {
+		t.Fatalf("placeholder path mismatch: got=%q want=%q", got, want)
 	}
 }
 
