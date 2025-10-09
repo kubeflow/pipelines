@@ -6,7 +6,7 @@ on:
 
   pull_request:
     paths:
-      - ".github/workflows/kfp-kubernetes-native-migration-tests.yml"
+      - ".github/workflows/kfp-kubernetes-native-migration-tests.yaml"
       - ".github/resources/**"
       - "tools/k8s-native/**"
       - "test/kfp-kubernetes-native-migration-tests/**"
@@ -129,8 +129,10 @@ jobs:
         if: ${{ steps.switch-to-k8s-mode.outcome == 'success' }}
         id: re-forward-api-port
         run: |
-          echo "Waiting for ml-pipeline pod to be ready in K8s mode..."
-          kubectl wait pods -l app=ml-pipeline -n kubeflow --for condition=Ready --timeout=300s
+          echo "Waiting for ml-pipeline deployment to be available in k8s mode..."
+          kubectl rollout status deployment/ml-pipeline -n kubeflow --timeout=300s
+          echo "Waiting for ml-pipeline pod to be available in k8s mode..."
+          kubectl wait --for=condition=ready pod -l app=ml-pipeline -n kubeflow --timeout=300s --field-selector=status.phase=Running
           # Kill any existing port forwarding
           pkill -f "kubectl port-forward.*ml-pipeline" || echo "No existing port forwarding to kill"
           sleep 3
