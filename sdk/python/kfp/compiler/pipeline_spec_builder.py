@@ -614,6 +614,10 @@ def build_importer_spec_for_task(
         metadata_protobuf_struct.update(task.importer_spec.metadata)
         importer_spec.metadata.CopyFrom(metadata_protobuf_struct)
 
+    # Emit download_to_workspace if set on the task
+    if getattr(task.importer_spec, 'download_to_workspace', False):
+        importer_spec.download_to_workspace = task.importer_spec.download_to_workspace
+
     if isinstance(task.importer_spec.artifact_uri,
                   pipeline_channel.PipelineChannel):
         importer_spec.artifact_uri.runtime_parameter = 'uri'
@@ -2133,6 +2137,59 @@ def write_pipeline_spec_to_file(
         kubernetes_manifest_options: KubernetesManifestOptions object with manifest options.
         kubernetes_manifest_format: Output the compiled pipeline as a Kubernetes manifest.
     """
+
+    # Validate workspace requirement when download_to_workspace is used
+    def _uses_workspace_download(ps: pipeline_spec_pb2.PipelineSpec) -> bool:
+        ds = ps.deployment_spec
+        if ds is None:
+            return False
+        executors = getattr(ds, 'executors', None)
+        if executors:
+            for _, exec_spec in executors.items():
+                if exec_spec.WhichOneof('spec') == 'importer':
+                    if getattr(exec_spec.importer, 'download_to_workspace',
+                               False):
+                        return True
+            return False
+        ds_dict = json_format.MessageToDict(ds)
+        if not ds_dict:
+            return False
+        execs_dict = ds_dict.get('executors', {})
+        if not isinstance(execs_dict, dict):
+            return False
+        for _, exec_spec in execs_dict.items():
+            if isinstance(exec_spec, dict) and 'importer' in exec_spec:
+                importer = exec_spec['importer']
+                if isinstance(importer, dict) and importer.get(
+                        'downloadToWorkspace', False):
+                    return True
+        return False
+
+    def _has_workspace_config(ps: pipeline_spec_pb2.PlatformSpec) -> bool:
+        if ps is None:
+            return False
+        plat = json_format.MessageToDict(ps)
+        platforms = plat.get('platforms', {})
+        if not isinstance(platforms, dict):
+            return False
+        # Check if a platform has a workspace config
+        for platform_name, platform_config in platforms.items():
+            if isinstance(platform_config, dict):
+                pc = platform_config.get('pipelineConfig')
+                if isinstance(
+                        pc, dict
+                ) and 'workspace' in pc and pc['workspace'] is not None:
+                    return True
+        return False
+
+    if _uses_workspace_download(
+            pipeline_spec) and not _has_workspace_config(platform_spec):
+        raise ValueError(
+            'dsl.importer(download_to_workspace=True) requires PipelineConfig(workspace=...) on the pipeline. '
+            'Add workspace configuration to your @dsl.pipeline decorator: '
+            'pipeline_config=dsl.PipelineConfig(workspace=dsl.WorkspaceConfig(size=\\\'1Gi\\\'))'
+        )
+
     if kubernetes_manifest_format:
         opts = kubernetes_manifest_options or KubernetesManifestOptions()
         opts.set_pipeline_spec(pipeline_spec)

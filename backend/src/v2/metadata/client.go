@@ -50,10 +50,11 @@ import (
 )
 
 const (
-	pipelineContextTypeName    = "system.Pipeline"
-	pipelineRunContextTypeName = "system.PipelineRun"
-	ImporterExecutionTypeName  = "system.ImporterExecution"
-	mlmdClientSideMaxRetries   = 3
+	pipelineContextTypeName            = "system.Pipeline"
+	pipelineRunContextTypeName         = "system.PipelineRun"
+	ImporterExecutionTypeName          = "system.ImporterExecution"
+	ImporterWorkspaceExecutionTypeName = "system.ImporterWorkspaceExecution"
+	mlmdClientSideMaxRetries           = 3
 )
 
 type ExecutionType string

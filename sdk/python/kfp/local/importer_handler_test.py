@@ -94,6 +94,8 @@ class TestRunImporter(testing_utilities.LocalRunnerEnvironmentTestCase):
                          expected_artifact.metadata)
         self.assertEqual(task_status, status.Status.SUCCESS)
 
+    # Removed unit-level workspace copy tests; covered by local runner E2E tests.
+
     def test_uri_constant(self):
         component_spec_dict = {
             'inputDefinitions': {

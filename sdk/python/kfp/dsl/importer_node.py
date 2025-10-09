@@ -34,6 +34,7 @@ def importer(
     artifact_class: Type[artifact_types.Artifact],
     reimport: bool = False,
     metadata: Optional[Mapping[str, Any]] = None,
+    download_to_workspace: bool = False,
 ) -> pipeline_task.PipelineTask:
     """Imports an existing artifact for use in a downstream component.
 
@@ -42,6 +43,7 @@ def importer(
       artifact_class: The artifact class being imported.
       reimport: Whether to reimport the artifact.
       metadata: Properties of the artifact.
+      download_to_workspace: If true, download artifact into pipeline workspace.
 
     Returns:
       A task with the artifact accessible via its ``.output`` attribute.
@@ -127,7 +129,8 @@ def importer(
                     artifact_class.schema_title, artifact_class.schema_version),
                 schema_version=artifact_class.schema_version,
                 reimport=reimport,
-                metadata=metadata_with_placeholders)),
+                metadata=metadata_with_placeholders,
+                download_to_workspace=download_to_workspace)),
         inputs={
             URI_KEY: structures.InputSpec(type='String'),
             **component_inputs
