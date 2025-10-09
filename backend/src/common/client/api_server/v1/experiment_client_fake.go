@@ -15,6 +15,7 @@
 package api_server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
@@ -45,7 +46,7 @@ func (c *ExperimentClientFake) Create(params *experimentparams.ExperimentService
 	*experimentmodel.APIExperiment, error) {
 	switch params.Experiment.Name {
 	case ExperimentForClientErrorTest:
-		return nil, fmt.Errorf(ClientErrorString)
+		return nil, errors.New(ClientErrorString)
 	default:
 		return getDefaultExperiment("500", params.Experiment.Name), nil
 	}
@@ -55,7 +56,7 @@ func (c *ExperimentClientFake) Get(params *experimentparams.ExperimentServiceGet
 	*experimentmodel.APIExperiment, error) {
 	switch params.ID {
 	case ExperimentForClientErrorTest:
-		return nil, fmt.Errorf(ClientErrorString)
+		return nil, errors.New(ClientErrorString)
 	default:
 		return getDefaultExperiment(params.ID, "EXPERIMENT_NAME"), nil
 	}

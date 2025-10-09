@@ -15,7 +15,7 @@
 package api_server_v2
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/go-openapi/strfmt"
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -26,8 +26,8 @@ const (
 	FileForDefaultTest     = "./samples/parameters.yaml"
 	FileForClientErrorTest = "./samples/hello-world.yaml"
 
-	ClientErrorString  = "Error with client"
-	InvalidFakeRequest = "Invalid fake request, don't know how to handle '%s' in the fake client."
+	ClientErrorString  = "error with client"
+	InvalidFakeRequest = "invalid fake request, don't know how to handle '%s' in the fake client."
 )
 
 func getDefaultUploadedPipeline() *model.V2beta1Pipeline {
@@ -49,7 +49,7 @@ func (c *PipelineUploadClientFake) UploadFile(filePath string,
 	parameters *params.UploadPipelineParams) (*model.V2beta1Pipeline, error) {
 	switch filePath {
 	case FileForClientErrorTest:
-		return nil, fmt.Errorf(ClientErrorString)
+		return nil, errors.New(ClientErrorString)
 	default:
 		return getDefaultUploadedPipeline(), nil
 	}

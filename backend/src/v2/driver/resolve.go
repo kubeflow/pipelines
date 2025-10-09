@@ -318,7 +318,7 @@ func resolveInputs(
 
 			componentParam, ok := opts.Component.GetInputDefinitions().GetParameters()[name]
 			if ok && componentParam != nil && componentParam.IsOptional {
-				// If the resolved paramter was null and the component input parameter is optional, just skip setting
+				// If the resolved parameter was null and the component input parameter is optional, just skip setting
 				// it and the launcher will handle defaults.
 				continue
 			}

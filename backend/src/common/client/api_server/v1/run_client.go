@@ -48,7 +48,7 @@ type RunClient struct {
 func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 	*RunClient, error) {
 
-	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error occurred when creating run client: %w", err)
 	}
@@ -64,7 +64,7 @@ func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 func NewKubeflowInClusterRunClient(namespace string, debug bool) (
 	*RunClient, error) {
 
-	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug)
+	runtime := api_server.NewKubeflowInClusterHTTPRuntime(namespace, debug, nil)
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
@@ -103,7 +103,7 @@ func (c *RunClient) Create(parameters *params.RunServiceCreateRunV1Params) (*mod
 		return nil, nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to unmarshal response. Params: %+v. Response: %s", parameters,
 				response.Payload.PipelineRuntime.WorkflowManifest),
-			fmt.Sprintf("Failed to unmarshal response"))
+			"Failed to unmarshal response")
 	}
 
 	return response.Payload, &workflow, nil
@@ -137,7 +137,7 @@ func (c *RunClient) Get(parameters *params.RunServiceGetRunV1Params) (*model.API
 		return nil, nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to unmarshal response. Params: %+v. Response: %s", parameters,
 				response.Payload.PipelineRuntime.WorkflowManifest),
-			fmt.Sprintf("Failed to unmarshal response"))
+			"Failed to unmarshal response")
 	}
 
 	return response.Payload, &workflow, nil
@@ -161,7 +161,7 @@ func (c *RunClient) Archive(parameters *params.RunServiceArchiveRunV1Params) err
 
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to archive runs. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to archive runs"))
+			"Failed to archive runs")
 	}
 
 	return nil
@@ -185,7 +185,7 @@ func (c *RunClient) Unarchive(parameters *params.RunServiceUnarchiveRunV1Params)
 
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to unarchive runs. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to unarchive runs"))
+			"Failed to unarchive runs")
 	}
 
 	return nil
@@ -209,7 +209,7 @@ func (c *RunClient) Delete(parameters *params.RunServiceDeleteRunV1Params) error
 
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to delete runs. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to delete runs"))
+			"Failed to delete runs")
 	}
 
 	return nil
@@ -234,7 +234,7 @@ func (c *RunClient) List(parameters *params.RunServiceListRunsV1Params) (
 
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list runs. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to list runs"))
+			"Failed to list runs")
 	}
 
 	return response.Payload.Runs, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil

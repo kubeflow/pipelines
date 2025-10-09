@@ -145,7 +145,7 @@ func getLabelSelectorToGetWorkflows(swfName string, completed bool, minIndex int
 	labelSelector := labels.NewSelector()
 	// The Argo workflow should be active or completed
 	labelSelector = labelSelector.Add(*util.GetRequirementForCompletedWorkflowOrFatal(completed))
-	// The Argo workflow should be labelled with this scheduled workflow name.
+	// The Argo workflow should be labeled with this scheduled workflow name.
 	labelSelector = labelSelector.Add(*util.GetRequirementForScheduleNameOrFatal(swfName))
 	// The Argo workflow should have an index greater than...
 	labelSelector = labelSelector.Add(*util.GetRequirementForMinIndexOrFatal(minIndex))

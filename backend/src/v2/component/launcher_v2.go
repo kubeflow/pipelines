@@ -54,6 +54,11 @@ type LauncherV2Options struct {
 	RunID string
 	PublishLogs   string
 	CacheDisabled bool
+	// Set to true if apiserver is serving over TLS
+	MLPipelineTLSEnabled bool
+	// Set to true if metadata server is serving over TLS
+	MLMDTLSEnabled bool
+	CaCertPath     string
 }
 
 type LauncherV2 struct {
@@ -230,6 +235,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 		l.options.Namespace,
 		l.clientManager.K8sClient(),
 		l.options.PublishLogs,
+		l.options.CaCertPath,
 	)
 	if err != nil {
 		return err
@@ -242,7 +248,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (err error) {
 			return fmt.Errorf("failed to get id from createdExecution")
 		}
 		task := &api.Task{
-			//TODO how to differentiate between shared pipeline and namespaced pipeline
+			// TODO how to differentiate between shared pipeline and namespaced pipeline
 			PipelineName:    "pipeline/" + l.options.PipelineName,
 			Namespace:       l.options.Namespace,
 			RunId:           l.options.RunID,
@@ -352,6 +358,7 @@ func executeV2(
 	namespace string,
 	k8sClient kubernetes.Interface,
 	publishLogs string,
+	customCAPath string,
 ) (*pipelinespec.ExecutorOutput, []*metadata.OutputArtifact, error) {
 
 	// Add parameter default values to executorInput, if there is not already a user input.
@@ -378,6 +385,7 @@ func executeV2(
 		namespace,
 		k8sClient,
 		publishLogs,
+		customCAPath,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -444,7 +452,7 @@ func prettyPrint(jsonStr string) string {
 	if err != nil {
 		return jsonStr
 	}
-	return string(prettyJSON.Bytes())
+	return prettyJSON.String()
 }
 
 const OutputMetadataFilepath = "/tmp/kfp_outputs/output_metadata.json"
@@ -491,6 +499,7 @@ func execute(
 	namespace string,
 	k8sClient kubernetes.Interface,
 	publishLogs string,
+	customCAPath string,
 ) (*pipelinespec.ExecutorOutput, error) {
 	if err := downloadArtifacts(ctx, executorInput, bucket, bucketConfig, namespace, k8sClient); err != nil {
 		return nil, err
@@ -507,6 +516,29 @@ func execute(
 		writer = os.Stdout
 	}
 
+	// If a custom CA path is input, append to system CA and save to a temp file for executor access.
+	if customCAPath != "" {
+		var caBundleTmpPath string
+		var err error
+		if caBundleTmpPath, err = compileTempCABundleWithCustomCA(customCAPath); err != nil {
+			return nil, err
+		}
+
+		err = os.Setenv("REQUESTS_CA_BUNDLE", caBundleTmpPath)
+		if err != nil {
+			glog.Errorf("Error setting REQUESTS_CA_BUNDLE environment variable, %s", err.Error())
+		}
+		err = os.Setenv("AWS_CA_BUNDLE", caBundleTmpPath)
+		if err != nil {
+			glog.Errorf("Error setting AWS_CA_BUNDLE environment variable, %s", err.Error())
+		}
+		err = os.Setenv("SSL_CERT_FILE", caBundleTmpPath)
+		if err != nil {
+			glog.Errorf("Error setting SSL_CERT_FILE environment variable, %s", err.Error())
+		}
+
+	}
+
 	// Prepare command that will execute end user code.
 	command := exec.Command(cmd, args...)
 	command.Stdin = os.Stdin
@@ -521,6 +553,56 @@ func execute(
 	}
 
 	return getExecutorOutputFile(executorInput.GetOutputs().GetOutputFile())
+}
+
+// Create a temp file that contains the system CA bundle (and custom CA if it has been mounted).
+func compileTempCABundleWithCustomCA(customCAPath string) (string, error) {
+	// Possible certificate files; stop after finding one. List from https://go.dev/src/crypto/x509/root_linux.go
+	var systemCAs = []string{
+		"/etc/ssl/certs/ca-certificates.crt",
+		"/etc/pki/tls/certs/ca-bundle.crt",
+		"/etc/ssl/ca-bundle.pem",
+		"/etc/pki/tls/cacert.pem",
+		"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+		"/etc/ssl/cert.pem",
+	}
+	sslCertFilePath := os.Getenv("SSL_CERT_FILE")
+	// If SSL_CERT_FILE is set to a different value than the custom CA path, append it to the beginning of the systemCAs slice.
+	if sslCertFilePath != "" && sslCertFilePath != customCAPath {
+		systemCAs = append([]string{sslCertFilePath}, systemCAs...)
+	}
+	tmpCaBundle, err := os.CreateTemp("", "ca-bundle-*.crt")
+	if err != nil {
+		return "", err
+	}
+	var systemCaBundle []byte
+	for _, file := range systemCAs {
+		systemCaBundle, err = os.ReadFile(file)
+		if err != nil {
+			glog.Errorf("Error reading CA bundle file, %s.", err)
+		}
+		// Once a non-nil system CA file is found, break.
+		if systemCaBundle != nil {
+			break
+		}
+	}
+	// Append mounted custom CA cert to System CA bundle.
+	customCa, err := os.ReadFile(customCAPath)
+	if err != nil {
+		return "", err
+	}
+	systemCaBundle = append(systemCaBundle, customCa...)
+	_, err = tmpCaBundle.Write(systemCaBundle)
+	if err != nil {
+		return "", err
+	}
+	// Update temp file permissions to 444 (read-only).
+	err = tmpCaBundle.Chmod(0444)
+	if err != nil {
+		return "", err
+	}
+	// Return filepath for tmpCaBundle
+	return tmpCaBundle.Name(), nil
 }
 
 type uploadOutputArtifactsOptions struct {

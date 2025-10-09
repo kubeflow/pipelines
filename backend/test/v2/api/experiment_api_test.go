@@ -16,7 +16,7 @@ package api
 
 import (
 	"github.com/kubeflow/pipelines/backend/test/config"
-	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/constants"
 
 	. "github.com/onsi/ginkgo/v2"
 )
@@ -27,7 +27,7 @@ import (
 
 // ################## POSITIVE TESTS ##################
 
-var _ = PDescribe("List Experiments API Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentList", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("List Experiments API Tests >", Label(constants.POSITIVE, constants.Experiment, "ExperimentList", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Basic List Operations >", func() {
 		It("When no experiments exist", func() {
@@ -83,7 +83,7 @@ var _ = PDescribe("List Experiments API Tests >", Label(POSITIVE, API_EXPERIMENT
 	})
 })
 
-var _ = PDescribe("Create Experiment API Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentCreate", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Create Experiment API Tests >", Label(constants.POSITIVE, constants.Experiment, "ExperimentCreate", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Create an experiment >", func() {
 		It("With just name", func() {
@@ -97,7 +97,7 @@ var _ = PDescribe("Create Experiment API Tests >", Label(POSITIVE, API_EXPERIMEN
 	})
 })
 
-var _ = PDescribe("Get Experiment API Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentGet", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Get Experiment API Tests >", Label(constants.POSITIVE, constants.Experiment, "ExperimentGet", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Get by ID >", func() {
 		It("With ID", func() {
@@ -105,7 +105,7 @@ var _ = PDescribe("Get Experiment API Tests >", Label(POSITIVE, API_EXPERIMENT, 
 	})
 })
 
-var _ = PDescribe("Archive an experiment Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentArchive", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Archive an experiment Tests >", Label(constants.POSITIVE, constants.Experiment, "ExperimentArchive", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("By ID >", func() {
 		It("One that does not have any run(s) or recurring run(s)", func() {
@@ -118,7 +118,7 @@ var _ = PDescribe("Archive an experiment Tests >", Label(POSITIVE, API_EXPERIMEN
 		})
 	})
 })
-var _ = PDescribe("UnArchive an experiment Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentUnarchive", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("UnArchive an experiment Tests >", Label(constants.POSITIVE, constants.Experiment, "ExperimentUnarchive", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("By ID >", func() {
 		It("One that does not have any run(s) or recurring run(s)", func() {
@@ -130,7 +130,7 @@ var _ = PDescribe("UnArchive an experiment Tests >", Label(POSITIVE, API_EXPERIM
 	})
 })
 
-var _ = PDescribe("Delete Experiment API Tests >", Label(POSITIVE, API_EXPERIMENT, "ExperimentDelete", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Delete Experiment API Tests >", Label(constants.POSITIVE, constants.Experiment, "ExperimentDelete", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Delete by ID >", func() {
 		It("Delete an experiment by ID that does not have any run(s) or recurring run(s)", func() {
@@ -142,7 +142,7 @@ var _ = PDescribe("Delete Experiment API Tests >", Label(POSITIVE, API_EXPERIMEN
 
 // ################## NEGATIVE TESTS ##################
 
-var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", API_EXPERIMENT, API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Verify Pipeline Negative Tests >", Label("Negative", constants.Experiment, constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Create experiment >", func() {
 		It("With 500 char name", func() {

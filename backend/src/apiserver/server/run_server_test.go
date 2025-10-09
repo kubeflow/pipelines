@@ -1617,7 +1617,7 @@ func TestReadArtifactsV1_Resource_NotFound(t *testing.T) {
 	assert.Nil(t, err)
 
 	runServer := createRunServerV1(manager)
-	//`artifactRequest` search for node that does not exist
+	// `artifactRequest` search for node that does not exist
 	artifactRequest := &apiv1beta1.ReadArtifactRequest{
 		RunId:        run.UUID,
 		NodeId:       "node-1",

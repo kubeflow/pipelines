@@ -31,6 +31,7 @@ CACHE_DISABLED=false
 MULTI_USER=false
 STORAGE_BACKEND="seaweedfs"
 AWF_VERSION=""
+POD_TO_POD_TLS_ENABLED=false
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -67,6 +68,10 @@ while [ "$#" -gt 0 ]; do
         exit 1
       fi
       ;;
+    --tls-enabled)
+      POD_TO_POD_TLS_ENABLED=true
+      shift
+      ;;
   esac
 done
 
@@ -100,8 +105,8 @@ if [[ $EXIT_CODE -ne 0 ]]; then
   exit $EXIT_CODE
 fi
 
-# If pipelines store is set to 'kubernetes', cert-manager must be deployed
-if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+# If pipelines store is set to 'kubernetes' or pod-to-pod TLS is set to 'true', cert-manager must be deployed
+if [ "${PIPELINES_STORE}" == "kubernetes" ] || [ "${POD_TO_POD_TLS_ENABLED}" == "true" ]; then
   #Install cert-manager
   make -C ./backend install-cert-manager || EXIT_CODE=$?
   if [[ $EXIT_CODE -ne 0 ]]
@@ -156,11 +161,17 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
   elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
+  elif $POD_TO_POD_TLS_ENABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
+  else
+    TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
 elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/kubernetes-native"
   if $CACHE_DISABLED; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
+  else
+    TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
@@ -170,6 +181,8 @@ elif [ "${MULTI_USER}" == "true" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
+  else
+    TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
 fi
 

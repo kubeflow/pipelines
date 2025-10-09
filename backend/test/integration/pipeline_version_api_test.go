@@ -331,14 +331,14 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 			{Name: "param2"},
 		}, "Found wrong parameters in the pipeline version: %s", pipelineVersion.Name)
 
-	/* ---------- Verify get template works ---------- */
-	template, err := s.pipelineClient.GetPipelineVersionTemplate(&params.PipelineServiceGetPipelineVersionTemplateParams{VersionID: argumentYAMLPipelineVersion.ID})
+	/* ---------- Verify get tmpl works ---------- */
+	tmpl, err := s.pipelineClient.GetPipelineVersionTemplate(&params.PipelineServiceGetPipelineVersionTemplateParams{VersionID: argumentYAMLPipelineVersion.ID})
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes, true, nil)
+	expected, err := pipelinetemplate.New(bytes, pipelinetemplate.TemplateOptions{CacheDisabled: true})
 	require.Nil(t, err)
-	assert.Equal(t, expected, template)
+	assert.Equal(t, expected, tmpl)
 }
 
 func (s *PipelineVersionApiTest) TestV2Spec() {
@@ -365,13 +365,13 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	assert.Equal(t, "v2-hello-world", v2Version.Name)
 
 	/* ---------- Verify get template works ---------- */
-	template, err := s.pipelineClient.GetPipelineVersionTemplate(&params.PipelineServiceGetPipelineVersionTemplateParams{VersionID: v2Version.ID})
+	tmpl, err := s.pipelineClient.GetPipelineVersionTemplate(&params.PipelineServiceGetPipelineVersionTemplateParams{VersionID: v2Version.ID})
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes, true, nil)
+	expected, err := pipelinetemplate.New(bytes, pipelinetemplate.TemplateOptions{CacheDisabled: true})
 	require.Nil(t, err)
-	assert.Equal(t, expected, template, "Discrepancy found in template's pipeline name. Created pipeline's name - %s.", pipeline.Name)
+	assert.Equal(t, expected, tmpl, "Discrepancy found in template's pipeline name. Created pipeline's name - %s.", pipeline.Name)
 }
 
 func TestPipelineVersionAPI(t *testing.T) {

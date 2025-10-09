@@ -6,17 +6,17 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-8c04c41b5e988f60fdf853895b67f9eb39ee83d909e685d805df77c18b06aed9
+    - name: components-3e4e63ec82d130c2d86a0de3eb781d6a47ff58129bf5f5aa0aa8891ef448dc7f
       value: '{"executorLabel":"exec-dataset-joiner","inputDefinitions":{"artifacts":{"dataset_a":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"description":"First
         dataset."},"dataset_b":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"description":"Second
         dataset."}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"description":"The
         concatenated dataset."}},"parameters":{"Output":{"description":"The concatenated
         string.","parameterType":"STRING"}}}}'
-    - name: implementations-8c04c41b5e988f60fdf853895b67f9eb39ee83d909e685d805df77c18b06aed9
+    - name: implementations-3e4e63ec82d130c2d86a0de3eb781d6a47ff58129bf5f5aa0aa8891ef448dc7f
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","dataset_joiner"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -30,15 +30,15 @@ spec:
         = f.read()\n\n    with open(dataset_b.path) as f:\n        content_b = f.read()\n\n    concatenated_string
         = content_a + content_b\n    with open(out_dataset.path, ''w'') as f:\n        f.write(concatenated_string)\n\n    return
         concatenated_string\n\n"],"image":"python:3.9"}'
-    - name: components-ca5b7c79b8ba3941853958474de4f4638ec29b3b9c0d7530beaf7a91ac034e7f
+    - name: components-cf015d965d4dbce23b2fa6520b6fd9409bc8c0e0de1513abaf9d5e1c03d3835d
       value: '{"executorLabel":"exec-str-to-dataset","inputDefinitions":{"parameters":{"string":{"description":"The
         string.","parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"description":"The
         dataset."}}}}'
-    - name: implementations-ca5b7c79b8ba3941853958474de4f4638ec29b3b9c0d7530beaf7a91ac034e7f
+    - name: implementations-cf015d965d4dbce23b2fa6520b6fd9409bc8c0e0de1513abaf9d5e1c03d3835d
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","str_to_dataset"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -232,11 +232,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8c04c41b5e988f60fdf853895b67f9eb39ee83d909e685d805df77c18b06aed9}}'
+            value: '{{workflow.parameters.components-3e4e63ec82d130c2d86a0de3eb781d6a47ff58129bf5f5aa0aa8891ef448dc7f}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-dataset-joiner"},"dependentTasks":["str-to-dataset"],"inputs":{"artifacts":{"dataset_a":{"taskOutputArtifact":{"outputArtifactKey":"dataset","producerTask":"str-to-dataset"}},"dataset_b":{"componentInputArtifact":"in_dataset"}}},"taskInfo":{"name":"dataset-joiner"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8c04c41b5e988f60fdf853895b67f9eb39ee83d909e685d805df77c18b06aed9}}'
+            value: '{{workflow.parameters.implementations-3e4e63ec82d130c2d86a0de3eb781d6a47ff58129bf5f5aa0aa8891ef448dc7f}}'
           - name: task-name
             value: dataset-joiner
           - name: parent-dag-id
@@ -257,11 +257,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ca5b7c79b8ba3941853958474de4f4638ec29b3b9c0d7530beaf7a91ac034e7f}}'
+            value: '{{workflow.parameters.components-cf015d965d4dbce23b2fa6520b6fd9409bc8c0e0de1513abaf9d5e1c03d3835d}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-str-to-dataset"},"inputs":{"parameters":{"string":{"componentInputParameter":"string"}}},"taskInfo":{"name":"str-to-dataset"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ca5b7c79b8ba3941853958474de4f4638ec29b3b9c0d7530beaf7a91ac034e7f}}'
+            value: '{{workflow.parameters.implementations-cf015d965d4dbce23b2fa6520b6fd9409bc8c0e0de1513abaf9d5e1c03d3835d}}'
           - name: task-name
             value: str-to-dataset
           - name: parent-dag-id

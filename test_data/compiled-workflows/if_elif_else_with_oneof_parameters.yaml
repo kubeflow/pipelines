@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646
+    - name: components-d4d51356e36512e82fa2af8e14375269db87299669cfb9b3cfa0baacf11fecac
       value: '{"executorLabel":"exec-print-and-return-3","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646
+    - name: implementations-d4d51356e36512e82fa2af8e14375269db87299669cfb9b3cfa0baacf11fecac
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_and_return"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -25,13 +25,13 @@ spec:
     - name: components-comp-condition-3
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--print-and-return-2-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"print-and-return-2"}}}},"tasks":{"print-and-return-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-2"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
         tails!"}}}},"taskInfo":{"name":"print-and-return-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--print-and-return-2-Output":{"parameterType":"STRING"}}}}'
-    - name: components-14710b1b9b18d4ef6e7aa084e4b2fb9400188853273013cd36af5ee93fccfa12
+    - name: components-6dff0af7f5de9b87fab66963c0544a7a050f6a297f26187648f401e15ba49cfd
       value: '{"executorLabel":"exec-special-print-and-return","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"output_key":{"parameterType":"STRING"}}}}'
-    - name: implementations-14710b1b9b18d4ef6e7aa084e4b2fb9400188853273013cd36af5ee93fccfa12
+    - name: implementations-6dff0af7f5de9b87fab66963c0544a7a050f6a297f26187648f401e15ba49cfd
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","special_print_and_return"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -48,13 +48,13 @@ spec:
         == ''tails''"}},"condition-4":{"componentRef":{"name":"comp-condition-4"},"inputs":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"componentInputParameter":"pipelinechannel--flip-three-sided-die-Output"}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"!(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
         == ''heads'') \u0026\u0026 !(inputs.parameter_values[''pipelinechannel--flip-three-sided-die-Output'']
         == ''tails'')"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-three-sided-die-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--condition-branches-1-oneof-1":{"parameterType":"STRING"}}}}'
-    - name: components-8f4b82a1870a5c546119675bd6220ebf4d0e8048252e9c36cd77b487db207964
+    - name: components-9a6ceddb3a88b2813013f31610e27e091dab5dc13510b28f7b468fdc3ccdfb86
       value: '{"executorLabel":"exec-flip-three-sided-die","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-8f4b82a1870a5c546119675bd6220ebf4d0e8048252e9c36cd77b487db207964
+    - name: implementations-9a6ceddb3a88b2813013f31610e27e091dab5dc13510b28f7b468fdc3ccdfb86
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_three_sided_die"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -247,12 +247,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+            value: '{{workflow.parameters.components-d4d51356e36512e82fa2af8e14375269db87299669cfb9b3cfa0baacf11fecac}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
               heads!"}}}},"taskInfo":{"name":"print-and-return"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+            value: '{{workflow.parameters.implementations-d4d51356e36512e82fa2af8e14375269db87299669cfb9b3cfa0baacf11fecac}}'
           - name: task-name
             value: print-and-return
           - name: parent-dag-id
@@ -280,12 +280,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+            value: '{{workflow.parameters.components-d4d51356e36512e82fa2af8e14375269db87299669cfb9b3cfa0baacf11fecac}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-2"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
               tails!"}}}},"taskInfo":{"name":"print-and-return-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+            value: '{{workflow.parameters.implementations-d4d51356e36512e82fa2af8e14375269db87299669cfb9b3cfa0baacf11fecac}}'
           - name: task-name
             value: print-and-return-2
           - name: parent-dag-id
@@ -313,11 +313,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-14710b1b9b18d4ef6e7aa084e4b2fb9400188853273013cd36af5ee93fccfa12}}'
+            value: '{{workflow.parameters.components-6dff0af7f5de9b87fab66963c0544a7a050f6a297f26187648f401e15ba49cfd}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-special-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Draw!"}}}},"taskInfo":{"name":"special-print-and-return"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-14710b1b9b18d4ef6e7aa084e4b2fb9400188853273013cd36af5ee93fccfa12}}'
+            value: '{{workflow.parameters.implementations-6dff0af7f5de9b87fab66963c0544a7a050f6a297f26187648f401e15ba49cfd}}'
           - name: task-name
             value: special-print-and-return
           - name: parent-dag-id
@@ -523,11 +523,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8f4b82a1870a5c546119675bd6220ebf4d0e8048252e9c36cd77b487db207964}}'
+            value: '{{workflow.parameters.components-9a6ceddb3a88b2813013f31610e27e091dab5dc13510b28f7b468fdc3ccdfb86}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-three-sided-die"},"taskInfo":{"name":"flip-three-sided-die"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8f4b82a1870a5c546119675bd6220ebf4d0e8048252e9c36cd77b487db207964}}'
+            value: '{{workflow.parameters.implementations-9a6ceddb3a88b2813013f31610e27e091dab5dc13510b28f7b468fdc3ccdfb86}}'
           - name: task-name
             value: flip-three-sided-die
           - name: parent-dag-id
@@ -555,11 +555,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+            value: '{{workflow.parameters.components-d4d51356e36512e82fa2af8e14375269db87299669cfb9b3cfa0baacf11fecac}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-3"},"dependentTasks":["roll-die-pipeline"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"roll-die-pipeline"}}}},"taskInfo":{"name":"print-and-return"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-dedbc3cd39a8085074b94eb5fa07438c0007a29200937b8705cbb9f910688646}}'
+            value: '{{workflow.parameters.implementations-d4d51356e36512e82fa2af8e14375269db87299669cfb9b3cfa0baacf11fecac}}'
           - name: task-name
             value: print-and-return
           - name: parent-dag-id

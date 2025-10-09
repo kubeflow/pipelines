@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api
+// Package constants
+package constants
 
 const (
 	POSITIVE string = "Positive"
 	NEGATIVE string = "Negative"
 
-	SMOKE           string = "Smoke"
-	CriticalOnly    string = "CriticalOnly"
-	FULL_REGRESSION string = "FullRegression"
+	SMOKE          string = "Smoke"
+	CriticalOnly   string = "CriticalOnly"
+	FullRegression string = "FullRegression"
 )

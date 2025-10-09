@@ -28,8 +28,10 @@ jobs:
     strategy:
       matrix:
         pipeline_store: [ "database", "kubernetes" ]
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
-    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }}
+        k8s_version: [ "v1.31.0" ]
+        pod_to_pod_tls_enabled: [ true, false ]
+
+    name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -58,6 +60,26 @@ jobs:
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
           pipeline_store: ${{ matrix.pipeline_store }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+
+      - name: Configure Cluster CA Cert for TLS-Enabled Tests
+        shell: bash
+        id: configure-cluster-ca-cert
+        if: ${{ matrix.pod_to_pod_tls_enabled }}
+        run: |
+          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt
+          CA_CERT_PATH="ca.crt"
+          echo "CA_CERT_PATH=CA_CERT_PATH" >> $GITHUB_OUTPUT
+
+      - name: Configure Input Variables
+        shell: bash
+        id: configure
+        if: ${{ steps.deploy.outcome == 'success' &&  matrix.pod_to_pod_tls_enabled == 'true'}}
+        run: |
+          if [ "${{ matrix.pod_to_pod_tls_enabled }}" == "true" ]; then
+            CA_CERT_PATH="/ca.crt"
+          fi
+          echo "CA_CERT_PATH=$CA_CERT_PATH" >> $GITHUB_OUTPUT
 
       - name: Forward MLMD port
         id: forward-mlmd-port
@@ -70,6 +92,9 @@ jobs:
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
         run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow
+        with:
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          ca_cert_path: ${{ steps.configure.outputs.CA_CERT_PATH}}
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}

@@ -46,7 +46,7 @@ func TestCache(t *testing.T) {
 
 func (s *CacheTestSuite) SetupSuite() {
 	var err error
-	s.mlmdClient, err = testutils.NewTestMlmdClient("127.0.0.1", metadata.DefaultConfig().Port)
+	s.mlmdClient, err = testutils.NewTestMlmdClient("127.0.0.1", metadata.DefaultConfig().Port, *config.TLSEnabled, *config.CaCertPath)
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), s.mlmdClient)
 }
@@ -69,39 +69,44 @@ func (s *CacheTestSuite) SetupTest() {
 	var newRunClient func() (*apiServer.RunClient, error)
 	var newRecurringRunClient func() (*apiServer.RecurringRunClient, error)
 
+	tlsCfg, err := test.GetTLSConfig(*config.CaCertPath)
+	if err != nil {
+		glog.Exitf("Failed to get TLS config. Error: %s", err.Error())
+	}
+
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
 		newPipelineClient = func() (*apiServer.PipelineClient, error) {
-			return apiServer.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
+			return apiServer.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiServer.RunClient, error) {
-			return apiServer.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
+			return apiServer.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 		newRecurringRunClient = func() (*apiServer.RecurringRunClient, error) {
-			return apiServer.NewKubeflowInClusterRecurringRunClient(s.namespace, *config.DebugMode)
+			return apiServer.NewKubeflowInClusterRecurringRunClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newPipelineClient = func() (*apiServer.PipelineClient, error) {
-			return apiServer.NewPipelineClient(clientConfig, *config.DebugMode)
+			return apiServer.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newRunClient = func() (*apiServer.RunClient, error) {
-			return apiServer.NewRunClient(clientConfig, *config.DebugMode)
+			return apiServer.NewRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 		newRecurringRunClient = func() (*apiServer.RecurringRunClient, error) {
-			return apiServer.NewRecurringRunClient(clientConfig, *config.DebugMode)
+			return apiServer.NewRecurringRunClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
-	var err error
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
 		*config.DebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),
+		tlsCfg,
 	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())

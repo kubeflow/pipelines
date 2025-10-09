@@ -26,7 +26,7 @@ import (
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/test/config"
-	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
 	"github.com/kubeflow/pipelines/backend/test/v2/api/matcher"
@@ -53,7 +53,7 @@ var _ = BeforeEach(func() {
 // ################## TESTS ##################
 // ################## POSITIVE TESTS ##################
 
-var _ = Describe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_RUN, API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.PipelineRun, constants.APIServerTests, constants.FullRegression), func() {
 
 	type TestParams struct {
 		pipelineCacheEnabled bool
@@ -84,7 +84,7 @@ var _ = Describe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_RUN, API_
 			}
 		}
 		pipelineFile := pipelineFilePaths[0]
-		It(fmt.Sprintf("Create a '%s' pipeline, create an experiement and verify run with associated experiment", pipelineFile), Label(SMOKE), func() {
+		It(fmt.Sprintf("Create a '%s' pipeline, create an experiement and verify run with associated experiment", pipelineFile), Label(constants.SMOKE), func() {
 			createdExperiment := createExperiment(experimentName)
 			createdPipeline := uploadAPipeline(pipelineFile, &testContext.Pipeline.PipelineGeneratedName)
 			createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
@@ -242,7 +242,7 @@ var _ = Describe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_RUN, API_
 
 // ################## NEGATIVE TESTS ##################
 
-var _ = Describe("Verify Pipeline Run Negative Tests >", Label(NEGATIVE, API_PIPELINE_RUN, API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = Describe("Verify Pipeline Run Negative Tests >", Label(constants.NEGATIVE, constants.PipelineRun, constants.APIServerTests, constants.FullRegression), func() {
 
 	var pipelineFile string
 	var createdPipeline *pipeline_upload_model.V2beta1Pipeline

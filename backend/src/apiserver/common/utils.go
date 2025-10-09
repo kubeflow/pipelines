@@ -56,7 +56,7 @@ func ParseResourceIdsFromFullName(p string) map[string]string {
 		"ExperimentId":      "",
 		"PipelineId":        "",
 		"PipelineVersionId": "",
-		"RunId":             "",
+		"RunID":             "",
 		"RecurringRunId":    "",
 		"ArtifactId":        "",
 		"ExecutionId":       "",
@@ -75,7 +75,7 @@ func ParseResourceIdsFromFullName(p string) map[string]string {
 			case "experiments", "experiment":
 				results["ExperimentId"] = names[i+1]
 			case "runs", "run":
-				results["RunId"] = names[i+1]
+				results["RunID"] = names[i+1]
 			case "jobs", "job", "recurringruns", "recurringrun", "recurring_runs", "recurring_run":
 				results["RecurringRunId"] = names[i+1]
 			case "artifacts", "artifact":
@@ -101,7 +101,7 @@ func PatchPipelineDefaultParameter(text string) (string, error) {
 		"{{kfp-project-id}}":     projectId,
 	}
 	for key, value := range toPatch {
-		text = strings.Replace(text, key, value, -1)
+		text = strings.ReplaceAll(text, key, value)
 	}
 	return text, nil
 }

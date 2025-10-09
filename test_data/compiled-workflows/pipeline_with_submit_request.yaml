@@ -1,0 +1,370 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: pipeline-with-external-request-
+spec:
+  arguments:
+    parameters:
+      - name: components-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e
+        value: '{"executorLabel":"exec-submit-request","inputDefinitions":{"parameters":{"url":{"parameterType":"STRING"}}}}'
+      - name: implementations-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e
+        value: '{"args":["--executor_input","{{$}}","--function_to_execute","submit_request"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''requests''  \u0026\u0026  python3
+        -m pip install --quiet --no-warn-script-location ''kfp==2.14.4'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        submit_request(url: str):\n    import requests\n    import os\n\n    # If
+        running pipeline in multi-user mode, skip submitting request to external address.\n    multi_user
+        = os.getenv(''MULTI_USER'', ''false'')\n    if multi_user.lower() != ''true'':\n        return\n\n    scheme
+        = os.getenv(''SCHEME'', ''http'')\n    if scheme not in [''http'', ''https'']:\n        raise
+        Exception(f\"Invalid scheme: {scheme}\")\n\n    url = f''{scheme}://{url}''\n    #
+        Submit HTTP or HTTPS request to in-cluster endpoint and external address,
+        depending on the scheme specified by env var.\n    try:\n        response
+        = requests.get(url, verify=True, timeout=5)\n        print(response.status_code)\n    except
+        Exception as e:\n        raise Exception(f\"Failed to request {url}: {e}\")\n    if
+        response.status_code != 200:\n        raise Exception(f\"Failed to request
+        {url}: {response.status_code}\")\n\n"],"image":"python:3.11"}'
+      - name: components-root
+        value: '{"dag":{"tasks":{"submit-request":{"cachingOptions":{},"componentRef":{"name":"comp-submit-request"},"inputs":{"parameters":{"url":{"runtimeValue":{"constant":"httpbin.org/get"}}}},"taskInfo":{"name":"submit-request"}},"submit-request-2":{"cachingOptions":{},"componentRef":{"name":"comp-submit-request-2"},"inputs":{"parameters":{"url":{"runtimeValue":{"constant":"ml-pipeline:8888/apis/v2beta1/healthz"}}}},"taskInfo":{"name":"submit-request-2"}}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+    - container:
+        args:
+          - --type
+          - CONTAINER
+          - --pipeline_name
+          - pipeline-with-external-request
+          - --run_id
+          - '{{workflow.uid}}'
+          - --run_name
+          - '{{workflow.name}}'
+          - --run_display_name
+          - ""
+          - --dag_execution_id
+          - '{{inputs.parameters.parent-dag-id}}'
+          - --component
+          - '{{inputs.parameters.component}}'
+          - --task
+          - '{{inputs.parameters.task}}'
+          - --task_name
+          - '{{inputs.parameters.task-name}}'
+          - --container
+          - '{{inputs.parameters.container}}'
+          - --iteration_index
+          - '{{inputs.parameters.iteration-index}}'
+          - --cached_decision_path
+          - '{{outputs.parameters.cached-decision.path}}'
+          - --pod_spec_patch_path
+          - '{{outputs.parameters.pod-spec-patch.path}}'
+          - --condition_path
+          - '{{outputs.parameters.condition.path}}'
+          - --kubernetes_config
+          - '{{inputs.parameters.kubernetes-config}}'
+          - --http_proxy
+          - ""
+          - --https_proxy
+          - ""
+          - --no_proxy
+          - ""
+        command:
+          - driver
+        image: ghcr.io/kubeflow/kfp-driver:latest
+        name: ""
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+      inputs:
+        parameters:
+          - name: component
+          - name: task
+          - name: container
+          - name: task-name
+          - name: parent-dag-id
+          - default: "-1"
+            name: iteration-index
+          - default: ""
+            name: kubernetes-config
+      metadata: {}
+      name: system-container-driver
+      outputs:
+        parameters:
+          - name: pod-spec-patch
+            valueFrom:
+              default: ""
+              path: /tmp/outputs/pod-spec-patch
+          - default: "false"
+            name: cached-decision
+            valueFrom:
+              default: "false"
+              path: /tmp/outputs/cached-decision
+          - name: condition
+            valueFrom:
+              default: "true"
+              path: /tmp/outputs/condition
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: pod-spec-patch
+                  value: '{{inputs.parameters.pod-spec-patch}}'
+            name: executor
+            template: system-container-impl
+            when: '{{inputs.parameters.cached-decision}} != true'
+      inputs:
+        parameters:
+          - name: pod-spec-patch
+          - default: "false"
+            name: cached-decision
+      metadata: {}
+      name: system-container-executor
+      outputs: {}
+    - container:
+        command:
+          - should-be-overridden-during-runtime
+        env:
+          - name: KFP_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: KFP_POD_UID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.uid
+        envFrom:
+          - configMapRef:
+              name: metadata-grpc-configmap
+              optional: true
+        image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+        name: ""
+        resources: {}
+        volumeMounts:
+          - mountPath: /kfp-launcher
+            name: kfp-launcher
+          - mountPath: /gcs
+            name: gcs-scratch
+          - mountPath: /s3
+            name: s3-scratch
+          - mountPath: /minio
+            name: minio-scratch
+          - mountPath: /.local
+            name: dot-local-scratch
+          - mountPath: /.cache
+            name: dot-cache-scratch
+          - mountPath: /.config
+            name: dot-config-scratch
+      initContainers:
+        - args:
+            - --copy
+            - /kfp-launcher/launch
+          command:
+            - launcher-v2
+          image: ghcr.io/kubeflow/kfp-launcher:latest
+          name: kfp-launcher
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+          volumeMounts:
+            - mountPath: /kfp-launcher
+              name: kfp-launcher
+      inputs:
+        parameters:
+          - name: pod-spec-patch
+      metadata: {}
+      name: system-container-impl
+      outputs: {}
+      podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+      volumes:
+        - emptyDir: {}
+          name: kfp-launcher
+        - emptyDir: {}
+          name: gcs-scratch
+        - emptyDir: {}
+          name: s3-scratch
+        - emptyDir: {}
+          name: minio-scratch
+        - emptyDir: {}
+          name: dot-local-scratch
+        - emptyDir: {}
+          name: dot-cache-scratch
+        - emptyDir: {}
+          name: dot-config-scratch
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e}}'
+                - name: task
+                  value: '{"cachingOptions":{},"componentRef":{"name":"comp-submit-request"},"inputs":{"parameters":{"url":{"runtimeValue":{"constant":"httpbin.org/get"}}}},"taskInfo":{"name":"submit-request"}}'
+                - name: container
+                  value: '{{workflow.parameters.implementations-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e}}'
+                - name: task-name
+                  value: submit-request
+                - name: parent-dag-id
+                  value: '{{inputs.parameters.parent-dag-id}}'
+            name: submit-request-driver
+            template: system-container-driver
+          - arguments:
+              parameters:
+                - name: pod-spec-patch
+                  value: '{{tasks.submit-request-driver.outputs.parameters.pod-spec-patch}}'
+                - default: "false"
+                  name: cached-decision
+                  value: '{{tasks.submit-request-driver.outputs.parameters.cached-decision}}'
+            depends: submit-request-driver.Succeeded
+            name: submit-request
+            template: system-container-executor
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e}}'
+                - name: task
+                  value: '{"cachingOptions":{},"componentRef":{"name":"comp-submit-request-2"},"inputs":{"parameters":{"url":{"runtimeValue":{"constant":"ml-pipeline:8888/apis/v2beta1/healthz"}}}},"taskInfo":{"name":"submit-request-2"}}'
+                - name: container
+                  value: '{{workflow.parameters.implementations-b6bf28aee0444effd80c7574f7b4daa48e7dcc6786c440bbb62d4f5552b3981e}}'
+                - name: task-name
+                  value: submit-request-2
+                - name: parent-dag-id
+                  value: '{{inputs.parameters.parent-dag-id}}'
+            name: submit-request-2-driver
+            template: system-container-driver
+          - arguments:
+              parameters:
+                - name: pod-spec-patch
+                  value: '{{tasks.submit-request-2-driver.outputs.parameters.pod-spec-patch}}'
+                - default: "false"
+                  name: cached-decision
+                  value: '{{tasks.submit-request-2-driver.outputs.parameters.cached-decision}}'
+            depends: submit-request-2-driver.Succeeded
+            name: submit-request-2
+            template: system-container-executor
+      inputs:
+        parameters:
+          - name: parent-dag-id
+      metadata: {}
+      name: root
+      outputs: {}
+    - container:
+        args:
+          - --type
+          - '{{inputs.parameters.driver-type}}'
+          - --pipeline_name
+          - pipeline-with-external-request
+          - --run_id
+          - '{{workflow.uid}}'
+          - --run_name
+          - '{{workflow.name}}'
+          - --run_display_name
+          - ""
+          - --dag_execution_id
+          - '{{inputs.parameters.parent-dag-id}}'
+          - --component
+          - '{{inputs.parameters.component}}'
+          - --task
+          - '{{inputs.parameters.task}}'
+          - --task_name
+          - '{{inputs.parameters.task-name}}'
+          - --runtime_config
+          - '{{inputs.parameters.runtime-config}}'
+          - --iteration_index
+          - '{{inputs.parameters.iteration-index}}'
+          - --execution_id_path
+          - '{{outputs.parameters.execution-id.path}}'
+          - --iteration_count_path
+          - '{{outputs.parameters.iteration-count.path}}'
+          - --condition_path
+          - '{{outputs.parameters.condition.path}}'
+          - --http_proxy
+          - ""
+          - --https_proxy
+          - ""
+          - --no_proxy
+          - ""
+        command:
+          - driver
+        image: ghcr.io/kubeflow/kfp-driver:latest
+        name: ""
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+      inputs:
+        parameters:
+          - name: component
+          - default: ""
+            name: runtime-config
+          - default: ""
+            name: task
+          - default: ""
+            name: task-name
+          - default: "0"
+            name: parent-dag-id
+          - default: "-1"
+            name: iteration-index
+          - default: DAG
+            name: driver-type
+      metadata: {}
+      name: system-dag-driver
+      outputs:
+        parameters:
+          - name: execution-id
+            valueFrom:
+              path: /tmp/outputs/execution-id
+          - name: iteration-count
+            valueFrom:
+              default: "0"
+              path: /tmp/outputs/iteration-count
+          - name: condition
+            valueFrom:
+              default: "true"
+              path: /tmp/outputs/condition
+    - dag:
+        tasks:
+          - arguments:
+              parameters:
+                - name: component
+                  value: '{{workflow.parameters.components-root}}'
+                - name: runtime-config
+                  value: '{}'
+                - name: driver-type
+                  value: ROOT_DAG
+            name: root-driver
+            template: system-dag-driver
+          - arguments:
+              parameters:
+                - name: parent-dag-id
+                  value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+                - name: condition
+                  value: ""
+            depends: root-driver.Succeeded
+            name: root
+            template: root
+      inputs: {}
+      metadata: {}
+      name: entrypoint
+      outputs: {}
+status:
+  finishedAt: null
+  startedAt: null

@@ -18,6 +18,7 @@ spec:
       containers:
       - name: container
         image: ghcr.io/kubeflow/kfp-metadata-envoy:dummy
+        args:  [  "/etc/envoy/envoy-config.yaml" ]
         ports:
         - name: md-envoy
           containerPort: 9090
@@ -33,3 +34,10 @@ spec:
           capabilities:
             drop:
             - ALL
+        volumeMounts:
+          - name: envoy-config
+            mountPath: /etc/envoy
+      volumes:
+        - name: envoy-config
+          configMap:
+            name: metadata-envoy-configmap

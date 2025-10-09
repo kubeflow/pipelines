@@ -31,6 +31,7 @@ on:
     paths:
       - '.github/workflows/compiler-tests.yml'
       - 'backend/src/v2/compiler/**'
+      - 'test_data/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -46,7 +47,6 @@ jobs:
       - name: Configure Input Variables
         shell: bash
         id: configure
-        if: ${{ steps.deploy.outcome == 'success' }}
         run: |
           TEST_LABEL=${{ env.TESTS_LABEL }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then

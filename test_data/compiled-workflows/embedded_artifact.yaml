@@ -6,19 +6,19 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-5d69cab95ea11fe5b7fc72b504229fae1981a9e727e32c375694b2b7f50c0198
+    - name: components-228cf9424bf53a0e969ad4299e33fa7d2c0cebe754627c59bd00c710b00f88fa
       value: '{"executorLabel":"exec-read-embedded-artifact-dir"}'
-    - name: implementations-5d69cab95ea11fe5b7fc72b504229fae1981a9e727e32c375694b2b7f50c0198
+    - name: implementations-228cf9424bf53a0e969ad4299e33fa7d2c0cebe754627c59bd00c710b00f88fa
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_embedded_artifact_dir"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.2'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\n__KFP_EMBEDDED_ARCHIVE_B64
-        = ''H4sIAHnS2mgC/+3UvQ6CMBSG4c5eBe6mnNPSFgYTR0ZvgUSiJiWYipHLF+KgRokTxJ/vWdoASYdyXhnLeLUu2rwsNmUQo6CroZVIJ7d9/5xJsRJRKyZwOjZF6I4X/0mlUdXsq3LJzmTsmDMtKctS7fRMwM+T8fhn9EPtjBGkSRu+W+9mng1Zawx3v2A//1Z182+mnP/qEIqdH/7u3fuvvf9P6L9+7j+j/5P0373uv0X+/6T/vt7Kpm1G7r9NkuH+d/vH/itOSESE/o8uL72vF9G5Dn4zxzgAAAAAAAAAAAAAAAAAfLULZBWkcAAoAAA=''\n\nimport
+        = ''H4sIAD/g42gC/+3UzYrCMBQF4Kx9irgf0ntjbq4uBJcufYVCSylEC7ViH38yuphBKMMsKuicb5NfyCKc4wpX7A7luK/Lqu7NLOhuaiRS/z3/2mfyHIwdzRNczkPZ5+fN/8RiL221DZ43ca2LvGx+LP3aHof2WG9ZZaMxSFg5Yi8UdWHgDbhi/jduEReZzn+es5CSxnxRc/45N4Cx8sz8n87tqUnl5L3fzl/2/9H/6P+/9v9KPfr/TfKfusYN4zBz/8cQpvPP8tD/PngyltD/s9vXKXUf9tr1qVoiDgAAAAAAAAAAAAAAAAAv7ROs57gWACgAAA==''\n\nimport
         base64 as __kfp_b64\nimport io as __kfp_io\nimport os as __kfp_os\nimport
         sys as __kfp_sys\nimport tarfile as __kfp_tarfile\nimport tempfile as __kfp_tempfile\n\n#
         Extract embedded archive at import time to ensure sys.path and globals are
@@ -33,19 +33,19 @@ spec:
         dsl.EmbeddedInput[dsl.Dataset]):\n    import os\n\n    with open(os.path.join(artifact.path,
         \"log.txt\"), \"r\", encoding=\"utf-8\") as f:\n        log = f.read()\n\n    assert
         log == \"Hello, world!\"\n\n"],"image":"python:3.9"}'
-    - name: components-01ce13632e66ae34f254595ff1d1056fc67354b72fc3f5281a7c8e45b3162bdb
+    - name: components-302f28ee42e44910a1eb45593566a12b430150b643fb02ded3ae7838c0cea331
       value: '{"executorLabel":"exec-read-embedded-artifact-file"}'
-    - name: implementations-01ce13632e66ae34f254595ff1d1056fc67354b72fc3f5281a7c8e45b3162bdb
+    - name: implementations-302f28ee42e44910a1eb45593566a12b430150b643fb02ded3ae7838c0cea331
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_embedded_artifact_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.2'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\n__KFP_EMBEDDED_ARCHIVE_B64
-        = ''H4sIAHnS2mgC/+3UsQrCMBDG8cw+Rd2lvWua1g6Co6OvULCokFKpFfv4pog4iZNC9f9b7kgCt9yXOImT9bYaNnW1qzvzEXL3qopY++zHc5VU1USD+YLLua+6MN78p7SImv7Y1CstXKmFamljKctlbmcGv8+3+7gf+o/OGEOdZ5kRK9ape9aH0KuTPHdOwwqG/KfhTzCRfDP/zamrDv71u3f3E7WpvW8X0bXt/G5OHAAAAAAAAAAAAAAAACbnBq/wxAEAKAAA''\n\nimport
+        = ''H4sIAD/g42gC/+3UvQrCMBSG4cxeRdylJml+dCg4OnoLhZZSiBZqxV6+KQ66FCcF9X2W5CSBs5wv2Tpb7w7luK/Lqu7FW6i7uVWpYB776Vwro62Qo/iAy3ko+9Re/Cft5KWtCmv01m/CIpXNU2k28ji0x7rQwW2Dt87mmdLG5cEsBH5A7JpsGIe39phC7a2dz792aQ5VUMGnvyCk/BvjcyHVJ/N/OrenJpaz717df6l9HWO3kteuj9WSOAAAAAAAAAAAAAAAAHydG2KO630AKAAA''\n\nimport
         base64 as __kfp_b64\nimport io as __kfp_io\nimport os as __kfp_os\nimport
         sys as __kfp_sys\nimport tarfile as __kfp_tarfile\nimport tempfile as __kfp_tempfile\n\n#
         Extract embedded archive at import time to ensure sys.path and globals are
@@ -242,11 +242,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5d69cab95ea11fe5b7fc72b504229fae1981a9e727e32c375694b2b7f50c0198}}'
+            value: '{{workflow.parameters.components-228cf9424bf53a0e969ad4299e33fa7d2c0cebe754627c59bd00c710b00f88fa}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-embedded-artifact-dir"},"taskInfo":{"name":"read-embedded-artifact-dir"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5d69cab95ea11fe5b7fc72b504229fae1981a9e727e32c375694b2b7f50c0198}}'
+            value: '{{workflow.parameters.implementations-228cf9424bf53a0e969ad4299e33fa7d2c0cebe754627c59bd00c710b00f88fa}}'
           - name: task-name
             value: read-embedded-artifact-dir
           - name: parent-dag-id
@@ -266,11 +266,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-01ce13632e66ae34f254595ff1d1056fc67354b72fc3f5281a7c8e45b3162bdb}}'
+            value: '{{workflow.parameters.components-302f28ee42e44910a1eb45593566a12b430150b643fb02ded3ae7838c0cea331}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-embedded-artifact-file"},"taskInfo":{"name":"read-embedded-artifact-file"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-01ce13632e66ae34f254595ff1d1056fc67354b72fc3f5281a7c8e45b3162bdb}}'
+            value: '{{workflow.parameters.implementations-302f28ee42e44910a1eb45593566a12b430150b643fb02ded3ae7838c0cea331}}'
           - name: task-name
             value: read-embedded-artifact-file
           - name: parent-dag-id

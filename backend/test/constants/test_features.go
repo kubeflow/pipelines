@@ -12,25 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package api
+// Package constants
+package constants
 
 const (
-	E2E_NON_CRITICAL string = "E2ENonCritical"
-	E2E_CRITICAL     string = "E2ECritical"
-	E2E_PROXY        string = "E2ECritical"
+	// E2eEssential - For pipelines that are essential for regression testing
+	E2eEssential string = "E2EEssential"
+	// E2eFailed - For expectedly failing pipelines
+	E2eFailed string = "E2EFailure"
+	// E2eCritical - For pipelines that verify the critical functionality of the system
+	E2eCritical string = "E2ECritical"
+	// E2eProxy - For pipeline that runs with a proxy
+	E2eProxy string = "E2EProxy"
 
-	WORKFLOW_COMPILER        string = "WorkflowCompiler"
-	WORKFLOW_COMPILER_VISITS string = "WorkflowCompilerVisits"
+	WorkflowCompiler       string = "WorkflowCompiler"
+	WorkflowCompilerVisits string = "WorkflowCompilerVisits"
 
-	API_SERVER_TESTS string = "ApiServerTests"
+	APIServerTests string = "ApiServerTests"
 
-	API_EXPERIMENT             string = "Experiment"
-	API_PIPELINE               string = "Pipeline"
-	API_PIPELINE_RUN           string = "PipelineRun"
-	API_PIPELINE_SCHEDULED_RUN string = "PipelineRecurringRun"
-	API_PIPELINE_UPLOAD        string = "PipelineUpload"
-	API_REPORT                 string = "Report"
+	Experiment           string = "Experiment"
+	Pipeline             string = "Pipeline"
+	PipelineRun          string = "PipelineRun"
+	PipelineScheduledRun string = "PipelineRecurringRun"
+	PipelineUpload       string = "PipelineUpload"
+	ReportTests          string = "Report"
 
-	UPGRADE_PREPARATION  string = "UpgradePreparation"
-	UPGRADE_VERIFICATION string = "UpgradeVerification"
+	UpgradePreparation  string = "UpgradePreparation"
+	UpgradeVerification string = "UpgradeVerification"
 )

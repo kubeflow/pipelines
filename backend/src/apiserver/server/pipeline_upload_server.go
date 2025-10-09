@@ -169,11 +169,12 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	}
 
 	var messageToMarshal proto.Message
-	if api_version == "v1beta1" {
+	switch api_version {
+	case "v1beta1":
 		messageToMarshal = toApiPipelineV1(newPipeline, newPipelineVersion)
-	} else if api_version == "v2beta1" {
+	case "v2beta1":
 		messageToMarshal = toApiPipeline(newPipeline)
-	} else {
+	default:
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Invalid API version"))
 		return
 	}
@@ -286,11 +287,12 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 	}
 
 	var messageToMarshal proto.Message
-	if api_version == "v1beta1" {
+	switch api_version {
+	case "v1beta1":
 		messageToMarshal = toApiPipelineVersionV1(newPipelineVersion)
-	} else if api_version == "v2beta1" {
+	case "v2beta1":
 		messageToMarshal = toApiPipelineVersion(newPipelineVersion)
-	} else {
+	default:
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Invalid API version"))
 		return
 	}

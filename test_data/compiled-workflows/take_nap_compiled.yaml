@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-0f1627210ace683affbf33b983614856e386694fde0d2258433739065e9dbd9d
+    - name: components-8cf797f23380487bd1f1fb96644cbde025b64d18dae83a7b814083646a23230b
       value: '{"executorLabel":"exec-take-nap","inputDefinitions":{"parameters":{"naptime_secs":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-0f1627210ace683affbf33b983614856e386694fde0d2258433739065e9dbd9d
+    - name: implementations-8cf797f23380487bd1f1fb96644cbde025b64d18dae83a7b814083646a23230b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","take_nap"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -22,13 +22,13 @@ spec:
         time import sleep  # noqa: PLC0415\n\n    print(f\"Sleeping for {naptime_secs}
         seconds: Zzzzzz ...\")\n    sleep(naptime_secs)\n    return \"I''m awake now.
         Did I snore?\"\n\n"],"image":"python:3.9"}'
-    - name: components-5c066abab2b3b84d191c48f50899af97472b8caf8dfbe135c98c038fcff38616
+    - name: components-5d8466fde111ff505f28c4c8a093c971b044637d9e786d6aa26ff7e24346b224
       value: '{"executorLabel":"exec-wake-up","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-5c066abab2b3b84d191c48f50899af97472b8caf8dfbe135c98c038fcff38616
+    - name: implementations-5d8466fde111ff505f28c4c8a093c971b044637d9e786d6aa26ff7e24346b224
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","wake_up"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.13.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -217,11 +217,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-0f1627210ace683affbf33b983614856e386694fde0d2258433739065e9dbd9d}}'
+            value: '{{workflow.parameters.components-8cf797f23380487bd1f1fb96644cbde025b64d18dae83a7b814083646a23230b}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-take-nap"},"inputs":{"parameters":{"naptime_secs":{"componentInputParameter":"naptime_secs"}}},"taskInfo":{"name":"take-nap"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-0f1627210ace683affbf33b983614856e386694fde0d2258433739065e9dbd9d}}'
+            value: '{{workflow.parameters.implementations-8cf797f23380487bd1f1fb96644cbde025b64d18dae83a7b814083646a23230b}}'
           - name: task-name
             value: take-nap
           - name: parent-dag-id
@@ -241,11 +241,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5c066abab2b3b84d191c48f50899af97472b8caf8dfbe135c98c038fcff38616}}'
+            value: '{{workflow.parameters.components-5d8466fde111ff505f28c4c8a093c971b044637d9e786d6aa26ff7e24346b224}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-wake-up"},"dependentTasks":["take-nap"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"take-nap"}}}},"taskInfo":{"name":"wake-up"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5c066abab2b3b84d191c48f50899af97472b8caf8dfbe135c98c038fcff38616}}'
+            value: '{{workflow.parameters.implementations-5d8466fde111ff505f28c4c8a093c971b044637d9e786d6aa26ff7e24346b224}}'
           - name: task-name
             value: wake-up
           - name: parent-dag-id

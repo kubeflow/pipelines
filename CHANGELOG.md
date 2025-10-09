@@ -4598,7 +4598,6 @@
 * **test:** Fix presubmit with python version upgrade ([\#5033](https://github.com/kubeflow/pipelines/issues/5033)) ([a8b7fc9](https://github.com/kubeflow/pipelines/commit/a8b7fc97b177b8fd835315d116482bf293cfa8a4))
 * **test:** Pin pip version in presubmit-tests-tfx.sh Fixes [\#5049](https://github.com/kubeflow/pipelines/issues/5049) ([\#5050](https://github.com/kubeflow/pipelines/issues/5050)) ([cad02dc](https://github.com/kubeflow/pipelines/commit/cad02dc2836ee25dac7c29658d0c0f6dea6fc17e))
 
-
 ### Other Pull Requests
 
 * Add references for Tekton backend ([\#4821](https://github.com/kubeflow/pipelines/issues/4821)) ([b5e820e](https://github.com/kubeflow/pipelines/commit/b5e820e217b7de947131f440a8391f6be475a6bf))
@@ -4652,7 +4651,6 @@
 * **sdk.v2:** Fix the bug where pipeline_parameters is not used. ([\#5002](https://github.com/kubeflow/pipelines/issues/5002)) ([0c600a2](https://github.com/kubeflow/pipelines/commit/0c600a2cb8c8e55b3214745154732af661799b55))
 * **test:** Fix presubmit with python version upgrade ([\#5033](https://github.com/kubeflow/pipelines/issues/5033)) ([a8b7fc9](https://github.com/kubeflow/pipelines/commit/a8b7fc97b177b8fd835315d116482bf293cfa8a4))
 * **test:** Pin pip version in presubmit-tests-tfx.sh Fixes [\#5049](https://github.com/kubeflow/pipelines/issues/5049) ([\#5050](https://github.com/kubeflow/pipelines/issues/5050)) ([cad02dc](https://github.com/kubeflow/pipelines/commit/cad02dc2836ee25dac7c29658d0c0f6dea6fc17e))
-
 
 ### Other Pull Requests
 

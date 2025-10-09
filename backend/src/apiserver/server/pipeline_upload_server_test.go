@@ -73,10 +73,11 @@ func TestUploadPipeline(t *testing.T) {
 			bytesBuffer, writer := setupWriter("")
 			setWriterWithBuffer("uploadfile", "hello-world.yaml", string(test.spec), writer)
 			var response *httptest.ResponseRecorder
-			if test.api_version == "v1beta1" {
+			switch test.api_version {
+			case "v1beta1":
 				response = uploadPipeline("/apis/v1beta1/pipelines/upload",
 					bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineV1)
-			} else if test.api_version == "v2beta1" {
+			case "v2beta1":
 				response = uploadPipeline("/apis/v2beta1/pipelines/upload",
 					bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
 			}
@@ -99,10 +100,11 @@ func TestUploadPipeline(t *testing.T) {
 			assert.Equal(t, "1970-01-01T00:00:01Z", parsedResponse.CreatedAt)
 
 			// Verify v1 API returns v1 object while v2 API returns v2 object.
-			if test.api_version == "v1beta1" {
+			switch test.api_version {
+			case "v1beta1":
 				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.ID)
 				assert.Equal(t, "", parsedResponse.PipelineID)
-			} else if test.api_version == "v2beta1" {
+			case "v2beta1":
 				assert.Equal(t, "", parsedResponse.ID)
 				assert.Equal(t, "123e4567-e89b-12d3-a456-426655440000", parsedResponse.PipelineID)
 			}
@@ -196,19 +198,19 @@ func TestUploadPipeline(t *testing.T) {
 }
 
 func TestUploadPipelineV2_NameValidation(t *testing.T) {
-	v2Template, _ := template.New([]byte(v2SpecHelloWorld), true, nil)
+	v2Template, _ := template.New([]byte(v2SpecHelloWorld), template.TemplateOptions{CacheDisabled: true})
 	v2spec := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldDash), true, nil)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldDash), template.TemplateOptions{CacheDisabled: true})
 	v2specDash := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldCapitalized), true, nil)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldCapitalized), template.TemplateOptions{CacheDisabled: true})
 	invalidV2specCapitalized := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldDot), true, nil)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldDot), template.TemplateOptions{CacheDisabled: true})
 	invalidV2specDot := string(v2Template.Bytes())
 
-	v2Template, _ = template.New([]byte(v2SpecHelloWorldLong), true, nil)
+	v2Template, _ = template.New([]byte(v2SpecHelloWorldLong), template.TemplateOptions{CacheDisabled: true})
 	invalidV2specLong := string(v2Template.Bytes())
 
 	tt := []struct {

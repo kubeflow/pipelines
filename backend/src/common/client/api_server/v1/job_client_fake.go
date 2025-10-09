@@ -15,6 +15,7 @@
 package api_server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
@@ -46,7 +47,7 @@ func (c *JobClientFake) Create(params *jobparams.JobServiceCreateJobParams) (
 	*jobmodel.APIJob, error) {
 	switch params.Job.Name {
 	case JobForClientErrorTest:
-		return nil, fmt.Errorf(ClientErrorString)
+		return nil, errors.New(ClientErrorString)
 	default:
 		return getDefaultJob("500", params.Job.Name), nil
 	}
@@ -56,7 +57,7 @@ func (c *JobClientFake) Get(params *jobparams.JobServiceGetJobParams) (
 	*jobmodel.APIJob, error) {
 	switch params.ID {
 	case JobForClientErrorTest:
-		return nil, fmt.Errorf(ClientErrorString)
+		return nil, errors.New(ClientErrorString)
 	default:
 		return getDefaultJob(params.ID, "JOB_NAME"), nil
 	}
@@ -65,7 +66,7 @@ func (c *JobClientFake) Get(params *jobparams.JobServiceGetJobParams) (
 func (c *JobClientFake) Delete(params *jobparams.JobServiceDeleteJobParams) error {
 	switch params.ID {
 	case JobForClientErrorTest:
-		return fmt.Errorf(ClientErrorString)
+		return errors.New(ClientErrorString)
 	default:
 		return nil
 	}
@@ -74,7 +75,7 @@ func (c *JobClientFake) Delete(params *jobparams.JobServiceDeleteJobParams) erro
 func (c *JobClientFake) Enable(params *jobparams.JobServiceEnableJobParams) error {
 	switch params.ID {
 	case JobForClientErrorTest:
-		return fmt.Errorf(ClientErrorString)
+		return errors.New(ClientErrorString)
 	default:
 		return nil
 	}
@@ -83,7 +84,7 @@ func (c *JobClientFake) Enable(params *jobparams.JobServiceEnableJobParams) erro
 func (c *JobClientFake) Disable(params *jobparams.JobServiceDisableJobParams) error {
 	switch params.ID {
 	case JobForClientErrorTest:
-		return fmt.Errorf(ClientErrorString)
+		return errors.New(ClientErrorString)
 	default:
 		return nil
 	}

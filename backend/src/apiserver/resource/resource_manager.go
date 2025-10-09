@@ -101,9 +101,10 @@ type ClientManagerInterface interface {
 }
 
 type ResourceManagerOptions struct {
-	CollectMetrics   bool                              `json:"collect_metrics,omitempty"`
-	CacheDisabled    bool                              `json:"cache_disabled,omitempty"`
-	DefaultWorkspace *corev1.PersistentVolumeClaimSpec `json:"default_workspace,omitempty"`
+	CollectMetrics       bool                              `json:"collect_metrics,omitempty"`
+	CacheDisabled        bool                              `json:"cache_disabled,omitempty"`
+	DefaultWorkspace     *corev1.PersistentVolumeClaimSpec `json:"default_workspace,omitempty"`
+	MLPipelineTLSEnabled bool                              `json:"ml_pipeline_tls_enabled,omitempty"`
 }
 
 type ResourceManager struct {
@@ -402,7 +403,12 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if pipelineSpecURI != "" {
 		pv.PipelineSpecURI = model.LargeText(pipelineSpecURI)
 	}
-	tmpl, err := template.New(pipelineSpecBytes, r.options.CacheDisabled, r.options.DefaultWorkspace)
+	templateOptions := template.TemplateOptions{
+		CacheDisabled:        r.options.CacheDisabled,
+		DefaultWorkspace:     r.options.DefaultWorkspace,
+		MLPipelineTLSEnabled: r.options.MLPipelineTLSEnabled,
+	}
+	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to template creation error")
 	}
@@ -535,10 +541,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	run.RunDetails.CreatedAtInSec = r.time.Now().Unix()
 	runWorkflowOptions := template.RunWorkflowOptions{
-		RunId:            run.UUID,
-		RunAt:            run.CreatedAtInSec,
-		CacheDisabled:    r.options.CacheDisabled,
-		DefaultWorkspace: r.options.DefaultWorkspace,
+		RunID: run.UUID,
+		RunAt: run.CreatedAtInSec,
 	}
 	executionSpec, err := tmpl.RunWorkflow(run, runWorkflowOptions)
 	if err != nil {
@@ -623,7 +627,6 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 	opts := list.EmptyOptions()
 
 	jobs, _, _, err := r.jobStore.ListJobs(filterContext, opts)
-
 	if err != nil {
 		return util.Wrap(err, "Failed to reconcile ScheduledWorkflow Kubernetes resources")
 	}
@@ -794,14 +797,14 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runId string) error {
 
 // Creates a task entry.
 func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
-	run, err := r.GetRun(t.RunId)
+	run, err := r.GetRun(t.RunID)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task for run %v", t.RunId)
+		return nil, util.Wrapf(err, "Failed to create a task for run %v", t.RunID)
 	}
 	if run.ExperimentId == "" {
 		defaultExperimentId, err := r.GetDefaultExperimentId()
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunId)
+			return nil, util.Wrapf(err, "Failed to create a task in run %v. Specify experiment id for the run or check if the default experiment exists", t.RunID)
 		}
 		run.ExperimentId = defaultExperimentId
 	}
@@ -810,22 +813,22 @@ func (r *ResourceManager) CreateTask(t *model.Task) (*model.Task, error) {
 	if t.Namespace == "" {
 		namespace, err := r.GetNamespaceFromExperimentId(run.ExperimentId)
 		if err != nil {
-			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunId)
+			return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunID)
 		}
 		t.Namespace = namespace
 	}
 	if common.IsMultiUserMode() {
 		if t.Namespace == "" {
-			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode"), "Failed to create a task in run %v", t.RunId)
+			return nil, util.NewInternalServerError(util.NewInvalidInputError("Task cannot have an empty namespace in multi-user mode"), "Failed to create a task in run %v", t.RunID)
 		}
 	}
 	if err := r.CheckExperimentBelongsToNamespace(run.ExperimentId, t.Namespace); err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunId)
+		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunID)
 	}
 
 	newTask, err := r.taskStore.CreateTask(t)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunId)
+		return nil, util.Wrapf(err, "Failed to create a task in run %v", t.RunID)
 	}
 	return newTask, nil
 }
@@ -1135,7 +1138,11 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
 
-		tmpl, err := template.New(manifest, r.options.CacheDisabled, r.options.DefaultWorkspace)
+		templateOptions := template.TemplateOptions{
+			CacheDisabled:    r.options.CacheDisabled,
+			DefaultWorkspace: r.options.DefaultWorkspace,
+		}
+		tmpl, err := template.New(manifest, templateOptions)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
@@ -1521,7 +1528,11 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 			return nil, "", util.NewInvalidInputError("Failed to fetch a template with an empty pipeline spec manifest")
 		}
 	}
-	tmpl, err := template.New([]byte(manifest), r.options.CacheDisabled, r.options.DefaultWorkspace)
+	templateOptions := template.TemplateOptions{
+		CacheDisabled:    r.options.CacheDisabled,
+		DefaultWorkspace: r.options.DefaultWorkspace,
+	}
+	tmpl, err := template.New([]byte(manifest), templateOptions)
 	if err != nil {
 		return nil, "", util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 	}
@@ -1681,7 +1692,11 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	}
 
 	// Create a template
-	tmpl, err := template.New(pipelineSpecBytes, r.options.CacheDisabled, r.options.DefaultWorkspace)
+	templateOptions := template.TemplateOptions{
+		CacheDisabled:    r.options.CacheDisabled,
+		DefaultWorkspace: r.options.DefaultWorkspace,
+	}
+	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error")
 	}

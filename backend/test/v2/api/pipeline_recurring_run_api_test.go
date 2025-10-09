@@ -16,7 +16,7 @@ package api
 
 import (
 	"github.com/kubeflow/pipelines/backend/test/config"
-	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/constants"
 
 	. "github.com/onsi/ginkgo/v2"
 )
@@ -27,7 +27,7 @@ import (
 
 // ################## POSITIVE TESTS ##################
 
-var _ = PDescribe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_SCHEDULED_RUN, API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.PipelineScheduledRun, constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Create reccurring pipeline run >", func() {
 		It("Create a Pipeline Run with cron that runs every 5min", func() {
@@ -57,7 +57,7 @@ var _ = PDescribe("Verify Pipeline Run >", Label(POSITIVE, API_PIPELINE_SCHEDULE
 	})
 })
 
-var _ = PDescribe("List Recurring Pipeline Runs >", Label(POSITIVE, API_PIPELINE_SCHEDULED_RUN, "ListRecurringPipelineRun", API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("List Recurring Pipeline Runs >", Label(constants.POSITIVE, constants.PipelineScheduledRun, "ListRecurringPipelineRun", constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Basic Operations >", func() {
 		It("Create 2 runs and list", func() {
@@ -127,7 +127,7 @@ var _ = PDescribe("List Recurring Pipeline Runs >", Label(POSITIVE, API_PIPELINE
 
 // ################## NEGATIVE TESTS ##################
 
-var _ = PDescribe("Verify Pipeline Run Negative Tests >", Label(NEGATIVE, API_PIPELINE_SCHEDULED_RUN, API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Verify Pipeline Run Negative Tests >", Label(constants.NEGATIVE, constants.PipelineScheduledRun, constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Create reccurring pipeline run >", func() {
 		It("Create a Pipeline Run with invalid cron", func() {

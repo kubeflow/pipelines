@@ -89,7 +89,7 @@ func (s *UpgradeTests) SetupSuite() {
 	// Integration tests also run these tests to first ensure they work, so that
 	// when integration tests pass and upgrade tests fail, we know for sure
 	// upgrade process went wrong somehow.
-	if !(*runIntegrationTests || *runUpgradeTests) {
+	if !*runIntegrationTests && !*runUpgradeTests {
 		s.T().SkipNow()
 		return
 	}
@@ -259,7 +259,6 @@ func (s *UpgradeTests) VerifyExperiments() {
 	assert.Equal(t, "", experiments[4].Description)
 	assert.NotEmpty(t, experiments[4].ID)
 	assert.NotEmpty(t, experiments[4].CreatedAt)
-
 }
 
 // TODO(jingzhang36): prepare pipeline versions.
@@ -274,10 +273,15 @@ func (s *UpgradeTests) PreparePipelines() {
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.Name)
 
 	/* ---------- Import pipeline YAML by URL ---------- */
+	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/sequential_v1.yaml"
+
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/sequential_v1.yaml", pullNumber)
+	}
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.PipelineServiceCreatePipelineV1Params{
 		Pipeline: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
-			PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
+			PipelineURL: pipelineURL,
 		}},
 	})
 	require.Nil(t, err)
@@ -291,10 +295,10 @@ func (s *UpgradeTests) PreparePipelines() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+	pipelineURL = "https://github.com/kubeflow/pipelines/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip"
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip", pullNumber)
 	}
 
 	time.Sleep(1 * time.Second)
@@ -329,7 +333,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 	verifyPipeline(t, pipelines[0])
 
 	/* ---------- Verify get template works ---------- */
-	template, err := s.pipelineClient.GetTemplate(&pipelineParams.PipelineServiceGetTemplateParams{ID: pipelines[0].ID})
+	tmpl, err := s.pipelineClient.GetTemplate(&pipelineParams.PipelineServiceGetTemplateParams{ID: pipelines[0].ID})
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
@@ -339,9 +343,9 @@ func (s *UpgradeTests) VerifyPipelines() {
 		},
 		StorageClassName: util.StringPointer("my-storage"),
 	}
-	expected, err := pipelinetemplate.New(bytes, true, defaultPVC)
+	expected, err := pipelinetemplate.New(bytes, pipelinetemplate.TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
 	require.Nil(t, err)
-	assert.Equal(t, expected, template)
+	assert.Equal(t, expected, tmpl)
 }
 
 func (s *UpgradeTests) PrepareRuns() {
