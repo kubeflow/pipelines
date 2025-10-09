@@ -1,6 +1,7 @@
 package cacheutils
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -217,7 +218,7 @@ func TestGenerateCacheKey(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	cacheClient, err := NewClient(false)
+	cacheClient, err := NewClient(false, &tls.Config{})
 	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -338,7 +339,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 			fingerPrint: "0a4cc1f15cdfad5170e1358518f7128c5278500a670db1b9a3f3d83b93db396e",
 		},
 	}
-	cacheClient, err := NewClient(false)
+	cacheClient, err := NewClient(false, &tls.Config{})
 	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -408,7 +409,7 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 		},
 	}
 
-	cacheClient, err := NewClient(false)
+	cacheClient, err := NewClient(false, &tls.Config{})
 	require.NoError(t, err)
 
 	baseFP, err := cacheClient.GenerateFingerPrint(base)

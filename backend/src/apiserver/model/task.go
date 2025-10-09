@@ -21,13 +21,13 @@ import (
 type Task struct {
 	UUID      string `gorm:"column:UUID; not null; primaryKey; type:varchar(191);"`
 	Namespace string `gorm:"column:Namespace; not null;"`
-	// PipelineName was deprecated. Use RunId instead.
+	// PipelineName was deprecated. Use RunID instead.
 	PipelineName string `gorm:"column:PipelineName; not null;"`
-	// RunId is limited to varchar(191) to make it indexable as a foreign key.
+	// RunID is limited to varchar(191) to make it indexable as a foreign key.
 	// For details on type lengths and index safety, refer to comments in the Pipeline struct.
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-	RunId              string           `gorm:"column:RunUUID; type:varchar(191); not null; index:tasks_RunUUID_run_details_UUID_foreign;"`                            // Note: field name (RunId) ≠ column name (RunUUID). The former should be the foreign key instead of the letter.
-	Run                Run              `gorm:"foreignKey:RunId;references:UUID;constraint:tasks_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE;"` // A Task belongs to a Run.
+	RunID              string           `gorm:"column:RunUUID; type:varchar(191); not null; index:tasks_RunUUID_run_details_UUID_foreign;"`                            // Note: field name (RunID) ≠ column name (RunUUID). The former should be the foreign key instead of the letter.
+	Run                Run              `gorm:"foreignKey:RunID;references:UUID;constraint:tasks_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE;"` // A Task belongs to a Run.
 	PodName            string           `gorm:"column:PodName; not null;"`
 	MLMDExecutionID    string           `gorm:"column:MLMDExecutionID; not null;"`
 	CreatedTimestamp   int64            `gorm:"column:CreatedTimestamp; not null;"`
@@ -116,8 +116,8 @@ func (t Task) GetFieldValue(name string) interface{} {
 		return t.Namespace
 	case "PipelineName":
 		return t.PipelineName
-	case "RunId":
-		return t.RunId
+	case "RunID":
+		return t.RunID
 	case "MLMDExecutionID":
 		return t.MLMDExecutionID
 	case "CreatedTimestamp":

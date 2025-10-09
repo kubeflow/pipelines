@@ -6,73 +6,73 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-742d1b6dc5d9191c217ab008773c1cf5b250698a1a61142a520b631cc92061f8
+    - name: components-5ce77d07cd95a5f71e354d597878e3e0bc89527d3d81450cd270ed6183594740
       value: '{"executorLabel":"exec-accelerator-limit","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-742d1b6dc5d9191c217ab008773c1cf5b250698a1a61142a520b631cc92061f8
+    - name: implementations-5ce77d07cd95a5f71e354d597878e3e0bc89527d3d81450cd270ed6183594740
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","accelerator_limit"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.8.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        accelerator_limit() -\u003e str:\n    return ''1''\n\n"],"image":"python:3.8"}'
-    - name: components-16a4350d16201f93f9d826cb40748324e2d049c109cbc20a7b45c0d8f69d3766
+        accelerator_limit() -\u003e str:\n    return ''1''\n\n"],"image":"python:3.9"}'
+    - name: components-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b
       value: '{"executorLabel":"exec-accelerator-type","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-16a4350d16201f93f9d826cb40748324e2d049c109cbc20a7b45c0d8f69d3766
+    - name: implementations-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","accelerator_type"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.8.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.8"}'
-    - name: components-a60aff4aa00130bd682637d77ccf1f96a4dbc6f2d0b7b03d7d609a3eb6cc3f39
+        accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.9"}'
+    - name: components-a78005c8cf24945a5b595201f36dc4905feff000fc7a59dc0aabaa7c0dc1413b
       value: '{"executorLabel":"exec-cpu-limit","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-a60aff4aa00130bd682637d77ccf1f96a4dbc6f2d0b7b03d7d609a3eb6cc3f39
+    - name: implementations-a78005c8cf24945a5b595201f36dc4905feff000fc7a59dc0aabaa7c0dc1413b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","cpu_limit"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.8.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        cpu_limit() -\u003e str:\n    return ''4000m''\n\n"],"image":"python:3.8"}'
-    - name: components-989379f270f65243850802c4c4846b0cc382938e98ed6662d54d9d8f3ae72376
+        cpu_limit() -\u003e str:\n    return ''4000m''\n\n"],"image":"python:3.9"}'
+    - name: components-a3d64b3ea9d79d1b1dc471faada5215bf21142914244bbfd26fa4aec93a232d7
       value: '{"executorLabel":"exec-memory-limit","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-989379f270f65243850802c4c4846b0cc382938e98ed6662d54d9d8f3ae72376
+    - name: implementations-a3d64b3ea9d79d1b1dc471faada5215bf21142914244bbfd26fa4aec93a232d7
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","memory_limit"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.8.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        memory_limit() -\u003e str:\n    return ''15G''\n\n"],"image":"python:3.8"}'
-    - name: components-20464d97e7da47d6f03b2cf0145e5debf3cf286ec6297704a735ec252f7453c3
+        memory_limit() -\u003e str:\n    return ''15G''\n\n"],"image":"python:3.9"}'
+    - name: components-0886dd8babaca613b2fca24c656568012544ec9eccff86938a7b3859deae5309
       value: '{"executorLabel":"exec-sum-numbers","inputDefinitions":{"parameters":{"a":{"parameterType":"NUMBER_INTEGER"},"b":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-20464d97e7da47d6f03b2cf0145e5debf3cf286ec6297704a735ec252f7453c3
+    - name: implementations-0886dd8babaca613b2fca24c656568012544ec9eccff86938a7b3859deae5309
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","sum_numbers"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.8.0'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        sum_numbers(a: int, b:int) -\u003e int:\n    return a + b\n\n"],"image":"python:3.8","resources":{"accelerator":{"resourceCount":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}","resourceType":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"},"resourceCpuLimit":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}","resourceMemoryLimit":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}}'
+        sum_numbers(a: int, b: int) -\u003e int:\n    return a + b\n\n"],"image":"python:3.9","resources":{"accelerator":{"resourceCount":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}","resourceType":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"},"resourceCpuLimit":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}","resourceMemoryLimit":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}}'
     - name: components-root
-      value: '{"dag":{"tasks":{"accelerator-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-limit"},"taskInfo":{"name":"accelerator-limit"}},"accelerator-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}},"cpu-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-cpu-limit"},"taskInfo":{"name":"cpu-limit"}},"memory-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-memory-limit"},"taskInfo":{"name":"memory-limit"}},"sum-numbers":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-numbers"},"dependentTasks":["accelerator-type","memory-limit","accelerator-limit","cpu-limit"],"inputs":{"parameters":{"a":{"runtimeValue":{"constant":1}},"accelerator_count":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}"}},"accelerator_type":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"}},"b":{"runtimeValue":{"constant":2}},"cpu_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}"}},"memory_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}},"pipelinechannel--accelerator-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-limit"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--cpu-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"cpu-limit"}},"pipelinechannel--memory-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"memory-limit"}}}},"taskInfo":{"name":"sum-numbers"}}}}}'
+      value: '{"dag":{"tasks":{"accelerator-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-limit"},"taskInfo":{"name":"accelerator-limit"}},"accelerator-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}},"cpu-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-cpu-limit"},"taskInfo":{"name":"cpu-limit"}},"memory-limit":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-memory-limit"},"taskInfo":{"name":"memory-limit"}},"sum-numbers":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-numbers"},"dependentTasks":["accelerator-limit","accelerator-type","cpu-limit","memory-limit"],"inputs":{"parameters":{"a":{"runtimeValue":{"constant":1}},"accelerator_count":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}"}},"accelerator_type":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"}},"b":{"runtimeValue":{"constant":2}},"cpu_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}"}},"memory_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}},"pipelinechannel--accelerator-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-limit"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--cpu-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"cpu-limit"}},"pipelinechannel--memory-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"memory-limit"}}}},"taskInfo":{"name":"sum-numbers"}}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -253,11 +253,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-742d1b6dc5d9191c217ab008773c1cf5b250698a1a61142a520b631cc92061f8}}'
+            value: '{{workflow.parameters.components-5ce77d07cd95a5f71e354d597878e3e0bc89527d3d81450cd270ed6183594740}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-limit"},"taskInfo":{"name":"accelerator-limit"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-742d1b6dc5d9191c217ab008773c1cf5b250698a1a61142a520b631cc92061f8}}'
+            value: '{{workflow.parameters.implementations-5ce77d07cd95a5f71e354d597878e3e0bc89527d3d81450cd270ed6183594740}}'
           - name: task-name
             value: accelerator-limit
           - name: parent-dag-id
@@ -277,11 +277,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-16a4350d16201f93f9d826cb40748324e2d049c109cbc20a7b45c0d8f69d3766}}'
+            value: '{{workflow.parameters.components-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-16a4350d16201f93f9d826cb40748324e2d049c109cbc20a7b45c0d8f69d3766}}'
+            value: '{{workflow.parameters.implementations-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b}}'
           - name: task-name
             value: accelerator-type
           - name: parent-dag-id
@@ -301,11 +301,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a60aff4aa00130bd682637d77ccf1f96a4dbc6f2d0b7b03d7d609a3eb6cc3f39}}'
+            value: '{{workflow.parameters.components-a78005c8cf24945a5b595201f36dc4905feff000fc7a59dc0aabaa7c0dc1413b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-cpu-limit"},"taskInfo":{"name":"cpu-limit"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a60aff4aa00130bd682637d77ccf1f96a4dbc6f2d0b7b03d7d609a3eb6cc3f39}}'
+            value: '{{workflow.parameters.implementations-a78005c8cf24945a5b595201f36dc4905feff000fc7a59dc0aabaa7c0dc1413b}}'
           - name: task-name
             value: cpu-limit
           - name: parent-dag-id
@@ -325,11 +325,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-989379f270f65243850802c4c4846b0cc382938e98ed6662d54d9d8f3ae72376}}'
+            value: '{{workflow.parameters.components-a3d64b3ea9d79d1b1dc471faada5215bf21142914244bbfd26fa4aec93a232d7}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-memory-limit"},"taskInfo":{"name":"memory-limit"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-989379f270f65243850802c4c4846b0cc382938e98ed6662d54d9d8f3ae72376}}'
+            value: '{{workflow.parameters.implementations-a3d64b3ea9d79d1b1dc471faada5215bf21142914244bbfd26fa4aec93a232d7}}'
           - name: task-name
             value: memory-limit
           - name: parent-dag-id
@@ -349,17 +349,17 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-20464d97e7da47d6f03b2cf0145e5debf3cf286ec6297704a735ec252f7453c3}}'
+            value: '{{workflow.parameters.components-0886dd8babaca613b2fca24c656568012544ec9eccff86938a7b3859deae5309}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-numbers"},"dependentTasks":["accelerator-type","memory-limit","accelerator-limit","cpu-limit"],"inputs":{"parameters":{"a":{"runtimeValue":{"constant":1}},"accelerator_count":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}"}},"accelerator_type":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"}},"b":{"runtimeValue":{"constant":2}},"cpu_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}"}},"memory_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}},"pipelinechannel--accelerator-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-limit"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--cpu-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"cpu-limit"}},"pipelinechannel--memory-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"memory-limit"}}}},"taskInfo":{"name":"sum-numbers"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-numbers"},"dependentTasks":["accelerator-limit","accelerator-type","cpu-limit","memory-limit"],"inputs":{"parameters":{"a":{"runtimeValue":{"constant":1}},"accelerator_count":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-limit-Output'']}}"}},"accelerator_type":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}"}},"b":{"runtimeValue":{"constant":2}},"cpu_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--cpu-limit-Output'']}}"}},"memory_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--memory-limit-Output'']}}"}},"pipelinechannel--accelerator-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-limit"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--cpu-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"cpu-limit"}},"pipelinechannel--memory-limit-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"memory-limit"}}}},"taskInfo":{"name":"sum-numbers"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-20464d97e7da47d6f03b2cf0145e5debf3cf286ec6297704a735ec252f7453c3}}'
+            value: '{{workflow.parameters.implementations-0886dd8babaca613b2fca24c656568012544ec9eccff86938a7b3859deae5309}}'
           - name: task-name
             value: sum-numbers
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        depends: accelerator-type.Succeeded && memory-limit.Succeeded && accelerator-limit.Succeeded
-          && cpu-limit.Succeeded
+        depends: accelerator-limit.Succeeded && accelerator-type.Succeeded && cpu-limit.Succeeded
+          && memory-limit.Succeeded
         name: sum-numbers-driver
         template: system-container-driver
       - arguments:

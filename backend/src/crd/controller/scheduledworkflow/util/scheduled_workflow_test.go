@@ -309,7 +309,7 @@ func TestScheduledWorkflow_GetNextScheduledEpoch_CronScheduleTimeZone(t *testing
 	creationTime, err := time.Parse(time.RFC1123Z, "Mon, 01 Jan 2006 16:04:05 -0800")
 	assert.Nil(t, err)
 	creationTimestamp := metav1.NewTime(creationTime)
-	//catchUp := false
+	// catchUp := false
 	schedule := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: creationTimestamp,

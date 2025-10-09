@@ -29,7 +29,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test/config"
-	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
 
@@ -43,7 +43,7 @@ const (
 
 // ################## UPGRADE TEST PREPARATION ##################
 
-var _ = Describe("Upgrade Test Preparation >", Label(UPGRADE_PREPARATION, FULL_REGRESSION), func() {
+var _ = Describe("Upgrade Test Preparation >", Label(constants.UpgradePreparation, constants.FullRegression), func() {
 	Context("Prepare test data >", func() {
 
 		It("Upload pipelines and create experiments", func() {
@@ -66,7 +66,7 @@ var _ = Describe("Upgrade Test Preparation >", Label(UPGRADE_PREPARATION, FULL_R
 
 // ################## UPGRADE TEST VERIFICATION ##################
 
-var _ = Describe("Upgrade Test Verification >", Label(UPGRADE_VERIFICATION, FULL_REGRESSION), func() {
+var _ = Describe("Upgrade Test Verification >", Label(constants.UpgradeVerification, constants.FullRegression), func() {
 	Context("Verify resources after upgrade >", func() {
 		It("Verify that Pipelines & experiments should persist correctly", func() {
 			verifyExperiments()

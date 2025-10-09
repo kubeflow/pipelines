@@ -1,0 +1,71 @@
+# PIPELINE DEFINITION
+# Name: sequential
+# Inputs:
+#    param1: str
+#    param2: str
+components:
+  comp-echo:
+    executorLabel: exec-echo
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+  comp-echo-2:
+    executorLabel: exec-echo-2
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-echo:
+      container:
+        args:
+        - echo {{$.inputs.parameters['message']}}
+        command:
+        - sh
+        - -c
+        image: library/bash
+    exec-echo-2:
+      container:
+        args:
+        - echo {{$.inputs.parameters['message']}}
+        command:
+        - sh
+        - -c
+        image: library/bash
+pipelineInfo:
+  name: sequential
+root:
+  dag:
+    tasks:
+      echo:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo
+        inputs:
+          parameters:
+            message:
+              componentInputParameter: param1
+        taskInfo:
+          name: echo
+      echo-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-echo-2
+        inputs:
+          parameters:
+            message:
+              componentInputParameter: param2
+        taskInfo:
+          name: echo-2
+  inputDefinitions:
+    parameters:
+      param1:
+        parameterType: STRING
+      param2:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.3

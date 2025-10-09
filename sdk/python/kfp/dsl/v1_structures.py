@@ -209,14 +209,20 @@ class ExecutorInputPlaceholder(ModelBase):  # Non-standard attr names
         return {'executorInput': None}
 
 
-CommandlineArgumentType = Union[str, InputValuePlaceholder,
-                                InputPathPlaceholder, OutputPathPlaceholder,
-                                InputUriPlaceholder, OutputUriPlaceholder,
-                                InputMetadataPlaceholder,
-                                InputOutputPortNamePlaceholder,
-                                OutputMetadataPlaceholder,
-                                ExecutorInputPlaceholder, 'ConcatPlaceholder',
-                                'IfPlaceholder',]
+CommandlineArgumentType = Union[
+    str,
+    InputValuePlaceholder,
+    InputPathPlaceholder,
+    OutputPathPlaceholder,
+    InputUriPlaceholder,
+    OutputUriPlaceholder,
+    InputMetadataPlaceholder,
+    InputOutputPortNamePlaceholder,
+    OutputMetadataPlaceholder,
+    ExecutorInputPlaceholder,
+    'ConcatPlaceholder',
+    'IfPlaceholder',
+]
 
 
 class ConcatPlaceholder(ModelBase):  #Non-standard attr names
@@ -620,10 +626,18 @@ class LessThenOrEqualPredicate(BinaryPredicate):
     _serialized_names = {'operands': '<='}
 
 
-PredicateType = Union[ArgumentType, EqualsPredicate, NotEqualsPredicate,
-                      GreaterThanPredicate, GreaterThanOrEqualPredicate,
-                      LessThenPredicate, LessThenOrEqualPredicate,
-                      'NotPredicate', 'AndPredicate', 'OrPredicate',]
+PredicateType = Union[
+    ArgumentType,
+    EqualsPredicate,
+    NotEqualsPredicate,
+    GreaterThanPredicate,
+    GreaterThanOrEqualPredicate,
+    LessThenPredicate,
+    LessThenOrEqualPredicate,
+    'NotPredicate',
+    'AndPredicate',
+    'OrPredicate',
+]
 
 
 class TwoBooleanOperands(ModelBase):

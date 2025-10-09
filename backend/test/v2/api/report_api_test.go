@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 
 	"github.com/kubeflow/pipelines/backend/test/config"
-	. "github.com/kubeflow/pipelines/backend/test/constants"
+	"github.com/kubeflow/pipelines/backend/test/constants"
 	"github.com/kubeflow/pipelines/backend/test/testutil"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -32,7 +32,7 @@ var workflowsDir = filepath.Join(projectDataDir, "compiled-workflows")
 
 // ################## POSITIVE TESTS ##################
 
-var _ = PDescribe("Create Workflow API Tests >", Label(POSITIVE, API_REPORT, API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Create Workflow API Tests >", Label(constants.POSITIVE, constants.ReportTests, constants.APIServerTests, constants.FullRegression), func() {
 	workflowFiles := testutil.GetListOfFilesInADir(workflowsDir)
 	Context("Create Workflow >", func() {
 		for _, workflowFile := range workflowFiles {
@@ -46,7 +46,7 @@ var _ = PDescribe("Create Workflow API Tests >", Label(POSITIVE, API_REPORT, API
 
 // ################## NEGATIVE TESTS ##################
 
-var _ = PDescribe("Create Workflow Negative Tests >", Label(NEGATIVE, API_REPORT, API_SERVER_TESTS, FULL_REGRESSION), func() {
+var _ = PDescribe("Create Workflow Negative Tests >", Label(constants.NEGATIVE, constants.ReportTests, constants.APIServerTests, constants.FullRegression), func() {
 
 	Context("Create workflow >", func() {
 		It("With invalid workflow schema", func() {
