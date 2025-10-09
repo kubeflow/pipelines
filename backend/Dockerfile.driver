@@ -27,7 +27,7 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 ARG TARGETARCH
-ENV TARGETARCH=$TARGETARCH
+RUN echo "Building for architecture: ${TARGETARCH}"
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -tags netgo -gcflags="${GCFLAGS}" -ldflags '-extldflags "-static"' -o /bin/driver ./backend/src/v2/cmd/driver/*.go
 
 FROM alpine:3.19

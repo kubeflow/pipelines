@@ -34,8 +34,9 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
+###
 ARG TARGETARCH
-ENV TARGETARCH=$TARGETARCH
+RUN echo "Building for architecture: ${TARGETARCH}"
 
 # Downloading Argo CLI so that the samples are validated
 ENV ARGO_VERSION=v3.6.7
