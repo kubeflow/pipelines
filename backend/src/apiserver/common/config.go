@@ -34,10 +34,15 @@ const (
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
 	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
 	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
+	RequireNamespaceForPipelines            string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
 	return GetBoolConfigWithDefault(UpdatePipelineVersionByDefault, true)
+}
+
+func IsNamespaceRequiredForPipelines() bool {
+	return GetBoolConfigWithDefault(RequireNamespaceForPipelines, false)
 }
 
 func GetStringConfig(configName string) string {

@@ -115,6 +115,11 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		return
 	}
 	pipelineNamespace = s.resourceManager.ReplaceNamespace(pipelineNamespace)
+	err = validation.ValidateNamespaceRequired(pipelineNamespace)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: pipelineNamespace,
 		Verb:      common.RbacResourceVerbCreate,
@@ -253,6 +258,12 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 	namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline version due to error reading namespace"))
+		return
+	}
+
+	err = validation.ValidateNamespaceRequired(namespace)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
