@@ -236,23 +236,49 @@ When performing these releases, you should adhere to the order presented below.
     twine upload dist/*
     ```
 
-1. Release `kfp` Python packages to PyPI.
-    
-    Update the SDK version in `version.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11715/files).
-    
+1. Release `kfp-server-api` Python packages to PyPI.
+
     ```bash
-    git checkout -b release-X.Y
-    pip3 install twine --user
-    cd sdk
-    make python
-    cd python
-    twine check dist/*
-    twine upload dist/*
+    git checkout $BRANCH
+    git pull upstream $BRANCH
+    cd backend/api/v2beta1/python_http_client
+    rm -r dist
+    python3 setup.py --quiet sdist
+    python3 -m twine upload dist/*
     ```
 
-    !!! The file name must contain the version. See <https://github.com/kubeflow/pipelines/issues/1292>
+   1. Release `kfp` Python packages to PyPI.
 
-** Update Readthedocs **
+       Note that if this `kfp` release depends on a new version of `kfp-pipeline-spec` or `kfp-server-api`, ensure
+       those packages have their versions updated, and you have built them in twine. 
+       Then update the `sdk/python/requirements.in` file, ensure these package's lower-bound versions are accurate.
+       Once done, you can run the following command to update the requirements:
+
+       ```bash
+       cd sdk/python
+       # Note if the dependent packages have already been released use the following command: 
+       pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in > requirements.txt
+       # Otherwise you can use: 
+       ./pre-release-requirements-update.sh
+       ```
+
+       Once done you should see a diff in `requirements.txt`. Confirm the changes.
+
+       Update the SDK version in `version.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11715/files).
+    
+       ```bash
+       git checkout -b release-X.Y
+       pip3 install twine --user
+       cd sdk
+       make python
+       cd python
+       twine check dist/*
+       twine upload dist/*
+       ```
+
+       !!! The file name must contain the version. See <https://github.com/kubeflow/pipelines/issues/1292>
+
+**Update `kfp` Readthedocs**
 
 * Create a GitHub release for KFP SDK release. [Here's an example](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.14.1) reference for a template.
   * When creating a release create a new tag `sdk-x.y.z`
@@ -263,6 +289,19 @@ When performing these releases, you should adhere to the order presented below.
 * Set the default branch to be the release branch `release-x.y.z`
 
 1. Release `kfp-kubernetes` Python packages to PyPI.
+
+    Note that if this `kfp-kubenretes` release depends on a new version of `kfp` or `kfp-pipeline-spec`, ensure
+    those packages have their versions updated, and you have built them in twine. 
+    Then update `kubernetes_platform/python/requirements.in` file, ensure these package's lower-bound versions are accurate. 
+    Once done, you can run the following command to update the requirements:
+
+    ```bash
+    cd kubernetes_platform/python
+    # Note if the dependent packages have already been released use the following command: 
+    pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in > requirements.txt
+    # Otherwise you can use: 
+    ./pre-release-requirements-update.sh
+    ```
 
     Update the KFP Kubernetes SDK version in `__init__.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11380).
 
@@ -287,7 +326,8 @@ When performing these releases, you should adhere to the order presented below.
 > Note that kfp-kubernetes package has a separate readthedocs site and requires that a new branch be pushed for readthedocs to be able to host multiple pages from the same repo. 
 > Every new patch version for this package requires us to create a new release branch purely for readthedocs purposes. However always cut this branch from the `release-X.Y` branch.
 
-** Update Readthedocs ** 
+**Update `kfp-kubernetes` Readthedocs** 
+
 Once the branch is updated, you need to add this version to readthedocs. Follow these steps: 
 
 * Navigate to the package section on the readthedocs website [here](https://app.readthedocs.org/projects/kfp-kubernetes/). 
@@ -297,18 +337,7 @@ Once the branch is updated, you need to add this version to readthedocs. Follow 
 * Go to Settings
 * Set this version as the default version. 
 * Click Save
-* Click "View Docs" to navigate to the docs page and ensure the new version shows up as the default. 
-   
-1. Release `kfp-server-api` Python packages to PyPI.
-
-    ```bash
-    git checkout $BRANCH
-    git pull upstream $BRANCH
-    cd backend/api/v2beta1/python_http_client
-    rm -r dist
-    python3 setup.py --quiet sdist
-    python3 -m twine upload dist/*
-    ```
+* Click "View Docs" to navigate to the docs page and ensure the new version shows up as the default.
 
 Push the changes to the `release-X.Y` branch. 
 
