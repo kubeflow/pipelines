@@ -1,5 +1,7 @@
 ## Upcoming release
 
+* Add `autotuning_config` and `cohort` parameters to Dataproc v1 batch components.
+
 ## Release 2.21.0
 
 * Add psc_interface_config to v1 GCPC custom job components/utils
