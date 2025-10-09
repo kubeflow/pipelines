@@ -1,0 +1,428 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  creationTimestamp: null
+  generateName: pipeline-with-importer-workspace-
+spec:
+  arguments:
+    parameters:
+    - name: components-comp-importer
+      value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-comp-importer
+      value: '{"artifactUri":{"constant":"minio://mlpipeline/sample/sample.txt"},"downloadToWorkspace":true,"metadata":{"source":"sample"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
+    - name: components-9ffedf4e2479eb43e7fee57b45f0a09698cb1b0a7313f57371726b58f07afb52
+      value: '{"executorLabel":"exec-read-imported","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-9ffedf4e2479eb43e7fee57b45f0a09698cb1b0a7313f57371726b58f07afb52
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_imported"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        read_imported(data: dsl.Input[dsl.Dataset]) -\u003e str:\n    with open(data.path,
+        \"r\") as f:\n        content = f.read()\n    print(f\"Imported content length:
+        {len(content)}\")\n    return content\n\n"],"image":"python:3.9"}'
+    - name: components-root
+      value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"read-imported"}}}},"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"minio://mlpipeline/sample/sample.txt"}}}},"taskInfo":{"name":"importer"}},"read-imported":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-imported"},"dependentTasks":["importer"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"read-imported"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --executor_type
+      - importer
+      - --task_spec
+      - '{{inputs.parameters.task}}'
+      - --component_spec
+      - '{{inputs.parameters.component}}'
+      - --importer_spec
+      - '{{inputs.parameters.importer}}'
+      - --pipeline_name
+      - pipeline-with-importer-workspace
+      - --run_id
+      - '{{workflow.uid}}'
+      - --parent_dag_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --mlmd_server_address
+      - $(METADATA_GRPC_SERVICE_HOST)
+      - --mlmd_server_port
+      - $(METADATA_GRPC_SERVICE_PORT)
+      command:
+      - launcher-v2
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      volumeMounts:
+      - mountPath: /kfp-workspace
+        name: kfp-workspace
+    inputs:
+      parameters:
+      - name: task
+      - name: component
+      - name: importer
+      - name: parent-dag-id
+    metadata: {}
+    name: system-importer
+    outputs: {}
+    volumes:
+    - name: kfp-workspace
+      persistentVolumeClaim:
+        claimName: '{{workflow.name}}-kfp-workspace'
+  - container:
+      args:
+      - --type
+      - CONTAINER
+      - --pipeline_name
+      - pipeline-with-importer-workspace
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --container
+      - '{{inputs.parameters.container}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --cached_decision_path
+      - '{{outputs.parameters.cached-decision.path}}'
+      - --pod_spec_patch_path
+      - '{{outputs.parameters.pod-spec-patch.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --kubernetes_config
+      - '{{inputs.parameters.kubernetes-config}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - name: task
+      - name: container
+      - name: task-name
+      - name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: ""
+        name: kubernetes-config
+    metadata: {}
+    name: system-container-driver
+    outputs:
+      parameters:
+      - name: pod-spec-patch
+        valueFrom:
+          default: ""
+          path: /tmp/outputs/pod-spec-patch
+      - default: "false"
+        name: cached-decision
+        valueFrom:
+          default: "false"
+          path: /tmp/outputs/cached-decision
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{inputs.parameters.pod-spec-patch}}'
+        name: executor
+        template: system-container-impl
+        when: '{{inputs.parameters.cached-decision}} != true'
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+      - default: "false"
+        name: cached-decision
+    metadata: {}
+    name: system-container-executor
+    outputs: {}
+  - container:
+      command:
+      - should-be-overridden-during-runtime
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: gcr.io/ml-pipeline/should-be-overridden-during-runtime
+      name: ""
+      resources: {}
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+      - mountPath: /gcs
+        name: gcs-scratch
+      - mountPath: /s3
+        name: s3-scratch
+      - mountPath: /minio
+        name: minio-scratch
+      - mountPath: /.local
+        name: dot-local-scratch
+      - mountPath: /.cache
+        name: dot-cache-scratch
+      - mountPath: /.config
+        name: dot-config-scratch
+    initContainers:
+    - args:
+      - --copy
+      - /kfp-launcher/launch
+      command:
+      - launcher-v2
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: kfp-launcher
+      resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+      volumeMounts:
+      - mountPath: /kfp-launcher
+        name: kfp-launcher
+    inputs:
+      parameters:
+      - name: pod-spec-patch
+    metadata: {}
+    name: system-container-impl
+    outputs: {}
+    podSpecPatch: '{{inputs.parameters.pod-spec-patch}}'
+    volumes:
+    - emptyDir: {}
+      name: kfp-launcher
+    - emptyDir: {}
+      name: gcs-scratch
+    - emptyDir: {}
+      name: s3-scratch
+    - emptyDir: {}
+      name: minio-scratch
+    - emptyDir: {}
+      name: dot-local-scratch
+    - emptyDir: {}
+      name: dot-cache-scratch
+    - emptyDir: {}
+      name: dot-config-scratch
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"minio://mlpipeline/sample/sample.txt"}}}},"taskInfo":{"name":"importer"}}'
+          - name: component
+            value: '{{workflow.parameters.components-comp-importer}}'
+          - name: importer
+            value: '{{workflow.parameters.implementations-comp-importer}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: importer
+        template: system-importer
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-9ffedf4e2479eb43e7fee57b45f0a09698cb1b0a7313f57371726b58f07afb52}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-imported"},"dependentTasks":["importer"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"read-imported"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-9ffedf4e2479eb43e7fee57b45f0a09698cb1b0a7313f57371726b58f07afb52}}'
+          - name: task-name
+            value: read-imported
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: importer.Succeeded
+        name: read-imported-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.read-imported-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.read-imported-driver.outputs.parameters.cached-decision}}'
+        depends: read-imported-driver.Succeeded
+        name: read-imported
+        template: system-container-executor
+    inputs:
+      parameters:
+      - name: parent-dag-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - pipeline-with-importer-workspace
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --dag_execution_id
+      - '{{inputs.parameters.parent-dag-id}}'
+      - --component
+      - '{{inputs.parameters.component}}'
+      - --task
+      - '{{inputs.parameters.task}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --execution_id_path
+      - '{{outputs.parameters.execution-id.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      command:
+      - driver
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    inputs:
+      parameters:
+      - name: component
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task
+      - default: ""
+        name: task-name
+      - default: "0"
+        name: parent-dag-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata: {}
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: execution-id
+        valueFrom:
+          path: /tmp/outputs/execution-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-root}}'
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-id
+            value: '{{tasks.root-driver.outputs.parameters.execution-id}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+  volumeClaimTemplates:
+  - metadata:
+      creationTimestamp: null
+      name: kfp-workspace
+    spec:
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: standard
+    status: {}
+status:
+  finishedAt: null
+  startedAt: null
