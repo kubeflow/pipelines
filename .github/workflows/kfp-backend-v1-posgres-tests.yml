@@ -57,6 +57,13 @@ jobs:
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
           forward_port: "false" # we intend to forward the service instead of pod. thus we will forward the ports manually in next the steps.
+
+      - name: Wait for Postgres readiness
+        run: |
+          echo "Waiting for Postgres to be Ready..."
+          kubectl -n "$POSTGRES_NAMESPACE" wait --for=condition=available deploy/postgres --timeout=180s
+          echo "✅ Postgres is Ready"
+
       - name: Port-forward Postgres
         run: |
           kubectl -n "$POSTGRES_NAMESPACE" port-forward svc/postgres-service ${{ env.DB_PORT }}:${{ env.DB_PORT }} --address=${{ env.DB_FORWARD_IP }} &
@@ -92,6 +99,8 @@ jobs:
           -args -namespace="$NAMESPACE" \
           -runIntegrationTests=true \
           -runPostgreSQLTests=true -test.skip=TestUpgrade
+        env:
+          DBCONFIG_POSTGRESQLCONFIG_HOST: ${{ env.DB_FORWARD_IP }}
 
       - name: Cleanup
         if: always()

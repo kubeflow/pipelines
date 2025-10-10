@@ -119,6 +119,12 @@ runs:
         if [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
           ARGS="${ARGS} --tls-enabled"
         fi
+
+        if [ -n "${{ inputs.db_type }}" ]; then
+          echo "Deploying with database type ${{ inputs.db_type }}"
+          ARGS="${ARGS} --db-type ${{ inputs.db_type }}"
+        fi
+
         echo "ARGS=$ARGS" >> $GITHUB_OUTPUT
 
     - name: Deploy KFP

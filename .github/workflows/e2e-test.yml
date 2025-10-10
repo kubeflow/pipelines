@@ -14,24 +14,23 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/e2e-test.yml'
-      - '.github/actions/create-cluster/**'
-      - '.github/resources/**'
-      - 'api/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'backend/**'
-      - 'proxy/**'
-      - 'manifests/kustomize/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
-
+      - ".github/workflows/e2e-test.yml"
+      - ".github/actions/create-cluster/**"
+      - ".github/resources/**"
+      - "api/**"
+      - "go.mod"
+      - "go.sum"
+      - "backend/**"
+      - "proxy/**"
+      - "manifests/kustomize/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
   workflow_dispatch:
     inputs:
       test_label:
         description: "Test label that you want to filter on and run"
-        default: 'ApiServerTests'
+        default: "ApiServerTests"
         required: true
         type: string
       number_of_parallel_tests:
@@ -56,11 +55,11 @@ jobs:
       matrix:
         k8s_version: ["v1.31.0"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.1", "v3.6.10", "v3.5.15"]
-        storage: [ "seaweedfs", "minio"]
-        proxy: [ "false" ]
-        test_label: [ "E2ECritical" ]
-        pod_to_pod_tls_enabled: [ "false" ]
+        argo_version: ["v3.7.1", "v3.6.10", "v3.5.15"]
+        storage: ["seaweedfs", "minio"]
+        proxy: ["false"]
+        test_label: ["E2ECritical"]
+        pod_to_pod_tls_enabled: ["false"]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "false"
@@ -128,7 +127,7 @@ jobs:
             TEST_LABEL=${{ inputs.test_label }}
             NAMESPACE=${{ inputs.namespace }}
           fi
-          
+
           echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
           echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
           echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
@@ -169,16 +168,16 @@ jobs:
       matrix:
         k8s_version: ["v1.31.0"]
         cache_enabled: ["true", "false"]
-        storage: [ "seaweedfs", "minio"]
-        multi_user: [ "true" ]
-        test_label: [ "E2ECritical" ]
+        storage: ["seaweedfs", "minio"]
+        multi_user: ["true"]
+        test_label: ["E2ECritical"]
         include:
-        - multi_user: "true"
-          artifact_proxy: "true"
-          storage: "seaweedfs"
-          k8s_version: "v1.31.0"
-          cache_enabled: "true"
-          test_label: "E2ECritical" 
+          - multi_user: "true"
+            artifact_proxy: "true"
+            storage: "seaweedfs"
+            k8s_version: "v1.31.0"
+            cache_enabled: "true"
+            test_label: "E2ECritical"
       fail-fast: false
     name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }} artifactProxy=${{ matrix.artifact_proxy }}
     steps:

@@ -18,7 +18,7 @@ on:
     inputs:
       test_label:
         description: "Test label that you want to filter on and run"
-        default: 'ApiServerTests'
+        default: "ApiServerTests"
         required: true
         type: string
       number_of_parallel_tests:
@@ -34,17 +34,17 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/api-server-tests.yml'
-      - '.github/actions/create-cluster/**'
-      - '.github/resources/**'
-      - 'backend/api/v2beta1/**'
-      - 'backend/src/**'
-      - 'backend/metadata_writer/**'
-      - 'backend/test/v2/api/**'
-      - 'manifests/kustomize/**'
-      - '../../test_data/sdk_compiled_pipelines/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/api-server-tests.yml"
+      - ".github/actions/create-cluster/**"
+      - ".github/resources/**"
+      - "backend/api/v2beta1/**"
+      - "backend/src/**"
+      - "backend/metadata_writer/**"
+      - "backend/test/v2/api/**"
+      - "manifests/kustomize/**"
+      - "../../test_data/sdk_compiled_pipelines/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   build:
@@ -55,12 +55,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.31.0" ]
-        cache_enabled: [ "true", "false" ]
-        proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.1", "v3.6.10" ]
-        pipeline_store: [ "database" ]
-        pod_to_pod_tls_enabled: [ "false" ]
+        k8s_version: ["v1.31.0"]
+        cache_enabled: ["true", "false"]
+        proxy: ["true", "false"]
+        argo_version: ["v3.7.1", "v3.6.10"]
+        pipeline_store: ["database"]
+        pod_to_pod_tls_enabled: ["false"]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
@@ -124,7 +124,7 @@ jobs:
           if [ -z "${PROXY:-}" ]; then
             PROXY=false
           fi
-          
+
           echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
           echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
           echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
@@ -153,18 +153,17 @@ jobs:
         run: |
           echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
 
-
   api-test-k8s-native:
     needs: build
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.31.0", "v1.29.2" ]
-        cache_enabled: [ "true" ]
-        uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.1", "v3.6.10" ]
-        pipeline_store: [ "kubernetes" ]
-        pod_to_pod_tls_enabled: [ "false" ]
+        k8s_version: ["v1.31.0", "v1.29.2"]
+        cache_enabled: ["true"]
+        uploadPipelinesWithKubernetesClient: ["true", "false"]
+        argo_version: ["v3.7.1", "v3.6.10"]
+        pipeline_store: ["kubernetes"]
+        pod_to_pod_tls_enabled: ["false"]
         include:
           - k8s_version: "v1.31.0"
             cache_enabled: "true"
@@ -225,9 +224,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        k8s_version: [ "v1.31.0"]
-        cache_enabled: [ "true", "false" ]
-        multi_user: [ "true" ]
+        k8s_version: ["v1.31.0"]
+        cache_enabled: ["true", "false"]
+        multi_user: ["true"]
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }}
 
