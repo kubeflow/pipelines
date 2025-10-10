@@ -34,6 +34,10 @@ const mockPipelineID = "9b187b86-7c0a-42ae-a0bc-2a746b6eb7a3"
 const mockPipelineVersionID = "e15dc3ec-b45e-4cc7-bb07-e76b5dbce99a"
 const pipelineSpecYamlPath = "pipelinespec.yaml"
 
+func stringPtr(s string) *string {
+	return &s
+}
+
 func mockPipelineSpec() *structpb.Struct {
 	yamlContent, err := os.ReadFile(filepath.Join("testdata", pipelineSpecYamlPath))
 	if err != nil {
@@ -150,7 +154,7 @@ var experiment = &pb.Experiment{
 	DisplayName:      "Production Data Processing Experiment",
 	Description:      "Experiment for testing production data processing pipeline",
 	CreatedAt:        fixedTimestamp(),
-	Namespace:        "namespace1",
+	Namespace:        stringPtr("namespace1"),
 	StorageState:     pb.Experiment_AVAILABLE,
 	LastRunCreatedAt: fixedTimestamp(),
 }

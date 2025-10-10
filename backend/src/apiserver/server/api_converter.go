@@ -121,13 +121,18 @@ func toApiExperiment(experiment *model.Experiment) *apiv2beta1.Experiment {
 	default:
 		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"])
 	}
+	// Convert namespace to pointer type; only set if non-empty
+	var namespace *string
+	if experiment.Namespace != "" {
+		namespace = &experiment.Namespace
+	}
 	return &apiv2beta1.Experiment{
 		ExperimentId:     experiment.UUID,
 		DisplayName:      experiment.Name,
 		Description:      experiment.Description,
 		CreatedAt:        timestamppb.New(time.Unix(experiment.CreatedAtInSec, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(experiment.LastRunCreatedAtInSec, 0)),
-		Namespace:        experiment.Namespace,
+		Namespace:        namespace,
 		StorageState:     storageState,
 	}
 }

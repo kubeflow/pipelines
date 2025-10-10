@@ -103,7 +103,7 @@ type Experiment struct {
 	// Output. The time that the experiment was created.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Optional input field. Specify the namespace this experiment belongs to.
-	Namespace string `protobuf:"bytes,5,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Namespace *string `protobuf:"bytes,5,opt,name=namespace,proto3,oneof" json:"namespace,omitempty"`
 	// Output. Specifies whether this experiment is in archived or available state.
 	StorageState Experiment_StorageState `protobuf:"varint,6,opt,name=storage_state,json=storageState,proto3,enum=kubeflow.pipelines.backend.api.v2beta1.Experiment_StorageState" json:"storage_state,omitempty"`
 	// Output. The creation time of the last run in this experiment.
@@ -171,8 +171,8 @@ func (x *Experiment) GetCreatedAt() *timestamppb.Timestamp {
 }
 
 func (x *Experiment) GetNamespace() string {
-	if x != nil {
-		return x.Namespace
+	if x != nil && x.Namespace != nil {
+		return *x.Namespace
 	}
 	return ""
 }
@@ -570,21 +570,23 @@ var File_backend_api_v2beta1_experiment_proto protoreflect.FileDescriptor
 
 const file_backend_api_v2beta1_experiment_proto_rawDesc = "" +
 	"\n" +
-	"$backend/api/v2beta1/experiment.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xcc\x03\n" +
+	"$backend/api/v2beta1/experiment.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xdf\x03\n" +
 	"\n" +
 	"Experiment\x12#\n" +
 	"\rexperiment_id\x18\x01 \x01(\tR\fexperimentId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x129\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1c\n" +
-	"\tnamespace\x18\x05 \x01(\tR\tnamespace\x12d\n" +
+	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12!\n" +
+	"\tnamespace\x18\x05 \x01(\tH\x00R\tnamespace\x88\x01\x01\x12d\n" +
 	"\rstorage_state\x18\x06 \x01(\x0e2?.kubeflow.pipelines.backend.api.v2beta1.Experiment.StorageStateR\fstorageState\x12I\n" +
 	"\x13last_run_created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x10lastRunCreatedAt\"J\n" +
 	"\fStorageState\x12\x1d\n" +
 	"\x19STORAGE_STATE_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tAVAILABLE\x10\x01\x12\f\n" +
-	"\bARCHIVED\x10\x02\"m\n" +
+	"\bARCHIVED\x10\x02B\f\n" +
+	"\n" +
+	"_namespace\"m\n" +
 	"\x17CreateExperimentRequest\x12R\n" +
 	"\n" +
 	"experiment\x18\x01 \x01(\v22.kubeflow.pipelines.backend.api.v2beta1.ExperimentR\n" +
@@ -675,6 +677,7 @@ func file_backend_api_v2beta1_experiment_proto_init() {
 	if File_backend_api_v2beta1_experiment_proto != nil {
 		return
 	}
+	file_backend_api_v2beta1_experiment_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
