@@ -34,6 +34,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func stringPtr(s string) *string {
+	return &s
+}
+
 func TestToModelExperiment(t *testing.T) {
 	tests := []struct {
 		name                    string
@@ -86,7 +90,7 @@ func TestToModelExperiment(t *testing.T) {
 			&apiv2beta1.Experiment{
 				DisplayName: "exp2",
 				Description: "API V2beta1 test experiment",
-				Namespace:   "ns2",
+				Namespace:   stringPtr("ns2"),
 			},
 			false,
 			"",
@@ -128,7 +132,7 @@ func TestToModelExperiment(t *testing.T) {
 			&apiv2beta1.Experiment{
 				DisplayName: "",
 				Description: "API V2beta1 test experiment",
-				Namespace:   "ns2",
+				Namespace:   stringPtr("ns2"),
 			},
 			true,
 			"Experiment must have a non-empty name",

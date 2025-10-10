@@ -64,8 +64,8 @@ service ExperimentService {
     };
   }
 
-  // Deletes an experiment without deleting the experiment's runs and recurring 
-  // runs. To avoid unexpected behaviors, delete an experiment's runs and recurring 
+  // Deletes an experiment without deleting the experiment's runs and recurring
+  // runs. To avoid unexpected behaviors, delete an experiment's runs and recurring
   // runs before deleting the experiment.
   rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
@@ -88,7 +88,7 @@ message Experiment {
   google.protobuf.Timestamp created_at = 4;
 
   // Optional input field. Specify the namespace this experiment belongs to.
-  string namespace = 5;
+  optional string namespace = 5;
 
   // Describes whether an entity is available or archived.
   enum StorageState {

@@ -101,7 +101,7 @@ func TestCreateExperiment(t *testing.T) {
 		CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
 		StorageState:     apiV2beta1.Experiment_AVAILABLE,
-		Namespace:        "",
+		Namespace:        nil,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -257,7 +257,7 @@ func TestCreateExperiment_LengthValidation(t *testing.T) {
 				req := &apiV2beta1.CreateExperimentRequest{
 					Experiment: &apiV2beta1.Experiment{
 						DisplayName: tc.name,
-						Namespace:   tc.namespace,
+						Namespace:   stringPtr(tc.namespace),
 					},
 				}
 				_, err := server.CreateExperiment(ctx, req)
@@ -318,7 +318,7 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 	experiment := &apiV2beta1.Experiment{
 		DisplayName: "exp1",
 		Description: "first experiment",
-		Namespace:   "ns1",
+		Namespace:   stringPtr("ns1"),
 	}
 
 	_, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
@@ -548,14 +548,14 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 				DisplayName:      "exp1",
 				Description:      "first experiment",
 				LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
-				Namespace:        "ns1",
+				Namespace:        stringPtr("ns1"),
 			},
 			&apiV2beta1.Experiment{
 				ExperimentId:     DefaultFakeUUID,
 				DisplayName:      "exp1",
 				Description:      "first experiment",
 				LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
-				Namespace:        "ns1",
+				Namespace:        stringPtr("ns1"),
 				StorageState:     apiV2beta1.Experiment_AVAILABLE,
 			},
 			false,
@@ -575,7 +575,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 			"Invalid - missing name",
 			&apiV2beta1.Experiment{
 				Description: "first experiment",
-				Namespace:   "ns1",
+				Namespace:   stringPtr("ns1"),
 			},
 			nil,
 			true,
@@ -639,7 +639,7 @@ func TestGetExperiment(t *testing.T) {
 		CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
 		StorageState:     apiV2beta1.Experiment_AVAILABLE,
-		Namespace:        "",
+		Namespace:        nil,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -764,7 +764,7 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 	experiment := &apiV2beta1.Experiment{
 		DisplayName: "exp1",
 		Description: "first experiment",
-		Namespace:   "ns1",
+		Namespace:   stringPtr("ns1"),
 	}
 
 	createResult, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
@@ -777,7 +777,7 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 		Description:      "first experiment",
 		CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
-		Namespace:        "ns1",
+		Namespace:        stringPtr("ns1"),
 		StorageState:     apiV2beta1.Experiment_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
@@ -827,7 +827,7 @@ func TestListExperiments(t *testing.T) {
 		CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
 		StorageState:     apiV2beta1.Experiment_AVAILABLE,
-		Namespace:        "",
+		Namespace:        nil,
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedExperiment, result.Experiments)
@@ -888,7 +888,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 		CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(5, 0)),
 		StorageState:     apiV2beta1.Experiment_AVAILABLE,
-		Namespace:        "",
+		Namespace:        nil,
 	}
 	expected2 := &apiV2beta1.Experiment{
 		ExperimentId:     experiment2.ExperimentId,
@@ -897,7 +897,7 @@ func TestListExperimentsByLastRunCreation(t *testing.T) {
 		CreatedAt:        timestamppb.New(time.Unix(4, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(7, 0)),
 		StorageState:     apiV2beta1.Experiment_AVAILABLE,
-		Namespace:        "",
+		Namespace:        nil,
 	}
 
 	// First list runs sorted by last_run_created_at ascending
@@ -1128,7 +1128,7 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 	experiment := &apiV2beta1.Experiment{
 		DisplayName: "exp1",
 		Description: "first experiment",
-		Namespace:   "ns1",
+		Namespace:   stringPtr("ns1"),
 	}
 
 	createResult, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
@@ -1152,7 +1152,7 @@ func TestListExperiments_Multiuser_NoDefault(t *testing.T) {
 				Description:      "first experiment",
 				CreatedAt:        timestamppb.New(time.Unix(1, 0)),
 				LastRunCreatedAt: timestamppb.New(time.Unix(0, 0)),
-				Namespace:        "ns1",
+				Namespace:        stringPtr("ns1"),
 				StorageState:     apiV2beta1.Experiment_AVAILABLE,
 			}},
 		},
@@ -1385,7 +1385,7 @@ func TestDeleteExperiments_MultiUser(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := createExperimentServer(resourceManager)
-	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment", Namespace: "ns1"}
+	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment", Namespace: stringPtr("ns1")}
 	resultExperiment, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
