@@ -300,3 +300,7 @@ function parseK8sError(error: any): ErrorDetails | undefined {
     additionalInfo: error.body,
   };
 }
+
+export function isAllowedResourceName(name: string): boolean {
+  return name.length > 0 && name.length <= 63 && /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name);
+}

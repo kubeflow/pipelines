@@ -22,7 +22,7 @@ import {
 import * as crypto from 'crypto-js';
 import * as fs from 'fs';
 import { PartialArgoWorkflow } from './workflow-helper';
-import { parseError, findFileOnPodVolume } from './utils';
+import { parseError, findFileOnPodVolume, isAllowedResourceName } from './utils';
 
 // If this is running inside a k8s Pod, its namespace should be written at this
 // path, this is also how we can tell whether we're running in the cluster.
@@ -258,7 +258,7 @@ export function getPodLogs(
 
 export interface K8sError {
   message: string;
-  additionalInfo: any;
+  additionalInfo?: any;
 }
 export async function getPod(
   podName: string,
@@ -268,9 +268,11 @@ export async function getPod(
     const { body } = await k8sV1Client.readNamespacedPod(podName, podNamespace);
     return [body, undefined];
   } catch (error) {
-    const { message, additionalInfo } = await parseError(error);
-    const userMessage = `Could not get pod ${podName} in namespace ${podNamespace}: ${message}`;
-    return [undefined, { message: userMessage, additionalInfo }];
+    let userMessage = `Could not get pod ${podName} in namespace ${podNamespace}`;
+    if (!isAllowedResourceName(podName) || !isAllowedResourceName(podNamespace)) {
+      userMessage = `Invalid resource name`;
+    }
+    return [undefined, { message: userMessage }];
   }
 }
 
@@ -287,9 +289,11 @@ export async function getConfigMap(
     const { body } = await k8sV1Client.readNamespacedConfigMap(configMapName, configMapNamespace);
     return [body, undefined];
   } catch (error) {
-    const { message, additionalInfo } = await parseError(error);
-    const userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}: ${message}`;
-    return [undefined, { message: userMessage, additionalInfo }];
+    let userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}`;
+    if (!isAllowedResourceName(configMapName) || !isAllowedResourceName(configMapNamespace)) {
+      userMessage = `Invalid resource name`;
+    }
+    return [undefined, { message: userMessage }];
   }
 }
 
@@ -309,9 +313,11 @@ export async function listPodEvents(podName: string, podNamespace: string): Prom
     );
     return [body, undefined];
   } catch (error) {
-    const { message, additionalInfo } = await parseError(error);
-    const userMessage = `Error when listing pod events for pod "${podName}" in "${podNamespace}" namespace: ${message}`;
-    return [undefined, { message: userMessage, additionalInfo }];
+    let userMessage = `Error when listing pod events for pod ${podName} in namespace ${podNamespace}`;
+    if (!isAllowedResourceName(podName) || !isAllowedResourceName(podNamespace)) {
+      userMessage = `Invalid resource name`;
+    }
+    return [undefined, { message: userMessage }];
   }
 }
 
