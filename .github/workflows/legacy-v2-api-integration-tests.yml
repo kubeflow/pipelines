@@ -2,7 +2,9 @@ name: KFP API Integration V2 (Legacy)
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - feature/replace-str-with-largetext-WIP
 
   pull_request:
     paths:

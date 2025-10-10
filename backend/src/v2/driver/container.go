@@ -136,12 +136,22 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, kubernetesPlatformOps(ctx, mlmd, cacheClient, execution, ecfg, &opts)
 	}
 
-	var inputParams map[string]*structpb.Value
-
+	var dagInputParams map[string]*structpb.Value
 	if opts.KubernetesExecutorConfig != nil {
-		inputParams, _, err = dag.Execution.GetParameters()
+		var err error
+		dagInputParams, _, err = dag.Execution.GetParameters()
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch input parameters from execution: %w", err)
+			return nil, fmt.Errorf("failed to fetch DAG input parameters for PVC resolution: %w", err)
+		}
+		glog.V(4).Infof("DAG input parameters for PVC resolution: %+v", dagInputParams)
+		if pvcParam, ok := dagInputParams["pvc_name"]; ok {
+			if pvcJSON, err := protojson.Marshal(pvcParam); err == nil {
+				glog.Infof("Resolved pvc_name DAG parameter for pipeline %s run %s: %s", opts.PipelineName, opts.RunID, string(pvcJSON))
+			} else {
+				glog.Infof("Resolved pvc_name DAG parameter for pipeline %s run %s but failed to marshal: %v", opts.PipelineName, opts.RunID, err)
+			}
+		} else {
+			glog.Infof("DAG parameters for pipeline %s run %s do not include pvc_name", opts.PipelineName, opts.RunID)
 		}
 	}
 
@@ -151,7 +161,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		pvcNames := []string{}
 		if opts.KubernetesExecutorConfig != nil && opts.KubernetesExecutorConfig.GetPvcMount() != nil {
 			_, volumes, err := makeVolumeMountPatch(ctx, opts, opts.KubernetesExecutorConfig.GetPvcMount(),
-				dag, pipeline, mlmd, inputParams)
+				dag, pipeline, mlmd, dagInputParams)
 			if err != nil {
 				return nil, fmt.Errorf("failed to extract volume mount info while generating fingerprint: %w", err)
 			}
@@ -159,6 +169,8 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 			for _, volume := range volumes {
 				pvcNames = append(pvcNames, volume.Name)
 			}
+			glog.Infof("PVC names resolved for cache fingerprint (pipeline %s run %s task %s): %+v", opts.PipelineName, opts.RunID, opts.TaskName, pvcNames)
+			glog.V(4).Infof("Resolved PVC names for cache fingerprint: %+v", pvcNames)
 		}
 
 		if needsWorkspaceMount(execution.ExecutorInput) {
@@ -236,7 +248,7 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		return execution, err
 	}
 	if opts.KubernetesExecutorConfig != nil {
-		err = extendPodSpecPatch(ctx, podSpec, opts, dag, pipeline, mlmd, inputParams, taskConfig)
+		err = extendPodSpecPatch(ctx, podSpec, opts, dag, pipeline, mlmd, dagInputParams, taskConfig)
 		if err != nil {
 			return execution, err
 		}

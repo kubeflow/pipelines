@@ -156,7 +156,7 @@ func CustomMarshaler() *runtime.JSONPb {
 			// This allows us to use proto field names which are
 			// in snake_case format
 			UseProtoNames:   true,
-			EmitUnpopulated: false,
+			EmitUnpopulated: true,
 		},
 		UnmarshalOptions: protojson.UnmarshalOptions{
 			// We want to allow the api server to error on
