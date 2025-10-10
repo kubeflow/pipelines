@@ -375,6 +375,7 @@ func executeV2(
 		return nil, nil, err
 	}
 
+	// ensure executorOutput contains custompath
 	executorOutput, err := execute(
 		ctx,
 		executorInput,
@@ -627,21 +628,32 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 				mergeRuntimeArtifacts(list.Artifacts[0], outputArtifact)
 			}
 
-			// Upload artifacts from local path to remote storages.
-			localDir, err := LocalPathForURI(outputArtifact.Uri)
-			if err != nil {
-				glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
-			} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
-				blobKey, err := opts.bucketConfig.KeyFromURI(outputArtifact.Uri)
+			var dir string
+			var copyDir string
+			var err error
+			// If artifact customPath is set, upload to remote storages from this path. Otherwise, upload from local path (outputArtifact.URI)
+			if *outputArtifact.CustomPath != "" {
+				dir = *outputArtifact.CustomPath
+				copyDir = *outputArtifact.CustomPath
+			} else {
+				dir = outputArtifact.Uri
+				copyDir, err = LocalPathForURI(dir)
+				if err != nil {
+					glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, dir)
+				}
+			}
+
+			if !strings.HasPrefix(dir, "oci://") {
+				blobKey, err := opts.bucketConfig.KeyFromURI(dir)
 				if err != nil {
 					return nil, fmt.Errorf("failed to upload output artifact %q: %w", name, err)
 				}
-				if err := objectstore.UploadBlob(ctx, opts.bucket, localDir, blobKey); err != nil {
+				if err := objectstore.UploadBlob(ctx, opts.bucket, copyDir, blobKey); err != nil {
 					//  We allow components to not produce output files
 					if errors.Is(err, os.ErrNotExist) {
-						glog.Warningf("Local filepath %q does not exist", localDir)
+						glog.Warningf("Local filepath %q does not exist", copyDir)
 					} else {
-						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, outputArtifact.Uri, err)
+						return nil, fmt.Errorf("failed to upload output artifact %q to remote storage URI %q: %w", name, dir, err)
 					}
 				}
 			}
@@ -980,7 +992,7 @@ func getExecutorOutputFile(path string) (*pipelinespec.ExecutorOutput, error) {
 
 func LocalPathForURI(uri string) (string, error) {
 	if strings.HasPrefix(uri, "gs://") {
-		return "/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
+		return "/home/agoins/gcs/" + strings.TrimPrefix(uri, "gs://"), nil
 	}
 	if strings.HasPrefix(uri, "minio://") {
 		return "/minio/" + strings.TrimPrefix(uri, "minio://"), nil
@@ -1008,14 +1020,16 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 		}
 
 		for _, outputArtifact := range artifactList.Artifacts {
+			// If custom path is set, do not create local directory for output artifact.
+			if outputArtifact.CustomPath == nil {
+				localPath, err := LocalPathForURI(outputArtifact.Uri)
+				if err != nil {
+					return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
+				}
 
-			localPath, err := LocalPathForURI(outputArtifact.Uri)
-			if err != nil {
-				return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
-			}
-
-			if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
-				return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
+				if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+					return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
+				}
 			}
 		}
 	}
