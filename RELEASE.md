@@ -223,6 +223,10 @@ All Python packages must be released with wheel and source packages. When doing 
 
 When performing these releases, you should adhere to the order presented below.
 
+> [!Note]
+> All python packages should be released with aligned patch versions. For example if you intend to release a new 
+> patch version x.y.z for `kfp-pipeline-spec`, you must also release a new patch version x.y.z for `kfp`, `kfp-server-api`, and `kfp-kubernetes`.
+
 #### Release `kfp-pipeline-spec` Python packages to PyPI.
 
 Update the version in `setup.py` found in `api/v2alpha1/python/setup.py`. 
@@ -425,6 +429,12 @@ Please refer to [./test/release](./test/release).
 Starting from version **2.14**, all major and minor versions (X.Y) of the Kubeflow Pipelines (KFP) components are aligned. The following components are included in this alignment:
 
 * **KFP Backend / UI**
+* **KFP Python SDK**
+* **KFP Python Kubernetes Platform SDK**
+* **KFP Python Pipeline Specification**
+* **KFP Server API**
+
+The following patches also require that all patch releases be aligned:
 * **KFP Python SDK**
 * **KFP Python Kubernetes Platform SDK**
 * **KFP Python Pipeline Specification**
