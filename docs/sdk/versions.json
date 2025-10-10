@@ -1,11 +1,31 @@
 [
     {
-        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.1/",
-        "title": "2.14.1",
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.5/",
+        "title": "2.14.5",
         "aliases": [
             "stable",
             "latest"
         ]
+    },
+    {
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.3/",
+        "title": "2.14.4",
+        "aliases": []
+    },
+    {
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.3/",
+        "title": "2.14.3",
+        "aliases": []
+    },
+    {
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.2/",
+        "title": "2.14.2",
+        "aliases": []
+    },
+    {
+        "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.14.1/",
+        "title": "2.14.1",
+        "aliases": []
     },
     {
         "version": "https://kubeflow-pipelines.readthedocs.io/en/sdk-2.13.0/",

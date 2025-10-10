@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   creationTimestamp: null
-  generateName: add-pipeline-
+  generateName: pipeline-with-reused-component-
 spec:
   arguments:
     parameters:
@@ -34,7 +34,7 @@ spec:
       - --type
       - CONTAINER
       - --pipeline_name
-      - add-pipeline
+      - pipeline-with-reused-component
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
@@ -283,7 +283,7 @@ spec:
       - --type
       - '{{inputs.parameters.driver-type}}'
       - --pipeline_name
-      - add-pipeline
+      - pipeline-with-reused-component
       - --run_id
       - '{{workflow.uid}}'
       - --run_name
