@@ -97,7 +97,7 @@ jobs:
           GINKGO_ARGS="go run github.com/onsi/ginkgo/v2/ginkgo -r -v --label-filter='!UpgradePreparation && !UpgradeVerification' ./backend/test/v2/integration/..."
 
           # Arguments for the test binary itself, separated by '--'
-          TEST_ARGS="-namespace=$NAMESPACE -cacheEnabled=${{ matrix.cache_enabled }}"
+          TEST_ARGS="-runIntegrationTests=true -namespace=$NAMESPACE -cacheEnabled=${{ matrix.cache_enabled }}"
 
           if [[ "${{ matrix.cache_enabled }}" == "false" ]]; then
             # When cache is disabled, we must skip the cache test itself.
