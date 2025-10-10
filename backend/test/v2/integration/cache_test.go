@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"testing"
 	"time"
@@ -69,9 +70,13 @@ func (s *CacheTestSuite) SetupTest() {
 	var newRunClient func() (*apiServer.RunClient, error)
 	var newRecurringRunClient func() (*apiServer.RecurringRunClient, error)
 
-	tlsCfg, err := test.GetTLSConfig(*config.CaCertPath)
-	if err != nil {
-		glog.Exitf("Failed to get TLS config. Error: %s", err.Error())
+	var tlsCfg *tls.Config
+	var err error
+	if *config.TLSEnabled {
+		tlsCfg, err = test.GetTLSConfig(*config.CaCertPath)
+		if err != nil {
+			glog.Exitf("Failed to get TLS config. Error: %s", err.Error())
+		}
 	}
 
 	if *isKubeflowMode {
