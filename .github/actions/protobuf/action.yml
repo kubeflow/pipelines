@@ -57,7 +57,7 @@ runs:
     - name: Install kfp-pipeline-spec from source
       shell: bash
       run: |
-        pip install api/v2alpha1/python/dist/*.whl
+        pip install api/v2alpha1/python/dist/*.tar.gz
 
     - name: Generate kfp-pipeline-spec golang files
       if: ${{ inputs.generate_golang_proto == 'true' }}

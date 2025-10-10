@@ -28,6 +28,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Install Test dependencies
+      run: |
+        pip install pytest-cov
+        pip install -r sdk/python/requirements-dev.txt
+
     - name: Install protobuf dependencies & kfp-pipeline-spec
       id: install-protobuf-deps
       uses: ./.github/actions/protobuf
@@ -35,11 +40,6 @@ jobs:
     - name: Install kfp & kfp-kubernetes from source
       id: install-kfp-k8s-deps
       uses: ./.github/actions/kfp-k8s
-
-    - name: Install Test dependencies
-      run: |
-        pip install pytest-cov
-        pip install -r sdk/python/requirements-dev.txt
 
     - name: Run SDK Tests
       env:
