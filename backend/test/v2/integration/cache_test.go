@@ -339,6 +339,9 @@ func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta
 }
 
 func (s *CacheTestSuite) createRunWithParams(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion, params map[string]interface{}) (*run_model.V2beta1Run, error) {
+	if pvcName, ok := params["pvc_name"]; ok {
+		s.T().Logf("PVC pipeline creating run with pvc_name=%v", pvcName)
+	}
 	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName: "pvc-cache",
 		Description: "pvc cache test",
@@ -361,6 +364,10 @@ func (s *CacheTestSuite) createRunWithParams(pipelineVersion *pipeline_upload_mo
 		}
 		return err == nil && *pipelineRunDetail.State == expectedState
 	}, 2*time.Minute, 10*time.Second)
+
+	if pvcName, ok := params["pvc_name"]; ok && pipelineRunDetail != nil {
+		s.T().Logf("PVC pipeline run completed: runID=%s pvc_name=%v state=%s", pipelineRunDetail.RunID, pvcName, *pipelineRunDetail.State)
+	}
 
 	return pipelineRunDetail, err
 }
