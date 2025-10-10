@@ -93,10 +93,9 @@ jobs:
         if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
         run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow
-        with:
-          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
-          ca_cert_path: ${{ steps.configure.outputs.CA_CERT_PATH}}
         env:
+          POD_TO_POD_TLS_ENABLED: ${{ matrix.pod_to_pod_tls_enabled }}
+          CA_CERT_PATH: ${{ steps.configure.outputs.CA_CERT_PATH}}
           PULL_NUMBER: ${{ github.event.pull_request.number }}
           PIPELINE_STORE: ${{ matrix.pipeline_store }}
         continue-on-error: true
