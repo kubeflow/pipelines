@@ -112,7 +112,7 @@ jobs:
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
         id: configure-cluster-ca-cert
-        if: ${{ matrix.pod_to_pod_tls_enabled == "true"}}
+        if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         env:
           SCHEME: "https"
         run: |
