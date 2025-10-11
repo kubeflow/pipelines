@@ -57,7 +57,8 @@ def read_readme() -> str:
 _version = find_version('kfp', 'version.py')
 docker = ['docker']
 kubernetes = [f'kfp-kubernetes=={_version}']
-notebooks = ["nbclient>=0.10,<1", "ipykernel>=6,<7", "jupyter_client>=7,<9"]
+notebooks = ['nbclient>=0.10,<1', 'ipykernel>=6,<7', 'jupyter_client>=7,<9']
+kubeflow = ['kubeflow']
 
 setuptools.setup(
     name='kfp',
@@ -79,9 +80,10 @@ setuptools.setup(
     },
     install_requires=get_requirements('requirements.in'),
     extras_require={
-        'all': docker + kubernetes + notebooks,
+        'all': docker + kubernetes + notebooks + kubeflow,
         'kubernetes': kubernetes,
         'notebooks': notebooks,
+        'kubeflow': kubeflow,
     },
     packages=setuptools.find_packages(exclude=['*test*']),
     classifiers=[
