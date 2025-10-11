@@ -102,7 +102,7 @@ jobs:
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
         id: configure-cluster-ca-cert
-        if: ${{ matrix.pod_to_pod_tls_enabled == "true"}}
+        if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         run: |
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ env.API_TESTS_DIR }}"/ca.crt
 
