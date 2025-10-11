@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import ast
 import base64
 import dataclasses
 import gzip
@@ -152,6 +153,7 @@ python3 -m venv "$tmp/venv" --system-site-packages
 
 
 def _get_packages_to_install_command(
+    func: Optional[Callable] = None,
     kfp_package_path: Optional[str] = None,
     pip_index_urls: Optional[List[str]] = None,
     packages_to_install: Optional[List[str]] = None,
@@ -162,6 +164,14 @@ def _get_packages_to_install_command(
 ) -> List[str]:
     packages_to_install = packages_to_install or []
     kfp_in_user_pkgs = any(pkg.startswith('kfp') for pkg in packages_to_install)
+    kubeflow_in_user_pkgs = any(
+        pkg.startswith('kubeflow') for pkg in packages_to_install)
+
+    # Auto-detect kubeflow imports and add kubeflow package if needed
+    if func and not kubeflow_in_user_pkgs and _detect_kubeflow_imports_in_function(
+            func):
+        packages_to_install = packages_to_install + ['kubeflow']
+
     # if the user doesn't say "don't install", they aren't building a
     # container component, and they haven't already specified a KFP dep
     # themselves, we install KFP for them
@@ -232,6 +242,27 @@ def _get_function_source_definition(func: Callable) -> str:
         )
 
     return '\n'.join(func_code_lines)
+
+
+def _detect_kubeflow_imports_in_function(func: Callable) -> bool:
+    try:
+        func_source = _get_function_source_definition(func)
+        module_node = ast.parse(func_source)
+
+        for node in ast.walk(module_node):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == 'kubeflow' or alias.name.startswith(
+                            'kubeflow.'):
+                        return True
+            elif isinstance(node, ast.ImportFrom):
+                if node.module == 'kubeflow' or (
+                        node.module and node.module.startswith('kubeflow.')):
+                    return True
+
+        return False
+    except (SyntaxError, TypeError, ValueError):
+        return False
 
 
 def maybe_make_unique(name: str, names: List[str]):
@@ -752,6 +783,7 @@ def create_component_from_func(
     """
 
     packages_to_install_command = _get_packages_to_install_command(
+        func=func,
         install_kfp_package=install_kfp_package,
         target_image=target_image,
         kfp_package_path=kfp_package_path,
