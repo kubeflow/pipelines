@@ -13,6 +13,10 @@ spec:
     port: 8111
     protocol: TCP
     targetPort: 8111
+  - name: http-s3
+    port: 8333
+    protocol: TCP
+    targetPort: 8333
   - name: http-master
     port: 9333
     protocol: TCP
