@@ -64,6 +64,10 @@ def component(
         target_image: Image to use when creating containerized components.
         packages_to_install: List of packages to install before
             executing the Python function. These will always be installed at component runtime.
+            The Kubeflow SDK will be automatically detected and added if the component function
+            contains import statements for the ``kubeflow`` package (e.g., ``import kubeflow`` or
+            ``from kubeflow import ...``). To disable this auto-detection, explicitly include
+            ``kubeflow`` in this list.
         pip_index_urls: Python Package Index base URLs from which to
             install ``packages_to_install``. Defaults to installing from only PyPI
             (``'https://pypi.org/simple'``). For more information, see `pip install docs <https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-0>`_.
