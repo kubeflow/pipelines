@@ -17,7 +17,7 @@ import os
 from typing import List
 
 NAME = 'kfp-pipeline-spec'
-VERSION = '2.14.3'
+VERSION = '2.14.6'
 
 def get_requirements(requirements_file: str) -> List[str]:
     """Read requirements from requirements.in."""
@@ -38,7 +38,7 @@ setuptools.setup(
     url='https://github.com/kubeflow/pipelines',
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
     python_requires='>=3.9.0',
-    install_requires=get_requirements('requirements.txt'),
+    install_requires=get_requirements('requirements.in'),
     include_package_data=True,
     license='Apache 2.0',
 )

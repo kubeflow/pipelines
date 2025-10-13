@@ -4,5 +4,5 @@
 
 # protobuf version should be identical to the one in kfp-pipeline-spec
 # api/v2alpha1/python/requirements.txt
-protobuf==6.31.1,<7.0
+protobuf>=6.31.1,<7.0
 kfp>=2.14.5,<3
