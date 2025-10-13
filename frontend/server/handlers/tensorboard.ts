@@ -15,7 +15,7 @@ import { Handler } from 'express';
 import * as k8sHelper from '../k8s-helper';
 import { ViewerTensorboardConfig } from '../configs';
 import { AuthorizeRequestResources, AuthorizeRequestVerb } from '../src/generated/apis/auth';
-import { parseError } from '../utils';
+import { parseError, isAllowedResourceName } from '../utils';
 import { AuthorizeFn } from '../helpers/auth';
 
 export const getTensorboardHandlers = (
@@ -34,6 +34,10 @@ export const getTensorboardHandlers = (
     }
     if (!namespace) {
       res.status(400).send('namespace argument is required');
+      return;
+    }
+    if (typeof namespace !== 'string' || !isAllowedResourceName(namespace as string)) {
+      res.status(400).send('invalid namespace');
       return;
     }
 

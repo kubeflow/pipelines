@@ -1,5 +1,5 @@
 # PIPELINE DEFINITION
-# Name: add-pipeline
+# Name: pipeline-with-reused-component
 # Inputs:
 #    a: int [Default: 2.0]
 #    b: int [Default: 5.0]
@@ -127,7 +127,7 @@ deploymentSpec:
           \ *\n\ndef add_numbers(a: int, b: int) -> int:\n    return a + b\n\n"
         image: python:3.9
 pipelineInfo:
-  name: add-pipeline
+  name: pipeline-with-reused-component
 root:
   dag:
     tasks:
@@ -191,4 +191,4 @@ root:
         isOptional: true
         parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.14.3
+sdkVersion: kfp-2.14.5
