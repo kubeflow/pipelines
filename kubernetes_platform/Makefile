@@ -55,7 +55,7 @@ python: proto/kubernetes_executor_config.proto fetch-protos
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/kubernetes_platform/python && \
 		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
 		    python3 generate_proto.py && \
-		    python3 setup.py sdist bdist_wheel --dist-dir ./dist'
+		    python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
 
 # Build and install in editable mode using pre-built image
 .PHONY: python-dev
