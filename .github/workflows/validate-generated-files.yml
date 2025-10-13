@@ -20,6 +20,7 @@ on:
       - 'sdk/**/*.py'
       - '!**/*.md'
       - '!**/OWNERS'
+      - 'VERSION'
 
 jobs:
   validate-generated-files:

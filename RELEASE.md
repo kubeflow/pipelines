@@ -227,43 +227,19 @@ When performing these releases, you should adhere to the order presented below.
 > All python packages should be released with aligned patch versions. For example if you intend to release a new 
 > patch version x.y.z for `kfp-pipeline-spec`, you must also release a new patch version x.y.z for `kfp`, `kfp-server-api`, and `kfp-kubernetes`.
 
-#### Release `kfp-pipeline-spec` Python packages to PyPI.
+#### Update `kfp` requirements
 
-Update the version in `setup.py` found in `api/v2alpha1/python/setup.py`. 
+If this version of `kfp` depends on new api changes to: 
 
-```bash
-git checkout -b release-X.Y
-pip3 install twine --user
-cd api
-make python 
-cd v2alpha1/python
-twine check dist/*
-twine upload dist/*
-```
+* `kfp-pipeline-spec`
+* `kfp-server-api`
 
-#### Release `kfp-server-api` Python packages to PyPI.
+Then update the lower-bound values for the aforementioned packages in `sdk/python/requirements.in` file. 
 
-```bash
-git checkout $BRANCH
-git pull upstream $BRANCH
-cd backend/api/v2beta1/python_http_client
-rm -r dist
-python3 setup.py --quiet sdist
-python3 -m twine upload dist/*
-```
-
-#### Release `kfp` Python packages to PyPI.
-
-Note that if this `kfp` release depends on a new version of `kfp-pipeline-spec` or `kfp-server-api`, ensure
-those packages have their versions updated, and you have built them in twine. 
-Then update the `sdk/python/requirements.in` file, ensure these package's lower-bound versions are accurate.
-Once done, you can run the following command to update the requirements:
+You can run the following to update the associated `requirements.txt`
 
 ```bash
 cd sdk/python
-# Note if the dependent packages have already been released use the following command: 
-pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in > requirements.txt
-# Otherwise you can use: 
 ./pre-release-requirements-update.sh
 ```
 
@@ -271,54 +247,49 @@ Once done you should see a diff in `requirements.txt`. Confirm the changes.
 
 Update the SDK version in `version.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11715/files).
 
-```bash
-git checkout -b release-X.Y
-pip3 install twine --user
-cd sdk
-make python
-cd python
-twine check dist/*
-twine upload dist/*
-```
-> [!Note]
-> The file name must contain the version. See <https://github.com/kubeflow/pipelines/issues/1292>
+#### Update `kfp-kubernetes` requirements
 
-##### Update `kfp` Readthedocs
+If this version of `kfp-kubernetes` depends on new api changes to: 
 
-* Create a GitHub release for KFP SDK release. [Here's an example](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.14.1) reference for a template.
-  * When creating a release create a new tag `sdk-x.y.z`
-* Navigate to the readthedocs website [here](https://app.readthedocs.org/projects/kubeflow-pipelines/), login if needed
-* You should see a new build under "Versions" section for this new tag, ensure it succeeds.
-* Click "Settings"
-* Set the default version to `sdk-x.y.z` (the version we just built and released)
-* Set the default branch to be the release branch `release-x.y.z`
+* `kfp-pipeline-spec`
+* `kfp`
 
-#### Release `kfp-kubernetes` Python packages to PyPI.
+Then update the lower-bound values in the aforementioned packages in `kubernetes_platform/python/requirements.in` file. 
 
-Note that if this `kfp-kubenretes` release depends on a new version of `kfp` or `kfp-pipeline-spec`, ensure
-those packages have their versions updated, and you have built them in twine. 
-Then update `kubernetes_platform/python/requirements.in` file, ensure these package's lower-bound versions are accurate. 
-Once done, you can run the following command to update the requirements:
+You can run the following to update the associated `requirements.txt`
 
 ```bash
 cd kubernetes_platform/python
-# Note if the dependent packages have already been released use the following command: 
-pip-compile --no-emit-find-links --no-header --no-emit-index-url requirements.in > requirements.txt
-# Otherwise you can use: 
 ./pre-release-requirements-update.sh
 ```
-
 Update the KFP Kubernetes SDK version in `__init__.py` and `readthedocs` `versions.json`, example PR [here](https://github.com/kubeflow/pipelines/pull/11380).
 
-```bash
-git checkout -b release-X.Y
-pip3 install twine --user
-cd kubernetes_platform
-make python 
-cd python
-twine check dist/*
-twine upload dist/*
+#### Make the Pull Request to the release branch
 
+Once you have updated the versions make a pull request targeted towards the `release-x.y` branch. Ensure the CI passes.
+
+#### Release the packages 
+
+Once the release pull request has been merged, create a GitHub release with the tag `sdk-x.y.z`, where `x.y.z` map to 
+the version being released. Once the tag is created, we can now initiate the GitHub workflow to publish the packages to Pypi. 
+
+Navigate to the [Publishing Workflow]: 
+* Select "Run Workflow" 
+* Select Branch: `release-x.y`
+* Enter the tag `sdk-x.y.z` 
+* Select `all`
+* Click `Run Workflow`
+
+This will build and publish all python packages.
+
+[Publishing Workflow]: https://github.com/kubeflow/pipelines/actions/workflows/publish-packages.yml
+
+#### Create kfp-kubernetes readthedocs branch 
+
+There is a separate kfp-kubernetes docs website. This requires a separate branch to be created and pushed,
+do this by running the following: 
+
+```bash
 # Cut release-the-docs branch 
 export KFP_KUBERNETES_VERSION= # Set this to the version being released x.y.z
 cd kubernetes_platform/python
@@ -331,7 +302,17 @@ Follow the output push instructions to **commit and push the read the docs relea
 > Note that kfp-kubernetes package has a separate readthedocs site and requires that a new branch be pushed for readthedocs to be able to host multiple pages from the same repo. 
 > Every new patch version for this package requires us to create a new release branch purely for readthedocs purposes. However always cut this branch from the `release-X.Y` branch.
 
-##### Update `kfp-kubernetes` Readthedocs
+#### Update `kfp` Readthedocs
+
+* Create a GitHub release for KFP SDK release. [Here's an example](https://github.com/kubeflow/pipelines/releases/tag/sdk-2.14.1) reference for a template.
+  * When creating a release create a new tag `sdk-x.y.z`
+* Navigate to the readthedocs website [here](https://app.readthedocs.org/projects/kubeflow-pipelines/), login if needed
+* You should see a new build under "Versions" section for this new tag, ensure it succeeds.
+* Click "Settings"
+* Set the default version to `sdk-x.y.z` (the version we just built and released)
+* Set the default branch to be the release branch `release-x.y.z`
+
+#### Update `kfp-kubernetes` Readthedocs
 
 Once the branch is updated, you need to add this version to readthedocs. Follow these steps: 
 
