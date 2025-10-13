@@ -30,6 +30,10 @@ jobs:
         pipeline_store: [ "database", "kubernetes" ]
         k8s_version: [ "v1.31.0" ]
         pod_to_pod_tls_enabled: [ true, false ]
+        exclude:
+          # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
+          - pipeline_store: "kubernetes"
+            pod_to_pod_tls_enabled: true
 
     name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
