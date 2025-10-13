@@ -13,15 +13,17 @@
 # limitations under the License.
 
 import functools
-from typing import Callable, List, Optional, Union, TypeVar
-from typing_extensions import ParamSpec  
+from typing import Callable, List, Optional, TypeVar, Union
 import warnings
 
 from kfp.dsl import component_factory
-from kfp.dsl.component_task_config import TaskConfigField, TaskConfigPassthrough
+from kfp.dsl.component_task_config import TaskConfigField
+from kfp.dsl.component_task_config import TaskConfigPassthrough
+from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
 R = TypeVar("R")
+
 
 def component(
     func: Optional[Callable[P, R]] = None,
@@ -37,7 +39,8 @@ def component(
     use_venv: bool = False,
     additional_funcs: Optional[List[Callable]] = None,
     embedded_artifact_path: Optional[str] = None,
-    task_config_passthroughs: Optional[List[Union[TaskConfigPassthrough, TaskConfigField]]] = None
+    task_config_passthroughs: Optional[List[Union[TaskConfigPassthrough,
+                                                  TaskConfigField]]] = None
 ) -> Callable[P, R]:
     """Decorator for Python-function based components with improved typing."""
 
@@ -45,17 +48,17 @@ def component(
         warnings.warn(
             'output_component_file parameter is deprecated. Use Compiler().compile() instead.',
             DeprecationWarning,
-            stacklevel=2
-        )
+            stacklevel=2)
 
-    task_config_passthroughs_formatted: Optional[List[TaskConfigPassthrough]] = None
+    task_config_passthroughs_formatted: Optional[
+        List[TaskConfigPassthrough]] = None
     if task_config_passthroughs is not None:
         task_config_passthroughs_formatted = []
         for passthrough in task_config_passthroughs:
             if isinstance(passthrough, TaskConfigField):
                 task_config_passthroughs_formatted.append(
-                    TaskConfigPassthrough(field=passthrough, apply_to_task=False)
-                )
+                    TaskConfigPassthrough(
+                        field=passthrough, apply_to_task=False))
             else:
                 task_config_passthroughs_formatted.append(passthrough)
 
@@ -73,8 +76,7 @@ def component(
             pip_trusted_hosts=pip_trusted_hosts,
             use_venv=use_venv,
             additional_funcs=additional_funcs,
-            task_config_passthroughs=task_config_passthroughs_formatted
-        )  
+            task_config_passthroughs=task_config_passthroughs_formatted)
 
     return component_factory.create_component_from_func(
         func,
@@ -89,5 +91,4 @@ def component(
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
         additional_funcs=additional_funcs,
-        task_config_passthroughs=task_config_passthroughs_formatted
-    )
+        task_config_passthroughs=task_config_passthroughs_formatted)
