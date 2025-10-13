@@ -17,7 +17,7 @@ import os
 from typing import List
 
 NAME = 'kfp-pipeline-spec'
-VERSION = '2.14.3'
+VERSION = '2.14.6'
 
 def get_requirements(requirements_file: str) -> List[str]:
     """Read requirements from requirements.in."""
