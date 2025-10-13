@@ -10,6 +10,13 @@
 
 ## Documentation updates
 
+# 2.14.6
+
+## Bug Fixes
+
+* **sdk:** chore: remove pin on protobuf 6 ver & use requirements.in for kfp-k8s and spec (#12345) 
+* **sdk:** chore: regenerate files for ver upgrade (#12341) 
+
 # 2.14.5
 
 ## Bug Fixes
