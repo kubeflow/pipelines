@@ -210,10 +210,11 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Pagination and sorting are applied at the outermost level.
 	if !selectCount {
-		sqlBuilder = s.addSortByRunMetricToSelect(sqlBuilder, opts)
+		// Note: addMetricsResourceReferencesAndTasks now handles metric extraction for sorting,
+		// so we no longer need a separate addSortByRunMetricToSelect call
 		sqlBuilder = s.addMetricsResourceReferencesAndTasks(sqlBuilder, opts)
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
-		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
+		// Note: AddPaginationToSelect already calls AddSortingToSelect internally, so we don't need to call it again
 	}
 	sql, args, err := sqlBuilder.ToSql()
 	if err != nil {
@@ -260,82 +261,108 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	qb := s.dbDialect.QueryBuilder()
 	var r model.Run
 
-	// resource references
+	// Optimization: Only pass UUID and aggregated columns through the 3 LEFT JOINs,
+	// then JOIN back to run_details at the end to get all runColumns.
+	// This avoids GROUP BY on LONGTEXT columns (PipelineSpecManifest, WorkflowSpecManifest, etc.)
+	// and improves performance by reducing data transfer through intermediate queries.
+
+	// Layer 1: LEFT JOIN resource_references
 	resourceRefConcatQuery := s.dbDialect.ConcatExprs(
 		[]string{
 			"'['", "COALESCE(" + s.dbDialect.ConcatAgg(false, "rr."+q("Payload"), ",") + ", '')", "']'",
 		}, "",
 	)
-	columnsAfterJoiningResourceReferences := append(
-		quoteAll(func(column string) string { return "rd." + q(column) }, runColumns), // rd."Column"
-		resourceRefConcatQuery+" AS "+q("refs"))
-	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+q(opts.SortByFieldName))
+	columnsAfterJoiningResourceReferences := []string{
+		"filtered." + q("UUID"),
+		resourceRefConcatQuery + " AS " + q("refs"),
 	}
 	subQ := func() sq.SelectBuilder {
-		sb := qb.
+		return qb.
 			Select(columnsAfterJoiningResourceReferences...).
-			FromSelect(filteredSelectBuilder, "rd").
-			LeftJoin(q("resource_references") + " AS rr ON rr." + q("ResourceType") + "='Run' AND rd." + q("UUID") + "=rr." + q("ResourceUUID"))
-		// In Postgres, every selected non-aggregated column must appear in GROUP BY.
-		// Group by all rd.* columns that we selected above (and optional sort metric column if present).
-		groupCols := quoteAll(func(column string) string { return "rd." + q(column) }, runColumns)
-		if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-			groupCols = append(groupCols, "rd."+q(opts.SortByFieldName))
-		}
-		return sb.GroupBy(groupCols...)
+			FromSelect(filteredSelectBuilder, "filtered").
+			LeftJoin(q("resource_references") + " AS rr ON rr." + q("ResourceType") + "='Run' AND filtered." + q("UUID") + "=rr." + q("ResourceUUID")).
+			GroupBy("filtered." + q("UUID"))
 	}()
-	// tasks
+
+	// Layer 2: LEFT JOIN tasks
 	tasksConcatQuery := s.dbDialect.ConcatExprs(
 		[]string{
 			"'['", "COALESCE(" + s.dbDialect.ConcatAgg(false, "tasks."+q("Payload"), ",") + ", '')", "']'",
 		}, "",
 	)
-	columnsAfterJoiningTasks := append(
-		quoteAll(func(column string) string { return "rdref." + q(column) }, runColumns),
-		"rdref."+q("refs"),
-		tasksConcatQuery+" AS "+q("taskDetails"))
-	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-		columnsAfterJoiningTasks = append(columnsAfterJoiningTasks, "rdref."+q(opts.SortByFieldName))
+	columnsAfterJoiningTasks := []string{
+		"rdref." + q("UUID"),
+		"rdref." + q("refs"),
+		tasksConcatQuery + " AS " + q("taskDetails"),
 	}
 	subQ = func() sq.SelectBuilder {
-		sb := qb.
+		return qb.
 			Select(columnsAfterJoiningTasks...).
 			FromSelect(subQ, "rdref").
-			LeftJoin(q("tasks") + " AS tasks ON rdref." + q("UUID") + "=tasks." + q("RunUUID"))
-		// Group by all rdref.* columns we selected (plus refs and optional sort metric column).
-		groupCols := quoteAll(func(column string) string { return "rdref." + q(column) }, runColumns)
-		groupCols = append(groupCols, "rdref."+q("refs"))
-		if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-			groupCols = append(groupCols, "rdref."+q(opts.SortByFieldName))
-		}
-		return sb.GroupBy(groupCols...)
+			LeftJoin(q("tasks")+" AS tasks ON rdref."+q("UUID")+"=tasks."+q("RunUUID")).
+			GroupBy("rdref."+q("UUID"), "rdref."+q("refs"))
 	}()
 
-	// metrics
+	// Layer 3: LEFT JOIN run_metrics
+	// This layer does two things:
+	// 1. Aggregate all metrics into a JSON array for display
+	// 2. Extract the specific metric for sorting (if sortByFieldName is a metric)
 	metricConcatQuery := s.dbDialect.ConcatExprs(
 		[]string{
 			"'['", "COALESCE(" + s.dbDialect.ConcatAgg(false /* DISTINCT off */, "rm."+q("Payload"), ",") + ", '')", "']'",
 		}, "",
 	)
-	columnsAfterJoiningRunMetrics := append(
-		quoteAll(func(column string) string { return "subq." + q(column) }, runColumns),
-		"subq."+q("refs"),
-		"subq."+q("taskDetails"),
-		metricConcatQuery+" AS "+q("metrics"))
-	return func() sq.SelectBuilder {
-		// Final grouping: group by all base columns plus refs and taskDetails (both are selected as non-aggregates here).
-		groupCols := quoteAll(func(column string) string { return "subq." + q(column) }, runColumns)
-		groupCols = append(groupCols, "subq."+q("refs"), "subq."+q("taskDetails"))
-		if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
-			groupCols = append(groupCols, "subq."+q(opts.SortByFieldName))
-		}
+	columnsAfterJoiningRunMetrics := []string{
+		"subq." + q("UUID"),
+		"subq." + q("refs"),
+		"subq." + q("taskDetails"),
+		metricConcatQuery + " AS " + q("metrics"),
+	}
+
+	// If sorting by a metric (non-regular field), extract that specific metric value
+	if opts != nil && opts.SortByFieldName != "" && !r.IsRegularField(opts.SortByFieldName) {
+		// Extract the NumberValue where metric Name matches sortByFieldName
+		// Using MAX with CASE to get the value (there should be only one row per metric name per run)
+		metricValueExtract := "MAX(CASE WHEN rm." + q("Name") + "='" + opts.SortByFieldName + "' THEN rm." + q("NumberValue") + " END)"
+		columnsAfterJoiningRunMetrics = append(columnsAfterJoiningRunMetrics,
+			metricValueExtract+" AS "+q(opts.SortByFieldName))
+	}
+
+	subQWithMetrics := func() sq.SelectBuilder {
 		return qb.
 			Select(columnsAfterJoiningRunMetrics...).
 			FromSelect(subQ, "subq").
-			LeftJoin(q("run_metrics") + " AS rm ON subq." + q("UUID") + "=rm." + q("RunUUID")).
-			GroupBy(groupCols...)
+			LeftJoin(q("run_metrics")+" AS rm ON subq."+q("UUID")+"=rm."+q("RunUUID")).
+			GroupBy("subq."+q("UUID"), "subq."+q("refs"), "subq."+q("taskDetails"))
 	}()
+
+	// Final layer: JOIN back to run_details to get all runColumns
+	// We wrap this in a subquery to avoid column ambiguity issues with ORDER BY
+	joinedColumns := append(
+		quoteAll(func(column string) string { return "rd." + q(column) }, runColumns),
+		"withmetrics."+q("refs"),
+		"withmetrics."+q("taskDetails"),
+		"withmetrics."+q("metrics"))
+
+	if opts != nil && opts.SortByFieldName != "" && !r.IsRegularField(opts.SortByFieldName) {
+		joinedColumns = append(joinedColumns, "withmetrics."+q(opts.SortByFieldName))
+	}
+
+	joinedSubQ := qb.
+		Select(joinedColumns...).
+		FromSelect(subQWithMetrics, "withmetrics").
+		Join(q("run_details") + " AS rd ON withmetrics." + q("UUID") + "=rd." + q("UUID"))
+
+	// Wrap in final SELECT to provide clean column names without table prefixes
+	// This avoids ambiguity in ORDER BY clauses added by pagination
+	// Note: We only select the columns needed for the result (not the sortBy metric column,
+	// which is only used in ORDER BY and is available in the subquery)
+	finalSelectColumns := quoteAll(q, runColumns)
+	finalSelectColumns = append(finalSelectColumns, q("refs"), q("taskDetails"), q("metrics"))
+
+	return qb.
+		Select(finalSelectColumns...).
+		FromSelect(joinedSubQ, "final")
 }
 
 func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
