@@ -213,7 +213,7 @@
         ]
       },
       "delete": {
-        "summary": "Deletes an experiment without deleting the experiment's runs and recurring \nruns. To avoid unexpected behaviors, delete an experiment's runs and recurring \nruns before deleting the experiment.",
+        "summary": "Deletes an experiment without deleting the experiment's runs and recurring\nruns. To avoid unexpected behaviors, delete an experiment's runs and recurring\nruns before deleting the experiment.",
         "operationId": "ExperimentService_DeleteExperiment",
         "responses": {
           "200": {
