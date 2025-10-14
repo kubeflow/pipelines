@@ -68,6 +68,6 @@ const (
 )
 
 const (
-	TLSCertCAPath = "/etc/pki/tls/cert/ca.crt"
-	CABundleDir   = "/etc/pki/tls/cert"
+	TLSCertCAPath = "/kfp/certs/ca.crt"
+	CABundleDir   = "/kfp/certs"
 )

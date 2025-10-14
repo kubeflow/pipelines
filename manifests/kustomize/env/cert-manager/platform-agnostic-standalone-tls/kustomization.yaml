@@ -34,13 +34,6 @@ patches:
     target:
       kind: Deployment
       name: metadata-grpc-deployment
-  - patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/args/-
-        value: "--metadata_store_server_config_file=/etc/grpc/config.proto"
-    target:
-      kind: Deployment
-      name: metadata-grpc-deployment
   - path: patches/metadata-writer-deployment.yaml
     target:
       kind: Deployment

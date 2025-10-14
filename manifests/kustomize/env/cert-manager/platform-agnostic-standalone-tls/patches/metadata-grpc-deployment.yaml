@@ -78,6 +78,11 @@ spec:
 
       containers:
         - name: container
+          args:
+            - "--grpc_port=8080"
+            - "--metadata_store_server_config_file=/etc/grpc/config.proto"
+            - "--enable_database_upgrade=true"
+            - "--grpc_channel_arguments=grpc.max_metadata_size=16384"
           volumeMounts:
             - name: tls-certs
               mountPath: /etc/pki/tls/certs
