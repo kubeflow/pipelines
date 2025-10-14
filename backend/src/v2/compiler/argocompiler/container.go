@@ -216,9 +216,13 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if common.GetMetadataTLSEnabled() {
 		args = append(args, "--metadata_tls_enabled")
 	}
-	if c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled() {
+
+	setCABundle := false
+	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
 		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
+		setCABundle = true
 	}
+
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -254,8 +258,8 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
-	// If the apiserver is TLS-enabled, add the custom CA bundle to the container driver template.
-	if c.mlPipelineTLSEnabled {
+	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
+	if setCABundle {
 		ConfigureCustomCABundle(t)
 	}
 	c.templates[name] = t
@@ -541,7 +545,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		},
 	}
 	// If the apiserver is TLS-enabled, add the custom CA bundle to the executor.
-	if c.mlPipelineTLSEnabled {
+	if c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled() {
 		ConfigureCustomCABundle(executor)
 	}
 
