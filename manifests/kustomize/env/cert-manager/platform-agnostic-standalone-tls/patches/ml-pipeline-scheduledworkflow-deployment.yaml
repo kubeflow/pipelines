@@ -12,6 +12,7 @@ spec:
           args:
             - "-logtostderr=true"
             - "-logLevel=info"
+            - "-mlPipelineServiceTLSEnabled=true"
             - "-caCertPath=/etc/pki/tls/certs/ca.crt"
             - "-namespace=kubeflow"
           volumeMounts:
