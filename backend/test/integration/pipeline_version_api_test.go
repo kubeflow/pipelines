@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -28,6 +27,9 @@ import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/kubeflow/pipelines/backend/test/config"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -63,22 +65,22 @@ func (s *PipelineVersionApiTest) SetupTest() {
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 
 	if *isKubeflowMode {
-		s.namespace = *namespace
+		s.namespace = *config.Namespace
 
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineUploadClient(clientConfig, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 	}
 
@@ -143,15 +145,15 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	/* ---------- Import pipeline version YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionV1Params{
-		Body: &pipeline_model.APIPipelineVersion{
+		Version: &pipeline_model.APIPipelineVersion{
 			Name: "sequential",
 			PackageURL: &pipeline_model.APIURL{
 				PipelineURL: "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
 			},
 			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
-					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE, ID: pipelineId},
-					Relationship: pipeline_model.APIRelationshipOWNER,
+					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE.Pointer(), ID: pipelineId},
+					Relationship: pipeline_model.APIRelationshipOWNER.Pointer(),
 				},
 			},
 		},
@@ -178,15 +180,15 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	}
 
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionV1Params{
-		Body: &pipeline_model.APIPipelineVersion{
+		Version: &pipeline_model.APIPipelineVersion{
 			Name: "arguments",
 			PackageURL: &pipeline_model.APIURL{
 				PipelineURL: pipelineURL,
 			},
 			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
-					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE, ID: pipelineId},
-					Relationship: pipeline_model.APIRelationshipOWNER,
+					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE.Pointer(), ID: pipelineId},
+					Relationship: pipeline_model.APIRelationshipOWNER.Pointer(),
 				},
 			},
 		},
@@ -334,7 +336,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes, true)
+	expected, err := pipelinetemplate.New(bytes, true, nil)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template)
 }
@@ -367,7 +369,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes, true)
+	expected, err := pipelinetemplate.New(bytes, true, nil)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template, "Discrepancy found in template's pipeline name. Created pipeline's name - %s.", pipeline.Name)
 }

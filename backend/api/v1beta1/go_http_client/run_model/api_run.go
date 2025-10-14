@@ -6,16 +6,17 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // APIRun api run
+//
 // swagger:model apiRun
 type APIRun struct {
 
@@ -70,7 +71,7 @@ type APIRun struct {
 	Status string `json:"status,omitempty"`
 
 	// Output. Specify whether this run is in archived or available mode.
-	StorageState APIRunStorageState `json:"storage_state,omitempty"`
+	StorageState *APIRunStorageState `json:"storage_state,omitempty"`
 }
 
 // Validate validates this api run
@@ -112,7 +113,6 @@ func (m *APIRun) Validate(formats strfmt.Registry) error {
 }
 
 func (m *APIRun) validateCreatedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
 	}
@@ -125,7 +125,6 @@ func (m *APIRun) validateCreatedAt(formats strfmt.Registry) error {
 }
 
 func (m *APIRun) validateFinishedAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.FinishedAt) { // not required
 		return nil
 	}
@@ -138,7 +137,6 @@ func (m *APIRun) validateFinishedAt(formats strfmt.Registry) error {
 }
 
 func (m *APIRun) validateMetrics(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Metrics) { // not required
 		return nil
 	}
@@ -152,6 +150,8 @@ func (m *APIRun) validateMetrics(formats strfmt.Registry) error {
 			if err := m.Metrics[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("metrics" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("metrics" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -163,7 +163,6 @@ func (m *APIRun) validateMetrics(formats strfmt.Registry) error {
 }
 
 func (m *APIRun) validatePipelineSpec(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.PipelineSpec) { // not required
 		return nil
 	}
@@ -172,6 +171,8 @@ func (m *APIRun) validatePipelineSpec(formats strfmt.Registry) error {
 		if err := m.PipelineSpec.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("pipeline_spec")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline_spec")
 			}
 			return err
 		}
@@ -181,7 +182,6 @@ func (m *APIRun) validatePipelineSpec(formats strfmt.Registry) error {
 }
 
 func (m *APIRun) validateResourceReferences(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ResourceReferences) { // not required
 		return nil
 	}
@@ -195,6 +195,8 @@ func (m *APIRun) validateResourceReferences(formats strfmt.Registry) error {
 			if err := m.ResourceReferences[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("resource_references" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("resource_references" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -206,7 +208,6 @@ func (m *APIRun) validateResourceReferences(formats strfmt.Registry) error {
 }
 
 func (m *APIRun) validateScheduledAt(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.ScheduledAt) { // not required
 		return nil
 	}
@@ -219,16 +220,137 @@ func (m *APIRun) validateScheduledAt(formats strfmt.Registry) error {
 }
 
 func (m *APIRun) validateStorageState(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.StorageState) { // not required
 		return nil
 	}
 
-	if err := m.StorageState.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("storage_state")
+	if m.StorageState != nil {
+		if err := m.StorageState.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("storage_state")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("storage_state")
+			}
+			return err
 		}
-		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this api run based on the context it is used
+func (m *APIRun) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateMetrics(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidatePipelineSpec(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateResourceReferences(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateStorageState(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *APIRun) contextValidateMetrics(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Metrics); i++ {
+
+		if m.Metrics[i] != nil {
+
+			if swag.IsZero(m.Metrics[i]) { // not required
+				return nil
+			}
+
+			if err := m.Metrics[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("metrics" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("metrics" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *APIRun) contextValidatePipelineSpec(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.PipelineSpec != nil {
+
+		if swag.IsZero(m.PipelineSpec) { // not required
+			return nil
+		}
+
+		if err := m.PipelineSpec.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("pipeline_spec")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("pipeline_spec")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *APIRun) contextValidateResourceReferences(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.ResourceReferences); i++ {
+
+		if m.ResourceReferences[i] != nil {
+
+			if swag.IsZero(m.ResourceReferences[i]) { // not required
+				return nil
+			}
+
+			if err := m.ResourceReferences[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("resource_references" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("resource_references" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *APIRun) contextValidateStorageState(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.StorageState != nil {
+
+		if swag.IsZero(m.StorageState) { // not required
+			return nil
+		}
+
+		if err := m.StorageState.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("storage_state")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("storage_state")
+			}
+			return err
+		}
 	}
 
 	return nil

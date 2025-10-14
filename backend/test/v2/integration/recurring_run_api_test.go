@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/eapache/go-resiliency/retrier"
-	"github.com/go-openapi/strfmt"
-	"github.com/golang/glog"
+	"google.golang.org/protobuf/types/known/structpb"
+	"sigs.k8s.io/yaml"
+
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -35,12 +35,15 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test/config"
 	test "github.com/kubeflow/pipelines/backend/test/v2"
+
+	"github.com/eapache/go-resiliency/retrier"
+	"github.com/go-openapi/strfmt"
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"google.golang.org/protobuf/types/known/structpb"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -55,7 +58,7 @@ type RecurringRunApiTestSuite struct {
 	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
+	pipelineUploadClient api_server.PipelineUploadInterface
 	runClient            *api_server.RunClient
 	recurringRunClient   *api_server.RecurringRunClient
 	swfClient            client.SwfClientInterface
@@ -74,10 +77,9 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
 	}
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var newRunClient func() (*api_server.RunClient, error)
 	var newRecurringRunClient func() (*api_server.RecurringRunClient, error)
@@ -86,37 +88,31 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
 		}
 		newRecurringRunClient = func() (*api_server.RecurringRunClient, error) {
-			return api_server.NewKubeflowInClusterRecurringRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRecurringRunClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+			return api_server.NewExperimentClient(clientConfig, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRunClient(clientConfig, *config.DebugMode)
 		}
 		newRecurringRunClient = func() (*api_server.RecurringRunClient, error) {
-			return api_server.NewRecurringRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRecurringRunClient(clientConfig, *config.DebugMode)
 		}
 	}
 
@@ -125,7 +121,13 @@ func (s *RecurringRunApiTestSuite) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*config.DebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
@@ -164,11 +166,11 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world recurringRun by specifying pipeline ID ---------- */
-	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -177,7 +179,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 			PipelineVersionID: helloWorldPipelineVersion.PipelineVersionID,
 		},
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeENABLE,
+		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 	}}
 	helloWorldRecurringRun, err := s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
@@ -190,7 +192,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	experiment = test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace)
-	argParamsExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	argParamsExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter recurringRun by uploading workflow manifest ---------- */
@@ -203,7 +205,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	err = yaml.Unmarshal(argParamsBytes, pipeline_spec)
 	assert.Nil(t, err)
 
-	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "argument parameter",
 		Description:  "this is argument parameter",
 		ExperimentID: argParamsExperiment.ExperimentID,
@@ -215,7 +217,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 			},
 		},
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeENABLE,
+		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 	}}
 	argParamsRecurringRun, err := s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
@@ -300,7 +302,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 	time.Sleep(5 * time.Second) // Sleep for 5 seconds to make sure the previous recurringRuns are created at a different timestamp
 	filterTime := time.Now().Unix()
 	time.Sleep(5 * time.Second)
-	createRecurringRunRequestNew := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequestNew := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "new hello world recurringRun",
 		Description:  "this is a new hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -309,7 +311,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis() {
 			PipelineVersionID: helloWorldPipelineVersion.PipelineVersionID,
 		},
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeDISABLE,
+		Mode:           recurring_run_model.RecurringRunModeDISABLE.Pointer(),
 	}}
 	_, err = s.recurringRunClient.Create(createRecurringRunRequestNew)
 	assert.Nil(t, err)
@@ -391,11 +393,11 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApisUseLatest() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world recurringRun by specifying pipeline ID without a version ---------- */
-	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "hello world with latest pipeline version",
 		Description:  "this is hello world",
 		ExperimentID: helloWorldExperiment.ExperimentID,
@@ -403,7 +405,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApisUseLatest() {
 			PipelineID: helloWorldPipelineVersion.PipelineID,
 		},
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeENABLE,
+		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 	}}
 	helloWorldRecurringRun, err := s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
@@ -460,7 +462,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 
 	/* ---------- Create a periodic recurringRun with start and end date in the past and catchup = true ---------- */
 	experiment := test.MakeExperiment("periodic catchup true", "", s.resourceNamespace)
-	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
 	recurringRun := recurringRunInThePastForTwoMinutes(recurringRunOptions{
@@ -472,13 +474,13 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 	recurringRun.DisplayName = "periodic-catchup-true-"
 	recurringRun.Description = "A recurringRun with NoCatchup=false will backfill each past interval when behind schedule."
 	recurringRun.NoCatchup = false // This is the key difference.
-	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: recurringRun}
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: recurringRun}
 	_, err = s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
 
 	/* -------- Create another periodic recurringRun with start and end date in the past but catchup = false ------ */
 	experiment = test.MakeExperiment("periodic catchup false", "", s.resourceNamespace)
-	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
 	recurringRun = recurringRunInThePastForTwoMinutes(recurringRunOptions{
@@ -490,13 +492,13 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 	recurringRun.DisplayName = "periodic-catchup-false-"
 	recurringRun.Description = "A recurringRun with NoCatchup=true only schedules the last interval when behind schedule."
 	recurringRun.NoCatchup = true // This is the key difference.
-	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: recurringRun}
+	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: recurringRun}
 	_, err = s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
 
 	/* ---------- Create a cron recurringRun with start and end date in the past and catchup = true ---------- */
 	experiment = test.MakeExperiment("cron catchup true", "", s.resourceNamespace)
-	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
 	recurringRun = recurringRunInThePastForTwoMinutes(recurringRunOptions{
@@ -508,13 +510,13 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 	recurringRun.DisplayName = "cron-catchup-true-"
 	recurringRun.Description = "A recurringRun with NoCatchup=false will backfill each past interval when behind schedule."
 	recurringRun.NoCatchup = false // This is the key difference.
-	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: recurringRun}
+	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: recurringRun}
 	_, err = s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
 
 	/* -------- Create another cron recurringRun with start and end date in the past but catchup = false ------ */
 	experiment = test.MakeExperiment("cron catchup false", "", s.resourceNamespace)
-	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
 	recurringRun = recurringRunInThePastForTwoMinutes(recurringRunOptions{
@@ -526,7 +528,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_noCatchupOption() {
 	recurringRun.DisplayName = "cron-catchup-false-"
 	recurringRun.Description = "A recurringRun with NoCatchup=true only schedules the last interval when behind schedule."
 	recurringRun.NoCatchup = true // This is the key difference.
-	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: recurringRun}
+	createRecurringRunRequest = &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: recurringRun}
 	_, err = s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)
 
@@ -600,7 +602,7 @@ func (s *RecurringRunApiTestSuite) checkHelloWorldRecurringRun(t *testing.T, rec
 			PipelineVersionID: pipelineVersionId,
 		},
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeENABLE,
+		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 		Namespace:      recurringRun.Namespace,
 		CreatedAt:      recurringRun.CreatedAt,
 		UpdatedAt:      recurringRun.UpdatedAt,
@@ -625,7 +627,7 @@ func (s *RecurringRunApiTestSuite) checkArgParamsRecurringRun(t *testing.T, recu
 		},
 		ExperimentID:   experimentID,
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeENABLE,
+		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 		Namespace:      recurringRun.Namespace,
 		CreatedAt:      recurringRun.CreatedAt,
 		UpdatedAt:      recurringRun.UpdatedAt,
@@ -649,10 +651,10 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_SwfNotFound() {
 
 	/* ---------- Create a new hello world recurringRun by specifying pipeline ID ---------- */
 	experiment := test.MakeExperiment("test-swf-not-found experiment", "", s.resourceNamespace)
-	swfNotFoundExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	swfNotFoundExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
-	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "test-swf-not-found",
 		ExperimentID: swfNotFoundExperiment.ExperimentID,
 		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
@@ -660,7 +662,7 @@ func (s *RecurringRunApiTestSuite) TestRecurringRunApis_SwfNotFound() {
 			PipelineVersionID: pipelineVersions[0].PipelineVersionID,
 		},
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeDISABLE,
+		Mode:           recurring_run_model.RecurringRunModeDISABLE.Pointer(),
 	}}
 
 	recurringRun, err := s.recurringRunClient.Create(createRecurringRunRequest)
@@ -755,7 +757,7 @@ func defaultV2beta1RecurringRun(pipelineId, pipelineVersionId, experimentId stri
 				IntervalSecond: 60,
 			},
 		},
-		Mode: recurring_run_model.RecurringRunModeENABLE,
+		Mode: recurring_run_model.RecurringRunModeENABLE.Pointer(),
 	}
 }
 

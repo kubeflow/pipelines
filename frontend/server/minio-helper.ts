@@ -36,6 +36,12 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
   endPoint: string;
 }
 
+export interface Credentials {
+  accessKeyId: string;
+  secretAccessKey: string;
+  sessionToken?: string;
+}
+
 /**
  * Create minio client for s3 compatible storage
  *
@@ -51,17 +57,40 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
  *
  * @param config minio client options where `accessKey` and `secretKey` are optional.
  * @param providerType provider type ('s3' or 'minio')
- * @param authorizeFn
- * @param req
+ * @param providerInfoString
  * @param namespace
- * @param providerInfoString?? json string container optional provider info
+ * @param customCredentialProvider An optional function which can be added to resolve credentials from a non-standard source. Useful
+ * for enterprises who may have bespoke credential retrieval processes or for refreshing short-lived tokens.
  */
 export async function createMinioClient(
   config: MinioClientOptionsWithOptionalSecrets,
   providerType: string,
   providerInfoString?: string,
   namespace?: string,
+  customCredentialProvider?: () => Promise<Credentials> | Credentials,
 ) {
+  if (customCredentialProvider) {
+    try {
+      const creds = await customCredentialProvider();
+
+      if (creds && creds.accessKeyId && creds.secretAccessKey) {
+        return new MinioClient({
+          ...config,
+          accessKey: creds.accessKeyId,
+          secretKey: creds.secretAccessKey,
+          sessionToken: creds.sessionToken,
+        });
+      } else {
+        console.warn(
+          'Custom credential resolver returned incomplete credentials, falling back to default chain',
+        );
+      }
+    } catch (error) {
+      console.error('Custom credential resolver failed:', error);
+      console.warn('Falling back to default credential resolution chain');
+    }
+  }
+
   if (providerInfoString) {
     const providerInfo = parseJSONString<S3ProviderInfo>(providerInfoString);
     if (!providerInfo) {
@@ -82,7 +111,7 @@ export async function createMinioClient(
     // AWS S3 with credentials from provider chain
     if (isAWSS3Endpoint(config.endPoint)) {
       try {
-        const credentials = fromNodeProviderChain();
+        const credentials = fromNodeProviderChain({ ignoreCache: true });
         const awsCredentials = await credentials();
         if (awsCredentials) {
           const {

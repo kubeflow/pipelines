@@ -15,7 +15,7 @@
 package storage
 
 import (
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 // DB a struct wrapping plain sql library with SQL dialect, to solve any feature

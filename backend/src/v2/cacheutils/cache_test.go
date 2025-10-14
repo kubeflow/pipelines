@@ -25,6 +25,7 @@ func TestGenerateCacheKey(t *testing.T) {
 		outputParametersTypeMap map[string]string
 		cmdArgs                 []string
 		image                   string
+		pvcNames                []string
 		want                    *cachekey.CacheKey
 		wantErr                 bool
 	}{
@@ -134,13 +135,93 @@ func TestGenerateCacheKey(t *testing.T) {
 
 			wantErr: false,
 		},
+		{
+			name: "Generate CacheKey With PVC Names",
+			executorInputInputs: &pipelinespec.ExecutorInput_Inputs{
+				ParameterValues: map[string]*structpb.Value{
+					"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
+					"num_steps": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
+				},
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"dataset_one": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{
+							{
+								Name: "1",
+								Type: &pipelinespec.ArtifactTypeSchema{
+									Kind: &pipelinespec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Dataset\ntype: object\nproperties:\n  payload_format:\n    type: string\n  container_format:\n    type: string\n"},
+								},
+								Uri:      "gs://some-bucket/dataset-one",
+								Metadata: &structpb.Struct{},
+							},
+						},
+					},
+				},
+			},
+			executorInputOutputs: &pipelinespec.ExecutorInput_Outputs{
+				Parameters: map[string]*pipelinespec.ExecutorInput_OutputParameter{
+					"output_parameter_one": {OutputFile: "/tmp/outputs/output_parameter_one/data"},
+				},
+				Artifacts: map[string]*pipelinespec.ArtifactList{
+					"model": {
+						Artifacts: []*pipelinespec.RuntimeArtifact{
+							{
+								Name: "model",
+								Type: &pipelinespec.ArtifactTypeSchema{
+									Kind: &pipelinespec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
+								},
+								Uri: "gs://my-bucket/some-prefix/pipeline/task/model",
+								Metadata: &structpb.Struct{
+									Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "model"}}},
+								},
+							},
+						},
+					},
+				},
+				OutputFile: "/tmp/kfp_outputs/output_metadata.json",
+			},
+			outputParametersTypeMap: map[string]string{
+				"output_parameter_one": "STRING",
+			},
+			cmdArgs:  []string{"sh", "ec", "test"},
+			image:    "python:3.9",
+			pvcNames: []string{"workspace-pvc", "data-pvc"},
+			want: &cachekey.CacheKey{
+				InputArtifactNames: map[string]*cachekey.ArtifactNameList{
+					"dataset_one": {ArtifactNames: []string{"1"}},
+				},
+				InputParameterValues: map[string]*structpb.Value{
+					"message":   {Kind: &structpb.Value_StringValue{StringValue: "Some string value"}},
+					"num_steps": {Kind: &structpb.Value_NumberValue{NumberValue: 5}},
+				},
+				OutputArtifactsSpec: map[string]*pipelinespec.RuntimeArtifact{
+					"model": {
+						Name: "model",
+						Type: &pipelinespec.ArtifactTypeSchema{
+							Kind: &pipelinespec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
+						},
+						Metadata: &structpb.Struct{
+							Fields: map[string]*structpb.Value{"name": {Kind: &structpb.Value_StringValue{StringValue: "model"}}},
+						},
+					},
+				},
+				OutputParametersSpec: map[string]string{
+					"output_parameter_one": "STRING",
+				},
+				ContainerSpec: &cachekey.ContainerSpec{
+					CmdArgs:  []string{"sh", "ec", "test"},
+					Image:    "python:3.9",
+					PvcNames: []string{"workspace-pvc", "data-pvc"},
+				},
+			},
+
+			wantErr: false,
+		},
 	}
 	cacheClient, err := NewClient(false, false)
 	require.NoError(t, err)
 	for _, test := range tests {
-
 		t.Run(test.name, func(t *testing.T) {
-			got, err := cacheClient.GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image)
+			got, err := cacheClient.GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image, test.pvcNames)
 			if (err != nil) != test.wantErr {
 				t.Errorf("GenerateCacheKey() error = %v", err)
 				return
@@ -269,4 +350,80 @@ func TestGenerateFingerPrint(t *testing.T) {
 			assert.Equal(t, test.fingerPrint, testFingerPrint)
 		})
 	}
+}
+
+func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
+	base := &cachekey.CacheKey{
+		InputArtifactNames: map[string]*cachekey.ArtifactNameList{
+			"dataset_one": {ArtifactNames: []string{"1"}},
+		},
+		OutputParametersSpec: map[string]string{
+			"output_parameter_one": "STRING",
+		},
+		ContainerSpec: &cachekey.ContainerSpec{
+			CmdArgs: []string{"sh", "ec", "test"},
+			Image:   "python:3.9",
+		},
+	}
+
+	withPVCs := &cachekey.CacheKey{
+		InputArtifactNames: map[string]*cachekey.ArtifactNameList{
+			"dataset_one": {ArtifactNames: []string{"1"}},
+		},
+		OutputParametersSpec: map[string]string{
+			"output_parameter_one": "STRING",
+		},
+		ContainerSpec: &cachekey.ContainerSpec{
+			CmdArgs:  []string{"sh", "ec", "test"},
+			Image:    "python:3.9",
+			PvcNames: []string{"workspace-pvc", "data-pvc"},
+		},
+	}
+
+	samePVCs := &cachekey.CacheKey{
+		InputArtifactNames: map[string]*cachekey.ArtifactNameList{
+			"dataset_one": {ArtifactNames: []string{"1"}},
+		},
+		OutputParametersSpec: map[string]string{
+			"output_parameter_one": "STRING",
+		},
+		ContainerSpec: &cachekey.ContainerSpec{
+			CmdArgs:  []string{"sh", "ec", "test"},
+			Image:    "python:3.9",
+			PvcNames: []string{"workspace-pvc", "data-pvc"},
+		},
+	}
+
+	differentPVCs := &cachekey.CacheKey{
+		InputArtifactNames: map[string]*cachekey.ArtifactNameList{
+			"dataset_one": {ArtifactNames: []string{"1"}},
+		},
+		OutputParametersSpec: map[string]string{
+			"output_parameter_one": "STRING",
+		},
+		ContainerSpec: &cachekey.ContainerSpec{
+			CmdArgs:  []string{"sh", "ec", "test"},
+			Image:    "python:3.9",
+			PvcNames: []string{"data-pvc", "workspace-pvc", "extra"},
+		},
+	}
+
+	cacheClient, err := NewClient(false)
+	require.NoError(t, err)
+
+	baseFP, err := cacheClient.GenerateFingerPrint(base)
+	require.NoError(t, err)
+	withPVCsFP, err := cacheClient.GenerateFingerPrint(withPVCs)
+	require.NoError(t, err)
+	samePVCsFP, err := cacheClient.GenerateFingerPrint(samePVCs)
+	require.NoError(t, err)
+	differentPVCsFP, err := cacheClient.GenerateFingerPrint(differentPVCs)
+	require.NoError(t, err)
+
+	// PVC names should affect the fingerprint when present
+	assert.NotEqual(t, baseFP, withPVCsFP)
+	// Same PVC names should produce the same fingerprint
+	assert.Equal(t, withPVCsFP, samePVCsFP)
+	// Different PVC names should change the fingerprint
+	assert.NotEqual(t, withPVCsFP, differentPVCsFP)
 }

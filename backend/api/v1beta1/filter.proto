@@ -17,7 +17,6 @@ syntax = "proto3";
 option go_package = "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client";
 package api;
 
-import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 // Predicate captures individual conditions that must be true for a resource

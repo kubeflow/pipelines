@@ -1,0 +1,142 @@
+// Package utils defines custom utility methods for compiled workflows
+/*
+Copyright 2018-2023 The Kubeflow Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+package utils
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"slices"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"sigs.k8s.io/yaml"
+
+	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
+	"github.com/kubeflow/pipelines/backend/test/logger"
+	"github.com/kubeflow/pipelines/backend/test/testutil"
+
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
+)
+
+// LoadPipelineSpecsFromIR - Unmarshall Pipeline Spec IR into a tuple of (pipelinespec.PipelineJob, pipelinespec.SinglePlatformSpec)
+func LoadPipelineSpecsFromIR(pipelineIRFilePath string, cacheDisabled bool, defaultWorkspace *v1.PersistentVolumeClaimSpec) (*pipelinespec.PipelineJob, *pipelinespec.SinglePlatformSpec) {
+	pipelineSpecsFromFile := testutil.ParseFileToSpecs(pipelineIRFilePath, cacheDisabled, defaultWorkspace)
+	platformSpec := pipelineSpecsFromFile.PlatformSpec()
+	var singlePlatformSpec *pipelinespec.SinglePlatformSpec = nil
+	if platformSpec != nil {
+		singlePlatformSpec = platformSpec.Platforms["kubernetes"]
+	}
+	pipelineSpecMap := make(map[string]interface{})
+	pipelineSpecBytes, marshallingError := protojson.Marshal(pipelineSpecsFromFile.PipelineSpec())
+	gomega.Expect(marshallingError).NotTo(gomega.HaveOccurred(), "Failed to marshall pipeline spec")
+	err := json.Unmarshal(pipelineSpecBytes, &pipelineSpecMap)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to unmarshal pipeline spec into map")
+	pipelineSpecMapNew := make(map[string]interface{})
+	pipelineSpecMapNew["pipelineSpec"] = pipelineSpecMap
+	pipelineSpecBytes, marshallingError = json.Marshal(pipelineSpecMapNew)
+	gomega.Expect(marshallingError).NotTo(gomega.HaveOccurred(), "Failed to marshall pipeline spec map")
+	pipelineJob := &pipelinespec.PipelineJob{}
+	err = protojson.Unmarshal(pipelineSpecBytes, pipelineJob)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Failed to unmarshal pipeline spec\n %s", string(pipelineSpecBytes)))
+	return pipelineJob, singlePlatformSpec
+}
+
+// GetCompiledArgoWorkflow - Compile pipeline and platform specs into a workflow and return an instance of v1alpha1.Workflow
+func GetCompiledArgoWorkflow(pipelineSpecs *pipelinespec.PipelineJob, platformSpec *pipelinespec.SinglePlatformSpec, compilerOptions *argocompiler.Options) *v1alpha1.Workflow {
+	ginkgo.GinkgoHelper()
+	logger.Log("Compiling Argo Workflow for provided pipeline job and platform spec")
+	compiledWorflow, err := argocompiler.Compile(pipelineSpecs, platformSpec, compilerOptions)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to compile Argo workflow")
+	return compiledWorflow
+}
+
+// UnmarshallWorkflowYAML - Unmarshall compiler workflow YAML into a v1alpha1.Workflow object
+func UnmarshallWorkflowYAML(filePath string) *v1alpha1.Workflow {
+	ginkgo.GinkgoHelper()
+	logger.Log("Unmarshalling Expected Workflow YAML")
+	workflowFromFileBytes, err := os.ReadFile(filePath)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to read workflow yaml file")
+	workflow := v1alpha1.Workflow{}
+	err = yaml.Unmarshal(workflowFromFileBytes, &workflow)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to unmarshall workflow")
+	logger.Log("Unmarshalled Expected Workflow YAML")
+	return &workflow
+}
+
+// CreateCompiledWorkflowFile - Marshall v1alpha1.Workflow into a yaml file and save the file to the path provided as `compiledWorkflowFilePath`
+func CreateCompiledWorkflowFile(compiledWorflow *v1alpha1.Workflow, compiledWorkflowFilePath string) *os.File {
+	ginkgo.GinkgoHelper()
+	fileContents, err := yaml.Marshal(compiledWorflow)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	return testutil.CreateFile(compiledWorkflowFilePath, [][]byte{fileContents})
+}
+
+// ConfigureCacheSettings - Add/Remove cache_disabled args in the workflow
+func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.Workflow {
+	cacheDisabledArg := "--cache_disabled"
+	configuredWorkflow := workflow.DeepCopy()
+	for _, template := range configuredWorkflow.Spec.Templates {
+		if template.Container != nil {
+			if len(template.Container.Args) > 0 {
+				if remove {
+					// Remove cache_disabled arg if it exists
+					if slices.Contains(template.Container.Args, cacheDisabledArg) {
+						for index, arg := range template.Container.Args {
+							if arg == cacheDisabledArg {
+								template.Container.Args = append(template.Container.Args[:index], template.Container.Args[index+1:]...)
+								break
+							}
+						}
+					}
+				} else {
+					// Add cache_disabled arg if it doesn't exist and this is a driver container
+					if slices.Contains(template.Container.Args, "--run_id") && !slices.Contains(template.Container.Args, cacheDisabledArg) {
+						template.Container.Args = append(template.Container.Args, cacheDisabledArg)
+					}
+				}
+			}
+			for index, userContainer := range template.InitContainers {
+				if remove {
+					// Remove cache_disabled arg if it exists
+					if slices.Contains(userContainer.Args, cacheDisabledArg) {
+						for userArgsIndex, arg := range userContainer.Args {
+							if arg == cacheDisabledArg {
+								userContainer.Args = append(userContainer.Args[:userArgsIndex], userContainer.Args[userArgsIndex+1:]...)
+								break
+							}
+						}
+					}
+				} else {
+					// Add cache_disabled arg if it doesn't exist
+					if !slices.Contains(userContainer.Args, cacheDisabledArg) {
+						if len(userContainer.Args) > 0 {
+							userContainer.Args = append(userContainer.Args, cacheDisabledArg)
+						} else {
+							userContainer.Args = []string{cacheDisabledArg}
+						}
+					}
+				}
+				template.InitContainers[index].Args = userContainer.Args
+			}
+		}
+	}
+	return configuredWorkflow
+}

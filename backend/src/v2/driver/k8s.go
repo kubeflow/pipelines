@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
@@ -104,6 +105,12 @@ func kubernetesPlatformOps(
 	return nil
 }
 
+// GetWorkspacePVCName gets the name of the workspace PVC for a given run name. runName is the resolved Argo Workflows
+// variable of {{workflow.name}}
+func GetWorkspacePVCName(runName string) string {
+	return fmt.Sprintf("%s-%s", runName, component.WorkspaceVolumeName)
+}
+
 // Extends the PodSpec to include Kubernetes-specific executor config.
 // inputParams is a map of the input parameter name to a resolvable value.
 func extendPodSpecPatch(
@@ -114,8 +121,16 @@ func extendPodSpecPatch(
 	pipeline *metadata.Pipeline,
 	mlmd *metadata.Client,
 	inputParams map[string]*structpb.Value,
+	taskConfig *TaskConfig,
 ) error {
 	kubernetesExecutorConfig := opts.KubernetesExecutorConfig
+
+	setOnTaskConfig, setOnPod := getTaskConfigOptions(opts.Component)
+
+	// Always set setOnTaskConfig to an empty map if taskConfig is nil to avoid nil pointer dereference.
+	if taskConfig == nil {
+		setOnTaskConfig = map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool{}
+	}
 
 	// Return an error if the podSpec has no user container.
 	if len(podSpec.Containers) == 0 {
@@ -129,9 +144,17 @@ func extendPodSpecPatch(
 		if err != nil {
 			return fmt.Errorf("failed to extract volume mount info: %w", err)
 		}
-		podSpec.Volumes = append(podSpec.Volumes, volumes...)
-		// We assume that the user container always gets executed first within a pod.
-		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volumeMounts...)
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			taskConfig.VolumeMounts = append(taskConfig.VolumeMounts, volumeMounts...)
+			taskConfig.Volumes = append(taskConfig.Volumes, volumes...)
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			podSpec.Volumes = append(podSpec.Volumes, volumes...)
+			// We assume that the user container always gets executed first within a pod.
+			podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volumeMounts...)
+		}
 	}
 
 	// Get image pull policy
@@ -154,16 +177,23 @@ func extendPodSpecPatch(
 
 	// Get node selector information
 	if kubernetesExecutorConfig.GetNodeSelector() != nil {
+		var nodeSelector map[string]string
 		if kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson() != nil {
-			var nodeSelector map[string]string
 			err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
 				kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson(), inputParams, &nodeSelector)
 			if err != nil {
 				return fmt.Errorf("failed to resolve node selector: %w", err)
 			}
-			podSpec.NodeSelector = nodeSelector
 		} else {
-			podSpec.NodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
+			nodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
+		}
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
+			taskConfig.NodeSelector = nodeSelector
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
+			podSpec.NodeSelector = nodeSelector
 		}
 	}
 
@@ -219,8 +249,7 @@ func extendPodSpecPatch(
 							glog.V(4).Info("encountered empty tolerations list, ignoring.")
 						}
 					} else {
-						return fmt.Errorf("encountered unexpected toleration proto value, " +
-							"must be either struct or list type.")
+						return fmt.Errorf("encountered unexpected toleration proto value, must be either struct or list type")
 					}
 				} else {
 					k8sToleration.Key = toleration.Key
@@ -233,7 +262,13 @@ func extendPodSpecPatch(
 
 			}
 		}
-		podSpec.Tolerations = k8sTolerations
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_TOLERATIONS] {
+			taskConfig.Tolerations = k8sTolerations
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_TOLERATIONS] {
+			podSpec.Tolerations = k8sTolerations
+		}
 	}
 
 	// Get secret mount information
@@ -266,19 +301,34 @@ func extendPodSpecPatch(
 			Name:      secretName,
 			MountPath: secretAsVolume.GetMountPath(),
 		}
-		podSpec.Volumes = append(podSpec.Volumes, secretVolume)
-		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, secretVolumeMount)
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			taskConfig.Volumes = append(taskConfig.Volumes, secretVolume)
+			taskConfig.VolumeMounts = append(taskConfig.VolumeMounts, secretVolumeMount)
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			podSpec.Volumes = append(podSpec.Volumes, secretVolume)
+			podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, secretVolumeMount)
+		}
 	}
 
 	// Get secret env information
 	for _, secretAsEnv := range kubernetesExecutorConfig.GetSecretAsEnv() {
 		for _, keyToEnv := range secretAsEnv.GetKeyToEnv() {
+			secretKeySelector := &k8score.SecretKeySelector{
+				Key: keyToEnv.GetSecretKey(),
+			}
+
+			// Set Optional field when explicitly provided (true or false), leave nil when not specified
+			if secretAsEnv.Optional != nil {
+				secretKeySelector.Optional = secretAsEnv.Optional
+			}
+
 			secretEnvVar := k8score.EnvVar{
 				Name: keyToEnv.GetEnvVar(),
 				ValueFrom: &k8score.EnvVarSource{
-					SecretKeyRef: &k8score.SecretKeySelector{
-						Key: keyToEnv.GetSecretKey(),
-					},
+					SecretKeyRef: secretKeySelector,
 				},
 			}
 
@@ -298,7 +348,14 @@ func extendPodSpecPatch(
 			}
 
 			secretEnvVar.ValueFrom.SecretKeyRef.LocalObjectReference.Name = secretName
-			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, secretEnvVar)
+
+			if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
+				podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, secretEnvVar)
+			}
+
+			if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {
+				taskConfig.Env = append(taskConfig.Env, secretEnvVar)
+			}
 		}
 	}
 
@@ -334,19 +391,34 @@ func extendPodSpecPatch(
 			Name:      configMapName,
 			MountPath: configMapAsVolume.GetMountPath(),
 		}
-		podSpec.Volumes = append(podSpec.Volumes, configMapVolume)
-		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, configMapVolumeMount)
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			podSpec.Volumes = append(podSpec.Volumes, configMapVolume)
+			podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, configMapVolumeMount)
+		}
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			taskConfig.Volumes = append(taskConfig.Volumes, configMapVolume)
+			taskConfig.VolumeMounts = append(taskConfig.VolumeMounts, configMapVolumeMount)
+		}
 	}
 
 	// Get config map env information
 	for _, configMapAsEnv := range kubernetesExecutorConfig.GetConfigMapAsEnv() {
 		for _, keyToEnv := range configMapAsEnv.GetKeyToEnv() {
+			configMapKeySelector := &k8score.ConfigMapKeySelector{
+				Key: keyToEnv.GetConfigMapKey(),
+			}
+
+			// Set Optional field when explicitly provided (true or false), leave nil when not specified
+			if configMapAsEnv.Optional != nil {
+				configMapKeySelector.Optional = configMapAsEnv.Optional
+			}
+
 			configMapEnvVar := k8score.EnvVar{
 				Name: keyToEnv.GetEnvVar(),
 				ValueFrom: &k8score.EnvVarSource{
-					ConfigMapKeyRef: &k8score.ConfigMapKeySelector{
-						Key: keyToEnv.GetConfigMapKey(),
-					},
+					ConfigMapKeyRef: configMapKeySelector,
 				},
 			}
 
@@ -366,7 +438,14 @@ func extendPodSpecPatch(
 			}
 
 			configMapEnvVar.ValueFrom.ConfigMapKeyRef.LocalObjectReference.Name = configMapName
-			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, configMapEnvVar)
+
+			if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
+				podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, configMapEnvVar)
+			}
+
+			if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {
+				taskConfig.Env = append(taskConfig.Env, configMapEnvVar)
+			}
 		}
 	}
 
@@ -405,7 +484,14 @@ func extendPodSpecPatch(
 				},
 			},
 		}
-		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, fieldPathEnvVar)
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {
+			taskConfig.Env = append(taskConfig.Env, fieldPathEnvVar)
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
+			podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, fieldPathEnvVar)
+		}
 	}
 
 	// Get container timeout information
@@ -452,6 +538,8 @@ func extendPodSpecPatch(
 			Name:      ephemeralVolumeSpec.GetVolumeName(),
 			MountPath: ephemeralVolumeSpec.GetMountPath(),
 		}
+
+		// Ephemeral volumes don't apply for passthrough.
 		podSpec.Volumes = append(podSpec.Volumes, ephemeralVolume)
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, ephemeralVolumeMount)
 	}
@@ -478,8 +566,102 @@ func extendPodSpecPatch(
 			MountPath: emptyDirVolumeSpec.GetMountPath(),
 		}
 
+		// EmptyDirMounts don't apply for passthrough.
 		podSpec.Volumes = append(podSpec.Volumes, emptyDirVolume)
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, emptyDirVolumeMount)
+	}
+
+	// Get node affinity information
+	if nodeAffinityTerms := kubernetesExecutorConfig.GetNodeAffinity(); len(nodeAffinityTerms) > 0 {
+		var requiredTerms []k8score.NodeSelectorTerm
+		var preferredTerms []k8score.PreferredSchedulingTerm
+
+		for i, nodeAffinityTerm := range nodeAffinityTerms {
+			if nodeAffinityTerm.GetNodeAffinityJson() == nil &&
+				len(nodeAffinityTerm.GetMatchExpressions()) == 0 &&
+				len(nodeAffinityTerm.GetMatchFields()) == 0 {
+				glog.Warningf("NodeAffinityTerm %d is empty, skipping", i)
+				continue
+			}
+			if nodeAffinityTerm.GetNodeAffinityJson() != nil {
+				var k8sNodeAffinity json.RawMessage
+				err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
+					nodeAffinityTerm.GetNodeAffinityJson(), inputParams, &k8sNodeAffinity)
+				if err != nil {
+					return fmt.Errorf("failed to resolve node affinity json: %w", err)
+				}
+
+				var nodeAffinity k8score.NodeAffinity
+				if err := json.Unmarshal(k8sNodeAffinity, &nodeAffinity); err != nil {
+					return fmt.Errorf("failed to unmarshal node affinity json: %w", err)
+				}
+
+				if nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+					requiredTerms = append(requiredTerms, nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms...)
+				}
+				preferredTerms = append(preferredTerms, nodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution...)
+			} else {
+				nodeSelectorTerm := k8score.NodeSelectorTerm{}
+
+				for _, expr := range nodeAffinityTerm.GetMatchExpressions() {
+					nodeSelectorRequirement := k8score.NodeSelectorRequirement{
+						Key:      expr.GetKey(),
+						Operator: k8score.NodeSelectorOperator(expr.GetOperator()),
+						Values:   expr.GetValues(),
+					}
+					nodeSelectorTerm.MatchExpressions = append(nodeSelectorTerm.MatchExpressions, nodeSelectorRequirement)
+				}
+
+				for _, field := range nodeAffinityTerm.GetMatchFields() {
+					nodeSelectorRequirement := k8score.NodeSelectorRequirement{
+						Key:      field.GetKey(),
+						Operator: k8score.NodeSelectorOperator(field.GetOperator()),
+						Values:   field.GetValues(),
+					}
+					nodeSelectorTerm.MatchFields = append(nodeSelectorTerm.MatchFields, nodeSelectorRequirement)
+				}
+
+				if nodeAffinityTerm.Weight != nil {
+					preferredTerms = append(preferredTerms, k8score.PreferredSchedulingTerm{
+						Weight:     *nodeAffinityTerm.Weight,
+						Preference: nodeSelectorTerm,
+					})
+					glog.V(4).Infof("Added preferred node affinity: %+v", nodeSelectorTerm)
+				} else {
+					requiredTerms = append(requiredTerms, nodeSelectorTerm)
+					glog.V(4).Infof("Added required node affinity: %+v", nodeSelectorTerm)
+				}
+
+			}
+		}
+
+		if len(requiredTerms) > 0 || len(preferredTerms) > 0 {
+			k8sNodeAffinity := &k8score.NodeAffinity{}
+			if len(requiredTerms) > 0 {
+				k8sNodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &k8score.NodeSelector{
+					NodeSelectorTerms: requiredTerms,
+				}
+			}
+			if len(preferredTerms) > 0 {
+				k8sNodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = preferredTerms
+			}
+
+			if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY] {
+				if taskConfig.Affinity == nil {
+					taskConfig.Affinity = &k8score.Affinity{}
+				}
+
+				taskConfig.Affinity.NodeAffinity = k8sNodeAffinity
+			}
+
+			if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY] {
+				if podSpec.Affinity == nil {
+					podSpec.Affinity = &k8score.Affinity{}
+				}
+
+				podSpec.Affinity.NodeAffinity = k8sNodeAffinity
+			}
+		}
 	}
 
 	return nil
@@ -571,7 +753,7 @@ func createPVC(
 	// Get execution fingerprint and MLMD ID for caching
 	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
 	// The original execution is not changed.
-	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient)
+	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient, nil)
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, err
 	}
@@ -661,7 +843,6 @@ func deletePVC(
 	mlmd *metadata.Client,
 	ecfg *metadata.ExecutionConfig,
 ) (createdExecution *metadata.Execution, status pb.Execution_State, err error) {
-
 	// Create execution regardless the operation succeeds or not
 	defer func() {
 		if createdExecution == nil {
@@ -688,7 +869,7 @@ func deletePVC(
 	// Get execution fingerprint and MLMD ID for caching
 	// If pvcName includes a randomly generated UUID, it is added in the execution input as a key-value pair for this purpose only
 	// The original execution is not changed.
-	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient)
+	fingerPrint, cachedMLMDExecutionID, err := getFingerPrintsAndID(&execution, opts, cacheClient, nil)
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, err
 	}

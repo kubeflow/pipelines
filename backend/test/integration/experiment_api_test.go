@@ -18,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
 	jobParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
@@ -29,6 +28,9 @@ import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/kubeflow/pipelines/backend/test/config"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -58,7 +60,7 @@ func (s *ExperimentApiTest) SetupTest() {
 		}
 	}
 
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
 	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
@@ -70,37 +72,37 @@ func (s *ExperimentApiTest) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode)
 		}
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
 		}
 		newJobClient = func() (*api_server.JobClient, error) {
-			return api_server.NewKubeflowInClusterJobClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterJobClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
+			return api_server.NewExperimentClient(clientConfig, *config.DebugMode)
 		}
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineUploadClient(clientConfig, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRunClient(clientConfig, *config.DebugMode)
 		}
 		newJobClient = func() (*api_server.JobClient, error) {
-			return api_server.NewJobClient(clientConfig, *isDebugMode)
+			return api_server.NewJobClient(clientConfig, *config.DebugMode)
 		}
 	}
 
@@ -143,7 +145,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	expectedTrainingExperiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
 
 	trainingExperiment, err := s.experimentClient.Create(&params.ExperimentServiceCreateExperimentV1Params{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	assert.Nil(t, err)
 	assert.True(t, test.VerifyExperimentResourceReferences(trainingExperiment.ResourceReferences, expectedTrainingExperiment.ResourceReferences))
@@ -151,11 +153,11 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	expectedTrainingExperiment.ID = trainingExperiment.ID
 	expectedTrainingExperiment.CreatedAt = trainingExperiment.CreatedAt
-	expectedTrainingExperiment.StorageState = "STORAGESTATE_AVAILABLE"
+	expectedTrainingExperiment.StorageState = (*experiment_model.APIExperimentStorageState)(util.StringPointer("STORAGESTATE_AVAILABLE"))
 	assert.Equal(t, expectedTrainingExperiment, trainingExperiment)
 
 	/* ---------- Create an experiment with same name. Should fail due to name uniqueness ---------- */
-	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentV1Params{Body: experiment})
+	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentV1Params{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please specify a new name")
 
@@ -164,12 +166,12 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("prediction", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentV1Params{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("moonshot", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentV1Params{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	assert.Nil(t, err)
 
@@ -300,17 +302,17 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 			Pipelineid: util.StringPointer(pipeline.ID),
 		})
 	assert.Nil(t, err)
-	createRunRequest := &runParams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
+	createRunRequest := &runParams.RunServiceCreateRunV1Params{Run: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER,
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiment.ID},
+				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
-				Relationship: run_model.APIRelationshipCREATOR,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: pipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
 	}}
@@ -319,17 +321,17 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	run2, _, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createJobRequest := &jobParams.JobServiceCreateJobParams{Body: &job_model.APIJob{
+	createJobRequest := &jobParams.JobServiceCreateJobParams{Job: &job_model.APIJob{
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*job_model.APIResourceReference{
 			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Relationship: job_model.APIRelationshipOWNER,
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiment.ID},
+				Relationship: job_model.APIRelationshipOWNER.Pointer(),
 			},
 			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
-				Relationship: job_model.APIRelationshipCREATOR,
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: pipelineVersion.ID},
+				Relationship: job_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
 		MaxConcurrency: 10,
@@ -346,13 +348,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify experiment and its runs ------- */
 	experiment, err = s.experimentClient.Get(&params.ExperimentServiceGetExperimentV1Params{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, experiment_model.APIExperimentStorageState("STORAGESTATE_ARCHIVED"), experiment.StorageState)
+	assert.Equal(t, experiment_model.APIExperimentStorageState("STORAGESTATE_ARCHIVED"), *experiment.StorageState)
 	retrievedRun1, _, err := s.runClient.Get(&runParams.RunServiceGetRunV1Params{RunID: run1.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun1.Run.StorageState)
+	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), *retrievedRun1.Run.StorageState)
 	retrievedRun2, _, err := s.runClient.Get(&runParams.RunServiceGetRunV1Params{RunID: run2.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun2.Run.StorageState)
+	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), *retrievedRun2.Run.StorageState)
 	retrievedJob1, err := s.jobClient.Get(&jobParams.JobServiceGetJobParams{ID: job1.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, false, retrievedJob1.Enabled)
@@ -366,13 +368,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify experiment and its runs and jobs --------- */
 	experiment, err = s.experimentClient.Get(&params.ExperimentServiceGetExperimentV1Params{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, experiment_model.APIExperimentStorageState("STORAGESTATE_AVAILABLE"), experiment.StorageState)
+	assert.Equal(t, experiment_model.APIExperimentStorageState("STORAGESTATE_AVAILABLE"), *experiment.StorageState)
 	retrievedRun1, _, err = s.runClient.Get(&runParams.RunServiceGetRunV1Params{RunID: run1.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun1.Run.StorageState)
+	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), *retrievedRun1.Run.StorageState)
 	retrievedRun2, _, err = s.runClient.Get(&runParams.RunServiceGetRunV1Params{RunID: run2.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun2.Run.StorageState)
+	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), *retrievedRun2.Run.StorageState)
 	retrievedJob1, err = s.jobClient.Get(&jobParams.JobServiceGetJobParams{ID: job1.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, false, retrievedJob1.Enabled)

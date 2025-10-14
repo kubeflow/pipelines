@@ -181,7 +181,8 @@ class TestUseSecretAsVolume:
                                     'keyToEnv': [{
                                         'secretKey': 'password',
                                         'envVar': 'SECRET_VAR'
-                                    }]
+                                    }],
+                                    'optional': False
                                 }],
                                 'secretAsVolume': [{
                                     'secretName': 'secret-name2',
@@ -477,7 +478,94 @@ class TestUseSecretAsEnv:
                                             'secretKey': 'password',
                                             'envVar': 'PASSWORD'
                                         },
-                                    ]
+                                    ],
+                                    'optional': False
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_use_one_optional_true(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.use_secret_as_env(
+                task,
+                secret_name='secret-name',
+                secret_key_to_env={
+                    'username': 'USERNAME',
+                    'password': 'PASSWORD',
+                },
+                optional=True,
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'secretAsEnv': [{
+                                    'secretName': 'secret-name',
+                                    'secretNameParameter': {'runtimeValue': {'constant': 'secret-name'}},
+                                    'keyToEnv': [
+                                        {
+                                            'secretKey': 'username',
+                                            'envVar': 'USERNAME'
+                                        },
+                                        {
+                                            'secretKey': 'password',
+                                            'envVar': 'PASSWORD'
+                                        },
+                                    ],
+                                    'optional': True
+                                }]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    def test_use_one_optional_false(self):
+
+        @dsl.pipeline
+        def my_pipeline():
+            task = comp()
+            kubernetes.use_secret_as_env(
+                task,
+                secret_name='secret-name',
+                secret_key_to_env={
+                    'username': 'USERNAME',
+                    'password': 'PASSWORD',
+                },
+                optional=False,
+            )
+
+        assert json_format.MessageToDict(my_pipeline.platform_spec) == {
+            'platforms': {
+                'kubernetes': {
+                    'deploymentSpec': {
+                        'executors': {
+                            'exec-comp': {
+                                'secretAsEnv': [{
+                                    'secretName': 'secret-name',
+                                    'secretNameParameter': {'runtimeValue': {'constant': 'secret-name'}},
+                                    'keyToEnv': [
+                                        {
+                                            'secretKey': 'username',
+                                            'envVar': 'USERNAME'
+                                        },
+                                        {
+                                            'secretKey': 'password',
+                                            'envVar': 'PASSWORD'
+                                        },
+                                    ],
+                                    'optional': False
                                 }]
                             }
                         }
@@ -515,7 +603,8 @@ class TestUseSecretAsEnv:
                                         'keyToEnv': [{
                                             'secretKey': 'password1',
                                             'envVar': 'SECRET_VAR1'
-                                        }]
+                                        }],
+                                        'optional': False
                                     },
                                     {
                                         'secretName': 'secret-name2',
@@ -523,7 +612,8 @@ class TestUseSecretAsEnv:
                                         'keyToEnv': [{
                                             'secretKey': 'password2',
                                             'envVar': 'SECRET_VAR2'
-                                        }]
+                                        }],
+                                        'optional': False
                                     },
                                 ]
                             }
@@ -562,7 +652,8 @@ class TestUseSecretAsEnv:
                                     'keyToEnv': [{
                                         'secretKey': 'password',
                                         'envVar': 'SECRET_VAR'
-                                    }]
+                                    }],
+                                    'optional': False
                                 }],
                                 'secretAsVolume': [{
                                     'secretName': 'secret-name2',
@@ -610,7 +701,8 @@ class TestUseSecretAsEnv:
                                     'keyToEnv': [{
                                         'secretKey': 'password',
                                         'envVar': 'SECRET_VAR'
-                                    }]
+                                    }],
+                                    'optional': False
                                 }]
                             }
                         }
@@ -648,7 +740,8 @@ class TestUseSecretAsEnv:
                                             'secretKey': 'foo',
                                             'envVar': 'CM_VAR'
                                         },
-                                    ]
+                                    ],
+                                    'optional': False
                                 }]
                             }
                         }
@@ -701,7 +794,8 @@ class TestUseSecretAsEnv:
                                                 'secretKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     },
                                     {
                                         'secretNameParameter': {
@@ -712,7 +806,8 @@ class TestUseSecretAsEnv:
                                                 'secretKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     },
                                 ]
                             },
@@ -727,7 +822,8 @@ class TestUseSecretAsEnv:
                                                 'secretKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     },
                                 ]
                             }
@@ -769,7 +865,8 @@ class TestUseSecretAsEnv:
                                             'secretKey': 'foo',
                                             'envVar': 'CM_VAR'
                                         },
-                                    ]
+                                    ],
+                                    'optional': False
                                 }]
                             }
                         }
@@ -829,7 +926,8 @@ class TestUseSecretAsEnv:
                                                 'secretKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     },
                                     {
                                         'secretNameParameter': {
@@ -843,7 +941,8 @@ class TestUseSecretAsEnv:
                                                 'secretKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     }
                                 ]
                             },
@@ -861,7 +960,8 @@ class TestUseSecretAsEnv:
                                                 'secretKey': 'foo',
                                                 'envVar': 'CM_VAR'
                                             },
-                                        ]
+                                        ],
+                                        'optional': False
                                     }
                                 ]
                             }

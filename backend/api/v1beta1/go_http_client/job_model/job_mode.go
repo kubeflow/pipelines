@@ -6,19 +6,29 @@ package job_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // JobMode Required input.
 //
-//  - DISABLED: The job won't schedule any run if disabled.
+//   - DISABLED: The job won't schedule any run if disabled.
+//
 // swagger:model JobMode
 type JobMode string
+
+func NewJobMode(value JobMode) *JobMode {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated JobMode.
+func (m JobMode) Pointer() *JobMode {
+	return &m
+}
 
 const (
 
@@ -46,7 +56,7 @@ func init() {
 }
 
 func (m JobMode) validateJobModeEnum(path, location string, value JobMode) error {
-	if err := validate.Enum(path, location, value, jobModeEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, jobModeEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -64,5 +74,10 @@ func (m JobMode) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this job mode based on context it is used
+func (m JobMode) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

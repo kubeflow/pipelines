@@ -29,6 +29,7 @@ class LocalRunnerConfigTest(unittest.TestCase):
         """Test instance attributes with one constructor call."""
         config.LocalExecutionConfig(
             pipeline_root='my/local/root',
+            workspace_root='/tmp/test-workspace',
             runner=local.SubprocessRunner(use_venv=True),
             raise_on_error=True,
         )
@@ -36,6 +37,7 @@ class LocalRunnerConfigTest(unittest.TestCase):
         instance = config.LocalExecutionConfig.instance
 
         self.assertEqual(instance.pipeline_root, 'my/local/root')
+        self.assertEqual(instance.workspace_root, '/tmp/test-workspace')
         self.assertEqual(instance.runner, local.SubprocessRunner(use_venv=True))
         self.assertIs(instance.raise_on_error, True)
 
@@ -43,11 +45,13 @@ class LocalRunnerConfigTest(unittest.TestCase):
         """Test instance attributes with multiple constructor calls."""
         config.LocalExecutionConfig(
             pipeline_root='my/local/root',
+            workspace_root='/tmp/test-workspace-1',
             runner=local.SubprocessRunner(),
             raise_on_error=True,
         )
         config.LocalExecutionConfig(
             pipeline_root='other/local/root',
+            workspace_root='/tmp/test-workspace-2',
             runner=local.SubprocessRunner(use_venv=False),
             raise_on_error=False,
         )
@@ -55,6 +59,7 @@ class LocalRunnerConfigTest(unittest.TestCase):
         instance = config.LocalExecutionConfig.instance
 
         self.assertEqual(instance.pipeline_root, 'other/local/root')
+        self.assertEqual(instance.workspace_root, '/tmp/test-workspace-2')
         self.assertEqual(instance.runner,
                          local.SubprocessRunner(use_venv=False))
         self.assertFalse(instance.raise_on_error, False)
@@ -62,6 +67,7 @@ class LocalRunnerConfigTest(unittest.TestCase):
     def test_validate_success(self):
         config.LocalExecutionConfig(
             pipeline_root='other/local/root',
+            workspace_root='/tmp/test-workspace',
             runner=local.SubprocessRunner(use_venv=False),
             raise_on_error=False,
         )
@@ -130,6 +136,23 @@ class TestDockerRunner(unittest.TestCase):
                     r"Package 'docker' must be installed to use 'DockerRunner'\. Install it using 'pip install docker'\."
             ):
                 local.DockerRunner()
+
+    def test_good_container_args(self):
+        local.DockerRunner(network_mode='none')
+
+    def test_unknown_container_args(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Unsupported `docker run` arguments, see Package `docker` for details: .*'
+        ):
+            local.DockerRunner(image='spaghetti', favorite_vegetable='zucchini')
+
+    def test_excess_container_args(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'The following docker run arguments should not be specififed: .*'
+        ):
+            local.DockerRunner(image='spaghetti')
 
 
 if __name__ == '__main__':

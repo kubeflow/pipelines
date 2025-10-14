@@ -164,13 +164,14 @@ class PipelineTask:
             self.pipeline_spec = self.component_spec.implementation.graph
 
         self._outputs = {
-            output_name: pipeline_channel.create_pipeline_channel(
-                name=output_name,
-                channel_type=output_spec.type,
-                task_name=self._task_spec.name,
-                is_artifact_list=output_spec.is_artifact_list,
-            ) for output_name, output_spec in (
-                component_spec.outputs or {}).items()
+            output_name:
+                pipeline_channel.create_pipeline_channel(
+                    name=output_name,
+                    channel_type=output_spec.type,
+                    task_name=self._task_spec.name,
+                    is_artifact_list=output_spec.is_artifact_list,
+                ) for output_name, output_spec in (
+                    component_spec.outputs or {}).items()
         }
 
         self._inputs = args

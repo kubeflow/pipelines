@@ -1,0 +1,254 @@
+# This workflow runs tests to verify all the API Server REST Endpoints
+name: API Server Tests
+env:
+  API_TESTS_DIR: "./backend/test/v2/api"
+  TESTS_LABEL: "ApiServerTests"
+  NUMBER_OF_PARALLEL_NODES: 15
+  CLUSTER_NAME: "kfp"
+  NAMESPACE: "kubeflow"
+  USER_NAMESPACE: "kubeflow-user-example-com"
+  PYTHON_VERSION: "3.9"
+
+on:
+  push:
+    branches: [master]
+
+  workflow_dispatch:
+    inputs:
+      test_label:
+        description: "Test label that you want to filter on and run"
+        default: 'ApiServerTests'
+        required: true
+        type: string
+      number_of_parallel_tests:
+        description: "Number of ginkgo nodes that you want run in parallel, it essentially is equivalent to number of parallel tests with some caveats"
+        default: 10
+        required: true
+        type: number
+      namespace:
+        description: "Namespace where you want to create your pipelines in"
+        default: "kubeflow"
+        required: true
+        type: string
+
+  pull_request:
+    paths:
+      - '.github/workflows/api-server-tests.yml'
+      - '.github/actions/create-cluster/**'
+      - '.github/resources/**'
+      - 'backend/api/v2beta1/**'
+      - 'backend/src/**'
+      - 'backend/metadata_writer/**'
+      - 'backend/test/v2/api/**'
+      - 'manifests/kustomize/**'
+      - '../../test_data/sdk_compiled_pipelines/**'
+      - '!**/*.md'
+      - '!**/OWNERS'
+
+jobs:
+  build:
+    uses: ./.github/workflows/image-builds-with-cache.yml
+
+  api-test-standalone:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [ "v1.31.0" ]
+        cache_enabled: [ "true", "false" ]
+        proxy: [ "true", "false" ]
+        argo_version: [ "v3.7.1", "v3.6.10" ]
+        pipeline_store: [ "database" ]
+        include:
+          - k8s_version: "v1.29.2"
+            cache_enabled: "true"
+            argo_version: "v3.6.10"
+          - k8s_version: "v1.29.2"
+            cache_enabled: "true"
+            argo_version: "v3.5.15"
+      fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
+    name: KFP API Server tests Standalone - K8sVersion=${{ matrix.k8s_version }} argo_version=${{ matrix.argo_version }} cacheEnabled=${{ matrix.cache_enabled }} proxyEnabled=${{ matrix.proxy }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        id: deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        with:
+          pipeline_store: ${{ matrix.pipeline_store }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          proxy: ${{ matrix.proxy }}
+          argo_version: ${{ matrix.argo_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Configure Input Variables
+        shell: bash
+        id: configure
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          NUMBER_OF_NODES=${{ env.NUMBER_OF_PARALLEL_NODES }}
+          TEST_LABEL=${{ env.TESTS_LABEL }}
+          NAMESPACE=${{ env.NAMESPACE }}
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            NUMBER_OF_NODES=${{ inputs.number_of_parallel_tests }}
+            TEST_LABEL=${{ inputs.test_label }}
+            NAMESPACE=${{ inputs.namespace }}
+          fi
+
+          PROXY=${{ matrix.proxy }}
+          if [ -z "${PROXY:-}" ]; then
+            PROXY=false
+          fi
+
+          echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
+          echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
+          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        if: ${{ steps.configure.outcome == 'success' }}
+        id: test-run
+        with:
+          pipeline_store: ${{ matrix.pipeline_store }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          proxy: ${{ matrix.proxy }}
+          test_directory: ${{ env.API_TESTS_DIR }}
+          test_label: ${{ steps.configure.outputs.TEST_LABEL }}
+          num_parallel_nodes: ${{ steps.configure.outputs.NUMBER_OF_NODES }}
+          default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "Standalone_k8sVersion=${{ matrix.k8s_version }}_argoVersion=${{ matrix.argo_version }}_cacheEnabled=${{ matrix.cache_enabled }}_proxyEnabled=${{ matrix.proxy }}"
+
+      - name: Notify test reports
+        shell: bash
+        if: ${{ steps.test-run.outcome == 'success' }}
+
+        run: |
+          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
+
+
+  api-test-k8s-native:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [ "v1.31.0", "v1.29.2" ]
+        cache_enabled: [ "true" ]
+        uploadPipelinesWithKubernetesClient: [ "true", "false" ]
+        argo_version: [ "v3.7.1", "v3.6.10" ]
+        pipeline_store: [ "kubernetes" ]
+      fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
+    name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        id: deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        with:
+          pipeline_store: ${{ matrix.pipeline_store }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          proxy: ${{ matrix.proxy }}
+          argo_version: ${{ matrix.argo_version }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        if: ${{ steps.deploy.outcome == 'success' }}
+        id: test-run
+        with:
+          pipeline_store: ${{ matrix.pipeline_store }}
+          cache_enabled: ${{ matrix.cache_enabled }}
+          proxy: ${{ matrix.proxy }}
+          test_directory: ${{ env.API_TESTS_DIR }}
+          test_label: ${{ env.TESTS_LABEL }}
+          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          report_name: "K8Native_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version }}_uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}"
+
+      - name: Notify test reports
+        shell: bash
+        if: ${{ steps.test-run.outcome == 'success' }}
+        run: |
+          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"
+
+  api-test-multi-user:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        k8s_version: [ "v1.31.0"]
+        cache_enabled: [ "true", "false" ]
+        multi_user: [ "true" ]
+      fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
+    name: KFP API Server Multi User Tests - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create cluster
+        uses: ./.github/actions/create-cluster
+        id: create-cluster
+        with:
+          k8s_version: ${{ matrix.k8s_version }}
+          cluster_name: ${{ env.CLUSTER_NAME }}
+
+      - name: Deploy KFP
+        uses: ./.github/actions/deploy
+        id: deploy
+        if: ${{ steps.create-cluster.outcome == 'success' }}
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          multi_user: ${{ matrix.multi_user }}
+          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
+          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
+          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+
+      - name: Run Tests
+        uses: ./.github/actions/test-and-report
+        id: test-run
+        if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          LOCAL_API_SERVER: "true"
+        with:
+          cache_enabled: ${{ matrix.cache_enabled }}
+          test_directory: ${{ env.API_TESTS_DIR }}
+          test_label: ${{ env.TESTS_LABEL }}
+          num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}
+          default_namespace: ${{ env.NAMESPACE }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          user_namespace: ${{ env.USER_NAMESPACE }}
+          multi_user: ${{ matrix.multi_user }}
+          report_name: "MultiUser_k8sVersion=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}"
+
+      - name: Notify test reports
+        shell: bash
+        if: ${{ steps.test-run.outcome == 'success' }}
+        run: |
+          echo "::notice title=Test Summary and HTML Report is now available in the Summary Tab"

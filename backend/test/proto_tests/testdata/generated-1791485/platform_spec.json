@@ -1,0 +1,24 @@
+{
+  "platforms":  {
+    "kubernetes":  {
+      "deployment_spec":  {
+        "executors":  {
+          "root-executor":  {
+            "container":  {
+              "image":  "test-image"
+            }
+          }
+        }
+      },
+      "platform":  "kubernetes",
+      "config":  {
+        "project":  "test-project"
+      },
+      "pipelineConfig":  {
+        "semaphore_key":  "test-key",
+        "mutex_name":  "test-mutex",
+        "resource_ttl":  24
+      }
+    }
+  }
+}

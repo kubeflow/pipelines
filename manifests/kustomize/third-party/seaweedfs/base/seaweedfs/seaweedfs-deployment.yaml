@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs
+  namespace: kubeflow
+  labels:
+    app: seaweedfs
+spec:
+  selector:
+    matchLabels:
+      app: seaweedfs
+  strategy:
+    type: Recreate
+  # Single container setup not scalable
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        application-crd-id: kubeflow-pipelines
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: seaweedfs
+        image: 'chrislusf/seaweedfs:3.92'
+        args:
+        - 'server'
+        - '-dir=/data'
+        - '-s3'
+        - '-iam'
+        - '-filer'
+        - '-master.volumePreallocate=false'
+        ports:
+        - containerPort: 8333
+        - containerPort: 8111
+        - containerPort: 9333
+        - containerPort: 19333
+        - containerPort: 8888
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 8333
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 100
+          timeoutSeconds: 10
+        securityContext:  # Using restricted profile
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          # image defaults to root user
+          runAsUser: 1001
+          runAsGroup: 1001
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        resources:
+          requests:
+            cpu: 32m
+            memory: 128Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: seaweedfs-pvc
+      serviceAccountName: seaweedfs

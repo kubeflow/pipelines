@@ -5,6 +5,7 @@
 [![SDK Package version](https://img.shields.io/pypi/v/kfp?color=%2334D058&label=pypi%20package)](https://pypi.org/project/kfp)
 [![SDK Supported Python versions](https://img.shields.io/pypi/pyversions/kfp.svg?color=%2334D058)](https://pypi.org/project/kfp)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9938/badge)](https://www.bestpractices.dev/projects/9938)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/kubeflow/pipelines)
 
 ## Overview of the Kubeflow pipelines service
 
@@ -24,6 +25,13 @@ The Kubeflow pipelines service has the following goals:
 
 * The Docker container runtime has been deprecated on Kubernetes 1.20+. Kubeflow Pipelines has switched to use [Emissary Executor](https://www.kubeflow.org/docs/components/pipelines/legacy-v1/installation/choose-executor/#emissary-executor) by default from Kubeflow Pipelines 1.8. Emissary executor is Container runtime agnostic, meaning you are able to run Kubeflow Pipelines on Kubernetes cluster with any [Container runtimes](https://kubernetes.io/docs/setup/production-environment/container-runtimes/).
 
+### Dependencies Compatibility Matrix
+
+| Dependency     | Versions         |
+| -------------- |------------------|
+| Argo Workflows | v3.5, v3.6, v3.7 |
+| MySQL          | v8               |
+
 ## Documentation
 
 Get started with your first pipeline and read further information in the [Kubeflow Pipelines overview](https://www.kubeflow.org/docs/components/pipelines/overview/).
@@ -33,6 +41,11 @@ See the various ways you can [use the Kubeflow Pipelines SDK](https://kubeflow-p
 See the Kubeflow [Pipelines API doc](https://www.kubeflow.org/docs/components/pipelines/reference/api/kubeflow-pipeline-api-spec/) for API specification.
 
 Consult the [Python SDK reference docs](https://kubeflow-pipelines.readthedocs.io/en/stable/) when writing pipelines using the Python SDK.
+
+## Deep Wiki
+Check out our AI Powered repo documentation on [DeepWiki](https://deepwiki.com/kubeflow/pipelines). 
+
+> :warning: Please note, this is AI generated and may not have completely accurate information.
 
 ## Contributing to Kubeflow Pipelines
 
@@ -56,10 +69,11 @@ We also have a slack channel (#kubeflow-pipelines) on the Cloud Native Computing
 
 ## Architecture
 
-Details about the KFP Architecture can be found at [Architecture.md](docs/Architecture.md)
+Details about the KFP Architecture can be found at [Architecture.md](docs/sdk/Architecture.md)
 
 ## Blog posts
 
+* [From Raw Data to Model Serving: A Blueprint for the AI/ML Lifecycle with Kubeflow](https://blog.kubeflow.org/fraud-detection-e2e/) (By [Helber Belmiro](https://github.com/hbelmiro))
 * [Getting started with Kubeflow Pipelines](https://cloud.google.com/blog/products/ai-machine-learning/getting-started-kubeflow-pipelines) (By Amy Unruh)
 * How to create and deploy a Kubeflow Machine Learning Pipeline (By Lak Lakshmanan)
   * [Part 1: How to create and deploy a Kubeflow Machine Learning Pipeline](https://medium.com/data-science/how-to-create-and-deploy-a-kubeflow-machine-learning-pipeline-part-1-efea7a4b650f)

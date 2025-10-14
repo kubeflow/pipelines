@@ -20,16 +20,16 @@ import (
 	"flag"
 	"fmt"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+
 	"os"
 	"path/filepath"
 	"strconv"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
@@ -60,6 +60,7 @@ var (
 	taskSpecJson      = flag.String("task", "", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
 	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	taskName          = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
@@ -85,10 +86,6 @@ var (
 	noProxy           = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
 	publishLogs       = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 	cacheDisabledFlag = flag.Bool("cache_disabled", false, "Disable cache globally.")
-
-	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
-	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
-	caCertPath                     = flag.String("ca_cert_path", "", "The path to the CA certificate.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -183,37 +180,25 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	mlPipelineServiceTLSEnabled, err := strconv.ParseBool(*mlPipelineServiceTLSEnabledStr)
-	if err != nil {
-		return err
-	}
-
-	metadataTLSEnabled, err := strconv.ParseBool(*metadataTLSEnabledStr)
-	if err != nil {
-		return err
-	}
-	cacheClient, err := cacheutils.NewClient(*cacheDisabledFlag, mlPipelineServiceTLSEnabled)
+	cacheClient, err := cacheutils.NewClient(*cacheDisabledFlag)
 	if err != nil {
 		return err
 	}
 	options := driver.Options{
-		PipelineName:         *pipelineName,
-		RunID:                *runID,
-		RunName:              *runName,
-		RunDisplayName:       *runDisplayName,
-		Namespace:            namespace,
-		Component:            componentSpec,
-		Task:                 taskSpec,
-		DAGExecutionID:       *dagExecutionID,
-		IterationIndex:       *iterationIndex,
-		PipelineLogLevel:     *logLevel,
-		PublishLogs:          *publishLogs,
-		CacheDisabled:        *cacheDisabledFlag,
-		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
-		MLMDServerAddress:    *mlmdServerAddress,
-		MLMDServerPort:       *mlmdServerPort,
-		MLMDTLSEnabled:       metadataTLSEnabled,
-		CaCertPath:           *caCertPath,
+		PipelineName:     *pipelineName,
+		RunID:            *runID,
+		RunName:          *runName,
+		RunDisplayName:   *runDisplayName,
+		Namespace:        namespace,
+		Component:        componentSpec,
+		Task:             taskSpec,
+		DAGExecutionID:   *dagExecutionID,
+		IterationIndex:   *iterationIndex,
+		PipelineLogLevel: *logLevel,
+		PublishLogs:      *publishLogs,
+		CacheDisabled:    *cacheDisabledFlag,
+		DriverType:       *driverType,
+		TaskName:         *taskName,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -312,11 +297,11 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 		}
 	}
 	if execution.ExecutorInput != nil {
-		marshaler := jsonpb.Marshaler{}
-		executorInputJSON, err := marshaler.MarshalToString(execution.ExecutorInput)
+		executorInputBytes, err := protojson.Marshal(execution.ExecutorInput)
 		if err != nil {
 			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
 		}
+		executorInputJSON := string(executorInputBytes)
 		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
 	}
 	return nil
@@ -352,11 +337,5 @@ func newMlmdClient() (*metadata.Client, error) {
 		mlmdConfig.Address = *mlmdServerAddress
 		mlmdConfig.Port = *mlmdServerPort
 	}
-
-	tlsEnabled, err := strconv.ParseBool(*metadataTLSEnabledStr)
-	if err != nil {
-		return nil, err
-	}
-
-	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port, tlsEnabled, *caCertPath)
+	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port)
 }

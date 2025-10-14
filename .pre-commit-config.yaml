@@ -18,9 +18,9 @@ repos:
   - repo: https://github.com/PyCQA/flake8
     rev: 7.1.1
     hooks:
-    -   id: flake8
+      - id: flake8
         args:
-        - --select=W605
+          - --select=W605
   # required formatting jobs (run these last)
 
   # add comment "noqa" to ignore an import that should not be removed

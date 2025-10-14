@@ -6,17 +6,27 @@ package pipeline_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"encoding/json"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // APIRelationship api relationship
+//
 // swagger:model apiRelationship
 type APIRelationship string
+
+func NewAPIRelationship(value APIRelationship) *APIRelationship {
+	return &value
+}
+
+// Pointer returns a pointer to a freshly-allocated APIRelationship.
+func (m APIRelationship) Pointer() *APIRelationship {
+	return &m
+}
 
 const (
 
@@ -44,7 +54,7 @@ func init() {
 }
 
 func (m APIRelationship) validateAPIRelationshipEnum(path, location string, value APIRelationship) error {
-	if err := validate.Enum(path, location, value, apiRelationshipEnum); err != nil {
+	if err := validate.EnumCase(path, location, value, apiRelationshipEnum, true); err != nil {
 		return err
 	}
 	return nil
@@ -62,5 +72,10 @@ func (m APIRelationship) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// ContextValidate validates this api relationship based on context it is used
+func (m APIRelationship) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }

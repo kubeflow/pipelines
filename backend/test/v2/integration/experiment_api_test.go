@@ -18,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -28,7 +27,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test/config"
 	test "github.com/kubeflow/pipelines/backend/test/v2"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -39,7 +41,7 @@ type ExperimentApiTest struct {
 	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
+	pipelineUploadClient api_server.PipelineUploadInterface
 	runClient            *api_server.RunClient
 	recurringRunClient   *api_server.RecurringRunClient
 }
@@ -58,10 +60,9 @@ func (s *ExperimentApiTest) SetupTest() {
 		}
 	}
 
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var newRunClient func() (*api_server.RunClient, error)
 	var newRecurringRunClient func() (*api_server.RecurringRunClient, error)
@@ -70,37 +71,31 @@ func (s *ExperimentApiTest) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
 		}
 		newRecurringRunClient = func() (*api_server.RecurringRunClient, error) {
-			return api_server.NewKubeflowInClusterRecurringRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRecurringRunClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+			return api_server.NewExperimentClient(clientConfig, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRunClient(clientConfig, *config.DebugMode)
 		}
 		newRecurringRunClient = func() (*api_server.RecurringRunClient, error) {
-			return api_server.NewRecurringRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRecurringRunClient(clientConfig, *config.DebugMode)
 		}
 	}
 
@@ -109,7 +104,13 @@ func (s *ExperimentApiTest) SetupTest() {
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*config.DebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
@@ -143,18 +144,18 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	expectedTrainingExperiment := test.MakeExperiment("training", "my first experiment", s.resourceNamespace)
 
 	trainingExperiment, err := s.experimentClient.Create(&params.ExperimentServiceCreateExperimentParams{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	assert.Nil(t, err)
 
 	expectedTrainingExperiment.ExperimentID = trainingExperiment.ExperimentID
 	expectedTrainingExperiment.CreatedAt = trainingExperiment.CreatedAt
-	expectedTrainingExperiment.StorageState = "STORAGESTATE_AVAILABLE"
+	expectedTrainingExperiment.StorageState = (*experiment_model.V2beta1ExperimentStorageState)(util.StringPointer("STORAGESTATE_AVAILABLE"))
 	expectedTrainingExperiment.Namespace = trainingExperiment.Namespace
 	assert.Equal(t, expectedTrainingExperiment, trainingExperiment)
 
 	/* ---------- Create an experiment with same name. Should fail due to name uniqueness ---------- */
-	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentParams{Body: experiment})
+	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please specify a new name")
 
@@ -163,12 +164,12 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	time.Sleep(1 * time.Second)
 	experiment = test.MakeExperiment("prediction", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentParams{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	time.Sleep(1 * time.Second)
 	experiment = test.MakeExperiment("moonshot", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&params.ExperimentServiceCreateExperimentParams{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	assert.Nil(t, err)
 
@@ -299,7 +300,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 			Pipelineid: util.StringPointer(pipeline.PipelineID),
 		})
 	assert.Nil(t, err)
-	createRunRequest := &run_params.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &run_params.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: experiment.ExperimentID,
@@ -313,7 +314,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	run2, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName:  "hello world",
 		Description:  "this is hello world",
 		ExperimentID: experiment.ExperimentID,
@@ -322,7 +323,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 			PipelineVersionID: pipelineVersion.PipelineVersionID,
 		},
 		MaxConcurrency: 10,
-		Status:         recurring_run_model.V2beta1RecurringRunStatusENABLED,
+		Status:         recurring_run_model.V2beta1RecurringRunStatusENABLED.Pointer(),
 	}}
 	recurringRun1, err := s.recurringRunClient.Create(createRecurringRunRequest)
 	assert.Nil(t, err)

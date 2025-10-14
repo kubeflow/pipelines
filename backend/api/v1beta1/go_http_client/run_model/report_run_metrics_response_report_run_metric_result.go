@@ -6,13 +6,15 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	strfmt "github.com/go-openapi/strfmt"
+	"context"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // ReportRunMetricsResponseReportRunMetricResult report run metrics response report run metric result
+//
 // swagger:model ReportRunMetricsResponseReportRunMetricResult
 type ReportRunMetricsResponseReportRunMetricResult struct {
 
@@ -26,7 +28,7 @@ type ReportRunMetricsResponseReportRunMetricResult struct {
 	MetricNodeID string `json:"metric_node_id,omitempty"`
 
 	// Output. The status of the metric reporting.
-	Status ReportRunMetricsResponseReportRunMetricResultStatus `json:"status,omitempty"`
+	Status *ReportRunMetricsResponseReportRunMetricResultStatus `json:"status,omitempty"`
 }
 
 // Validate validates this report run metrics response report run metric result
@@ -44,16 +46,54 @@ func (m *ReportRunMetricsResponseReportRunMetricResult) Validate(formats strfmt.
 }
 
 func (m *ReportRunMetricsResponseReportRunMetricResult) validateStatus(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Status) { // not required
 		return nil
 	}
 
-	if err := m.Status.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("status")
+	if m.Status != nil {
+		if err := m.Status.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("status")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("status")
+			}
+			return err
 		}
-		return err
+	}
+
+	return nil
+}
+
+// ContextValidate validate this report run metrics response report run metric result based on the context it is used
+func (m *ReportRunMetricsResponseReportRunMetricResult) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateStatus(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *ReportRunMetricsResponseReportRunMetricResult) contextValidateStatus(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Status != nil {
+
+		if swag.IsZero(m.Status) { // not required
+			return nil
+		}
+
+		if err := m.Status.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("status")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("status")
+			}
+			return err
+		}
 	}
 
 	return nil

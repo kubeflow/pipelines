@@ -166,7 +166,7 @@ func GetResourceReferenceFromRunInterface(r interface{}) ([]*apiv1beta1.Resource
 // and there may be a second doc for platform specific spec.
 // If platform spec is empty, then return pipeline spec directly. Else, return a struct with
 // pipeline spec and platform spec as subfields.
-func yamlStringToPipelineSpecStruct(s string) (*structpb.Struct, error) {
+func YamlStringToPipelineSpecStruct(s string) (*structpb.Struct, error) {
 	if s == "" {
 		return nil, nil
 	}

@@ -94,7 +94,7 @@ type PipelineVersionList struct {
 }
 
 func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.PipelineVersion) (*PipelineVersion, error) {
-	v2Spec, err := template.NewV2SpecTemplate([]byte(pipelineVersion.PipelineSpec), false)
+	v2Spec, err := template.NewV2SpecTemplate([]byte(string(pipelineVersion.PipelineSpec)), false, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the pipeline spec: %w", err)
 	}
@@ -153,12 +153,12 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 		},
 		Spec: PipelineVersionSpec{
 			DisplayName:     pipelineVersion.DisplayName,
-			Description:     pipelineVersion.Description,
+			Description:     string(pipelineVersion.Description),
 			PipelineSpec:    pipelineSpec,
 			PlatformSpec:    platformSpec,
 			PipelineName:    pipeline.Name,
 			CodeSourceURL:   pipelineVersion.CodeSourceUrl,
-			PipelineSpecURI: pipelineVersion.PipelineSpecURI,
+			PipelineSpecURI: string(pipelineVersion.PipelineSpecURI),
 		},
 	}, nil
 }
@@ -183,7 +183,7 @@ func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
 	// This additional parsing filters out platform specs that normally are excluded when the pipeline version is
 	// created through the REST API. This is done rather than modifying the mutating webhook to remove these
 	// platform specs so that GitOps tools don't see a diff from what is in Git and what is on the cluster.
-	v2Spec, err := template.NewV2SpecTemplate(piplineSpecAndPlatformSpec, false)
+	v2Spec, err := template.NewV2SpecTemplate(piplineSpecAndPlatformSpec, false, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the pipeline spec: %w", err)
 	}
@@ -222,9 +222,9 @@ func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
 		PipelineId:      string(pipelineID),
 		Status:          pipelineVersionStatus,
 		CodeSourceUrl:   p.Spec.CodeSourceURL,
-		Description:     p.Spec.Description,
-		PipelineSpec:    string(v2Spec.Bytes()),
-		PipelineSpecURI: p.Spec.PipelineSpecURI,
+		Description:     model.LargeText(p.Spec.Description),
+		PipelineSpec:    model.LargeText(v2Spec.Bytes()),
+		PipelineSpecURI: model.LargeText(p.Spec.PipelineSpecURI),
 	}, nil
 }
 

@@ -35,6 +35,7 @@ class V2beta1Pipeline(object):
     openapi_types = {
         'pipeline_id': 'str',
         'display_name': 'str',
+        'name': 'str',
         'description': 'str',
         'created_at': 'datetime',
         'namespace': 'str',
@@ -44,13 +45,14 @@ class V2beta1Pipeline(object):
     attribute_map = {
         'pipeline_id': 'pipeline_id',
         'display_name': 'display_name',
+        'name': 'name',
         'description': 'description',
         'created_at': 'created_at',
         'namespace': 'namespace',
         'error': 'error'
     }
 
-    def __init__(self, pipeline_id=None, display_name=None, description=None, created_at=None, namespace=None, error=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, pipeline_id=None, display_name=None, name=None, description=None, created_at=None, namespace=None, error=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Pipeline - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -58,6 +60,7 @@ class V2beta1Pipeline(object):
 
         self._pipeline_id = None
         self._display_name = None
+        self._name = None
         self._description = None
         self._created_at = None
         self._namespace = None
@@ -68,6 +71,8 @@ class V2beta1Pipeline(object):
             self.pipeline_id = pipeline_id
         if display_name is not None:
             self.display_name = display_name
+        if name is not None:
+            self.name = name
         if description is not None:
             self.description = description
         if created_at is not None:
@@ -104,7 +109,7 @@ class V2beta1Pipeline(object):
     def display_name(self):
         """Gets the display_name of this V2beta1Pipeline.  # noqa: E501
 
-        Required input field. Pipeline name provided by user.  # noqa: E501
+        Optional input field. Pipeline display name provided by user.  # noqa: E501
 
         :return: The display_name of this V2beta1Pipeline.  # noqa: E501
         :rtype: str
@@ -115,13 +120,36 @@ class V2beta1Pipeline(object):
     def display_name(self, display_name):
         """Sets the display_name of this V2beta1Pipeline.
 
-        Required input field. Pipeline name provided by user.  # noqa: E501
+        Optional input field. Pipeline display name provided by user.  # noqa: E501
 
         :param display_name: The display_name of this V2beta1Pipeline.  # noqa: E501
         :type display_name: str
         """
 
         self._display_name = display_name
+
+    @property
+    def name(self):
+        """Gets the name of this V2beta1Pipeline.  # noqa: E501
+
+        Required input field. Pipeline name provided by user.  # noqa: E501
+
+        :return: The name of this V2beta1Pipeline.  # noqa: E501
+        :rtype: str
+        """
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Sets the name of this V2beta1Pipeline.
+
+        Required input field. Pipeline name provided by user.  # noqa: E501
+
+        :param name: The name of this V2beta1Pipeline.  # noqa: E501
+        :type name: str
+        """
+
+        self._name = name
 
     @property
     def description(self):

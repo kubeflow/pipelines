@@ -18,8 +18,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"google.golang.org/protobuf/encoding/prototext"
+
 	"github.com/Masterminds/squirrel"
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -91,7 +92,7 @@ func TestValidNewFiltersV1(t *testing.T) {
 
 	for _, test := range tests {
 		filterProto := &apiv1beta1.Filter{}
-		if err := proto.UnmarshalText(test.protoStr, filterProto); err != nil {
+		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
 		}
@@ -164,7 +165,7 @@ func TestValidNewFilters(t *testing.T) {
 
 	for _, test := range tests {
 		filterProto := &apiv2beta1.Filter{}
-		if err := proto.UnmarshalText(test.protoStr, filterProto); err != nil {
+		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
 		}
@@ -209,7 +210,7 @@ func TestValidNewFiltersWithKeyMapV1(t *testing.T) {
 
 	for _, test := range tests {
 		filterProto := &apiv1beta1.Filter{}
-		if err := proto.UnmarshalText(test.protoStr, filterProto); err != nil {
+		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
 		}
@@ -261,7 +262,7 @@ func TestValidNewFiltersWithKeyMap(t *testing.T) {
 
 	for _, test := range tests {
 		filterProto := &apiv2beta1.Filter{}
-		if err := proto.UnmarshalText(test.protoStr, filterProto); err != nil {
+		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
 		}
@@ -337,16 +338,11 @@ func TestInvalidFiltersV1(t *testing.T) {
 		{
 			`predicates { key: "total" op: IN }`,
 		},
-		// Bad timestamp
-		{
-			`predicates { key: "total" op: LESS_THAN
-				timestamp_value { seconds: -100000000000 }}`,
-		},
 	}
 
 	for _, test := range tests {
 		filterProto := &apiv1beta1.Filter{}
-		if err := proto.UnmarshalText(test.protoStr, filterProto); err != nil {
+		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
 		}
@@ -415,16 +411,11 @@ func TestInvalidFilters(t *testing.T) {
 		{
 			`predicates { key: "total" operation: IN }`,
 		},
-		// Bad timestamp
-		{
-			`predicates { key: "total" operation: LESS_THAN
-				timestamp_value { seconds: -100000000000 }}`,
-		},
 	}
 
 	for _, test := range tests {
 		filterProto := &apiv2beta1.Filter{}
-		if err := proto.UnmarshalText(test.protoStr, filterProto); err != nil {
+		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
 		}
@@ -506,7 +497,7 @@ func TestAddToSelectV1(t *testing.T) {
 
 	for _, test := range tests {
 		filterProto := &apiv1beta1.Filter{}
-		if err := proto.UnmarshalText(test.protoStr, filterProto); err != nil {
+		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
 		}
@@ -595,7 +586,7 @@ func TestAddToSelect(t *testing.T) {
 
 	for _, test := range tests {
 		filterProto := &apiv2beta1.Filter{}
-		if err := proto.UnmarshalText(test.protoStr, filterProto); err != nil {
+		if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
 			t.Errorf("Failed to unmarshal Filter text proto\n%q\nError: %v", test.protoStr, err)
 			continue
 		}

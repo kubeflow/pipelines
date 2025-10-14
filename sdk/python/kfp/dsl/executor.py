@@ -20,6 +20,7 @@ import warnings
 
 from kfp import dsl
 from kfp.dsl import task_final_status
+from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 
@@ -132,7 +133,8 @@ class Executor:
     def get_output_artifact(self, name: str) -> Optional[dsl.Artifact]:
         return self.output_artifacts.get(name)
 
-    def get_input_parameter_value(self, parameter_name: str) -> Optional[str]:
+    def get_input_parameter_value(
+            self, parameter_name: str) -> Optional[Union[str, dict]]:
         parameter_values = self.executor_input.get('inputs', {}).get(
             'parameterValues', None)
 
@@ -328,16 +330,39 @@ class Executor:
             # `Optional[str]`. In this case, we need to strip off the part
             # `Optional[]` to get the actual parameter type.
             v = type_annotations.maybe_strip_optional_from_annotation(v)
-
             if v == task_final_status.PipelineTaskFinalStatus:
                 value = self.get_input_parameter_value(k)
+
+                # PipelineTaskFinalStatus field names pipelineJobResourceName and pipelineTaskName are deprecated. Support for these fields will be removed at a later date.
+                pipline_job_resource_name = 'pipelineJobResourceName'
+                if value.get(pipline_job_resource_name) is None:
+                    pipline_job_resource_name = 'pipeline_job_resource_name'
+                pipeline_task_name = 'pipelineTaskName'
+                if value.get(pipeline_task_name) is None:
+                    pipeline_task_name = 'pipeline_task_name'
+
                 func_kwargs[k] = task_final_status.PipelineTaskFinalStatus(
                     state=value.get('state'),
                     pipeline_job_resource_name=value.get(
-                        'pipelineJobResourceName'),
-                    pipeline_task_name=value.get('pipelineTaskName'),
-                    error_code=value.get('error').get('code', None),
-                    error_message=value.get('error').get('message', None),
+                        pipline_job_resource_name),
+                    pipeline_task_name=value.get(pipeline_task_name),
+                    error_code=value.get('error', {}).get('code', None),
+                    error_message=value.get('error', {}).get('message', None),
+                )
+
+            elif v == TaskConfig:
+                # The backend injects this struct under the actual input parameter name.
+                # If missing, pass an empty structure.
+                value = self.get_input_parameter_value(k)
+                value = value or {}
+                func_kwargs[k] = TaskConfig(
+                    affinity=value.get('affinity'),
+                    tolerations=value.get('tolerations'),
+                    node_selector=value.get('nodeSelector'),
+                    env=value.get('env'),
+                    volumes=value.get('volumes'),
+                    volume_mounts=value.get('volumeMounts'),
+                    resources=value.get('resources'),
                 )
 
             elif type_annotations.is_list_of_artifacts(v):
@@ -353,6 +378,26 @@ class Executor:
                     func_kwargs[k] = self.get_input_artifact(k)
                 if type_annotations.is_artifact_wrapped_in_Output(v):
                     func_kwargs[k] = self.get_output_artifact(k)
+
+            elif type_annotations.is_embedded_input_annotation(v):
+                # Inject a runtime-only artifact pointing to the extracted embedded asset
+                inner_type = type_annotations.strip_Input_or_Output_marker(v)
+                artifact_cls = inner_type if type_annotations.is_artifact_class(
+                    inner_type) else artifact_types.Artifact
+                embedded_dir = self.func.__globals__.get(
+                    '__KFP_EMBEDDED_ASSET_DIR')
+                embedded_file = self.func.__globals__.get(
+                    '__KFP_EMBEDDED_ASSET_FILE')
+                artifact_instance = artifact_cls()
+                if embedded_file:
+                    artifact_instance.path = embedded_file
+                elif embedded_dir:
+                    artifact_instance.path = embedded_dir
+                else:
+                    raise RuntimeError(
+                        'EmbeddedInput was specified but no embedded asset was found at runtime.'
+                    )
+                func_kwargs[k] = artifact_instance
 
             elif is_artifact(v):
                 func_kwargs[k] = self.get_input_artifact(k)

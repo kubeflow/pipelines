@@ -20,13 +20,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
 	upload_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/test/config"
 	test "github.com/kubeflow/pipelines/backend/test/v2"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -43,7 +45,7 @@ type PipelineApiTest struct {
 	namespace            string
 	resourceNamespace    string
 	pipelineClient       *api_server.PipelineClient
-	pipelineUploadClient *api_server.PipelineUploadClient
+	pipelineUploadClient api_server.PipelineUploadInterface
 }
 
 // Check the namespace have ML job installed and ready
@@ -59,33 +61,32 @@ func (s *PipelineApiTest) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
 	}
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
-		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
-		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 	}
 
 	var err error
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*config.DebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
@@ -103,20 +104,38 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	test.DeleteAllPipelines(s.pipelineClient, t)
 
 	/* ------ Upload v2 pipeline spec YAML --------*/
-	helloPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", upload_params.NewUploadPipelineParams())
+	helloPipeline, err := s.pipelineUploadClient.UploadFile(
+		"../resources/hello-world.yaml",
+		&upload_params.UploadPipelineParams{
+			Name:        util.StringPointer("hello-world"),
+			DisplayName: util.StringPointer("hello-world.yaml"),
+		},
+	)
 	require.Nil(t, err)
 	assert.Equal(t, "hello-world.yaml", helloPipeline.DisplayName)
 	// Verify that the pipeline name defaults to the display name for backwards compatibility.
-	assert.Equal(t, "hello-world.yaml", helloPipeline.Name)
+	assert.Equal(t, "hello-world", helloPipeline.Name)
 
 	/* ---------- Upload pipelines YAML ---------- */
 	time.Sleep(1 * time.Second)
-	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", upload_params.NewUploadPipelineParams())
+	argumentYAMLPipeline, err := s.pipelineUploadClient.UploadFile(
+		"../resources/arguments-parameters.yaml",
+		&upload_params.UploadPipelineParams{
+			Name:        util.StringPointer("arguments-parameters"),
+			DisplayName: util.StringPointer("arguments-parameters.yaml"),
+		},
+	)
 	require.Nil(t, err)
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.DisplayName)
 
 	/* ---------- Upload the same pipeline again. Should fail due to name uniqueness ---------- */
-	_, err = s.pipelineUploadClient.UploadFile("../resources/arguments-parameters.yaml", upload_params.NewUploadPipelineParams())
+	_, err = s.pipelineUploadClient.UploadFile(
+		"../resources/arguments-parameters.yaml",
+		&upload_params.UploadPipelineParams{
+			Name:        util.StringPointer("arguments-parameters"),
+			DisplayName: util.StringPointer("arguments-parameters.yaml"),
+		},
+	)
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to upload pipeline")
 
@@ -131,7 +150,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 			},
 			PipelineVersion: &model.V2beta1PipelineVersion{
 				PackageURL: &model.V2beta1URL{
-					PipelineURL: "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
+					PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
 				},
 			},
 		},
@@ -148,7 +167,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "sequential", sequentialPipelineVersions[0].DisplayName)
 	assert.Equal(t, "sequential pipeline", sequentialPipelineVersions[0].Description)
 	assert.Equal(t, sequentialPipeline.PipelineID, sequentialPipelineVersions[0].PipelineID)
-	assert.Equal(t, "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml", sequentialPipelineVersions[0].PackageURL.PipelineURL)
+	assert.Equal(t, "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml", string(sequentialPipelineVersions[0].PackageURL.PipelineURL))
 
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
@@ -158,21 +177,21 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := "https://github.com/opendatahub-io/data-science-pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+	pipelineURL := "https://github.com/kubeflow/pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
 	}
 
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineParams{
-		Body: &model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip"},
+		Pipeline: &model.V2beta1Pipeline{DisplayName: "arguments.pipeline.zip", Name: "arguments-pipeline-zip"},
 	})
 	require.Nil(t, err)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(
 		&params.PipelineServiceCreatePipelineVersionParams{
 			PipelineID: argumentUrlPipeline.PipelineID,
-			Body: &model.V2beta1PipelineVersion{
+			PipelineVersion: &model.V2beta1PipelineVersion{
 				DisplayName: "argumenturl-v1",
 				Description: "1st version of argument url pipeline",
 				PipelineID:  sequentialPipeline.PipelineID,
@@ -185,7 +204,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "argumenturl-v1", argumentUrlPipelineVersion.DisplayName)
 	assert.Equal(t, "1st version of argument url pipeline", argumentUrlPipelineVersion.Description)
 	assert.Equal(t, argumentUrlPipeline.PipelineID, argumentUrlPipelineVersion.PipelineID)
-	assert.Equal(t, pipelineURL, argumentUrlPipelineVersion.PackageURL.PipelineURL)
+	assert.Equal(t, pipelineURL, string(argumentUrlPipelineVersion.PackageURL.PipelineURL))
 
 	/* ---------- Verify list pipeline works ---------- */
 	pipelines, totalSize, _, err := s.pipelineClient.List(&params.PipelineServiceListPipelinesParams{})

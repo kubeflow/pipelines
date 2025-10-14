@@ -89,7 +89,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **experiment_service_create_experiment_v1**
-> ApiExperiment experiment_service_create_experiment_v1(body)
+> ApiExperiment experiment_service_create_experiment_v1(experiment)
 
 Creates a new experiment.
 
@@ -127,11 +127,11 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
-    body = kfp_server_api.ApiExperiment() # ApiExperiment | The experiment to be created.
+    experiment = kfp_server_api.ApiExperiment() # ApiExperiment | The experiment to be created.
 
     try:
         # Creates a new experiment.
-        api_response = api_instance.experiment_service_create_experiment_v1(body)
+        api_response = api_instance.experiment_service_create_experiment_v1(experiment)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling ExperimentServiceApi->experiment_service_create_experiment_v1: %s\n" % e)
@@ -141,7 +141,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**ApiExperiment**](ApiExperiment.md)| The experiment to be created. | 
+ **experiment** | [**ApiExperiment**](ApiExperiment.md)| The experiment to be created. | 
 
 ### Return type
 

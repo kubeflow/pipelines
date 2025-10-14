@@ -132,8 +132,16 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         self.assertEqual(
             strip_kfp_version(command),
             strip_kfp_version([
-                'sh', '-c',
-                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location \'package1\' \'package2\' && "$0" "$@"\n'
+                'sh', '-c', '\n'
+                'if ! [ -x "$(command -v pip)" ]; then\n'
+                '    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install '
+                'python3-pip\n'
+                'fi\n'
+                '\n'
+                'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
+                "--no-warn-script-location 'package1' 'package2'  &&  python3 -m pip install "
+                "--quiet --no-warn-script-location kfp '--no-deps' "
+                '\'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
             ]))
 
     def test_with_packages_to_install_with_pip_index_url(self):
@@ -148,8 +156,19 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         self.assertEqual(
             strip_kfp_version(command),
             strip_kfp_version([
-                'sh', '-c',
-                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host https://myurl.org/simple \'package1\' \'package2\' && "$0" "$@"\n'
+                'sh', '-c', '\n'
+                'if ! [ -x "$(command -v pip)" ]; then\n'
+                '    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install '
+                'python3-pip\n'
+                'fi\n'
+                '\n'
+                'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
+                '--no-warn-script-location --index-url https://myurl.org/simple '
+                "--trusted-host https://myurl.org/simple 'package1' 'package2'  &&  python3 "
+                '-m pip install --quiet --no-warn-script-location --index-url '
+                'https://myurl.org/simple --trusted-host https://myurl.org/simple kfp '
+                '\'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" '
+                '"$@"\n'
             ]))
 
     def test_with_packages_to_install_with_pip_index_url_and_trusted_host(self):
@@ -166,8 +185,18 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         self.assertEqual(
             strip_kfp_version(command),
             strip_kfp_version([
-                'sh', '-c',
-                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host myurl.org \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple --trusted-host myurl.org \'package1\' \'package2\' && "$0" "$@"\n'
+                'sh', '-c', '\n'
+                'if ! [ -x "$(command -v pip)" ]; then\n'
+                '    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install '
+                'python3-pip\n'
+                'fi\n'
+                '\n'
+                'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
+                '--no-warn-script-location --index-url https://myurl.org/simple '
+                "--trusted-host myurl.org 'package1' 'package2'  &&  python3 -m pip install "
+                '--quiet --no-warn-script-location --index-url https://myurl.org/simple '
+                "--trusted-host myurl.org kfp '--no-deps' 'typing-extensions>=3.7.4,<5; "
+                'python_version<"3.9"\' && "$0" "$@"\n'
             ]))
 
     def test_with_packages_to_install_with_pip_index_url_and_empty_trusted_host(
@@ -184,8 +213,17 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         self.assertEqual(
             strip_kfp_version(command),
             strip_kfp_version([
-                'sh', '-c',
-                '\nif ! [ -x "$(command -v pip)" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple \'kfp==2.1.3\' \'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\'  &&  python3 -m pip install --quiet --no-warn-script-location --index-url https://myurl.org/simple \'package1\' \'package2\' && "$0" "$@"\n'
+                'sh', '-c', '\n'
+                'if ! [ -x "$(command -v pip)" ]; then\n'
+                '    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install '
+                'python3-pip\n'
+                'fi\n'
+                '\n'
+                'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
+                "--no-warn-script-location --index-url https://myurl.org/simple 'package1' "
+                "'package2'  &&  python3 -m pip install --quiet --no-warn-script-location "
+                "--index-url https://myurl.org/simple kfp '--no-deps' "
+                '\'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
             ]))
 
 

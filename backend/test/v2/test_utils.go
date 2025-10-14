@@ -21,8 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cenkalti/backoff"
-	"github.com/golang/glog"
 	experiment_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
@@ -32,6 +30,9 @@ import (
 	run_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
+
+	"github.com/cenkalti/backoff"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -217,4 +218,22 @@ func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	for _, isRemoved := range deletedPipelines {
 		assert.True(t, isRemoved)
 	}
+}
+
+func GetPipelineUploadClient(
+	uploadPipelinesWithKubernetes bool,
+	isKubeflowMode bool,
+	isDebugMode bool,
+	namespace string,
+	clientConfig clientcmd.ClientConfig,
+) (api_server.PipelineUploadInterface, error) {
+	if uploadPipelinesWithKubernetes {
+		return api_server.NewPipelineUploadClientKubernetes(clientConfig, namespace)
+	}
+
+	if isKubeflowMode {
+		return api_server.NewKubeflowInClusterPipelineUploadClient(namespace, isDebugMode)
+	}
+
+	return api_server.NewPipelineUploadClient(clientConfig, isDebugMode)
 }

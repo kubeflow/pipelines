@@ -3,4 +3,4 @@ pathlib2==2.3.5
 pyyaml==5.4.1
 mypy-extensions==0.4.3
 kubernetes==12.0.1
-urllib3==1.26.15
+urllib3==2.5.0

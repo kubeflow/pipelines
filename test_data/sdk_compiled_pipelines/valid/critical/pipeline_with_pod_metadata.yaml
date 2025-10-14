@@ -1,0 +1,530 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-pod-metadata
+components:
+  comp-validate-no-pod-metadata:
+    executorLabel: exec-validate-no-pod-metadata
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: BOOLEAN
+  comp-validate-pod-metadata-task-a:
+    executorLabel: exec-validate-pod-metadata-task-a
+    inputDefinitions:
+      parameters:
+        annotation_exp_val:
+          parameterType: STRING
+        annotation_path:
+          parameterType: STRING
+        label_exp_val_1:
+          parameterType: STRING
+        label_exp_val_2:
+          parameterType: STRING
+        label_path_1:
+          parameterType: STRING
+        label_path_2:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: BOOLEAN
+  comp-validate-pod-metadata-task-b:
+    executorLabel: exec-validate-pod-metadata-task-b
+    inputDefinitions:
+      parameters:
+        annotation_exp_val_1:
+          parameterType: STRING
+        annotation_exp_val_2:
+          parameterType: STRING
+        annotation_exp_val_3:
+          parameterType: STRING
+        annotation_exp_val_4:
+          parameterType: STRING
+        annotation_path_1:
+          parameterType: STRING
+        annotation_path_2:
+          parameterType: STRING
+        annotation_path_3:
+          parameterType: STRING
+        annotation_path_4:
+          parameterType: STRING
+        label_exp_val_1:
+          parameterType: STRING
+        label_exp_val_2:
+          parameterType: STRING
+        label_exp_val_3:
+          parameterType: STRING
+        label_path_1:
+          parameterType: STRING
+        label_path_2:
+          parameterType: STRING
+        label_path_3:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: BOOLEAN
+  comp-validate-pod-metadata-task-c:
+    executorLabel: exec-validate-pod-metadata-task-c
+    inputDefinitions:
+      parameters:
+        annotation_exp_val_1:
+          parameterType: STRING
+        annotation_exp_val_2:
+          parameterType: STRING
+        annotation_path_1:
+          parameterType: STRING
+        annotation_path_2:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: BOOLEAN
+  comp-validate-pod-metadata-task-d:
+    executorLabel: exec-validate-pod-metadata-task-d
+    inputDefinitions:
+      parameters:
+        label_exp_val_1:
+          parameterType: STRING
+        label_exp_val_2:
+          parameterType: STRING
+        label_exp_val_3:
+          parameterType: STRING
+        label_path_1:
+          parameterType: STRING
+        label_path_2:
+          parameterType: STRING
+        label_path_3:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: BOOLEAN
+deploymentSpec:
+  executors:
+    exec-validate-no-pod-metadata:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - validate_no_pod_metadata
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef validate_no_pod_metadata() -> bool:\n    import os\n    annotation\
+          \ = os.getenv('POD_TASK_ANNOTATION')\n    annotation_2 = os.getenv('POD_TASK_ANNOTATION_1')\n\
+          \    if annotation != '' or annotation_2 != '':\n        raise ValueError(\n\
+          \            f'Pod annotation is {annotation} but is supposed to be None.'\n\
+          \        )\n    label = os.getenv('POD_TASK_LABEL')\n    label_2 = os.getenv('POD_TASK_LABEL_1')\n\
+          \    if label != '' or label_2 != '':\n        raise ValueError(\n     \
+          \       f'Pod label is {label} but is supposed to be None.'\n        )\n\
+          \    return True\n\n"
+        image: python:3.9
+    exec-validate-pod-metadata-task-a:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - validate_pod_metadata_task_a
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef validate_pod_metadata_task_a(annotation_path: str,\n        \
+          \                         annotation_exp_val: str,\n                   \
+          \              label_path_1: str,\n                                 label_exp_val_1:\
+          \ str,\n                                 label_path_2: str,\n          \
+          \                       label_exp_val_2: str) -> bool:\n    import os\n\
+          \    annotation_val = os.getenv(annotation_path)\n    if annotation_val\
+          \ != annotation_exp_val:\n        raise ValueError(\n            f'Pod annotation\
+          \ is {annotation_val} but is supposed to be {annotation_exp_val}.'\n   \
+          \     )\n\n    label_val_1 = os.getenv(label_path_1)\n    if label_val_1\
+          \ != label_exp_val_1:\n        raise ValueError(\n            f'Pod label\
+          \ is {label_val_1} but is supposed to be {label_exp_val_1}.'\n        )\n\
+          \n    label_val_2 = os.getenv(label_path_2)\n    if label_val_2 != label_exp_val_2:\n\
+          \        raise ValueError(\n            f'Pod label is {label_val_2} but\
+          \ is supposed to be {label_exp_val_2}.'\n        )\n    return True\n\n"
+        image: python:3.9
+    exec-validate-pod-metadata-task-b:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - validate_pod_metadata_task_b
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef validate_pod_metadata_task_b(annotation_path_1: str,\n      \
+          \                           annotation_exp_val_1: str,\n               \
+          \                  annotation_path_2: str,\n                           \
+          \      annotation_exp_val_2: str,\n                                 annotation_path_3:\
+          \ str,\n                                 annotation_exp_val_3: str,\n  \
+          \                               annotation_path_4: str,\n              \
+          \                   annotation_exp_val_4: str,\n                       \
+          \          label_path_1: str,\n                                 label_exp_val_1:\
+          \ str,\n                                 label_path_2: str,\n          \
+          \                       label_exp_val_2: str,\n                        \
+          \         label_path_3: str,\n                                 label_exp_val_3:\
+          \ str) -> bool:\n    import os\n    annotation_val_1 = os.getenv(annotation_path_1)\n\
+          \    if annotation_val_1 != annotation_exp_val_1:\n        raise ValueError(\n\
+          \            f'Pod annotation is {annotation_val_1} but is supposed to be\
+          \ {annotation_exp_val_1}.'\n        )\n    annotation_val_2 = os.getenv(annotation_path_2)\n\
+          \    if annotation_val_2 != annotation_exp_val_2:\n        raise ValueError(\n\
+          \            f'Pod annotation is {annotation_val_2} but is supposed to be\
+          \ {annotation_exp_val_2}.'\n        )\n    annotation_val_3 = os.getenv(annotation_path_3)\n\
+          \    if annotation_val_3 != annotation_exp_val_3:\n        raise ValueError(\n\
+          \            f'Pod annotation is {annotation_val_3} but is supposed to be\
+          \ {annotation_exp_val_3}.'\n        )\n    annotation_val_4 = os.getenv(annotation_path_4)\n\
+          \    if annotation_val_4 != annotation_exp_val_4:\n        raise ValueError(\n\
+          \            f'Pod annotation is {annotation_val_4} but is supposed to be\
+          \ {annotation_exp_val_4}.'\n        )\n    label_val_1 = os.getenv(label_path_1)\n\
+          \    if label_val_1 != label_exp_val_1:\n        raise ValueError(\n   \
+          \         f'Pod label is {label_val_1} but is supposed to be {label_exp_val_1}.'\n\
+          \        )\n    label_val_2 = os.getenv(label_path_2)\n    if label_val_2\
+          \ != label_exp_val_2:\n        raise ValueError(\n            f'Pod label\
+          \ is {label_val_2} but is supposed to be {label_exp_val_2}.'\n        )\n\
+          \    label_val_3 = os.getenv(label_path_3)\n    if label_val_3 != label_exp_val_3:\n\
+          \        raise ValueError(\n            f'Pod label is {label_val_3} but\
+          \ is supposed to be {label_exp_val_3}.'\n        )\n    return True\n\n"
+        image: python:3.9
+    exec-validate-pod-metadata-task-c:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - validate_pod_metadata_task_c
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef validate_pod_metadata_task_c(annotation_path_1: str,\n      \
+          \                           annotation_exp_val_1: str,\n               \
+          \                  annotation_path_2: str,\n                           \
+          \      annotation_exp_val_2: str) -> bool:\n    import os\n    annotation_val_1\
+          \ = os.getenv(annotation_path_1)\n    if annotation_val_1 != annotation_exp_val_1:\n\
+          \        raise ValueError(\n            f'Pod annotation is {annotation_val_1}\
+          \ but is supposed to be {annotation_exp_val_1}.'\n        )\n\n    annotation_val_2\
+          \ = os.getenv(annotation_path_2)\n    if annotation_val_2 != annotation_exp_val_2:\n\
+          \        raise ValueError(\n            f'Pod annotation is {annotation_val_2}\
+          \ but is supposed to be {annotation_exp_val_2}.'\n        )\n    return\
+          \ True\n\n"
+        image: python:3.9
+    exec-validate-pod-metadata-task-d:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - validate_pod_metadata_task_d
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef validate_pod_metadata_task_d(label_path_1: str,\n           \
+          \                      label_exp_val_1: str,\n                         \
+          \        label_path_2: str,\n                                 label_exp_val_2:\
+          \ str,\n                                 label_path_3: str,\n          \
+          \                       label_exp_val_3: str) -> bool:\n    import os\n\
+          \    label_val_1 = os.getenv(label_path_1)\n    if label_val_1 != label_exp_val_1:\n\
+          \        raise ValueError(\n            f'Pod label is {label_val_1} but\
+          \ is supposed to be {label_exp_val_1}.'\n        )\n    label_val_2 = os.getenv(label_path_2)\n\
+          \    if label_val_2 != label_exp_val_2:\n        raise ValueError(\n   \
+          \         f'Pod label is {label_val_2} but is supposed to be {label_exp_val_2}.'\n\
+          \        )\n    label_val_3 = os.getenv(label_path_3)\n    if label_val_3\
+          \ != label_exp_val_3:\n        raise ValueError(\n            f'Pod label\
+          \ is {label_val_3} but is supposed to be {label_exp_val_3}.'\n        )\n\
+          \    return True\n\n"
+        image: python:3.9
+pipelineInfo:
+  name: pipeline-with-pod-metadata
+root:
+  dag:
+    tasks:
+      validate-no-pod-metadata:
+        cachingOptions: {}
+        componentRef:
+          name: comp-validate-no-pod-metadata
+        taskInfo:
+          name: validate-no-pod-metadata
+      validate-pod-metadata-task-a:
+        cachingOptions: {}
+        componentRef:
+          name: comp-validate-pod-metadata-task-a
+        inputs:
+          parameters:
+            annotation_exp_val:
+              runtimeValue:
+                constant: annotation
+            annotation_path:
+              runtimeValue:
+                constant: POD_TASK_ANNOTATION
+            label_exp_val_1:
+              runtimeValue:
+                constant: label-1
+            label_exp_val_2:
+              runtimeValue:
+                constant: label-2
+            label_path_1:
+              runtimeValue:
+                constant: POD_TASK_LABEL_1
+            label_path_2:
+              runtimeValue:
+                constant: POD_TASK_LABEL_2
+        taskInfo:
+          name: validate-pod-metadata-task-a
+      validate-pod-metadata-task-b:
+        cachingOptions: {}
+        componentRef:
+          name: comp-validate-pod-metadata-task-b
+        inputs:
+          parameters:
+            annotation_exp_val_1:
+              runtimeValue:
+                constant: annotation-1
+            annotation_exp_val_2:
+              runtimeValue:
+                constant: annotation-2
+            annotation_exp_val_3:
+              runtimeValue:
+                constant: annotation-3
+            annotation_exp_val_4:
+              runtimeValue:
+                constant: annotation-4
+            annotation_path_1:
+              runtimeValue:
+                constant: POD_TASK_ANNOTATION_1
+            annotation_path_2:
+              runtimeValue:
+                constant: POD_TASK_ANNOTATION_2
+            annotation_path_3:
+              runtimeValue:
+                constant: POD_TASK_ANNOTATION_3
+            annotation_path_4:
+              runtimeValue:
+                constant: POD_TASK_ANNOTATION_4
+            label_exp_val_1:
+              runtimeValue:
+                constant: label-1
+            label_exp_val_2:
+              runtimeValue:
+                constant: label-2
+            label_exp_val_3:
+              runtimeValue:
+                constant: label-3
+            label_path_1:
+              runtimeValue:
+                constant: POD_TASK_LABEL_1
+            label_path_2:
+              runtimeValue:
+                constant: POD_TASK_LABEL_2
+            label_path_3:
+              runtimeValue:
+                constant: POD_TASK_LABEL_3
+        taskInfo:
+          name: validate-pod-metadata-task-b
+      validate-pod-metadata-task-c:
+        cachingOptions: {}
+        componentRef:
+          name: comp-validate-pod-metadata-task-c
+        inputs:
+          parameters:
+            annotation_exp_val_1:
+              runtimeValue:
+                constant: annotation-1
+            annotation_exp_val_2:
+              runtimeValue:
+                constant: annotation-2
+            annotation_path_1:
+              runtimeValue:
+                constant: POD_TASK_ANNOTATION_1
+            annotation_path_2:
+              runtimeValue:
+                constant: POD_TASK_ANNOTATION_2
+        taskInfo:
+          name: validate-pod-metadata-task-c
+      validate-pod-metadata-task-d:
+        cachingOptions: {}
+        componentRef:
+          name: comp-validate-pod-metadata-task-d
+        inputs:
+          parameters:
+            label_exp_val_1:
+              runtimeValue:
+                constant: label-1
+            label_exp_val_2:
+              runtimeValue:
+                constant: label-2
+            label_exp_val_3:
+              runtimeValue:
+                constant: label-3
+            label_path_1:
+              runtimeValue:
+                constant: POD_TASK_LABEL_1
+            label_path_2:
+              runtimeValue:
+                constant: POD_TASK_LABEL_2
+            label_path_3:
+              runtimeValue:
+                constant: POD_TASK_LABEL_3
+        taskInfo:
+          name: validate-pod-metadata-task-d
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.13.0
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-validate-no-pod-metadata:
+          fieldPathAsEnv:
+          - fieldPath: metadata.annotations['task-annotation']
+            name: POD_TASK_ANNOTATION
+          - fieldPath: metadata.annotations['task-annotation-1']
+            name: POD_TASK_ANNOTATION_1
+          - fieldPath: metadata.labels['task-label']
+            name: POD_TASK_LABEL
+          - fieldPath: metadata.labels['task-label-1']
+            name: POD_TASK_LABEL_1
+        exec-validate-pod-metadata-task-a:
+          fieldPathAsEnv:
+          - fieldPath: metadata.annotations['task-annotation']
+            name: POD_TASK_ANNOTATION
+          - fieldPath: metadata.labels['task-label-1']
+            name: POD_TASK_LABEL_1
+          - fieldPath: metadata.labels['task-label-2']
+            name: POD_TASK_LABEL_2
+          podMetadata:
+            annotations:
+              task-annotation: annotation
+            labels:
+              task-label-1: label-1
+              task-label-2: label-2
+        exec-validate-pod-metadata-task-b:
+          fieldPathAsEnv:
+          - fieldPath: metadata.annotations['task-annotation-1']
+            name: POD_TASK_ANNOTATION_1
+          - fieldPath: metadata.annotations['task-annotation-2']
+            name: POD_TASK_ANNOTATION_2
+          - fieldPath: metadata.annotations['task-annotation-3']
+            name: POD_TASK_ANNOTATION_3
+          - fieldPath: metadata.annotations['task-annotation-4']
+            name: POD_TASK_ANNOTATION_4
+          - fieldPath: metadata.labels['task-label-1']
+            name: POD_TASK_LABEL_1
+          - fieldPath: metadata.labels['task-label-2']
+            name: POD_TASK_LABEL_2
+          - fieldPath: metadata.labels['task-label-3']
+            name: POD_TASK_LABEL_3
+          podMetadata:
+            annotations:
+              task-annotation-1: annotation-1
+              task-annotation-2: annotation-2
+              task-annotation-3: annotation-3
+              task-annotation-4: annotation-4
+            labels:
+              task-label-1: label-1
+              task-label-2: label-2
+              task-label-3: label-3
+        exec-validate-pod-metadata-task-c:
+          fieldPathAsEnv:
+          - fieldPath: metadata.annotations['task-annotation-1']
+            name: POD_TASK_ANNOTATION_1
+          - fieldPath: metadata.annotations['task-annotation-2']
+            name: POD_TASK_ANNOTATION_2
+          podMetadata:
+            annotations:
+              task-annotation-1: annotation-1
+              task-annotation-2: annotation-2
+        exec-validate-pod-metadata-task-d:
+          fieldPathAsEnv:
+          - fieldPath: metadata.labels['task-label-1']
+            name: POD_TASK_LABEL_1
+          - fieldPath: metadata.labels['task-label-2']
+            name: POD_TASK_LABEL_2
+          - fieldPath: metadata.labels['task-label-3']
+            name: POD_TASK_LABEL_3
+          podMetadata:
+            labels:
+              task-label-1: label-1
+              task-label-2: label-2
+              task-label-3: label-3

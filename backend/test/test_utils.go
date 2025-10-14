@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
@@ -32,6 +31,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+
+	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/tools/clientcmd"
@@ -124,7 +125,7 @@ func DeleteAllJobs(client *api_server.JobClient, namespace string, t *testing.T)
 func GetExperimentIDFromV1beta1ResourceReferences(resourceRefs []*run_model.APIResourceReference) string {
 	experimentID := ""
 	for _, resourceRef := range resourceRefs {
-		if resourceRef.Key.Type == run_model.APIResourceTypeEXPERIMENT {
+		if *resourceRef.Key.Type == run_model.APIResourceTypeEXPERIMENT {
 			experimentID = resourceRef.Key.ID
 			break
 		}
@@ -197,10 +198,10 @@ func GetExperiment(name string, description string, namespace string) *experimen
 		experiment.ResourceReferences = []*experiment_model.APIResourceReference{
 			{
 				Key: &experiment_model.APIResourceKey{
-					Type: experiment_model.APIResourceTypeNAMESPACE,
+					Type: experiment_model.APIResourceTypeNAMESPACE.Pointer(),
 					ID:   namespace,
 				},
-				Relationship: experiment_model.APIRelationshipOWNER,
+				Relationship: experiment_model.APIRelationshipOWNER.Pointer(),
 			},
 		}
 	}
@@ -244,7 +245,7 @@ func VerifyJobResourceReferences(resRefs []*job_model.APIResourceReference, targ
 				break
 			}
 			if resRef.Key != nil {
-				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+				if resRef.Key.ID == target.Key.ID && *resRef.Key.Type == *target.Key.Type && *resRef.Relationship == *target.Relationship {
 					matches++
 					break
 				}
@@ -264,7 +265,7 @@ func VerifyPipelineResourceReferences(resRefs []*pipeline_model.APIResourceRefer
 				break
 			}
 			if resRef.Key != nil {
-				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+				if resRef.Key.ID == target.Key.ID && *resRef.Key.Type == *target.Key.Type && *resRef.Relationship == *target.Relationship {
 					matches++
 					break
 				}
@@ -284,7 +285,7 @@ func VerifyRunResourceReferences(resRefs []*run_model.APIResourceReference, targ
 				break
 			}
 			if resRef.Key != nil {
-				if resRef.Key.ID == target.Key.ID && resRef.Key.Type == target.Key.Type && resRef.Relationship == target.Relationship {
+				if resRef.Key.ID == target.Key.ID && *resRef.Key.Type == *target.Key.Type && *resRef.Relationship == *target.Relationship {
 					matches++
 					break
 				}

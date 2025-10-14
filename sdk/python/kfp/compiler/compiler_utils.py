@@ -15,7 +15,12 @@
 
 import collections
 import copy
-from typing import DefaultDict, Dict, List, Mapping, Set, Tuple, Union
+
+# isort: off
+# Disable isort because isort and yapf conflict with each other.
+from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Set, Tuple,
+                    Union)
+# isort: on
 
 from kfp import dsl
 from kfp.dsl import constants
@@ -461,7 +466,7 @@ def get_outputs_for_all_groups(
     group_name_to_group = {group.name: group for group in all_groups}
     group_name_to_children = {
         group.name: [group.name for group in group.groups] +
-        [task.name for task in group.tasks] for group in all_groups
+                    [task.name for task in group.tasks] for group in all_groups
     }
 
     outputs = collections.defaultdict(dict)
@@ -777,15 +782,16 @@ def get_dependencies(
     return dependencies
 
 
-def recursive_replace_placeholders(data: Union[Dict, List], old_value: str,
-                                   new_value: str) -> Union[Dict, List]:
-    """Recursively replaces values in a nested dict/list object.
+def recursive_replace_placeholders(data: Any, old_value: str,
+                                   new_value: str) -> Union[Dict, List, str]:
+    """Replaces the given data. If the data is a dict/list object, it
+    recursively replaces values in it.
 
     This method is used to replace PipelineChannel objects with input parameter
     placeholders in a nested object like worker_pool_specs for custom jobs.
 
     Args:
-        data: A nested object that can contain dictionaries and/or lists.
+        data: An object, which could be a nested object including dictionaries and lists.
         old_value: The value that will be replaced.
         new_value: The value to replace the old value with.
 
@@ -805,7 +811,10 @@ def recursive_replace_placeholders(data: Union[Dict, List], old_value: str,
     else:
         if isinstance(data, pipeline_channel.PipelineChannel):
             data = str(data)
-        return new_value if data == old_value else data
+        if isinstance(data, str):
+            return data.replace(old_value, new_value)
+        else:
+            return data
 
 
 # Note that cpu_to_float assumes the string has already been validated by the _validate_cpu_request_limit method.
@@ -863,3 +872,73 @@ def _memory_to_float(memory: str) -> float:
         memory = float(memory) / constants._G
 
     return memory
+
+
+class KubernetesManifestOptions:
+    """Options for Kubernetes manifest output during pipeline compilation.
+
+    Args:
+        pipeline_name: Name for the Pipeline resource (defaults to pipeline_spec.pipeline_info.name).
+        pipeline_display_name: Display name for the Pipeline resource (defaults to pipeline_name).
+        pipeline_version_name: Name for the PipelineVersion resource (defaults to pipeline_name).
+        pipeline_version_display_name: Display name for the PipelineVersion resource (defaults to pipeline_display_name).
+        namespace: Kubernetes namespace for the resources (optional).
+        include_pipeline_manifest: Whether to include the Pipeline manifest (default: False).
+    """
+
+    def __init__(
+        self,
+        pipeline_name: Optional[str] = None,
+        pipeline_display_name: Optional[str] = None,
+        pipeline_version_name: Optional[str] = None,
+        pipeline_version_display_name: Optional[str] = None,
+        namespace: Optional[str] = None,
+        include_pipeline_manifest: bool = False,
+    ):
+        self.pipeline_name = pipeline_name
+        self.pipeline_display_name = pipeline_display_name
+        self.pipeline_version_name = pipeline_version_name
+        self.pipeline_version_display_name = pipeline_version_display_name
+        self.namespace = namespace
+        self.include_pipeline_manifest = include_pipeline_manifest
+        self._pipeline_spec = None
+
+    def set_pipeline_spec(self, pipeline_spec):
+        self._pipeline_spec = pipeline_spec
+
+    @property
+    def pipeline_name(self) -> Optional[str]:
+        if self._pipeline_name is not None:
+            return self._pipeline_name
+        if self._pipeline_spec is not None:
+            return self._pipeline_spec.pipeline_info.name
+        return None
+
+    @pipeline_name.setter
+    def pipeline_name(self, value: Optional[str]):
+        self._pipeline_name = value
+
+    @property
+    def pipeline_display_name(self) -> Optional[str]:
+        return self._pipeline_display_name or self.pipeline_name
+
+    @pipeline_display_name.setter
+    def pipeline_display_name(self, value: Optional[str]):
+        self._pipeline_display_name = value
+
+    @property
+    def pipeline_version_name(self) -> Optional[str]:
+        return self._pipeline_version_name or self.pipeline_name
+
+    @pipeline_version_name.setter
+    def pipeline_version_name(self, value: Optional[str]):
+        self._pipeline_version_name = value
+
+    @property
+    def pipeline_version_display_name(self) -> Optional[str]:
+        return (self._pipeline_version_display_name or
+                self.pipeline_version_name or self.pipeline_display_name)
+
+    @pipeline_version_display_name.setter
+    def pipeline_version_display_name(self, value: Optional[str]):
+        self._pipeline_version_display_name = value

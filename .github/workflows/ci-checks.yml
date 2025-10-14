@@ -13,7 +13,7 @@ jobs:
       pull-requests: write        
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Check for 'needs-ok-to-test' and 'ok-to-test' labels
         id: label_check

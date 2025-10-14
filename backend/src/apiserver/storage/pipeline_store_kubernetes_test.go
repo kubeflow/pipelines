@@ -37,7 +37,7 @@ func TestListK8sPipelines(t *testing.T) {
 
 	pipeline := &model.Pipeline{
 		Name:        "Test Pipeline",
-		Description: "Test Pipeline Description",
+		Description: model.LargeText("Test Pipeline Description"),
 		Namespace:   "Test",
 	}
 
@@ -58,7 +58,7 @@ func TestListK8sPipelines_WithFilter(t *testing.T) {
 
 	pipeline := &model.Pipeline{
 		Name:        "Test Pipeline",
-		Description: "Test Pipeline Description",
+		Description: model.LargeText("Test Pipeline Description"),
 		Namespace:   "Test",
 	}
 	_, err := store.CreatePipeline(pipeline)
@@ -91,12 +91,12 @@ func TestListK8sPipelines_Pagination(t *testing.T) {
 
 	pipeline1 := &model.Pipeline{
 		Name:        "Test Pipeline 1",
-		Description: "Test Pipeline 1 Description",
+		Description: model.LargeText("Test Pipeline 1 Description"),
 		Namespace:   "Test",
 	}
 	pipeline2 := &model.Pipeline{
 		Name:        "Test Pipeline 2",
-		Description: "Test Pipeline 2 Description",
+		Description: model.LargeText("Test Pipeline 2 Description"),
 		Namespace:   "Test",
 	}
 
@@ -129,12 +129,12 @@ func TestListK8sPipelines_Pagination_Descend(t *testing.T) {
 
 	pipeline1 := &model.Pipeline{
 		Name:        "Test Pipeline 1",
-		Description: "Test Pipeline 1 Description",
+		Description: model.LargeText("Test Pipeline 1 Description"),
 		Namespace:   "Test",
 	}
 	pipeline2 := &model.Pipeline{
 		Name:        "Test Pipeline 2",
-		Description: "Test Pipeline 2 Description",
+		Description: model.LargeText("Test Pipeline 2 Description"),
 		Namespace:   "Test",
 	}
 
@@ -166,12 +166,12 @@ func TestListK8sPipelinesV1_Pagination_NameAsc(t *testing.T) {
 
 	pipeline1 := &model.Pipeline{
 		Name:        "Test Pipeline 1",
-		Description: "Test Pipeline 1 Description",
+		Description: model.LargeText("Test Pipeline 1 Description"),
 		Namespace:   "Test",
 	}
 	pipeline2 := &model.Pipeline{
 		Name:        "Test Pipeline 2",
-		Description: "Test Pipeline 2 Description",
+		Description: model.LargeText("Test Pipeline 2 Description"),
 		Namespace:   "Test",
 	}
 
@@ -244,7 +244,7 @@ func TestCreateK8sPipeline(t *testing.T) {
 
 	pipeline := &model.Pipeline{
 		Name:        "Test Pipeline",
-		Description: "Test Pipeline Description",
+		Description: model.LargeText("Test Pipeline Description"),
 		Namespace:   "Test",
 	}
 
@@ -281,8 +281,8 @@ func TestCreateK8sPipelineVersion(t *testing.T) {
 	pipelineVersion := &model.PipelineVersion{
 		Name:         "Test Pipeline Version",
 		PipelineId:   DefaultFakePipelineIdTwo,
-		Description:  "Test Pipeline Version Description",
-		PipelineSpec: getBasicPipelineSpecYAML(),
+		Description:  model.LargeText("Test Pipeline Version Description"),
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
 	}
 
 	_, err := store.CreatePipelineVersion(pipelineVersion)
@@ -316,7 +316,7 @@ func TestGetK8sPipelineVersion(t *testing.T) {
 	pipelineVersion := &model.PipelineVersion{
 		UUID:        DefaultFakePipelineIdTwo,
 		Name:        "Test Pipeline Version",
-		Description: "Test Pipeline Version Description",
+		Description: model.LargeText("Test Pipeline Version Description"),
 	}
 
 	p, err := store.GetPipelineVersion(DefaultFakePipelineIdTwo)
@@ -358,13 +358,13 @@ func TestListK8sPipelineVersions_Pagination(t *testing.T) {
 	pipelineVersion1 := &model.PipelineVersion{
 		Name:         "Test Pipeline Version 1",
 		PipelineId:   DefaultFakePipelineIdTwo,
-		PipelineSpec: getBasicPipelineSpecYAML(),
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
 	}
 
 	pipelineVersion2 := &model.PipelineVersion{
 		Name:         "Test Pipeline Version 2",
 		PipelineId:   DefaultFakePipelineIdTwo,
-		PipelineSpec: getBasicPipelineSpecYAML(),
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
 	}
 
 	_, err := store.CreatePipelineVersion(pipelineVersion1)
@@ -398,13 +398,13 @@ func TestListK8sPipelineVersions_Pagination_Descend(t *testing.T) {
 	pipelineVersion1 := &model.PipelineVersion{
 		Name:         "Test Pipeline Version 1",
 		PipelineId:   DefaultFakePipelineIdTwo,
-		PipelineSpec: getBasicPipelineSpecYAML(),
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
 	}
 
 	pipelineVersion2 := &model.PipelineVersion{
 		Name:         "Test Pipeline Version 2",
 		PipelineId:   DefaultFakePipelineIdTwo,
-		PipelineSpec: getBasicPipelineSpecYAML(),
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
 	}
 
 	_, err := store.CreatePipelineVersion(pipelineVersion1)
@@ -486,7 +486,7 @@ func TestCreatePipelineAndPipelineVersion(t *testing.T) {
 	}
 	k8sPipelineVersion := &model.PipelineVersion{
 		Name:         "Test Pipeline Version",
-		PipelineSpec: getBasicPipelineSpecYAML(),
+		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
 	}
 
 	_, _, err := store.CreatePipelineAndPipelineVersion(k8sPipeline, k8sPipelineVersion)
