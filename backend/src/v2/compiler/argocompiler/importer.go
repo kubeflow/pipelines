@@ -86,6 +86,19 @@ func (c *workflowCompiler) addImporterTemplate() string {
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	if c.mlPipelineTLSEnabled {
+		args = append(args, "--ml_pipeline_tls_enabled")
+	}
+	if common.GetMetadataTLSEnabled() {
+		args = append(args, "--metadata_tls_enabled")
+	}
+
+	setCABundle := false
+	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
+		setCABundle = true
+	}
+
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -113,7 +126,7 @@ func (c *workflowCompiler) addImporterTemplate() string {
 	}
 
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the importer template.
-	if c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled() {
+	if setCABundle {
 		ConfigureCustomCABundle(importerTemplate)
 	}
 	c.templates[name] = importerTemplate
