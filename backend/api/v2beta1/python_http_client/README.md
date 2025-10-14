@@ -88,7 +88,7 @@ verb = 'UNASSIGNED_VERB' # str | Verb on the resource asking for authorization. 
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling AuthServiceApi->auth_service_authorize: %s\n" % e)
-    
+
 ```
 
 ## Documentation for API Endpoints
@@ -97,10 +97,10 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*AuthServiceApi* | [**auth_service_authorize**](docs/AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth | 
+*AuthServiceApi* | [**auth_service_authorize**](docs/AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth |
 *ExperimentServiceApi* | [**experiment_service_archive_experiment**](docs/ExperimentServiceApi.md#experiment_service_archive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:archive | Archives an experiment and the experiment&#39;s runs and recurring runs.
 *ExperimentServiceApi* | [**experiment_service_create_experiment**](docs/ExperimentServiceApi.md#experiment_service_create_experiment) | **POST** /apis/v2beta1/experiments | Creates a new experiment.
-*ExperimentServiceApi* | [**experiment_service_delete_experiment**](docs/ExperimentServiceApi.md#experiment_service_delete_experiment) | **DELETE** /apis/v2beta1/experiments/{experiment_id} | Deletes an experiment without deleting the experiment&#39;s runs and recurring  runs. To avoid unexpected behaviors, delete an experiment&#39;s runs and recurring  runs before deleting the experiment.
+*ExperimentServiceApi* | [**experiment_service_delete_experiment**](docs/ExperimentServiceApi.md#experiment_service_delete_experiment) | **DELETE** /apis/v2beta1/experiments/{experiment_id} | Deletes an experiment without deleting the experiment&#39;s runs and recurring runs. To avoid unexpected behaviors, delete an experiment&#39;s runs and recurring runs before deleting the experiment.
 *ExperimentServiceApi* | [**experiment_service_get_experiment**](docs/ExperimentServiceApi.md#experiment_service_get_experiment) | **GET** /apis/v2beta1/experiments/{experiment_id} | Finds a specific experiment by ID.
 *ExperimentServiceApi* | [**experiment_service_list_experiments**](docs/ExperimentServiceApi.md#experiment_service_list_experiments) | **GET** /apis/v2beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
 *ExperimentServiceApi* | [**experiment_service_unarchive_experiment**](docs/ExperimentServiceApi.md#experiment_service_unarchive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and recurring runs will stay archived.
@@ -115,16 +115,16 @@ Class | Method | HTTP request | Description
 *PipelineServiceApi* | [**pipeline_service_get_pipeline_version**](docs/PipelineServiceApi.md#pipeline_service_get_pipeline_version) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id} | Gets a pipeline version by pipeline version ID and pipeline ID.
 *PipelineServiceApi* | [**pipeline_service_list_pipeline_versions**](docs/PipelineServiceApi.md#pipeline_service_list_pipeline_versions) | **GET** /apis/v2beta1/pipelines/{pipeline_id}/versions | Lists all pipeline versions of a given pipeline ID.
 *PipelineServiceApi* | [**pipeline_service_list_pipelines**](docs/PipelineServiceApi.md#pipeline_service_list_pipelines) | **GET** /apis/v2beta1/pipelines | Finds all pipelines within a namespace.
-*PipelineUploadServiceApi* | [**upload_pipeline**](docs/PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2beta1/pipelines/upload | 
-*PipelineUploadServiceApi* | [**upload_pipeline_version**](docs/PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2beta1/pipelines/upload_version | 
+*PipelineUploadServiceApi* | [**upload_pipeline**](docs/PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2beta1/pipelines/upload |
+*PipelineUploadServiceApi* | [**upload_pipeline_version**](docs/PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2beta1/pipelines/upload_version |
 *RecurringRunServiceApi* | [**recurring_run_service_create_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_create_recurring_run) | **POST** /apis/v2beta1/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
 *RecurringRunServiceApi* | [**recurring_run_service_delete_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_delete_recurring_run) | **DELETE** /apis/v2beta1/recurringruns/{recurring_run_id} | Deletes a recurring run.
 *RecurringRunServiceApi* | [**recurring_run_service_disable_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_disable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
 *RecurringRunServiceApi* | [**recurring_run_service_enable_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
 *RecurringRunServiceApi* | [**recurring_run_service_get_recurring_run**](docs/RecurringRunServiceApi.md#recurring_run_service_get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{recurring_run_id} | Finds a specific recurring run by ID.
 *RecurringRunServiceApi* | [**recurring_run_service_list_recurring_runs**](docs/RecurringRunServiceApi.md#recurring_run_service_list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.
-*ReportServiceApi* | [**report_service_report_scheduled_workflow**](docs/ReportServiceApi.md#report_service_report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows | 
-*ReportServiceApi* | [**report_service_report_workflow**](docs/ReportServiceApi.md#report_service_report_workflow) | **POST** /apis/v2beta1/workflows | 
+*ReportServiceApi* | [**report_service_report_scheduled_workflow**](docs/ReportServiceApi.md#report_service_report_scheduled_workflow) | **POST** /apis/v2beta1/scheduledworkflows |
+*ReportServiceApi* | [**report_service_report_workflow**](docs/ReportServiceApi.md#report_service_report_workflow) | **POST** /apis/v2beta1/workflows |
 *RunServiceApi* | [**run_service_archive_run**](docs/RunServiceApi.md#run_service_archive_run) | **POST** /apis/v2beta1/runs/{run_id}:archive | Archives a run in an experiment given by run ID and experiment ID.
 *RunServiceApi* | [**run_service_create_run**](docs/RunServiceApi.md#run_service_create_run) | **POST** /apis/v2beta1/runs | Creates a new run in an experiment specified by experiment ID. If experiment ID is not specified, the run is created in the default experiment.
 *RunServiceApi* | [**run_service_delete_run**](docs/RunServiceApi.md#run_service_delete_run) | **DELETE** /apis/v2beta1/runs/{run_id} | Deletes a run in an experiment given by run ID and experiment ID.
@@ -134,7 +134,7 @@ Class | Method | HTTP request | Description
 *RunServiceApi* | [**run_service_retry_run**](docs/RunServiceApi.md#run_service_retry_run) | **POST** /apis/v2beta1/runs/{run_id}:retry | Re-initiates a failed or terminated run.
 *RunServiceApi* | [**run_service_terminate_run**](docs/RunServiceApi.md#run_service_terminate_run) | **POST** /apis/v2beta1/runs/{run_id}:terminate | Terminates an active run.
 *RunServiceApi* | [**run_service_unarchive_run**](docs/RunServiceApi.md#run_service_unarchive_run) | **POST** /apis/v2beta1/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
-*VisualizationServiceApi* | [**visualization_service_create_visualization_v1**](docs/VisualizationServiceApi.md#visualization_service_create_visualization_v1) | **POST** /apis/v2beta1/visualizations/{namespace} | 
+*VisualizationServiceApi* | [**visualization_service_create_visualization_v1**](docs/VisualizationServiceApi.md#visualization_service_create_visualization_v1) | **POST** /apis/v2beta1/visualizations/{namespace} |
 
 
 ## Documentation For Models
@@ -197,5 +197,3 @@ Class | Method | HTTP request | Description
 ## Author
 
 kubeflow-pipelines@google.com
-
-
