@@ -137,7 +137,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 
 	/* ---------- Import pipeline version YAML by URL ---------- */
 	pipelineURL := "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/test_data/sdk_compiled_pipelines/valid/sequential_v2.yaml"
-	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+	if pullNumber := os.Getenv("PullNumber"); pullNumber != "" {
 		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/sequential_v2.yaml", pullNumber)
 	}
 	time.Sleep(1 * time.Second)
@@ -169,7 +169,7 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	/* ---------- Import pipeline tarball by URL ---------- */
 	pipelineURL = "https://github.com/kubeflow/pipelines/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip"
 
-	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+	if pullNumber := os.Getenv("PullNumber"); pullNumber != "" {
 		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/kubeflow/pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip", pullNumber)
 	}
 

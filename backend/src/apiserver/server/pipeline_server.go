@@ -141,9 +141,9 @@ func (s *BasePipelineServer) createPipeline(ctx context.Context, pipeline *model
 
 // Creates a pipeline and a pipeline version in a single transaction.
 // Applies common logic on v1beta1 and v2beta1 API.
-func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Context, pipeline *model.Pipeline, pipelineUrlStr string) (*model.Pipeline, *model.PipelineVersion, error) {
+func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Context, pipeline *model.Pipeline, pipelineURLStr string) (*model.Pipeline, *model.PipelineVersion, error) {
 	// Resolve name and namespace
-	pipelineFileName := path.Base(pipelineUrlStr)
+	pipelineFileName := path.Base(pipelineURLStr)
 
 	pipeline.Name = buildPipelineName(pipeline.Name, pipeline.DisplayName, pipelineFileName)
 	if pipeline.DisplayName == "" {
@@ -167,21 +167,21 @@ func (s *BasePipelineServer) createPipelineAndPipelineVersion(ctx context.Contex
 	pipelineVersion := &model.PipelineVersion{
 		Name:            pipeline.Name,
 		DisplayName:     pipeline.DisplayName,
-		PipelineSpecURI: model.LargeText(pipelineUrlStr),
+		PipelineSpecURI: model.LargeText(pipelineURLStr),
 		Description:     pipeline.Description,
 		Status:          model.PipelineVersionCreating,
 	}
 
 	// Download and parse pipeline spec
-	pipelineUrl, err := url.ParseRequestURI(pipelineUrlStr)
+	pipelineURL, err := url.ParseRequestURI(pipelineURLStr)
 	if err != nil {
-		return nil, nil, util.NewInvalidInputError("invalid pipeline spec URL: %v", pipelineUrlStr)
+		return nil, nil, util.NewInvalidInputError("invalid pipeline spec URL: %v", pipelineURLStr)
 	}
-	resp, err := s.httpClient.Get(pipelineUrl.String())
+	resp, err := s.httpClient.Get(pipelineURL.String())
 	if err != nil {
-		return nil, nil, util.NewInternalServerError(err, "error downloading the pipeline spec from %v", pipelineUrl.String())
+		return nil, nil, util.NewInternalServerError(err, "error downloading the pipeline spec from %v", pipelineURL.String())
 	} else if resp.StatusCode != http.StatusOK {
-		return nil, nil, util.NewInvalidInputError("error fetching pipeline spec from %v - request returned %v", pipelineUrl.String(), resp.Status)
+		return nil, nil, util.NewInvalidInputError("error fetching pipeline spec from %v - request returned %v", pipelineURL.String(), resp.Status)
 	}
 	defer resp.Body.Close()
 	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
@@ -678,20 +678,20 @@ func (s *BasePipelineServer) createPipelineVersion(ctx context.Context, pv *mode
 
 	// Read pipeline file
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
-	pipelineUrl, err := url.ParseRequestURI(string(pv.PipelineSpecURI))
+	pipelineURL, err := url.ParseRequestURI(string(pv.PipelineSpecURI))
 	if err != nil {
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to invalid pipeline spec URI. PipelineSpecURI: %v. Please specify a valid URL", pv.PipelineSpecURI)
 	}
 
-	resp, err := s.httpClient.Get(pipelineUrl.String())
+	resp, err := s.httpClient.Get(pipelineURL.String())
 	if err != nil || resp.StatusCode != http.StatusOK {
 		if err == nil {
-			return nil, util.NewInvalidInputError("Failed to fetch pipeline spec with url: %v. Request returned %v", pipelineUrl.String(), resp.Status)
+			return nil, util.NewInvalidInputError("Failed to fetch pipeline spec with url: %v. Request returned %v", pipelineURL.String(), resp.Status)
 		}
-		return nil, util.NewInternalServerError(err, "Failed to create a pipeline version due error downloading the pipeline spec from %v", pipelineUrl.String())
+		return nil, util.NewInternalServerError(err, "Failed to create a pipeline version due error downloading the pipeline spec from %v", pipelineURL.String())
 	}
 	defer resp.Body.Close()
-	pipelineFileName := path.Base(pipelineUrl.String())
+	pipelineFileName := path.Base(pipelineURL.String())
 	pipelineFile, err := ReadPipelineFile(pipelineFileName, resp.Body, common.MaxFileLength)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due error reading the pipeline spec")
@@ -729,16 +729,16 @@ func (s *PipelineServerV1) CreatePipelineVersionV1(ctx context.Context, request 
 	}
 
 	// Extract pipeline id
-	pipelineId := ""
+	pipelineID := ""
 	for _, resourceReference := range request.Version.ResourceReferences {
 		if resourceReference.Key.Type == apiv1beta1.ResourceType_PIPELINE && resourceReference.Relationship == apiv1beta1.Relationship_OWNER {
-			pipelineId = resourceReference.Key.Id
+			pipelineID = resourceReference.Key.Id
 		}
 	}
-	if len(pipelineId) == 0 {
+	if len(pipelineID) == 0 {
 		return nil, util.Wrap(err, "Failed to create a pipeline version (v1beta1) due to missing pipeline id")
 	}
-	pv.PipelineId = pipelineId
+	pv.PipelineId = pipelineID
 
 	// Create a pipeline version
 	newpv, err := s.createPipelineVersion(ctx, pv)
@@ -803,16 +803,16 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 
 // Fetches a pipeline version for given pipeline id.
 // Applies common logic on v1beta1 and v2beta1 API.
-func (s *BasePipelineServer) getPipelineVersion(ctx context.Context, pipelineVersionId string) (*model.PipelineVersion, error) {
+func (s *BasePipelineServer) getPipelineVersion(ctx context.Context, pipelineVersionID string) (*model.PipelineVersion, error) {
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Verb: common.RbacResourceVerbGet,
 	}
-	err := s.canAccessPipelineVersion(ctx, pipelineVersionId, resourceAttributes)
+	err := s.canAccessPipelineVersion(ctx, pipelineVersionID, resourceAttributes)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline version due to authorization error for pipeline version id %v", pipelineVersionId)
+		return nil, util.Wrapf(err, "Failed to get a pipeline version due to authorization error for pipeline version id %v", pipelineVersionID)
 	}
-	return s.resourceManager.GetPipelineVersion(pipelineVersionId)
+	return s.resourceManager.GetPipelineVersion(pipelineVersionID)
 }
 
 // Returns a pipeline version.
@@ -1043,16 +1043,16 @@ func (s *PipelineServerV1) GetPipelineVersionTemplate(ctx context.Context, reque
 // Checks if a user can access a pipeline version.
 // Adds namespace of the parent pipeline if version id is not empty,
 // API group, version, and resource type.
-func (s *BasePipelineServer) canAccessPipelineVersion(ctx context.Context, versionId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+func (s *BasePipelineServer) canAccessPipelineVersion(ctx context.Context, versionID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	if !common.IsMultiUserMode() {
 		// Skip authorization if not multi-user mode.
 		return nil
 	}
 	pipelineId := ""
-	if versionId != "" {
-		pipelineVersion, err := s.resourceManager.GetPipelineVersion(versionId)
+	if versionID != "" {
+		pipelineVersion, err := s.resourceManager.GetPipelineVersion(versionID)
 		if err != nil {
-			return util.Wrapf(err, "Failed to access pipeline version %s. Check if it exists", versionId)
+			return util.Wrapf(err, "Failed to access pipeline version %s. Check if it exists", versionID)
 		}
 		pipelineId = pipelineVersion.PipelineId
 	}

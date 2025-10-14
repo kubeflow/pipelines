@@ -2702,7 +2702,7 @@ func Test_toApiRuntimeStateV1(t *testing.T) {
 			"Succeeded",
 		},
 		{
-			"v2 cancelling",
+			"v2 canceling",
 			model.RuntimeStateCancelling,
 			"Terminating",
 		},
@@ -2753,7 +2753,7 @@ func Test_toApiRuntimeState(t *testing.T) {
 			apiv2beta1.RuntimeState_SUCCEEDED,
 		},
 		{
-			"v2 cancelling",
+			"v2 canceling",
 			model.RuntimeStateCancelling,
 			apiv2beta1.RuntimeState_CANCELING,
 		},

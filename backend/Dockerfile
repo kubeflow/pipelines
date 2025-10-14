@@ -35,7 +35,7 @@ RUN GO111MODULE=on CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime go build -tags s
     dnf clean all
 
 # 2. Compile preloaded pipeline samples
-FROM registry.access.redhat.com/ubi9/python-3.11 AS compiler
+FROM registry.access.redhat.com/ubi9/python-311 AS compiler
 
 ARG TARGETOS TARGETARCH
 

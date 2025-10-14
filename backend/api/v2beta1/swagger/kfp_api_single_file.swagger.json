@@ -19,10 +19,6 @@
       "name": "VisualizationService"
     }
   ],
-  "schemes": [
-    "http",
-    "https"
-  ],
   "consumes": [
     "application/json"
   ],
@@ -51,7 +47,7 @@
         "parameters": [
           {
             "name": "max_result_size",
-            "description": "Optional.\nMax number of resources to return in the result. A value of zero or less\nwill result in the default (20).\nThe API implementation also enforces an upper-bound of 100, and picks the\nminimum between this value and the one specified here.\n[default = 20].",
+            "description": "Optional.\nMax number of resources to return in the result. A value of zero or less\nwill result in the default (20).\nThe API implementation also enforces an upper-bound of 100, and picks the\nminimum between this value and the one specified here.\n[default = 20]",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -59,7 +55,7 @@
           },
           {
             "name": "order_by_field",
-            "description": "Optional. Ordering field. [default = ID].",
+            "description": "Optional. Ordering field. [default = ID]",
             "in": "query",
             "required": false,
             "type": "string",
@@ -73,7 +69,7 @@
           },
           {
             "name": "order_by",
-            "description": "Optional. Can be either \"asc\" (ascending) or \"desc\" (descending). [default = asc].",
+            "description": "Optional. Can be either \"asc\" (ascending) or \"desc\" (descending). [default = asc]",
             "in": "query",
             "required": false,
             "type": "string"
@@ -964,12 +960,6 @@
             "type": "string"
           },
           {
-            "name": "display_name",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
             "name": "pipelineid",
             "in": "query",
             "required": false,
@@ -1847,6 +1837,7 @@
         "artifacts": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/v2beta1Artifact"
           },
           "description": "List of retrieved artifacts."
@@ -2148,7 +2139,7 @@
         },
         "name": {
           "type": "string",
-          "description": "Optional input field. Pipeline display name provided by user."
+          "description": "Required input field. Pipeline name provided by user."
         },
         "description": {
           "type": "string",
@@ -2793,6 +2784,10 @@
       "description": "Type of visualization to be generated.\nThis is required when creating the pipeline through CreateVisualization\nAPI."
     }
   },
+  "schemes": [
+    "http",
+    "https"
+  ],
   "securityDefinitions": {
     "Bearer": {
       "type": "apiKey",

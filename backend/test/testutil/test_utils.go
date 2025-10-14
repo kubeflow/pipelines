@@ -90,13 +90,13 @@ func GetNamespace() string {
 // getPackagePath generates the package path based on environment variables
 // Equivalent to the Python function get_package_path
 func getPackagePath(subdir string) string {
-	repoName := *config.REPO_NAME
+	repoName := *config.RepoName
 
-	pullNumber := *config.PULL_NUMBER
+	pullNumber := *config.PullNumber
 	if pullNumber != "" {
 		return fmt.Sprintf("git+https://github.com/%s.git@refs/pull/%s/merge#subdirectory=%s", repoName, pullNumber, subdir)
 	}
-	return fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", repoName, *config.BRANCH_NAME, subdir)
+	return fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", repoName, *config.BranchName, subdir)
 }
 
 func ReplaceSDKInPipelineSpec(pipelineFilePath string, cacheDisabled bool, defaultWorkspace *v1.PersistentVolumeClaimSpec) []byte {

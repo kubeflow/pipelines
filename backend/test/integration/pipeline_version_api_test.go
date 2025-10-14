@@ -175,7 +175,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	time.Sleep(1 * time.Second)
 	pipelineURL := "https://github.com/opendatahub-io/data-science-pipelines/raw/refs/heads/master/backend/test/resources/arguments.pipeline.zip"
 
-	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+	if pullNumber := os.Getenv("PullNumber"); pullNumber != "" {
 		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/resources/arguments.pipeline.zip", pullNumber)
 	}
 

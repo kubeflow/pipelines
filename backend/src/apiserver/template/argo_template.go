@@ -17,8 +17,6 @@ package template
 import (
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -54,7 +52,7 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	workflow.OverrideParameters(parameters)
 
 	// Replace macros
-	formatter := util.NewRunParameterFormatter(options.RunId, options.RunAt)
+	formatter := util.NewRunParameterFormatter(options.RunID, options.RunAt)
 	formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
 	workflow.OverrideParameters(formattedParams)
 
@@ -69,15 +67,15 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	}
 
 	// Add label to the workflow so it can be persisted by persistent agent later.
-	workflow.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	workflow.SetLabels(util.LabelKeyWorkflowRunId, options.RunID)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
 	workflow.SetAnnotations(util.AnnotationKeyRunName, modelRun.DisplayName)
-	// Replace {{workflow.uid}} with runId
-	err = workflow.ReplaceUID(options.RunId)
+	// Replace {{workflow.uid}} with RunId
+	err = workflow.ReplaceUID(options.RunID)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
 	}
-	workflow.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	workflow.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunID)
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
@@ -101,7 +99,7 @@ func (t *Argo) IsCacheDisabled() bool {
 
 var _ Template = &Argo{}
 
-func (t *Argo) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 	// Overwrite namespace from the job object
 	if modelJob.Namespace != "" {
@@ -131,7 +129,7 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.O
 		return nil, util.Wrap(err, "Failed to convert v1 parameters to CRD parameters")
 	}
 
-	scheduledWorkflow, err := NewGenericScheduledWorkflow(modelJob, ownerReferences)
+	scheduledWorkflow, err := NewGenericScheduledWorkflow(modelJob)
 	if err != nil {
 		return nil, err
 	}

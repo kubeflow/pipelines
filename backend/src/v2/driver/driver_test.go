@@ -276,6 +276,11 @@ func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
+				false,
+				"unused-mlmd-server-address",
+				"unused-mlmd-server-port",
+				false,
+				"unused-ca-cert-path",
 				taskConfig,
 			)
 			if tt.wantErr {
@@ -392,6 +397,11 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		taskConfig,
 	)
 	assert.Nil(t, err)
@@ -439,6 +449,11 @@ func Test_initPodSpecPatch_legacy_resources(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		taskConfig,
 	)
 	assert.Nil(t, err)
@@ -488,6 +503,11 @@ func Test_initPodSpecPatch_modelcar_input_artifact(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		taskConfig,
 	)
 	assert.Nil(t, err)
@@ -532,6 +552,11 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 		"1",
 		"true",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		nil,
 	)
 	assert.Nil(t, err)
@@ -656,6 +681,11 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 				tt.args.pipelineLogLevel,
 				tt.args.publishLogs,
 				"false",
+				false,
+				"unused-mlmd-server-address",
+				"unused-mlmd-server-port",
+				false,
+				"unused-ca-cert-path",
 				taskConfig,
 			)
 			assert.Nil(t, err)
@@ -711,6 +741,11 @@ func Test_initPodSpecPatch_TaskConfig_ForwardsResourcesOnly(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		taskCfg,
 	)
 	assert.Nil(t, err)
@@ -743,7 +778,7 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 			},
 		},
 	}
-	finalStatusStruct, err := structpb.NewStruct(map[string]interface{}{
+	finalStatusStruct, _ := structpb.NewStruct(map[string]interface{}{
 		"state":                   "test-state",
 		"pipelineTaskName":        "test-pipeline-task-name",
 		"pipelineJobResourceName": "test-job-resource-name",
@@ -772,6 +807,11 @@ func Test_initPodSpecPatch_inputTaskFinalStatus(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		nil,
 	)
 	require.Nil(t, err)
@@ -969,6 +1009,11 @@ func Test_initPodSpecPatch_WorkspaceRequiresRunName(t *testing.T) {
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		taskCfg,
 	)
 	require.NotNil(t, err)
@@ -1083,7 +1128,7 @@ func TestWorkspaceMount_PassthroughVolumes_CaptureOnly(t *testing.T) {
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg,
+		27, "test", "run", "my-run-name", "1", "false", "false", false, "unused-mlmd-server-address", "unused-mlmd-server-port", false, "unused-ca-cert-path", taskCfg,
 	)
 	assert.Nil(t, err)
 
@@ -1126,7 +1171,7 @@ func TestWorkspaceMount_PassthroughVolumes_ApplyAndCapture(t *testing.T) {
 	taskCfg := &TaskConfig{}
 	podSpec, err := initPodSpecPatch(
 		containerSpec, componentSpec, executorInput,
-		27, "test", "run", "my-run-name", "1", "false", "false", taskCfg,
+		27, "test", "run", "my-run-name", "1", "false", "false", false, "unused-mlmd-server-address", "unused-mlmd-server-port", false, "unused-ca-cert-path", taskCfg,
 	)
 	assert.Nil(t, err)
 	// Should mount workspace to pod and also capture to TaskConfig
@@ -1189,6 +1234,11 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		taskCfg,
 	)
 	assert.Nil(t, err)
@@ -1233,6 +1283,11 @@ func Test_initPodSpecPatch_TaskConfig_Resources_Passthrough_ApplyAndCapture(t *t
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		taskCfg,
 	)
 	assert.Nil(t, err)
@@ -1308,6 +1363,11 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_Passthro
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		taskCfg,
 	)
 	assert.Nil(t, err)
@@ -1404,6 +1464,11 @@ func Test_initPodSpecPatch_TaskConfig_Affinity_NodeSelector_Tolerations_ApplyAnd
 		"1",
 		"false",
 		"false",
+		false,
+		"unused-mlmd-server-address",
+		"unused-mlmd-server-port",
+		false,
+		"unused-ca-cert-path",
 		taskCfg,
 	)
 	assert.Nil(t, err)

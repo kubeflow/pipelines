@@ -408,7 +408,7 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 		},
 	}
 
-	cacheClient, err := NewClient(false)
+	cacheClient, err := NewClient(false, false)
 	require.NoError(t, err)
 
 	baseFP, err := cacheClient.GenerateFingerPrint(base)

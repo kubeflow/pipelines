@@ -68,6 +68,18 @@ type Options struct {
 
 	CacheDisabled bool
 
+	// set to true if ml pipeline server is serving over tls
+	MLPipelineTLSEnabled bool
+
+	MLMDServerAddress string
+
+	MLMDServerPort string
+
+	// set to true if MLMD server is serving over tls
+	MLMDTLSEnabled bool
+
+	CaCertPath string
+
 	DriverType string
 
 	TaskName string // the original name of the task, used for input resolution
@@ -88,28 +100,28 @@ type TaskConfig struct {
 func (o Options) info() string {
 	msg := fmt.Sprintf("pipelineName=%v, runID=%v", o.PipelineName, o.RunID)
 	if o.Task.GetTaskInfo().GetName() != "" {
-		msg = msg + fmt.Sprintf(", taskDisplayName=%q", o.Task.GetTaskInfo().GetName())
+		msg += fmt.Sprintf(", taskDisplayName=%q", o.Task.GetTaskInfo().GetName())
 	}
 	if o.TaskName != "" {
-		msg = msg + fmt.Sprintf(", taskName=%q", o.TaskName)
+		msg += fmt.Sprintf(", taskName=%q", o.TaskName)
 	}
 	if o.Task.GetComponentRef().GetName() != "" {
-		msg = msg + fmt.Sprintf(", component=%q", o.Task.GetComponentRef().GetName())
+		msg += fmt.Sprintf(", component=%q", o.Task.GetComponentRef().GetName())
 	}
 	if o.DAGExecutionID != 0 {
-		msg = msg + fmt.Sprintf(", dagExecutionID=%v", o.DAGExecutionID)
+		msg += fmt.Sprintf(", dagExecutionID=%v", o.DAGExecutionID)
 	}
 	if o.IterationIndex >= 0 {
-		msg = msg + fmt.Sprintf(", iterationIndex=%v", o.IterationIndex)
+		msg += fmt.Sprintf(", iterationIndex=%v", o.IterationIndex)
 	}
 	if o.RuntimeConfig != nil {
-		msg = msg + ", runtimeConfig" // this only means runtimeConfig is not empty
+		msg += ", runtimeConfig" // this only means runtimeConfig is not empty
 	}
 	if o.Component.GetImplementation() != nil {
-		msg = msg + ", componentSpec" // this only means componentSpec is not empty
+		msg += ", componentSpec" // this only means componentSpec is not empty
 	}
 	if o.KubernetesExecutorConfig != nil {
-		msg = msg + ", KubernetesExecutorConfig" // this only means KubernetesExecutorConfig is not empty
+		msg += ", KubernetesExecutorConfig" // this only means KubernetesExecutorConfig is not empty
 	}
 	return msg
 }
@@ -219,6 +231,11 @@ func initPodSpecPatch(
 	pipelineLogLevel string,
 	publishLogs string,
 	cacheDisabled string,
+	mlPipelineTLSEnabled bool,
+	mlmdServerAddress string,
+	mlmdServerPort string,
+	mlmdTLSEnabled bool,
+	caCertPath string,
 	taskConfig *TaskConfig,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
@@ -261,10 +278,14 @@ func initPodSpecPatch(
 		"--pod_uid",
 		fmt.Sprintf("$(%s)", component.EnvPodUID),
 		"--mlmd_server_address",
-		fmt.Sprintf("$(%s)", component.EnvMetadataHost),
+		mlmdServerAddress,
 		"--mlmd_server_port",
-		fmt.Sprintf("$(%s)", component.EnvMetadataPort),
+		mlmdServerPort,
 		"--publish_logs", publishLogs,
+		"--metadataTLSEnabled", fmt.Sprintf("%v", mlmdTLSEnabled),
+		"--mlPipelineServiceTLSEnabled",
+		fmt.Sprintf("%v", mlPipelineTLSEnabled),
+		"--ca_cert_path", caCertPath,
 	}
 	if cacheDisabled == "true" {
 		launcherCmd = append(launcherCmd, "--cache_disabled")

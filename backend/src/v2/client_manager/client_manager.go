@@ -86,9 +86,9 @@ func initK8sClient() (kubernetes.Interface, error) {
 }
 
 func initMetadataClient(address string, port string) (metadata.ClientInterface, error) {
-	return metadata.NewClient(address, port)
+	return metadata.NewClient(address, port, false, "")
 }
 
 func initCacheClient(cacheDisabled bool) (cacheutils.Client, error) {
-	return cacheutils.NewClient(cacheDisabled)
+	return cacheutils.NewClient(cacheDisabled, false)
 }

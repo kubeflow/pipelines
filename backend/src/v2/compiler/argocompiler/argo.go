@@ -213,7 +213,7 @@ type workflowCompiler struct {
 	launcherCommand             []string
 	cacheDisabled               bool
 	mlPipelineServiceTLSEnabled bool
-	defaultWorkspace *k8score.PersistentVolumeClaimSpec
+	defaultWorkspace            *k8score.PersistentVolumeClaimSpec
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {

@@ -64,7 +64,7 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	if !*testconfig.InClusterRun {
 		httpClient := http.DefaultClient
 		var scheme []string
-		parsedUrl, err := url.Parse(*testconfig.ApiUrl)
+		parsedUrl, err := url.Parse(*testconfig.APIURL)
 		if err != nil {
 			return nil, err
 		}
@@ -72,10 +72,10 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 		if parsedUrl.Scheme != "" {
 			scheme = append(scheme, parsedUrl.Scheme)
 		}
-		if testconfig.ApiScheme != nil {
-			scheme = append(scheme, *testconfig.ApiScheme)
+		if testconfig.APIScheme != nil {
+			scheme = append(scheme, *testconfig.APIScheme)
 		}
-		if *testconfig.DisableTlsCheck {
+		if *testconfig.DisableTLSCheck {
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}

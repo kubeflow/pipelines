@@ -34,6 +34,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/minio/minio-go/v7"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -100,6 +101,7 @@ type ClientManager struct {
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
 	tokenReviewClient         client.TokenReviewInterface
+	metadataClient            metadata.ClientInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
@@ -178,6 +180,10 @@ func (c *ClientManager) SubjectAccessReviewClient() client.SubjectAccessReviewIn
 
 func (c *ClientManager) TokenReviewClient() client.TokenReviewInterface {
 	return c.tokenReviewClient
+}
+
+func (c *ClientManager) MetadataClient() metadata.ClientInterface {
+	return c.metadataClient
 }
 
 func (c *ClientManager) LogArchive() archive.LogArchiveInterface {
@@ -293,6 +299,13 @@ func (c *ClientManager) init(options *Options) error {
 	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+
+	newClient, err := metadata.NewClient(common.GetMetadataGrpcServiceServiceHost(), common.GetMetadataGrpcServiceServicePort(), common.GetMetadataTLSEnabled(), common.GetCaCertPath())
+
+	if err != nil {
+		glog.Fatalf("Failed to create metadata client. Error: %v", err)
+	}
+	c.metadataClient = newClient
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore

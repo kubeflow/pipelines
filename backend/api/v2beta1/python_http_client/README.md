@@ -78,16 +78,16 @@ configuration = kfp_server_api.Configuration(
 # Enter a context with an instance of the API client
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api.AuthServiceApi(api_client)
-    namespace = 'namespace_example' # str | Namespace the resource belongs to. (optional)
-resources = 'UNASSIGNED_RESOURCES' # str | Resource type asking for authorization. (optional) (default to 'UNASSIGNED_RESOURCES')
-verb = 'UNASSIGNED_VERB' # str | Verb on the resource asking for authorization. (optional) (default to 'UNASSIGNED_VERB')
+    api_instance = kfp_server_api.ArtifactServiceApi(api_client)
+    artifact_id = 'artifact_id_example' # str | Required. The ID of the artifact to be retrieved.
+view = 'ARTIFACT_VIEW_UNSPECIFIED' # str | Optional. Set to \"DOWNLOAD\" to included a signed URL with an expiry (default 15 seconds, unless configured other wise). This URL can be used to download the Artifact directly from the Artifact's storage provider. Set to \"BASIC\" to exclude the download_url from server responses, thus preventing the creation of any signed url. Defaults to BASIC.   - ARTIFACT_VIEW_UNSPECIFIED: Not specified, equivalent to BASIC.  - BASIC: Server responses excludes download_url  - DOWNLOAD: Server responses include download_url  - RENDER: Server response includes a signed URL, allowing in-browser rendering or preview of the artifact. (optional) (default to 'ARTIFACT_VIEW_UNSPECIFIED')
 
     try:
-        api_response = api_instance.auth_service_authorize(namespace=namespace, resources=resources, verb=verb)
+        # Finds a specific Artifact by ID.
+        api_response = api_instance.artifact_service_get_artifact(artifact_id, view=view)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling AuthServiceApi->auth_service_authorize: %s\n" % e)
+        print("Exception when calling ArtifactServiceApi->artifact_service_get_artifact: %s\n" % e)
     
 ```
 
@@ -97,6 +97,8 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*ArtifactServiceApi* | [**artifact_service_get_artifact**](docs/ArtifactServiceApi.md#artifact_service_get_artifact) | **GET** /apis/v2beta1/artifacts/{artifact_id} | Finds a specific Artifact by ID.
+*ArtifactServiceApi* | [**artifact_service_list_artifacts**](docs/ArtifactServiceApi.md#artifact_service_list_artifacts) | **GET** /apis/v2beta1/artifacts | Finds all artifacts within the specified namespace. Namespace field is required. In multi-user mode, the caller is required to have RBAC verb \&quot;list\&quot; on the \&quot;artifacts\&quot; resource for the specified namespace.
 *AuthServiceApi* | [**auth_service_authorize**](docs/AuthServiceApi.md#auth_service_authorize) | **GET** /apis/v2beta1/auth | 
 *ExperimentServiceApi* | [**experiment_service_archive_experiment**](docs/ExperimentServiceApi.md#experiment_service_archive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:archive | Archives an experiment and the experiment&#39;s runs and recurring runs.
 *ExperimentServiceApi* | [**experiment_service_create_experiment**](docs/ExperimentServiceApi.md#experiment_service_create_experiment) | **POST** /apis/v2beta1/experiments | Creates a new experiment.
@@ -141,7 +143,9 @@ Class | Method | HTTP request | Description
 
  - [AuthorizeRequestResources](docs/AuthorizeRequestResources.md)
  - [AuthorizeRequestVerb](docs/AuthorizeRequestVerb.md)
+ - [GetArtifactRequestArtifactView](docs/GetArtifactRequestArtifactView.md)
  - [GooglerpcStatus](docs/GooglerpcStatus.md)
+ - [ListArtifactRequestField](docs/ListArtifactRequestField.md)
  - [PipelineTaskDetailChildTask](docs/PipelineTaskDetailChildTask.md)
  - [PredicateIntValues](docs/PredicateIntValues.md)
  - [PredicateLongValues](docs/PredicateLongValues.md)
@@ -149,6 +153,7 @@ Class | Method | HTTP request | Description
  - [ProtobufAny](docs/ProtobufAny.md)
  - [ProtobufNullValue](docs/ProtobufNullValue.md)
  - [RecurringRunMode](docs/RecurringRunMode.md)
+ - [V2beta1Artifact](docs/V2beta1Artifact.md)
  - [V2beta1ArtifactList](docs/V2beta1ArtifactList.md)
  - [V2beta1CreatePipelineAndVersionRequest](docs/V2beta1CreatePipelineAndVersionRequest.md)
  - [V2beta1CronSchedule](docs/V2beta1CronSchedule.md)
@@ -156,6 +161,7 @@ Class | Method | HTTP request | Description
  - [V2beta1ExperimentStorageState](docs/V2beta1ExperimentStorageState.md)
  - [V2beta1Filter](docs/V2beta1Filter.md)
  - [V2beta1GetHealthzResponse](docs/V2beta1GetHealthzResponse.md)
+ - [V2beta1ListArtifactResponse](docs/V2beta1ListArtifactResponse.md)
  - [V2beta1ListExperimentsResponse](docs/V2beta1ListExperimentsResponse.md)
  - [V2beta1ListPipelineVersionsResponse](docs/V2beta1ListPipelineVersionsResponse.md)
  - [V2beta1ListPipelinesResponse](docs/V2beta1ListPipelinesResponse.md)

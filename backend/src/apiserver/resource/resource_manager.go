@@ -20,10 +20,16 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"reflect"
 	"strconv"
+	"time"
 
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+
+	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
@@ -94,6 +100,7 @@ type ClientManagerInterface interface {
 	KubernetesCoreClient() client.KubernetesCoreInterface
 	SubjectAccessReviewClient() client.SubjectAccessReviewInterface
 	TokenReviewClient() client.TokenReviewInterface
+	MetadataClient() metadata.ClientInterface
 	LogArchive() archive.LogArchiveInterface
 	Time() util.TimeInterface
 	UUID() util.UUIDGeneratorInterface
@@ -121,6 +128,7 @@ type ResourceManager struct {
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
 	tokenReviewClient         client.TokenReviewInterface
+	metadataClient            metadata.ClientInterface
 	logArchive                archive.LogArchiveInterface
 	time                      util.TimeInterface
 	uuid                      util.UUIDGeneratorInterface
@@ -144,6 +152,7 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		k8sCoreClient:             clientManager.KubernetesCoreClient(),
 		subjectAccessReviewClient: clientManager.SubjectAccessReviewClient(),
 		tokenReviewClient:         clientManager.TokenReviewClient(),
+		metadataClient:            clientManager.MetadataClient(),
 		logArchive:                clientManager.LogArchive(),
 		time:                      clientManager.Time(),
 		uuid:                      clientManager.UUID(),
@@ -301,19 +310,19 @@ func (r *ResourceManager) GetPipelineByNameAndNamespaceV1(name string, namespace
 // Deletes a pipeline. Does not delete pipeline spec in the object storage.
 // If cascade is false, fails if the pipeline has existing pipeline versions.
 // If cascade is true, deletes all pipeline versions first, then deletes the pipeline.
-func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error {
+func (r *ResourceManager) DeletePipeline(pipelineID string, cascade bool) error {
 	// Check if pipeline exists
-	_, err := r.pipelineStore.GetPipeline(pipelineId)
+	_, err := r.pipelineStore.GetPipeline(pipelineID)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete pipeline with id %v as it was not found", pipelineId)
+		return util.Wrapf(err, "Failed to delete pipeline with id %v as it was not found", pipelineID)
 	}
 
 	if cascade {
 		// Get all pipeline versions for this pipeline and delete them
 		opts := list.EmptyOptions()
-		pipelineVersions, _, _, err := r.pipelineStore.ListPipelineVersions(pipelineId, opts)
+		pipelineVersions, _, _, err := r.pipelineStore.ListPipelineVersions(pipelineID, opts)
 		if err != nil {
-			return util.Wrapf(err, "Failed to delete pipeline with id %v due to error listing pipeline versions", pipelineId)
+			return util.Wrapf(err, "Failed to delete pipeline with id %v due to error listing pipeline versions", pipelineID)
 		}
 
 		// Delete each pipeline version
@@ -327,30 +336,30 @@ func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error 
 			// Delete the pipeline version from the database
 			err = r.pipelineStore.DeletePipelineVersion(pipelineVersion.UUID)
 			if err != nil {
-				return util.Wrapf(err, "Failed to delete pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
+				return util.Wrapf(err, "Failed to delete pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineID)
 			}
-			glog.Infof("Successfully deleted pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
+			glog.Infof("Successfully deleted pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineID)
 		}
 	} else {
 		// Check if it has no pipeline versions in Ready state
-		latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)
+		latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineID)
 		if latestPipelineVersion != nil {
-			return util.NewInvalidInputError("Failed to delete pipeline with id %v as it has existing pipeline versions (e.g. %v). Set cascade=true to delete all versions", pipelineId, latestPipelineVersion.UUID)
+			return util.NewInvalidInputError("Failed to delete pipeline with id %v as it has existing pipeline versions (e.g. %v). Set cascade=true to delete all versions", pipelineID, latestPipelineVersion.UUID)
 		} else if err.(*util.UserError).ExternalStatusCode() != codes.NotFound {
-			return util.Wrapf(err, "Failed to delete pipeline with id %v as it failed to check existing pipeline versions", pipelineId)
+			return util.Wrapf(err, "Failed to delete pipeline with id %v as it failed to check existing pipeline versions", pipelineID)
 		}
 	}
 
 	// Mark pipeline as deleting so it's not visible to user.
-	err = r.pipelineStore.UpdatePipelineStatus(pipelineId, model.PipelineDeleting)
+	err = r.pipelineStore.UpdatePipelineStatus(pipelineID, model.PipelineDeleting)
 	if err != nil {
-		return util.Wrapf(err, "Failed to change the status of pipeline id %v to DELETING", pipelineId)
+		return util.Wrapf(err, "Failed to change the status of pipeline id %v to DELETING", pipelineID)
 	}
 
 	// Delete a pipeline.
-	err = r.pipelineStore.DeletePipeline(pipelineId)
+	err = r.pipelineStore.DeletePipeline(pipelineID)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete pipeline DB entry for pipeline id %v", pipelineId)
+		return util.Wrapf(err, "Failed to delete pipeline DB entry for pipeline id %v", pipelineID)
 	}
 	return nil
 }
@@ -535,7 +544,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	run.RunDetails.CreatedAtInSec = r.time.Now().Unix()
 	runWorkflowOptions := template.RunWorkflowOptions{
-		RunId:            run.UUID,
+		RunID:            run.UUID,
 		RunAt:            run.CreatedAtInSec,
 		CacheDisabled:    r.options.CacheDisabled,
 		DefaultWorkspace: r.options.DefaultWorkspace,
@@ -623,7 +632,6 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 	opts := list.EmptyOptions()
 
 	jobs, _, _, err := r.jobStore.ListJobs(filterContext, opts)
-
 	if err != nil {
 		return util.Wrap(err, "Failed to reconcile ScheduledWorkflow Kubernetes resources")
 	}
@@ -2047,4 +2055,130 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 		return nil, util.Wrapf(err, "Failed to fetch task %v", taskId)
 	}
 	return task, nil
+}
+
+// GetContexts Fetches Contexts with the given sort/filter options.
+func (r *ResourceManager) GetContexts(ctx context.Context, maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) ([]*ml_metadata.Context, *string, error) {
+	return r.metadataClient.GetContexts(ctx, maxResultSize, orderByAscending, orderByField, filterQuery, nextPageToken)
+}
+
+// GetArtifacts Fetches Artifacts with the given sort/filter options.
+func (r *ResourceManager) GetArtifacts(ctx context.Context, maxResultSize int32, orderByAscending bool, orderByField, filterQuery, nextPageToken string) ([]*ml_metadata.Artifact, *string, error) {
+	return r.metadataClient.GetArtifacts(ctx, maxResultSize, orderByAscending, orderByField, filterQuery, nextPageToken)
+}
+
+// GetArtifactById Fetches Artifacts with the given artifact ids.
+func (r *ResourceManager) GetArtifactById(ctx context.Context, id []int64) ([]*ml_metadata.Artifact, error) {
+	return r.metadataClient.GetArtifactsByID(ctx, id)
+}
+
+// GetArtifactSessionInfo provides the bucket config that contains a session info for a given Artifact.
+// The bucket config contains information on where the artifact is store within object store.
+// The session info is pulled from the artifact's parent context.
+// TODO: In kfp 2.3 the session info can be retrieved directly from the Artifact custom properties.
+func (r *ResourceManager) GetArtifactSessionInfo(ctx context.Context, artifact *ml_metadata.Artifact) (*objectstore.Config, string, error) {
+	artifactCtx, err := r.metadataClient.GetContextByArtifactID(ctx, artifact.GetId())
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Retrieve Pipeline Root info
+	pipelineRoot := artifactCtx.CustomProperties["pipeline_root"].GetStringValue()
+	if pipelineRoot == "" {
+		return nil, "", fmt.Errorf("Unable to retrieve artifact pipeline_root info via context property.")
+	}
+
+	// Retrieve Session info
+	storeSessionInfo, ok_session := artifactCtx.CustomProperties["store_session_info"]
+
+	var sessionInfoString = ""
+
+	if ok_session {
+		sessionInfoString = storeSessionInfo.GetStringValue()
+	} else {
+		// bucket_session_info is an old struct that needs to be converted to store_session_info
+		bucketSession := &objectstore.S3Params{}
+		err1 := json.Unmarshal([]byte(artifactCtx.CustomProperties["bucket_session_info"].GetStringValue()), bucketSession)
+		if err1 != nil {
+			return nil, "", err1
+		}
+		sessionInfoParams := &map[string]string{
+			"fromEnv":      "false",
+			"endpoint":     bucketSession.Endpoint,
+			"region":       bucketSession.Region,
+			"disableSSL":   strconv.FormatBool(bucketSession.DisableSSL),
+			"secretName":   bucketSession.SecretName,
+			"accessKeyKey": bucketSession.AccessKeyKey,
+			"secretKeyKey": bucketSession.SecretKeyKey,
+		}
+
+		sessionInfo := &objectstore.SessionInfo{
+			Provider: "s3",
+			Params:   *sessionInfoParams,
+		}
+		sessionInfoBytes, err2 := json.Marshal(*sessionInfo)
+		if err2 != nil {
+			return nil, "", err2
+		}
+		sessionInfoString = string(sessionInfoBytes)
+	}
+
+	if sessionInfoString == "" {
+		return nil, "", fmt.Errorf("Unable to retrieve artifact session info via context property.")
+	}
+	sessionInfo, err := objectstore.GetSessionInfoFromString(sessionInfoString)
+	if err != nil {
+		return nil, "", err
+	}
+	config, err := objectstore.ParseBucketConfig(pipelineRoot, sessionInfo)
+	if err != nil {
+		return nil, "", err
+	}
+	if artifact.Uri == nil {
+		return nil, "", fmt.Errorf("Artifact did not have a URI property.")
+	}
+
+	// Retrieve namespace
+	namespace := artifactCtx.CustomProperties["namespace"].GetStringValue()
+	if namespace == "" {
+		return nil, "", fmt.Errorf("Unable to retrieve artifact namespace info via context property.")
+	}
+
+	return config, namespace, nil
+}
+
+// GetSecretKeyValue retrieves the value identified by the Secret name and key within the provided namespace.
+func (r *ResourceManager) GetSecretKeyValue(ctx context.Context, ns, name, key string) (string, error) {
+	secret, err := r.k8sCoreClient.SecretClient(ns).Get(ctx, name, v1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	return string(secret.Data[key]), nil
+}
+
+// GetSecret retrieves the secret identified by name from the provided namespace.
+func (r *ResourceManager) GetSecret(ctx context.Context, namespace, name string) (*corev1.Secret, error) {
+	secret, err := r.k8sCoreClient.SecretClient(namespace).Get(ctx, name, v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return secret, nil
+}
+
+// GetSignedUrl retrieves a signed url for the associated artifact.
+func (r *ResourceManager) GetSignedUrl(ctx context.Context, bucketConfig *objectstore.Config, secret *corev1.Secret, expirySeconds time.Duration, artifactURI string, queryParams url.Values) (string, error) {
+	signedUrl, err := r.objectStore.GetSignedUrl(ctx, bucketConfig, secret, expirySeconds, artifactURI, queryParams)
+	if err != nil {
+		return "", err
+	}
+	return signedUrl, nil
+}
+
+// GetObjectSize retrieves the size of the Artifact's object in bytes.
+func (r *ResourceManager) GetObjectSize(ctx context.Context, bucketConfig *objectstore.Config, secret *corev1.Secret, artifactURI string) (int64, error) {
+	size, err := r.objectStore.GetObjectSize(ctx, bucketConfig, secret, artifactURI)
+	if err != nil {
+		return 0, err
+	}
+	return size, nil
 }

@@ -48,7 +48,7 @@ var _ Template = &V2Spec{}
 
 var Launcher = ""
 
-func NewGenericScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error) {
+func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.K8SName)
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
@@ -64,10 +64,7 @@ func NewGenericScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.O
 			APIVersion: "kubeflow.org/v2beta1",
 			Kind:       "ScheduledWorkflow",
 		},
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    swfGeneratedName,
-			OwnerReferences: ownerReferences,
-		},
+		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:           modelJob.Enabled,
 			MaxConcurrency:    &modelJob.MaxConcurrency,
@@ -91,7 +88,7 @@ func (t *V2Spec) PlatformSpec() *pipelinespec.PlatformSpec {
 }
 
 // Converts modelJob to ScheduledWorkflow.
-func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	job := &pipelinespec.PipelineJob{}
 
 	bytes, err := protojson.Marshal(t.spec)
@@ -154,7 +151,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1
 		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 	}
 
-	scheduledWorkflow, err := NewGenericScheduledWorkflow(modelJob, ownerReferences)
+	scheduledWorkflow, err := NewGenericScheduledWorkflow(modelJob)
 	if err != nil {
 		return nil, err
 	}
@@ -354,15 +351,15 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	// Add label to the workflow so it can be persisted by persistent agent later.
-	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunID)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
 	executionSpec.SetAnnotations(util.AnnotationKeyRunName, modelRun.DisplayName)
 	// Replace {{workflow.uid}} with runId
-	err = executionSpec.ReplaceUID(options.RunId)
+	err = executionSpec.ReplaceUID(options.RunID)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
 	}
-	executionSpec.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	executionSpec.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunID)
 	return executionSpec, nil
 }
 

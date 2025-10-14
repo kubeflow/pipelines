@@ -1,12 +1,15 @@
 name: pre-commit
 
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+#on:
+#  push:
+#    branches:
+#      - master
+#  pull_request:
+#    branches:
+#      - master
+
+# This workflow is disabled in downstream because we require linting upstream.
+on: []
 
 jobs:
   pre-commit:
