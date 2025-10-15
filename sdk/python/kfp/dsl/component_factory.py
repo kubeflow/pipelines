@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import ast
 import base64
 import dataclasses
 import gzip
@@ -45,6 +46,97 @@ from kfp.dsl.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.9'
 SINGLE_OUTPUT_NAME = 'Output'
+
+
+def _detect_kubeflow_imports_in_function(func: Callable) -> bool:
+    """Detects if the function imports kubeflow package using AST parsing.
+
+    Args:
+        func: The function to analyze for kubeflow imports.
+
+    Returns:
+        bool: True if any kubeflow import is found, False otherwise.
+
+    Detects these import patterns:
+        - import kubeflow
+        - import kubeflow.training (any submodule)
+        - from kubeflow import X
+        - from kubeflow.submodule import X
+    """
+    try:
+        # Get function source code
+        source = inspect.getsource(func)
+
+        # Remove leading indentation to handle nested/indented functions
+        source = textwrap.dedent(source)
+
+        # Parse the source into an AST
+        tree = ast.parse(source)
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                # Handle "import kubeflow" or "import kubeflow.submodule"
+                for alias in node.names:
+                    if alias.name == 'kubeflow' or alias.name.startswith(
+                            'kubeflow.'):
+                        return True
+            elif isinstance(node, ast.ImportFrom):
+                # Handle "from kubeflow import X" or "from kubeflow.submodule import X"
+                if node.module and (node.module == 'kubeflow' or
+                                    node.module.startswith('kubeflow.')):
+                    return True
+
+        return False
+
+    except (OSError, TypeError, SyntaxError, AttributeError):
+        # Handle cases where:
+        # - Source is not available (OSError)
+        # - Function is built-in or C extension (TypeError)
+        # - Source has syntax errors (SyntaxError)
+        # - inspect module issues (AttributeError)
+        return False
+
+
+def _parse_package_name(package_spec: str) -> str:
+    """Extract base package name from package specification.
+
+    Args:
+        package_spec: Package specification like 'kubeflow==2.0.0', 'kubeflow>=1.5.0',
+                     'kubeflow[extras]', 'git+https://github.com/kubeflow/sdk.git', etc.
+
+    Returns:
+        str: The base package name without version/extras/operators.
+
+    Examples:
+        'kubeflow==2.0.0' -> 'kubeflow'
+        'kubeflow>=1.5.0' -> 'kubeflow'
+        'kubeflow[extras]' -> 'kubeflow'
+        'git+https://github.com/kubeflow/sdk.git' -> 'kubeflow' (special case for kubeflow detection)
+    """
+    # Handle VCS URLs (git+https://, git+ssh://, etc.)
+    if '+' in package_spec and '://' in package_spec:
+        # Special case: if it's a kubeflow URL, return 'kubeflow' for auto-detection logic
+        if 'kubeflow' in package_spec.lower():
+            return 'kubeflow'
+        # For other VCS URLs, extract package name from URL path
+        # e.g., 'git+https://github.com/org/package.git' -> 'package'
+        match = re.search(r'/([^/]+?)(?:\.git)?(?:[#@].*)?$', package_spec)
+        if match:
+            return match.group(1)
+        return package_spec  # fallback
+
+    # Handle standard package specs: package[extras]==version, package>=version, etc.
+    package_name = package_spec
+
+    # Remove extras in brackets: package[extras] -> package
+    if '[' in package_name:
+        package_name = package_name.split('[')[0]
+
+    # Remove version operators: package>=1.0 -> package, package==2.0 -> package
+    package_name = re.split(r'[<>=!~]', package_name)[0]
+
+    # Remove any remaining whitespace
+    return package_name.strip()
 
 
 @dataclasses.dataclass
@@ -152,15 +244,32 @@ python3 -m venv "$tmp/venv" --system-site-packages
 
 
 def _get_packages_to_install_command(
+    func: Optional[Callable] = None,
     kfp_package_path: Optional[str] = None,
     pip_index_urls: Optional[List[str]] = None,
     packages_to_install: Optional[List[str]] = None,
     install_kfp_package: bool = True,
+    install_kubeflow_package: bool = True,
     target_image: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
 ) -> List[str]:
     packages_to_install = packages_to_install or []
+
+    # Auto-detect and add kubeflow if needed
+    if install_kubeflow_package and func is not None:
+        detected_kubeflow = _detect_kubeflow_imports_in_function(func)
+
+        if detected_kubeflow:
+            # Parse existing packages to check for kubeflow
+            existing_package_names = [
+                _parse_package_name(pkg) for pkg in packages_to_install
+            ]
+
+            # Only add if not already specified
+            if 'kubeflow' not in existing_package_names:
+                packages_to_install.append('kubeflow')
+
     kfp_in_user_pkgs = any(pkg.startswith('kfp') for pkg in packages_to_install)
     # if the user doesn't say "don't install", they aren't building a
     # container component, and they haven't already specified a KFP dep
@@ -645,6 +754,7 @@ def create_notebook_component_from_func(
     pip_index_urls: Optional[List[str]] = None,
     output_component_file: Optional[str] = None,
     install_kfp_package: bool = True,
+    install_kubeflow_package: bool = True,
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
@@ -709,6 +819,7 @@ def create_notebook_component_from_func(
         pip_index_urls=pip_index_urls,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
+        install_kubeflow_package=install_kubeflow_package,
         kfp_package_path=kfp_package_path,
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
@@ -738,6 +849,7 @@ def create_component_from_func(
     pip_index_urls: Optional[List[str]] = None,
     output_component_file: Optional[str] = None,
     install_kfp_package: bool = True,
+    install_kubeflow_package: bool = True,
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
@@ -752,7 +864,9 @@ def create_component_from_func(
     """
 
     packages_to_install_command = _get_packages_to_install_command(
+        func=func,
         install_kfp_package=install_kfp_package,
+        install_kubeflow_package=install_kubeflow_package,
         target_image=target_image,
         kfp_package_path=kfp_package_path,
         packages_to_install=packages_to_install,
