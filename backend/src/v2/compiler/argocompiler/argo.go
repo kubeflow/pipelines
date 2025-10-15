@@ -542,6 +542,17 @@ func GetWorkspacePVC(
 		}
 	}
 
+	// Access modes define the read/write semantics for the underlying volume and
+	// gate whether multiple pods can mount it concurrently. It is required when creating the
+	// underlying PVC for the workspace.
+	if len(pvcSpec.AccessModes) == 0 {
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify accessModes")
+	}
+
+	if pvcSpec.StorageClassName == nil || *pvcSpec.StorageClassName == "" {
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify storageClassName")
+	}
+
 	quantity, err := k8sres.ParseQuantity(sizeStr)
 	if err != nil {
 		return k8score.PersistentVolumeClaim{}, fmt.Errorf("invalid size value for workspace PVC: %v", err)
