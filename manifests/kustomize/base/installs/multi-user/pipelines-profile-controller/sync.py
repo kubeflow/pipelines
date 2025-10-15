@@ -289,7 +289,7 @@ def server_factory(frontend_image,
                                             },
                                             {
                                                 "name": "ML_PIPELINE_SERVICE_PORT",
-                                                "value": "80"
+                                                "value": "8888"
                                             }
                                         ],
                                         "resources": {
