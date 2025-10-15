@@ -120,7 +120,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 
 	// ################## TESTS ##################
 
-	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", Label(E2eEssential), func() {
+	Context("Upload a pipeline file, run it and verify that pipeline run succeeds >", FlakeAttempts(2), Label(E2eEssential), func() {
 		var pipelineDir = "valid/essential"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
@@ -147,7 +147,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		var pipelineDir = "valid/critical"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), func() {
 				testutil.CheckIfSkipping(pipelineFile)
 				pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
 				logger.Log("Uploading pipeline file %s", pipelineFile)
