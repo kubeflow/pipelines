@@ -1,4 +1,4 @@
-cachetools==6.2.0
+cachetools==6.2.1
     # via google-auth
 certifi==2025.10.5
     # via
@@ -39,11 +39,11 @@ google-resumable-media==2.7.2
     # via google-cloud-storage
 googleapis-common-protos==1.70.0
     # via google-api-core
-idna==3.10
+idna==3.11
     # via requests
-kfp==2.14.5
+kfp==2.14.6
     # via -r requirements.in
-kfp-pipeline-spec==2.14.3
+kfp-pipeline-spec==2.14.6
     # via kfp
 kfp-server-api==2.14.3
     # via kfp
@@ -55,7 +55,7 @@ oauthlib==3.3.1
     #   requests-oauthlib
 proto-plus==1.26.1
     # via google-api-core
-protobuf==6.31.1
+protobuf==6.32.1
     # via
     #   -r requirements.in
     #   google-api-core

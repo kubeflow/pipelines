@@ -46,6 +46,10 @@ jobs:
           - image: frontend
             dockerfile: frontend/Dockerfile
             context: .
+
+          - image: metadata-writer
+            dockerfile: backend/metadata_writer/Dockerfile
+            context: .
     env:
       ARTIFACT_NAME: "${{ matrix.image }}"
       ARTIFACTS_PATH: "images_${{ github.sha }}"

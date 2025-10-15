@@ -101,10 +101,10 @@ jobs:
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
-        id: configure-cluster-ca-cert
-        if: ${{ matrix.pod_to_pod_tls_enabled == "true"}}
+        if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         run: |
-          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ env.API_TESTS_DIR }}"/ca.crt
+          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> $GITHUB_ENV
 
       - name: Configure Input Variables
         shell: bash
@@ -125,11 +125,6 @@ jobs:
             PROXY=false
           fi
           
-          if [ "${{ matrix.pod_to_pod_tls_enabled }}" == "true" ]; then
-            CA_CERT_PATH="ca.crt"
-          fi
-          
-          echo "CA_CERT_PATH=$CA_CERT_PATH" >> $GITHUB_OUTPUT
           echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
           echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
           echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
@@ -149,7 +144,7 @@ jobs:
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "Standalone_k8sVersion=${{ matrix.k8s_version }}_argoVersion=${{ matrix.argo_version }}_cacheEnabled=${{ matrix.cache_enabled }}_proxyEnabled=${{ matrix.proxy }}"
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
-          ca_cert_path: ${{ steps.configure-cluster-ca-cert.outputs.CA_CERT_PATH}}
+          ca_cert_path: ${{ env.CA_CERT_PATH }}
 
       - name: Notify test reports
         shell: bash
@@ -173,9 +168,10 @@ jobs:
         include:
           - k8s_version: "v1.31.0"
             cache_enabled: "true"
-            pipeline_store: "kubernetes"
+            # Pod to Pod TLS manifests are not yet implemented for Kubernetes Native API mode
+            pipeline_store: "database"
             pod_to_pod_tls_enabled: "true"
-            uploadPipelinesWithKubernetesClient: "true"
+            uploadPipelinesWithKubernetesClient: "false"
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}
 

@@ -17,5 +17,8 @@ images:
   - name: ghcr.io/kubeflow/kfp-frontend
     newName: kind-registry:5000/frontend
     newTag: latest
+  - name: ghcr.io/kubeflow/kfp-metadata-writer
+    newName: kind-registry:5000/metadata-writer
+    newTag: latest
 patches:
   - path: apiserver-env.yaml

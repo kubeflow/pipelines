@@ -24,7 +24,7 @@ kfp-server-api>=2.14.3,<3
 kubernetes>=8.0.0,<31
 # protobuf version should be identical to the one in kfp-pipeline-spec
 # api/v2alpha1/python/requirements.txt
-protobuf==6.31.1,<7.0
+protobuf>=6.31.1,<7.0
 PyYAML>=5.3,<7
 requests-toolbelt>=0.8.0,<2
 tabulate>=0.8.6,<1

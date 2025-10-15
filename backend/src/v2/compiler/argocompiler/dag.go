@@ -581,9 +581,13 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	if common.GetMetadataTLSEnabled() {
 		args = append(args, "--metadata_tls_enabled")
 	}
-	if c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled() {
+
+	setCABundle := false
+	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
 		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
+		setCABundle = true
 	}
+
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -619,8 +623,8 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
-	// If the apiserver is TLS-enabled, add the custom CA bundle to the DAG driver template.
-	if c.mlPipelineTLSEnabled {
+	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
+	if setCABundle {
 		ConfigureCustomCABundle(t)
 	}
 	c.templates[name] = t
