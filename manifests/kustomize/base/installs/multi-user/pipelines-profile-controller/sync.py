@@ -163,8 +163,8 @@ def server_factory(frontend_image,
                 "kubeflow-pipelines-ready":
                     len(attachments["Secret.v1"]) == 1 and
                     len(attachments["ConfigMap.v1"]) == 3 and
-                    len(attachments["Deployment.apps/v1"]) == 1 if artifacts_proxy_enabled.lower() == "true" else 0 and
-                    len(attachments["Service.v1"]) == 1 if artifacts_proxy_enabled.lower() == "true" else 0 and
+                    len(attachments["Deployment.apps/v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
+                    len(attachments["Service.v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     "True" or "False"
             }
 
