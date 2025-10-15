@@ -285,7 +285,7 @@ def server_factory(frontend_image,
                                             },
                                             {
                                                 "name": "ML_PIPELINE_SERVICE_HOST",
-                                                "value": "ml-pipeline-ui.kubeflow"
+                                                "value": "ml-pipeline.kubeflow.svc.cluster.local"
                                             },
                                             {
                                                 "name": "ML_PIPELINE_SERVICE_PORT",
