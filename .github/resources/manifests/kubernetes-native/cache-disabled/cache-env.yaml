@@ -10,9 +10,3 @@ spec:
           env:
             - name: CACHEENABLED
               value: "false"
-            - name: V2_DRIVER_IMAGE
-              value: kind-registry:5000/driver:latest
-            - name: V2_LAUNCHER_IMAGE
-              value: kind-registry:5000/launcher:latest
-            - name: LOG_LEVEL
-              value: "debug"

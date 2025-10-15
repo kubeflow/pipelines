@@ -73,13 +73,22 @@ func ValidateComponentStatuses(runClient *apiserver.RunClient, k8Client *kuberne
 	actualTaskDetails := updatedRun.RunDetails.TaskDetails
 	logger.Log("Updated pipeline run details")
 	expectedTaskDetails := GetTasksFromWorkflow(compiledWorkflow)
-	if *updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
-		logger.Log("Looks like the run %s FAILED, so capture pod logs for the failed task", runID)
-		CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTaskDetails)
-		ginkgo.Fail("Failing test because the pipeline run was not SUCCESSFUL")
+	if *updatedRun.State == run_model.V2beta1RuntimeStateRUNNING {
+		logger.Log("Pipeline run did not finish, checking workflow controller logs")
+		podLog := testutil.ReadContainerLogs(k8Client, *config.Namespace, "workflow-controller", nil, &testContext.TestStartTimeUTC, config.PodLogLimit)
+		logger.Log("Attaching Workflow Controller logs to the report")
+		ginkgo.AddReportEntry("Workflow Controller Logs", podLog)
+		ginkgo.Fail("Pipeline run did not complete, it stayed in RUNNING state")
+
 	} else {
-		logger.Log("Pipeline run succeeded, checking if the number of tasks are what is expected")
-		gomega.Expect(len(actualTaskDetails)).To(gomega.BeNumerically(">=", len(expectedTaskDetails)), "Number of created DAG tasks should be >= number of expected tasks")
+		if *updatedRun.State != run_model.V2beta1RuntimeStateSUCCEEDED {
+			logger.Log("Looks like the run %s FAILED, so capture pod logs for the failed task", runID)
+			CapturePodLogsForUnsuccessfulTasks(k8Client, testContext, actualTaskDetails)
+			ginkgo.Fail("Failing test because the pipeline run was not SUCCESSFUL")
+		} else {
+			logger.Log("Pipeline run succeeded, checking if the number of tasks are what is expected")
+			gomega.Expect(len(actualTaskDetails)).To(gomega.BeNumerically(">=", len(expectedTaskDetails)), "Number of created DAG tasks should be >= number of expected tasks")
+		}
 	}
 
 }

@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../../../../manifests/kustomize/env/cert-manager/platform-agnostic-standalone-tls
+  - ../../base
 
 images:
   - name: ghcr.io/kubeflow/kfp-api-server
@@ -20,5 +21,9 @@ images:
   - name: ghcr.io/kubeflow/kfp-metadata-writer
     newName: kind-registry:5000/metadata-writer
     newTag: latest
+
 patches:
   - path: apiserver-env.yaml
+    target:
+      kind: Deployment
+      name: ml-pipeline

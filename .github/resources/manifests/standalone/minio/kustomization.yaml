@@ -5,4 +5,7 @@ resources:
 - ../base
 
 patches:
-- path: apiserver-env.yaml
+  - path: apiserver-env.yaml
+    target:
+      kind: Deployment
+      name: ml-pipeline

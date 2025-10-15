@@ -9,4 +9,3 @@ patches:
     target:
       kind: Deployment
       name: ml-pipeline
-  - path: apiserver-env.yaml

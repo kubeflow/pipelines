@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ml-pipeline-apiserver-deployment.yaml
+  - metadata-grpc-deployment.yaml
+  - cache-deployment.yaml
+  - namespace-config.yaml
+
+patches:
+  - path: apiserver-env.yaml
+  - path: grpc-specs.yaml
+  - path: cache-specs.yaml
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: namespace-config
+      fieldPath: data.namespaceDns
+    targets:
+      - select:
+          kind: Deployment
+          name: ml-pipeline
+        fieldPaths:
+          - spec.template.spec.dnsConfig.searches.[=NAMESPACE.svc.cluster.local]
+      - select:
+          kind: Deployment
+          name: metadata-grpc-deployment
+        fieldPaths:
+          - spec.template.spec.dnsConfig.searches.[=NAMESPACE.svc.cluster.local]
+      - select:
+          kind: Deployment
+          name: cache-server
+        fieldPaths:
+          - spec.template.spec.dnsConfig.searches.[=NAMESPACE.svc.cluster.local]
