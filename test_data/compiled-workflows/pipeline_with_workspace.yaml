@@ -387,6 +387,8 @@ spec:
       resources:
         requests:
           storage: 1Gi
+      accessModes:
+      - ReadWriteOnce
       storageClassName: standard
     status: {}
 status:

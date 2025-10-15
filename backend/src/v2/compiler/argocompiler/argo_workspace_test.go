@@ -35,16 +35,28 @@ func TestGetWorkspacePVC(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "workspace with size specified",
+			name: "workspace with size specified and default workspace",
 			workspace: &pipelinespec.WorkspaceConfig{
-				Size: "5Gi",
+				Size:       "5Gi",
+				Kubernetes: nil,
 			},
-			opts: nil,
+			opts: &argocompiler.Options{
+				DefaultWorkspace: &k8score.PersistentVolumeClaimSpec{
+					AccessModes: []k8score.PersistentVolumeAccessMode{
+						k8score.ReadWriteOnce,
+					},
+					StorageClassName: stringPtr("standard"),
+				},
+			},
 			expectedPVC: k8score.PersistentVolumeClaim{
 				ObjectMeta: k8smeta.ObjectMeta{
 					Name: "kfp-workspace",
 				},
 				Spec: k8score.PersistentVolumeClaimSpec{
+					AccessModes: []k8score.PersistentVolumeAccessMode{
+						k8score.ReadWriteOnce,
+					},
+					StorageClassName: stringPtr("standard"),
 					Resources: k8score.VolumeResourceRequirements{
 						Requests: map[k8score.ResourceName]resource.Quantity{
 							k8score.ResourceStorage: resource.MustParse("5Gi"),
@@ -68,7 +80,14 @@ func TestGetWorkspacePVC(t *testing.T) {
 			workspace: &pipelinespec.WorkspaceConfig{
 				Size: "", // no size specified
 			},
-			opts:        nil, // no options
+			opts: &argocompiler.Options{
+				DefaultWorkspace: &k8score.PersistentVolumeClaimSpec{
+					AccessModes: []k8score.PersistentVolumeAccessMode{
+						k8score.ReadWriteOnce,
+					},
+					StorageClassName: stringPtr("standard"),
+				},
+			},
 			expectedPVC: k8score.PersistentVolumeClaim{},
 			expectError: true,
 		},
@@ -107,6 +126,17 @@ func TestGetWorkspacePVC(t *testing.T) {
 				},
 			},
 			expectError: false,
+		},
+		{
+			name: "default workspace missing required fields should fail",
+			workspace: &pipelinespec.WorkspaceConfig{
+				Size: "10Gi",
+			},
+			opts: &argocompiler.Options{
+				DefaultWorkspace: &k8score.PersistentVolumeClaimSpec{},
+			},
+			expectedPVC: k8score.PersistentVolumeClaim{},
+			expectError: true,
 		},
 		{
 			name: "workspace with Kubernetes PVC spec patch",
@@ -157,6 +187,24 @@ func TestGetWorkspacePVC(t *testing.T) {
 				Size: "invalid-size",
 			},
 			opts:        nil,
+			expectedPVC: k8score.PersistentVolumeClaim{},
+			expectError: true,
+		},
+		{
+			name: "workspace patch missing accessModes should fail",
+			workspace: &pipelinespec.WorkspaceConfig{
+				Size: "20Gi",
+				Kubernetes: &pipelinespec.KubernetesWorkspaceConfig{
+					PvcSpecPatch: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"storageClassName": structpb.NewStringValue("fast-ssd"),
+						},
+					},
+				},
+			},
+			opts: &argocompiler.Options{
+				DefaultWorkspace: &k8score.PersistentVolumeClaimSpec{},
+			},
 			expectedPVC: k8score.PersistentVolumeClaim{},
 			expectError: true,
 		},
@@ -221,50 +269,6 @@ func TestGetWorkspacePVC(t *testing.T) {
 			},
 			expectError: false,
 		},
-		{
-			name: "workspace with nil Kubernetes config",
-			workspace: &pipelinespec.WorkspaceConfig{
-				Size:       "30Gi",
-				Kubernetes: nil,
-			},
-			opts: nil,
-			expectedPVC: k8score.PersistentVolumeClaim{
-				ObjectMeta: k8smeta.ObjectMeta{
-					Name: "kfp-workspace",
-				},
-				Spec: k8score.PersistentVolumeClaimSpec{
-					Resources: k8score.VolumeResourceRequirements{
-						Requests: map[k8score.ResourceName]resource.Quantity{
-							k8score.ResourceStorage: resource.MustParse("30Gi"),
-						},
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "workspace with empty Kubernetes config",
-			workspace: &pipelinespec.WorkspaceConfig{
-				Size: "40Gi",
-				Kubernetes: &pipelinespec.KubernetesWorkspaceConfig{
-					PvcSpecPatch: nil,
-				},
-			},
-			opts: nil,
-			expectedPVC: k8score.PersistentVolumeClaim{
-				ObjectMeta: k8smeta.ObjectMeta{
-					Name: "kfp-workspace",
-				},
-				Spec: k8score.PersistentVolumeClaimSpec{
-					Resources: k8score.VolumeResourceRequirements{
-						Requests: map[k8score.ResourceName]resource.Quantity{
-							k8score.ResourceStorage: resource.MustParse("40Gi"),
-						},
-					},
-				},
-			},
-			expectError: false,
-		},
 	}
 
 	for _, tt := range tests {
@@ -299,17 +303,41 @@ func TestGetWorkspacePVC_EdgeCases(t *testing.T) {
 			name: "workspace with very large size",
 			workspace: &pipelinespec.WorkspaceConfig{
 				Size: "1000Ti",
+				Kubernetes: &pipelinespec.KubernetesWorkspaceConfig{
+					PvcSpecPatch: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"accessModes": structpb.NewListValue(&structpb.ListValue{
+								Values: []*structpb.Value{
+									structpb.NewStringValue("ReadWriteOnce"),
+								},
+							}),
+							"storageClassName": structpb.NewStringValue("gp2"),
+						},
+					},
+				},
 			},
 			opts:        nil,
-			expectError: false, // should be valid
+			expectError: false,
 		},
 		{
 			name: "workspace with decimal size",
 			workspace: &pipelinespec.WorkspaceConfig{
 				Size: "1.5Gi",
+				Kubernetes: &pipelinespec.KubernetesWorkspaceConfig{
+					PvcSpecPatch: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"accessModes": structpb.NewListValue(&structpb.ListValue{
+								Values: []*structpb.Value{
+									structpb.NewStringValue("ReadWriteOnce"),
+								},
+							}),
+							"storageClassName": structpb.NewStringValue("standard"),
+						},
+					},
+				},
 			},
 			opts:        nil,
-			expectError: false, // should be valid
+			expectError: false,
 		},
 		{
 			name: "workspace with invalid size format",

@@ -534,6 +534,13 @@ func GetWorkspacePVC(
 		}
 	}
 
+	if len(pvcSpec.AccessModes) == 0 {
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify accessModes")
+	}
+	if pvcSpec.StorageClassName == nil || *pvcSpec.StorageClassName == "" {
+		return k8score.PersistentVolumeClaim{}, fmt.Errorf("workspace PVC spec must specify storageClassName")
+	}
+
 	quantity, err := resource.ParseQuantity(sizeStr)
 	if err != nil {
 		return k8score.PersistentVolumeClaim{}, fmt.Errorf("invalid size value for workspace PVC: %v", err)
