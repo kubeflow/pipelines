@@ -6,31 +6,31 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-db8097682cf93da6b46f7ade69b360e7b202276c350b83e4bbf5da6625c7f8c3
+    - name: components-82d02acf69c2c3c832eb2f0d142beca2732b4d1c79b2cafacf4123407f5477ad
       value: '{"executorLabel":"exec-add","inputDefinitions":{"parameters":{"nums":{"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-db8097682cf93da6b46f7ade69b360e7b202276c350b83e4bbf5da6625c7f8c3
+    - name: implementations-82d02acf69c2c3c832eb2f0d142beca2732b4d1c79b2cafacf4123407f5477ad
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         add(nums: List[int]) -\u003e int:\n    return sum(nums)\n\n"],"image":"python:3.11"}'
-    - name: components-a84a92e43cc5061b9721809172326190f017aa27a15f7b894c7be7cb01d2e7e4
+    - name: components-8bcf31b4cf23a7983bd03c19572bd597bc45d28e75853f331f473d2a615331ff
       value: '{"executorLabel":"exec-add-container","inputDefinitions":{"parameters":{"nums":{"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"sum":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-a84a92e43cc5061b9721809172326190f017aa27a15f7b894c7be7cb01d2e7e4
+    - name: implementations-8bcf31b4cf23a7983bd03c19572bd597bc45d28e75853f331f473d2a615331ff
       value: '{"args":["\n            set -ex\n            mkdir -p $(dirname {{$.outputs.parameters[''sum''].output_file}})\n            echo
-        {{$.inputs.parameters[''nums'']}} | jq ''add'' \u003e {{$.outputs.parameters[''sum''].output_file}}\n            "],"command":["sh","-c"],"image":"stedolan/jq"}'
-    - name: components-f79f58ed4b630aadad448078027429b1d8053e45ed52bed5961317a8e3ebf5e3
+        {{$.inputs.parameters[''nums'']}} | jq ''add'' \u003e {{$.outputs.parameters[''sum''].output_file}}\n            "],"command":["sh","-c"],"image":"jetbrainsinfra/jq"}'
+    - name: components-1d9b313d7b75f93cb760d1013066d50f1f444a9ec0e72b829a76934e3cd0d765
       value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-f79f58ed4b630aadad448078027429b1d8053e45ed52bed5961317a8e3ebf5e3
+    - name: implementations-1d9b313d7b75f93cb760d1013066d50f1f444a9ec0e72b829a76934e3cd0d765
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","double"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -222,11 +222,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f79f58ed4b630aadad448078027429b1d8053e45ed52bed5961317a8e3ebf5e3}}'
+            value: '{{workflow.parameters.components-1d9b313d7b75f93cb760d1013066d50f1f444a9ec0e72b829a76934e3cd0d765}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f79f58ed4b630aadad448078027429b1d8053e45ed52bed5961317a8e3ebf5e3}}'
+            value: '{{workflow.parameters.implementations-1d9b313d7b75f93cb760d1013066d50f1f444a9ec0e72b829a76934e3cd0d765}}'
           - name: task-name
             value: double
           - name: parent-dag-id
@@ -392,11 +392,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-db8097682cf93da6b46f7ade69b360e7b202276c350b83e4bbf5da6625c7f8c3}}'
+            value: '{{workflow.parameters.components-82d02acf69c2c3c832eb2f0d142beca2732b4d1c79b2cafacf4123407f5477ad}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-db8097682cf93da6b46f7ade69b360e7b202276c350b83e4bbf5da6625c7f8c3}}'
+            value: '{{workflow.parameters.implementations-82d02acf69c2c3c832eb2f0d142beca2732b4d1c79b2cafacf4123407f5477ad}}'
           - name: task-name
             value: add
           - name: parent-dag-id
@@ -417,11 +417,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a84a92e43cc5061b9721809172326190f017aa27a15f7b894c7be7cb01d2e7e4}}'
+            value: '{{workflow.parameters.components-8bcf31b4cf23a7983bd03c19572bd597bc45d28e75853f331f473d2a615331ff}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-container"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add-container"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a84a92e43cc5061b9721809172326190f017aa27a15f7b894c7be7cb01d2e7e4}}'
+            value: '{{workflow.parameters.implementations-8bcf31b4cf23a7983bd03c19572bd597bc45d28e75853f331f473d2a615331ff}}'
           - name: task-name
             value: add-container
           - name: parent-dag-id

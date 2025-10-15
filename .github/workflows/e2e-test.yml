@@ -54,7 +54,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: ["v1.31.0"]
+        k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
         argo_version: [ "v3.7.3", "v3.6.7", "v3.5.14"]
         storage: [ "seaweedfs", "minio"]
@@ -66,17 +66,17 @@ jobs:
             cache_enabled: "false"
             argo_version: "v3.5.14"
             test_label: "E2ECritical"
-          - k8s_version: "v1.31.0"
+          - k8s_version: "v1.34.0"
             cache_enabled: "false"
             proxy: "true"
             test_label: "E2EProxy"
-          - k8s_version: "v1.31.0"
+          - k8s_version: "v1.34.0"
             cache_enabled: "false"
             test_label: "E2EEssential"
-          - k8s_version: "v1.31.0"
+          - k8s_version: "v1.34.0"
             cache_enabled: "false"
             test_label: "E2EFailure"
-          - k8s_version: "v1.31.0"
+          - k8s_version: "v1.34.0"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
             test_label: "E2ECritical"
@@ -169,7 +169,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: ["v1.31.0"]
+        k8s_version: ["v1.34.0"]
         cache_enabled: ["true", "false"]
         storage: [ "seaweedfs", "minio"]
         multi_user: [ "true" ]
@@ -178,7 +178,7 @@ jobs:
         - multi_user: "true"
           artifact_proxy: "true"
           storage: "seaweedfs"
-          k8s_version: "v1.31.0"
+          k8s_version: "v1.34.0"
           cache_enabled: "true"
           test_label: "E2ECritical" 
       fail-fast: false
