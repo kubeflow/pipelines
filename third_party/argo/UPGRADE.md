@@ -10,7 +10,7 @@ Instructions:
 1. Set version of argo you want to upgrade to, for example:
 
     ```bash
-    ARGO_TAG=v3.7.2
+    ARGO_TAG=v3.7.3
     ```
 
 1. Run the `update` target of the [Makefile](./Makefile) in this directory

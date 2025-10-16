@@ -5,7 +5,7 @@ go 1.24.7
 require (
 	github.com/Masterminds/squirrel v0.0.0-20190107164353-fa735ea14f09
 	github.com/VividCortex/mysqlerr v0.0.0-20170204212430-6c6b55f8796f
-	github.com/argoproj/argo-workflows/v3 v3.7.2
+	github.com/argoproj/argo-workflows/v3 v3.7.3
 	github.com/aws/aws-sdk-go v1.55.5 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/eapache/go-resiliency v1.2.0
@@ -44,7 +44,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 	gocloud.dev v0.40.0
-	golang.org/x/net v0.40.0
+	golang.org/x/net v0.45.0
 	golang.org/x/oauth2 v0.30.0
 	// Pre-generated Go code (.pb.go files) for a subset of the .proto files found in
 	// googleapis/googleapis both /api and /rpc should be released relatively close to
@@ -226,15 +226,16 @@ require (
 	go.opentelemetry.io/otel/trace v1.36.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.7.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/exp v0.0.0-20250531010427-b6e5de432a8b // indirect
-	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/term v0.32.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/mod v0.28.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/term v0.36.0 // indirect
+	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	golang.org/x/tools v0.33.0 // indirect
+	golang.org/x/tools v0.37.0 // indirect
+	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect
 	golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.236.0 // indirect
