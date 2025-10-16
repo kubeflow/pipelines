@@ -310,19 +310,19 @@ func (r *ResourceManager) GetPipelineByNameAndNamespaceV1(name string, namespace
 // Deletes a pipeline. Does not delete pipeline spec in the object storage.
 // If cascade is false, fails if the pipeline has existing pipeline versions.
 // If cascade is true, deletes all pipeline versions first, then deletes the pipeline.
-func (r *ResourceManager) DeletePipeline(pipelineID string, cascade bool) error {
+func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error {
 	// Check if pipeline exists
-	_, err := r.pipelineStore.GetPipeline(pipelineID)
+	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete pipeline with id %v as it was not found", pipelineID)
+		return util.Wrapf(err, "Failed to delete pipeline with id %v as it was not found", pipelineId)
 	}
 
 	if cascade {
 		// Get all pipeline versions for this pipeline and delete them
 		opts := list.EmptyOptions()
-		pipelineVersions, _, _, err := r.pipelineStore.ListPipelineVersions(pipelineID, opts)
+		pipelineVersions, _, _, err := r.pipelineStore.ListPipelineVersions(pipelineId, opts)
 		if err != nil {
-			return util.Wrapf(err, "Failed to delete pipeline with id %v due to error listing pipeline versions", pipelineID)
+			return util.Wrapf(err, "Failed to delete pipeline with id %v due to error listing pipeline versions", pipelineId)
 		}
 
 		// Delete each pipeline version
@@ -336,30 +336,30 @@ func (r *ResourceManager) DeletePipeline(pipelineID string, cascade bool) error 
 			// Delete the pipeline version from the database
 			err = r.pipelineStore.DeletePipelineVersion(pipelineVersion.UUID)
 			if err != nil {
-				return util.Wrapf(err, "Failed to delete pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineID)
+				return util.Wrapf(err, "Failed to delete pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
 			}
-			glog.Infof("Successfully deleted pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineID)
+			glog.Infof("Successfully deleted pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
 		}
 	} else {
 		// Check if it has no pipeline versions in Ready state
-		latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineID)
+		latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)
 		if latestPipelineVersion != nil {
-			return util.NewInvalidInputError("Failed to delete pipeline with id %v as it has existing pipeline versions (e.g. %v). Set cascade=true to delete all versions", pipelineID, latestPipelineVersion.UUID)
+			return util.NewInvalidInputError("Failed to delete pipeline with id %v as it has existing pipeline versions (e.g. %v). Set cascade=true to delete all versions", pipelineId, latestPipelineVersion.UUID)
 		} else if err.(*util.UserError).ExternalStatusCode() != codes.NotFound {
-			return util.Wrapf(err, "Failed to delete pipeline with id %v as it failed to check existing pipeline versions", pipelineID)
+			return util.Wrapf(err, "Failed to delete pipeline with id %v as it failed to check existing pipeline versions", pipelineId)
 		}
 	}
 
 	// Mark pipeline as deleting so it's not visible to user.
-	err = r.pipelineStore.UpdatePipelineStatus(pipelineID, model.PipelineDeleting)
+	err = r.pipelineStore.UpdatePipelineStatus(pipelineId, model.PipelineDeleting)
 	if err != nil {
-		return util.Wrapf(err, "Failed to change the status of pipeline id %v to DELETING", pipelineID)
+		return util.Wrapf(err, "Failed to change the status of pipeline id %v to DELETING", pipelineId)
 	}
 
 	// Delete a pipeline.
-	err = r.pipelineStore.DeletePipeline(pipelineID)
+	err = r.pipelineStore.DeletePipeline(pipelineId)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete pipeline DB entry for pipeline id %v", pipelineID)
+		return util.Wrapf(err, "Failed to delete pipeline DB entry for pipeline id %v", pipelineId)
 	}
 	return nil
 }
@@ -544,7 +544,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 	}
 	run.RunDetails.CreatedAtInSec = r.time.Now().Unix()
 	runWorkflowOptions := template.RunWorkflowOptions{
-		RunID:            run.UUID,
+		RunId:            run.UUID,
 		RunAt:            run.CreatedAtInSec,
 		CacheDisabled:    r.options.CacheDisabled,
 		DefaultWorkspace: r.options.DefaultWorkspace,
@@ -632,6 +632,7 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 	opts := list.EmptyOptions()
 
 	jobs, _, _, err := r.jobStore.ListJobs(filterContext, opts)
+
 	if err != nil {
 		return util.Wrap(err, "Failed to reconcile ScheduledWorkflow Kubernetes resources")
 	}
@@ -654,7 +655,7 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 			return failedToReconcileSwfCrsError(err)
 		}
 
-		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
+		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i], r.getOwnerReferences())
 		if err != nil {
 			return failedToReconcileSwfCrsError(err)
 		}
@@ -1128,7 +1129,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 
 		// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 		// Convert modelJob into scheduledWorkflow.
-		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job)
+		scheduledWorkflow, err = tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 		}
@@ -1148,12 +1149,12 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
 
-		_, err = tmpl.ScheduledWorkflow(job)
+		_, err = tmpl.ScheduledWorkflow(job, r.getOwnerReferences())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
 
-		scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
+		scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job, r.getOwnerReferences())
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
 		}
@@ -1204,6 +1205,27 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		job.PipelineSpecManifest = model.LargeText(manifest)
 	}
 	return r.jobStore.CreateJob(job)
+}
+
+func (r *ResourceManager) getOwnerReferences() []v1.OwnerReference {
+	ownerName := common.GetStringConfigWithDefault("OWNER_NAME", "")
+	ownerAPIVersion := common.GetStringConfigWithDefault("OWNER_API_VERSION", "")
+	ownerKind := common.GetStringConfigWithDefault("OWNER_KIND", "")
+	ownerUID := types.UID(common.GetStringConfigWithDefault("OWNER_UID", ""))
+
+	if ownerName == "" || ownerAPIVersion == "" || ownerKind == "" || ownerUID == "" {
+		glog.Info("Missing ScheduledWorkflow owner fields. Proceeding without OwnerReferences")
+		return []v1.OwnerReference{}
+	} else {
+		return []v1.OwnerReference{
+			{
+				APIVersion: ownerAPIVersion,
+				Kind:       ownerKind,
+				Name:       ownerName,
+				UID:        ownerUID,
+			},
+		}
+	}
 }
 
 // Enables or disables a recurring run with given id.

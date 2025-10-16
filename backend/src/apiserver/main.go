@@ -324,7 +324,9 @@ func startHttpProxy(resourceManager *resource.ResourceManager, tlsConfig *tls.Co
 	}
 
 	// Create gRPC HTTP MUX and register services for v1beta1 api.
-	runtimeMux := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(grpcCustomMatcher))
+	runtimeMux := runtime.NewServeMux(
+		runtime.WithIncomingHeaderMatcher(grpcCustomMatcher),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, common.CustomMarshaler()))
 	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux, tlsConfig)
 	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux, tlsConfig)
 	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, runtimeMux, tlsConfig)

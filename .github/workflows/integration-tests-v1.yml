@@ -73,7 +73,7 @@ jobs:
         id: integration-tests
         if: ${{ steps.forward-mysql-port.outcome == 'success' }}
         working-directory: ./backend/test/integration
-        run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow
+        run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -repoName=${{ github.repository }}
         env:
           PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true

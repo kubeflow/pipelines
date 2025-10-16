@@ -51,10 +51,8 @@ const (
 	SCHEMA_VERSION_2_1_0 = "2.1.0"
 )
 
-var (
-	ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
-	ErrorInvalidPlatformSpec = fmt.Errorf("platform spec is invalid")
-)
+var ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
+var ErrorInvalidPlatformSpec = fmt.Errorf("Platform spec is invalid")
 
 // inferTemplateFormat infers format from pipeline template.
 // There is no guarantee that the template is valid in inferred format, so validation
@@ -131,13 +129,13 @@ type Template interface {
 	// Get workflow
 	RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
 
-	ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error)
+	ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.OwnerReference) (*scheduledworkflow.ScheduledWorkflow, error)
 
 	IsCacheDisabled() bool
 }
 
 type RunWorkflowOptions struct {
-	RunID            string
+	RunId            string
 	RunAt            int64
 	CacheDisabled    bool
 	DefaultWorkspace *corev1.PersistentVolumeClaimSpec
@@ -189,7 +187,7 @@ func StringMapToCRDParameters(modelParams string) ([]scheduledworkflow.Parameter
 	for name, value := range parameters {
 		valueBytes, err := value.MarshalJSON()
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "error marshaling model parameters")
+			return nil, util.NewInternalServerError(err, "error marshalling model parameters")
 		}
 		swParam := scheduledworkflow.Parameter{
 			Name:  name,

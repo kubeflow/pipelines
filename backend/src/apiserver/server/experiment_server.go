@@ -166,12 +166,12 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2b
 	return apiExperiment, nil
 }
 
-func (s *BaseExperimentServer) getExperiment(ctx context.Context, experimentID string) (*model.Experiment, error) {
-	err := s.canAccessExperiment(ctx, experimentID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+func (s *BaseExperimentServer) getExperiment(ctx context.Context, experimentId string) (*model.Experiment, error) {
+	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
-	return s.resourceManager.GetExperiment(experimentID)
+	return s.resourceManager.GetExperiment(experimentId)
 }
 
 func (s *ExperimentServerV1) GetExperimentV1(ctx context.Context, request *apiv1beta1.GetExperimentRequest) (
@@ -299,12 +299,12 @@ func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2be
 	}, nil
 }
 
-func (s *BaseExperimentServer) deleteExperiment(ctx context.Context, experimentID string) error {
-	err := s.canAccessExperiment(ctx, experimentID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+func (s *BaseExperimentServer) deleteExperiment(ctx context.Context, experimentId string) error {
+	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
-	return s.resourceManager.DeleteExperiment(experimentID)
+	return s.resourceManager.DeleteExperiment(experimentId)
 }
 
 func (s *ExperimentServerV1) DeleteExperimentV1(ctx context.Context, request *apiv1beta1.DeleteExperimentRequest) (*emptypb.Empty, error) {
@@ -367,12 +367,12 @@ func (s *BaseExperimentServer) canAccessExperiment(ctx context.Context, experime
 	return nil
 }
 
-func (s *BaseExperimentServer) archiveExperiment(ctx context.Context, experimentID string) error {
-	err := s.canAccessExperiment(ctx, experimentID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
+func (s *BaseExperimentServer) archiveExperiment(ctx context.Context, experimentId string) error {
+	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
-	return s.resourceManager.ArchiveExperiment(ctx, experimentID)
+	return s.resourceManager.ArchiveExperiment(ctx, experimentId)
 }
 
 func (s *ExperimentServerV1) ArchiveExperimentV1(ctx context.Context, request *apiv1beta1.ArchiveExperimentRequest) (*emptypb.Empty, error) {
@@ -396,12 +396,12 @@ func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2
 	return &emptypb.Empty{}, nil
 }
 
-func (s *BaseExperimentServer) unarchiveExperiment(ctx context.Context, experimentID string) error {
-	err := s.canAccessExperiment(ctx, experimentID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
+func (s *BaseExperimentServer) unarchiveExperiment(ctx context.Context, experimentId string) error {
+	err := s.canAccessExperiment(ctx, experimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
 	if err != nil {
 		return util.Wrap(err, "Failed to authorize the request")
 	}
-	return s.resourceManager.UnarchiveExperiment(experimentID)
+	return s.resourceManager.UnarchiveExperiment(experimentId)
 }
 
 func (s *ExperimentServerV1) UnarchiveExperimentV1(ctx context.Context, request *apiv1beta1.UnarchiveExperimentRequest) (*emptypb.Empty, error) {

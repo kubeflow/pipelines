@@ -214,7 +214,10 @@ func TestScheduledWorkflow(t *testing.T) {
 			APIVersion: "kubeflow.org/v2beta1",
 			Kind:       "ScheduledWorkflow",
 		},
-		ObjectMeta: metav1.ObjectMeta{GenerateName: "name1"},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName:    "name1",
+			OwnerReferences: []metav1.OwnerReference{},
+		},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        true,
 			MaxConcurrency: util.Int64Pointer(1),
@@ -236,7 +239,7 @@ func TestScheduledWorkflow(t *testing.T) {
 		},
 	}
 
-	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob)
+	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob, []metav1.OwnerReference{})
 	assert.Nil(t, err)
 
 	// We don't compare this field because it changes with every driver/launcher image release.

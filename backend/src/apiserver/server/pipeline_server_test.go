@@ -60,7 +60,7 @@ func setupLargePipelineURL() string {
 	branch := os.Getenv("GIT_BRANCH")
 	repo := os.Getenv("GIT_REPO")
 	if repo == "" {
-		repo = "opendatahub-io/data-science-pipelines"
+		repo = "kubeflow/pipelines"
 	}
 	if branch == "" {
 		branch = "master"

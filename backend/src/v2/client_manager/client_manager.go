@@ -29,6 +29,11 @@ type Options struct {
 	MLMDServerAddress string
 	MLMDServerPort    string
 	CacheDisabled     bool
+	// set to true if ml pipeline server is serving over tls
+	MLPipelineTLSEnabled bool
+	// set to true if metadata server is serving over tls
+	MetadataTLSEnabled bool
+	CaCertPath         string
 }
 
 // NewClientManager creates and Init a new instance of ClientManager.
@@ -59,11 +64,11 @@ func (cm *ClientManager) init(opts *Options) error {
 	if err != nil {
 		return err
 	}
-	metadataClient, err := initMetadataClient(opts.MLMDServerAddress, opts.MLMDServerPort)
+	metadataClient, err := initMetadataClient(opts.MLMDServerAddress, opts.MLMDServerPort, opts.MetadataTLSEnabled, opts.CaCertPath)
 	if err != nil {
 		return err
 	}
-	cacheClient, err := initCacheClient(opts.CacheDisabled)
+	cacheClient, err := initCacheClient(opts.CacheDisabled, opts.MLPipelineTLSEnabled)
 	if err != nil {
 		return err
 	}
@@ -85,10 +90,10 @@ func initK8sClient() (kubernetes.Interface, error) {
 	return k8sClient, nil
 }
 
-func initMetadataClient(address string, port string) (metadata.ClientInterface, error) {
-	return metadata.NewClient(address, port, false, "")
+func initMetadataClient(address string, port string, tlsEnabled bool, caCertPath string) (metadata.ClientInterface, error) {
+	return metadata.NewClient(address, port, tlsEnabled, caCertPath)
 }
 
-func initCacheClient(cacheDisabled bool) (cacheutils.Client, error) {
-	return cacheutils.NewClient(cacheDisabled, false)
+func initCacheClient(cacheDisabled bool, mlPipelineServiceTLSEnabled bool) (cacheutils.Client, error) {
+	return cacheutils.NewClient(cacheDisabled, mlPipelineServiceTLSEnabled)
 }

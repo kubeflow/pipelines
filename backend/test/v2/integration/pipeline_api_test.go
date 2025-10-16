@@ -43,6 +43,7 @@ import (
 type PipelineApiTest struct {
 	suite.Suite
 	namespace            string
+	repoName             string
 	resourceNamespace    string
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient api_server.PipelineUploadInterface
@@ -62,6 +63,7 @@ func (s *PipelineApiTest) SetupTest() {
 		}
 	}
 	s.namespace = *config.Namespace
+	s.repoName = *config.REPO_NAME
 
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 
@@ -150,7 +152,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 			},
 			PipelineVersion: &model.V2beta1PipelineVersion{
 				PackageURL: &model.V2beta1URL{
-					PipelineURL: "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
+					PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml",
 				},
 			},
 		},
@@ -167,7 +169,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "sequential", sequentialPipelineVersions[0].DisplayName)
 	assert.Equal(t, "sequential pipeline", sequentialPipelineVersions[0].Description)
 	assert.Equal(t, sequentialPipeline.PipelineID, sequentialPipelineVersions[0].PipelineID)
-	assert.Equal(t, "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml", sequentialPipelineVersions[0].PackageURL.PipelineURL)
+	assert.Equal(t, "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential-v2.yaml", string(sequentialPipelineVersions[0].PackageURL.PipelineURL))
 
 	/* ---------- Upload pipelines zip ---------- */
 	time.Sleep(1 * time.Second)
@@ -177,10 +179,10 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := "https://github.com/opendatahub-io/data-science-pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+	pipelineURL := fmt.Sprintf("https://github.com/%s/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip", s.repoName)
 
-	if pullNumber := os.Getenv("PullNumber"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", s.repoName, pullNumber)
 	}
 
 	time.Sleep(1 * time.Second)

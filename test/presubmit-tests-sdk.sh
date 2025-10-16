@@ -29,9 +29,11 @@ if [ "${SETUP_ENV}" = "true" ]; then
   python3 -m pip install pytest-cov
   python3 -m pip install pytest
   python3 -m pip install google_cloud_pipeline_components
-  python3 -m pip install docker
+  python3 -m pip install docker==7.1.0
   python3 -m pip install --upgrade protobuf
   python3 -m pip install sdk/python
+  python3 -m pip install -e kubernetes_platform/python --force-reinstall
+  python3 -m pip install -e backend/api/v2beta1/python_http_client --force-reinstall
 
   # regenerate the kfp-pipeline-spec
   cd api/

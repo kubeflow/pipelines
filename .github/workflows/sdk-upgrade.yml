@@ -2,6 +2,7 @@ name: KFP SDK Upgrade Test
 
 # This workflow is disabled in downstream because the SDK is always behind upstream, so it does not sufficiently test
 # upgrades and will fail.
+on: []
 #on:
 #  push:
 #    branches:

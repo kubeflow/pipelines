@@ -121,9 +121,12 @@ func run() error {
 		return nil
 	case "container":
 		clientOptions := &client_manager.Options{
-			MLMDServerAddress: launcherV2Opts.MLMDServerAddress,
-			MLMDServerPort:    launcherV2Opts.MLMDServerPort,
-			CacheDisabled:     launcherV2Opts.CacheDisabled,
+			MLMDServerAddress:    launcherV2Opts.MLMDServerAddress,
+			MLMDServerPort:       launcherV2Opts.MLMDServerPort,
+			CacheDisabled:        launcherV2Opts.CacheDisabled,
+			MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
+			MetadataTLSEnabled:   metadataServiceTLSEnabled,
+			CaCertPath:           *caCertPath,
 		}
 		clientManager, err := client_manager.NewClientManager(clientOptions)
 		if err != nil {
@@ -142,6 +145,7 @@ func run() error {
 
 	}
 	return fmt.Errorf("unsupported executor type %s", *executorType)
+
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.
