@@ -1666,6 +1666,7 @@ func TestCronScheduledJobtoApiJob(t *testing.T) {
 		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
+		Mode:           apiv1beta1.Job_ENABLED,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
@@ -1721,6 +1722,7 @@ func TestPeriodicScheduledJobtoApiJob(t *testing.T) {
 		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
+		Mode:           apiv1beta1.Job_ENABLED,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &apiv1beta1.PeriodicSchedule{
 				StartTime:      timestamppb.New(time.Unix(1, 0)),
@@ -1766,6 +1768,7 @@ func TestNonScheduledJobtoApiJob(t *testing.T) {
 		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
+		Mode:           apiv1beta1.Job_ENABLED,
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",

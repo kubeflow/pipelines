@@ -456,6 +456,7 @@ func (s *UpgradeTests) VerifyJobs() {
 		MaxConcurrency: 10,
 		NoCatchup:      true,
 		Enabled:        true,
+		Mode:           job_model.JobModeENABLED.Pointer(),
 		CreatedAt:      job.CreatedAt,
 		UpdatedAt:      job.UpdatedAt,
 		Status:         job.Status,

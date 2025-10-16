@@ -2191,6 +2191,15 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 
 	specManifest := j.PipelineSpec.PipelineSpecManifest
 	wfManifest := j.PipelineSpec.WorkflowSpecManifest
+
+	// Set Mode based on Enabled field
+	var mode apiv1beta1.Job_Mode
+	if j.Enabled {
+		mode = apiv1beta1.Job_ENABLED
+	} else {
+		mode = apiv1beta1.Job_DISABLED
+	}
+
 	return &apiv1beta1.Job{
 		Id:             j.UUID,
 		Name:           j.DisplayName,
@@ -2202,6 +2211,7 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 		UpdatedAt:      timestamppb.New(time.Unix(j.UpdatedAtInSec, 0)),
 		MaxConcurrency: j.MaxConcurrency,
 		NoCatchup:      j.NoCatchup,
+		Mode:           mode,
 		Trigger:        trigger,
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineId:       j.PipelineSpec.PipelineId,
