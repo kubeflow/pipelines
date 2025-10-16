@@ -114,11 +114,13 @@ class Artifact:
         return self.uri
 
     @property
-    def custom_path(self) ->str:
+    def custom_path(self) -> str:
         return self._get_custom_path()
 
     def _get_custom_path(self) -> Optional[str]:
-        return self.custom_path
+        if self.custom_path is not None:
+            return self.custom_path
+        return None
 
     #todo: this is the internal function to set the path.
     def _set_path(self, path: str) -> None:
