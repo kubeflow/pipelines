@@ -93,17 +93,16 @@ jobs:
             -namespace="$NAMESPACE"
       - name: Run v2 integration tests
         run: |
-          # Base arguments for ginkgo CLI
-          GINKGO_ARGS="go run github.com/onsi/ginkgo/v2/ginkgo -r -v --label-filter='!UpgradePreparation && !UpgradeVerification' ./backend/test/v2/integration/..."
-
-          # Arguments for the test binary itself, separated by '--'
+          # v2/integration tests use testify/suite framework, not Ginkgo, so we must use 'go test' instead of 'ginkgo'
+          # Arguments for the test binary
           TEST_ARGS="-runIntegrationTests=true -namespace=$NAMESPACE -cacheEnabled=${{ matrix.cache_enabled }}"
 
           if [[ "${{ matrix.cache_enabled }}" == "false" ]]; then
             # When cache is disabled, we must skip the cache test itself.
-            TEST_ARGS="$TEST_ARGS -ginkgo.skip=TestCache"
+            # Use Go test's -run flag with regex to exclude TestCache
+            TEST_ARGS="$TEST_ARGS -run ^((?!TestCache).)*$"
           fi
-          $GINKGO_ARGS -- $TEST_ARGS
+          go test -v -timeout 30m ./backend/test/v2/integration/... $TEST_ARGS
 
       - name: Cleanup
         if: always()
