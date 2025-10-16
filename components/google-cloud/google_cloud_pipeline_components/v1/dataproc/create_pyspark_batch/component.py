@@ -32,6 +32,8 @@ def dataproc_create_pyspark_batch(
     container_image: str = '',
     runtime_config_version: str = '',
     runtime_config_properties: Dict[str, str] = {},
+    autotuning_config: Dict[str, str] = {},
+    cohort: str = '',
     service_account: str = '',
     network_tags: List[str] = [],
     kms_key: str = '',
@@ -56,6 +58,8 @@ def dataproc_create_pyspark_batch(
       container_image: Optional custom container image for the job runtime environment. If not specified, a default container image will be used.
       runtime_config_version: Version of the batch runtime.
       runtime_config_properties: Runtime configuration for the workload.
+      autotuning_config: Autotuning configuration for the workload.
+      cohort: Cohort identifier for the workload.
       service_account: Service account that is used to execute the workload.
       network_tags: Tags used for network traffic control.
       kms_key: The Cloud KMS key to use for encryption.
@@ -100,6 +104,11 @@ def dataproc_create_pyspark_batch(
               '"',
               ', "properties": ',
               runtime_config_properties,
+              ', "autotuning_config": ',
+              autotuning_config,
+              ', "cohort": "',
+              cohort,
+              '"',
               '}',
               ', "environment_config": {',
               '"execution_config": {',
