@@ -23,7 +23,7 @@ update_manifests:
 	sed -i.bak -E "s|ref=v[0-9]+\.[0-9]+\.[0-9]+|ref=$$VERSION|g" $(MANIFESTS_DIR)/installs/cluster/kustomization.yaml && \
 	sed -i.bak -E "s|https://github.com/argoproj/argo-workflows/blob/v[0-9]+\.[0-9]+\.[0-9]+|https://github.com/argoproj/argo-workflows/blob/$$VERSION|g"  $(GCP_MANIFESTS_DIR)/chart/kubeflow-pipelines/templates/argo.yaml && \
 	echo "Cleaning up temp backups..."; \
-	rm -f $(MANIFESTS_DIR)/base/workflow-controller-deployment-patch.yaml.bak $(MANIFESTS_DIR)/base/workflow-controller-configmap-patch.yaml.bak $(MANIFESTS_DIR)/installs/namespace/kustomization.yaml.bak $(MANIFESTS_DIR)/installs/namespace/cluster-scoped/kustomization.yaml.bak $(MANIFESTS_DIR)/installs/cluster/kustomization.yaml.bak $(GCP_MANIFESTS_DIR)/chart/kubeflow-pipelines/templates/argo.yaml.bak; \
+	rm -f $(MANIFESTS_DIR)/base/kustomization.yaml.bak $(MANIFESTS_DIR)/base/workflow-controller-deployment-patch.yaml.bak $(MANIFESTS_DIR)/base/workflow-controller-configmap-patch.yaml.bak $(MANIFESTS_DIR)/installs/namespace/kustomization.yaml.bak $(MANIFESTS_DIR)/installs/namespace/cluster-scoped/kustomization.yaml.bak $(MANIFESTS_DIR)/installs/cluster/kustomization.yaml.bak $(GCP_MANIFESTS_DIR)/chart/kubeflow-pipelines/templates/argo.yaml.bak; \
 	echo "Successfully updated all manifest files to use $$VERSION"
 
 update_backend:
