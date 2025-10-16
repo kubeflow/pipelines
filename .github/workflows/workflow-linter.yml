@@ -8,10 +8,21 @@ on:
       - '.github/workflows/**'
 
 jobs:
-  lint:
+  actionlint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: cschleiden/actions-linter@v1
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # actionlint requires Go to run.
+      - name: Setup Go 🛠️
+        uses: actions/setup-go@v5
         with:
-          workflows: '[".github/workflows /*.yaml"]'
+          go-version: '1.24.7' # Use a recent, supported Go version
+
+      - name: Install actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
+
+      # actionlint automatically finds all workflow files in .github/workflows/
+      - name: Run actionlint
+        run: actionlint -color
