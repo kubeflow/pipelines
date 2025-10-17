@@ -41,7 +41,7 @@ googleapis-common-protos==1.70.0
     # via google-api-core
 idna==3.11
     # via requests
-kfp==2.14.3
+kfp==2.14.6
     # via -r requirements.in
 kfp-pipeline-spec==2.14.6
     # via kfp
