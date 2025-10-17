@@ -6,13 +6,13 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a
+    - name: components-97747bd2a90b59d576dc436e2ecaa2956d4e20b1642cea8581b61483a4f73496
       value: '{"executorLabel":"exec-add-numbers","inputDefinitions":{"parameters":{"a":{"parameterType":"NUMBER_INTEGER"},"b":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a
+    - name: implementations-97747bd2a90b59d576dc436e2ecaa2956d4e20b1642cea8581b61483a4f73496
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add_numbers"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
@@ -220,11 +220,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a}}'
+            value: '{{workflow.parameters.components-97747bd2a90b59d576dc436e2ecaa2956d4e20b1642cea8581b61483a4f73496}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"componentInputParameter":"b"}}},"taskInfo":{"name":"add-numbers"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-23c2b9f7ae92700a0e5c955580d24cd301258f0f455d131467d52707529b4c8a}}'
+            value: '{{workflow.parameters.implementations-97747bd2a90b59d576dc436e2ecaa2956d4e20b1642cea8581b61483a4f73496}}'
           - name: task-name
             value: add-numbers
           - name: parent-dag-id

@@ -6,6 +6,7 @@ env:
   NAMESPACE: "kubeflow"
   PYTHON_VERSION: "3.9"
   USER_NAMESPACE: "kubeflow-user-example-com"
+  CA_CERT_PATH: ""
 
 on:
   push:
@@ -59,6 +60,7 @@ jobs:
         storage: [ "seaweedfs", "minio"]
         proxy: [ "false" ]
         test_label: [ "E2ECritical" ]
+        pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "false"
@@ -74,8 +76,12 @@ jobs:
           - k8s_version: "v1.31.0"
             cache_enabled: "false"
             test_label: "E2EFailure"
+          - k8s_version: "v1.31.0"
+            cache_enabled: "true"
+            pod_to_pod_tls_enabled: "true"
+            test_label: "E2ECritical"
       fail-fast: false
-    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }}
+    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -98,10 +104,17 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           storage_backend: ${{ matrix.storage }}
+          pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
 
+      - name: Configure Cluster CA Cert for TLS-Enabled Tests
+        shell: bash
+        if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
+        run: |
+          kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> $GITHUB_ENV
       - name: Configure Input Variables
         shell: bash
         id: configure
@@ -115,6 +128,7 @@ jobs:
             TEST_LABEL=${{ inputs.test_label }}
             NAMESPACE=${{ inputs.namespace }}
           fi
+          
           echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
           echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
           echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
@@ -139,6 +153,8 @@ jobs:
           default_namespace: ${{ steps.configure.outputs.NAMESPACE }}
           python_version: ${{ env.PYTHON_VERSION }}
           report_name: "${{ matrix.test_label}}Tests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_argoVersion=${{ matrix.argo_version}}_proxy=${{ matrix.proxy }}_storage=${{ matrix.storage }}"
+          tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          ca_cert_path: ${{ env.CA_CERT_PATH }}
 
       - name: Notify test reports
         shell: bash
@@ -156,8 +172,15 @@ jobs:
         storage: [ "seaweedfs", "minio"]
         multi_user: [ "true" ]
         test_label: [ "E2ECritical" ]
+        include:
+        - multi_user: "true"
+          artifact_proxy: "true"
+          storage: "seaweedfs"
+          k8s_version: "v1.31.0"
+          cache_enabled: "true"
+          test_label: "E2ECritical" 
       fail-fast: false
-    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }}
+    name: End to End Critical Scenario Multi User Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} storage=${{ matrix.storage }} artifactProxy=${{ matrix.artifact_proxy }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -180,6 +203,7 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           multi_user: "true"
           storage_backend: ${{ matrix.storage }}
+          artifact_proxy: ${{ matrix.artifact_proxy }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
@@ -209,12 +233,22 @@ jobs:
           kind --name kfp load docker-image registry.domain.local/modelcar:test
         continue-on-error: true
 
+      - name: Test Artifact Proxy
+        id: test-artifact-proxy
+        if: ${{ steps.deploy.outcome == 'success' && matrix.artifact_proxy == 'true' }}
+        shell: bash
+        env:
+          USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
+        run: |
+          ./test/artifact-proxy/test-artifact-proxy.sh "$USER_NAMESPACE"
+
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         if: ${{ steps.configure.outcome == 'success' }}
         id: test-run
         env:
           LOCAL_API_SERVER: "true"
+          MULTI_USER: ${{ matrix.multi_user }}
         with:
           multi_user: ${{ matrix.multi_user }}
           cache_enabled: ${{ matrix.cache_enabled }}

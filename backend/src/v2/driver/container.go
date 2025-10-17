@@ -233,6 +233,9 @@ func Container(ctx context.Context, opts Options, mlmd *metadata.Client, cacheCl
 		opts.MLMDTLSEnabled,
 		opts.CaCertPath,
 		taskConfig,
+		opts.MLPipelineTLSEnabled,
+		opts.MLMDTLSEnabled,
+		opts.CaCertPath,
 	)
 	if err != nil {
 		return execution, err

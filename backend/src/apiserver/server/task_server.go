@@ -77,7 +77,7 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 		}
 	}
 	if task.GetRunId() == "" {
-		return errMustSpecify("RunId")
+		return errMustSpecify("RunID")
 	}
 	if task.GetMlmdExecutionID() == "" {
 		return errMustSpecify("MlmdExecutionID")

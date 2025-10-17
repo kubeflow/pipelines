@@ -54,11 +54,16 @@ func GetRandomString(length int) string {
 	return string(b)
 }
 
-// CheckIfSkipping - test if the provided string argument contains "GH-" (case insensitive)
+// CheckIfSkipping - checks input string against skip conditions, and skips pipeline run if applicable.
 func CheckIfSkipping(stringValue string) {
+	// Skip pipeline if name contains "GH-" (case-insensitive)
 	if strings.Contains(strings.ToLower(stringValue), "_gh-") {
 		issue := strings.Split(strings.ToLower(stringValue), "_gh-")[1]
 		ginkgo.Skip(fmt.Sprintf("Skipping pipeline run test because of a known issue: https://github.com/kubeflow/pipelines/issues/%s", issue))
+	}
+	// Skip pipeline 'pipeline_submit_request' test if TLS is not enabled
+	if !*config.TLSEnabled && strings.Contains(strings.ToLower(stringValue), "pipeline_submit_request") {
+		ginkgo.Skip("Skipping pipeline run test because TLS is not enabled")
 	}
 }
 

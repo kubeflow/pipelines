@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -572,15 +571,23 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
-		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
-		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
-		"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
-		"--ca_cert_path", common.GetCaCertPath(),
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	if c.mlPipelineTLSEnabled {
+		args = append(args, "--ml_pipeline_tls_enabled")
+	}
+	if common.GetMetadataTLSEnabled() {
+		args = append(args, "--metadata_tls_enabled")
+	}
+
+	setCABundle := false
+	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
+		setCABundle = true
+	}
+
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -613,10 +620,13 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       append(proxy.GetConfig().GetEnvVars(), MLPipelineServiceEnv...),
+			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
-	ConfigureCABundle(t)
+	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
+	if setCABundle {
+		ConfigureCustomCABundle(t)
+	}
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name

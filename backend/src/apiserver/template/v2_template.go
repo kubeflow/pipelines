@@ -32,16 +32,14 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	goyaml "gopkg.in/yaml.v3"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
 type V2Spec struct {
-	spec             *pipelinespec.PipelineSpec
-	platformSpec     *pipelinespec.PlatformSpec
-	cacheDisabled    bool
-	defaultWorkspace *corev1.PersistentVolumeClaimSpec
+	spec            *pipelinespec.PipelineSpec
+	platformSpec    *pipelinespec.PlatformSpec
+	templateOptions TemplateOptions
 }
 
 var _ Template = &V2Spec{}
@@ -125,8 +123,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
 		opts := &argocompiler.Options{
-			CacheDisabled:    t.cacheDisabled,
-			DefaultWorkspace: t.defaultWorkspace,
+			CacheDisabled:        t.templateOptions.CacheDisabled,
+			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
+			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -173,8 +172,8 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 	return V2
 }
 
-func NewV2SpecTemplate(template []byte, cacheDisabled bool, defaultWorkspace *corev1.PersistentVolumeClaimSpec) (*V2Spec, error) {
-	v2Spec := &V2Spec{cacheDisabled: cacheDisabled, defaultWorkspace: defaultWorkspace}
+func NewV2SpecTemplate(template []byte, opts TemplateOptions) (*V2Spec, error) {
+	v2Spec := &V2Spec{templateOptions: opts}
 	decoder := goyaml.NewDecoder(bytes.NewReader(template))
 	for {
 		var value map[string]interface{}
@@ -334,8 +333,9 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
 		opts := &argocompiler.Options{
-			CacheDisabled:    options.CacheDisabled,
-			DefaultWorkspace: t.defaultWorkspace,
+			CacheDisabled:        t.templateOptions.CacheDisabled,
+			DefaultWorkspace:     t.templateOptions.DefaultWorkspace,
+			MLPipelineTLSEnabled: t.templateOptions.MLPipelineTLSEnabled,
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -354,20 +354,20 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
 	// Add label to the workflow so it can be persisted by persistent agent later.
-	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	executionSpec.SetLabels(util.LabelKeyWorkflowRunId, options.RunID)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
 	executionSpec.SetAnnotations(util.AnnotationKeyRunName, modelRun.DisplayName)
 	// Replace {{workflow.uid}} with runId
-	err = executionSpec.ReplaceUID(options.RunId)
+	err = executionSpec.ReplaceUID(options.RunID)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
 	}
-	executionSpec.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	executionSpec.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunID)
 	return executionSpec, nil
 }
 
 func (t *V2Spec) IsCacheDisabled() bool {
-	return t.cacheDisabled
+	return t.templateOptions.CacheDisabled
 }
 
 func IsPlatformSpecWithKubernetesConfig(template []byte) bool {

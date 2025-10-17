@@ -53,7 +53,7 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	workflow.OverrideParameters(parameters)
 
 	// Replace macros
-	formatter := util.NewRunParameterFormatter(options.RunId, options.RunAt)
+	formatter := util.NewRunParameterFormatter(options.RunID, options.RunAt)
 	formattedParams := formatter.FormatWorkflowParameters(workflow.GetWorkflowParametersAsMap())
 	workflow.OverrideParameters(formattedParams)
 
@@ -68,15 +68,15 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	}
 
 	// Add label to the workflow so it can be persisted by persistent agent later.
-	workflow.SetLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	workflow.SetLabels(util.LabelKeyWorkflowRunId, options.RunID)
 	// Add run name annotation to the workflow so that it can be logged by the Metadata Writer.
 	workflow.SetAnnotations(util.AnnotationKeyRunName, modelRun.DisplayName)
 	// Replace {{workflow.uid}} with runId
-	err = workflow.ReplaceUID(options.RunId)
+	err = workflow.ReplaceUID(options.RunID)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to replace workflow ID")
 	}
-	workflow.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunId)
+	workflow.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunID)
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.

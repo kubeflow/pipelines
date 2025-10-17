@@ -45,12 +45,15 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
+ARG TARGETARCH
+RUN echo "Building for architecture: ${TARGETARCH}"
+
 # Downloading Argo CLI so that the samples are validated
 ENV ARGO_VERSION=v3.6.7
-RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-${TARGETOS:-linux}-${TARGETARCH:-amd64}.gz && \
-    gunzip argo-${TARGETOS:-linux}-${TARGETARCH:-amd64}.gz && \
-    chmod +x argo-${TARGETOS:-linux}-${TARGETARCH:-amd64} && \
-    mv ./argo-${TARGETOS:-linux}-${TARGETARCH:-amd64} /usr/local/bin/argo
+RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-$TARGETARCH.gz && \
+    gunzip argo-linux-$TARGETARCH.gz && \
+    chmod +x argo-linux-$TARGETARCH && \
+    mv ./argo-linux-$TARGETARCH /usr/local/bin/argo
 
 WORKDIR /
 COPY ./samples /samples

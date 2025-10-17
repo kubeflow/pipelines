@@ -32,17 +32,21 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
-	MetadataGrpcServiceServiceHost          string = "METADATA_GRPC_SERVICE_SERVICE_HOST"
-	MetadataGrpcServiceServicePort          string = "METADATA_GRPC_SERVICE_SERVICE_PORT"
-	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
-	SignedURLExpiryTimeSeconds              string = "SIGNED_URL_EXPIRY_TIME_SECONDS"
-	CaBundleMountPath                       string = "ARTIFACT_COPY_STEP_CABUNDLE_MOUNTPATH"
-	CaBundleConfigMapKey                    string = "ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_KEY"
-	CaBundleConfigMapName                   string = "ARTIFACT_COPY_STEP_CABUNDLE_CONFIGMAP_NAME"
+	//todo: did these end up being useful
+	MetadataGrpcServiceServiceHost string = "METADATA_GRPC_SERVICE_SERVICE_HOST"
+	MetadataGrpcServiceServicePort string = "METADATA_GRPC_SERVICE_SERVICE_PORT"
+	SignedURLExpiryTimeSeconds     string = "SIGNED_URL_EXPIRY_TIME_SECONDS"
+	MetadataTLSEnabled             string = "METADATA_TLS_ENABLED"
+	CaBundleSecretName             string = "CABUNDLE_SECRET_NAME"
+	RequireNamespaceForPipelines   string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
 	return GetBoolConfigWithDefault(UpdatePipelineVersionByDefault, true)
+}
+
+func IsNamespaceRequiredForPipelines() bool {
+	return GetBoolConfigWithDefault(RequireNamespaceForPipelines, false)
 }
 
 func GetStringConfig(configName string) string {
@@ -135,6 +139,7 @@ func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
 }
 
+// todo: are below necessary?
 func GetMetadataGrpcServiceServiceHost() string {
 	return GetStringConfigWithDefault(MetadataGrpcServiceServiceHost, DefaultMetadataGrpcServiceServiceHost)
 }
@@ -151,12 +156,6 @@ func GetMetadataTLSEnabled() bool {
 	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
 }
 
-func GetCaCertPath() string {
-	caBundleMountPath := GetStringConfigWithDefault(CaBundleMountPath, "")
-	if caBundleMountPath != "" {
-		caBundleConfigMapKey := GetStringConfigWithDefault(CaBundleConfigMapKey, "")
-		return caBundleMountPath + "/" + caBundleConfigMapKey
-	} else {
-		return ""
-	}
+func GetCaBundleSecretName() string {
+	return GetStringConfigWithDefault(CaBundleSecretName, "")
 }

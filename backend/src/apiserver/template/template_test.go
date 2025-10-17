@@ -73,7 +73,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow`,
 		templateType: V1,
 	}, { // template contains content too
-		template:     template,
+		template:     awfTemplate,
 		templateType: V1,
 	}, {
 		// version does not matter
@@ -124,7 +124,7 @@ func unmarshalWf(yamlStr string) *v1alpha1.Workflow {
 	return &wf
 }
 
-var template = `
+var awfTemplate = `
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
@@ -185,7 +185,7 @@ func TestScheduledWorkflow(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 
 	v2SpecHelloWorldYAML := loadYaml(t, "testdata/hello_world.yaml")
-	v2Template, _ := New([]byte(v2SpecHelloWorldYAML), true, defaultPVC)
+	v2Template, _ := New([]byte(v2SpecHelloWorldYAML), TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
 
 	modelJob := &model.Job{
 		K8SName:        "name1",
@@ -296,10 +296,10 @@ func TestNewTemplate_V2(t *testing.T) {
 	err = protojson.Unmarshal(jsonData, &expectedSpec)
 	assert.Nil(t, err)
 	expectedTemplate := &V2Spec{
-		spec:             &expectedSpec,
-		defaultWorkspace: defaultPVC,
+		spec:            &expectedSpec,
+		templateOptions: TemplateOptions{DefaultWorkspace: defaultPVC},
 	}
-	templateV2Spec, err := New([]byte(template), false, defaultPVC)
+	templateV2Spec, err := New([]byte(template), TemplateOptions{DefaultWorkspace: defaultPVC})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTemplate, templateV2Spec)
 }
@@ -325,18 +325,18 @@ func TestNewTemplate_WithPlatformSpec(t *testing.T) {
 	protojson.Unmarshal(jsonData, &expectedPlatformSpec)
 
 	expectedTemplate := &V2Spec{
-		spec:             &expectedPipelineSpec,
-		platformSpec:     &expectedPlatformSpec,
-		defaultWorkspace: defaultPVC,
+		spec:            &expectedPipelineSpec,
+		platformSpec:    &expectedPlatformSpec,
+		templateOptions: TemplateOptions{DefaultWorkspace: defaultPVC},
 	}
-	templateV2Spec, err := New([]byte(template), false, defaultPVC)
+	templateV2Spec, err := New([]byte(template), TemplateOptions{DefaultWorkspace: defaultPVC})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTemplate, templateV2Spec)
 }
 
 func TestNewTemplate_V2_InvalidSchemaVersion(t *testing.T) {
 	template := loadYaml(t, "testdata/hello_world_schema_2_0_0.yaml")
-	_, err := New([]byte(template), true, defaultPVC)
+	_, err := New([]byte(template), TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "KFP only supports schema version 2.1.0")
 }
@@ -346,9 +346,9 @@ func TestNewTemplate_V2_InvalidSchemaVersion(t *testing.T) {
 // so we verify the parsed object.
 func TestBytes_V2_WithExecutorConfig(t *testing.T) {
 	template := loadYaml(t, "testdata/pipeline_with_volume.yaml")
-	templateV2Spec, _ := New([]byte(template), true, defaultPVC)
+	templateV2Spec, _ := New([]byte(template), TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
 	templateBytes := templateV2Spec.Bytes()
-	newTemplateV2Spec, err := New(templateBytes, true, defaultPVC)
+	newTemplateV2Spec, err := New(templateBytes, TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
 	assert.Nil(t, err)
 	assert.Equal(t, templateV2Spec, newTemplateV2Spec)
 }
@@ -358,9 +358,9 @@ func TestBytes_V2_WithExecutorConfig(t *testing.T) {
 // so we verify the parsed object.
 func TestBytes_V2(t *testing.T) {
 	template := loadYaml(t, "testdata/hello_world.yaml")
-	templateV2Spec, _ := New([]byte(template), true, defaultPVC)
+	templateV2Spec, _ := New([]byte(template), TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
 	templateBytes := templateV2Spec.Bytes()
-	newTemplateV2Spec, err := New(templateBytes, true, defaultPVC)
+	newTemplateV2Spec, err := New(templateBytes, TemplateOptions{CacheDisabled: true, DefaultWorkspace: defaultPVC})
 	assert.Nil(t, err)
 	assert.Equal(t, templateV2Spec, newTemplateV2Spec)
 }

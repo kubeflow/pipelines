@@ -94,6 +94,9 @@ func InPodNamespace() (string, error) {
 
 // InPodName gets the pod name from inside a Kubernetes Pod.
 func InPodName() (string, error) {
+	if podName, exists := os.LookupEnv("ARGO_POD_NAME"); exists && podName != "" {
+		return podName, nil
+	}
 	podName, err := os.ReadFile("/etc/hostname")
 	if err != nil {
 		return "", fmt.Errorf("failed to get pod name in Pod: %w", err)

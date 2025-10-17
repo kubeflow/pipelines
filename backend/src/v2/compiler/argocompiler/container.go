@@ -206,15 +206,24 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
-		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
-		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
-		"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
-		"--ca_cert_path", common.GetCaCertPath(),
+		//todo: do we need mlmd args here?
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	if c.mlPipelineTLSEnabled {
+		args = append(args, "--ml_pipeline_tls_enabled")
+	}
+	if common.GetMetadataTLSEnabled() {
+		args = append(args, "--metadata_tls_enabled")
+	}
+
+	setCABundle := false
+	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
+		setCABundle = true
+	}
+
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -247,12 +256,13 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       append(proxy.GetConfig().GetEnvVars(), MLPipelineServiceEnv...),
+			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
-
-	ConfigureCABundle(t)
-
+	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
+	if setCABundle {
+		ConfigureCustomCABundle(t)
+	}
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name
@@ -532,10 +542,14 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 				},
 			},
 			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     append(commonEnvs, MLPipelineServiceEnv...),
+			Env:     commonEnvs,
 		},
 	}
-	ConfigureCABundle(executor)
+	// If the apiserver is TLS-enabled, add the custom CA bundle to the executor.
+	if c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled() {
+		ConfigureCustomCABundle(executor)
+	}
+
 	// If retry policy is set, add retryStrategy to executor
 	if taskRetrySpec != nil {
 		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
@@ -552,7 +566,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	caBundleMountPath := os.Getenv("EXECUTOR_CABUNDLE_MOUNTPATH")
 	if caBundleCfgMapName != "" && caBundleCfgMapKey != "" {
 		caFile := fmt.Sprintf("%s/%s", caBundleMountPath, caBundleCfgMapKey)
-		certDirectories := []string{
+		var certDirectories = []string{
 			caBundleMountPath,
 			"/etc/ssl/certs",
 			"/etc/pki/tls/certs",
