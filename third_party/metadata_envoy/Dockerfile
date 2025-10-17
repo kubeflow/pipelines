@@ -17,9 +17,11 @@ FROM envoyproxy/envoy:v1.27.3
 RUN apt-get update -y && \
   apt-get install --no-install-recommends -y -q gettext openssl
 
+COPY third_party/metadata_envoy/envoy.yaml /etc/envoy.yaml
 
 # Copy license files.
 #RUN mkdir -p /third_party
 COPY third_party/metadata_envoy/license.txt /third_party/license.txt
 
 ENTRYPOINT ["/usr/local/bin/envoy", "-c"]
+CMD ["/etc/envoy.yaml"]

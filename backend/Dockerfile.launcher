@@ -39,7 +39,6 @@ COPY ${SOURCE_CODE}/ ./
 
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2/*.go
 RUN GO111MODULE=on CGO_ENABLED=1 GOOS=linux GOARCH=${TARGETARCH:-amd64} GOEXPERIMENT=strictfipsruntime go build -tags 'netgo strictfipsruntime' -o /bin/launcher-v2-fips ./backend/src/v2/cmd/launcher-v2/*.go
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2/*.go
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5
 
