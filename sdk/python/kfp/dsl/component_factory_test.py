@@ -20,6 +20,7 @@ from kfp import dsl
 from kfp.dsl import component_factory
 from kfp.dsl import Input
 from kfp.dsl import Output
+from kfp.dsl import python_component
 from kfp.dsl import structures
 from kfp.dsl.component_decorator import component
 from kfp.dsl.types.artifact_types import Artifact
@@ -336,6 +337,272 @@ class TestArtifactStringInInputpathOutputpath(unittest.TestCase):
         self.assertEqual(comp.component_spec.inputs['i'].type,
                          'system.Dataset@0.0.1')
         self.assertFalse(comp.component_spec.inputs['i'].is_artifact_list)
+
+
+class TestKubeflowAutoDetection(unittest.TestCase):
+    """Tests for AST-based kubeflow import detection and auto-installation."""
+
+    def test_detect_kubeflow_imports_simple_import(self):
+        """Test detection of 'import kubeflow'."""
+
+        def component_with_kubeflow_import():
+            return 'test'
+
+        result = component_factory._detect_kubeflow_imports_in_function(
+            component_with_kubeflow_import)
+        self.assertTrue(result)
+
+    def test_detect_kubeflow_imports_from_import(self):
+        """Test detection of 'from kubeflow import X'."""
+
+        def component_with_kubeflow_from_import():
+            return 'test'
+
+        result = component_factory._detect_kubeflow_imports_in_function(
+            component_with_kubeflow_from_import)
+        self.assertTrue(result)
+
+    def test_detect_kubeflow_imports_submodule_import(self):
+        """Test detection of 'import kubeflow.training'."""
+
+        def component_with_kubeflow_submodule():
+            return 'test'
+
+        result = component_factory._detect_kubeflow_imports_in_function(
+            component_with_kubeflow_submodule)
+        self.assertTrue(result)
+
+    def test_detect_kubeflow_imports_from_submodule(self):
+        """Test detection of 'from kubeflow.training import X'."""
+
+        def component_with_kubeflow_from_submodule():
+            return 'test'
+
+        result = component_factory._detect_kubeflow_imports_in_function(
+            component_with_kubeflow_from_submodule)
+        self.assertTrue(result)
+
+    def test_detect_kubeflow_imports_star_import(self):
+        """Test detection of 'from kubeflow.submodule import *'."""
+        # Skip this test since star imports aren't allowed inside functions in Python
+        # Our AST parser would detect it if it were valid syntax
+        self.skipTest(
+            'Star imports not allowed inside functions - syntax limitation')
+
+    def test_detect_kubeflow_imports_no_imports(self):
+        """Test no detection when kubeflow is not imported."""
+
+        def component_without_kubeflow():
+            return 'test'
+
+        result = component_factory._detect_kubeflow_imports_in_function(
+            component_without_kubeflow)
+        self.assertFalse(result)
+
+    def test_detect_kubeflow_imports_similar_name(self):
+        """Test no false positives with similar package names."""
+
+        def component_with_similar_name():
+            return 'test'
+
+        result = component_factory._detect_kubeflow_imports_in_function(
+            component_with_similar_name)
+        self.assertFalse(result)
+
+    def test_detect_kubeflow_imports_handles_syntax_error(self):
+        """Test graceful handling of syntax errors."""
+
+        def malformed_function():
+            pass
+
+        import unittest.mock
+        with unittest.mock.patch(
+                'inspect.getsource', side_effect=SyntaxError('Invalid syntax')):
+            result = component_factory._detect_kubeflow_imports_in_function(
+                malformed_function)
+            self.assertFalse(result)
+
+    def test_parse_package_name_simple(self):
+        """Test parsing simple package names."""
+        result = component_factory._parse_package_name('kubeflow')
+        self.assertEqual(result, 'kubeflow')
+
+    def test_parse_package_name_with_version_operators(self):
+        """Test parsing package names with version operators."""
+        test_cases = [
+            ('kubeflow==2.0.0', 'kubeflow'),
+            ('kubeflow>=1.5.0', 'kubeflow'),
+            ('kubeflow<=2.0', 'kubeflow'),
+            ('kubeflow~=1.5', 'kubeflow'),
+            ('kubeflow!=1.0', 'kubeflow'),
+        ]
+
+        for package_spec, expected in test_cases:
+            with self.subTest(package_spec=package_spec):
+                result = component_factory._parse_package_name(package_spec)
+                self.assertEqual(result, expected)
+
+    def test_parse_package_name_with_extras(self):
+        """Test parsing package names with extras."""
+        test_cases = [
+            ('kubeflow[training]', 'kubeflow'),
+            ('kubeflow[training,pipeline]', 'kubeflow'),
+            ('kubeflow[training]==2.0.0', 'kubeflow'),
+        ]
+
+        for package_spec, expected in test_cases:
+            with self.subTest(package_spec=package_spec):
+                result = component_factory._parse_package_name(package_spec)
+                self.assertEqual(result, expected)
+
+    def test_parse_package_name_vcs_url(self):
+        """Test parsing package names from VCS URLs."""
+        test_cases = [
+            ('git+https://github.com/kubeflow/sdk.git', 'kubeflow'),
+            ('git+ssh://git@github.com/kubeflow/sdk.git', 'kubeflow'),
+            ('git+https://github.com/some-org/my-package.git', 'my-package'),
+        ]
+
+        for package_spec, expected in test_cases:
+            with self.subTest(package_spec=package_spec):
+                result = component_factory._parse_package_name(package_spec)
+                self.assertEqual(result, expected)
+
+    def test_auto_installation_with_kubeflow_import(self):
+        """Test that kubeflow is automatically added when detected."""
+
+        def component_with_kubeflow():
+            return 'test'
+
+        command = component_factory._get_packages_to_install_command(
+            func=component_with_kubeflow,
+            packages_to_install=[],
+            install_kubeflow_package=True)
+
+        # Should contain kubeflow in the installation command
+        command_str = ' '.join(command)
+        self.assertIn('kubeflow', command_str)
+
+    def test_auto_installation_disabled_by_flag(self):
+        """Test that auto-installation can be disabled."""
+
+        def component_with_kubeflow():
+            return 'test'
+
+        command = component_factory._get_packages_to_install_command(
+            func=component_with_kubeflow,
+            packages_to_install=[],
+            install_kubeflow_package=False)
+
+        # Should not contain kubeflow when disabled
+        command_str = ' '.join(command)
+        self.assertNotIn('kubeflow', command_str)
+
+    def test_auto_installation_no_duplicate_when_already_specified(self):
+        """Test that kubeflow is not duplicated if already in
+        packages_to_install."""
+
+        def component_with_kubeflow():
+            return 'test'
+
+        command = component_factory._get_packages_to_install_command(
+            func=component_with_kubeflow,
+            packages_to_install=['kubeflow==2.0.0'],
+            install_kubeflow_package=True)
+
+        # Should only appear once (the user-specified version)
+        command_str = ' '.join(command)
+        kubeflow_count = command_str.count('kubeflow')
+        self.assertEqual(kubeflow_count, 1)
+        self.assertIn('kubeflow==2.0.0', command_str)
+
+    def test_auto_installation_respects_user_version(self):
+        """Test that user-specified kubeflow version is respected."""
+
+        def component_with_kubeflow():
+            return 'test'
+
+        command = component_factory._get_packages_to_install_command(
+            func=component_with_kubeflow,
+            packages_to_install=['kubeflow>=1.5.0', 'pandas'],
+            install_kubeflow_package=True)
+
+        command_str = ' '.join(command)
+        # Should contain the user-specified version
+        self.assertIn('kubeflow>=1.5.0', command_str)
+        # Should not add a generic 'kubeflow'
+        self.assertNotIn("'kubeflow'", command_str)
+
+    def test_auto_installation_no_kubeflow_imports(self):
+        """Test that kubeflow is not added when not imported."""
+
+        def component_without_kubeflow():
+            return 'test'
+
+        command = component_factory._get_packages_to_install_command(
+            func=component_without_kubeflow,
+            packages_to_install=['pandas'],
+            install_kubeflow_package=True)
+
+        command_str = ' '.join(command)
+        self.assertNotIn('kubeflow', command_str)
+
+    def test_component_decorator_with_kubeflow_auto_install(self):
+        """Test that @component decorator properly auto-installs kubeflow."""
+
+        @dsl.component(base_image='python:3.9', install_kubeflow_package=True)
+        def my_component() -> str:
+            return 'test'
+
+        # Check that the component was created successfully
+        self.assertIsInstance(my_component, python_component.PythonComponent)
+
+        # Check that kubeflow is in the installation command
+        container_spec = my_component.component_spec.implementation.container
+        command_str = ' '.join(container_spec.command)
+        self.assertIn('kubeflow', command_str)
+
+    def test_component_decorator_kubeflow_auto_install_disabled(self):
+        """Test that @component decorator respects
+        install_kubeflow_package=False."""
+
+        @dsl.component(base_image='python:3.9', install_kubeflow_package=False)
+        def my_component() -> str:
+            return 'test'
+
+        # Check that the component was created successfully
+        self.assertIsInstance(my_component, python_component.PythonComponent)
+
+        container_spec = my_component.component_spec.implementation.container
+        command_str = ' '.join(container_spec.command)
+        pip_install_has_kubeflow = "'kubeflow'" in command_str and 'pip install' in command_str
+        self.assertFalse(pip_install_has_kubeflow,
+                         'kubeflow should not be in pip install when disabled')
+
+    def test_component_decorator_explicit_kubeflow_package(self):
+        """Test that explicit kubeflow in packages_to_install is respected."""
+
+        @dsl.component(
+            base_image='python:3.9',
+            packages_to_install=['kubeflow==2.0.0'],
+            install_kubeflow_package=True)
+        def my_component() -> str:
+            return 'test'
+
+        # Check that the component was created successfully
+        self.assertIsInstance(my_component, python_component.PythonComponent)
+
+        # Check that the explicit version is preserved
+        container_spec = my_component.component_spec.implementation.container
+        command_str = ' '.join(container_spec.command)
+        self.assertIn('kubeflow==2.0.0', command_str)
+        pip_kubeflow_count = command_str.count("'kubeflow==2.0.0'")
+        pip_generic_kubeflow_count = command_str.count("'kubeflow'")
+        self.assertEqual(pip_kubeflow_count, 1,
+                         'Should have exactly one kubeflow==2.0.0')
+        self.assertEqual(
+            pip_generic_kubeflow_count, 0,
+            'Should not have generic kubeflow when version specified')
 
 
 class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):

@@ -30,6 +30,7 @@ def component(
     pip_index_urls: Optional[List[str]] = None,
     output_component_file: Optional[str] = None,
     install_kfp_package: bool = True,
+    install_kubeflow_package: bool = True,
     kfp_package_path: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
@@ -88,6 +89,10 @@ def component(
             This flag is ignored when ``target_image`` is specified, which implies
             a choice to build a containerized component. Containerized components
             will always install KFP as part of the build process.
+        install_kubeflow_package: If True (default), automatically detects kubeflow
+            imports in the component function and adds 'kubeflow' to packages_to_install.
+            Set to False if kubeflow is pre-installed in your base image to avoid
+            duplicate installation.
         kfp_package_path: Specifies the location from which to install KFP. By
             default, this will try to install from PyPI using the same version
             as that used when this component was created. Component authors can
@@ -156,6 +161,7 @@ def component(
             pip_index_urls=pip_index_urls,
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
+            install_kubeflow_package=install_kubeflow_package,
             kfp_package_path=kfp_package_path,
             pip_trusted_hosts=pip_trusted_hosts,
             use_venv=use_venv,
@@ -171,6 +177,7 @@ def component(
         pip_index_urls=pip_index_urls,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
+        install_kubeflow_package=install_kubeflow_package,
         kfp_package_path=kfp_package_path,
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
