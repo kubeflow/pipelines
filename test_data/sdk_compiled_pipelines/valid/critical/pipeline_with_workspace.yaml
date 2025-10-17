@@ -146,5 +146,7 @@ platforms:
       workspace:
         kubernetes:
           pvcSpecPatch:
+            accessModes:
+            - ReadWriteOnce
             storageClassName: standard
         size: 1Gi
