@@ -44,11 +44,11 @@ func NewJobClientFake() *JobClientFake {
 
 func (c *JobClientFake) Create(params *jobparams.JobServiceCreateJobParams) (
 	*jobmodel.APIJob, error) {
-	switch params.Body.Name {
+	switch params.Job.Name {
 	case JobForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
 	default:
-		return getDefaultJob("500", params.Body.Name), nil
+		return getDefaultJob("500", params.Job.Name), nil
 	}
 }
 

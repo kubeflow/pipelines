@@ -1,0 +1,32 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: seaweedfs-service
+spec:
+  action: ALLOW
+  selector:
+    matchLabels:
+      app: seaweedfs
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/kubeflow/sa/ml-pipeline
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/kubeflow/sa/ml-pipeline-ui
+  # Allow traffic to s3 endpoint from User Pipeline Pods, which don't have a sidecar.
+  # Also needed for traffic from seaweedfs init pod. Seaweedfs gives the client an ip to connect to. This can not be
+  # handled well by istio (AuthPolicy). Instead, access to the sensitive ports will be limited by the NetworkPolicy.
+  - {}
+---
+apiVersion: "networking.istio.io/v1alpha3"
+kind: DestinationRule
+metadata:
+  name: ml-pipeline-seaweedfs
+spec:
+  host: seaweedfs.kubeflow.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL

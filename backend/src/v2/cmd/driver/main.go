@@ -20,16 +20,16 @@ import (
 	"flag"
 	"fmt"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+
 	"os"
 	"path/filepath"
 	"strconv"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
@@ -60,6 +60,7 @@ var (
 	taskSpecJson      = flag.String("task", "", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
 	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	taskName          = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
@@ -214,6 +215,8 @@ func drive() (err error) {
 		MLMDServerPort:       *mlmdServerPort,
 		MLMDTLSEnabled:       metadataTLSEnabled,
 		CaCertPath:           *caCertPath,
+		DriverType:           *driverType,
+		TaskName:             *taskName,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -312,11 +315,11 @@ func handleExecution(execution *driver.Execution, driverType string, executionPa
 		}
 	}
 	if execution.ExecutorInput != nil {
-		marshaler := jsonpb.Marshaler{}
-		executorInputJSON, err := marshaler.MarshalToString(execution.ExecutorInput)
+		executorInputBytes, err := protojson.Marshal(execution.ExecutorInput)
 		if err != nil {
 			return fmt.Errorf("failed to marshal ExecutorInput to JSON: %w", err)
 		}
+		executorInputJSON := string(executorInputBytes)
 		glog.Infof("output ExecutorInput:%s\n", prettyPrint(executorInputJSON))
 	}
 	return nil

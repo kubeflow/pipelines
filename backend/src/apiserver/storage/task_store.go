@@ -200,8 +200,8 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			Name:              name.String,
 			ParentTaskId:      parentTaskId.String,
 			StateHistory:      stateHistoryNew,
-			MLMDInputs:        inputs.String,
-			MLMDOutputs:       outputs.String,
+			MLMDInputs:        model.LargeText(inputs.String),
+			MLMDOutputs:       model.LargeText(outputs.String),
 			ChildrenPods:      childrenPods,
 		}
 		tasks = append(tasks, task)

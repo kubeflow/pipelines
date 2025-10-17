@@ -36,17 +36,17 @@ class ReportServiceApi(object):
             api_client = ApiClient()
         self.api_client = api_client
 
-    def report_service_report_scheduled_workflow(self, body, **kwargs):  # noqa: E501
+    def report_service_report_scheduled_workflow(self, scheduled_workflow, **kwargs):  # noqa: E501
         """report_service_report_scheduled_workflow  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.report_service_report_scheduled_workflow(body, async_req=True)
+        >>> thread = api.report_service_report_scheduled_workflow(scheduled_workflow, async_req=True)
         >>> result = thread.get()
 
-        :param body: ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string. (required)
-        :type body: str
+        :param scheduled_workflow: ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string. (required)
+        :type scheduled_workflow: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -62,19 +62,19 @@ class ReportServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.report_service_report_scheduled_workflow_with_http_info(body, **kwargs)  # noqa: E501
+        return self.report_service_report_scheduled_workflow_with_http_info(scheduled_workflow, **kwargs)  # noqa: E501
 
-    def report_service_report_scheduled_workflow_with_http_info(self, body, **kwargs):  # noqa: E501
+    def report_service_report_scheduled_workflow_with_http_info(self, scheduled_workflow, **kwargs):  # noqa: E501
         """report_service_report_scheduled_workflow  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.report_service_report_scheduled_workflow_with_http_info(body, async_req=True)
+        >>> thread = api.report_service_report_scheduled_workflow_with_http_info(scheduled_workflow, async_req=True)
         >>> result = thread.get()
 
-        :param body: ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string. (required)
-        :type body: str
+        :param scheduled_workflow: ScheduledWorkflow a ScheduledWorkflow resource marshalled into a json string. (required)
+        :type scheduled_workflow: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -97,7 +97,7 @@ class ReportServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'body'
+            'scheduled_workflow'
         ]
         all_params.extend(
             [
@@ -116,10 +116,10 @@ class ReportServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
-        # verify the required parameter 'body' is set
-        if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
-                                                        local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `report_service_report_scheduled_workflow`")  # noqa: E501
+        # verify the required parameter 'scheduled_workflow' is set
+        if self.api_client.client_side_validation and ('scheduled_workflow' not in local_var_params or  # noqa: E501
+                                                        local_var_params['scheduled_workflow'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `scheduled_workflow` when calling `report_service_report_scheduled_workflow`")  # noqa: E501
 
         collection_formats = {}
 
@@ -133,8 +133,8 @@ class ReportServiceApi(object):
         local_var_files = {}
 
         body_params = None
-        if 'body' in local_var_params:
-            body_params = local_var_params['body']
+        if 'scheduled_workflow' in local_var_params:
+            body_params = local_var_params['scheduled_workflow']
         # HTTP header `Accept`
         header_params['Accept'] = self.api_client.select_header_accept(
             ['application/json'])  # noqa: E501
@@ -162,17 +162,17 @@ class ReportServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def report_service_report_workflow(self, body, **kwargs):  # noqa: E501
+    def report_service_report_workflow(self, workflow, **kwargs):  # noqa: E501
         """report_service_report_workflow  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.report_service_report_workflow(body, async_req=True)
+        >>> thread = api.report_service_report_workflow(workflow, async_req=True)
         >>> result = thread.get()
 
-        :param body: Workflow is a workflow custom resource marshalled into a json string. (required)
-        :type body: str
+        :param workflow: Workflow is a workflow custom resource marshalled into a json string. (required)
+        :type workflow: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -188,19 +188,19 @@ class ReportServiceApi(object):
         :rtype: object
         """
         kwargs['_return_http_data_only'] = True
-        return self.report_service_report_workflow_with_http_info(body, **kwargs)  # noqa: E501
+        return self.report_service_report_workflow_with_http_info(workflow, **kwargs)  # noqa: E501
 
-    def report_service_report_workflow_with_http_info(self, body, **kwargs):  # noqa: E501
+    def report_service_report_workflow_with_http_info(self, workflow, **kwargs):  # noqa: E501
         """report_service_report_workflow  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.report_service_report_workflow_with_http_info(body, async_req=True)
+        >>> thread = api.report_service_report_workflow_with_http_info(workflow, async_req=True)
         >>> result = thread.get()
 
-        :param body: Workflow is a workflow custom resource marshalled into a json string. (required)
-        :type body: str
+        :param workflow: Workflow is a workflow custom resource marshalled into a json string. (required)
+        :type workflow: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -223,7 +223,7 @@ class ReportServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'body'
+            'workflow'
         ]
         all_params.extend(
             [
@@ -242,10 +242,10 @@ class ReportServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
-        # verify the required parameter 'body' is set
-        if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
-                                                        local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `report_service_report_workflow`")  # noqa: E501
+        # verify the required parameter 'workflow' is set
+        if self.api_client.client_side_validation and ('workflow' not in local_var_params or  # noqa: E501
+                                                        local_var_params['workflow'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `workflow` when calling `report_service_report_workflow`")  # noqa: E501
 
         collection_formats = {}
 
@@ -259,8 +259,8 @@ class ReportServiceApi(object):
         local_var_files = {}
 
         body_params = None
-        if 'body' in local_var_params:
-            body_params = local_var_params['body']
+        if 'workflow' in local_var_params:
+            body_params = local_var_params['workflow']
         # HTTP header `Accept`
         header_params['Accept'] = self.api_client.select_header_accept(
             ['application/json'])  # noqa: E501

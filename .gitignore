@@ -68,6 +68,7 @@ _build
 
 # virtualenv
 .venv/
+venv/
 
 # python sdk package
 *.tar.gz
@@ -93,3 +94,13 @@ kubeconfig_dev-pipelines-api
 backend/Dockerfile.driver-debug
 
 backend/src/crd/kubernetes/bin
+
+**/allure-*
+**/*.html
+reports/
+logs/
+*.out
+*test_*output*
+
+# Project-local tools
+bin/

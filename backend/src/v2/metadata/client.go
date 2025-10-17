@@ -31,16 +31,15 @@ import (
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"gopkg.in/yaml.v3"
-
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/golang/glog"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+
+	"github.com/golang/glog"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/retry"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -48,6 +47,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -161,6 +161,7 @@ func NewClient(serverAddress, serverPort string, tlsEnabled bool, caCertPath str
 // ExecutionConfig represents the input parameters and artifacts to an Execution.
 type ExecutionConfig struct {
 	TaskName         string
+	DisplayName      string // optional, MLMD execution display name.
 	Name             string // optional, MLMD execution name. When provided, this needs to be unique among all MLMD executions.
 	ExecutionType    ExecutionType
 	NotTriggered     bool  // optional, not triggered executions will have CANCELED state.
@@ -588,8 +589,7 @@ func (c *Client) CreateExecution(ctx context.Context, pipeline *Pipeline, config
 	e := &pb.Execution{
 		TypeId: &typeID,
 		CustomProperties: map[string]*pb.Value{
-			// We should support overriding display name in the future, for now it defaults to task name.
-			keyDisplayName: StringValue(config.TaskName),
+			keyDisplayName: StringValue(config.DisplayName),
 			keyTaskName:    StringValue(config.TaskName),
 		},
 	}

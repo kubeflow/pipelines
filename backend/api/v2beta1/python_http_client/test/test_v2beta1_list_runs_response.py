@@ -62,9 +62,9 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                             code = 56, 
                             message = '0', 
                             details = [
-                                kfp_server_api.models.protobuf_any.protobufAny(
-                                    type_url = '0', 
-                                    value = 'YQ==', )
+                                {
+                                    'key' : None
+                                    }
                                 ], ), 
                         run_details = kfp_server_api.models.v2beta1_run_details.v2beta1RunDetails(
                             pipeline_context_id = '0', 

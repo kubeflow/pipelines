@@ -27,4 +27,5 @@ go mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
 
 # 2. Run tests in the backend directory
-go test -v -cover ./backend/...
+# shellcheck disable=SC2046
+GIT_REPO="$GIT_REPO" GIT_BRANCH="$GIT_BRANCH" go test -v -cover $(go list ./backend/... | grep -v backend/test/v2/api | grep -v backend/test/compiler | grep -v backend/test/end2end | grep -v backend/test/integration | grep -v backend/test/v2/integration | grep -v backend/test/initialization)

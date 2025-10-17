@@ -33,7 +33,6 @@ from kfp_server_api.models.api_pipeline_spec import ApiPipelineSpec
 from kfp_server_api.models.api_pipeline_version import ApiPipelineVersion
 from kfp_server_api.models.api_read_artifact_response import ApiReadArtifactResponse
 from kfp_server_api.models.api_relationship import ApiRelationship
-from kfp_server_api.models.api_report_run_metrics_request import ApiReportRunMetricsRequest
 from kfp_server_api.models.api_report_run_metrics_response import ApiReportRunMetricsResponse
 from kfp_server_api.models.api_resource_key import ApiResourceKey
 from kfp_server_api.models.api_resource_reference import ApiResourceReference
@@ -45,7 +44,7 @@ from kfp_server_api.models.api_run_storage_state import ApiRunStorageState
 from kfp_server_api.models.api_status import ApiStatus
 from kfp_server_api.models.api_trigger import ApiTrigger
 from kfp_server_api.models.api_url import ApiUrl
-from kfp_server_api.models.gatewayruntime_error import GatewayruntimeError
+from kfp_server_api.models.googlerpc_status import GooglerpcStatus
 from kfp_server_api.models.job_mode import JobMode
 from kfp_server_api.models.pipeline_spec_runtime_config import PipelineSpecRuntimeConfig
 from kfp_server_api.models.protobuf_any import ProtobufAny
@@ -53,3 +52,4 @@ from kfp_server_api.models.protobuf_null_value import ProtobufNullValue
 from kfp_server_api.models.report_run_metrics_response_report_run_metric_result import ReportRunMetricsResponseReportRunMetricResult
 from kfp_server_api.models.report_run_metrics_response_report_run_metric_result_status import ReportRunMetricsResponseReportRunMetricResultStatus
 from kfp_server_api.models.run_metric_format import RunMetricFormat
+from kfp_server_api.models.run_service_report_run_metrics_v1_body import RunServiceReportRunMetricsV1Body

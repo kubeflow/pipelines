@@ -186,8 +186,8 @@ describe.only('Tensorboard', () => {
               </WithStyles(FormControl)>
             </div>
             <div>
-      -       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={true} title="Start Tensorboard" />
-      +       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={false} title="Start Tensorboard" />
+      -       <BusyButton className="buttonAction" disabled={false} onClick={[Function (anonymous)]} busy={true} title="Start Tensorboard" />
+      +       <BusyButton className="buttonAction" disabled={false} onClick={[Function (anonymous)]} busy={false} title="Start Tensorboard" />
             </div>
           </div>
         </div>
@@ -213,8 +213,8 @@ describe.only('Tensorboard', () => {
               </WithStyles(FormControl)>
             </div>
             <div>
-      -       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={true} title="Start Tensorboard" />
-      +       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={false} title="Start Tensorboard" />
+      -       <BusyButton className="buttonAction" disabled={false} onClick={[Function (anonymous)]} busy={true} title="Start Tensorboard" />
+      +       <BusyButton className="buttonAction" disabled={false} onClick={[Function (anonymous)]} busy={false} title="Start Tensorboard" />
             </div>
           </div>
         </div>
@@ -248,10 +248,10 @@ describe.only('Tensorboard', () => {
             </WithStyles(Button)>
           </a>
           <div>
-            <WithStyles(Button) className=\\"button\\" disabled={false} id=\\"delete\\" title=\\"stop tensorboard and delete its instance\\" onClick={[Function]} color=\\"default\\">
+            <WithStyles(Button) className=\\"button\\" disabled={false} id=\\"delete\\" title=\\"stop tensorboard and delete its instance\\" onClick={[Function (anonymous)]} color=\\"default\\">
               Stop Tensorboard
             </WithStyles(Button)>
-            <WithStyles(Dialog) open={false} onClose={[Function]} aria-labelledby=\\"dialog-title\\">
+            <WithStyles(Dialog) open={false} onClose={[Function (anonymous)]} aria-labelledby=\\"dialog-title\\">
               <WithStyles(DialogTitle) id=\\"dialog-title\\">
                 Stop Tensorboard?
               </WithStyles(DialogTitle)>
@@ -261,10 +261,10 @@ describe.only('Tensorboard', () => {
                 </WithStyles(DialogContentText)>
               </WithStyles(DialogContent)>
               <WithStyles(DialogActions)>
-                <WithStyles(Button) className=\\"shortButton\\" id=\\"cancel\\" autoFocus={true} onClick={[Function]} color=\\"primary\\">
+                <WithStyles(Button) className=\\"shortButton\\" id=\\"cancel\\" autoFocus={true} onClick={[Function (anonymous)]} color=\\"primary\\">
                   Cancel
                 </WithStyles(Button)>
-                <BusyButton className=\\"buttonAction shortButton\\" onClick={[Function]} busy={false} color=\\"primary\\" title=\\"Stop\\" />
+                <BusyButton className=\\"buttonAction shortButton\\" onClick={[Function (anonymous)]} busy={false} color=\\"primary\\" title=\\"Stop\\" />
               </WithStyles(DialogActions)>
             </WithStyles(Dialog)>
           </div>
@@ -299,8 +299,8 @@ describe.only('Tensorboard', () => {
               </WithStyles(FormControl)>
             </div>
             <div>
-      -       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={true} title="Start Tensorboard" />
-      +       <BusyButton className="buttonAction" disabled={false} onClick={[Function]} busy={false} title="Start Tensorboard" />
+      -       <BusyButton className="buttonAction" disabled={false} onClick={[Function (anonymous)]} busy={true} title="Start Tensorboard" />
+      +       <BusyButton className="buttonAction" disabled={false} onClick={[Function (anonymous)]} busy={false} title="Start Tensorboard" />
             </div>
           </div>
         </div>

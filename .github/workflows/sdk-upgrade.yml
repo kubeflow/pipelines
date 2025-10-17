@@ -1,32 +1,41 @@
 name: KFP SDK Upgrade Test
 
-on:
-  push:
-    branches:
-      - master
-      - main
-      - stable
-      - 'rhoai-*'
+# This workflow is disabled in downstream because the SDK is always behind upstream, so it does not sufficiently test
+# upgrades and will fail.
+on: []
+#on:
+#  push:
+#    branches:
+#      - master
+#      - main
+#      - stable
+#      - 'rhoai-*'
 
-  pull_request:
-    paths:
-      - 'sdk/python/**'
-      - 'test/presubmit-test-sdk-upgrade.sh'
-      - '.github/workflows/sdk-upgrade.yml'
-      - '!**/*.md'
-      - '!**/OWNERS'
+#  pull_request:
+#    paths:
+#      - 'sdk/python/**'
+#      - 'test/presubmit-test-sdk-upgrade.sh'
+#      - '.github/workflows/sdk-upgrade.yml'
+#      - '!**/*.md'
+#      - '!**/OWNERS'
 
 jobs:
   test-upgrade-kfp-sdk:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.9
+
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
+        with:
+          generate_golang_proto: "false"
 
       - name: Run SDK upgrade tests
         run: ./test/presubmit-test-sdk-upgrade.sh

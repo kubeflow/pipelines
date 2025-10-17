@@ -158,17 +158,17 @@ class RunServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def run_service_create_run_v1(self, body, **kwargs):  # noqa: E501
+    def run_service_create_run_v1(self, run, **kwargs):  # noqa: E501
         """Creates a new run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.run_service_create_run_v1(body, async_req=True)
+        >>> thread = api.run_service_create_run_v1(run, async_req=True)
         >>> result = thread.get()
 
-        :param body: (required)
-        :type body: ApiRun
+        :param run: (required)
+        :type run: ApiRun
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -184,19 +184,19 @@ class RunServiceApi(object):
         :rtype: ApiRunDetail
         """
         kwargs['_return_http_data_only'] = True
-        return self.run_service_create_run_v1_with_http_info(body, **kwargs)  # noqa: E501
+        return self.run_service_create_run_v1_with_http_info(run, **kwargs)  # noqa: E501
 
-    def run_service_create_run_v1_with_http_info(self, body, **kwargs):  # noqa: E501
+    def run_service_create_run_v1_with_http_info(self, run, **kwargs):  # noqa: E501
         """Creates a new run.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.run_service_create_run_v1_with_http_info(body, async_req=True)
+        >>> thread = api.run_service_create_run_v1_with_http_info(run, async_req=True)
         >>> result = thread.get()
 
-        :param body: (required)
-        :type body: ApiRun
+        :param run: (required)
+        :type run: ApiRun
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -219,7 +219,7 @@ class RunServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'body'
+            'run'
         ]
         all_params.extend(
             [
@@ -238,10 +238,10 @@ class RunServiceApi(object):
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
-        # verify the required parameter 'body' is set
-        if self.api_client.client_side_validation and ('body' not in local_var_params or  # noqa: E501
-                                                        local_var_params['body'] is None):  # noqa: E501
-            raise ApiValueError("Missing the required parameter `body` when calling `run_service_create_run_v1`")  # noqa: E501
+        # verify the required parameter 'run' is set
+        if self.api_client.client_side_validation and ('run' not in local_var_params or  # noqa: E501
+                                                        local_var_params['run'] is None):  # noqa: E501
+            raise ApiValueError("Missing the required parameter `run` when calling `run_service_create_run_v1`")  # noqa: E501
 
         collection_formats = {}
 
@@ -255,8 +255,8 @@ class RunServiceApi(object):
         local_var_files = {}
 
         body_params = None
-        if 'body' in local_var_params:
-            body_params = local_var_params['body']
+        if 'run' in local_var_params:
+            body_params = local_var_params['run']
         # HTTP header `Accept`
         header_params['Accept'] = self.api_client.select_header_accept(
             ['application/json'])  # noqa: E501
@@ -837,7 +837,7 @@ class RunServiceApi(object):
         :param run_id: Required. The parent run ID of the metric. (required)
         :type run_id: str
         :param body: (required)
-        :type body: ApiReportRunMetricsRequest
+        :type body: RunServiceReportRunMetricsV1Body
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -867,7 +867,7 @@ class RunServiceApi(object):
         :param run_id: Required. The parent run ID of the metric. (required)
         :type run_id: str
         :param body: (required)
-        :type body: ApiReportRunMetricsRequest
+        :type body: RunServiceReportRunMetricsV1Body
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code

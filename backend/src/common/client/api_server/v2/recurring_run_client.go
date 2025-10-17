@@ -17,6 +17,8 @@ package api_server_v2
 import (
 	"fmt"
 
+	httptransport "github.com/go-openapi/runtime/client"
+
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client"
@@ -74,6 +76,24 @@ func NewKubeflowInClusterRecurringRunClient(namespace string, debug bool) (
 	}, nil
 }
 
+func NewMultiUserRecurringRunClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool) (
+	*RecurringRunClient, error) {
+
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	if err != nil {
+		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
+	}
+
+	runtime.DefaultAuthentication = httptransport.BearerToken(userToken)
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating job client
+	return &RecurringRunClient{
+		apiClient:      apiClient,
+		authInfoWriter: api_server.TokenToAuthInfo(userToken),
+	}, nil
+}
+
 func (c *RecurringRunClient) Create(parameters *params.RecurringRunServiceCreateRecurringRunParams) (*model.V2beta1RecurringRun,
 	error) {
 	// Create context with timeout
@@ -85,8 +105,8 @@ func (c *RecurringRunClient) Create(parameters *params.RecurringRunServiceCreate
 	response, err := c.apiClient.RecurringRunService.RecurringRunServiceCreateRecurringRun(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
-			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.Body),
-			fmt.Sprintf("Failed to create job '%v'", parameters.Body.DisplayName))
+			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.RecurringRun),
+			fmt.Sprintf("Failed to create job '%v'", parameters.RecurringRun.DisplayName))
 	}
 
 	return response.Payload, nil

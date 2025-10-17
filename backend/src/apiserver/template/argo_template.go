@@ -17,14 +17,13 @@ package template
 import (
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -42,7 +41,7 @@ func (t *Argo) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (uti
 	workflow.SetLabelsToAllTemplates(util.LabelKeyCacheEnabled, common.IsCacheEnabled())
 
 	// Convert parameters
-	parameters, err := modelToParametersMap(modelRun.PipelineSpec.Parameters)
+	parameters, err := modelToParametersMap(string(modelRun.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert parameters")
 	}
@@ -107,7 +106,7 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.O
 	if modelJob.Namespace != "" {
 		workflow.SetExecutionNamespace(modelJob.Namespace)
 	}
-	parameters, err := modelToParametersMap(modelJob.PipelineSpec.Parameters)
+	parameters, err := modelToParametersMap(string(modelJob.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert parameters")
 	}
@@ -126,7 +125,7 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1.O
 	workflow.PatchTemplateOutputArtifacts()
 
 	// We assume that v1 Argo template use v1 parameters ignoring runtime config
-	swfParameters, err := stringArrayToCRDParameters(modelJob.Parameters)
+	swfParameters, err := stringArrayToCRDParameters(string(modelJob.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert v1 parameters to CRD parameters")
 	}

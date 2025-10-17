@@ -15,7 +15,7 @@
 # Build arguments
 ARG SOURCE_CODE=.
 
-FROM registry.access.redhat.com/ubi9/go-toolset:1.23 AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.24 AS builder
 
 USER root
 
@@ -35,7 +35,7 @@ RUN GO111MODULE=on CGO_ENABLED=1 GOEXPERIMENT=strictfipsruntime go build -tags s
     dnf clean all
 
 # 2. Compile preloaded pipeline samples
-FROM registry.access.redhat.com/ubi9/python-39:9.5 AS compiler
+FROM registry.access.redhat.com/ubi9/python-311 AS compiler
 
 ARG TARGETOS TARGETARCH
 
@@ -46,7 +46,7 @@ COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION=v3.5.14
+ENV ARGO_VERSION=v3.6.7
 RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-${TARGETOS:-linux}-${TARGETARCH:-amd64}.gz && \
     gunzip argo-${TARGETOS:-linux}-${TARGETARCH:-amd64}.gz && \
     chmod +x argo-${TARGETOS:-linux}-${TARGETARCH:-amd64} && \
@@ -85,4 +85,4 @@ USER 1001
 EXPOSE 8888
 
 # Start the apiserver
-CMD /bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true --logLevel=${LOG_LEVEL}
+CMD ["/bin/sh", "-c", "/bin/apiserver --config=/config --sampleconfig=/config/sample_config.json -logtostderr=true --logLevel=${LOG_LEVEL}"]

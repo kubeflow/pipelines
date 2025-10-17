@@ -20,12 +20,15 @@ import (
 	"fmt"
 	"net/http"
 
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/jsonpb"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -107,6 +110,10 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	}
 
 	pipelineNamespace := r.URL.Query().Get(NamespaceStringQuery)
+	if err := validation.ValidateFieldLength("Pipeline", "Namespace", pipelineNamespace); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	pipelineNamespace = s.resourceManager.ReplaceNamespace(pipelineNamespace)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: pipelineNamespace,
@@ -129,7 +136,7 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 	pipeline := &model.Pipeline{
 		Name:        pipelineName,
 		DisplayName: displayName,
-		Description: r.URL.Query().Get(DescriptionQueryStringKey),
+		Description: model.LargeText(r.URL.Query().Get(DescriptionQueryStringKey)),
 		Namespace:   pipelineNamespace,
 	}
 
@@ -137,7 +144,12 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		Name:         pipeline.Name,
 		DisplayName:  pipeline.DisplayName,
 		Description:  pipeline.Description,
-		PipelineSpec: string(pipelineFile),
+		PipelineSpec: model.LargeText(pipelineFile),
+	}
+
+	if err := validation.ValidateFieldLength("Pipeline", "Name", pipeline.Name); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -156,18 +168,29 @@ func (s *PipelineUploadServer) uploadPipeline(api_version string, w http.Respons
 		pipelineVersionCount.Inc()
 	}
 
-	marshaler := &jsonpb.Marshaler{EnumsAsInts: false, OrigName: true}
-
+	var messageToMarshal proto.Message
 	if api_version == "v1beta1" {
-		err = marshaler.Marshal(w, toApiPipelineV1(newPipeline, newPipelineVersion))
+		messageToMarshal = toApiPipelineV1(newPipeline, newPipelineVersion)
 	} else if api_version == "v2beta1" {
-		err = marshaler.Marshal(w, toApiPipeline(newPipeline))
+		messageToMarshal = toApiPipeline(newPipeline)
 	} else {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Invalid API version"))
 		return
 	}
+
+	// Marshal the message to bytes
+	marshaler := &protojson.MarshalOptions{
+		UseProtoNames: true,
+		// Note: Default behavior in protojson is to output enum names (strings).
+	}
+	data, err := marshaler.Marshal(messageToMarshal)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline due to error marshalling the pipeline"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Marshaling error"))
+		return
+	}
+	_, err = w.Write(data)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline. Write error."))
 		return
 	}
 }
@@ -210,6 +233,22 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version due to error reading pipeline id"))
 		return
 	}
+
+	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
+	versionDisplayNameQueryString := r.URL.Query().Get(DisplayNameQueryStringKey)
+	pipelineVersionName := buildPipelineName(versionNameQueryString, versionDisplayNameQueryString, header.Filename)
+
+	displayName := versionDisplayNameQueryString
+	if displayName == "" {
+		displayName = pipelineVersionName
+	}
+
+	// Validate PipelineVersion name length
+	if err := validation.ValidateFieldLength("PipelineVersion", "Name", pipelineVersionName); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	namespace, err := s.resourceManager.FetchNamespaceFromPipelineId(pipelineId)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Failed to create a pipeline version due to error reading namespace"))
@@ -228,23 +267,13 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// If new version's name is not included in query string, use file name.
-	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
-	versionDisplayNameQueryString := r.URL.Query().Get(DisplayNameQueryStringKey)
-	pipelineVersionName := buildPipelineName(versionNameQueryString, versionDisplayNameQueryString, header.Filename)
-
-	displayName := versionDisplayNameQueryString
-	if displayName == "" {
-		displayName = pipelineVersionName
-	}
-
 	newPipelineVersion, err := s.resourceManager.CreatePipelineVersion(
 		&model.PipelineVersion{
 			Name:         pipelineVersionName,
 			DisplayName:  displayName,
-			Description:  r.URL.Query().Get(DescriptionQueryStringKey),
+			Description:  model.LargeText(r.URL.Query().Get(DescriptionQueryStringKey)),
 			PipelineId:   pipelineId,
-			PipelineSpec: string(pipelineFile),
+			PipelineSpec: model.LargeText(pipelineFile),
 		},
 	)
 	if err != nil {
@@ -256,18 +285,28 @@ func (s *PipelineUploadServer) uploadPipelineVersion(api_version string, w http.
 		return
 	}
 
-	marshaler := &jsonpb.Marshaler{EnumsAsInts: false, OrigName: true}
+	var messageToMarshal proto.Message
 	if api_version == "v1beta1" {
-		err = marshaler.Marshal(w, toApiPipelineVersionV1(newPipelineVersion))
+		messageToMarshal = toApiPipelineVersionV1(newPipelineVersion)
 	} else if api_version == "v2beta1" {
-		err = marshaler.Marshal(w, toApiPipelineVersion(newPipelineVersion))
+		messageToMarshal = toApiPipelineVersion(newPipelineVersion)
 	} else {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Invalid API version"))
 		return
 	}
-
+	// Marshal the message to bytes
+	marshaler := &protojson.MarshalOptions{
+		UseProtoNames: true,
+		// Note: Default behavior in protojson is to output enum names (strings).
+	}
+	data, err := marshaler.Marshal(messageToMarshal)
 	if err != nil {
-		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version due to marshalling error"))
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Marshaling error"))
+		return
+	}
+	_, err = w.Write(data)
+	if err != nil {
+		s.writeErrorToResponse(w, http.StatusInternalServerError, util.Wrap(err, "Failed to create a pipeline version. Write error."))
 		return
 	}
 

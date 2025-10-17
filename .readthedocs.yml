@@ -1,10 +1,10 @@
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 version: 2
 sphinx:
-  configuration: docs/conf.py
+  configuration: docs/sdk/conf.py
 python:
   install:
-    - requirements: docs/requirements.txt
+    - requirements: docs/sdk/requirements.txt
 build:
   os: ubuntu-22.04
   tools:

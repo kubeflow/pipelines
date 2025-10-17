@@ -16,6 +16,7 @@ package driver
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 )
@@ -55,7 +57,7 @@ type Options struct {
 	// optional, allows to specify kubernetes-specific executor config
 	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
 
-	// optional, required only if the {{$.pipeline_job_resource_name}} placeholder is used
+	// optional, required only if the {{$.pipeline_job_resource_name}} placeholder is used or the run uses a workspace
 	RunName string
 	// optional, required only if the {{$.pipeline_job_name}} placeholder is used
 	RunDisplayName string
@@ -77,31 +79,49 @@ type Options struct {
 	MLMDTLSEnabled bool
 
 	CaCertPath string
+
+	DriverType string
+
+	TaskName string // the original name of the task, used for input resolution
+}
+
+// TaskConfig needs to stay aligned with the TaskConfig in the SDK.
+type TaskConfig struct {
+	Affinity     *k8score.Affinity            `json:"affinity"`
+	Tolerations  []k8score.Toleration         `json:"tolerations"`
+	NodeSelector map[string]string            `json:"nodeSelector"`
+	Env          []k8score.EnvVar             `json:"env"`
+	Volumes      []k8score.Volume             `json:"volumes"`
+	VolumeMounts []k8score.VolumeMount        `json:"volumeMounts"`
+	Resources    k8score.ResourceRequirements `json:"resources"`
 }
 
 // Identifying information used for error messages
 func (o Options) info() string {
 	msg := fmt.Sprintf("pipelineName=%v, runID=%v", o.PipelineName, o.RunID)
 	if o.Task.GetTaskInfo().GetName() != "" {
-		msg = msg + fmt.Sprintf(", task=%q", o.Task.GetTaskInfo().GetName())
+		msg += fmt.Sprintf(", taskDisplayName=%q", o.Task.GetTaskInfo().GetName())
+	}
+	if o.TaskName != "" {
+		msg += fmt.Sprintf(", taskName=%q", o.TaskName)
 	}
 	if o.Task.GetComponentRef().GetName() != "" {
-		msg = msg + fmt.Sprintf(", component=%q", o.Task.GetComponentRef().GetName())
+		msg += fmt.Sprintf(", component=%q", o.Task.GetComponentRef().GetName())
 	}
 	if o.DAGExecutionID != 0 {
-		msg = msg + fmt.Sprintf(", dagExecutionID=%v", o.DAGExecutionID)
+		msg += fmt.Sprintf(", dagExecutionID=%v", o.DAGExecutionID)
 	}
 	if o.IterationIndex >= 0 {
-		msg = msg + fmt.Sprintf(", iterationIndex=%v", o.IterationIndex)
+		msg += fmt.Sprintf(", iterationIndex=%v", o.IterationIndex)
 	}
 	if o.RuntimeConfig != nil {
-		msg = msg + ", runtimeConfig" // this only means runtimeConfig is not empty
+		msg += ", runtimeConfig" // this only means runtimeConfig is not empty
 	}
 	if o.Component.GetImplementation() != nil {
-		msg = msg + ", componentSpec" // this only means componentSpec is not empty
+		msg += ", componentSpec" // this only means componentSpec is not empty
 	}
 	if o.KubernetesExecutorConfig != nil {
-		msg = msg + ", KubernetesExecutorConfig" // this only means KubernetesExecutorConfig is not empty
+		msg += ", KubernetesExecutorConfig" // this only means KubernetesExecutorConfig is not empty
 	}
 	return msg
 }
@@ -153,6 +173,49 @@ func getPodResource(
 	return &q, nil
 }
 
+// getTaskConfigOptions inspects the component's task config passthroughs and returns two maps:
+// 1) fields enabled for passthrough
+// 2) fields that should apply to the task pod
+//
+// If the component does not specify a passthrough, then all fields apply to the task pod and no fields are passthrough
+// enabled.
+func getTaskConfigOptions(
+	componentSpec *pipelinespec.ComponentSpec,
+) (map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool,
+	map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool,
+) {
+	passthroughEnabled := map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool{}
+	// setOnTask contains all possible fields even if they are not in the passthrough list.
+	setOnPod := map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool{
+		pipelinespec.TaskConfigPassthroughType_RESOURCES:                true,
+		pipelinespec.TaskConfigPassthroughType_ENV:                      true,
+		pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY:      true,
+		pipelinespec.TaskConfigPassthroughType_KUBERNETES_TOLERATIONS:   true,
+		pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR: true,
+		pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES:       true,
+	}
+
+	if componentSpec == nil {
+		return passthroughEnabled, setOnPod
+	}
+
+	// If the component specifies a passthrough, then we don't set fields on the pod unless apply_to_task
+	// is true.
+	if len(componentSpec.GetTaskConfigPassthroughs()) != 0 {
+		for field := range setOnPod {
+			passthroughEnabled[field] = false
+		}
+	}
+
+	for _, pt := range componentSpec.GetTaskConfigPassthroughs() {
+		field := pt.GetField()
+		passthroughEnabled[field] = true
+		setOnPod[field] = pt.GetApplyToTask()
+	}
+
+	return passthroughEnabled, setOnPod
+}
+
 // initPodSpecPatch generates a strategic merge patch for pod spec, it is merged
 // to container base template generated in compiler/container.go. Therefore, only
 // dynamic values are patched here. The volume mounts / configmap mounts are
@@ -164,6 +227,7 @@ func initPodSpecPatch(
 	executionID int64,
 	pipelineName string,
 	runID string,
+	runName string,
 	pipelineLogLevel string,
 	publishLogs string,
 	cacheDisabled string,
@@ -172,6 +236,7 @@ func initPodSpecPatch(
 	mlmdServerPort string,
 	mlmdTLSEnabled bool,
 	caCertPath string,
+	taskConfig *TaskConfig,
 ) (*k8score.PodSpec, error) {
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -189,6 +254,13 @@ func initPodSpecPatch(
 	}
 
 	userEnvVar = append(userEnvVar, proxy.GetConfig().GetEnvVars()...)
+
+	setOnTaskConfig, setOnPod := getTaskConfigOptions(componentSpec)
+
+	// Always set setOnTaskConfig to an empty map if taskConfig is nil to avoid nil pointer dereference.
+	if taskConfig == nil {
+		setOnTaskConfig = map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool{}
+	}
 
 	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
 	userCmdArgs = append(userCmdArgs, container.Command...)
@@ -321,20 +393,113 @@ func initPodSpecPatch(
 	if err != nil {
 		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
 	}
+
 	podSpec := &k8score.PodSpec{
 		Containers: []k8score.Container{{
-			Name:      "main", // argo task user container is always called "main"
-			Command:   launcherCmd,
-			Args:      userCmdArgs,
-			Image:     containerImage,
-			Resources: res,
-			Env:       userEnvVar,
+			Name:    "main", // argo task user container is always called "main"
+			Command: launcherCmd,
+			Args:    userCmdArgs,
+			Image:   containerImage,
 		}},
 	}
 
-	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), userEnvVar, podSpec)
+	if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_ENV] {
+		taskConfig.Env = userEnvVar
+	}
+
+	if setOnPod[pipelinespec.TaskConfigPassthroughType_ENV] {
+		podSpec.Containers[0].Env = userEnvVar
+	}
+
+	if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_RESOURCES] {
+		taskConfig.Resources = res
+	}
+
+	if setOnPod[pipelinespec.TaskConfigPassthroughType_RESOURCES] {
+		podSpec.Containers[0].Resources = res
+	}
+
+	addModelcarsToPodSpec(executorInput.GetInputs().GetArtifacts(), podSpec.Containers[0].Env, podSpec)
+
+	if needsWorkspaceMount(executorInput) {
+		// Validate that no user volume mounts conflict with the workspace
+		if err := validateVolumeMounts(podSpec); err != nil {
+			return nil, fmt.Errorf("failed to validate volume mounts: %w", err)
+		}
+
+		if runName == "" {
+			return nil, fmt.Errorf("failed to init podSpecPatch: run name is required when workspace is used")
+		}
+
+		pvcName := GetWorkspacePVCName(runName)
+
+		workspaceVolume, workspaceVolumeMount := getWorkspaceMount(pvcName)
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			taskConfig.Volumes = append(taskConfig.Volumes, workspaceVolume)
+			taskConfig.VolumeMounts = append(taskConfig.VolumeMounts, workspaceVolumeMount)
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES] {
+			podSpec.Volumes = append(podSpec.Volumes, workspaceVolume)
+			podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, workspaceVolumeMount)
+		}
+	}
 
 	return podSpec, nil
+}
+
+// needsWorkspaceMount checks if the component needs workspace mounting based on input parameters and artifacts.
+func needsWorkspaceMount(executorInput *pipelinespec.ExecutorInput) bool {
+	// Check if any input parameter is the workspace path placeholder
+	for _, param := range executorInput.GetInputs().GetParameterValues() {
+		if strVal, ok := param.GetKind().(*structpb.Value_StringValue); ok {
+			if strings.Contains(strVal.StringValue, "{{$.workspace_path}}") {
+				return true
+			}
+
+			if strings.HasPrefix(strVal.StringValue, component.WorkspaceMountPath) {
+				return true
+			}
+		}
+	}
+
+	// Check if any input artifact has workspace metadata
+	for _, artifactList := range executorInput.GetInputs().GetArtifacts() {
+		if len(artifactList.Artifacts) == 0 {
+			continue
+		}
+		// first artifact is used, as the list is expected to contain a single artifact
+		artifact := artifactList.Artifacts[0]
+		if artifact.Metadata != nil {
+			if workspaceVal, ok := artifact.Metadata.Fields["_kfp_workspace"]; ok {
+				if boolVal, ok := workspaceVal.GetKind().(*structpb.Value_BoolValue); ok && boolVal.BoolValue {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+// getWorkspaceMount gets the workspace volume and volume mount.
+func getWorkspaceMount(pvcName string) (k8score.Volume, k8score.VolumeMount) {
+	workspaceVolume := k8score.Volume{
+		Name: component.WorkspaceVolumeName,
+		VolumeSource: k8score.VolumeSource{
+			PersistentVolumeClaim: &k8score.PersistentVolumeClaimVolumeSource{
+				ClaimName: pvcName,
+			},
+		},
+	}
+
+	workspaceVolumeMount := k8score.VolumeMount{
+		Name:      component.WorkspaceVolumeName,
+		MountPath: component.WorkspaceMountPath,
+	}
+
+	return workspaceVolume, workspaceVolumeMount
 }
 
 // addModelcarsToPodSpec will patch the pod spec if there are any input artifacts in the Modelcar format.
@@ -497,7 +662,6 @@ func provisionOutputs(
 	outputs := &pipelinespec.ExecutorInput_Outputs{
 		Artifacts:  make(map[string]*pipelinespec.ArtifactList),
 		Parameters: make(map[string]*pipelinespec.ExecutorInput_OutputParameter),
-		OutputFile: component.OutputMetadataFilepath,
 	}
 	artifacts := outputsSpec.GetArtifacts()
 
@@ -517,13 +681,23 @@ func provisionOutputs(
 		}
 	}
 
+	// Compute a task-root remote URI that will serve as the base for all
+	// output artifacts and the executor output file. This enables Pythonic
+	// artifacts (dsl.get_uri) by allowing the SDK to infer the task root from
+	// the executor output file's directory (set below) and convert it back to
+	// a remote URI at runtime.
+	taskRootRemote := metadata.GenerateOutputURI(pipelineRoot, []string{taskName, outputURISalt}, false)
+
+	// Set per-artifact output URIs under the task root.
 	for name, artifact := range artifacts {
 		outputs.Artifacts[name] = &pipelinespec.ArtifactList{
 			Artifacts: []*pipelinespec.RuntimeArtifact{
 				{
+					// Required by Pythonic artifacts to avoid a key error in the SDK.
+					Name: name,
 					// Do not preserve the query string for output artifacts, as otherwise
 					// they'd appear in file and artifact names.
-					Uri:      metadata.GenerateOutputURI(pipelineRoot, []string{taskName, outputURISalt, name}, false),
+					Uri:      metadata.GenerateOutputURI(taskRootRemote, []string{name}, false),
 					Type:     artifact.GetArtifactType(),
 					Metadata: artifact.GetMetadata(),
 				},
@@ -537,5 +711,31 @@ func provisionOutputs(
 		}
 	}
 
+	// Place the executor output file under localTaskRoot to enable Pythonic artifacts. The SDK's pythonic artifact
+	// runtime derives CONTAINER_TASK_ROOT from the directory of OutputFile to use it in dsl.get_uri.
+	if localTaskRoot, err := component.LocalPathForURI(taskRootRemote); err == nil {
+		outputs.OutputFile = filepath.Join(localTaskRoot, "output_metadata.json")
+	} else {
+		// Fallback to legacy path if the pipeline root scheme is not recognized.
+		outputs.OutputFile = component.OutputMetadataFilepath
+	}
+
 	return outputs
+}
+
+func validateVolumeMounts(podSpec *k8score.PodSpec) error {
+	// Validate that no user volume mounts conflict with the workspace mount path or volume name
+	for _, container := range podSpec.Containers {
+		for _, mount := range container.VolumeMounts {
+			if strings.HasPrefix(mount.MountPath, component.WorkspaceMountPath) {
+				return fmt.Errorf("user volume mount at %s conflicts with workspace mount at %s", mount.MountPath, component.WorkspaceMountPath)
+			}
+
+			if mount.Name == component.WorkspaceVolumeName {
+				return fmt.Errorf("user volume mount name %s conflicts with workspace volume name %s", mount.Name, component.WorkspaceVolumeName)
+			}
+		}
+	}
+
+	return nil
 }

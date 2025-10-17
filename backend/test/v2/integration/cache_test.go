@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
 	recurringRunParams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/recurring_run_client/recurring_run_service"
@@ -17,10 +16,17 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata/testutils"
+	"github.com/kubeflow/pipelines/backend/test/config"
 	"github.com/kubeflow/pipelines/backend/test/v2"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	v1 "k8s.io/api/core/v1"
+	k8sres "k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type CacheTestSuite struct {
@@ -28,7 +34,7 @@ type CacheTestSuite struct {
 	namespace            string
 	resourceNamespace    string
 	pipelineClient       *apiServer.PipelineClient
-	pipelineUploadClient *apiServer.PipelineUploadClient
+	pipelineUploadClient apiServer.PipelineUploadInterface
 	runClient            *apiServer.RunClient
 	recurringRunClient   *apiServer.RecurringRunClient
 	mlmdClient           pb.MetadataStoreServiceClient
@@ -57,9 +63,8 @@ func (s *CacheTestSuite) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
 	}
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
 
-	var newPipelineUploadClient func() (*apiServer.PipelineUploadClient, error)
 	var newPipelineClient func() (*apiServer.PipelineClient, error)
 	var newRunClient func() (*apiServer.RunClient, error)
 	var newRecurringRunClient func() (*apiServer.RecurringRunClient, error)
@@ -67,37 +72,37 @@ func (s *CacheTestSuite) SetupTest() {
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
-		newPipelineUploadClient = func() (*apiServer.PipelineUploadClient, error) {
-			return apiServer.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
-		}
 		newPipelineClient = func() (*apiServer.PipelineClient, error) {
-			return apiServer.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return apiServer.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 		newRunClient = func() (*apiServer.RunClient, error) {
-			return apiServer.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return apiServer.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
 		}
 		newRecurringRunClient = func() (*apiServer.RecurringRunClient, error) {
-			return apiServer.NewKubeflowInClusterRecurringRunClient(s.namespace, *isDebugMode)
+			return apiServer.NewKubeflowInClusterRecurringRunClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
-		newPipelineUploadClient = func() (*apiServer.PipelineUploadClient, error) {
-			return apiServer.NewPipelineUploadClient(clientConfig, *isDebugMode)
-		}
 		newPipelineClient = func() (*apiServer.PipelineClient, error) {
-			return apiServer.NewPipelineClient(clientConfig, *isDebugMode)
+			return apiServer.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 		newRunClient = func() (*apiServer.RunClient, error) {
-			return apiServer.NewRunClient(clientConfig, *isDebugMode)
+			return apiServer.NewRunClient(clientConfig, *config.DebugMode)
 		}
 		newRecurringRunClient = func() (*apiServer.RecurringRunClient, error) {
-			return apiServer.NewRecurringRunClient(clientConfig, *isDebugMode)
+			return apiServer.NewRecurringRunClient(clientConfig, *config.DebugMode)
 		}
 	}
 
 	var err error
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
+		*uploadPipelinesWithKubernetes,
+		*isKubeflowMode,
+		*config.DebugMode,
+		s.namespace,
+		test.GetClientConfig(s.namespace),
+	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
@@ -122,7 +127,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 
 	pipelineVersion := s.preparePipeline()
 
-	createRecurringRunRequest := &recurringRunParams.RecurringRunServiceCreateRecurringRunParams{Body: &recurring_run_model.V2beta1RecurringRun{
+	createRecurringRunRequest := &recurringRunParams.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
 		DisplayName: "hello world",
 		Description: "this is hello world",
 		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
@@ -130,7 +135,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 			PipelineVersionID: pipelineVersion.PipelineVersionID,
 		},
 		MaxConcurrency: 10,
-		Mode:           recurring_run_model.RecurringRunModeENABLE,
+		Mode:           recurring_run_model.RecurringRunModeENABLE.Pointer(),
 		Trigger: &recurring_run_model.V2beta1Trigger{
 			PeriodicSchedule: &recurring_run_model.V2beta1PeriodicSchedule{
 				IntervalSecond: 60,
@@ -155,7 +160,7 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 
 		if len(allRuns) >= 2 {
 			for _, run := range allRuns {
-				if run.State != run_model.V2beta1RuntimeStateSUCCEEDED {
+				if *run.State != *run_model.V2beta1RuntimeStateSUCCEEDED.Pointer() {
 					return false
 				}
 			}
@@ -165,38 +170,11 @@ func (s *CacheTestSuite) TestCacheRecurringRun() {
 		return false
 	}, 4*time.Minute, 5*time.Second)
 
-	contextsFilterQuery := fmt.Sprintf("name = '%s'", allRuns[1].RunID)
-
-	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
-		Options: &pb.ListOperationOptions{
-			FilterQuery: &contextsFilterQuery,
-		},
-	})
-
-	require.NoError(t, err)
-	require.NotNil(t, contexts)
-
-	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
-		ContextId: contexts.Contexts[0].Id,
-	})
-
-	require.NoError(t, err)
-	require.NotNil(t, executionsByContext)
-	require.NotEmpty(t, executionsByContext.Executions)
-
-	var containerExecution *pb.Execution
-	for _, execution := range executionsByContext.Executions {
-		if metadata.ExecutionType(execution.GetType()) == metadata.ContainerExecutionTypeName {
-			containerExecution = execution
-			break
-		}
-	}
-	require.NotNil(t, containerExecution)
-
+	state := s.getContainerExecutionState(t, allRuns[1].RunID)
 	if *cacheEnabled {
-		require.Equal(t, pb.Execution_CACHED.Enum().String(), containerExecution.LastKnownState.String())
+		require.Equal(t, pb.Execution_CACHED, state)
 	} else {
-		require.Equal(t, pb.Execution_COMPLETE.Enum().String(), containerExecution.LastKnownState.String())
+		require.Equal(t, pb.Execution_COMPLETE, state)
 	}
 }
 
@@ -213,43 +191,110 @@ func (s *CacheTestSuite) TestCacheSingleRun() {
 	require.NoError(t, err)
 	require.NotNil(t, pipelineRunDetail)
 
-	contextsFilterQuery := fmt.Sprintf("name = '%s'", pipelineRunDetail.RunID)
-
-	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
-		Options: &pb.ListOperationOptions{
-			FilterQuery: &contextsFilterQuery,
-		},
-	})
-
-	require.NoError(t, err)
-	require.NotNil(t, contexts)
-
-	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
-		ContextId: contexts.Contexts[0].Id,
-	})
-
-	require.NoError(t, err)
-	require.NotNil(t, executionsByContext)
-	require.NotEmpty(t, executionsByContext.Executions)
-
-	var containerExecution *pb.Execution
-	for _, execution := range executionsByContext.Executions {
-		if metadata.ExecutionType(execution.GetType()) == metadata.ContainerExecutionTypeName {
-			containerExecution = execution
-			break
-		}
-	}
-	require.NotNil(t, containerExecution)
-
+	state := s.getContainerExecutionState(t, pipelineRunDetail.RunID)
 	if *cacheEnabled {
-		require.Equal(t, pb.Execution_CACHED.Enum().String(), containerExecution.LastKnownState.String())
+		require.Equal(t, pb.Execution_CACHED, state)
 	} else {
-		require.Equal(t, pb.Execution_COMPLETE.Enum().String(), containerExecution.LastKnownState.String())
+		require.Equal(t, pb.Execution_COMPLETE, state)
 	}
 }
 
+// Test that a pipeline using a PVC with the same name across runs hits the cache on the second run.
+func (s *CacheTestSuite) TestCacheSingleRunWithPVC_SameName_Caches() {
+	t := s.T()
+
+	if !*cacheEnabled {
+		t.Skip("Skipping PVC cache test: cache is disabled")
+
+		return
+	}
+
+	pvcPipelinePath := "../resources/pvc-mount.yaml"
+
+	// Create a small PVC up-front so the pipeline can mount it by name.
+	restCfg, err := util.GetKubernetesConfig()
+	require.NoError(t, err)
+	clientset, err := kubernetes.NewForConfig(restCfg)
+	require.NoError(t, err)
+
+	pvcName := fmt.Sprintf("test-cache-pvc-%d", time.Now().UnixNano())
+	storageClass := "standard"
+	qty := k8sres.MustParse("5Mi")
+	pvc := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: pvcName,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+			Resources: v1.VolumeResourceRequirements{
+				Requests: v1.ResourceList{v1.ResourceStorage: qty},
+			},
+			StorageClassName: &storageClass,
+		},
+	}
+	_, err = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
+	require.NoError(t, err)
+	defer func() {
+		_ = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Delete(context.Background(), pvcName, metav1.DeleteOptions{})
+	}()
+
+	// Upload pipeline and create a version
+	pipeline, err := s.pipelineUploadClient.UploadFile(pvcPipelinePath, uploadParams.NewUploadPipelineParams())
+	require.NoError(t, err)
+	require.NotNil(t, pipeline)
+
+	time.Sleep(1 * time.Second)
+	pipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
+		pvcPipelinePath,
+		&uploadParams.UploadPipelineVersionParams{
+			Name:       util.StringPointer("pvc-cache-version"),
+			Pipelineid: util.StringPointer(pipeline.PipelineID),
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, pipelineVersion)
+
+	// First run with fixed PVC name
+	run1, err := s.createRunWithParams(pipelineVersion, map[string]interface{}{"pvc_name": pvcName})
+	require.NoError(t, err)
+	require.NotNil(t, run1)
+
+	// Second run with the same PVC name should hit cache when enabled
+	run2, err := s.createRunWithParams(pipelineVersion, map[string]interface{}{"pvc_name": pvcName})
+	require.NoError(t, err)
+	require.NotNil(t, run2)
+
+	state := s.getContainerExecutionState(t, run2.RunID)
+	require.Equal(t, pb.Execution_CACHED, state)
+
+	// Third run with a different PVC name should not hit cache.
+	otherPVCName := fmt.Sprintf("%s-alt", pvcName)
+	// Create the alternate PVC so the pipeline can mount it
+	pvcAlt := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: otherPVCName},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes:      []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+			Resources:        v1.VolumeResourceRequirements{Requests: v1.ResourceList{v1.ResourceStorage: qty}},
+			StorageClassName: &storageClass,
+		},
+	}
+	_, err = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Create(context.Background(), pvcAlt, metav1.CreateOptions{})
+	require.NoError(t, err)
+	defer func() {
+		_ = clientset.CoreV1().PersistentVolumeClaims(s.namespace).Delete(context.Background(), otherPVCName, metav1.DeleteOptions{})
+	}()
+
+	run3, err := s.createRunWithParams(pipelineVersion, map[string]interface{}{"pvc_name": otherPVCName})
+	require.NoError(t, err)
+	require.NotNil(t, run3)
+
+	state = s.getContainerExecutionState(t, run3.RunID)
+	// With a different PVC, do not expect cache hit
+	require.Equal(t, pb.Execution_COMPLETE, state)
+}
+
 func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion) (*run_model.V2beta1Run, error) {
-	createRunRequest := &runParams.RunServiceCreateRunParams{Body: &run_model.V2beta1Run{
+	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
 		DisplayName: "hello-world",
 		Description: "this is hello-world",
 		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
@@ -269,9 +314,40 @@ func (s *CacheTestSuite) createRun(pipelineVersion *pipeline_upload_model.V2beta
 	require.Eventually(s.T(), func() bool {
 		pipelineRunDetail, err = s.runClient.Get(&runParams.RunServiceGetRunParams{RunID: pipelineRunDetail.RunID})
 
-		s.T().Logf("Pipeline %v state: %v", pipelineRunDetail.RunID, pipelineRunDetail.State)
+		if err == nil {
+			s.T().Logf("Pipeline %v state: %v", pipelineRunDetail.RunID, *pipelineRunDetail.State)
+		} else {
+			s.T().Logf("Pipeline %v state: %v", pipelineRunDetail.RunID, err.Error())
+		}
 
-		return err == nil && pipelineRunDetail.State == expectedState
+		return err == nil && *pipelineRunDetail.State == expectedState
+	}, 2*time.Minute, 10*time.Second)
+
+	return pipelineRunDetail, err
+}
+
+func (s *CacheTestSuite) createRunWithParams(pipelineVersion *pipeline_upload_model.V2beta1PipelineVersion, params map[string]interface{}) (*run_model.V2beta1Run, error) {
+	createRunRequest := &runParams.RunServiceCreateRunParams{Run: &run_model.V2beta1Run{
+		DisplayName: "pvc-cache",
+		Description: "pvc cache test",
+		PipelineVersionReference: &run_model.V2beta1PipelineVersionReference{
+			PipelineID:        pipelineVersion.PipelineID,
+			PipelineVersionID: pipelineVersion.PipelineVersionID,
+		},
+		RuntimeConfig: &run_model.V2beta1RuntimeConfig{Parameters: params},
+	}}
+	pipelineRunDetail, err := s.runClient.Create(createRunRequest)
+	require.NoError(s.T(), err)
+
+	expectedState := run_model.V2beta1RuntimeStateSUCCEEDED
+	require.Eventually(s.T(), func() bool {
+		pipelineRunDetail, err = s.runClient.Get(&runParams.RunServiceGetRunParams{RunID: pipelineRunDetail.RunID})
+		if err == nil {
+			s.T().Logf("PVC pipeline %v state: %v", pipelineRunDetail.RunID, *pipelineRunDetail.State)
+		} else {
+			s.T().Logf("PVC pipeline %v state: %v", pipelineRunDetail.RunID, err.Error())
+		}
+		return err == nil && *pipelineRunDetail.State == expectedState
 	}, 2*time.Minute, 10*time.Second)
 
 	return pipelineRunDetail, err
@@ -304,4 +380,32 @@ func (s *CacheTestSuite) cleanUp() {
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
 	test.DeleteAllRecurringRuns(s.recurringRunClient, s.resourceNamespace, s.T())
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
+}
+
+// getContainerExecutionState fetches the container execution state for a given run ID.
+func (s *CacheTestSuite) getContainerExecutionState(t *testing.T, runID string) pb.Execution_State {
+	contextsFilterQuery := fmt.Sprintf("name = '%s'", runID)
+
+	contexts, err := s.mlmdClient.GetContexts(context.Background(), &pb.GetContextsRequest{
+		Options: &pb.ListOperationOptions{
+			FilterQuery: &contextsFilterQuery,
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, contexts)
+
+	executionsByContext, err := s.mlmdClient.GetExecutionsByContext(context.Background(), &pb.GetExecutionsByContextRequest{
+		ContextId: contexts.Contexts[0].Id,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, executionsByContext)
+	require.NotEmpty(t, executionsByContext.Executions)
+
+	for _, execution := range executionsByContext.Executions {
+		if metadata.ExecutionType(execution.GetType()) == metadata.ContainerExecutionTypeName {
+			return execution.GetLastKnownState()
+		}
+	}
+	t.Fatalf("no container execution found for run %s", runID)
+	return pb.Execution_UNKNOWN
 }

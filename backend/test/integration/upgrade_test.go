@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	experimentParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
 	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
 	jobparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
@@ -34,9 +33,15 @@ import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/kubeflow/pipelines/backend/test/config"
+
+	"github.com/go-openapi/strfmt"
+	"github.com/golang/glog"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // Methods are organized into two types: "prepare" and "verify".
@@ -45,6 +50,7 @@ import (
 type UpgradeTests struct {
 	suite.Suite
 	namespace            string
+	repoName             string
 	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
@@ -95,7 +101,8 @@ func (s *UpgradeTests) SetupSuite() {
 			glog.Exitf("Failed to initialize test. Error: %v", err)
 		}
 	}
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
+	s.repoName = *config.REPO_NAME
 
 	var newExperimentClient func() (*api_server.ExperimentClient, error)
 	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
@@ -107,37 +114,37 @@ func (s *UpgradeTests) SetupSuite() {
 		s.resourceNamespace = *resourceNamespace
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *config.DebugMode)
 		}
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *config.DebugMode)
 		}
 		newJobClient = func() (*api_server.JobClient, error) {
-			return api_server.NewKubeflowInClusterJobClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterJobClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
+			return api_server.NewExperimentClient(clientConfig, *config.DebugMode)
 		}
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineUploadClient(clientConfig, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
+			return api_server.NewRunClient(clientConfig, *config.DebugMode)
 		}
 		newJobClient = func() (*api_server.JobClient, error) {
-			return api_server.NewJobClient(clientConfig, *isDebugMode)
+			return api_server.NewJobClient(clientConfig, *config.DebugMode)
 		}
 	}
 
@@ -185,7 +192,7 @@ func (s *UpgradeTests) PrepareExperiments() {
 	/* ---------- Create a new experiment ---------- */
 	experiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
 	_, err := s.experimentClient.Create(&experimentParams.ExperimentServiceCreateExperimentV1Params{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	require.Nil(t, err)
 
@@ -194,14 +201,14 @@ func (s *UpgradeTests) PrepareExperiments() {
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("prediction", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&experimentParams.ExperimentServiceCreateExperimentV1Params{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	require.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("moonshot", "my third experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&experimentParams.ExperimentServiceCreateExperimentV1Params{
-		Body: experiment,
+		Experiment: experiment,
 	})
 	require.Nil(t, err)
 }
@@ -269,10 +276,15 @@ func (s *UpgradeTests) PreparePipelines() {
 	assert.Equal(t, "arguments-parameters.yaml", argumentYAMLPipeline.Name)
 
 	/* ---------- Import pipeline YAML by URL ---------- */
+	pipelineURL := fmt.Sprintf("https://github.com/%s/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/sequential_v1.yaml", s.repoName)
+
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/test_data/sdk_compiled_pipelines/valid/sequential_v1.yaml", s.repoName, pullNumber)
+	}
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.PipelineServiceCreatePipelineV1Params{
-		Body: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
-			PipelineURL: "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
+		Pipeline: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
+			PipelineURL: pipelineURL,
 		}},
 	})
 	require.Nil(t, err)
@@ -286,15 +298,15 @@ func (s *UpgradeTests) PreparePipelines() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := "https://github.com/opendatahub-io/data-science-pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+	pipelineURL = fmt.Sprintf("https://github.com/%s/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip", s.repoName)
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip", s.repoName, pullNumber)
 	}
 
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.PipelineServiceCreatePipelineV1Params{
-		Body: &pipeline_model.APIPipeline{
+		Pipeline: &pipeline_model.APIPipeline{
 			URL: &pipeline_model.APIURL{
 				PipelineURL: pipelineURL,
 			},
@@ -328,7 +340,13 @@ func (s *UpgradeTests) VerifyPipelines() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, err := pipelinetemplate.New(bytes, true)
+	defaultPVC := &corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteMany,
+		},
+		StorageClassName: util.StringPointer("my-storage"),
+	}
+	expected, err := pipelinetemplate.New(bytes, true, defaultPVC)
 	require.Nil(t, err)
 	assert.Equal(t, expected, template)
 }
@@ -346,7 +364,7 @@ func (s *UpgradeTests) PrepareRuns() {
 	require.Equal(t, hello2, helloWorldExperiment)
 
 	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
-	createRunRequest := &runParams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
+	createRunRequest := &runParams.RunServiceCreateRunV1Params{Run: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
 		PipelineSpec: &run_model.APIPipelineSpec{
@@ -354,8 +372,8 @@ func (s *UpgradeTests) PrepareRuns() {
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER,
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: helloWorldExperiment.ID},
+				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 		},
 	}}
@@ -388,7 +406,7 @@ func (s *UpgradeTests) PrepareJobs() {
 	experiment := s.getHelloWorldExperiment(true)
 
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createJobRequest := &jobparams.JobServiceCreateJobParams{Body: &job_model.APIJob{
+	createJobRequest := &jobparams.JobServiceCreateJobParams{Job: &job_model.APIJob{
 		Name:        "hello world",
 		Description: "this is hello world",
 		PipelineSpec: &job_model.APIPipelineSpec{
@@ -396,8 +414,8 @@ func (s *UpgradeTests) PrepareJobs() {
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Relationship: job_model.APIRelationshipOWNER,
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiment.ID},
+				Relationship: job_model.APIRelationshipOWNER.Pointer(),
 			},
 		},
 		MaxConcurrency: 10,
@@ -433,8 +451,8 @@ func (s *UpgradeTests) VerifyJobs() {
 		},
 		ResourceReferences: []*job_model.APIResourceReference{
 			{
-				Key:  &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
-				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER,
+				Key:  &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiment.ID},
+				Name: experiment.Name, Relationship: job_model.APIRelationshipOWNER.Pointer(),
 			},
 		},
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
@@ -448,7 +466,14 @@ func (s *UpgradeTests) VerifyJobs() {
 
 	assert.True(t, test.VerifyJobResourceReferences(job.ResourceReferences, expectedJob.ResourceReferences), "Inconsistent resource references: %v does not contain %v", job.ResourceReferences, expectedJob.ResourceReferences)
 	expectedJob.ResourceReferences = job.ResourceReferences
-	assert.Equal(t, expectedJob, job)
+
+	opts := []cmp.Option{
+		cmp.Comparer(func(x, y strfmt.DateTime) bool {
+			return x.String() == y.String()
+		}),
+	}
+	diff := cmp.Diff(expectedJob, job, opts...)
+	assert.Empty(t, diff, "APIRuns differ: %s", diff)
 }
 
 func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
@@ -471,7 +496,7 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 	assert.Equal(t, "hello world experiment", experiments[4].Name)
 
 	/* ---------- Create a new run based on the oldest pipeline and its default pipeline version ---------- */
-	createRunRequest := &runParams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
+	createRunRequest := &runParams.RunServiceCreateRunV1Params{Run: &run_model.APIRun{
 		Name:        "argument parameter from pipeline",
 		Description: "a run from an old pipeline",
 		PipelineSpec: &run_model.APIPipelineSpec{
@@ -483,19 +508,19 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 		// This run should belong to the newest experiment (created after the upgrade)
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiments[4].ID},
-				Relationship: run_model.APIRelationshipOWNER,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiments[4].ID},
+				Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINE, ID: pipelines[0].ID},
-				Relationship: run_model.APIRelationshipCREATOR,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINE.Pointer(), ID: pipelines[0].ID},
+				Relationship: run_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
 	}}
 	runFromPipeline, _, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 
-	createRunRequestVersion := &runParams.RunServiceCreateRunV1Params{Body: &run_model.APIRun{
+	createRunRequestVersion := &runParams.RunServiceCreateRunV1Params{Run: &run_model.APIRun{
 		Name:        "argument parameter from pipeline version",
 		Description: "a run from an old pipeline version",
 		PipelineSpec: &run_model.APIPipelineSpec{
@@ -507,8 +532,8 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 		// This run should be assigned to Default experiment
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelines[0].DefaultVersion.ID},
-				Relationship: run_model.APIRelationshipCREATOR,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: pipelines[0].DefaultVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
 	}}
@@ -526,8 +551,8 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 		runFromPipeline.Run.ResourceReferences,
 		[]*run_model.APIResourceReference{
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiments[4].ID},
-				Relationship: run_model.APIRelationshipOWNER,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiments[4].ID},
+				Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 		},
 	))
@@ -535,26 +560,26 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 		runFromPipelineVersion.Run.ResourceReferences,
 		[]*run_model.APIResourceReference{
 			{
-				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiments[0].ID},
-				Relationship: run_model.APIRelationshipOWNER,
+				Key:          &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiments[0].ID},
+				Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 		},
 	))
 
 	/* ---------- Create a new recurring run based on the second oldest pipeline version and belonging to the second oldest experiment ---------- */
-	createJobRequest := &jobparams.JobServiceCreateJobParams{Body: &job_model.APIJob{
+	createJobRequest := &jobparams.JobServiceCreateJobParams{Job: &job_model.APIJob{
 		Description:    "a recurring run from an old pipeline version",
 		Enabled:        true,
 		MaxConcurrency: 10,
 		Name:           "sequential job from pipeline version",
 		ResourceReferences: []*job_model.APIResourceReference{
 			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiments[1].ID},
-				Relationship: job_model.APIRelationshipOWNER,
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiments[1].ID},
+				Relationship: job_model.APIRelationshipOWNER.Pointer(),
 			},
 			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelines[0].DefaultVersion.ID},
-				Relationship: job_model.APIRelationshipCREATOR,
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION.Pointer(), ID: pipelines[0].DefaultVersion.ID},
+				Relationship: job_model.APIRelationshipCREATOR.Pointer(),
 			},
 		},
 	}}
@@ -566,8 +591,8 @@ func (s *UpgradeTests) VerifyCreatingRunsAndJobs() {
 		createdJob.ResourceReferences,
 		[]*job_model.APIResourceReference{
 			{
-				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiments[1].ID},
-				Relationship: job_model.APIRelationshipOWNER,
+				Key:          &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT.Pointer(), ID: experiments[1].ID},
+				Relationship: job_model.APIRelationshipOWNER.Pointer(),
 			},
 		},
 	))
@@ -594,8 +619,8 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{
-				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: expectedExperimentID},
-				Name: "hello world experiment", Relationship: run_model.APIRelationshipOWNER,
+				Key:  &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT.Pointer(), ID: expectedExperimentID},
+				Name: "hello world experiment", Relationship: run_model.APIRelationshipOWNER.Pointer(),
 			},
 		},
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
@@ -605,14 +630,21 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 	}
 	assert.True(t, test.VerifyRunResourceReferences(runDetail.Run.ResourceReferences, expectedRun.ResourceReferences), "Run's res references %v does not include %v", runDetail.Run.ResourceReferences, expectedRun.ResourceReferences)
 	expectedRun.ResourceReferences = runDetail.Run.ResourceReferences
-	assert.Equal(t, expectedRun, runDetail.Run)
+
+	opts := []cmp.Option{
+		cmp.Comparer(func(x, y strfmt.DateTime) bool {
+			return x.String() == y.String()
+		}),
+	}
+	diff := cmp.Diff(expectedRun, runDetail.Run, opts...)
+	assert.Empty(t, diff, "APIRuns differ: %s", diff)
 }
 
 func (s *UpgradeTests) createHelloWorldExperiment() *experiment_model.APIExperiment {
 	t := s.T()
 
 	experiment := test.GetExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experimentParams.ExperimentServiceCreateExperimentV1Params{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experimentParams.ExperimentServiceCreateExperimentV1Params{Experiment: experiment})
 	require.Nil(t, err)
 
 	return helloWorldExperiment

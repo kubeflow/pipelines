@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/glog"
 	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -28,9 +27,13 @@ import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/test"
+	"github.com/kubeflow/pipelines/backend/test/config"
+
+	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // This test suit tests various methods to import pipeline to pipeline system, including
@@ -42,6 +45,7 @@ import (
 type PipelineApiTest struct {
 	suite.Suite
 	namespace            string
+	repoName             string
 	resourceNamespace    string
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
@@ -60,7 +64,8 @@ func (s *PipelineApiTest) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
 	}
-	s.namespace = *namespace
+	s.namespace = *config.Namespace
+	s.repoName = *config.REPO_NAME
 
 	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
 	var newPipelineClient func() (*api_server.PipelineClient, error)
@@ -69,19 +74,19 @@ func (s *PipelineApiTest) SetupTest() {
 		s.resourceNamespace = *resourceNamespace
 
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
 		}
 	} else {
-		clientConfig := test.GetClientConfig(*namespace)
+		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineUploadClient(clientConfig, *config.DebugMode)
 		}
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
 		}
 	}
 
@@ -122,8 +127,8 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineV1Params{
-		Body: &model.APIPipeline{Name: "sequential", URL: &model.APIURL{
-			PipelineURL: "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
+		Pipeline: &model.APIPipeline{Name: "sequential", URL: &model.APIURL{
+			PipelineURL: "https://raw.githubusercontent.com/kubeflow/pipelines/refs/heads/master/backend/test/v2/resources/sequential.yaml",
 		}},
 	})
 	require.Nil(t, err)
@@ -137,15 +142,15 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.Name)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := "https://github.com/opendatahub-io/data-science-pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
+	pipelineURL := fmt.Sprintf("https://github.com/%s/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip", s.repoName)
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", s.repoName, pullNumber)
 	}
 
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.PipelineServiceCreatePipelineV1Params{
-		Body: &model.APIPipeline{
+		Pipeline: &model.APIPipeline{
 			URL: &model.APIURL{
 				PipelineURL: pipelineURL,
 			},
@@ -243,14 +248,20 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	bytes, err := os.ReadFile("../resources/arguments-parameters.yaml")
 	require.Nil(t, err)
-	expected, _ := pipelinetemplate.New(bytes, true)
+	defaultPVC := &corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteMany,
+		},
+		StorageClassName: util.StringPointer("my-storage"),
+	}
+	expected, _ := pipelinetemplate.New(bytes, true, defaultPVC)
 	assert.Equal(t, expected, template)
 
 	template, err = s.pipelineClient.GetTemplate(&params.PipelineServiceGetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
 	bytes, err = os.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
-	expected, _ = pipelinetemplate.New(bytes, true)
+	expected, _ = pipelinetemplate.New(bytes, true, nil)
 	assert.Equal(t, expected, template)
 }
 
@@ -274,8 +285,8 @@ func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 				{Name: "param2"},
 			},
 			ResourceReferences: []*model.APIResourceReference{{
-				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE},
-				Relationship: model.APIRelationshipOWNER,
+				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE.Pointer()},
+				Relationship: model.APIRelationshipOWNER.Pointer(),
 			}},
 		},
 	}

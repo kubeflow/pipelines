@@ -44,7 +44,11 @@ func loadFile(fileReader io.Reader, MaxFileLength int) ([]byte, error) {
 		}
 	}
 	if len(pipelineFile) > MaxFileLength {
-		return nil, util.NewInvalidInputError("File size too large. Maximum supported size: %v", MaxFileLength)
+		return nil, util.NewInvalidInputError(
+			"File size too large (%v bytes). Maximum supported size: %v. Consider moving large embedded artifacts or "+
+				"notebooks or Python code into a container image or object store.",
+			len(pipelineFile), MaxFileLength,
+		)
 	}
 	return pipelineFile, nil
 }

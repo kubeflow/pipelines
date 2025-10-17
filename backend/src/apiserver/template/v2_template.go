@@ -23,7 +23,8 @@ import (
 	"regexp"
 	"strings"
 
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"google.golang.org/protobuf/types/known/structpb"
+
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -31,14 +32,16 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 	goyaml "gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
 type V2Spec struct {
-	spec          *pipelinespec.PipelineSpec
-	platformSpec  *pipelinespec.PlatformSpec
-	cacheDisabled bool
+	spec             *pipelinespec.PipelineSpec
+	platformSpec     *pipelinespec.PlatformSpec
+	cacheDisabled    bool
+	defaultWorkspace *corev1.PersistentVolumeClaimSpec
 }
 
 var _ Template = &V2Spec{}
@@ -121,7 +124,11 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheDisabled: t.cacheDisabled})
+		opts := &argocompiler.Options{
+			CacheDisabled:    t.cacheDisabled,
+			DefaultWorkspace: t.defaultWorkspace,
+		}
+		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -142,7 +149,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job, ownerReferences []metav1
 	}
 	// Disable istio sidecar injection if not specified
 	executionSpec.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	parameters, err := StringMapToCRDParameters(modelJob.RuntimeConfig.Parameters)
+	parameters, err := StringMapToCRDParameters(string(modelJob.RuntimeConfig.Parameters))
 	if err != nil {
 		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
 	}
@@ -166,8 +173,8 @@ func (t *V2Spec) GetTemplateType() TemplateType {
 	return V2
 }
 
-func NewV2SpecTemplate(template []byte, cacheDisabled bool) (*V2Spec, error) {
-	v2Spec := &V2Spec{cacheDisabled: cacheDisabled}
+func NewV2SpecTemplate(template []byte, cacheDisabled bool, defaultWorkspace *corev1.PersistentVolumeClaimSpec) (*V2Spec, error) {
+	v2Spec := &V2Spec{cacheDisabled: cacheDisabled, defaultWorkspace: defaultWorkspace}
 	decoder := goyaml.NewDecoder(bytes.NewReader(template))
 	for {
 		var value map[string]interface{}
@@ -177,11 +184,11 @@ func NewV2SpecTemplate(template []byte, cacheDisabled bool) (*V2Spec, error) {
 		if errors.Is(err, io.EOF) {
 			break
 		}
-		if value == nil {
-			continue
-		}
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, fmt.Sprintf("unable to decode yaml document: %s", err.Error()))
+		}
+		if value == nil {
+			continue
 		}
 		valueBytes, err := goyaml.Marshal(&value)
 		if err != nil {
@@ -326,7 +333,11 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 
 	var obj interface{}
 	if util.CurrentExecutionType() == util.ArgoWorkflow {
-		obj, err = argocompiler.Compile(job, kubernetesSpec, &argocompiler.Options{CacheDisabled: options.CacheDisabled})
+		opts := &argocompiler.Options{
+			CacheDisabled:    options.CacheDisabled,
+			DefaultWorkspace: t.defaultWorkspace,
+		}
+		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to compile job")
@@ -410,7 +421,7 @@ func (t *V2Spec) validatePipelineJobInputs(job *pipelinespec.PipelineJob) error 
 			// Verify the parameter type is correct
 			switch param.GetParameterType() {
 			case pipelinespec.ParameterType_PARAMETER_TYPE_ENUM_UNSPECIFIED:
-				return util.NewInvalidInputError(fmt.Sprintf("input parameter %s has unspecified type", name))
+				return util.NewInvalidInputError("%s", fmt.Sprintf("input parameter %s has unspecified type", name))
 			case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
 				if _, ok := input.GetKind().(*structpb.Value_NumberValue); !ok {
 					return util.NewInvalidInputError("input parameter %s requires type double or integer, "+

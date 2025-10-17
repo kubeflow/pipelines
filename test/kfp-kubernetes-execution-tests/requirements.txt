@@ -1,3 +1,0 @@
-sdk/python
-pytest==8.3.2
-pytest-asyncio-cooperative==0.37.0

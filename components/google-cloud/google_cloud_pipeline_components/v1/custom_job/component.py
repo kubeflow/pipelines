@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from google_cloud_pipeline_components import _placeholders
 from google_cloud_pipeline_components import utils
@@ -40,6 +40,7 @@ def custom_training_job(
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
     strategy: str = 'STANDARD',
     max_wait_duration: str = '86400s',
+    psc_interface_config: Dict[str, Union[str, List[Dict[str, str]]]] = {},
 ):
   # fmt: off
   """Launch a Vertex AI [custom training job](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) using the [CustomJob](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.customJobs) API. See [Create custom training jobs ](https://cloud.google.com/vertex-ai/docs/training/create-custom-job) for more information.
@@ -62,6 +63,7 @@ def custom_training_job(
     project: Project to create the custom training job in. Defaults to the project in which the PipelineJob is run.
     strategy: The strategy to use for the custom training job. The default is 'STANDARD'. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
     max_wait_duration: The maximum time to wait for the custom training job to be scheduled only if the scheduling strategy is set to FLEX_START. If set to 0, the job will wait indefinitely. The default is 24 hours. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#Strategy).
+    psc_interface_config: Configuration CustomJob with PSC-I. See [more information](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#PscInterfaceConfig).
 
   Returns:
     gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which tracks the CustomJob.
@@ -91,6 +93,7 @@ def custom_training_job(
                   'output_uri_prefix': base_output_directory
               },
               'persistent_resource_id': persistent_resource_id,
+              'psc_interface_config': psc_interface_config,
           },
           'labels': labels,
           'encryption_spec': {'kms_key_name': encryption_spec_key_name},

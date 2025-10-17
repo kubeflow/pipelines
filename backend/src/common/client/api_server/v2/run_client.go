@@ -17,6 +17,8 @@ package api_server_v2
 import (
 	"fmt"
 
+	httptransport "github.com/go-openapi/runtime/client"
+
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client"
@@ -74,6 +76,24 @@ func NewKubeflowInClusterRunClient(namespace string, debug bool) (
 	}, nil
 }
 
+func NewMultiUserRunClient(clientConfig clientcmd.ClientConfig, userToken string, debug bool) (
+	*RunClient, error) {
+
+	runtime, err := api_server.NewHTTPRuntime(clientConfig, debug)
+	if err != nil {
+		return nil, fmt.Errorf("Error occurred when creating run client: %w", err)
+	}
+
+	runtime.DefaultAuthentication = httptransport.BearerToken(userToken)
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating run client
+	return &RunClient{
+		apiClient:      apiClient,
+		authInfoWriter: api_server.TokenToAuthInfo(userToken),
+	}, nil
+}
+
 func (c *RunClient) Create(parameters *params.RunServiceCreateRunParams) (*model.V2beta1Run, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
@@ -91,7 +111,7 @@ func (c *RunClient) Create(parameters *params.RunServiceCreateRunParams) (*model
 
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create run. Params: '%+v'", parameters),
-			fmt.Sprintf("Failed to create run '%v'", parameters.Body.DisplayName))
+			fmt.Sprintf("Failed to create run '%v'", parameters.Run.DisplayName))
 	}
 
 	return response.Payload, nil

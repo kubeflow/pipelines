@@ -13,62 +13,77 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
+	"github.com/go-openapi/strfmt"
 
-	strfmt "github.com/go-openapi/strfmt"
-
-	run_model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
 )
 
-// NewRunServiceCreateRunV1Params creates a new RunServiceCreateRunV1Params object
-// with the default values initialized.
+// NewRunServiceCreateRunV1Params creates a new RunServiceCreateRunV1Params object,
+// with the default timeout for this client.
+//
+// Default values are not hydrated, since defaults are normally applied by the API server side.
+//
+// To enforce default values in parameter, use SetDefaults or WithDefaults.
 func NewRunServiceCreateRunV1Params() *RunServiceCreateRunV1Params {
-	var ()
 	return &RunServiceCreateRunV1Params{
-
 		timeout: cr.DefaultTimeout,
 	}
 }
 
 // NewRunServiceCreateRunV1ParamsWithTimeout creates a new RunServiceCreateRunV1Params object
-// with the default values initialized, and the ability to set a timeout on a request
+// with the ability to set a timeout on a request.
 func NewRunServiceCreateRunV1ParamsWithTimeout(timeout time.Duration) *RunServiceCreateRunV1Params {
-	var ()
 	return &RunServiceCreateRunV1Params{
-
 		timeout: timeout,
 	}
 }
 
 // NewRunServiceCreateRunV1ParamsWithContext creates a new RunServiceCreateRunV1Params object
-// with the default values initialized, and the ability to set a context for a request
+// with the ability to set a context for a request.
 func NewRunServiceCreateRunV1ParamsWithContext(ctx context.Context) *RunServiceCreateRunV1Params {
-	var ()
 	return &RunServiceCreateRunV1Params{
-
 		Context: ctx,
 	}
 }
 
 // NewRunServiceCreateRunV1ParamsWithHTTPClient creates a new RunServiceCreateRunV1Params object
-// with the default values initialized, and the ability to set a custom HTTPClient for a request
+// with the ability to set a custom HTTPClient for a request.
 func NewRunServiceCreateRunV1ParamsWithHTTPClient(client *http.Client) *RunServiceCreateRunV1Params {
-	var ()
 	return &RunServiceCreateRunV1Params{
 		HTTPClient: client,
 	}
 }
 
-/*RunServiceCreateRunV1Params contains all the parameters to send to the API endpoint
-for the run service create run v1 operation typically these are written to a http.Request
+/*
+RunServiceCreateRunV1Params contains all the parameters to send to the API endpoint
+
+	for the run service create run v1 operation.
+
+	Typically these are written to a http.Request.
 */
 type RunServiceCreateRunV1Params struct {
 
-	/*Body*/
-	Body *run_model.APIRun
+	// Run.
+	Run *run_model.APIRun
 
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
+}
+
+// WithDefaults hydrates default values in the run service create run v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceCreateRunV1Params) WithDefaults() *RunServiceCreateRunV1Params {
+	o.SetDefaults()
+	return o
+}
+
+// SetDefaults hydrates default values in the run service create run v1 params (not the query body).
+//
+// All values with no default are reset to their zero value.
+func (o *RunServiceCreateRunV1Params) SetDefaults() {
+	// no default values defined for this parameter
 }
 
 // WithTimeout adds the timeout to the run service create run v1 params
@@ -104,15 +119,15 @@ func (o *RunServiceCreateRunV1Params) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithBody adds the body to the run service create run v1 params
-func (o *RunServiceCreateRunV1Params) WithBody(body *run_model.APIRun) *RunServiceCreateRunV1Params {
-	o.SetBody(body)
+// WithRun adds the run to the run service create run v1 params
+func (o *RunServiceCreateRunV1Params) WithRun(run *run_model.APIRun) *RunServiceCreateRunV1Params {
+	o.SetRun(run)
 	return o
 }
 
-// SetBody adds the body to the run service create run v1 params
-func (o *RunServiceCreateRunV1Params) SetBody(body *run_model.APIRun) {
-	o.Body = body
+// SetRun adds the run to the run service create run v1 params
+func (o *RunServiceCreateRunV1Params) SetRun(run *run_model.APIRun) {
+	o.Run = run
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -122,9 +137,8 @@ func (o *RunServiceCreateRunV1Params) WriteToRequest(r runtime.ClientRequest, re
 		return err
 	}
 	var res []error
-
-	if o.Body != nil {
-		if err := r.SetBodyParam(o.Body); err != nil {
+	if o.Run != nil {
+		if err := r.SetBodyParam(o.Run); err != nil {
 			return err
 		}
 	}

@@ -21,6 +21,19 @@ from google.protobuf import json_format
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
+def camel_to_python_case(name: str) -> str:
+    import re
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+def deserialize_dict_to_k8s_model_keys(obj):
+    if isinstance(obj, dict):
+        return {camel_to_python_case(k): deserialize_dict_to_k8s_model_keys(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [deserialize_dict_to_k8s_model_keys(i) for i in obj]
+    else:
+        return obj
+
 def get_existing_kubernetes_config_as_message(
         task: 'PipelineTask') -> pb.KubernetesExecutorConfig:
     cur_k8_config_dict = task.platform_config.get('kubernetes', {})

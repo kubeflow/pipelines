@@ -17,11 +17,13 @@ package driver
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
@@ -75,7 +77,10 @@ func reuseCachedOutputs(ctx context.Context, executorInput *pipelinespec.Executo
 	return executorOutput, outputArtifacts, nil
 }
 
-func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cacheClient cacheutils.Client) (string, error) {
+// getFingerPrint generates a fingerprint for caching. The PVC names are included in the fingerprint since it's assumed
+// PVCs have side effects (e.g. files written for tasks later on in the run) on the execution. If the PVC names are
+// different, the execution shouldn't be reused for the cache.
+func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cacheClient cacheutils.Client, pvcNames []string) (string, error) {
 	outputParametersTypeMap := make(map[string]string)
 	for outputParamName, outputParamSpec := range opts.Component.GetOutputDefinitions().GetParameters() {
 		outputParametersTypeMap[outputParamName] = outputParamSpec.GetParameterType().String()
@@ -84,7 +89,26 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cac
 	userCmdArgs = append(userCmdArgs, opts.Container.Command...)
 	userCmdArgs = append(userCmdArgs, opts.Container.Args...)
 
-	cacheKey, err := cacheClient.GenerateCacheKey(executorInput.GetInputs(), executorInput.GetOutputs(), outputParametersTypeMap, userCmdArgs, opts.Container.Image)
+	// Deduplicate PVC names and sort them to ensure consistent fingerprint generation.
+	pvcNamesMap := map[string]struct{}{}
+	for _, pvcName := range pvcNames {
+		pvcNamesMap[pvcName] = struct{}{}
+	}
+
+	sortedPVCNames := make([]string, 0, len(pvcNamesMap))
+	for pvcName := range pvcNamesMap {
+		sortedPVCNames = append(sortedPVCNames, pvcName)
+	}
+	sort.Strings(sortedPVCNames)
+
+	cacheKey, err := cacheClient.GenerateCacheKey(
+		executorInput.GetInputs(),
+		executorInput.GetOutputs(),
+		outputParametersTypeMap,
+		userCmdArgs,
+		opts.Container.Image,
+		sortedPVCNames,
+	)
 	if err != nil {
 		return "", fmt.Errorf("failure while generating CacheKey: %w", err)
 	}
@@ -92,10 +116,10 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cac
 	return fingerPrint, err
 }
 
-func getFingerPrintsAndID(execution *Execution, opts *Options, cacheClient cacheutils.Client) (string, string, error) {
+func getFingerPrintsAndID(execution *Execution, opts *Options, cacheClient cacheutils.Client, pvcNames []string) (string, string, error) {
 	if !opts.CacheDisabled && execution.WillTrigger() && opts.Task.GetCachingOptions().GetEnableCache() {
 		glog.Infof("Task {%s} enables cache", opts.Task.GetTaskInfo().GetName())
-		fingerPrint, err := getFingerPrint(*opts, execution.ExecutorInput, cacheClient)
+		fingerPrint, err := getFingerPrint(*opts, execution.ExecutorInput, cacheClient, pvcNames)
 		if err != nil {
 			return "", "", fmt.Errorf("failure while getting fingerPrint: %w", err)
 		}
@@ -127,8 +151,8 @@ func createCache(
 		Namespace:       opts.Namespace,
 		RunId:           opts.RunID,
 		MlmdExecutionID: strconv.FormatInt(id, 10),
-		CreatedAt:       &timestamp.Timestamp{Seconds: taskStartedTime},
-		FinishedAt:      &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		CreatedAt:       timestamppb.New(time.Unix(taskStartedTime, 0)),
+		FinishedAt:      timestamppb.New(time.Unix(time.Now().Unix(), 0)),
 		Fingerprint:     fingerPrint,
 	}
 	err := cacheClient.CreateExecutionCache(ctx, task)

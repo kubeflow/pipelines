@@ -14,7 +14,14 @@
 import * as zlib from 'zlib';
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
-import { createMinioClient, isTarball, maybeTarball, getObjectStream } from './minio-helper';
+import {
+  createMinioClient,
+  isTarball,
+  maybeTarball,
+  getObjectStream,
+  MinioClientOptionsWithOptionalSecrets,
+  Credentials,
+} from './minio-helper';
 const { fromNodeProviderChain } = require('@aws-sdk/credential-providers');
 
 jest.mock('minio');
@@ -44,6 +51,34 @@ describe('minio-helper', () => {
         accessKey: 'accesskey',
         endPoint: 'minio.kubeflow:80',
         secretKey: 'secretkey',
+      });
+    });
+
+    it('Builds a client where credentials are resolved using a custom provider.', async () => {
+      const provider = async (): Promise<Credentials> => {
+        return {
+          accessKeyId: 'providedKey',
+          secretAccessKey: 'providedSecret',
+          sessionToken: 'providedToken',
+        };
+      };
+
+      const client = await createMinioClient(
+        {
+          endPoint: 'minio.kubeflow:80',
+        },
+        's3',
+        '',
+        '',
+        provider,
+      );
+
+      expect(client).toBeInstanceOf(MinioClient);
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'providedKey',
+        endPoint: 'minio.kubeflow:80',
+        secretKey: 'providedSecret',
+        sessionToken: 'providedToken',
       });
     });
 
@@ -149,7 +184,7 @@ describe('minio-helper', () => {
       mockedMinioGetObject = minioClient.getObject as any;
     });
 
-    it('unpacks a gzipped tarball', async done => {
+    it('unpacks a gzipped tarball', async () => {
       const objStream = new PassThrough();
       objStream.end(tarGzBuffer);
       mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
@@ -163,11 +198,10 @@ describe('minio-helper', () => {
             .toString()
             .trim(),
         ).toBe('hello world');
-        done();
       });
     });
 
-    it('unpacks a uncompressed tarball', async done => {
+    it('unpacks a uncompressed tarball', async () => {
       const objStream = new PassThrough();
       objStream.end(tarBuffer);
       mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
@@ -181,11 +215,10 @@ describe('minio-helper', () => {
             .toString()
             .trim(),
         ).toBe('hello world');
-        done();
       });
     });
 
-    it('returns the content as a stream', async done => {
+    it('returns the content as a stream', async () => {
       const objStream = new PassThrough();
       objStream.end('hello world');
       mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
@@ -199,7 +232,6 @@ describe('minio-helper', () => {
             .toString()
             .trim(),
         ).toBe('hello world');
-        done();
       });
     });
   });

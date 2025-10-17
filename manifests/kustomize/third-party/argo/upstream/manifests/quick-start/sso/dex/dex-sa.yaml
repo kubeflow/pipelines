@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata: # kpt-merge: /dex
-  name: dex
-  annotations:
-    internal.kpt.dev/upstream-identifier: '|ServiceAccount|default|dex'

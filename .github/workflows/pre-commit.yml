@@ -1,21 +1,37 @@
 name: pre-commit
 
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+#on:
+#  push:
+#    branches:
+#      - master
+#  pull_request:
+#    branches:
+#      - master
+
+# This workflow is disabled in downstream because we require linting upstream.
+on: []
 
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v3
-    - uses: pre-commit/action@v3.0.1
-      # This is set to only run the golangci-lint pre-commit hooks 
-      # Remove in a later PR to run all hooks
-      with:
-        extra_args: golangci-lint --all-files
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref || github.ref_name }}
+      - uses: actions/setup-python@v3
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.3
+          args: --new --new-from-merge-base=origin/${{ github.base_ref || github.ref_name }}
+    #- uses: pre-commit/action@v3.0.1
+    #  # This is set to only run the golangci-lint pre-commit hooks
+    #  # Remove in a later PR to run all hooks
+    #  with:
+    #    go-version: '>=1.24.2'
+    #    extra_args: golangci-lint --all-files

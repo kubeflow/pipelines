@@ -19,6 +19,8 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from kfp import dsl
+from kfp.dsl import constants as dsl_constants
+from kfp.local import config
 
 
 def make_random_id() -> str:
@@ -319,6 +321,14 @@ def resolve_struct_placeholders(
         return placeholder
 
 
+def _raise_workspace_not_configured() -> None:
+    """Raises an exception when workspace_root is not configured."""
+    raise RuntimeError(
+        'Workspace not configured. Initialize with workspace_root parameter:\n'
+        'local.init(runner=local.SubprocessRunner(), workspace_root=\'/path/to/workspace\')'
+    )
+
+
 def resolve_individual_placeholder(
     element: str,
     executor_input_dict: Dict[str, Any],
@@ -329,6 +339,26 @@ def resolve_individual_placeholder(
     pipeline_task_id: str,
 ) -> str:
     """Replaces placeholders for a single element."""
+
+    if dsl.WORKSPACE_PATH_PLACEHOLDER in element or dsl_constants.WORKSPACE_MOUNT_PATH in element:
+        # Ensure local config and workspace are available
+        if not (config.LocalExecutionConfig.instance and
+                config.LocalExecutionConfig.instance.workspace_root):
+            _raise_workspace_not_configured()
+
+        runner = config.LocalExecutionConfig.instance.runner
+        # For DockerRunner, use the standardized in-container mount path.
+        # For SubprocessRunner (or others), use the host workspace path.
+        if isinstance(runner, config.DockerRunner):
+            workspace_value = dsl_constants.WORKSPACE_MOUNT_PATH
+        else:
+            workspace_value = config.LocalExecutionConfig.instance.workspace_root
+
+        element = element.replace(dsl_constants.WORKSPACE_MOUNT_PATH,
+                                  workspace_value)
+        element = element.replace(dsl.WORKSPACE_PATH_PLACEHOLDER,
+                                  workspace_value)
+
     # match on literal for constant placeholders
     PLACEHOLDERS = {
         r'{{$.outputs.output_file}}':

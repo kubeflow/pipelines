@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.23-alpine as builder
+FROM golang:1.24-alpine as builder
 
 RUN apk update && apk upgrade
 RUN apk add --no-cache git gcc musl-dev
@@ -40,4 +40,4 @@ RUN chmod +x /bin/controller
 ENV MAX_NUM_VIEWERS "50"
 ENV NAMESPACE "kubeflow"
 
-CMD /bin/controller -logtostderr=true -max_num_viewers=${MAX_NUM_VIEWERS} --namespace=${NAMESPACE}
+CMD ["/bin/controller", "-logtostderr=true", "-max_num_viewers=${MAX_NUM_VIEWERS}", "--namespace=${NAMESPACE}"]

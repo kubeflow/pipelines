@@ -32,7 +32,7 @@ import {
   PipelineFlowElement,
   TaskType,
 } from 'src/lib/v2/StaticFlow';
-import { getArtifactNameFromEvent, LinkedArtifact } from 'src/mlmd/MlmdUtils';
+import { getArtifactNameFromEvent, LinkedArtifact, ExecutionHelpers } from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 
@@ -274,6 +274,10 @@ export function updateFlowElementsState(
       if (executions) {
         (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
+        // Use ExecutionHelpers.getName() which reads display_name from MLMD custom properties
+        (updatedElem.data as ExecutionFlowElementData).label = ExecutionHelpers.getName(
+          executions[0],
+        );
       }
     } else if (NodeTypeNames.ARTIFACT === elem.type) {
       let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
@@ -309,9 +313,8 @@ export function updateFlowElementsState(
 }
 
 function getTaskLabelByPipelineFlowElement(elem: PipelineFlowElement) {
-  const taskLabel = elem.data?.label;
-  if (taskLabel === undefined) return getTaskKeyFromNodeKey(elem.id);
-  return taskLabel;
+  // Always use the original task name from the node ID for MLMD data lookups
+  return getTaskKeyFromNodeKey(elem.id);
 }
 
 function getExecutionsUnderDAG(

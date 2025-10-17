@@ -20,19 +20,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.9
-      
-      - name: apt-get update
-        run: sudo apt-get update
 
       - name: Install protobuf-compiler
-        run: sudo apt-get install protobuf-compiler -y
-      
+        run: sudo apt update && sudo apt install -y protobuf-compiler
+
       - name: Install setuptools
         run: | 
           pip3 install setuptools
@@ -41,8 +38,11 @@ jobs:
       - name: Install Wheel
         run: pip3 install wheel==0.42.0
       
-      - name: Install python sdk 
+      - name: Install python sdk
         run: pip install sdk/python
+
+      - name: Install google-cloud component
+        run: pip install components/google-cloud
 
       - name: Generate API proto files
         working-directory: ./api
@@ -50,10 +50,7 @@ jobs:
 
       - name: Install kfp-pipeline-spec from source
         run: | 
-          python3 -m pip install api/v2alpha1/python
-
-      - name: Install google-cloud component 
-        run: pip install components/google-cloud
+          python3 -m pip install -I api/v2alpha1/python
 
       - name: Install Pytest
         run: pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)

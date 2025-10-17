@@ -6,15 +6,16 @@ package run_model
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"context"
 	"strconv"
 
-	strfmt "github.com/go-openapi/strfmt"
-
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // V2beta1ListRunsResponse v2beta1 list runs response
+//
 // swagger:model v2beta1ListRunsResponse
 type V2beta1ListRunsResponse struct {
 
@@ -43,7 +44,6 @@ func (m *V2beta1ListRunsResponse) Validate(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1ListRunsResponse) validateRuns(formats strfmt.Registry) error {
-
 	if swag.IsZero(m.Runs) { // not required
 		return nil
 	}
@@ -57,6 +57,47 @@ func (m *V2beta1ListRunsResponse) validateRuns(formats strfmt.Registry) error {
 			if err := m.Runs[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("runs" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("runs" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ContextValidate validate this v2beta1 list runs response based on the context it is used
+func (m *V2beta1ListRunsResponse) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateRuns(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *V2beta1ListRunsResponse) contextValidateRuns(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.Runs); i++ {
+
+		if m.Runs[i] != nil {
+
+			if swag.IsZero(m.Runs[i]) { // not required
+				return nil
+			}
+
+			if err := m.Runs[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("runs" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("runs" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
