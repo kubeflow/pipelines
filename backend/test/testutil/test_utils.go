@@ -118,3 +118,12 @@ func ReplaceSDKInPipelineSpec(pipelineFilePath string, cacheDisabled bool, defau
 
 	return []byte(modifiedPipelineSpec)
 }
+
+func GetRepoBranchURLRAW(repoName, branch, path string) string {
+	url := fmt.Sprintf("https://github.com/%s/raw/refs/heads/%s/%s", repoName, branch, path)
+
+	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
+		url = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/%s", repoName, pullNumber, path)
+	}
+	return url
+}
