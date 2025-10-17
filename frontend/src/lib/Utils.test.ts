@@ -19,6 +19,7 @@ import {
   decodeCompressedNodes,
   enabledDisplayString,
   enabledDisplayStringV2,
+  errorToMessage,
   formatDateString,
   generateMinioArtifactUrl,
   generateS3ArtifactUrl,
@@ -70,6 +71,44 @@ describe('Utils', () => {
 
     it('handles undefined', () => {
       expect(formatDateString(undefined)).toBe('-');
+    });
+  });
+
+  describe('errorToMessage', () => {
+    it('handles an Error instance', async () => {
+      expect(await errorToMessage(new Error('test error'))).toBe('test error');
+    });
+
+    it('handles object with text() method that returns a string', async () => {
+      const mockResponse = {
+        text: () => 'direct string response',
+      };
+      const result = await errorToMessage(mockResponse);
+      expect(result).toBe('direct string response');
+    });
+
+    it('handles plain object input', async () => {
+      const errorObj = { message: 'error message', code: 500 };
+      const result = await errorToMessage(errorObj);
+      expect(result).toBe(JSON.stringify(errorObj));
+    });
+
+    it('handles string input', async () => {
+      expect(await errorToMessage('string error')).toBe('"string error"');
+    });
+
+    it('handles undefined input', async () => {
+      expect(await errorToMessage(undefined)).toBe('');
+    });
+
+    it('handles array input', async () => {
+      expect(await errorToMessage([1, 'error', { key: 'value' }])).toBe(
+        '[1,"error",{"key":"value"}]',
+      );
+    });
+
+    it('handles number input', async () => {
+      expect(await errorToMessage(404)).toBe('404');
     });
   });
 

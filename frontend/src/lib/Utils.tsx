@@ -73,7 +73,6 @@ export function titleCase(str: string): string {
     .join(' ');
 }
 
-// TODO: add tests
 export async function errorToMessage(error: any): Promise<string> {
   if (error instanceof Error) {
     return error.message;
