@@ -37,5 +37,6 @@ USER appuser
 WORKDIR /bin
 
 COPY --from=builder /bin/driver /bin/driver
+COPY --from=builder /etc/ssl/certs /etc/ssl/certs
 
 ENTRYPOINT [ "/bin/driver" ]
