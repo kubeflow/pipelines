@@ -1,4 +1,4 @@
-name: KFP Backend V1 Postgres Tests
+name: API Server Tests - Postgres
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
       - "backend/**"
       - "manifests/kustomize/third-party/postgresql/**"
       - ".github/resources/manifests/standalone/**"
-      - ".github/workflows/kfp-backend-v1-posgres-tests.yml"
+      - ".github/workflows/kfp-backend-v2-postgres-tests.yml"
       - "!**/*.md"
       - "!**/OWNERS"
 env:
@@ -29,10 +29,14 @@ jobs:
   build:
     uses: ./.github/workflows/image-builds-with-cache.yml
   postgres-pgx:
-    name: KFP Backend V1 Postgres Tests
     runs-on: ubuntu-latest
     needs: build
     continue-on-error: false
+    strategy:
+      matrix:
+        cache_enabled: [true, false]
+      fail-fast: false # Ensure all jobs in the matrix run, even if one fails
+    name: KFP Backend V2 Postgres Tests (Cache ${{ matrix.cache_enabled }})
 
     steps:
       - name: Checkout target code
@@ -53,23 +57,11 @@ jobs:
         with:
           db_type: "pgx"
           pipeline_store: "database"
+          cache_enabled: ${{ matrix.cache_enabled }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
           image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
           forward_port: "false" # we intend to forward the service instead of pod. thus we will forward the ports manually in next the steps.
-
-      - name: Wait for Postgres readiness
-        run: |
-          echo "Waiting for Postgres to be Ready..."
-          kubectl -n "$POSTGRES_NAMESPACE" wait --for=condition=available deploy/postgres --timeout=180s
-          echo "✅ Postgres is Ready"
-
-      - name: Port-forward Postgres
-        run: |
-          kubectl -n "$POSTGRES_NAMESPACE" port-forward svc/postgres-service ${{ env.DB_PORT }}:${{ env.DB_PORT }} --address=${{ env.DB_FORWARD_IP }} &
-          sleep 10
-          echo "✅ Port-forwarding for Postgres is active."
-
       - name: Wait for API server readiness
         run: |
           echo "Waiting for KFP API server (ml-pipeline) to be Ready..."
@@ -78,29 +70,43 @@ jobs:
           echo "✅ KFP API server (ml-pipeline) is Ready"
           echo "=== ml-pipeline Logs (last 50 lines) ==="
           kubectl -n "$NAMESPACE" logs deploy/ml-pipeline --tail=200 || true
-
+      - name: Port-forward Postgres
+        run: |
+          # Note: The port-forward for postgres in V1 workflow uses the same namespace as KFP.
+          kubectl -n $POSTGRES_NAMESPACE port-forward svc/postgres-service ${{ env.DB_PORT }}:${{ env.DB_PORT }} --address=${{ env.DB_FORWARD_IP }} &
       - name: Port-forward KFP API server
         run: |
           kubectl -n "$NAMESPACE" port-forward svc/ml-pipeline 8888:8888 &
           sleep 20
           echo "✅ Port-forwarding for ml-pipeline is active."
-
-      - name: Run initialization tests
+      # Exclude upgrade tests for the following reasons:
+      # 1. Responsibility: Upgrade tests are handled by the dedicated `upgrade-test.yml` workflow.
+      # 2. Incompatibility: This workflow runs tests against a single, clean deployment. It cannot
+      #    accommodate the two-phase nature of upgrade tests (prepare on an old version, then
+      #    verify on the new one).
+      # 3. No Baseline: As PostgreSQL was not officially supported before, there is no prior
+      #    stable release to serve as a baseline for an upgrade test.
+      - name: Run v2 api tests
         run: |
-          go test -v ./backend/test/initialization/... \
-          -args -namespace="$NAMESPACE" \
-          -runIntegrationTests=true
-
-        # Exclude upgrade_test.go
-        # See the comment in kfp-backend-v2-postgres-tests.yml
-      - name: Run backend integration tests
+          go run github.com/onsi/ginkgo/v2/ginkgo -r -v --label-filter="!UpgradePreparation && !UpgradeVerification" ./backend/test/v2/api/... -- \
+            -namespace="$NAMESPACE"
+      - name: Run v2 integration tests
         run: |
-          go test -v ./backend/test/integration/... \
-          -args -namespace="$NAMESPACE" \
-          -runIntegrationTests=true \
-          -runPostgreSQLTests=true -test.skip=TestUpgrade
-        env:
-          DBCONFIG_POSTGRESQLCONFIG_HOST: ${{ env.DB_FORWARD_IP }}
+          # v2/integration tests use testify/suite framework, not Ginkgo, so we must use 'go test' instead of 'ginkgo'
+          # Build the go test command with appropriate flags
+          TEST_CMD="go test -v -timeout 30m ./backend/test/v2/integration/..."
+
+          # Arguments for the test binary (passed after -args)
+          TEST_ARGS="-runIntegrationTests=true -namespace=$NAMESPACE -cacheEnabled=${{ matrix.cache_enabled }}"
+
+          if [[ "${{ matrix.cache_enabled }}" == "false" ]]; then
+            # When cache is disabled, we must skip the cache test itself.
+            # Use Go test's -skip flag to exclude TestCache
+            TEST_CMD="$TEST_CMD -skip TestCache"
+          fi
+
+          # Execute the test command with arguments
+          $TEST_CMD -args $TEST_ARGS
 
       - name: Cleanup
         if: always()
