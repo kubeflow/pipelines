@@ -47,24 +47,24 @@ const (
 func TestUploadPipeline(t *testing.T) {
 	// TODO(v2): when we add a field to distinguish between v1 and v2 template, verify it's in the response
 	tt := []struct {
-		name        string
-		spec        []byte
+		name       string
+		spec       []byte
 		apiVersion string
 	}{{
-		name:        "upload argo workflow YAML",
-		spec:        []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		name:       "upload argo workflow YAML",
+		spec:       []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
 		apiVersion: "v1beta1",
 	}, {
-		name:        "upload argo workflow YAML",
-		spec:        []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
+		name:       "upload argo workflow YAML",
+		spec:       []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
 		apiVersion: "v2beta1",
 	}, {
-		name:        "upload pipeline v2 job in proto yaml",
-		spec:        []byte(v2SpecHelloWorld),
+		name:       "upload pipeline v2 job in proto yaml",
+		spec:       []byte(v2SpecHelloWorld),
 		apiVersion: "v1beta1",
 	}, {
-		name:        "upload pipeline v2 job in proto yaml",
-		spec:        []byte(v2SpecHelloWorld),
+		name:       "upload pipeline v2 job in proto yaml",
+		spec:       []byte(v2SpecHelloWorld),
 		apiVersion: "v2beta1",
 	}}
 	for _, test := range tt {
