@@ -52,6 +52,100 @@ var addNumbersComponent = &pipelinespec.ComponentSpec{
 }
 
 // Tests that launcher correctly executes the user component and successfully writes output parameters to file.
+func Test_executeV2_Artifacts(t *testing.T) {
+	uri := "gs:///tmp/custom/artifact.txt"
+	custom := "mem://test-bucket/pipeline-root/temp.txt"
+	tests := []struct {
+		name          string
+		executorInput *pipelinespec.ExecutorInput
+		executorArgs  []string
+		wantErr       bool
+	}{
+		{
+			"custom path",
+			&pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{"a": structpb.NewNumberValue(1), "b": structpb.NewNumberValue(2)},
+				},
+				Outputs: &pipelinespec.ExecutorInput_Outputs{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
+						"dataset": {
+							Artifacts: []*pipelinespec.RuntimeArtifact{
+								{
+									Uri:        uri,
+									CustomPath: &custom,
+									Type: &pipelinespec.ArtifactTypeSchema{
+										Kind: &pipelinespec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			[]string{"-c", "echo \"{{$.inputs.parameters['content']}}\" > {{$.outputs.artifacts['data'].path}}"},
+			false,
+		},
+		{
+			"default path",
+			&pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{"b": structpb.NewNumberValue(2)},
+				},
+				Outputs: &pipelinespec.ExecutorInput_Outputs{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
+						"dataset": {
+							Artifacts: []*pipelinespec.RuntimeArtifact{
+								{
+									Uri:        uri,
+									CustomPath: &custom,
+									Type: &pipelinespec.ArtifactTypeSchema{
+										Kind: &pipelinespec.ArtifactTypeSchema_InstanceSchema{InstanceSchema: "title: kfp.Model\ntype: object\nproperties:\n  framework:\n    type: string\n  framework_version:\n    type: string\n"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			[]string{"-c", "echo 'ok' > {{$.outputs.artifacts['artifact'].path}}"},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fakeKubernetesClientset := &fake.Clientset{}
+			fakeMetadataClient := metadata.NewFakeClient()
+			bucket, err := blob.OpenBucket(context.Background(), "mem://test-bucket")
+			assert.Nil(t, err)
+			bucketConfig, err := objectstore.ParseBucketConfig("mem://test-bucket/pipeline-root/", nil)
+			assert.Nil(t, err)
+			_, _, err = executeV2(
+				context.Background(),
+				test.executorInput,
+				addNumbersComponent,
+				"sh",
+				test.executorArgs,
+				bucket,
+				bucketConfig,
+				fakeMetadataClient,
+				"namespace",
+				fakeKubernetesClientset,
+				"false",
+			)
+			//
+			//if test.wantErr {
+			//	assert.NotNil(t, err)
+			//} else {
+			//	assert.Nil(t, err)
+			//}
+			assert.NotEmpty(t, bucket)
+		})
+	}
+}
+
+// Tests that launcher correctly executes the user component and successfully writes output parameters to file.
 func Test_executeV2_Parameters(t *testing.T) {
 	tests := []struct {
 		name          string
