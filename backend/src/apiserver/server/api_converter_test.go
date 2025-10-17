@@ -1859,6 +1859,7 @@ func TestToApiJob_V2(t *testing.T) {
 		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		MaxConcurrency: 2,
 		NoCatchup:      true,
+		Mode:           apiv1beta1.Job_ENABLED,
 		Status:         "STATUS_UNSPECIFIED",
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
@@ -1942,6 +1943,7 @@ func TestToApiJobs(t *testing.T) {
 			CreatedAt:      timestamppb.New(time.Unix(1, 0)),
 			UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 			MaxConcurrency: 1,
+			Mode:           apiv1beta1.Job_ENABLED,
 			Status:         "STATUS_UNSPECIFIED",
 			Trigger: &apiv1beta1.Trigger{
 				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
@@ -1969,6 +1971,7 @@ func TestToApiJobs(t *testing.T) {
 			UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 			MaxConcurrency: 2,
 			NoCatchup:      true,
+			Mode:           apiv1beta1.Job_ENABLED,
 			Status:         "STATUS_UNSPECIFIED",
 			Trigger: &apiv1beta1.Trigger{
 				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{

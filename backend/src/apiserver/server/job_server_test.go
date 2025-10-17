@@ -67,6 +67,7 @@ var (
 		Name:           "job1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
+		Mode:           apiv1beta1.Job_ENABLED,
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
@@ -313,6 +314,7 @@ func TestCreateJob_pipelineVersion(t *testing.T) {
 		Id:             "123e4567-e89b-12d3-a456-426655440000",
 		Name:           "job1",
 		Enabled:        true,
+		Mode:           apiv1beta1.Job_ENABLED,
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
@@ -379,6 +381,7 @@ func TestCreateJob_NoResRefs(t *testing.T) {
 		Id:             DefaultFakeIdOne,
 		Name:           "job1",
 		Enabled:        true,
+		Mode:           apiv1beta1.Job_ENABLED,
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
@@ -482,6 +485,7 @@ func TestCreateJob_V2(t *testing.T) {
 		Name:           "job1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
+		Mode:           apiv1beta1.Job_ENABLED,
 		MaxConcurrency: 1,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
