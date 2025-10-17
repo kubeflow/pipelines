@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
@@ -126,12 +129,17 @@ func (l *ImportLauncher) Execute(ctx context.Context) (err error) {
 		return err
 	}
 	ecfg := &metadata.ExecutionConfig{
-		TaskName:      l.task.GetTaskInfo().GetName(),
-		PodName:       l.launcherV2Options.PodName,
-		PodUID:        l.launcherV2Options.PodUID,
-		Namespace:     l.launcherV2Options.Namespace,
-		ExecutionType: metadata.ImporterExecutionTypeName,
-		ParentDagID:   l.importerLauncherOptions.ParentDagID,
+		TaskName:  l.task.GetTaskInfo().GetName(),
+		PodName:   l.launcherV2Options.PodName,
+		PodUID:    l.launcherV2Options.PodUID,
+		Namespace: l.launcherV2Options.Namespace,
+		ExecutionType: func() metadata.ExecutionType {
+			if l.importer.GetDownloadToWorkspace() {
+				return metadata.ImporterWorkspaceExecutionTypeName
+			}
+			return metadata.ImporterExecutionTypeName
+		}(),
+		ParentDagID: l.importerLauncherOptions.ParentDagID,
 	}
 	createdExecution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
@@ -253,15 +261,17 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 	}
 
 	if strings.HasPrefix(artifactUri, "oci://") {
+		// OCI artifacts are not supported when workspace is used
+		if l.importer.GetDownloadToWorkspace() {
+			return nil, fmt.Errorf("importer workspace download does not support OCI registries")
+		}
 		artifactType, err := metadata.SchemaToArtifactType(schema)
 		if err != nil {
 			return nil, fmt.Errorf("converting schema to artifact type failed: %w", err)
 		}
-
 		if *artifactType.Name != "system.Model" {
 			return nil, fmt.Errorf("the %s artifact type does not support OCI registries", *artifactType.Name)
 		}
-
 		return artifact, nil
 	}
 
@@ -283,6 +293,40 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 	}
 	storeSessionInfoStr := string(storeSessionInfoJSON)
 	artifact.CustomProperties["store_session_info"] = metadata.StringValue(storeSessionInfoStr)
+
+	// Download the artifact into the workspace
+	if l.importer.GetDownloadToWorkspace() {
+		bucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(artifactUri)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse bucket config while downloading artifact into workspace with uri %q: %w", artifactUri, err)
+		}
+		// Resolve and attach session info from kfp-launcher config for the artifact provider
+		if cfg, cfgErr := config.FromConfigMap(ctx, l.k8sClient, l.launcherV2Options.Namespace); cfgErr != nil {
+			glog.Warningf("failed to load launcher config for workspace download: %v", cfgErr)
+		} else if cfg != nil {
+			if sess, sessErr := cfg.GetStoreSessionInfo(artifactUri); sessErr != nil {
+				glog.Warningf("failed to resolve store session info for %q: %v", artifactUri, sessErr)
+			} else {
+				bucketConfig.SessionInfo = &sess
+			}
+		}
+		blobKey, err := bucketConfig.KeyFromURI(artifactUri)
+		if err != nil {
+			return nil, fmt.Errorf("failed to derive blob key from uri %q while downloading artifact into workspace: %w", artifactUri, err)
+		}
+		workspaceRoot := filepath.Join(WorkspaceMountPath, ".artifacts")
+		if err := os.MkdirAll(workspaceRoot, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create workspace directory %q: %w", workspaceRoot, err)
+		}
+		bucket, err := objectstore.OpenBucket(ctx, l.k8sClient, l.launcherV2Options.Namespace, bucketConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open bucket for uri %q: %w", artifactUri, err)
+		}
+		defer bucket.Close()
+		if err := objectstore.DownloadBlob(ctx, bucket, workspaceRoot, blobKey); err != nil {
+			return nil, fmt.Errorf("failed to download artifact to workspace: %w", err)
+		}
+	}
 	return artifact, nil
 }
 

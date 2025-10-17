@@ -713,6 +713,12 @@ func downloadArtifacts(ctx context.Context, executorInput *pipelinespec.Executor
 		for _, artifact := range artifactList.Artifacts {
 			// Iterating through the artifact list allows for collected artifacts to be properly consumed.
 			inputArtifact := artifact
+			// Skip downloading if the artifact is flagged as already present in the workspace
+			if inputArtifact.GetMetadata() != nil {
+				if v, ok := inputArtifact.GetMetadata().GetFields()["_kfp_workspace"]; ok && v.GetBoolValue() {
+					continue
+				}
+			}
 			localPath, err := LocalPathForURI(inputArtifact.Uri)
 			if err != nil {
 				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", name, inputArtifact.Uri)
@@ -855,6 +861,22 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		// Prepare input uri placeholder.
 		key := fmt.Sprintf(`{{$.inputs.artifacts['%s'].uri}}`, name)
 		placeholders[key] = inputArtifact.Uri
+
+		// If the artifact is marked as already in the workspace, map the workspace path.
+		if inputArtifact.GetMetadata() != nil {
+			if v, ok := inputArtifact.GetMetadata().GetFields()["_kfp_workspace"]; ok && v.GetBoolValue() {
+				bucketConfig, err := objectstore.ParseBucketConfigForArtifactURI(inputArtifact.Uri)
+				if err == nil {
+					blobKey, err := bucketConfig.KeyFromURI(inputArtifact.Uri)
+					if err == nil {
+						localPath := filepath.Join(WorkspaceMountPath, ".artifacts", blobKey)
+						key = fmt.Sprintf(`{{$.inputs.artifacts['%s'].path}}`, name)
+						placeholders[key] = localPath
+						continue
+					}
+				}
+			}
+		}
 
 		localPath, err := LocalPathForURI(inputArtifact.Uri)
 		if err != nil {
