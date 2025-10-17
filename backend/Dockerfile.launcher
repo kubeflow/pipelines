@@ -25,7 +25,7 @@ RUN GO111MODULE=on go mod download
 
 COPY . .
 
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2/*.go
+RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build -tags netgo -ldflags '-extldflags "-static"' -o /bin/launcher-v2 ./backend/src/v2/cmd/launcher-v2/*.go
 
 FROM alpine:3.19
 
