@@ -47,7 +47,6 @@ import (
 type PipelineVersionApiTest struct {
 	suite.Suite
 	namespace            string
-	repoName             string
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient api_server.PipelineUploadInterface
 }
@@ -145,9 +144,9 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.Contains(t, err.Error(), "Failed to upload pipeline version")
 
 	/* ---------- Import pipeline version YAML by URL ---------- */
-	pipelineURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/refs/heads/master/test_data/sdk_compiled_pipelines/valid/sequential_v2.yaml", s.repoName)
+	pipelineURL := "https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/refs/heads/master/test_data/sdk_compiled_pipelines/valid/sequential_v2.yaml"
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/test_data/sdk_compiled_pipelines/valid/sequential_v2.yaml", s.repoName, pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/sequential_v2.yaml", pullNumber)
 	}
 	time.Sleep(1 * time.Second)
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionParams{
@@ -176,10 +175,10 @@ func (s *PipelineVersionApiTest) TestPipelineSpec() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipelineVersion.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL = fmt.Sprintf("https://github.com/%s/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip", s.repoName)
+	pipelineURL = "https://github.com/opendatahub-io/data-science-pipelines/raw/refs/heads/master/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip"
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip", s.repoName, pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/test_data/sdk_compiled_pipelines/valid/arguments.pipeline.zip", pullNumber)
 	}
 
 	time.Sleep(1 * time.Second)

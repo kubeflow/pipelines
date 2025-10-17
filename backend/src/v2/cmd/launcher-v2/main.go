@@ -19,7 +19,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"

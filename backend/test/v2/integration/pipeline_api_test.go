@@ -64,7 +64,6 @@ func (s *PipelineApiTest) SetupTest() {
 		}
 	}
 	s.namespace = *config.Namespace
-	s.repoName = *config.REPO_NAME
 
 	var newPipelineClient func() (*api_server.PipelineClient, error)
 	var tlsCfg *tls.Config
@@ -187,10 +186,10 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := fmt.Sprintf("https://github.com/%s/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip", s.repoName)
+	pipelineURL := "https://github.com/opendatahub-io/data-science-pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", s.repoName, pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
 	}
 
 	time.Sleep(1 * time.Second)

@@ -59,7 +59,6 @@ const DefaultMetadataTLSEnabled = false
 const (
 	DefaultMetadataGrpcServiceServiceHost = "metadata-grpc-service"
 	DefaultMetadataGrpcServiceServicePort = "8080"
-	DefaultMetadataTLSEnabled             = false
 )
 
 const (

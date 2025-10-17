@@ -50,7 +50,6 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 	corev1 "k8s.io/api/core/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -128,6 +127,7 @@ func main() {
 		GlobalKubernetesWebhookMode:  *globalKubernetesWebhookMode,
 		Context:                      backgroundCtx,
 		WaitGroup:                    &wg,
+		CaCertPath:                   *tlsCertPath,
 	}
 
 	tlsCfg, err := initCerts()
