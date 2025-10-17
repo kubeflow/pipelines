@@ -629,6 +629,17 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 
 			// Upload artifacts from local path to remote storages.
 			localDir, err := LocalPathForURI(outputArtifact.Uri)
+
+			//todo: this is where the copying occurs.
+			// first we want to see if a custom path is set, so that we can upload from the custom (pvc?) path
+			// OR is the URI the remote path?
+			// actually, just modify the LocalPathForURI method to return a localDir in the pvc (i think)
+			// if a custom path is set, does that mean the pvc path exists locally?
+			if outputArtifact.CustomPath != nil {
+				// todo: therefore we will be uploading here from pvc to remote storages.
+				localDir = *outputArtifact.CustomPath
+			}
+
 			if err != nil {
 				glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
 			} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
