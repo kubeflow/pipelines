@@ -70,6 +70,44 @@ jobs:
           echo "✅ KFP API server (ml-pipeline) is Ready"
           echo "=== ml-pipeline Logs (last 50 lines) ==="
           kubectl -n "$NAMESPACE" logs deploy/ml-pipeline --tail=200 || true
+      - name: Wait for cache-server readiness
+        run: |
+          echo "Waiting for cache-server to be Ready..."
+          kubectl -n "$NAMESPACE" rollout status deploy/cache-server --timeout=180s
+          kubectl -n "$NAMESPACE" wait --for=condition=available deploy/cache-server --timeout=60s
+          echo "✅ cache-server is Ready"
+      - name: Verify cache-server image and PostgreSQL connection
+        run: |
+          echo "=== Verifying cache-server uses locally built image ==="
+          CACHE_IMAGE=$(kubectl get deployment cache-server -n "$NAMESPACE" -o jsonpath='{.spec.template.spec.containers[0].image}')
+          echo "Cache-server image: $CACHE_IMAGE"
+
+          # Expected image pattern from kustomization
+          EXPECTED_IMAGE="kind-registry:5000/cache-server:latest"
+
+          if [[ "$CACHE_IMAGE" == "$EXPECTED_IMAGE" ]]; then
+            echo "✅ cache-server is using locally built image: $CACHE_IMAGE"
+          else
+            echo "❌ ERROR: cache-server is using wrong image!"
+            echo "   Expected: $EXPECTED_IMAGE"
+            echo "   Actual: $CACHE_IMAGE"
+            exit 1
+          fi
+
+          echo ""
+          echo "=== cache-server Logs (last 50 lines) ==="
+          kubectl -n "$NAMESPACE" logs deploy/cache-server --tail=50 || true
+
+          echo ""
+          echo "=== Verifying PostgreSQL connection ==="
+          if kubectl logs deploy/cache-server -n "$NAMESPACE" | grep -q "Database created"; then
+            echo "✅ cache-server successfully connected to PostgreSQL and created database"
+          else
+            echo "❌ ERROR: 'Database created' not found in cache-server logs"
+            echo "   This indicates cache-server failed to connect to PostgreSQL"
+            kubectl -n "$NAMESPACE" logs deploy/cache-server || true
+            exit 1
+          fi
       - name: Port-forward Postgres
         run: |
           # Note: The port-forward for postgres in V1 workflow uses the same namespace as KFP.

@@ -18,6 +18,9 @@ images:
   - name: ghcr.io/kubeflow/kfp-api-server
     newName: kind-registry:5000/apiserver
     newTag: latest
+  - name: ghcr.io/kubeflow/kfp-cache-server
+    newName: kind-registry:5000/cache-server
+    newTag: latest
 
 patches:
   - path: apiserver-env.yaml
