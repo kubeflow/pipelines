@@ -125,6 +125,10 @@ func (s *RunAPITestSuite) SetupTest() {
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
 
+	// Clean up before each test to ensure test isolation.
+	// This prevents failures from "zombie" runs left behind by other tests
+	// (e.g., the scheduled workflows in recurring run tests)
+	// due to race conditions during their teardown.
 	s.cleanUp()
 }
 
@@ -145,7 +149,9 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world experiment ---------- */
-	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
+	uuid, err := util.NewUUIDGenerator().NewRandom()
+	assert.Nil(t, err)
+	experiment := test.MakeExperiment(fmt.Sprintf("hello world experiment %s", uuid.String()), "", s.resourceNamespace)
 	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
@@ -170,8 +176,9 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest := &experiment_params.ExperimentServiceCreateExperimentParams{
-		Experiment: test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace),
+		Experiment: test.MakeExperiment(fmt.Sprintf("argument parameter experiment %s", uuid.String()), "", s.resourceNamespace),
 	}
+	assert.Nil(t, err)
 	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
 	assert.Nil(t, err)
 
@@ -201,6 +208,7 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	/* ---------- List all the runs. Both runs should be returned ---------- */
 	runs, totalSize, _, err := test.ListAllRuns(s.runClient, s.resourceNamespace)
 	assert.Nil(t, err)
+
 	assert.Equal(t, 2, len(runs))
 	assert.Equal(t, 2, totalSize)
 
@@ -440,7 +448,12 @@ func TestRunAPI(t *testing.T) {
 
 func (s *RunAPITestSuite) TearDownSuite() {
 	if *runIntegrationTests {
-		if !*isDevMode {
+		// If the test has failed, and we are in CI (not dev mode), skip cleanup to preserve the state for debugging.
+		if s.T().Failed() && !*isDevMode {
+			s.T().Log("Skipping cleanup to preserve state for debugging CI failure.")
+			return
+		}
+		if !*isDevMode { // In dev mode, we never clean up.
 			s.cleanUp()
 		}
 	}

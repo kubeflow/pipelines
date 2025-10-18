@@ -139,6 +139,31 @@ func CreateErrorFromAPIStatus(error string, code int32) error {
 }
 
 func CreateErrorCouldNotRecoverAPIStatus(err error) error {
+	// Check if this is a JSON parsing error
+	if err != nil && (
+	// Common JSON parsing errors
+	containsAny(err.Error(), []string{
+		"invalid character",
+		"unexpected end of JSON",
+		"cannot unmarshal",
+	})) {
+		return fmt.Errorf("issue calling the service. The server response could not be parsed as JSON (possibly returned HTML/text error page instead). This may indicate: 1) TLS certificate not ready, 2) service not available, or 3) connection error. Use the '--debug' flag to see the full HTTP request/response. Raw error from the client: %v",
+			err.Error())
+	}
 	return fmt.Errorf("issue calling the service. Use the '--debug' flag to see the HTTP request/response. Raw error from the client: %v",
 		err.Error())
+}
+
+// containsAny checks if the string contains any of the substrings
+func containsAny(s string, substrings []string) bool {
+	for _, substr := range substrings {
+		if len(s) >= len(substr) {
+			for i := 0; i <= len(s)-len(substr); i++ {
+				if s[i:i+len(substr)] == substr {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

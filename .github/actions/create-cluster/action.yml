@@ -8,7 +8,7 @@ inputs:
   cluster_name:
     description: "Provide kind cluster name if you want to name it other than kfp"
     required: false
-    default: 'kfp'
+    default: "kfp"
 
 runs:
   using: "composite"

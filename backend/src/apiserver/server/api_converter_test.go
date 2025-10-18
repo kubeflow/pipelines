@@ -34,6 +34,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func stringPtr(s string) *string {
+	return &s
+}
+
 func TestToModelExperiment(t *testing.T) {
 	tests := []struct {
 		name                    string
@@ -86,7 +90,7 @@ func TestToModelExperiment(t *testing.T) {
 			&apiv2beta1.Experiment{
 				DisplayName: "exp2",
 				Description: "API V2beta1 test experiment",
-				Namespace:   "ns2",
+				Namespace:   stringPtr("ns2"),
 			},
 			false,
 			"",
@@ -128,7 +132,7 @@ func TestToModelExperiment(t *testing.T) {
 			&apiv2beta1.Experiment{
 				DisplayName: "",
 				Description: "API V2beta1 test experiment",
-				Namespace:   "ns2",
+				Namespace:   stringPtr("ns2"),
 			},
 			true,
 			"Experiment must have a non-empty name",
@@ -1662,6 +1666,7 @@ func TestCronScheduledJobtoApiJob(t *testing.T) {
 		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
+		Mode:           apiv1beta1.Job_ENABLED,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
 				StartTime: timestamppb.New(time.Unix(1, 0)),
@@ -1717,6 +1722,7 @@ func TestPeriodicScheduledJobtoApiJob(t *testing.T) {
 		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
+		Mode:           apiv1beta1.Job_ENABLED,
 		Trigger: &apiv1beta1.Trigger{
 			Trigger: &apiv1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &apiv1beta1.PeriodicSchedule{
 				StartTime:      timestamppb.New(time.Unix(1, 0)),
@@ -1762,6 +1768,7 @@ func TestNonScheduledJobtoApiJob(t *testing.T) {
 		CreatedAt:      timestamppb.New(time.Unix(1, 0)),
 		UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 		MaxConcurrency: 1,
+		Mode:           apiv1beta1.Job_ENABLED,
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			Parameters:   []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
@@ -1852,6 +1859,7 @@ func TestToApiJob_V2(t *testing.T) {
 		UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 		MaxConcurrency: 2,
 		NoCatchup:      true,
+		Mode:           apiv1beta1.Job_ENABLED,
 		Status:         "STATUS_UNSPECIFIED",
 		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
@@ -1935,6 +1943,7 @@ func TestToApiJobs(t *testing.T) {
 			CreatedAt:      timestamppb.New(time.Unix(1, 0)),
 			UpdatedAt:      timestamppb.New(time.Unix(1, 0)),
 			MaxConcurrency: 1,
+			Mode:           apiv1beta1.Job_ENABLED,
 			Status:         "STATUS_UNSPECIFIED",
 			Trigger: &apiv1beta1.Trigger{
 				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
@@ -1962,6 +1971,7 @@ func TestToApiJobs(t *testing.T) {
 			UpdatedAt:      timestamppb.New(time.Unix(2, 0)),
 			MaxConcurrency: 2,
 			NoCatchup:      true,
+			Mode:           apiv1beta1.Job_ENABLED,
 			Status:         "STATUS_UNSPECIFIED",
 			Trigger: &apiv1beta1.Trigger{
 				Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{

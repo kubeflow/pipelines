@@ -121,13 +121,18 @@ func toApiExperiment(experiment *model.Experiment) *apiv2beta1.Experiment {
 	default:
 		storageState = apiv2beta1.Experiment_StorageState(apiv2beta1.Experiment_StorageState_value["STORAGE_STATE_UNSPECIFIED"])
 	}
+	// Convert namespace to pointer type; only set if non-empty
+	var namespace *string
+	if experiment.Namespace != "" {
+		namespace = &experiment.Namespace
+	}
 	return &apiv2beta1.Experiment{
 		ExperimentId:     experiment.UUID,
 		DisplayName:      experiment.Name,
 		Description:      experiment.Description,
 		CreatedAt:        timestamppb.New(time.Unix(experiment.CreatedAtInSec, 0)),
 		LastRunCreatedAt: timestamppb.New(time.Unix(experiment.LastRunCreatedAtInSec, 0)),
-		Namespace:        experiment.Namespace,
+		Namespace:        namespace,
 		StorageState:     storageState,
 	}
 }
@@ -2186,6 +2191,15 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 
 	specManifest := j.PipelineSpec.PipelineSpecManifest
 	wfManifest := j.PipelineSpec.WorkflowSpecManifest
+
+	// Set Mode based on Enabled field
+	var mode apiv1beta1.Job_Mode
+	if j.Enabled {
+		mode = apiv1beta1.Job_ENABLED
+	} else {
+		mode = apiv1beta1.Job_DISABLED
+	}
+
 	return &apiv1beta1.Job{
 		Id:             j.UUID,
 		Name:           j.DisplayName,
@@ -2197,6 +2211,7 @@ func toApiJobV1(j *model.Job) *apiv1beta1.Job {
 		UpdatedAt:      timestamppb.New(time.Unix(j.UpdatedAtInSec, 0)),
 		MaxConcurrency: j.MaxConcurrency,
 		NoCatchup:      j.NoCatchup,
+		Mode:           mode,
 		Trigger:        trigger,
 		PipelineSpec: &apiv1beta1.PipelineSpec{
 			PipelineId:       j.PipelineSpec.PipelineId,
