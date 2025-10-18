@@ -24,7 +24,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.34.0" ]
     name: KFP SDK Client Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code

@@ -40,7 +40,7 @@ var randomName string
 var experimentID *string = nil
 var userToken string
 
-const maxPipelineWaitTime = 900 // In Seconds
+const maxPipelineWaitTime = 540 // In Seconds
 
 var (
 	pipelineUploadClient apiserver.PipelineUploadInterface

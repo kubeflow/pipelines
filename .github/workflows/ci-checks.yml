@@ -36,7 +36,7 @@ jobs:
         uses: wechuli/allcheckspassed@0b68b3b7d92e595bcbdea0c860d05605720cf479
         with:                                 
           delay: '5'
-          retries: '8'
+          retries: '10'
           polling_interval: '5'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

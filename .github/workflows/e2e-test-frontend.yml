@@ -21,7 +21,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.31.0" ]
+        k8s_version: [ "v1.29.2", "v1.34.0" ]
         pod_to_pod_tls_enabled: [ "true", "false" ]
     name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:

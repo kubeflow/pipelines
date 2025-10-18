@@ -5,6 +5,19 @@ metadata:
 spec:
   template:
     spec:
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        searches:
+          - kubeflow.svc.cluster.local
+          - svc.cluster.local
+          - cluster.local
+        options:
+          - name: timeout
+            value: "2"
+          - name: attempts
+            value: "3"
+          - name: ndots
+            value: "2"
       containers:
         - name: ml-pipeline-api-server
           env:

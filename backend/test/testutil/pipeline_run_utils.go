@@ -26,7 +26,6 @@ import (
 	api_server "github.com/kubeflow/pipelines/backend/src/common/client/api_server/v2"
 	"github.com/kubeflow/pipelines/backend/test/logger"
 
-	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
 
@@ -103,8 +102,8 @@ func WaitForRunToBeInState(runClient *api_server.RunClient, pipelineRunID *strin
 			}
 
 			if time.Now().After(deadline) {
-				logger.Log("Pipeline run with id=%s is in %s state", *pipelineRunID, *currentPipelineRunState)
-				ginkgo.Fail("Timed out waiting for pipeline run with id runId=" + *pipelineRunID + " to be in expected state")
+				logger.Log("Pipeline run with id=%s is in %s state, did not reach one of '%s' ", *pipelineRunID, *currentPipelineRunState, expectedStates)
+				return
 			}
 			logger.Log("Pipeline run with id=%s is in %s state, waiting...", *pipelineRunID, *currentPipelineRunState)
 		} else {

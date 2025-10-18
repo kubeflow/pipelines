@@ -8,12 +8,6 @@ spec:
       containers:
         - name: ml-pipeline-api-server
           env:
-            - name: V2_DRIVER_IMAGE
-              value: kind-registry:5000/driver
-            - name: V2_LAUNCHER_IMAGE
-              value: kind-registry:5000/launcher
-            - name: LOG_LEVEL
-              value: "debug"
             - name: CACHEENABLED
               value: "false"
             - name: HTTP_PROXY
@@ -22,5 +16,3 @@ spec:
               value: "http://squid.squid.svc.cluster.local:3128"
             - name: NO_PROXY
               value: "localhost,127.0.0.1,.svc.cluster.local,kubernetes.default.svc,minio-service.kubeflow,metadata-grpc-service,metadata-grpc-service.kubeflow,ml-pipeline.kubeflow"
-            - name: OBJECTSTORECONFIG_HOST
-              value: "minio-service.kubeflow.svc.cluster.local"
