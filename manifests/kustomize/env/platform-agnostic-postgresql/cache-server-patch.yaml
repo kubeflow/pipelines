@@ -70,7 +70,11 @@ spec:
             - name: WEBHOOK_PORT
               value: "8443"
           args:
-            [
-              "--namespace_to_watch=$(NAMESPACE_TO_WATCH)",
-              "--listen_port=$(WEBHOOK_PORT)",
-            ]
+            - "--db_driver=$(DBCONFIG_DRIVER)"
+            - "--db_host=$(DBCONFIG_POSTGRESQLCONFIG_HOST)"
+            - "--db_port=$(DBCONFIG_POSTGRESQLCONFIG_PORT)"
+            - "--db_name=$(DBCONFIG_DB_NAME)"
+            - "--db_user=$(DBCONFIG_POSTGRESQLCONFIG_USER)"
+            - "--db_password=$(DBCONFIG_POSTGRESQLCONFIG_PASSWORD)"
+            - "--namespace_to_watch=$(NAMESPACE_TO_WATCH)"
+            - "--listen_port=$(WEBHOOK_PORT)"
