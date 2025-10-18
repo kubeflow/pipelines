@@ -44,9 +44,6 @@ dependencies = [
     "urllib3 >= 1.15.1",
 ]
 
-[project.optional-dependencies]
-kubernetes = ["kfp-kubernetes<2"]
-all = ["docker", "kfp-kubernetes<2"]
 
 [dependency-groups]
 dev = [
