@@ -13,19 +13,19 @@
 # limitations under the License.
 
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ['setuptools>=61.0', 'wheel']
+build-backend = 'setuptools.build_meta'
 
 [project]
-name = "kfp-pipeline-spec"
-version = "2.14.6"
-description = "Kubeflow Pipelines pipeline spec"
+name = 'kfp-pipeline-spec'
+version = '2.14.6'
+description = 'Kubeflow Pipelines pipeline spec'
 authors = [
-    {name = "google", email = "kubeflow-pipelines@google.com"},
+    {name = 'google', email = 'kubeflow-pipelines@google.com'},
 ]
-readme = "../../README.md"
-requires-python = ">=3.9.0"
-license = "Apache 2.0"
+readme = '../../README.md'
+requires-python = '>=3.9.0'
+license = 'Apache 2.0'
 dependencies = [
     # Typically we can't support multiple major versions of protobuf
     # The runtime protobuf package MUST be aligned with the protobuf
@@ -34,14 +34,14 @@ dependencies = [
     # 6.x aligns with 30.x+.
     # See for support tiers:
     # https://protobuf.dev/support/version-support/#python
-    "protobuf==6.31.1,<7.0",
+    'protobuf==6.31.1,<7.0',
 ]
 
 [dependency-groups]
 dev = []
 
 [project.urls]
-Github = "https://github.com/kubeflow/pipelines"
+Github = 'https://github.com/kubeflow/pipelines'
 
 
 [tool.setuptools]
@@ -49,4 +49,4 @@ include-package-data = true
 
 
 [tool.setuptools.packages.find]
-include = ["kfp.*"]
+include = ['kfp.*']

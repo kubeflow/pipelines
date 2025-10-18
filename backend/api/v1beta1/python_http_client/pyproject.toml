@@ -1,16 +1,16 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ['setuptools>=61.0', 'wheel']
+build-backend = 'setuptools.build_meta'
 
 [project]
-name = "kfp-server-api"
-version = "2.14.6"
-description = "Kubeflow Pipelines API"
+name = 'kfp-server-api'
+version = '2.14.6'
+description = 'Kubeflow Pipelines API'
 authors = [
-    {name = "google", email = "kubeflow-pipelines@google.com"},
+    {name = 'google', email = 'kubeflow-pipelines@google.com'},
 ]
-readme = "README.md"
-requires-python = ">=3.9.0"
+readme = 'README.md'
+requires-python = '>=3.9.0'
 classifiers = [
     'Intended Audience :: Developers',
     'Intended Audience :: Education',
@@ -28,36 +28,36 @@ classifiers = [
     'Topic :: Software Development :: Libraries',
     'Topic :: Software Development :: Libraries :: Python Modules',
 ]
-license = "Apache 2.0"
-license-files = {globs = ["LICENSE"]}
+license = 'Apache 2.0'
+license-files = {globs = ['LICENSE']}
 keywords = [
-    "OpenAPI",
-    "OpenAPI-Generator",
-    "Kubeflow Pipelines API",
+    'OpenAPI',
+    'OpenAPI-Generator',
+    'Kubeflow Pipelines API',
 ]
 dependencies = [
-    "certifi >= 14.05.14",
-    "future; python_version<=2.7",
-    "six >= 1.10",
-    "python_dateutil >= 2.5.3",
-    "setuptools >= 21.0.0",
-    "urllib3 >= 1.15.1",
+    'certifi >= 14.05.14',
+    'future; python_version<=2.7',
+    'six >= 1.10',
+    'python_dateutil >= 2.5.3',
+    'setuptools >= 21.0.0',
+    'urllib3 >= 1.15.1',
 ]
 
 
 [dependency-groups]
 dev = [
-    "pytest~=4.6.7", # needed for python 2.7+3.4
-    "pytest-cov>=2.8.1",
-    "pytest-randomly==1.2.3", # needed for python 2.7+3.4
+    'pytest~=4.6.7', # needed for python 2.7+3.4
+    'pytest-cov>=2.8.1',
+    'pytest-randomly==1.2.3', # needed for python 2.7+3.4
 ]
 
 [project.urls]
-Github = "https://github.com/kubeflow/pipelines"
+Github = 'https://github.com/kubeflow/pipelines'
 
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-exclude = ["*test*"]
+exclude = ['*test*']
