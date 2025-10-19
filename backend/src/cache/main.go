@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/server"
@@ -113,14 +114,24 @@ func main() {
 	ctx := context.Background()
 	go server.WatchPods(ctx, params.namespaceToWatch, &clientManager)
 
-	certPath := filepath.Join(TLSDir, certFile)
-	keyPath := filepath.Join(TLSDir, keyFile)
+	// Allow overriding TLS directory via environment variable for local development
+	tlsDir := TLSDir
+	if envTLSDir := os.Getenv("TLS_CERT_DIR"); envTLSDir != "" {
+		tlsDir = envTLSDir
+		log.Printf("Using TLS cert directory from environment: %s", tlsDir)
+	}
+	certPath := filepath.Join(tlsDir, certFile)
+	keyPath := filepath.Join(tlsDir, keyFile)
 
 	mux := http.NewServeMux()
 	mux.Handle(MutateAPI, server.AdmitFuncHandler(server.MutatePodIfCached, &clientManager))
-	server := &http.Server{
+	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", webhookPort),
 		Handler: mux,
 	}
-	log.Fatal(server.ListenAndServeTLS(certPath, keyPath))
+
+	log.Printf("Starting cache server on https://0.0.0.0:%d%s", webhookPort, MutateAPI)
+	log.Printf("Watching namespace: %s", params.namespaceToWatch)
+	log.Println("✅ Cache server is ready to accept requests")
+	log.Fatal(httpServer.ListenAndServeTLS(certPath, keyPath))
 }
