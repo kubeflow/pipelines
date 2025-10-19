@@ -114,6 +114,11 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc, c
 		return errorResponse(admissionReviewReq.Request.UID, err), nil
 	}
 
+	// If no patch operations, return response without patch field
+	if patchOps == nil {
+		return allowedResponse(admissionReviewReq.Request.UID, nil), nil
+	}
+
 	patchBytes, err := json.Marshal(patchOps)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

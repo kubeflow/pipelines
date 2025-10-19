@@ -104,6 +104,13 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	annotations := pod.ObjectMeta.Annotations
 	labels := pod.ObjectMeta.Labels
 
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
 	template, exists := getArgoTemplate(&pod)
 	if !exists {
 		return patches, nil

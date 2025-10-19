@@ -270,3 +270,19 @@ func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 	require.Equal(t, patchOperation[1].Op, OperationTypeAdd)
 	require.Equal(t, patchOperation[2].Op, OperationTypeAdd)
 }
+
+func TestMutatePodIfCachedWithNilAnnotations(t *testing.T) {
+	podWithoutAnnotations := *fakePod.DeepCopy()
+	podWithoutAnnotations.Annotations = nil
+	podWithoutAnnotations.Labels = map[string]string{
+		KFPCacheEnabledLabelKey: KFPCacheEnabledLabelValue,
+	}
+
+	patchOperations, err := MutatePodIfCached(
+		GetFakeRequestFromPod(&podWithoutAnnotations),
+		fakeClientManager,
+	)
+
+	assert.NotNil(t, patchOperations)
+	assert.Nil(t, err)
+}

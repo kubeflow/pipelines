@@ -114,10 +114,14 @@ func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 		glog.Fatalf("Failed to update the execution template type. Error: %s", err)
 	}
 
-	var tableNames []string
-	gormDB.Raw(`show tables`).Pluck("Tables_in_caches", &tableNames)
-	for _, tableName := range tableNames {
-		log.Printf("%s", tableName)
+	// List all tables using GORM Migrator API (works for both MySQL and PostgreSQL)
+	tableNames, err := gormDB.Migrator().GetTables()
+	if err != nil {
+		glog.Warningf("Failed to get table list: %v", err)
+	} else {
+		for _, tableName := range tableNames {
+			log.Printf("Table: %s", tableName)
+		}
 	}
 
 	return gormDB, dbDialect
@@ -214,6 +218,7 @@ func initDBDriver(params WhSvrDBParameters, initConnectionTimeout time.Duration)
 			db.Close()
 			glog.Fatalf("Failed to create database: %v", err)
 		}
+		log.Printf("Database created")
 		db.Close()
 
 		// Return DSN with target DB
