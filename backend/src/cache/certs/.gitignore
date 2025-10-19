@@ -1,0 +1,9 @@
+# Ignore certificate files - these should never be committed
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Keep this .gitignore file
+!.gitignore
