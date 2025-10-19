@@ -1,0 +1,41 @@
+{
+  "apiVersion": "admission.k8s.io/v1beta1",
+  "kind": "AdmissionReview",
+  "request": {
+    "uid": "test-v2",
+    "kind": {
+      "group": "",
+      "version": "v1",
+      "kind": "Pod"
+    },
+    "resource": {
+      "group": "",
+      "version": "v1",
+      "resource": "pods"
+    },
+    "namespace": "kubeflow",
+    "operation": "CREATE",
+    "object": {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "v2-pod",
+        "namespace": "kubeflow",
+        "annotations": {
+          "pipelines.kubeflow.org/v2_component": "true"
+        },
+        "labels": {
+          "pipelines.kubeflow.org/cache_enabled": "true"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "main",
+            "image": "python:3.9"
+          }
+        ]
+      }
+    }
+  }
+}
