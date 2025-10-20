@@ -607,7 +607,7 @@ func extendPodSpecPatch(
 				len(nodeAffinityTerm.GetMatchExpressions()) == 0 &&
 				len(nodeAffinityTerm.GetMatchFields()) == 0 {
 				glog.Warningf("NodeAffinityTerm %d is empty, skipping", i)
-				continue //explain this code change i want to do
+				continue
 			}
 			if nodeAffinityTerm.GetNodeAffinityJson() != nil {
 				var k8sNodeAffinity json.RawMessage
