@@ -17,32 +17,32 @@ requires = ['setuptools>=61.0', 'wheel']
 build-backend = 'setuptools.build_meta'
 
 [project]
-name = 'kfp-kubernetes'
-dynamic = ['version', 'readme']
-description = 'Kubernetes platform configuration library and generated protos.'
+name = 'kfp-server-api'
+version = '2.14.6'
+description = 'Kubeflow Pipelines API'
 authors = [
     {name = 'google', email = 'kubeflow-pipelines@google.com'}
+]
+keywords = [
+    'OpenAPI',
+    'OpenAPI-Generator',
+    'Kubeflow Pipelines API',
 ]
 readme = 'README.md'
 requires-python = '>=3.9.0'
 license = 'Apache-2.0'
 dependencies = [
-    # protobuf version should be identical to the one in kfp-pipeline-spec
-    # api/v2alpha1/python/pyroject.toml
-    'protobuf==6.31.1,<7.0',
-    'kfp>=2.14.0,<3',
+    'urllib3 >= 1.15',
+    'six >= 1.10',
+    'certifi',
+    'python-dateutil',
 ]
 
 [dependency-groups]
 dev = [
-    'docformatter==1.4',
-    'isort==5.10.1',
-    'mypy==0.941',
-    'pre-commit==2.19.0',
-    'pycln==2.1.1',
-    'pytest==7.1.2',
-    'pytest-xdist==2.5.0',
-    'yapf==0.43.0',
+    'pytest~=4.6.7', # needed for python 2.7+3.4
+    'pytest-cov>=2.8.1',
+    'pytest-randomly==1.2.3', # needed for python 2.7+3.4
 ]
 
 [project.urls]
@@ -51,15 +51,8 @@ Documentation = 'https://kfp-kubernetes.readthedocs.io/'
 'Bug Tracker'= 'https://github.com/kubeflow/pipelines/issues'
 Source = 'https://github.com/kubeflow/pipelines/tree/master/kubernetes_platform/python'
 
-[project.scripts]
-dsl-compile = 'kfp.cli.compile_:main'
-kfp = 'kfp.cli.__main__:main'
-
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ['kfp.*']
-
-[tool.setuptools.dynamic]
-version = {attr = 'kfp.kubernetes.__init__.__version__'}
+exclude = ['test.*', 'tests.*']
