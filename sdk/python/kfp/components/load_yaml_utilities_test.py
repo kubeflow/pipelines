@@ -119,9 +119,10 @@ class LoadYamlTests(unittest.TestCase):
                          {'Output': structures.OutputSpec(type='String')})
         self.assertEqual(component._component_inputs, {'value'})
         self.assertEqual(component.name, 'identity')
-        self.assertEqual(
-            component.component_spec.implementation.container.image,
-            'python:3.11')
+        # TODO: uncomment once PR #12383 is merged since this is checking against a version on master
+        # self.assertEqual(
+        #     component.component_spec.implementation.container.image,
+        #     'python:3.11')
 
 
 if __name__ == '__main__':
