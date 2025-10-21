@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.9"}'
+        fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.11"}'
     - name: components-e867d2e58d704ce4a73fa5b50e0068c7b54a23f058c93b8dc7d73a854b7786a2
       value: '{"executorLabel":"exec-print-op","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
     - name: implementations-e867d2e58d704ce4a73fa5b50e0068c7b54a23f058c93b8dc7d73a854b7786a2
@@ -31,7 +31,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.9"}'
+        print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.11"}'
     - name: components-comp-exit-handler-1
       value: '{"dag":{"tasks":{"fail-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
         failed."}}}},"taskInfo":{"name":"fail-op"}},"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--message":{"parameterType":"STRING"}}}}'
@@ -51,7 +51,7 @@ spec:
         pipeline run status.\"\"\"\n    print(''Pipeline status: '', status.state)\n    print(''Job
         resource name: '', status.pipeline_job_resource_name)\n    print(''Pipeline
         task name: '', status.pipeline_task_name)\n    print(''Error code: '', status.error_code)\n    print(''Error
-        message: '', status.error_message)\n\n"],"image":"python:3.9"}'
+        message: '', status.error_message)\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"exit-handler-1":{"componentRef":{"name":"comp-exit-handler-1"},"inputs":{"parameters":{"pipelinechannel--message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"my-pipeline"}},"exit-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-exit-op"},"dependentTasks":["exit-handler-1"],"inputs":{"parameters":{"status":{"taskFinalStatus":{"producerTask":"exit-handler-1"}},"user_input":{"componentInputParameter":"message"}}},"taskInfo":{"name":"exit-op"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}}},"inputDefinitions":{"parameters":{"message":{"defaultValue":"Hello
         World!","isOptional":true,"parameterType":"STRING"}}}}'

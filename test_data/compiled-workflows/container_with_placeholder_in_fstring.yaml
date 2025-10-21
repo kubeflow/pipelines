@@ -9,7 +9,7 @@ spec:
     - name: components-f76f16c424ed80e87d38bb55b27a483700ad3a6f1fe4c5deccb44812db875f5f
       value: '{"executorLabel":"exec-container-with-placeholder-in-fstring","inputDefinitions":{"parameters":{"text1":{"defaultValue":"text!","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"output_artifact":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-f76f16c424ed80e87d38bb55b27a483700ad3a6f1fe4c5deccb44812db875f5f
-      value: '{"command":["my_program","prefix-{{$.inputs.parameters[''text1'']}}","{{$.outputs.artifacts[''output_artifact''].uri}}/0"],"image":"python:3.9"}'
+      value: '{"command":["my_program","prefix-{{$.inputs.parameters[''text1'']}}","{{$.outputs.artifacts[''output_artifact''].uri}}/0"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"artifacts":{"output_artifact":{"artifactSelectors":[{"outputArtifactKey":"output_artifact","producerSubtask":"container-with-placeholder-in-fstring"}]}}},"tasks":{"container-with-placeholder-in-fstring":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-with-placeholder-in-fstring"},"inputs":{"parameters":{"text1":{"componentInputParameter":"text1"}}},"taskInfo":{"name":"container-with-placeholder-in-fstring"}}}},"inputDefinitions":{"parameters":{"text1":{"defaultValue":"text!","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"output_artifact":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
   entrypoint: entrypoint

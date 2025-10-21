@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_bool(componentInput: bool = None):\n    if componentInput is not
-        None:\n        raise ValueError(f\"componentInput should be None but is {componentInput}\")\n\n"],"image":"python:3.9"}'
+        None:\n        raise ValueError(f\"componentInput should be None but is {componentInput}\")\n\n"],"image":"python:3.11"}'
     - name: components-59f4469e2d42fbdeb573096da5dac9ff779db3814151f043995cab017ecab934
       value: '{"executorLabel":"exec-component-int","inputDefinitions":{"parameters":{"componentInput":{"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
     - name: implementations-59f4469e2d42fbdeb573096da5dac9ff779db3814151f043995cab017ecab934
@@ -33,7 +33,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_int(componentInput: int = None):\n    if componentInput is not None:\n        raise
-        ValueError(f\"componentInput should be None but is {componentInput}\")\n\n"],"image":"python:3.9"}'
+        ValueError(f\"componentInput should be None but is {componentInput}\")\n\n"],"image":"python:3.11"}'
     - name: components-023f29bcfa009ada5559e8172a659767b0cddfb1beb199ca609fb7d00cba5ce2
       value: '{"executorLabel":"exec-component-str","inputDefinitions":{"parameters":{"componentInput":{"isOptional":true,"parameterType":"STRING"}}}}'
     - name: implementations-023f29bcfa009ada5559e8172a659767b0cddfb1beb199ca609fb7d00cba5ce2
@@ -47,7 +47,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_str(componentInput: str = None):\n    if componentInput is not None:\n        raise
-        ValueError(f\"componentInput should be None but is {componentInput}\")\n\n"],"image":"python:3.9"}'
+        ValueError(f\"componentInput should be None but is {componentInput}\")\n\n"],"image":"python:3.11"}'
     - name: components-comp-nested-pipeline
       value: '{"dag":{"tasks":{"component-bool":{"cachingOptions":{},"componentRef":{"name":"comp-component-bool"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputBool"}}},"taskInfo":{"name":"component-bool"}},"component-int":{"cachingOptions":{},"componentRef":{"name":"comp-component-int"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputInt"}}},"taskInfo":{"name":"component-int"}},"component-str":{"cachingOptions":{},"componentRef":{"name":"comp-component-str"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputStr"}}},"taskInfo":{"name":"component-str"}}}},"inputDefinitions":{"parameters":{"nestedInputBool":{"isOptional":true,"parameterType":"BOOLEAN"},"nestedInputInt":{"isOptional":true,"parameterType":"NUMBER_INTEGER"},"nestedInputStr":{"isOptional":true,"parameterType":"STRING"}}}}'
     - name: components-root

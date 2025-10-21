@@ -28,7 +28,7 @@ spec:
         '', type(model))\n    print(''artifact.name: '', model.name)\n    print(''artifact.uri:
         '', model.uri)\n    print(''artifact.metadata: '', model.metadata)\n\n    print(''Dataset'')\n    print(''artifact.type:
         '', type(dataset))\n    print(''artifact.name: '', dataset.name)\n    print(''artifact.uri:
-        '', dataset.uri)\n    print(''artifact.metadata: '', dataset.metadata)\n\n"],"image":"python:3.9"}'
+        '', dataset.uri)\n    print(''artifact.metadata: '', dataset.metadata)\n\n"],"image":"python:3.11"}'
     - name: components-3d4953dfcdcfe41d72b761df76bfc76edf185ecf8415d539fd17c4c6f8f29200
       value: '{"executorLabel":"exec-model-producer","outputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"google.VertexModel","schemaVersion":"0.0.0"}}}}}'
     - name: implementations-3d4953dfcdcfe41d72b761df76bfc76edf185ecf8415d539fd17c4c6f8f29200
@@ -44,7 +44,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\nimport
         aiplatform\n\ndef model_producer(model: Output[aiplatform.VertexModel]):\n\n    assert
         isinstance(model, aiplatform.VertexModel), type(model)\n    with open(model.path,
-        ''w'') as f:\n        f.write(''my model'')\n\n"],"image":"python:3.9"}'
+        ''w'') as f:\n        f.write(''my model'')\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"}}}},"taskInfo":{"name":"importer"}},"model-consumer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-model-consumer"},"dependentTasks":["importer","model-producer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}},"model":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"model-producer"}}}},"taskInfo":{"name":"model-consumer"}},"model-producer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-model-producer"},"taskInfo":{"name":"model-producer"}}}}}'
   entrypoint: entrypoint

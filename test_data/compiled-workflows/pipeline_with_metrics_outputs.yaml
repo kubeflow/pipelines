@@ -20,7 +20,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         output_metrics(metrics: Output[Metrics]):\n    \"\"\"Dummy component that
         outputs metrics with a random accuracy.\"\"\"\n    import random\n    result
-        = random.randint(0, 100)\n    metrics.log_metric(''accuracy'', result)\n\n"],"image":"python:3.9"}'
+        = random.randint(0, 100)\n    metrics.log_metric(''accuracy'', result)\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-2
       value: '{"dag":{"tasks":{"output-metrics-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-output-metrics-2"},"taskInfo":{"name":"output-metrics-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"NUMBER_INTEGER"}}}}'
     - name: components-root

@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        add(nums: List[int]) -\u003e int:\n    return sum(nums)\n\n"],"image":"python:3.9"}'
+        add(nums: List[int]) -\u003e int:\n    return sum(nums)\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-4
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--add-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"add"}}}},"tasks":{"add":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"nums":{"componentInputParameter":"pipelinechannel--for-loop-2-pipelinechannel--double-Output"}}},"taskInfo":{"name":"add"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--for-loop-2-pipelinechannel--double-Output":{"parameterType":"LIST"},"pipelinechannel--threshold":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"pipelinechannel--add-Output":{"parameterType":"LIST"}}}}'
     - name: components-ce925a4ef98c92ae630145dae1155afc9d381ebef3b3f22030ab4257c4910f44
@@ -33,7 +33,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        double(num: int) -\u003e int:\n    return 2 * num\n\n"],"image":"python:3.9"}'
+        double(num: int) -\u003e int:\n    return 2 * num\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-3
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--double-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"double"}}}},"tasks":{"double":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--threshold":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"pipelinechannel--double-Output":{"parameterType":"LIST"}}}}'
     - name: components-comp-for-loop-2

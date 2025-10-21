@@ -116,7 +116,7 @@ spec:
         = kfp_run_notebook\n\n\ndef run_train_notebook(text: str):\n    # text is
         not defined in the notebook but text2 is defined\n    dsl.run_notebook(text=text)\n\n    with
         open(\"/tmp/kfp_nb_outputs/log.txt\", \"r\", encoding=\"utf-8\") as f:\n        log
-        = f.read()\n\n    assert log == text + \" \" + \"default2\"\n\n"],"image":"python:3.9"}'
+        = f.read()\n\n    assert log == text + \" \" + \"default2\"\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"run-train-notebook":{"cachingOptions":{},"componentRef":{"name":"comp-run-train-notebook"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"run-train-notebook"}}}},"inputDefinitions":{"parameters":{"text":{"defaultValue":"hello","isOptional":true,"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

@@ -40,7 +40,7 @@ spec:
         open(output_bool_parameter_path, ''w'') as f:\n        f.write(\n            str(True))  #
         use either `str()` or `json.dumps()` for bool values.\n\n    import json\n    with
         open(output_dict_parameter_path, ''w'') as f:\n        f.write(json.dumps(input_dict_parameter))\n\n    with
-        open(output_list_parameter_path, ''w'') as f:\n        f.write(json.dumps(input_list_parameter))\n\n"],"image":"python:3.9"}'
+        open(output_list_parameter_path, ''w'') as f:\n        f.write(json.dumps(input_list_parameter))\n\n"],"image":"python:3.11"}'
     - name: components-c146bad05c050c176402e7a5065dafbcb507ddacd77264720b5199dd9a8b1711
       value: '{"executorLabel":"exec-train","inputDefinitions":{"artifacts":{"dataset_one_path":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"dataset_two":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"input_bool":{"parameterType":"BOOLEAN"},"input_dict":{"parameterType":"STRUCT"},"input_list":{"parameterType":"LIST"},"message":{"parameterType":"STRING"},"num_steps":{"defaultValue":100,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-c146bad05c050c176402e7a5065dafbcb507ddacd77264720b5199dd9a8b1711
@@ -73,7 +73,7 @@ spec:
         open(model.path, ''w'') as output_file:\n        for i in range(num_steps):\n            output_file.write(f''Step
         {i}\\n{line}\\n=====\\n'')\n\n    # model is an instance of Model artifact,
         which has a .metadata dictionary\n    # to store arbitrary metadata for the
-        output artifact.\n    model.metadata[''accuracy''] = 0.9\n\n"],"image":"python:3.9"}'
+        output artifact.\n    model.metadata[''accuracy''] = 0.9\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"preprocess":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-preprocess"},"inputs":{"parameters":{"input_dict_parameter":{"componentInputParameter":"input_dict"},"input_list_parameter":{"runtimeValue":{"constant":["a","b","c"]}},"message":{"componentInputParameter":"message"}}},"taskInfo":{"name":"preprocess"}},"train":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train"},"dependentTasks":["preprocess"],"inputs":{"artifacts":{"dataset_one_path":{"taskOutputArtifact":{"outputArtifactKey":"output_dataset_one","producerTask":"preprocess"}},"dataset_two":{"taskOutputArtifact":{"outputArtifactKey":"output_dataset_two_path","producerTask":"preprocess"}}},"parameters":{"input_bool":{"taskOutputParameter":{"outputParameterKey":"output_bool_parameter_path","producerTask":"preprocess"}},"input_dict":{"taskOutputParameter":{"outputParameterKey":"output_dict_parameter_path","producerTask":"preprocess"}},"input_list":{"taskOutputParameter":{"outputParameterKey":"output_list_parameter_path","producerTask":"preprocess"}},"message":{"taskOutputParameter":{"outputParameterKey":"output_parameter_path","producerTask":"preprocess"}}}},"taskInfo":{"name":"train"}}}},"inputDefinitions":{"parameters":{"input_dict":{"defaultValue":{"A":1,"B":2},"isOptional":true,"parameterType":"STRUCT"},"message":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

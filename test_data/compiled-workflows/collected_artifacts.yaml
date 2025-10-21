@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         create_file(file: Output[Artifact], content: str):\n    print(f''Creating
-        file with content: {content}'')\n    with open(file.path, ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.9"}'
+        file with content: {content}'')\n    with open(file.path, ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.11"}'
     - name: components-8de1f97f1c6fbc2c49f794738b59fedba4bfc0367ad809393ff85e905f70886d
       value: '{"executorLabel":"exec-read-single-dataset-generate-model","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"id":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"results":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-8de1f97f1c6fbc2c49f794738b59fedba4bfc0367ad809393ff85e905f70886d
@@ -35,7 +35,7 @@ spec:
         read_single_dataset_generate_model(data: Dataset, id: str, results:Output[Model]):\n    print(f''Reading
         file: {data.path}'')\n    with open(data.path, ''r'') as f:\n        info
         = f.read()\n        with open(results.path, ''w'') as f2:\n            f2.write(f\"{info}-{id}\")\n            results.metadata[''model'']
-        = info\n            results.metadata[''model_name''] = f\"model-artifact-inner-iteration-{info}-{id}\"\n\n"],"image":"python:3.9"}'
+        = info\n            results.metadata[''model_name''] = f\"model-artifact-inner-iteration-{info}-{id}\"\n\n"],"image":"python:3.11"}'
     - name: components-110fc7a806182548336d0e41ebf637176c62d600d89da66d667e5241685993a3
       value: '{"executorLabel":"exec-create-dataset","inputDefinitions":{"parameters":{"content":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-110fc7a806182548336d0e41ebf637176c62d600d89da66d667e5241685993a3
@@ -49,7 +49,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         create_dataset(data: Output[Dataset], content: str):\n    print(f''Creating
-        file with content: {content}'')\n    with open(data.path, ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.9"}'
+        file with content: {content}'')\n    with open(data.path, ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.11"}'
     - name: components-comp-single-node-dag
       value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"data","producerSubtask":"create-dataset"}]}}},"tasks":{"create-dataset":{"cachingOptions":{},"componentRef":{"name":"comp-create-dataset"},"inputs":{"parameters":{"content":{"componentInputParameter":"char"}}},"taskInfo":{"name":"create-dataset"}}}},"inputDefinitions":{"parameters":{"char":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: components-comp-for-loop-2
@@ -68,7 +68,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         read_datasets(data: List[Dataset]) -\u003e str:\n    for d in data:\n        print(f''Reading
         dataset {d.name} file: {d.path}'')\n        with open(d.path, ''r'') as f:\n            print(f.read())\n\n    return
-        ''files read''\n\n"],"image":"python:3.9"}'
+        ''files read''\n\n"],"image":"python:3.11"}'
     - name: components-a20411795c50176906ce97cafe2d672030b0584c63cc3f061d6b5fa4d8d18702
       value: '{"executorLabel":"exec-read-models","inputDefinitions":{"artifacts":{"models":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-a20411795c50176906ce97cafe2d672030b0584c63cc3f061d6b5fa4d8d18702
@@ -84,7 +84,7 @@ spec:
         read_models(models: List[Model],) -\u003e str:\n    for m in models:\n        print(f''Reading
         model {m.name} file: {m.path}'')\n        with open(m.path, ''r'') as f:\n            info
         = f.read()\n            print(f\"Model raw data: {info}\")\n            print(f\"Model
-        metadata: {m.metadata}\")\n    return ''models read''\n\n"],"image":"python:3.9"}'
+        metadata: {m.metadata}\")\n    return ''models read''\n\n"],"image":"python:3.11"}'
     - name: components-99e3dc1afb3392e03ef7e4ef8b3f63c142e5fbc03c571b8879a6e9429b814760
       value: '{"executorLabel":"exec-read-single-file","inputDefinitions":{"artifacts":{"file":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-99e3dc1afb3392e03ef7e4ef8b3f63c142e5fbc03c571b8879a6e9429b814760
@@ -99,7 +99,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         read_single_file(file: Artifact) -\u003e str:\n    print(f''Reading file:
         {file.path}'')\n    with open(file.path, ''r'') as f:\n        print(f.read())\n\n    return
-        file.uri\n\n"],"image":"python:3.9"}'
+        file.uri\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-1
       value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--read-single-dataset-generate-model-results":{"artifactSelectors":[{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerSubtask":"for-loop-2"}]}}},"tasks":{"create-file":{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"create-file"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--split-chars-Output":{"componentInputParameter":"pipelinechannel--split-chars-Output"},"pipelinechannel--split-ids-Output-loop-item":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"parameterIterator":{"itemInput":"pipelinechannel--split-chars-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-chars-Output"}},"taskInfo":{"name":"for-loop-2"}},"read-datasets":{"cachingOptions":{},"componentRef":{"name":"comp-read-datasets"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--single-node-dag-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-datasets"}},"read-models":{"cachingOptions":{},"componentRef":{"name":"comp-read-models"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"models":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-models"}},"read-single-file":{"cachingOptions":{},"componentRef":{"name":"comp-read-single-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"read-single-file"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--split-chars-Output":{"parameterType":"LIST"},"pipelinechannel--split-ids-Output":{"parameterType":"LIST"},"pipelinechannel--split-ids-Output-loop-item":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--read-single-dataset-generate-model-results":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
     - name: components-194a4bfb844b1828b520d4f1d24304bbdba6a0c71f95c1e315dfbfa4e171f4ea
@@ -114,7 +114,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        split_chars(model_ids: str) -\u003e list:\n    return model_ids.split('','')\n\n"],"image":"python:3.9"}'
+        split_chars(model_ids: str) -\u003e list:\n    return model_ids.split('','')\n\n"],"image":"python:3.11"}'
     - name: components-b7700b8f98f5bc8b5097b759b614a5652ffb5baa093a27ca516cd10ce62e33de
       value: '{"executorLabel":"exec-split-ids","inputDefinitions":{"parameters":{"model_ids":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
     - name: implementations-b7700b8f98f5bc8b5097b759b614a5652ffb5baa093a27ca516cd10ce62e33de
@@ -127,7 +127,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        split_ids(model_ids: str) -\u003e list:\n    return model_ids.split('','')\n\n"],"image":"python:3.9"}'
+        split_ids(model_ids: str) -\u003e list:\n    return model_ids.split('','')\n\n"],"image":"python:3.11"}'
     - name: components-comp-collecting-artifacts
       value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerSubtask":"for-loop-1"}]}}},"tasks":{"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-chars","split-ids"],"inputs":{"parameters":{"pipelinechannel--split-chars-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-chars"}},"pipelinechannel--split-ids-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-ids"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-ids-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-ids-Output"}},"taskInfo":{"name":"for-loop-1"}},"split-chars":{"cachingOptions":{},"componentRef":{"name":"comp-split-chars"},"inputs":{"parameters":{"model_ids":{"componentInputParameter":"model_chars"}}},"taskInfo":{"name":"split-chars"}},"split-ids":{"cachingOptions":{},"componentRef":{"name":"comp-split-ids"},"inputs":{"parameters":{"model_ids":{"componentInputParameter":"model_ids"}}},"taskInfo":{"name":"split-ids"}}}},"inputDefinitions":{"parameters":{"model_chars":{"defaultValue":"","isOptional":true,"parameterType":"STRING"},"model_ids":{"defaultValue":"","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
     - name: components-root

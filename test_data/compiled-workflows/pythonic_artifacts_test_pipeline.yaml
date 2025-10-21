@@ -20,7 +20,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         gen_data() -\u003e Dataset:\n    dataset = Dataset(uri=dsl.get_uri())\n    with
         open(dataset.path, \"w\") as f:\n        f.write(\"some data\")\n\n    dataset.metadata[\"length\"]
-        = len(\"some data\")\n    return dataset\n\n"],"image":"python:3.9"}'
+        = len(\"some data\")\n    return dataset\n\n"],"image":"python:3.11"}'
     - name: components-4271229df0e3741657d9f339d415cee57460bed8e7b47f53f0b87b0c71b90ea8
       value: '{"executorLabel":"exec-train-model","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-4271229df0e3741657d9f339d415cee57460bed8e7b47f53f0b87b0c71b90ea8
@@ -37,7 +37,7 @@ spec:
         as f:\n        lines = f.read()\n\n    assert lines == \"some data\"\n    assert
         dataset.metadata[\"length\"] == len(\"some data\")\n\n    model_artifact =
         Model(uri=dsl.get_uri(\"model\"))\n    with open(model_artifact.path, \"w\")
-        as f:\n        f.write(\"model trained\")\n\n    return model_artifact\n\n"],"image":"python:3.9"}'
+        as f:\n        f.write(\"model trained\")\n\n    return model_artifact\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"gen-data":{"cachingOptions":{},"componentRef":{"name":"comp-gen-data"},"taskInfo":{"name":"gen-data"}},"train-model":{"cachingOptions":{},"componentRef":{"name":"comp-train-model"},"dependentTasks":["gen-data"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"gen-data"}}}},"taskInfo":{"name":"train-model"}}}}}'
   entrypoint: entrypoint

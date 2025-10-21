@@ -21,7 +21,7 @@ spec:
         take_nap(naptime_secs: int) -\u003e str:\n    \"\"\"Sleeps for secs\"\"\"\n    from
         time import sleep  # noqa: PLC0415\n\n    print(f\"Sleeping for {naptime_secs}
         seconds: Zzzzzz ...\")\n    sleep(naptime_secs)\n    return \"I''m awake now.
-        Did I snore?\"\n\n"],"image":"python:3.9"}'
+        Did I snore?\"\n\n"],"image":"python:3.11"}'
     - name: components-5d8466fde111ff505f28c4c8a093c971b044637d9e786d6aa26ff7e24346b224
       value: '{"executorLabel":"exec-wake-up","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
     - name: implementations-5d8466fde111ff505f28c4c8a093c971b044637d9e786d6aa26ff7e24346b224
@@ -34,7 +34,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        wake_up(message: str):\n    \"\"\"Wakes up from nap printing a message\"\"\"\n    print(message)\n\n"],"image":"python:3.9"}'
+        wake_up(message: str):\n    \"\"\"Wakes up from nap printing a message\"\"\"\n    print(message)\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"take-nap":{"cachingOptions":{},"componentRef":{"name":"comp-take-nap"},"inputs":{"parameters":{"naptime_secs":{"componentInputParameter":"naptime_secs"}}},"taskInfo":{"name":"take-nap"}},"wake-up":{"cachingOptions":{},"componentRef":{"name":"comp-wake-up"},"dependentTasks":["take-nap"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"take-nap"}}}},"taskInfo":{"name":"wake-up"}}}},"inputDefinitions":{"parameters":{"naptime_secs":{"defaultValue":900,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
   entrypoint: entrypoint

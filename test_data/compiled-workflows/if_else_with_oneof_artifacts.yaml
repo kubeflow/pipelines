@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         param_to_artifact(val: str, a: Output[Artifact]):\n    with open(a.path, ''w'')
-        as f:\n        f.write(val)\n\n"],"image":"python:3.9"}'
+        as f:\n        f.write(val)\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-2
       value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--param-to-artifact-a":{"artifactSelectors":[{"outputArtifactKey":"a","producerSubtask":"param-to-artifact"}]}}},"tasks":{"param-to-artifact":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-param-to-artifact"},"inputs":{"parameters":{"val":{"componentInputParameter":"pipelinechannel--flip-coin-Output"}}},"taskInfo":{"name":"param-to-artifact"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--param-to-artifact-a":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
     - name: components-comp-condition-3
@@ -41,7 +41,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         flip_coin() -\u003e str:\n    import random\n    return ''heads'' if random.randint(0,
-        1) == 0 else ''tails''\n\n"],"image":"python:3.9"}'
+        1) == 0 else ''tails''\n\n"],"image":"python:3.11"}'
     - name: components-4b25ff0a49eab000c257f8f4a0117403198c888052ec86137349df44a41d04fe
       value: '{"executorLabel":"exec-print-artifact","inputDefinitions":{"artifacts":{"a":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-4b25ff0a49eab000c257f8f4a0117403198c888052ec86137349df44a41d04fe
@@ -54,7 +54,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_artifact(a: Input[Artifact]):\n    with open(a.path) as f:\n        print(f.read())\n\n"],"image":"python:3.9"}'
+        print_artifact(a: Input[Artifact]):\n    with open(a.path) as f:\n        print(f.read())\n\n"],"image":"python:3.11"}'
     - name: components-comp-flip-coin-pipeline
       value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"pipelinechannel--condition-branches-1-oneof-1","producerSubtask":"condition-branches-1"}]}}},"tasks":{"condition-branches-1":{"componentRef":{"name":"comp-condition-branches-1"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-branches-1"}},"flip-coin":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}},"print-artifact":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-artifact"},"dependentTasks":["condition-branches-1"],"inputs":{"artifacts":{"a":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--condition-branches-1-oneof-1","producerTask":"condition-branches-1"}}}},"taskInfo":{"name":"print-artifact"}}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
     - name: components-root

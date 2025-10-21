@@ -24,7 +24,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         print_env_op():\n    import os\n    print(''ENV1'', os.environ.get(''ENV1''))\n    print(''ENV2'',
-        os.environ.get(''ENV2''))\n\n"],"env":[{"name":"ENV1","value":"val1"}],"image":"python:3.9"}'
+        os.environ.get(''ENV2''))\n\n"],"env":[{"name":"ENV1","value":"val1"}],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"print-env":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-env"},"taskInfo":{"name":"print-env"}},"print-env-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-env-op"},"taskInfo":{"name":"print-env-op"}}}}}'
   entrypoint: entrypoint

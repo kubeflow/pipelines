@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         nested_return() -\u003e List[Dict[str, str]]:\n    return [{''A_a'': ''1'',
-        ''B_b'': ''2''}, {''A_a'': ''10'', ''B_b'': ''20''}]\n\n"],"image":"python:3.9"}'
+        ''B_b'': ''2''}, {''A_a'': ''10'', ''B_b'': ''20''}]\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"nested-return"}}}},"tasks":{"nested-return":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-nested-return"},"taskInfo":{"name":"nested-return"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
   entrypoint: entrypoint

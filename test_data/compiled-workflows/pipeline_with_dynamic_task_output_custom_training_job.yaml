@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        accelerator_count() -\u003e int:\n    return 1\n\n"],"image":"python:3.9"}'
+        accelerator_count() -\u003e int:\n    return 1\n\n"],"image":"python:3.11"}'
     - name: components-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b
       value: '{"executorLabel":"exec-accelerator-type","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b
@@ -31,7 +31,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.9"}'
+        accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.11"}'
     - name: components-52a7e68811aea0ab261ad8816e36b43d20ed63e304bf491e77d3a1ac7b6e5871
       value: '{"executorLabel":"exec-custom-training-job","inputDefinitions":{"parameters":{"base_output_directory":{"defaultValue":"","description":"The
         Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob.
@@ -96,7 +96,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        machine_type() -\u003e str:\n    return ''n1-standard-4''\n\n"],"image":"python:3.9"}'
+        machine_type() -\u003e str:\n    return ''n1-standard-4''\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"accelerator-count":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-count"},"taskInfo":{"name":"accelerator-count"}},"accelerator-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}},"custom-training-job":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-training-job"},"dependentTasks":["accelerator-count","accelerator-type","machine-type"],"inputs":{"parameters":{"display_name":{"runtimeValue":{"constant":"add-numbers"}},"encryption_spec_key_name":{"componentInputParameter":"encryption_spec_key_name"},"location":{"componentInputParameter":"location"},"pipelinechannel--accelerator-count-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-count"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--machine-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"machine-type"}},"project":{"componentInputParameter":"project"},"worker_pool_specs":{"runtimeValue":{"constant":[{"container_spec":{"args":["foo"],"command":["echo"],"image_uri":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0"},"machine_spec":{"accelerator_count":"{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}","accelerator_type":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}","machine_type":"{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}"},"replica_count":1}]}}}},"taskInfo":{"name":"custom-training-job"}},"machine-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-machine-type"},"taskInfo":{"name":"machine-type"}}}},"inputDefinitions":{"parameters":{"encryption_spec_key_name":{"defaultValue":"","isOptional":true,"parameterType":"STRING"},"location":{"parameterType":"STRING"},"project":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

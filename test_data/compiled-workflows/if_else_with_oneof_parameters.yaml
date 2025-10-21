@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_and_return(text: str) -\u003e str:\n    print(text)\n    return text\n\n"],"image":"python:3.9"}'
+        print_and_return(text: str) -\u003e str:\n    print(text)\n    return text\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-2
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--print-and-return-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"print-and-return"}}}},"tasks":{"print-and-return":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return"},"inputs":{"parameters":{"text":{"runtimeValue":{"constant":"Got
         heads!"}}}},"taskInfo":{"name":"print-and-return"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--print-and-return-Output":{"parameterType":"STRING"}}}}'
@@ -42,7 +42,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         flip_coin() -\u003e str:\n    import random\n    return ''heads'' if random.randint(0,
-        1) == 0 else ''tails''\n\n"],"image":"python:3.9"}'
+        1) == 0 else ''tails''\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"pipelinechannel--condition-branches-1-oneof-1","producerSubtask":"condition-branches-1"}}}},"tasks":{"condition-branches-1":{"componentRef":{"name":"comp-condition-branches-1"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-branches-1"}},"flip-coin":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}},"print-and-return-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-and-return-3"},"dependentTasks":["condition-branches-1"],"inputs":{"parameters":{"text":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--condition-branches-1-oneof-1","producerTask":"condition-branches-1"}}}},"taskInfo":{"name":"print-and-return-3"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

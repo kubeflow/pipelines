@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        add_numbers(a: int, b: int) -\u003e int:\n    return a + b\n\n"],"image":"python:3.9"}'
+        add_numbers(a: int, b: int) -\u003e int:\n    return a + b\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"add-numbers":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"runtimeValue":{"constant":3}}}},"taskInfo":{"name":"add-numbers"}},"add-numbers-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers-2"},"dependentTasks":["add-numbers"],"inputs":{"parameters":{"a":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"add-numbers"}},"b":{"componentInputParameter":"b"}}},"taskInfo":{"name":"add-numbers-2"}},"add-numbers-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers-3"},"dependentTasks":["add-numbers-2"],"inputs":{"parameters":{"a":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"add-numbers-2"}},"b":{"runtimeValue":{"constant":7}}}},"taskInfo":{"name":"add-numbers-3"}}}},"inputDefinitions":{"parameters":{"a":{"defaultValue":2,"isOptional":true,"parameterType":"NUMBER_INTEGER"},"b":{"defaultValue":5,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
   entrypoint: entrypoint

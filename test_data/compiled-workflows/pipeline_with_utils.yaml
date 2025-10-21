@@ -21,7 +21,7 @@ spec:
         util_func(msg: str) -\u003e str:\n    return f\"{msg} from util_func\"\n\n\ndef
         util_func2(msg: str) -\u003e str:\n    return f\"{msg} from util_func2\"\n\n\ndef
         echo(msg: str):\n    assert util_func(msg) == f\"{msg} from util_func\"\n    assert
-        util_func2(msg) == f\"{msg} from util_func2\"\n\n"],"image":"python:3.9"}'
+        util_func2(msg) == f\"{msg} from util_func2\"\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"echo":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-echo"},"inputs":{"parameters":{"msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"echo"}}}},"inputDefinitions":{"parameters":{"msg":{"defaultValue":"Hello,
         World!","isOptional":true,"parameterType":"STRING"}}}}'

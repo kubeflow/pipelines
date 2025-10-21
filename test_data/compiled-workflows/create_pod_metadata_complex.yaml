@@ -23,7 +23,7 @@ spec:
         ValueError(\n            f\"Pod annotation is {annotation} but is supposed
         to be None.\"\n        )\n    label = os.getenv(label_path)\n    if label
         != \"\":\n        raise ValueError(\n            f\"Pod label is {label} but
-        is supposed to be None.\"\n        )\n    return True\n\n"],"image":"python:3.9"}'
+        is supposed to be None.\"\n        )\n    return True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation'']","name":"POD_TASK_ANNOTATION"},{"fieldPath":"metadata.labels[''task-label-1'']","name":"POD_TASK_LABEL_1"},{"fieldPath":"metadata.labels[''task-label-2'']","name":"POD_TASK_LABEL_2"}],"podMetadata":{"annotations":{"task-annotation":"annotation"},"labels":{"task-label-1":"label-1","task-label-2":"label-2"}}}'
     - name: components-41f6db675508ce85c4c81ffc8f4f63358027f85ec0bf31f36946cf1ede3c43cc
@@ -60,7 +60,7 @@ spec:
         ValueError(\n                f\"Pod label is {label_val_2} but is supposed
         to be {label_exp_val_2}.\"\n            )\n        validated_metadata_count+=1\n    if
         validated_metadata_count \u003c1:\n        raise RuntimeError(f\"No pod metadata
-        found to validate.\")\n    return True\n\n"],"image":"python:3.9"}'
+        found to validate.\")\n    return True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata-2
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation-1'']","name":"POD_TASK_ANNOTATION_1"},{"fieldPath":"metadata.annotations[''task-annotation-2'']","name":"POD_TASK_ANNOTATION_2"}],"podMetadata":{"annotations":{"task-annotation-1":"annotation-1","task-annotation-2":"annotation-2"}}}'
     - name: components-root

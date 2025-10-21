@@ -10,7 +10,7 @@ spec:
       value: '{"executorLabel":"exec-container-with-concat-placeholder","inputDefinitions":{"parameters":{"text1":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"text2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"output_path":{"parameterType":"STRING"}}}}'
     - name: implementations-b8fd25671b4c5e37ac7a8a2dd9fddc33d348d63dbc1c43627760eaa412e161d7
       value: '{"args":["--output_path","{{$.outputs.parameters[''output_path''].output_file}}"],"command":["my_program","{\"Concat\":
-        [\"prefix-\", \"{{$.inputs.parameters[''text1'']}}\", \"{{$.outputs.artifacts[''text2''].uri}}\"]}"],"image":"python:3.9"}'
+        [\"prefix-\", \"{{$.inputs.parameters[''text1'']}}\", \"{{$.outputs.artifacts[''text2''].uri}}\"]}"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"artifacts":{"text2":{"artifactSelectors":[{"outputArtifactKey":"text2","producerSubtask":"container-with-concat-placeholder"}]}},"parameters":{"output_path":{"valueFromParameter":{"outputParameterKey":"output_path","producerSubtask":"container-with-concat-placeholder"}}}},"tasks":{"container-with-concat-placeholder":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-with-concat-placeholder"},"inputs":{"parameters":{"text1":{"componentInputParameter":"text1"}}},"taskInfo":{"name":"container-with-concat-placeholder"}}}},"inputDefinitions":{"parameters":{"text1":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"text2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"output_path":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

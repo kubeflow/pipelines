@@ -21,7 +21,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         consumer() -\u003e str:\n    with open(''/data/file.txt'', ''r'') as file:\n        content
-        = file.read()\n    print(content)\n    return content\n\n"],"image":"python:3.9"}'
+        = file.read()\n    print(content)\n    return content\n\n"],"image":"python:3.11"}'
     - name: components-98f254581598234b59377784d6cbf209de79e0bcda8013fe4c4397b5d3a26767
       value: '{"executorLabel":"exec-createpvc","inputDefinitions":{"parameters":{"access_modes":{"description":"AccessModes
         to request for the provisioned PVC. May\nbe one or more of ``''ReadWriteOnce''``,
@@ -66,7 +66,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         producer() -\u003e str:\n    with open(''/data/file.txt'', ''w'') as file:\n        file.write(''Hello
         world'')\n    with open(''/data/file.txt'', ''r'') as file:\n        content
-        = file.read()\n    print(content)\n    return content\n\n"],"image":"python:3.9"}'
+        = file.read()\n    print(content)\n    return content\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"consumer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["createpvc","producer"],"taskInfo":{"name":"consumer"}},"createpvc":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-createpvc"},"inputs":{"parameters":{"access_modes":{"runtimeValue":{"constant":["ReadWriteOnce"]}},"pvc_name_suffix":{"runtimeValue":{"constant":"-my-pvc"}},"size":{"runtimeValue":{"constant":"5Mi"}},"storage_class_name":{"runtimeValue":{"constant":"standard"}}}},"taskInfo":{"name":"createpvc"}},"deletepvc":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-deletepvc"},"dependentTasks":["consumer","createpvc"],"inputs":{"parameters":{"pvc_name":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}}},"taskInfo":{"name":"deletepvc"}},"producer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"dependentTasks":["createpvc"],"taskInfo":{"name":"producer"}}}}}'
   entrypoint: entrypoint

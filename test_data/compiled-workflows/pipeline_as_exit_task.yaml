@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.9"}'
+        print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-1
       value: '{"dag":{"tasks":{"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"notify
         task failure."}}}},"taskInfo":{"name":"print-op"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--get-run-state-Output":{"parameterType":"STRING"}}}}'
@@ -35,7 +35,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         get_run_state(status: dict) -\u003e str:\n    print(''Pipeline status: '',
-        status)\n    return status[''state'']\n\n"],"image":"python:3.9"}'
+        status)\n    return status[''state'']\n\n"],"image":"python:3.11"}'
     - name: components-comp-conditional-notification
       value: '{"dag":{"tasks":{"condition-1":{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["get-run-state"],"inputs":{"parameters":{"pipelinechannel--get-run-state-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"get-run-state"}}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--get-run-state-Output'']
         == ''FAILED''"}},"get-run-state":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-get-run-state"},"inputs":{"parameters":{"status":{"componentInputParameter":"status"}}},"taskInfo":{"name":"get-run-state"}}}},"inputDefinitions":{"parameters":{"status":{"isOptional":true,"parameterType":"TASK_FINAL_STATUS"}}}}'
@@ -51,7 +51,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.9"}'
+        fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.11"}'
     - name: components-comp-exit-handler-1
       value: '{"dag":{"tasks":{"fail-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
         failed."}}}},"taskInfo":{"name":"fail-op"}},"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--message":{"parameterType":"STRING"}}}}'

@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         fail_op(message: str) -\u003e str:\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n    return
-        message\n\n"],"image":"python:3.9"}'
+        message\n\n"],"image":"python:3.11"}'
     - name: components-b206be17c679a17aaa7a27bfbdc4c9282eb4a6dae575e3758a3af57a18424138
       value: '{"executorLabel":"exec-print-op","inputDefinitions":{"parameters":{"message":{"defaultValue":"default","isOptional":true,"parameterType":"STRING"}}}}'
     - name: implementations-b206be17c679a17aaa7a27bfbdc4c9282eb4a6dae575e3758a3af57a18424138
@@ -32,7 +32,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_op(message: str = ''default''):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.9"}'
+        print_op(message: str = ''default''):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"fail-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"componentInputParameter":"sample_input"}}},"taskInfo":{"name":"fail-op"}},"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"dependentTasks":["fail-op"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"fail-op"}}}},"taskInfo":{"name":"print-op"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}}},"inputDefinitions":{"parameters":{"sample_input":{"defaultValue":"message","isOptional":true,"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

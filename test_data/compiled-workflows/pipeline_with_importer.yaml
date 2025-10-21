@@ -27,7 +27,7 @@ spec:
         open(dataset.path) as f:\n        data = f.read()\n    print(''Dataset:'',
         data)\n\n    scalar = ''123''\n    model = f''My model trained using data:
         {data}''\n\n    from collections import namedtuple\n    output = namedtuple(''Outputs'',
-        [''scalar'', ''model''])\n    return output(scalar, model)\n\n"],"image":"python:3.9"}'
+        [''scalar'', ''model''])\n    return output(scalar, model)\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-1
       value: '{"dag":{"tasks":{"importer-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"inputs":{"parameters":{"uri":{"componentInputParameter":"pipelinechannel--dataset2"}}},"taskInfo":{"name":"importer-2"}},"train-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train-2"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"train-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--dataset2":{"parameterType":"STRING"},"pipelinechannel--train-scalar":{"parameterType":"STRING"}}}}'
     - name: components-comp-importer

@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         crust_comp(val1: str, val2: str):\n    print(''val1: '', val1)\n    print(''val2:
-        '', val2)\n\n"],"image":"python:3.9"}'
+        '', val2)\n\n"],"image":"python:3.11"}'
     - name: components-6d13d1db365eee59a2cdc2d89bfaa4a0c32572a64b1743f50115e2614b7b60bd
       value: '{"executorLabel":"exec-core-comp","outputDefinitions":{"parameters":{"val1":{"parameterType":"STRING"},"val2":{"parameterType":"STRING"}}}}'
     - name: implementations-6d13d1db365eee59a2cdc2d89bfaa4a0c32572a64b1743f50115e2614b7b60bd
@@ -34,7 +34,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         core_comp() -\u003e NamedTuple(''outputs'', val1=str, val2=str):  # type:
         ignore\n    outputs = NamedTuple(''outputs'', val1=str, val2=str)\n    return
-        outputs(''foo'', ''bar'')\n\n"],"image":"python:3.9"}'
+        outputs(''foo'', ''bar'')\n\n"],"image":"python:3.11"}'
     - name: components-comp-core
       value: '{"dag":{"outputs":{"parameters":{"val1":{"valueFromParameter":{"outputParameterKey":"val1","producerSubtask":"core-comp"}},"val2":{"valueFromParameter":{"outputParameterKey":"val2","producerSubtask":"core-comp"}}}},"tasks":{"core-comp":{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}}},"outputDefinitions":{"parameters":{"val1":{"parameterType":"STRING"},"val2":{"parameterType":"STRING"}}}}'
     - name: components-comp-mantle

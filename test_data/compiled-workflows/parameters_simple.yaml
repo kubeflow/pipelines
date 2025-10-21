@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        add(nums: List[int]) -\u003e int:\n    return sum(nums)\n\n"],"image":"python:3.9"}'
+        add(nums: List[int]) -\u003e int:\n    return sum(nums)\n\n"],"image":"python:3.11"}'
     - name: components-a84a92e43cc5061b9721809172326190f017aa27a15f7b894c7be7cb01d2e7e4
       value: '{"executorLabel":"exec-add-container","inputDefinitions":{"parameters":{"nums":{"parameterType":"LIST"}}},"outputDefinitions":{"parameters":{"sum":{"parameterType":"NUMBER_INTEGER"}}}}'
     - name: implementations-a84a92e43cc5061b9721809172326190f017aa27a15f7b894c7be7cb01d2e7e4
@@ -36,7 +36,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        double(num: int) -\u003e int:\n    return 2 * num\n\n"],"image":"python:3.9"}'
+        double(num: int) -\u003e int:\n    return 2 * num\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-2
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--double-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"double"}}}},"tasks":{"double":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"pipelinechannel--double-Output":{"parameterType":"LIST"}}}}'
     - name: components-root

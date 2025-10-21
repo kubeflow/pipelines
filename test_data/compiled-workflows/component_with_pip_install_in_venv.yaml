@@ -21,7 +21,7 @@ spec:
         -d)\n\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true
         python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        component_with_pip_install():\n    import yapf\n\n    print(dir(yapf))\n\n"],"image":"python:3.9"}'
+        component_with_pip_install():\n    import yapf\n\n    print(dir(yapf))\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"component-with-pip-install":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-pip-install"},"taskInfo":{"name":"component-with-pip-install"}}}}}'
   entrypoint: entrypoint

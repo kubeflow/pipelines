@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         print_op(msg: str, msg2: Optional[str] = None):\n    print(f''msg: {msg},
-        msg2: {msg2}'')\n\n"],"image":"python:3.9"}'
+        msg2: {msg2}'')\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-2
       value: '{"dag":{"tasks":{"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item-subvar-p_a-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"q_a\"]"}}},"taskInfo":{"name":"print-op"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop_parameter-loop-item":{"parameterType":"STRING"},"pipelinechannel--loop_parameter-loop-item-subvar-p_a":{"parameterType":"STRING"},"pipelinechannel--loop_parameter-loop-item-subvar-p_a-loop-item":{"parameterType":"STRING"}}}}'
     - name: components-comp-for-loop-1

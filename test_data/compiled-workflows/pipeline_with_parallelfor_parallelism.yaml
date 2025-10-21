@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_text(msg: str):\n    print(msg)\n\n"],"image":"python:3.9"}'
+        print_text(msg: str):\n    print(msg)\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-2
       value: '{"dag":{"tasks":{"print-text-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item"}}},"taskInfo":{"name":"print-text-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop_parameter":{"parameterType":"LIST"},"pipelinechannel--loop_parameter-loop-item":{"parameterType":"STRING"}}}}'
     - name: components-comp-for-loop-1
@@ -35,7 +35,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_int(x: int):\n    print(x)\n\n"],"image":"python:3.9"}'
+        print_int(x: int):\n    print(x)\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-10
       value: '{"dag":{"tasks":{"print-int-3":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-int-3"},"inputs":{"parameters":{"x":{"componentInputParameter":"pipelinechannel--list-dict-maker-1-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"a\"]"}}},"taskInfo":{"name":"print-int-3"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--list-dict-maker-1-Output":{"parameterType":"LIST"},"pipelinechannel--list-dict-maker-1-Output-loop-item":{"parameterType":"STRUCT"}}}}'
     - name: components-comp-for-loop-11
@@ -68,7 +68,7 @@ spec:
         list_dict_maker_0() -\u003e List[Dict[str, int]]:\n    \"\"\"Enforces strict
         type checking - returns a list of dictionaries \n    where keys are strings
         and values are integers. For testing type \n    handling during compilation.\"\"\"\n    return
-        [{''a'': 1, ''b'': 2}, {''a'': 2, ''b'': 3}, {''a'': 3, ''b'': 4}]\n\n"],"image":"python:3.9"}'
+        [{''a'': 1, ''b'': 2}, {''a'': 2, ''b'': 3}, {''a'': 3, ''b'': 4}]\n\n"],"image":"python:3.11"}'
     - name: components-1ae8be565131b8c7ec5ffc8e03ac7af15afb6dcd95ef8d33087aca373a4b70df
       value: '{"executorLabel":"exec-list-dict-maker-1","outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
     - name: implementations-1ae8be565131b8c7ec5ffc8e03ac7af15afb6dcd95ef8d33087aca373a4b70df
@@ -84,7 +84,7 @@ spec:
         list_dict_maker_1() -\u003e List[Dict]:\n    \"\"\"Utilizes generic dictionary
         typing (no enforcement of specific key or\n    value types).\n\n    Tests
         flexibility in type handling.\n    \"\"\"\n    return [{''a'': 1, ''b'': 2},
-        {''a'': 2, ''b'': 3}, {''a'': 3, ''b'': 4}]\n\n"],"image":"python:3.9"}'
+        {''a'': 2, ''b'': 3}, {''a'': 3, ''b'': 4}]\n\n"],"image":"python:3.11"}'
     - name: components-8d525622f8b91622073787310058be85ff563a019f2e268d47bffa49d10b0342
       value: '{"executorLabel":"exec-list-dict-maker-2","outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
     - name: implementations-8d525622f8b91622073787310058be85ff563a019f2e268d47bffa49d10b0342
@@ -99,7 +99,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         list_dict_maker_2() -\u003e List[dict]:\n    \"\"\"Returns a list of dictionaries
         without type enforcement.\n\n    Tests flexibility in type handling.\n    \"\"\"\n    return
-        [{''a'': 1, ''b'': 2}, {''a'': 2, ''b'': 3}, {''a'': 3, ''b'': 4}]\n\n"],"image":"python:3.9"}'
+        [{''a'': 1, ''b'': 2}, {''a'': 2, ''b'': 3}, {''a'': 3, ''b'': 4}]\n\n"],"image":"python:3.11"}'
     - name: components-c48bb447bbb57c3886a493ebda03842c1ef51f6d4dd651635e917f508d1175dd
       value: '{"executorLabel":"exec-list-dict-maker-3","outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
     - name: implementations-c48bb447bbb57c3886a493ebda03842c1ef51f6d4dd651635e917f508d1175dd
@@ -114,7 +114,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         list_dict_maker_3() -\u003e List:\n    \"\"\"Returns a basic list (no typing
         or structure guarantees).\n\n    Tests the limits of compiler type handling.\n    \"\"\"\n    return
-        [{''a'': 1, ''b'': 2}, {''a'': 2, ''b'': 3}, {''a'': 3, ''b'': 4}]\n\n"],"image":"python:3.9"}'
+        [{''a'': 1, ''b'': 2}, {''a'': 2, ''b'': 3}, {''a'': 3, ''b'': 4}]\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--loop_parameter":{"componentInputParameter":"loop_parameter"}}},"iteratorPolicy":{"parallelismLimit":2},"parameterIterator":{"itemInput":"pipelinechannel--loop_parameter-loop-item","items":{"inputParameter":"pipelinechannel--loop_parameter"}},"taskInfo":{"name":"for-loop-1"}},"for-loop-10":{"componentRef":{"name":"comp-for-loop-10"},"dependentTasks":["list-dict-maker-1"],"inputs":{"parameters":{"pipelinechannel--list-dict-maker-1-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"list-dict-maker-1"}}}},"parameterIterator":{"itemInput":"pipelinechannel--list-dict-maker-1-Output-loop-item","items":{"inputParameter":"pipelinechannel--list-dict-maker-1-Output"}},"taskInfo":{"name":"for-loop-10"}},"for-loop-11":{"componentRef":{"name":"comp-for-loop-11"},"dependentTasks":["list-dict-maker-2"],"inputs":{"parameters":{"pipelinechannel--list-dict-maker-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"list-dict-maker-2"}}}},"parameterIterator":{"itemInput":"pipelinechannel--list-dict-maker-2-Output-loop-item","items":{"inputParameter":"pipelinechannel--list-dict-maker-2-Output"}},"taskInfo":{"name":"for-loop-11"}},"for-loop-12":{"componentRef":{"name":"comp-for-loop-12"},"dependentTasks":["list-dict-maker-3"],"inputs":{"parameters":{"pipelinechannel--list-dict-maker-3-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"list-dict-maker-3"}}}},"parameterIterator":{"itemInput":"pipelinechannel--list-dict-maker-3-Output-loop-item","items":{"inputParameter":"pipelinechannel--list-dict-maker-3-Output"}},"taskInfo":{"name":"for-loop-12"}},"for-loop-13":{"componentRef":{"name":"comp-for-loop-13"},"dependentTasks":["list-dict-maker-1-2"],"inputs":{"parameters":{"pipelinechannel--list-dict-maker-1-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"list-dict-maker-1-2"}}}},"parameterIterator":{"itemInput":"pipelinechannel--list-dict-maker-1-2-Output-loop-item","items":{"inputParameter":"pipelinechannel--list-dict-maker-1-2-Output"}},"taskInfo":{"name":"for-loop-13"}},"for-loop-4":{"componentRef":{"name":"comp-for-loop-4"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-3","items":{"raw":"[{\"A_a\":
         \"1\", \"B_b\": \"2\"}, {\"A_a\": \"10\", \"B_b\": \"20\"}]"}},"taskInfo":{"name":"for-loop-4"}},"for-loop-8":{"componentRef":{"name":"comp-for-loop-8"},"iteratorPolicy":{"parallelismLimit":1},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-7","items":{"raw":"[{\"a\":

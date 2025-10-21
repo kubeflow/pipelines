@@ -9,7 +9,7 @@ spec:
     - name: components-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d
       value: '{"executorLabel":"exec-hello-world-container"}'
     - name: implementations-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d
-      value: '{"command":["echo","hello world"],"image":"python:3.9"}'
+      value: '{"command":["echo","hello world"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"hello-world-container":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world-container"},"taskInfo":{"name":"hello-world-container"}}}}}'
   entrypoint: entrypoint

@@ -31,7 +31,7 @@ spec:
         y_train, y_test = model_selection.train_test_split(\n        X, y, test_size=test_size,
         random_state=seed)\n    #fit model\n    model.fit(X_train, y_train)\n\n    #accuracy
         on test set\n    result = model.score(X_test, y_test)\n    metrics.log_metric(''accuracy'',
-        (result * 100.0))\n\n"],"image":"python:3.9"}'
+        (result * 100.0))\n\n"],"image":"python:3.11"}'
     - name: components-507141586ba39388ea617640b16454b71ab71dfefbfda1d7add5fd6b13fc6f36
       value: '{"executorLabel":"exec-html-visualization","outputDefinitions":{"artifacts":{"html_artifact":{"artifactType":{"schemaTitle":"system.HTML","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-507141586ba39388ea617640b16454b71ab71dfefbfda1d7add5fd6b13fc6f36
@@ -46,7 +46,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         html_visualization(html_artifact: Output[HTML]):\n    html_content = ''\u003c!DOCTYPE
         html\u003e\u003chtml\u003e\u003cbody\u003e\u003ch1\u003eHello world\u003c/h1\u003e\u003c/body\u003e\u003c/html\u003e''\n    with
-        open(html_artifact.path, ''w'') as f:\n        f.write(html_content)\n\n"],"image":"python:3.9"}'
+        open(html_artifact.path, ''w'') as f:\n        f.write(html_content)\n\n"],"image":"python:3.11"}'
     - name: components-070c6090f000ab4579ea9970fdbe93fd311d1b7a3d4e4c9735898c872ed91a8f
       value: '{"executorLabel":"exec-iris-sgdclassifier","inputDefinitions":{"parameters":{"test_samples_fraction":{"parameterType":"NUMBER_DOUBLE"}}},"outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.ClassificationMetrics","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-070c6090f000ab4579ea9970fdbe93fd311d1b7a3d4e4c9735898c872ed91a8f
@@ -69,7 +69,7 @@ spec:
         model_selection.cross_val_predict(\n        classifier, train_x, train_y,
         cv=3)\n    metrics.log_confusion_matrix(\n        [''Setosa'', ''Versicolour'',
         ''Virginica''],\n        confusion_matrix(\n            train_y,\n            predictions).tolist()  #
-        .tolist() to convert np array to list.\n    )\n\n"],"image":"python:3.9"}'
+        .tolist() to convert np array to list.\n    )\n\n"],"image":"python:3.11"}'
     - name: components-837e3b5eebdb2f6e1895391076d11f242320d5ee805a3712c681d87af27a0322
       value: '{"executorLabel":"exec-markdown-visualization","outputDefinitions":{"artifacts":{"markdown_artifact":{"artifactType":{"schemaTitle":"system.Markdown","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-837e3b5eebdb2f6e1895391076d11f242320d5ee805a3712c681d87af27a0322
@@ -84,7 +84,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         markdown_visualization(markdown_artifact: Output[Markdown]):\n    markdown_content
         = ''## Hello world \\n\\n Markdown content''\n    with open(markdown_artifact.path,
-        ''w'') as f:\n        f.write(markdown_content)\n\n"],"image":"python:3.9"}'
+        ''w'') as f:\n        f.write(markdown_content)\n\n"],"image":"python:3.11"}'
     - name: components-cedc2096e3940b72ca9724db5ab3d0ab9680a848e3c724b60de8adea53f2b7c8
       value: '{"executorLabel":"exec-wine-classification","outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.ClassificationMetrics","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-cedc2096e3940b72ca9724db5ab3d0ab9680a848e3c724b60de8adea53f2b7c8
@@ -110,7 +110,7 @@ spec:
         y_train, cv=3, method=''predict'')\n    fpr, tpr, thresholds = roc_curve(\n        y_true=y_train,
         y_score=y_scores[:, 1], pos_label=True)\n\n    # avoid inf thresholds\n    epsilon
         = 1e-6\n    thresholds = [1 - epsilon if t == float(''inf'') else t for t
-        in thresholds]\n\n    metrics.log_roc_curve(fpr, tpr, thresholds)\n\n"],"image":"python:3.9"}'
+        in thresholds]\n\n    metrics.log_roc_curve(fpr, tpr, thresholds)\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"digit-classification":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-digit-classification"},"taskInfo":{"name":"digit-classification"}},"html-visualization":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-html-visualization"},"taskInfo":{"name":"html-visualization"}},"iris-sgdclassifier":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-iris-sgdclassifier"},"inputs":{"parameters":{"test_samples_fraction":{"runtimeValue":{"constant":0.3}}}},"taskInfo":{"name":"iris-sgdclassifier"}},"markdown-visualization":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-markdown-visualization"},"taskInfo":{"name":"markdown-visualization"}},"wine-classification":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-wine-classification"},"taskInfo":{"name":"wine-classification"}}}}}'
   entrypoint: entrypoint

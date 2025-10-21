@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_op1(msg: str) -\u003e str:\n    print(msg)\n    return msg\n\n"],"image":"python:3.9"}'
+        print_op1(msg: str) -\u003e str:\n    print(msg)\n    return msg\n\n"],"image":"python:3.11"}'
     - name: components-f6ead56828d6931739aa4610b58f9697c110a2d8723f04e95256df73a90b2348
       value: '{"executorLabel":"exec-print-op2","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}}}'
     - name: implementations-f6ead56828d6931739aa4610b58f9697c110a2d8723f04e95256df73a90b2348

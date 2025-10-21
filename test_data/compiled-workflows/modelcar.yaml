@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         build_model_car(model: dsl.Output[dsl.Model]):\n    # Simulate pushing the
-        Modelcar to an OCI registry\n    model.uri = \"oci://registry.domain.local/org/repo:v1.0\"\n\n"],"image":"python:3.9"}'
+        Modelcar to an OCI registry\n    model.uri = \"oci://registry.domain.local/org/repo:v1.0\"\n\n"],"image":"python:3.11"}'
     - name: components-426fe71cde5719d1162c36199e1686f1b2df4551d1fa8fa13a093333ea09a456
       value: '{"executorLabel":"exec-get-model-files-list","inputDefinitions":{"artifacts":{"input_model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-426fe71cde5719d1162c36199e1686f1b2df4551d1fa8fa13a093333ea09a456
@@ -39,7 +39,7 @@ spec:
         = set(os.listdir(input_model.path))\n\n    if not filesInPath.issuperset(expected_files):\n        raise
         RuntimeError(\n            \"The model does not have expected files: \"\n            +
         \", \".join(sorted(expected_files.difference(filesInPath)))\n        )\n\n    return
-        \", \".join(sorted(filesInPath))\n\n"],"image":"python:3.9"}'
+        \", \".join(sorted(filesInPath))\n\n"],"image":"python:3.11"}'
     - name: components-comp-importer
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer

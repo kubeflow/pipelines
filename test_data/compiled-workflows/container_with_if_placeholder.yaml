@@ -12,7 +12,7 @@ spec:
       value: '{"args":["--output_path","{{$.outputs.parameters[''output_path''].output_file}}"],"command":["my_program","{\"IfPresent\":
         {\"InputName\": \"optional_input\", \"Then\": [\"{{$.inputs.parameters[''optional_input'']}}\"],
         \"Else\": [\"bye\"]}}","--dataset","{\"IfPresent\": {\"InputName\": \"optional_input\",
-        \"Then\": [\"{{$.outputs.artifacts[''dataset''].uri}}\"], \"Else\": [\"bye\"]}}"],"image":"python:3.9"}'
+        \"Then\": [\"{{$.outputs.artifacts[''dataset''].uri}}\"], \"Else\": [\"bye\"]}}"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"artifacts":{"dataset":{"artifactSelectors":[{"outputArtifactKey":"dataset","producerSubtask":"container-with-if-placeholder"}]}},"parameters":{"output_path":{"valueFromParameter":{"outputParameterKey":"output_path","producerSubtask":"container-with-if-placeholder"}}}},"tasks":{"container-with-if-placeholder":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-with-if-placeholder"},"inputs":{"parameters":{"optional_input":{"componentInputParameter":"optional_input"}}},"taskInfo":{"name":"container-with-if-placeholder"}}}},"inputDefinitions":{"parameters":{"optional_input":{"defaultValue":"default","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"output_path":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

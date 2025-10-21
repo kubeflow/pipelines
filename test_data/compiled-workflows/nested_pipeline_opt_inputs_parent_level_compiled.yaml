@@ -20,7 +20,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_nil_bool_default(componentInput: bool = None):\n    if componentInput
         != True:\n        raise ValueError(f\"componentInput should be True but is
-        {componentInput}\")\n\n"],"image":"python:3.9"}'
+        {componentInput}\")\n\n"],"image":"python:3.11"}'
     - name: components-9df5116e23bd19dbe520aeb571b4e8e7d639536a628a8608988c6424e43e453e
       value: '{"executorLabel":"exec-component-nil-int-default","inputDefinitions":{"parameters":{"componentInput":{"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
     - name: implementations-9df5116e23bd19dbe520aeb571b4e8e7d639536a628a8608988c6424e43e453e
@@ -34,7 +34,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_nil_int_default(componentInput: int = None):\n    if componentInput
-        != 1:\n        raise ValueError(f\"componentInput should be 1 but is {componentInput}\")\n\n"],"image":"python:3.9"}'
+        != 1:\n        raise ValueError(f\"componentInput should be 1 but is {componentInput}\")\n\n"],"image":"python:3.11"}'
     - name: components-4767fec1d25c0d4ccee124435b615e8f733fad285ae87247472a210f2f5d359d
       value: '{"executorLabel":"exec-component-nil-str-default","inputDefinitions":{"parameters":{"componentInput":{"isOptional":true,"parameterType":"STRING"}}}}'
     - name: implementations-4767fec1d25c0d4ccee124435b615e8f733fad285ae87247472a210f2f5d359d
@@ -49,7 +49,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_nil_str_default(componentInput: str = None):\n    if componentInput
         != ''Input - parent pipeline'':\n        raise ValueError(f\"componentInput
-        should be ''Input - parent pipeline'' but is {componentInput}\")\n\n"],"image":"python:3.9"}'
+        should be ''Input - parent pipeline'' but is {componentInput}\")\n\n"],"image":"python:3.11"}'
     - name: components-comp-nested-pipeline-nil-defaults
       value: '{"dag":{"tasks":{"component-nil-bool-default":{"cachingOptions":{},"componentRef":{"name":"comp-component-nil-bool-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputBool"}}},"taskInfo":{"name":"component-nil-bool-default"}},"component-nil-int-default":{"cachingOptions":{},"componentRef":{"name":"comp-component-nil-int-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputInt"}}},"taskInfo":{"name":"component-nil-int-default"}},"component-nil-str-default":{"cachingOptions":{},"componentRef":{"name":"comp-component-nil-str-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputStr"}}},"taskInfo":{"name":"component-nil-str-default"}}}},"inputDefinitions":{"parameters":{"nestedInputBool":{"isOptional":true,"parameterType":"BOOLEAN"},"nestedInputInt":{"isOptional":true,"parameterType":"NUMBER_INTEGER"},"nestedInputStr":{"defaultValue":"Input
         - nested pipeline","isOptional":true,"parameterType":"STRING"}}}}'
@@ -67,7 +67,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_bool_default(componentInput: bool = False):\n    if componentInput
         != True:\n        raise ValueError(f\"componentInput should be True but is
-        {componentInput}\")\n\n"],"image":"python:3.9"}'
+        {componentInput}\")\n\n"],"image":"python:3.11"}'
     - name: components-f2229e13b10e8a9cba43225f9f37de307a58f77689b763ddca00e6c1a91ebeb9
       value: '{"executorLabel":"exec-component-int-default","inputDefinitions":{"parameters":{"componentInput":{"defaultValue":0,"isOptional":true,"parameterType":"NUMBER_INTEGER"}}}}'
     - name: implementations-f2229e13b10e8a9cba43225f9f37de307a58f77689b763ddca00e6c1a91ebeb9
@@ -81,7 +81,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_int_default(componentInput: int = 0):\n    if componentInput !=
-        1:\n        raise ValueError(f\"componentInput should be 1 but is {componentInput}\")\n\n"],"image":"python:3.9"}'
+        1:\n        raise ValueError(f\"componentInput should be 1 but is {componentInput}\")\n\n"],"image":"python:3.11"}'
     - name: components-0a219828dd0af40be7391d96b166bbb7aea267342dde59869750e8b85c6306ff
       value: '{"executorLabel":"exec-component-str-default","inputDefinitions":{"parameters":{"componentInput":{"defaultValue":"Input
         - component","isOptional":true,"parameterType":"STRING"}}}}'
@@ -97,7 +97,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         component_str_default(componentInput: str = ''Input - component''):\n    if
         componentInput != ''Input - parent pipeline'':\n        raise ValueError(f\"componentInput
-        should be ''Input - parent pipeline'' but is {componentInput}\")\n\n"],"image":"python:3.9"}'
+        should be ''Input - parent pipeline'' but is {componentInput}\")\n\n"],"image":"python:3.11"}'
     - name: components-comp-nested-pipeline-non-nil-defaults
       value: '{"dag":{"tasks":{"component-bool-default":{"cachingOptions":{},"componentRef":{"name":"comp-component-bool-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputBool"}}},"taskInfo":{"name":"component-bool-default"}},"component-int-default":{"cachingOptions":{},"componentRef":{"name":"comp-component-int-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputInt"}}},"taskInfo":{"name":"component-int-default"}},"component-str-default":{"cachingOptions":{},"componentRef":{"name":"comp-component-str-default"},"inputs":{"parameters":{"componentInput":{"componentInputParameter":"nestedInputStr"}}},"taskInfo":{"name":"component-str-default"}}}},"inputDefinitions":{"parameters":{"nestedInputBool":{"defaultValue":false,"isOptional":true,"parameterType":"BOOLEAN"},"nestedInputInt":{"defaultValue":0,"isOptional":true,"parameterType":"NUMBER_INTEGER"},"nestedInputStr":{"defaultValue":"Input
         - nested pipeline","isOptional":true,"parameterType":"STRING"}}}}'

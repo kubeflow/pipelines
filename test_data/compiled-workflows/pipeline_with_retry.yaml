@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        add(a: float, b: float) -\u003e float:\n    return a + b\n\n"],"image":"python:3.9"}'
+        add(a: float, b: float) -\u003e float:\n    return a + b\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"add":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"componentInputParameter":"b"}}},"retryPolicy":{"backoffDuration":"0s","backoffFactor":2,"backoffMaxDuration":"3600s","maxRetryCount":3},"taskInfo":{"name":"add"}}}},"inputDefinitions":{"parameters":{"a":{"defaultValue":1,"isOptional":true,"parameterType":"NUMBER_DOUBLE"},"b":{"defaultValue":7,"isOptional":true,"parameterType":"NUMBER_DOUBLE"}}}}'
   entrypoint: entrypoint

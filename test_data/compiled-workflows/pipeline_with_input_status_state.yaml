@@ -21,7 +21,7 @@ spec:
         echo_state(status: dsl.PipelineTaskFinalStatus):\n    assert(status.state
         == ''COMPLETE'')\n    assert(''status-state-pipeline'' in status.pipeline_job_resource_name)\n    assert(status.pipeline_task_name
         == ''exit-handler-1'')\n    #TODO: Add assert statements to validate status.error_code
-        and status.error_message values once those fields have been implemented.\n\n"],"image":"python:3.9"}'
+        and status.error_message values once those fields have been implemented.\n\n"],"image":"python:3.11"}'
     - name: components-72cacb6e63f200dc565307f11e5792a0bcc013519ea2a8d43b76245d33942566
       value: '{"executorLabel":"exec-some-task"}'
     - name: implementations-72cacb6e63f200dc565307f11e5792a0bcc013519ea2a8d43b76245d33942566
@@ -34,7 +34,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        some_task():\n    print(''Executing some_task()...'')\n\n"],"image":"python:3.9"}'
+        some_task():\n    print(''Executing some_task()...'')\n\n"],"image":"python:3.11"}'
     - name: components-comp-exit-handler-1
       value: '{"dag":{"tasks":{"some-task":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-some-task"},"taskInfo":{"name":"some-task"}}}}}'
     - name: components-root

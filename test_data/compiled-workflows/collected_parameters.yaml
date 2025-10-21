@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         consume_ids(ids: List[str]) -\u003e str:\n    for id in ids:\n        print(f''Consuming:
-        {id}'')\n    return ''completed''\n\n"],"image":"python:3.9"}'
+        {id}'')\n    return ''completed''\n\n"],"image":"python:3.11"}'
     - name: components-9188bbf5b36c887074ca4eb40d70e9941b5a8c7907d6f07c5c30c0f5e2d5d77f
       value: '{"executorLabel":"exec-consume-single-id","inputDefinitions":{"parameters":{"id":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-9188bbf5b36c887074ca4eb40d70e9941b5a8c7907d6f07c5c30c0f5e2d5d77f
@@ -33,7 +33,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         consume_single_id(id: str) -\u003e str:\n    print(f''Consuming single: {id}'')\n    return
-        ''completed''\n\n"],"image":"python:3.9"}'
+        ''completed''\n\n"],"image":"python:3.11"}'
     - name: components-df2373cb8810b1a0954f3daeec49ae019a9421b35f7405c8e212dbfd47c1d48c
       value: '{"executorLabel":"exec-prepend-id","inputDefinitions":{"parameters":{"content":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-df2373cb8810b1a0954f3daeec49ae019a9421b35f7405c8e212dbfd47c1d48c
@@ -47,7 +47,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         prepend_id(content: str) -\u003e str:\n    print(f\"prepending: {content}
-        with ''model_id''\")\n    return f''model_id_{content}''\n\n"],"image":"python:3.9"}'
+        with ''model_id''\")\n    return f''model_id_{content}''\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-1
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--prepend-id-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"prepend-id"}}}},"tasks":{"consume-single-id":{"cachingOptions":{},"componentRef":{"name":"comp-consume-single-id"},"dependentTasks":["prepend-id"],"inputs":{"parameters":{"id":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"prepend-id"}}}},"taskInfo":{"name":"consume-single-id"}},"prepend-id":{"cachingOptions":{},"componentRef":{"name":"comp-prepend-id"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"prepend-id"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--split-ids-Output":{"parameterType":"LIST"},"pipelinechannel--split-ids-Output-loop-item":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--prepend-id-Output":{"parameterType":"LIST"}}}}'
     - name: components-4dc5ff1bee8506864b281bf8b8add721ff9352165ca4734c110638f55de15497
@@ -62,7 +62,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        split_ids(ids: str) -\u003e list:\n    return ids.split('','')\n\n"],"image":"python:3.9"}'
+        split_ids(ids: str) -\u003e list:\n    return ids.split('','')\n\n"],"image":"python:3.11"}'
     - name: components-comp-collecting-parameters
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"pipelinechannel--prepend-id-Output","producerSubtask":"for-loop-1"}}}},"tasks":{"consume-ids":{"cachingOptions":{},"componentRef":{"name":"comp-consume-ids"},"dependentTasks":["for-loop-1"],"inputs":{"parameters":{"ids":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--prepend-id-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"consume-ids"}},"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"dependentTasks":["split-ids"],"inputs":{"parameters":{"pipelinechannel--split-ids-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"split-ids"}}}},"parameterIterator":{"itemInput":"pipelinechannel--split-ids-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-ids-Output"}},"taskInfo":{"name":"for-loop-1"}},"split-ids":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-split-ids"},"inputs":{"parameters":{"ids":{"componentInputParameter":"model_ids"}}},"taskInfo":{"name":"split-ids"}}}},"inputDefinitions":{"parameters":{"model_ids":{"defaultValue":"","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
     - name: components-root

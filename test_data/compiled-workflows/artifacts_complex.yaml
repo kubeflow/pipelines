@@ -21,7 +21,7 @@ spec:
         add(\n    in_datasets: Input[List[Dataset]],\n    out_dataset: Output[Dataset],\n):\n    nums
         = []\n    for dataset in in_datasets:\n        with open(dataset.path) as
         f:\n            nums.append(int(f.read()))\n    with open(out_dataset.path,
-        ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.9"}'
+        ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.11"}'
     - name: components-be8ee4858aa0dabdc7c419be456f8e7751d0de0a26fe140352aaadb1050c4ba3
       value: '{"executorLabel":"exec-add-two-ints","inputDefinitions":{"artifacts":{"in_dataset1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"in_dataset2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-be8ee4858aa0dabdc7c419be456f8e7751d0de0a26fe140352aaadb1050c4ba3
@@ -38,7 +38,7 @@ spec:
         Output[Dataset],\n):\n    with open(in_dataset1.path) as f:\n        in_dataset1
         = int(f.read())\n\n    with open(in_dataset2.path) as f:\n        in_dataset2
         = int(f.read())\n\n    with open(out_dataset.path, ''w'') as f:\n        f.write(str(in_dataset1
-        + in_dataset2))\n\n"],"image":"python:3.9"}'
+        + in_dataset2))\n\n"],"image":"python:3.11"}'
     - name: components-comp-add-two-lists-of-datasets
       value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"out_dataset","producerSubtask":"add-two-ints"}]}}},"tasks":{"add":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets1"}}},"taskInfo":{"name":"add"}},"add-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets2"}}},"taskInfo":{"name":"add-2"}},"add-two-ints":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-ints"},"dependentTasks":["add","add-2"],"inputs":{"artifacts":{"in_dataset1":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add"}},"in_dataset2":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add-2"}}}},"taskInfo":{"name":"add-two-ints"}}}},"inputDefinitions":{"artifacts":{"in_datasets1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true},"in_datasets2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: components-ddb6006c75f716bd2d06e80c76e9743f6cc6dd588e1c1dda65066ba1d0ec3b49
@@ -54,7 +54,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         double(\n    num: int,\n    out_dataset: Output[Dataset],\n):\n    with open(out_dataset.path,
-        ''w'') as f:\n        f.write(str(2 * num))\n\n"],"image":"python:3.9"}'
+        ''w'') as f:\n        f.write(str(2 * num))\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-5
       value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--double-2-out_dataset":{"artifactSelectors":[{"outputArtifactKey":"out_dataset","producerSubtask":"double-2"}]}}},"tasks":{"double-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"double-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-3":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--threshold":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--double-2-out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
     - name: components-comp-for-loop-4

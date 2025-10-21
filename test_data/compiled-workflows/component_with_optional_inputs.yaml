@@ -22,7 +22,7 @@ spec:
         component_op(\n    input1: str = ''default value'',\n    input2: Optional[str]
         = None,\n    input3: Optional[str] = None,\n):\n    print(f''input1: {input1},
         type: {type(input1)}'')\n    print(f''input2: {input2}, type: {type(input2)}'')\n    print(f''input3:
-        {input3}, type: {type(input3)}'')\n\n"],"image":"python:3.9"}'
+        {input3}, type: {type(input3)}'')\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"component-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-op"},"inputs":{"parameters":{"input1":{"runtimeValue":{"constant":"Hello"}},"input2":{"runtimeValue":{"constant":"World"}}}},"taskInfo":{"name":"component-op"}}}}}'
   entrypoint: entrypoint

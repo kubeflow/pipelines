@@ -25,7 +25,7 @@ spec:
         \"\":\n            raise RuntimeError(\n                \"Expected the placeholder
         to be replaced with a value: \" + placeholder\n            )\n\n    assert
         task_name == \"print-all-placeholders\"\n    assert job_resource_name.startswith(\"pipeline-with-placeholders-\")\n\n    output
-        = \", \".join(allPlaceholders)\n    print(output)\n\n"],"image":"python:3.9"}'
+        = \", \".join(allPlaceholders)\n    print(output)\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"print-all-placeholders":{"cachingOptions":{},"componentRef":{"name":"comp-print-all-placeholders"},"inputs":{"parameters":{"job_id":{"runtimeValue":{"constant":"{{$.pipeline_job_uuid}}"}},"job_name":{"runtimeValue":{"constant":"{{$.pipeline_job_name}}"}},"job_resource_name":{"runtimeValue":{"constant":"{{$.pipeline_job_resource_name}}"}},"task_id":{"runtimeValue":{"constant":"{{$.pipeline_task_uuid}}"}},"task_name":{"runtimeValue":{"constant":"{{$.pipeline_task_name}}"}}}},"taskInfo":{"name":"print-all-placeholders"}}}}}'
   entrypoint: entrypoint

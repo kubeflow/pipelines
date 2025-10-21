@@ -24,7 +24,7 @@ spec:
         = f.read()\n        print(f\"Read content from: {file_path}\")\n        print(f\"Content:
         {content}\")\n        assert content == \"Hello from workspace!\"\n        return
         content\n    else:\n        print(f\"File not found at: {file_path}\")\n        return
-        \"File not found\"\n\n"],"image":"python:3.9"}'
+        \"File not found\"\n\n"],"image":"python:3.11"}'
     - name: components-64aebdd242571626248d5281bdedd9ce0fa8953ccf40f22c7d37ba51574f7e23
       value: '{"executorLabel":"exec-write-to-workspace","inputDefinitions":{"parameters":{"workspace_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-64aebdd242571626248d5281bdedd9ce0fa8953ccf40f22c7d37ba51574f7e23
@@ -42,7 +42,7 @@ spec:
         = os.path.join(workspace_path, \"data\", \"test_file.txt\")\n    os.makedirs(os.path.dirname(file_path),
         exist_ok=True)\n\n    with open(file_path, \"w\") as f:\n        f.write(\"Hello
         from workspace!\")\n\n    print(f\"Wrote file to: {file_path}\")\n    return
-        file_path\n\n"],"image":"python:3.9"}'
+        file_path\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"read-from-workspace"}}}},"tasks":{"read-from-workspace":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-from-workspace"},"dependentTasks":["write-to-workspace"],"inputs":{"parameters":{"file_path":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"write-to-workspace"}}}},"taskInfo":{"name":"read-from-workspace"}},"write-to-workspace":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-to-workspace"},"inputs":{"parameters":{"workspace_path":{"runtimeValue":{"constant":"{{$.workspace_path}}"}}}},"taskInfo":{"name":"write-to-workspace"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

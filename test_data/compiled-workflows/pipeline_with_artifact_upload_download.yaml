@@ -23,7 +23,7 @@ spec:
         output_dataset: Output[Dataset]):\n    from datasets import load_dataset\n    #
         Load data set from hugging face\n    ds = load_dataset(dataset_repo, dataset_name)\n    print(\"Downloaded
         Hugging Face data\")\n    print(f\"Now saving to {output_dataset.path}\")\n    ds.save_to_disk(output_dataset.path)\n    print(f\"Saved
-        to {output_dataset.path}\")\n\n"],"image":"python:3.9"}'
+        to {output_dataset.path}\")\n\n"],"image":"python:3.11"}'
     - name: components-d0f4b4d95b964a5d78a841aa20e3d529d81189e4c90f9b39a31332bb8c8d437c
       value: '{"executorLabel":"exec-print-dataset-info","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-d0f4b4d95b964a5d78a841aa20e3d529d81189e4c90f9b39a31332bb8c8d437c
@@ -39,7 +39,7 @@ spec:
         print_dataset_info(dataset: Dataset):\n    print(''Information about the artifact'')\n    print(''Name:'',
         dataset.name)\n    print(''URI:'', dataset.uri)\n    assert \"download-dataset-and-upload-as-artifact\"
         in dataset.uri, \"The URI of the downloaded artifact does not match the expected
-        function''s name that generated it\"\n\n"],"image":"python:3.9"}'
+        function''s name that generated it\"\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"download-dataset-and-upload-as-artifact":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-download-dataset-and-upload-as-artifact"},"inputs":{"parameters":{"dataset_name":{"componentInputParameter":"dataset_name"},"dataset_repo":{"componentInputParameter":"dataset_repo"}}},"taskInfo":{"name":"download-dataset-and-upload-as-artifact"}},"print-dataset-info":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-dataset-info"},"dependentTasks":["download-dataset-and-upload-as-artifact"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"output_dataset","producerTask":"download-dataset-and-upload-as-artifact"}}}},"taskInfo":{"name":"print-dataset-info"}}}},"inputDefinitions":{"parameters":{"dataset_name":{"defaultValue":"","isOptional":true,"parameterType":"STRING"},"dataset_repo":{"defaultValue":"google/frames-benchmark","isOptional":true,"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

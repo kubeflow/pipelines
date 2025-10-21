@@ -9,7 +9,7 @@ spec:
     - name: components-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d
       value: '{"executorLabel":"exec-container-no-input"}'
     - name: implementations-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d
-      value: '{"command":["echo","hello world"],"image":"python:3.9"}'
+      value: '{"command":["echo","hello world"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"container-no-input":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-container-no-input"},"taskInfo":{"name":"container-no-input"}}}}}'
   entrypoint: entrypoint

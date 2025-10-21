@@ -119,7 +119,7 @@ spec:
         open(\"/tmp/kfp_nb_outputs/metrics.json\", \"r\", encoding=\"utf-8\") as f:\n        metrics_dict
         = json.load(f)\n\n    assert metrics_dict == {\"score\": float(len(model_text))}\n\n    for
         metric_name, metric_value in metrics_dict.items():\n        metrics.log_metric(metric_name,
-        metric_value)\n\n"],"image":"python:3.9"}'
+        metric_value)\n\n"],"image":"python:3.11"}'
     - name: components-de426933840df1d5b1966245bfd35532f6a11ccaffa3dbb2311a6b7dbf3ec609
       value: '{"executorLabel":"exec-preprocess","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-de426933840df1d5b1966245bfd35532f6a11ccaffa3dbb2311a6b7dbf3ec609
@@ -134,7 +134,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\n\n\ndef
         preprocess(text: str, dataset: dsl.Output[dsl.Dataset]):\n    import re\n\n    cleaned_text
         = re.sub(r\"\\s+\", \" \", text).strip()\n    with open(dataset.path, \"w\",
-        encoding=\"utf-8\") as f:\n        f.write(cleaned_text)\n\n"],"image":"python:3.9"}'
+        encoding=\"utf-8\") as f:\n        f.write(cleaned_text)\n\n"],"image":"python:3.11"}'
     - name: components-0e704495704924f0f854d4c513ac164f987781625d13c72aabf7e58c7fc1d08c
       value: '{"executorLabel":"exec-train-model","inputDefinitions":{"artifacts":{"cleaned_text":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-0e704495704924f0f854d4c513ac164f987781625d13c72aabf7e58c7fc1d08c
@@ -247,7 +247,7 @@ spec:
         \"r\", encoding=\"utf-8\") as f:\n        cleaned_text = f.read()\n\n    dsl.run_notebook(cleaned_text=cleaned_text)\n\n    #
         Notebook writes its model into /tmp/kfp_nb_outputs/model.txt\n    shutil.copy(\"/tmp/kfp_nb_outputs/model.txt\",
         model.path)\n\n    with open(model.path, \"r\", encoding=\"utf-8\") as f:\n        model_text
-        = f.read()\n\n    assert model_text == cleaned_text.upper()\n\n"],"image":"python:3.9"}'
+        = f.read()\n\n    assert model_text == cleaned_text.upper()\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"evaluate-model":{"cachingOptions":{},"componentRef":{"name":"comp-evaluate-model"},"dependentTasks":["train-model"],"inputs":{"artifacts":{"model_text":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"train-model"}}}},"taskInfo":{"name":"evaluate-model"}},"preprocess":{"cachingOptions":{},"componentRef":{"name":"comp-preprocess"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"preprocess"}},"train-model":{"cachingOptions":{},"componentRef":{"name":"comp-train-model"},"dependentTasks":["preprocess"],"inputs":{"artifacts":{"cleaned_text":{"taskOutputArtifact":{"outputArtifactKey":"dataset","producerTask":"preprocess"}}}},"taskInfo":{"name":"train-model"}}}},"inputDefinitions":{"parameters":{"text":{"defaultValue":"Hello   world","isOptional":true,"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

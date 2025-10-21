@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        crust_comp(input: str):\n    print(''input :'', input)\n\n"],"image":"python:3.9"}'
+        crust_comp(input: str):\n    print(''input :'', input)\n\n"],"image":"python:3.11"}'
     - name: components-a7bb13e035d75f1941d4a901687d98eb7be27da4abc34edc24ecdb00bb99d745
       value: '{"executorLabel":"exec-core-comp","inputDefinitions":{"parameters":{"input":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-a7bb13e035d75f1941d4a901687d98eb7be27da4abc34edc24ecdb00bb99d745
@@ -32,7 +32,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         core_comp(input: str) -\u003e str:\n    print(''input :'', input)\n    return
-        input\n\n"],"image":"python:3.9"}'
+        input\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-2
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--core-comp-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"core-comp"}}}},"tasks":{"core-comp":{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"Got
         heads!"}}}},"taskInfo":{"name":"core-comp"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--core-comp-Output":{"parameterType":"STRING"}}}}'
@@ -49,7 +49,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         core_output_comp(input: str, output_key: dsl.OutputPath(str)):\n    print(''input
-        :'', input)\n    with open(output_key, ''w'') as f:\n        f.write(input)\n\n"],"image":"python:3.9"}'
+        :'', input)\n    with open(output_key, ''w'') as f:\n        f.write(input)\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-3
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--core-output-comp-output_key":{"valueFromParameter":{"outputParameterKey":"output_key","producerSubtask":"core-output-comp"}}}},"tasks":{"core-output-comp":{"cachingOptions":{},"componentRef":{"name":"comp-core-output-comp"},"inputs":{"parameters":{"input":{"runtimeValue":{"constant":"Got
         tails!"}}}},"taskInfo":{"name":"core-output-comp"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--core-output-comp-output_key":{"parameterType":"STRING"}}}}'
@@ -70,7 +70,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         flip_coin() -\u003e str:\n    import random\n    return ''heads'' if random.randint(0,
-        1) == 0 else ''tails''\n\n"],"image":"python:3.9"}'
+        1) == 0 else ''tails''\n\n"],"image":"python:3.11"}'
     - name: components-comp-core
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"pipelinechannel--condition-branches-1-oneof-1","producerSubtask":"condition-branches-1"}}}},"tasks":{"condition-branches-1":{"componentRef":{"name":"comp-condition-branches-1"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-branches-1"}},"flip-coin":{"cachingOptions":{},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: components-comp-mantle

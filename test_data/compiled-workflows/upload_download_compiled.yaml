@@ -23,7 +23,7 @@ spec:
         %s, size is %s\" % (incomingfile, os.path.getsize(incomingfile)))\n\n    with
         open(incomingfile, \"rb\") as f:\n        b = f.read(1)\n        print(\"read
         byte: %s\" % b)\n        f.close()\n\n    print(\"copying in %s to out %s\"
-        % (incomingfile, saveartifact))\n    shutil.copyfile(incomingfile, saveartifact)\n\n"],"image":"python:3.9"}'
+        % (incomingfile, saveartifact))\n    shutil.copyfile(incomingfile, saveartifact)\n\n"],"image":"python:3.11"}'
     - name: components-2baa105dc921c5395c01625982411e9ae576e4eeaed37130715ad12ac007288f
       value: '{"executorLabel":"exec-send-file","inputDefinitions":{"parameters":{"file_size_bytes":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"outgoingfile":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-2baa105dc921c5395c01625982411e9ae576e4eeaed37130715ad12ac007288f
@@ -43,7 +43,7 @@ spec:
         \"w\", compression=zipfile.ZIP_DEFLATED) as zipf:\n            zipf.write(input_file_path,
         os.path.basename(input_file_path))\n\n    print(\"starting creating the file...\")\n    file_path
         = \"/tmp/large_file.txt\"\n    create_large_file(file_path, file_size_bytes)\n    zip_file(file_path,
-        outgoingfile)\n    print(f\"saved: {outgoingfile}\")\n\n"],"image":"python:3.9"}'
+        outgoingfile)\n    print(f\"saved: {outgoingfile}\")\n\n"],"image":"python:3.11"}'
     - name: components-55196ea4ba5ecbd374c5ad86dbe244930e8558effdeb5a02e2a7f98d71dbbdc6
       value: '{"executorLabel":"exec-test-uploaded-artifact","inputDefinitions":{"artifacts":{"previous_step":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}},"parameters":{"bucket_name":{"parameterType":"STRING"},"file_size_bytes":{"parameterType":"NUMBER_INTEGER"},"mlpipeline_minio_artifact_secret":{"parameterType":"STRING"}}}}'
     - name: implementations-55196ea4ba5ecbd374c5ad86dbe244930e8558effdeb5a02e2a7f98d71dbbdc6
@@ -73,7 +73,7 @@ spec:
         \"wb\") as file_data:\n        for d in data.stream(32 * 1024):\n            file_data.write(d)\n        bytes_written
         = file_data.tell()\n\n    print(file_size_bytes, bytes_written)\n    diff
         = round((bytes_written / file_size_bytes) - 1, 3)\n    print(diff)\n    #
-        if not matching, the test will fail\n    assert diff == 0\n\n"],"image":"python:3.9"}'
+        if not matching, the test will fail\n    assert diff == 0\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"receive-file":{"cachingOptions":{},"componentRef":{"name":"comp-receive-file"},"dependentTasks":["send-file"],"inputs":{"artifacts":{"incomingfile":{"taskOutputArtifact":{"outputArtifactKey":"outgoingfile","producerTask":"send-file"}}}},"taskInfo":{"name":"receive-file"}},"send-file":{"cachingOptions":{},"componentRef":{"name":"comp-send-file"},"inputs":{"parameters":{"file_size_bytes":{"runtimeValue":{"constant":20971520}}}},"taskInfo":{"name":"send-file"}},"test-uploaded-artifact":{"cachingOptions":{},"componentRef":{"name":"comp-test-uploaded-artifact"},"dependentTasks":["receive-file"],"inputs":{"artifacts":{"previous_step":{"taskOutputArtifact":{"outputArtifactKey":"saveartifact","producerTask":"receive-file"}}},"parameters":{"bucket_name":{"componentInputParameter":"bucket_name"},"file_size_bytes":{"runtimeValue":{"constant":20971520}},"mlpipeline_minio_artifact_secret":{"componentInputParameter":"mlpipeline_minio_artifact_secret"}}},"taskInfo":{"name":"test-uploaded-artifact"}}}},"inputDefinitions":{"parameters":{"bucket_name":{"parameterType":"STRING"},"mlpipeline_minio_artifact_secret":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint

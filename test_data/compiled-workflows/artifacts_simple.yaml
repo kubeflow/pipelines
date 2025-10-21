@@ -21,7 +21,7 @@ spec:
         add(in_datasets: Input[List[Dataset]], out_dataset: Output[Dataset]):\n    nums
         = []\n    for dataset in in_datasets:\n        with open(dataset.path) as
         f:\n            nums.append(int(f.read()))\n    with open(out_dataset.path,
-        ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.9"}'
+        ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.11"}'
     - name: components-699e6289d2b910228c41f94be6dd87fc0851d8dd1e68d93412ad045a9db72279
       value: '{"executorLabel":"exec-add-container","inputDefinitions":{"artifacts":{"in_datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-699e6289d2b910228c41f94be6dd87fc0851d8dd1e68d93412ad045a9db72279
@@ -31,7 +31,7 @@ spec:
         ''/gcs/'')) as f:\n            total += int(f.read())\n\n    outpath = out_dataset_uri.replace(''gs://'',
         ''/gcs/'')\n    os.makedirs(os.path.dirname(outpath), exist_ok=True)\n    with
         open(outpath, ''w'') as f:\n        f.write(str(total))\n\nparser = argparse.ArgumentParser()\nparser.add_argument(''in_datasets'')\nparser.add_argument(''out_dataset_uri'')\nargs
-        = parser.parse_args()\n\nmain(args.in_datasets, args.out_dataset_uri)\n","{{$.inputs.artifacts[''in_datasets'']}}","{{$.outputs.artifacts[''out_dataset''].uri}}"],"command":["python","-c"],"image":"python:3.9"}'
+        = parser.parse_args()\n\nmain(args.in_datasets, args.out_dataset_uri)\n","{{$.inputs.artifacts[''in_datasets'']}}","{{$.outputs.artifacts[''out_dataset''].uri}}"],"command":["python","-c"],"image":"python:3.11"}'
     - name: components-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b
       value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b
@@ -45,7 +45,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         double(num: int, out_dataset: Output[Dataset]):\n    with open(out_dataset.path,
-        ''w'') as f:\n        f.write(str(2 * num))\n\n"],"image":"python:3.9"}'
+        ''w'') as f:\n        f.write(str(2 * num))\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-2
       value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--double-out_dataset":{"artifactSelectors":[{"outputArtifactKey":"out_dataset","producerSubtask":"double"}]}}},"tasks":{"double":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--double-out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
     - name: components-root

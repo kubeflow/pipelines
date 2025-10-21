@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        crust_comp(input: str):\n    print(''input :'', input)\n\n"],"image":"python:3.9"}'
+        crust_comp(input: str):\n    print(''input :'', input)\n\n"],"image":"python:3.11"}'
     - name: components-ee0778c93e3b1661b503b59214cb8f679694b2ecc4aa2e53dd25ba5c03529348
       value: '{"executorLabel":"exec-core-comp","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-ee0778c93e3b1661b503b59214cb8f679694b2ecc4aa2e53dd25ba5c03529348
@@ -31,7 +31,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        core_comp() -\u003e str:\n    return ''foo''\n\n"],"image":"python:3.9"}'
+        core_comp() -\u003e str:\n    return ''foo''\n\n"],"image":"python:3.11"}'
     - name: components-comp-core
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"core-comp"}}}},"tasks":{"core-comp":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: components-comp-mantle

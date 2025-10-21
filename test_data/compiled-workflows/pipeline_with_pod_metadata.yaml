@@ -26,7 +26,7 @@ spec:
         annotation is {annotation} but is supposed to be None.''\n        )\n    label
         = os.getenv(''POD_TASK_LABEL'')\n    label_2 = os.getenv(''POD_TASK_LABEL_1'')\n    if
         label != '''' or label_2 != '''':\n        raise ValueError(\n            f''Pod
-        label is {label} but is supposed to be None.''\n        )\n    return True\n\n"],"image":"python:3.9"}'
+        label is {label} but is supposed to be None.''\n        )\n    return True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata-task-a
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation'']","name":"POD_TASK_ANNOTATION"},{"fieldPath":"metadata.labels[''task-label-1'']","name":"POD_TASK_LABEL_1"},{"fieldPath":"metadata.labels[''task-label-2'']","name":"POD_TASK_LABEL_2"}],"podMetadata":{"annotations":{"task-annotation":"annotation"},"labels":{"task-label-1":"label-1","task-label-2":"label-2"}}}'
     - name: components-a58a8ba91674b53e9cfd2a56b122fa32c32733648c4337cfd4d489147baa0351
@@ -52,7 +52,7 @@ spec:
         be {label_exp_val_1}.''\n        )\n\n    label_val_2 = os.getenv(label_path_2)\n    if
         label_val_2 != label_exp_val_2:\n        raise ValueError(\n            f''Pod
         label is {label_val_2} but is supposed to be {label_exp_val_2}.''\n        )\n    return
-        True\n\n"],"image":"python:3.9"}'
+        True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata-task-b
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation-1'']","name":"POD_TASK_ANNOTATION_1"},{"fieldPath":"metadata.annotations[''task-annotation-2'']","name":"POD_TASK_ANNOTATION_2"},{"fieldPath":"metadata.annotations[''task-annotation-3'']","name":"POD_TASK_ANNOTATION_3"},{"fieldPath":"metadata.annotations[''task-annotation-4'']","name":"POD_TASK_ANNOTATION_4"},{"fieldPath":"metadata.labels[''task-label-1'']","name":"POD_TASK_LABEL_1"},{"fieldPath":"metadata.labels[''task-label-2'']","name":"POD_TASK_LABEL_2"},{"fieldPath":"metadata.labels[''task-label-3'']","name":"POD_TASK_LABEL_3"}],"podMetadata":{"annotations":{"task-annotation-1":"annotation-1","task-annotation-2":"annotation-2","task-annotation-3":"annotation-3","task-annotation-4":"annotation-4"},"labels":{"task-label-1":"label-1","task-label-2":"label-2","task-label-3":"label-3"}}}'
     - name: components-ff4adfd20fbb1ccd7f6e9330882576b7e34ffba16bc568acc10956b8652c28d9
@@ -92,7 +92,7 @@ spec:
         be {label_exp_val_2}.''\n        )\n    label_val_3 = os.getenv(label_path_3)\n    if
         label_val_3 != label_exp_val_3:\n        raise ValueError(\n            f''Pod
         label is {label_val_3} but is supposed to be {label_exp_val_3}.''\n        )\n    return
-        True\n\n"],"image":"python:3.9"}'
+        True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata-task-c
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation-1'']","name":"POD_TASK_ANNOTATION_1"},{"fieldPath":"metadata.annotations[''task-annotation-2'']","name":"POD_TASK_ANNOTATION_2"}],"podMetadata":{"annotations":{"task-annotation-1":"annotation-1","task-annotation-2":"annotation-2"}}}'
     - name: components-0fe8b44e6cf954e8e447976b0b620a7737c5a0371bfd14ca4329c665328fa1d6
@@ -114,7 +114,7 @@ spec:
         annotation is {annotation_val_1} but is supposed to be {annotation_exp_val_1}.''\n        )\n\n    annotation_val_2
         = os.getenv(annotation_path_2)\n    if annotation_val_2 != annotation_exp_val_2:\n        raise
         ValueError(\n            f''Pod annotation is {annotation_val_2} but is supposed
-        to be {annotation_exp_val_2}.''\n        )\n    return True\n\n"],"image":"python:3.9"}'
+        to be {annotation_exp_val_2}.''\n        )\n    return True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata-task-d
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.labels[''task-label-1'']","name":"POD_TASK_LABEL_1"},{"fieldPath":"metadata.labels[''task-label-2'']","name":"POD_TASK_LABEL_2"},{"fieldPath":"metadata.labels[''task-label-3'']","name":"POD_TASK_LABEL_3"}],"podMetadata":{"labels":{"task-label-1":"label-1","task-label-2":"label-2","task-label-3":"label-3"}}}'
     - name: components-9ed49be6257bd027ea2d0882c606eddc7d5d2e83c82c63774ddd209b876bc316
@@ -140,7 +140,7 @@ spec:
         be {label_exp_val_2}.''\n        )\n    label_val_3 = os.getenv(label_path_3)\n    if
         label_val_3 != label_exp_val_3:\n        raise ValueError(\n            f''Pod
         label is {label_val_3} but is supposed to be {label_exp_val_3}.''\n        )\n    return
-        True\n\n"],"image":"python:3.9"}'
+        True\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"validate-no-pod-metadata":{"cachingOptions":{},"componentRef":{"name":"comp-validate-no-pod-metadata"},"taskInfo":{"name":"validate-no-pod-metadata"}},"validate-pod-metadata-task-a":{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-a"},"inputs":{"parameters":{"annotation_exp_val":{"runtimeValue":{"constant":"annotation"}},"annotation_path":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION"}},"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}}}},"taskInfo":{"name":"validate-pod-metadata-task-a"}},"validate-pod-metadata-task-b":{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-b"},"inputs":{"parameters":{"annotation_exp_val_1":{"runtimeValue":{"constant":"annotation-1"}},"annotation_exp_val_2":{"runtimeValue":{"constant":"annotation-2"}},"annotation_exp_val_3":{"runtimeValue":{"constant":"annotation-3"}},"annotation_exp_val_4":{"runtimeValue":{"constant":"annotation-4"}},"annotation_path_1":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_1"}},"annotation_path_2":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_2"}},"annotation_path_3":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_3"}},"annotation_path_4":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_4"}},"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_exp_val_3":{"runtimeValue":{"constant":"label-3"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}},"label_path_3":{"runtimeValue":{"constant":"POD_TASK_LABEL_3"}}}},"taskInfo":{"name":"validate-pod-metadata-task-b"}},"validate-pod-metadata-task-c":{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-c"},"inputs":{"parameters":{"annotation_exp_val_1":{"runtimeValue":{"constant":"annotation-1"}},"annotation_exp_val_2":{"runtimeValue":{"constant":"annotation-2"}},"annotation_path_1":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_1"}},"annotation_path_2":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_2"}}}},"taskInfo":{"name":"validate-pod-metadata-task-c"}},"validate-pod-metadata-task-d":{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-task-d"},"inputs":{"parameters":{"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_exp_val_3":{"runtimeValue":{"constant":"label-3"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}},"label_path_3":{"runtimeValue":{"constant":"POD_TASK_LABEL_3"}}}},"taskInfo":{"name":"validate-pod-metadata-task-d"}}}}}'
   entrypoint: entrypoint

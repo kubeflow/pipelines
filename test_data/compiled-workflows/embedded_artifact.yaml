@@ -32,7 +32,7 @@ spec:
         __KFP_EMBEDDED_ASSET_DIR)\n\n\n\n\ndef read_embedded_artifact_dir(artifact:
         dsl.EmbeddedInput[dsl.Dataset]):\n    import os\n\n    with open(os.path.join(artifact.path,
         \"log.txt\"), \"r\", encoding=\"utf-8\") as f:\n        log = f.read()\n\n    assert
-        log == \"Hello, world!\"\n\n"],"image":"python:3.9"}'
+        log == \"Hello, world!\"\n\n"],"image":"python:3.11"}'
     - name: components-302f28ee42e44910a1eb45593566a12b430150b643fb02ded3ae7838c0cea331
       value: '{"executorLabel":"exec-read-embedded-artifact-file"}'
     - name: implementations-302f28ee42e44910a1eb45593566a12b430150b643fb02ded3ae7838c0cea331
@@ -59,7 +59,7 @@ spec:
         __KFP_EMBEDDED_ASSET_DIR)\n\n__KFP_EMBEDDED_ASSET_FILE = __kfp_os.path.join(__KFP_EMBEDDED_ASSET_DIR,
         ''log.txt'')\n\n\n\n\ndef read_embedded_artifact_file(artifact: dsl.EmbeddedInput[dsl.Dataset]):\n    with
         open(artifact.path, \"r\", encoding=\"utf-8\") as f:\n        log = f.read()\n\n    assert
-        log == \"Hello, world!\"\n\n"],"image":"python:3.9"}'
+        log == \"Hello, world!\"\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"read-embedded-artifact-dir":{"cachingOptions":{},"componentRef":{"name":"comp-read-embedded-artifact-dir"},"taskInfo":{"name":"read-embedded-artifact-dir"}},"read-embedded-artifact-file":{"cachingOptions":{},"componentRef":{"name":"comp-read-embedded-artifact-file"},"taskInfo":{"name":"read-embedded-artifact-file"}}}}}'
   entrypoint: entrypoint

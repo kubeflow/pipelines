@@ -20,7 +20,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         args_generator_op() -\u003e list:\n    return [\n        {\n            ''A_a'':
         ''1'',\n            ''B_b'': [''2'', ''20''],\n        },\n        {\n            ''A_a'':
-        ''10'',\n            ''B_b'': [''22'', ''222''],\n        },\n    ]\n\n"],"image":"python:3.9"}'
+        ''10'',\n            ''B_b'': [''22'', ''222''],\n        },\n    ]\n\n"],"image":"python:3.11"}'
     - name: components-5cc139171a458f30e91631e3d693f08f057723d3c0c51040446f26fb0b5fd6c8
       value: '{"executorLabel":"exec-print-text-2","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"},"msg2":{"isOptional":true,"parameterType":"STRING"}}}}'
     - name: implementations-5cc139171a458f30e91631e3d693f08f057723d3c0c51040446f26fb0b5fd6c8
@@ -34,7 +34,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         print_text(msg: str, msg2: Optional[str] = None):\n    print(f''msg: {msg},
-        msg2: {msg2}'')\n\n"],"image":"python:3.9"}'
+        msg2: {msg2}'')\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-3
       value: '{"dag":{"tasks":{"print-text-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--args-generator-op-Output-loop-item","parameterExpressionSelector":"parseJson(string_value)[\"B_b\"]"}}},"taskInfo":{"name":"print-text-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"parameterType":"STRING"},"pipelinechannel--args-generator-op-Output-loop-item-subvar-A_a":{"parameterType":"STRING"},"pipelinechannel--flip-coin-op-Output":{"parameterType":"STRING"}}}}'
     - name: components-comp-condition-4
@@ -51,7 +51,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_struct(struct: dict):\n    print(struct)\n\n"],"image":"python:3.9"}'
+        print_struct(struct: dict):\n    print(struct)\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-7
       value: '{"dag":{"tasks":{"print-struct":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-struct"},"inputs":{"parameters":{"struct":{"componentInputParameter":"pipelinechannel--loop-item-param-6"}}},"taskInfo":{"name":"print-struct"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--args-generator-op-Output-loop-item":{"parameterType":"STRING"},"pipelinechannel--flip-coin-op-Output":{"parameterType":"STRING"},"pipelinechannel--loop-item-param-6":{"parameterType":"STRUCT"}}}}'
     - name: components-comp-condition-5
@@ -90,7 +90,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         flip_coin_op() -\u003e str:\n    \"\"\"Flip a coin and output heads or tails
         randomly.\"\"\"\n    import random\n    result = ''heads'' if random.randint(0,
-        1) == 0 else ''tails''\n    return result\n\n"],"image":"python:3.9"}'
+        1) == 0 else ''tails''\n    return result\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-16
       value: '{"dag":{"tasks":{"print-text-9":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-text-9"},"inputs":{"parameters":{"msg":{"componentInputParameter":"pipelinechannel--loop_parameter-loop-item-subvar-B_b-loop-item"}}},"taskInfo":{"name":"print-text-9"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop_parameter-loop-item":{"parameterType":"STRING"},"pipelinechannel--loop_parameter-loop-item-subvar-B_b":{"parameterType":"STRING"},"pipelinechannel--loop_parameter-loop-item-subvar-B_b-loop-item":{"parameterType":"STRING"}}}}'
     - name: components-comp-condition-15

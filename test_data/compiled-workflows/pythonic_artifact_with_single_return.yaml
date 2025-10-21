@@ -29,7 +29,7 @@ spec:
         on text here #\n\n    def dummy_model(x: str) -\u003e str:\n        return
         x\n\n    model = Model(\n        uri=dsl.get_uri(suffix=''model''),\n        metadata={''data'':
         text_dataset.name},\n    )\n\n    with open(model.path, ''wb'') as f:\n        dill.dump(dummy_model,
-        f)\n\n    return model\n\n"],"image":"python:3.9"}'
+        f)\n\n    return model\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"Output","producerSubtask":"make-language-model"}]}}},"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"}}}},"taskInfo":{"name":"importer"}},"make-language-model":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-language-model"},"dependentTasks":["importer"],"inputs":{"artifacts":{"text_dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"make-language-model"}}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
   entrypoint: entrypoint

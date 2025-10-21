@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         add(nums: List[List[int]]) -\u003e int:\n    import itertools\n    return
-        sum(itertools.chain(*nums))\n\n"],"image":"python:3.9"}'
+        sum(itertools.chain(*nums))\n\n"],"image":"python:3.11"}'
     - name: components-820c6b84550cd793dda8df1e7a9d6e31a46ac14583a0ed36ad9bf2844d5f25b4
       value: '{"executorLabel":"exec-echo-and-return","inputDefinitions":{"parameters":{"string":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-820c6b84550cd793dda8df1e7a9d6e31a46ac14583a0ed36ad9bf2844d5f25b4
@@ -32,7 +32,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        echo_and_return(string: str) -\u003e str:\n    print(string)\n    return string\n\n"],"image":"python:3.9"}'
+        echo_and_return(string: str) -\u003e str:\n    print(string)\n    return string\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-2-2
       value: '{"dag":{"outputs":{"parameters":{"pipelinechannel--echo-and-return-Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"echo-and-return"}}}},"tasks":{"echo-and-return":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-echo-and-return"},"inputs":{"parameters":{"string":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"echo-and-return"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--loop-item-param-1":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"pipelinechannel--echo-and-return-Output":{"parameterType":"LIST"}}}}'
     - name: components-comp-add-pipeline
@@ -50,7 +50,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        double(num: int) -\u003e int:\n    return 2 * num\n\n"],"image":"python:3.9"}'
+        double(num: int) -\u003e int:\n    return 2 * num\n\n"],"image":"python:3.11"}'
     - name: components-comp-double-pipeline
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"double"}}}},"tasks":{"double":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"num"}}},"taskInfo":{"name":"double"}}}},"inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
     - name: components-comp-for-loop-4
@@ -70,7 +70,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        join_and_print(strings: List[str]):\n    print(''''.join(strings))\n\n"],"image":"python:3.9"}'
+        join_and_print(strings: List[str]):\n    print(''''.join(strings))\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"out1","producerSubtask":"add-pipeline"}}}},"tasks":{"add-pipeline":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-pipeline"},"dependentTasks":["for-loop-2"],"inputs":{"parameters":{"nums":{"taskOutputParameter":{"outputParameterKey":"pipelinechannel--double-pipeline-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add-pipeline"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"parameterIterator":{"itemInput":"pipelinechannel--loop-item-param-1","items":{"raw":"[1,
         2, 3]"}},"taskInfo":{"name":"for-loop-2"}},"join-and-print":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-join-and-print"},"dependentTasks":["add-pipeline"],"inputs":{"parameters":{"strings":{"taskOutputParameter":{"outputParameterKey":"out2","producerTask":"add-pipeline"}}}},"taskInfo":{"name":"join-and-print"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'

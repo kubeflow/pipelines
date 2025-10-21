@@ -98,7 +98,7 @@ deploymentSpec:
           \ *\n\ndef core_comp() -> NamedTuple('outputs', val1=str, val2=str):  #\
           \ type: ignore\n    outputs = NamedTuple('outputs', val1=str, val2=str)\n\
           \    return outputs('foo', 'bar')\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-crust-comp:
       container:
         args:
@@ -127,7 +127,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef crust_comp(val1: str, val2: str):\n    print('val1: ', val1)\n\
           \    print('val2: ', val2)\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: multiple-parameters-namedtuple-pipeline
 root:
