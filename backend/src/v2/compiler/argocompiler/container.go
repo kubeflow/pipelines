@@ -545,7 +545,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		},
 	}
 	// If the apiserver is TLS-enabled, add the custom CA bundle to the executor.
-	if c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled() {
+	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
 		ConfigureCustomCABundle(executor)
 	}
 
