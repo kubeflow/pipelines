@@ -135,11 +135,6 @@ func main() {
 		glog.Fatalf("Failed to parse Cert paths. Err: %v", err)
 	}
 
-	tlsCfg, err := initCerts()
-	if err != nil {
-		glog.Fatalf("Failed to parse Cert paths. Err: %v", err)
-	}
-
 	logLevel := *logLevelFlag
 	if logLevel == "" {
 		logLevel = "info"
