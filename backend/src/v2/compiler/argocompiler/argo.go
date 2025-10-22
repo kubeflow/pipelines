@@ -31,7 +31,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -185,8 +184,17 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 
 	// compile
 	err = compiler.Accept(job, kubernetesSpec, c)
+	if err != nil {
+		return nil, err
+	}
 
-	return c.wf, err
+	// Apply any workflow spec patches from environment variable
+	patchJSON := common.GetCompiledPipelineSpecPatch()
+	if err := c.ApplyWorkflowSpecPatch(patchJSON); err != nil {
+		return nil, fmt.Errorf("failed to apply workflow spec patch: %w", err)
+	}
+
+	return c.wf, nil
 }
 
 func retrieveLastValidString(s string) string {
@@ -534,7 +542,7 @@ func GetWorkspacePVC(
 		}
 	}
 
-	quantity, err := resource.ParseQuantity(sizeStr)
+	quantity, err := k8sres.ParseQuantity(sizeStr)
 	if err != nil {
 		return k8score.PersistentVolumeClaim{}, fmt.Errorf("invalid size value for workspace PVC: %v", err)
 	}
@@ -542,7 +550,7 @@ func GetWorkspacePVC(
 		return k8score.PersistentVolumeClaim{}, fmt.Errorf("negative size value for workspace PVC: %v", sizeStr)
 	}
 	if pvcSpec.Resources.Requests == nil {
-		pvcSpec.Resources.Requests = make(map[k8score.ResourceName]resource.Quantity)
+		pvcSpec.Resources.Requests = make(map[k8score.ResourceName]k8sres.Quantity)
 	}
 	pvcSpec.Resources.Requests[k8score.ResourceStorage] = quantity
 

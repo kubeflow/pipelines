@@ -39,6 +39,7 @@ const (
 	MetadataTLSEnabled             string = "METADATA_TLS_ENABLED"
 	CaBundleSecretName             string = "CABUNDLE_SECRET_NAME"
 	RequireNamespaceForPipelines   string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
+	CompiledPipelineSpecPatch               string = "COMPILED_PIPELINE_SPEC_PATCH"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {
@@ -158,4 +159,8 @@ func GetMetadataTLSEnabled() bool {
 
 func GetCaBundleSecretName() string {
 	return GetStringConfigWithDefault(CaBundleSecretName, "")
+}
+
+func GetCompiledPipelineSpecPatch() string {
+	return GetStringConfigWithDefault(CompiledPipelineSpecPatch, "{}")
 }

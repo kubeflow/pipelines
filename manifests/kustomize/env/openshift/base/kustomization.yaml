@@ -65,6 +65,12 @@ patches:
     target:
       group: apps
       kind: Deployment
+      name: seaweedfs
+      version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: apps
+      kind: Deployment
       name: ml-pipeline
       version: v1
   - path: patches/remove-sc.json
@@ -103,6 +109,12 @@ patches:
       kind: Deployment
       name: mysql
       version: v1
+  - path: patches/remove-sc.json
+    target:
+      group: batch
+      kind: Job
+      name: init-seaweedfs
+      version: v1
   - path: patches/remove-sc-pod.json
     target:
       group: apps
@@ -114,4 +126,16 @@ patches:
       group: apps
       kind: Deployment
       name: minio
+      version: v1
+  - path: patches/remove-sc-pod.json
+    target:
+      group: apps
+      kind: Deployment
+      name: seaweedfs
+      version: v1
+  - path: patches/remove-sc-pod.json
+    target:
+      group: batch
+      kind: Job
+      name: init-seaweedfs
       version: v1
