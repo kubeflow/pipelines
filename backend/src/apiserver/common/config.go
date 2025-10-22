@@ -32,13 +32,12 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
-	//todo: did these end up being useful
-	MetadataGrpcServiceServiceHost string = "METADATA_GRPC_SERVICE_SERVICE_HOST"
-	MetadataGrpcServiceServicePort string = "METADATA_GRPC_SERVICE_SERVICE_PORT"
-	SignedURLExpiryTimeSeconds     string = "SIGNED_URL_EXPIRY_TIME_SECONDS"
-	MetadataTLSEnabled             string = "METADATA_TLS_ENABLED"
-	CaBundleSecretName             string = "CABUNDLE_SECRET_NAME"
-	RequireNamespaceForPipelines   string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
+	MetadataGrpcServiceServiceHost          string = "METADATA_GRPC_SERVICE_SERVICE_HOST"
+	MetadataGrpcServiceServicePort          string = "METADATA_GRPC_SERVICE_SERVICE_PORT"
+	SignedURLExpiryTimeSeconds              string = "SIGNED_URL_EXPIRY_TIME_SECONDS"
+	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
+	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
+	RequireNamespaceForPipelines            string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
 	CompiledPipelineSpecPatch               string = "COMPILED_PIPELINE_SPEC_PATCH"
 )
 
@@ -140,7 +139,6 @@ func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
 }
 
-// todo: are below necessary?
 func GetMetadataGrpcServiceServiceHost() string {
 	return GetStringConfigWithDefault(MetadataGrpcServiceServiceHost, DefaultMetadataGrpcServiceServiceHost)
 }
