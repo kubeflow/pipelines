@@ -23,9 +23,10 @@ description = 'Kubeflow Pipelines pipeline spec'
 authors = [
     {name = 'google', email = 'kubeflow-pipelines@google.com'},
 ]
-readme = '../../README.md'
+readme = 'README.md'
 requires-python = '>=3.9.0'
 license = 'Apache-2.0'
+license-files = ['LICENSE']
 dependencies = [
     # Typically we can't support multiple major versions of protobuf
     # The runtime protobuf package MUST be aligned with the protobuf

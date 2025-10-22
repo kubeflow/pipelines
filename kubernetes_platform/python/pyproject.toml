@@ -18,7 +18,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'kfp-kubernetes'
-dynamic = ['version', 'readme']
+dynamic = ['version']
 description = 'Kubernetes platform configuration library and generated protos.'
 authors = [
     {name = 'google', email = 'kubeflow-pipelines@google.com'}
@@ -26,6 +26,7 @@ authors = [
 readme = 'README.md'
 requires-python = '>=3.9.0'
 license = 'Apache-2.0'
+license-files = ['LICENSE']
 dependencies = [
     # protobuf version should be identical to the one in kfp-pipeline-spec
     # api/v2alpha1/python/pyroject.toml
