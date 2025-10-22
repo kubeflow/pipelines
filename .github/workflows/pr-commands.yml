@@ -21,10 +21,10 @@ jobs:
         id: check-condition
         run: |
           if [[ "${{ github.event.comment.author_association }}" == "MEMBER" || "${{ github.event.comment.author_association }}" == "OWNER" ]]; then
-            echo "condition_met=true" >> $GITHUB_ENV
+            echo "condition_met=true" >> "$GITHUB_ENV"
           else
             echo "User does not have permission to trigger this command."
-            echo "condition_met=false" >> $GITHUB_ENV
+            echo "condition_met=false" >> "$GITHUB_ENV"
           fi
 
       - name: Leave a Comment on Precondition Fail
@@ -33,8 +33,8 @@ jobs:
           message: 🚫 This command cannot be processed. Only organization members or owners can use the commands.
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-          gh issue comment ${{ github.event.issue.number }} --repo "${{ github.repository }}" --body "${{ env.message }}"
-          echo ${message}
+          gh issue comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body "${{ env.message }}"
+          echo "${message}"
           exit 1
 
       - name: Check if comment is on a pull request
@@ -44,17 +44,17 @@ jobs:
             echo "Comment is not on a pull request."
             exit 1
           fi
-          echo "PR_URL=${{ github.event.issue.pull_request.url }}" >> $GITHUB_ENV
+          echo "PR_URL=${{ github.event.issue.pull_request.url }}" >> "$GITHUB_ENV"
 
       - name: Fetch pull request sha
         id: fetch-pr-sha
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ env.PR_URL }}
         run: |
-          PR_URL="${PR_URL}"
-          PR_DATA=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "$PR_URL")
-          PR_SHA=$(echo "$PR_DATA" | jq -r '.head.sha')
-          echo "PR_SHA=$PR_SHA" >> $GITHUB_OUTPUT
+          PR_DATA="$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "$PR_URL")"
+          PR_SHA="$(echo "$PR_DATA" | jq -r '.head.sha')"
+          echo "PR_SHA=$PR_SHA" >> "$GITHUB_OUTPUT"
 
   # Add other commands as separate jobs
   approve:
@@ -90,7 +90,7 @@ jobs:
             echo "Approved workflow run: $run_id"
           done
           msg="Approvals successfully granted for pending runs."
-          echo "output_msg=${msg}" >> $GITHUB_ENV
+          echo "output_msg=${msg}" >> "$GITHUB_ENV"
 
       - name: Leave a Comment
         env:

@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: "3.10"
 
@@ -45,6 +45,7 @@ jobs:
 
       - name: Test K8s platform release script
         working-directory: kubernetes_platform/python
+        env:
+          KFP_KUBERNETES_VERSION: $(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
         run: |
-          KFP_KUBERNETES_VERSION=$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')
           source create_release_branch.sh

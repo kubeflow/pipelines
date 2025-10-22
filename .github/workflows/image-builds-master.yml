@@ -52,9 +52,9 @@ jobs:
     with:
       src_branch: master
       target_tag: master
-      overwrite_imgs: true
-      set_latest: false
-      add_sha_tag: 'false'
+      overwrite_imgs: True
+      set_latest: False
+      add_sha_tag: False
       app_to_build: ${{ matrix.image }}
       image_context: ${{ matrix.context }}
       docker_file: ${{ matrix.dockerfile }}

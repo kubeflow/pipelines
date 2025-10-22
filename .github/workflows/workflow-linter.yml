@@ -1,7 +1,9 @@
 name: Workflow Linter
 on:
   push:
-    branches: [master]
+    branches:
+      - 'master'
+      - 'release-*'
 
   pull_request:
     paths:
