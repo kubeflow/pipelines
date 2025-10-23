@@ -179,6 +179,8 @@ func extendPodSpecPatch(
 	// Get node selector information
 	if kubernetesExecutorConfig.GetNodeSelector() != nil {
 		var nodeSelector map[string]string
+		// skipNodeSelector marks when the node selector input resolved to a null optional
+		// value. In that case we avoid appending an empty selector to the pod spec.
 		skipNodeSelector := false
 		if kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson() != nil {
 			err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
