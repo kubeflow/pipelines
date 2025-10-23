@@ -8,9 +8,9 @@ spec:
     parameters:
     - name: kubernetes-comp-consumer
       value: '{"pvcMount":[{"mountPath":"/data","pvcNameParameter":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}},"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-522286ff8480712f50be32c25dedca8517bb73693bea29170288afdd11255e1d
+    - name: components-d7fb91ca6b78edad062c1f44d01d414280f5740b5260436244e8b7638538eede
       value: '{"executorLabel":"exec-consumer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-522286ff8480712f50be32c25dedca8517bb73693bea29170288afdd11255e1d
+    - name: implementations-d7fb91ca6b78edad062c1f44d01d414280f5740b5260436244e8b7638538eede
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","consumer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -52,9 +52,9 @@ spec:
       value: '{"image":"argostub/deletepvc"}'
     - name: kubernetes-comp-producer
       value: '{"pvcMount":[{"mountPath":"/data","pvcNameParameter":{"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}},"taskOutputParameter":{"outputParameterKey":"name","producerTask":"createpvc"}}]}'
-    - name: components-c83a4f299993efdf1e9a883b7d05cb035219013b529f03866c0be2efd4da651d
+    - name: components-35323c00ea64cb236ca34272f55bdb938f396af10887a294134939d9819557b9
       value: '{"executorLabel":"exec-producer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-c83a4f299993efdf1e9a883b7d05cb035219013b529f03866c0be2efd4da651d
+    - name: implementations-35323c00ea64cb236ca34272f55bdb938f396af10887a294134939d9819557b9
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","producer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -249,11 +249,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-522286ff8480712f50be32c25dedca8517bb73693bea29170288afdd11255e1d}}'
+            value: '{{workflow.parameters.components-d7fb91ca6b78edad062c1f44d01d414280f5740b5260436244e8b7638538eede}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["createpvc","producer"],"taskInfo":{"name":"consumer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-522286ff8480712f50be32c25dedca8517bb73693bea29170288afdd11255e1d}}'
+            value: '{{workflow.parameters.implementations-d7fb91ca6b78edad062c1f44d01d414280f5740b5260436244e8b7638538eede}}'
           - name: task-name
             value: consumer
           - name: parent-dag-id
@@ -305,11 +305,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c83a4f299993efdf1e9a883b7d05cb035219013b529f03866c0be2efd4da651d}}'
+            value: '{{workflow.parameters.components-35323c00ea64cb236ca34272f55bdb938f396af10887a294134939d9819557b9}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"dependentTasks":["createpvc"],"taskInfo":{"name":"producer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c83a4f299993efdf1e9a883b7d05cb035219013b529f03866c0be2efd4da651d}}'
+            value: '{{workflow.parameters.implementations-35323c00ea64cb236ca34272f55bdb938f396af10887a294134939d9819557b9}}'
           - name: task-name
             value: producer
           - name: parent-dag-id

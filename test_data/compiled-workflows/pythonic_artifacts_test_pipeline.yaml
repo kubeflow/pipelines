@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-f03144e0835f90a75b071337bbe5e305fd22a078d3fe93a595dab07e9c256d93
+    - name: components-c192368c8461c3cdeb1a1c1ce2c7130e644b68af5a8e9b05afbaa3aac70143cc
       value: '{"executorLabel":"exec-gen-data","outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-f03144e0835f90a75b071337bbe5e305fd22a078d3fe93a595dab07e9c256d93
+    - name: implementations-c192368c8461c3cdeb1a1c1ce2c7130e644b68af5a8e9b05afbaa3aac70143cc
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","gen_data"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,9 +21,9 @@ spec:
         gen_data() -\u003e Dataset:\n    dataset = Dataset(uri=dsl.get_uri())\n    with
         open(dataset.path, \"w\") as f:\n        f.write(\"some data\")\n\n    dataset.metadata[\"length\"]
         = len(\"some data\")\n    return dataset\n\n"],"image":"python:3.11"}'
-    - name: components-4271229df0e3741657d9f339d415cee57460bed8e7b47f53f0b87b0c71b90ea8
+    - name: components-d051e68c28d78cde70e680b1fdf49912c1eed8b335b05d1d4518af362cc097f5
       value: '{"executorLabel":"exec-train-model","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-4271229df0e3741657d9f339d415cee57460bed8e7b47f53f0b87b0c71b90ea8
+    - name: implementations-d051e68c28d78cde70e680b1fdf49912c1eed8b335b05d1d4518af362cc097f5
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","train_model"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -220,11 +220,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f03144e0835f90a75b071337bbe5e305fd22a078d3fe93a595dab07e9c256d93}}'
+            value: '{{workflow.parameters.components-c192368c8461c3cdeb1a1c1ce2c7130e644b68af5a8e9b05afbaa3aac70143cc}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-gen-data"},"taskInfo":{"name":"gen-data"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f03144e0835f90a75b071337bbe5e305fd22a078d3fe93a595dab07e9c256d93}}'
+            value: '{{workflow.parameters.implementations-c192368c8461c3cdeb1a1c1ce2c7130e644b68af5a8e9b05afbaa3aac70143cc}}'
           - name: task-name
             value: gen-data
           - name: parent-dag-id
@@ -244,11 +244,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-4271229df0e3741657d9f339d415cee57460bed8e7b47f53f0b87b0c71b90ea8}}'
+            value: '{{workflow.parameters.components-d051e68c28d78cde70e680b1fdf49912c1eed8b335b05d1d4518af362cc097f5}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-train-model"},"dependentTasks":["gen-data"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"gen-data"}}}},"taskInfo":{"name":"train-model"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-4271229df0e3741657d9f339d415cee57460bed8e7b47f53f0b87b0c71b90ea8}}'
+            value: '{{workflow.parameters.implementations-d051e68c28d78cde70e680b1fdf49912c1eed8b335b05d1d4518af362cc097f5}}'
           - name: task-name
             value: train-model
           - name: parent-dag-id

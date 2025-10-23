@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-ad5c8365040a29a8273ef9e77f6fa5ace6c5a32f68feaac6a452c8a7c214c21f
+    - name: components-6f22693acb9f2a815b4823044bf0a93f4c912566dd68e1d8ca2a680ac71b67d3
       value: '{"executorLabel":"exec-echo-state","inputDefinitions":{"parameters":{"status":{"isOptional":true,"parameterType":"TASK_FINAL_STATUS"}}}}'
-    - name: implementations-ad5c8365040a29a8273ef9e77f6fa5ace6c5a32f68feaac6a452c8a7c214c21f
+    - name: implementations-6f22693acb9f2a815b4823044bf0a93f4c912566dd68e1d8ca2a680ac71b67d3
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","echo_state"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,9 +22,9 @@ spec:
         == ''COMPLETE'')\n    assert(''status-state-pipeline'' in status.pipeline_job_resource_name)\n    assert(status.pipeline_task_name
         == ''exit-handler-1'')\n    #TODO: Add assert statements to validate status.error_code
         and status.error_message values once those fields have been implemented.\n\n"],"image":"python:3.11"}'
-    - name: components-72cacb6e63f200dc565307f11e5792a0bcc013519ea2a8d43b76245d33942566
+    - name: components-b7759bec7b7c73abcfcc5fe174f2f6965ece187d7e53beabe3e93fc81431ba91
       value: '{"executorLabel":"exec-some-task"}'
-    - name: implementations-72cacb6e63f200dc565307f11e5792a0bcc013519ea2a8d43b76245d33942566
+    - name: implementations-b7759bec7b7c73abcfcc5fe174f2f6965ece187d7e53beabe3e93fc81431ba91
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","some_task"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -219,11 +219,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-72cacb6e63f200dc565307f11e5792a0bcc013519ea2a8d43b76245d33942566}}'
+            value: '{{workflow.parameters.components-b7759bec7b7c73abcfcc5fe174f2f6965ece187d7e53beabe3e93fc81431ba91}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-some-task"},"taskInfo":{"name":"some-task"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-72cacb6e63f200dc565307f11e5792a0bcc013519ea2a8d43b76245d33942566}}'
+            value: '{{workflow.parameters.implementations-b7759bec7b7c73abcfcc5fe174f2f6965ece187d7e53beabe3e93fc81431ba91}}'
           - name: task-name
             value: some-task
           - name: parent-dag-id
@@ -251,11 +251,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ad5c8365040a29a8273ef9e77f6fa5ace6c5a32f68feaac6a452c8a7c214c21f}}'
+            value: '{{workflow.parameters.components-6f22693acb9f2a815b4823044bf0a93f4c912566dd68e1d8ca2a680ac71b67d3}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-echo-state"},"dependentTasks":["exit-handler-1"],"inputs":{"parameters":{"status":{"taskFinalStatus":{"producerTask":"exit-handler-1"}}}},"taskInfo":{"name":"echo-state"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ad5c8365040a29a8273ef9e77f6fa5ace6c5a32f68feaac6a452c8a7c214c21f}}'
+            value: '{{workflow.parameters.implementations-6f22693acb9f2a815b4823044bf0a93f4c912566dd68e1d8ca2a680ac71b67d3}}'
           - name: task-name
             value: echo-state
           - name: parent-dag-id

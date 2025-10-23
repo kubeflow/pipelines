@@ -320,7 +320,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 				},
 			},
 			wantEqual:   true,
-			fingerPrint: "4e8a5d7d70997b0a35429fcd481af8fcd5b9f58ef4391bdb6ad900fd1c63622b",
+			fingerPrint: "b498530c9016917298999ec0b01f364a180f8a3862bea0fa672a383ca3f22e4e",
 		}, {
 			name: "Generated Different FingerPrint",
 			cacheKey: &cachekey.CacheKey{
@@ -336,7 +336,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 				},
 			},
 			wantEqual:   false,
-			fingerPrint: "0a4cc1f15cdfad5170e1358518f7128c5278500a670db1b9a3f3d83b93db396e",
+			fingerPrint: "3d9a2a778fa3174c6cfc6e639c507c265b5f21ef6e5b1dd70b236462cc6da464",
 		},
 	}
 	cacheClient, err := NewClient(false, &tls.Config{})

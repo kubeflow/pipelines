@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-05e0c7c24c705bcaac86e732ffd5d85e67d9a184ae4703d789ccfe1715a452f2
+    - name: components-9881acc01330f69427ffe30acddda484b63239f267d7036beb6070353fda316b
       value: '{"executorLabel":"exec-download-dataset-and-upload-as-artifact","inputDefinitions":{"parameters":{"dataset_name":{"parameterType":"STRING"},"dataset_repo":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"output_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-05e0c7c24c705bcaac86e732ffd5d85e67d9a184ae4703d789ccfe1715a452f2
+    - name: implementations-9881acc01330f69427ffe30acddda484b63239f267d7036beb6070353fda316b
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","download_dataset_and_upload_as_artifact"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -24,9 +24,9 @@ spec:
         Load data set from hugging face\n    ds = load_dataset(dataset_repo, dataset_name)\n    print(\"Downloaded
         Hugging Face data\")\n    print(f\"Now saving to {output_dataset.path}\")\n    ds.save_to_disk(output_dataset.path)\n    print(f\"Saved
         to {output_dataset.path}\")\n\n"],"image":"python:3.11"}'
-    - name: components-d0f4b4d95b964a5d78a841aa20e3d529d81189e4c90f9b39a31332bb8c8d437c
+    - name: components-c020e8bb66a4c390268500295dd49b3f2dcf34bea30556dd91446c1696154c08
       value: '{"executorLabel":"exec-print-dataset-info","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-d0f4b4d95b964a5d78a841aa20e3d529d81189e4c90f9b39a31332bb8c8d437c
+    - name: implementations-c020e8bb66a4c390268500295dd49b3f2dcf34bea30556dd91446c1696154c08
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_dataset_info"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -222,11 +222,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-05e0c7c24c705bcaac86e732ffd5d85e67d9a184ae4703d789ccfe1715a452f2}}'
+            value: '{{workflow.parameters.components-9881acc01330f69427ffe30acddda484b63239f267d7036beb6070353fda316b}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-download-dataset-and-upload-as-artifact"},"inputs":{"parameters":{"dataset_name":{"componentInputParameter":"dataset_name"},"dataset_repo":{"componentInputParameter":"dataset_repo"}}},"taskInfo":{"name":"download-dataset-and-upload-as-artifact"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-05e0c7c24c705bcaac86e732ffd5d85e67d9a184ae4703d789ccfe1715a452f2}}'
+            value: '{{workflow.parameters.implementations-9881acc01330f69427ffe30acddda484b63239f267d7036beb6070353fda316b}}'
           - name: task-name
             value: download-dataset-and-upload-as-artifact
           - name: parent-dag-id
@@ -246,11 +246,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-d0f4b4d95b964a5d78a841aa20e3d529d81189e4c90f9b39a31332bb8c8d437c}}'
+            value: '{{workflow.parameters.components-c020e8bb66a4c390268500295dd49b3f2dcf34bea30556dd91446c1696154c08}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-dataset-info"},"dependentTasks":["download-dataset-and-upload-as-artifact"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"output_dataset","producerTask":"download-dataset-and-upload-as-artifact"}}}},"taskInfo":{"name":"print-dataset-info"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-d0f4b4d95b964a5d78a841aa20e3d529d81189e4c90f9b39a31332bb8c8d437c}}'
+            value: '{{workflow.parameters.implementations-c020e8bb66a4c390268500295dd49b3f2dcf34bea30556dd91446c1696154c08}}'
           - name: task-name
             value: print-dataset-info
           - name: parent-dag-id

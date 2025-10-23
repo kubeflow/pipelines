@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-1c2d9ee5193f6bab323886b46d1c14a22e2f07a25c79fd4e264b5f797275a7cb
+    - name: components-252e4a170354e881b8fd2729c1e3ee58684e5eee1443c6782901dd4330265f5e
       value: '{"executorLabel":"exec-print-all-placeholders","inputDefinitions":{"parameters":{"job_id":{"parameterType":"STRING"},"job_name":{"parameterType":"STRING"},"job_resource_name":{"parameterType":"STRING"},"task_id":{"parameterType":"STRING"},"task_name":{"parameterType":"STRING"}}}}'
-    - name: implementations-1c2d9ee5193f6bab323886b46d1c14a22e2f07a25c79fd4e264b5f797275a7cb
+    - name: implementations-252e4a170354e881b8fd2729c1e3ee58684e5eee1443c6782901dd4330265f5e
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_all_placeholders"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -208,11 +208,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-1c2d9ee5193f6bab323886b46d1c14a22e2f07a25c79fd4e264b5f797275a7cb}}'
+            value: '{{workflow.parameters.components-252e4a170354e881b8fd2729c1e3ee58684e5eee1443c6782901dd4330265f5e}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-all-placeholders"},"inputs":{"parameters":{"job_id":{"runtimeValue":{"constant":"{{$.pipeline_job_uuid}}"}},"job_name":{"runtimeValue":{"constant":"{{$.pipeline_job_name}}"}},"job_resource_name":{"runtimeValue":{"constant":"{{$.pipeline_job_resource_name}}"}},"task_id":{"runtimeValue":{"constant":"{{$.pipeline_task_uuid}}"}},"task_name":{"runtimeValue":{"constant":"{{$.pipeline_task_name}}"}}}},"taskInfo":{"name":"print-all-placeholders"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-1c2d9ee5193f6bab323886b46d1c14a22e2f07a25c79fd4e264b5f797275a7cb}}'
+            value: '{{workflow.parameters.implementations-252e4a170354e881b8fd2729c1e3ee58684e5eee1443c6782901dd4330265f5e}}'
           - name: task-name
             value: print-all-placeholders
           - name: parent-dag-id

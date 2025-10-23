@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-5c76ebcd4e091481fc4c07f0360039dad12c412bc1b099337a4f415a0888be3d
+    - name: components-ac7285064d7d99b0f19ca3e34669996b38e3e05eda2a6b78e0b3463b1a2a6186
       value: '{"executorLabel":"exec-sum-numbers","inputDefinitions":{"parameters":{"a":{"parameterType":"NUMBER_INTEGER"},"b":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-5c76ebcd4e091481fc4c07f0360039dad12c412bc1b099337a4f415a0888be3d
+    - name: implementations-ac7285064d7d99b0f19ca3e34669996b38e3e05eda2a6b78e0b3463b1a2a6186
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","sum_numbers"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -201,11 +201,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5c76ebcd4e091481fc4c07f0360039dad12c412bc1b099337a4f415a0888be3d}}'
+            value: '{{workflow.parameters.components-ac7285064d7d99b0f19ca3e34669996b38e3e05eda2a6b78e0b3463b1a2a6186}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-sum-numbers"},"inputs":{"parameters":{"a":{"runtimeValue":{"constant":1}},"accelerator_count":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator_limit'']}}"}},"accelerator_type":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--accelerator_type'']}}"}},"b":{"runtimeValue":{"constant":2}},"cpu_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--cpu_limit'']}}"}},"memory_limit":{"runtimeValue":{"constant":"{{$.inputs.parameters[''pipelinechannel--memory_limit'']}}"}},"pipelinechannel--accelerator_limit":{"componentInputParameter":"accelerator_limit"},"pipelinechannel--accelerator_type":{"componentInputParameter":"accelerator_type"},"pipelinechannel--cpu_limit":{"componentInputParameter":"cpu_limit"},"pipelinechannel--memory_limit":{"componentInputParameter":"memory_limit"}}},"taskInfo":{"name":"sum-numbers"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5c76ebcd4e091481fc4c07f0360039dad12c412bc1b099337a4f415a0888be3d}}'
+            value: '{{workflow.parameters.implementations-ac7285064d7d99b0f19ca3e34669996b38e3e05eda2a6b78e0b3463b1a2a6186}}'
           - name: task-name
             value: sum-numbers
           - name: parent-dag-id

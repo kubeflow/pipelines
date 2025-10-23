@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-c57c4368bb3853e287d208a6153cc7cfdd0a6392a5da536df9a7944cb4018d08
+    - name: components-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2
       value: '{"executorLabel":"exec-add","inputDefinitions":{"artifacts":{"in_datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-c57c4368bb3853e287d208a6153cc7cfdd0a6392a5da536df9a7944cb4018d08
+    - name: implementations-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,9 +22,9 @@ spec:
         = []\n    for dataset in in_datasets:\n        with open(dataset.path) as
         f:\n            nums.append(int(f.read()))\n    with open(out_dataset.path,
         ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.11"}'
-    - name: components-be8ee4858aa0dabdc7c419be456f8e7751d0de0a26fe140352aaadb1050c4ba3
+    - name: components-0f454994223bfba6e739848f3c0233b8b8af4c822d95fddc776ea487b22500f0
       value: '{"executorLabel":"exec-add-two-ints","inputDefinitions":{"artifacts":{"in_dataset1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"in_dataset2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-be8ee4858aa0dabdc7c419be456f8e7751d0de0a26fe140352aaadb1050c4ba3
+    - name: implementations-0f454994223bfba6e739848f3c0233b8b8af4c822d95fddc776ea487b22500f0
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add_two_ints"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -41,9 +41,9 @@ spec:
         + in_dataset2))\n\n"],"image":"python:3.11"}'
     - name: components-comp-add-two-lists-of-datasets
       value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"out_dataset","producerSubtask":"add-two-ints"}]}}},"tasks":{"add":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets1"}}},"taskInfo":{"name":"add"}},"add-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets2"}}},"taskInfo":{"name":"add-2"}},"add-two-ints":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-ints"},"dependentTasks":["add","add-2"],"inputs":{"artifacts":{"in_dataset1":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add"}},"in_dataset2":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add-2"}}}},"taskInfo":{"name":"add-two-ints"}}}},"inputDefinitions":{"artifacts":{"in_datasets1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true},"in_datasets2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: components-ddb6006c75f716bd2d06e80c76e9743f6cc6dd588e1c1dda65066ba1d0ec3b49
+    - name: components-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47
       value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-ddb6006c75f716bd2d06e80c76e9743f6cc6dd588e1c1dda65066ba1d0ec3b49
+    - name: implementations-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","double"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -246,11 +246,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c57c4368bb3853e287d208a6153cc7cfdd0a6392a5da536df9a7944cb4018d08}}'
+            value: '{{workflow.parameters.components-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets1"}}},"taskInfo":{"name":"add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c57c4368bb3853e287d208a6153cc7cfdd0a6392a5da536df9a7944cb4018d08}}'
+            value: '{{workflow.parameters.implementations-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2}}'
           - name: task-name
             value: add
           - name: parent-dag-id
@@ -270,11 +270,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c57c4368bb3853e287d208a6153cc7cfdd0a6392a5da536df9a7944cb4018d08}}'
+            value: '{{workflow.parameters.components-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-2"},"inputs":{"artifacts":{"in_datasets":{"componentInputArtifact":"in_datasets2"}}},"taskInfo":{"name":"add-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c57c4368bb3853e287d208a6153cc7cfdd0a6392a5da536df9a7944cb4018d08}}'
+            value: '{{workflow.parameters.implementations-16f08981216475ab27b039fb96f85c515876ffd8fd48dc99c163ad67ab8791c2}}'
           - name: task-name
             value: add-2
           - name: parent-dag-id
@@ -294,11 +294,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-be8ee4858aa0dabdc7c419be456f8e7751d0de0a26fe140352aaadb1050c4ba3}}'
+            value: '{{workflow.parameters.components-0f454994223bfba6e739848f3c0233b8b8af4c822d95fddc776ea487b22500f0}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-two-ints"},"dependentTasks":["add","add-2"],"inputs":{"artifacts":{"in_dataset1":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add"}},"in_dataset2":{"taskOutputArtifact":{"outputArtifactKey":"out_dataset","producerTask":"add-2"}}}},"taskInfo":{"name":"add-two-ints"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-be8ee4858aa0dabdc7c419be456f8e7751d0de0a26fe140352aaadb1050c4ba3}}'
+            value: '{{workflow.parameters.implementations-0f454994223bfba6e739848f3c0233b8b8af4c822d95fddc776ea487b22500f0}}'
           - name: task-name
             value: add-two-ints
           - name: parent-dag-id
@@ -327,11 +327,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ddb6006c75f716bd2d06e80c76e9743f6cc6dd588e1c1dda65066ba1d0ec3b49}}'
+            value: '{{workflow.parameters.components-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double-2"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-3"}}},"taskInfo":{"name":"double-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ddb6006c75f716bd2d06e80c76e9743f6cc6dd588e1c1dda65066ba1d0ec3b49}}'
+            value: '{{workflow.parameters.implementations-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47}}'
           - name: task-name
             value: double-2
           - name: parent-dag-id
@@ -528,11 +528,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ddb6006c75f716bd2d06e80c76e9743f6cc6dd588e1c1dda65066ba1d0ec3b49}}'
+            value: '{{workflow.parameters.components-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ddb6006c75f716bd2d06e80c76e9743f6cc6dd588e1c1dda65066ba1d0ec3b49}}'
+            value: '{{workflow.parameters.implementations-7d8f01a93fab448a938303bbb205e2cf7bfadf50bc37698ff2784aebf5363d47}}'
           - name: task-name
             value: double
           - name: parent-dag-id

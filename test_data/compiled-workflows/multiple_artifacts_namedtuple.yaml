@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-415b11a96a5d71255274b3e811e186d556046f1ffe8a8dfd4e13193f62447e13
+    - name: components-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06
       value: '{"executorLabel":"exec-crust-comp","inputDefinitions":{"artifacts":{"ds1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"ds2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-415b11a96a5d71255274b3e811e186d556046f1ffe8a8dfd4e13193f62447e13
+    - name: implementations-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","crust_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,9 +21,9 @@ spec:
         crust_comp(\n    ds1: dsl.Dataset,\n    ds2: dsl.Dataset,\n):\n    with open(ds1.path,
         ''r'') as f:\n        print(''ds1: '', f.read())\n    with open(ds2.path,
         ''r'') as f:\n        print(''ds2: '', f.read())\n\n"],"image":"python:3.11"}'
-    - name: components-0ac03a39a38b1a3cad2a272deff551384098d69749e6673beb6cfdc3a1e59015
+    - name: components-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca
       value: '{"executorLabel":"exec-core-comp","outputDefinitions":{"artifacts":{"ds1":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}},"ds2":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-0ac03a39a38b1a3cad2a272deff551384098d69749e6673beb6cfdc3a1e59015
+    - name: implementations-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","core_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -222,11 +222,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-0ac03a39a38b1a3cad2a272deff551384098d69749e6673beb6cfdc3a1e59015}}'
+            value: '{{workflow.parameters.components-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-0ac03a39a38b1a3cad2a272deff551384098d69749e6673beb6cfdc3a1e59015}}'
+            value: '{{workflow.parameters.implementations-5502b96ca3f6aca433522fdb2d6365445dee6a291a29d192a3665429bcba4eca}}'
           - name: task-name
             value: core-comp
           - name: parent-dag-id
@@ -360,11 +360,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-415b11a96a5d71255274b3e811e186d556046f1ffe8a8dfd4e13193f62447e13}}'
+            value: '{{workflow.parameters.components-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"artifacts":{"ds1":{"taskOutputArtifact":{"outputArtifactKey":"ds1","producerTask":"mantle"}},"ds2":{"taskOutputArtifact":{"outputArtifactKey":"ds2","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-415b11a96a5d71255274b3e811e186d556046f1ffe8a8dfd4e13193f62447e13}}'
+            value: '{{workflow.parameters.implementations-41d6f43a77336abfc42373262a0d3f817036dea59881c80ac128ebff19d9ac06}}'
           - name: task-name
             value: crust-comp
           - name: parent-dag-id

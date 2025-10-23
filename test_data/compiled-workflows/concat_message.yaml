@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-7af5009b3d45dcf8a4432f8c675e83fecaf54125510a1a4ec938ecaadc07eac0
+    - name: components-5738fa6a8034d33cd840d7fed5885fd1870a2c63f8e79df3adc50a53e949c021
       value: '{"executorLabel":"exec-concat-message","inputDefinitions":{"parameters":{"message1":{"parameterType":"STRING"},"message2":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-7af5009b3d45dcf8a4432f8c675e83fecaf54125510a1a4ec938ecaadc07eac0
+    - name: implementations-5738fa6a8034d33cd840d7fed5885fd1870a2c63f8e79df3adc50a53e949c021
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","concat_message"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -202,11 +202,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-7af5009b3d45dcf8a4432f8c675e83fecaf54125510a1a4ec938ecaadc07eac0}}'
+            value: '{{workflow.parameters.components-5738fa6a8034d33cd840d7fed5885fd1870a2c63f8e79df3adc50a53e949c021}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-concat-message"},"inputs":{"parameters":{"message1":{"componentInputParameter":"message1"},"message2":{"componentInputParameter":"message2"}}},"taskInfo":{"name":"concat-message"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-7af5009b3d45dcf8a4432f8c675e83fecaf54125510a1a4ec938ecaadc07eac0}}'
+            value: '{{workflow.parameters.implementations-5738fa6a8034d33cd840d7fed5885fd1870a2c63f8e79df3adc50a53e949c021}}'
           - name: task-name
             value: concat-message
           - name: parent-dag-id

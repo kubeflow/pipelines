@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-454f675bb7800adf80b4227cf4afab17ccd8f2158391d6c83b382a19f6c06d20
+    - name: components-ec1f774a9791d5bf8f1f6f2d765e693d12aa053c0068a46d18df151f5a9a8545
       value: '{"executorLabel":"exec-create-file","inputDefinitions":{"parameters":{"content":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"file":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-454f675bb7800adf80b4227cf4afab17ccd8f2158391d6c83b382a19f6c06d20
+    - name: implementations-ec1f774a9791d5bf8f1f6f2d765e693d12aa053c0068a46d18df151f5a9a8545
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -20,9 +20,9 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         create_file(file: Output[Artifact], content: str):\n    print(f''Creating
         file with content: {content}'')\n    with open(file.path, ''w'') as f:\n        f.write(content)\n\n"],"image":"python:3.11"}'
-    - name: components-8de1f97f1c6fbc2c49f794738b59fedba4bfc0367ad809393ff85e905f70886d
+    - name: components-f1c1eb97565294e29b1a6409078e07ca9d3302c9ccdacd7751eaa032a7d99f43
       value: '{"executorLabel":"exec-read-single-dataset-generate-model","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}},"parameters":{"id":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"results":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-8de1f97f1c6fbc2c49f794738b59fedba4bfc0367ad809393ff85e905f70886d
+    - name: implementations-f1c1eb97565294e29b1a6409078e07ca9d3302c9ccdacd7751eaa032a7d99f43
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_single_dataset_generate_model"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -36,9 +36,9 @@ spec:
         file: {data.path}'')\n    with open(data.path, ''r'') as f:\n        info
         = f.read()\n        with open(results.path, ''w'') as f2:\n            f2.write(f\"{info}-{id}\")\n            results.metadata[''model'']
         = info\n            results.metadata[''model_name''] = f\"model-artifact-inner-iteration-{info}-{id}\"\n\n"],"image":"python:3.11"}'
-    - name: components-110fc7a806182548336d0e41ebf637176c62d600d89da66d667e5241685993a3
+    - name: components-acfe6b8e77458ff7c9eb4a10a23639b58364c808c1c39d8c4c1235861d099dbf
       value: '{"executorLabel":"exec-create-dataset","inputDefinitions":{"parameters":{"content":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-110fc7a806182548336d0e41ebf637176c62d600d89da66d667e5241685993a3
+    - name: implementations-acfe6b8e77458ff7c9eb4a10a23639b58364c808c1c39d8c4c1235861d099dbf
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","create_dataset"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -54,9 +54,9 @@ spec:
       value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"data","producerSubtask":"create-dataset"}]}}},"tasks":{"create-dataset":{"cachingOptions":{},"componentRef":{"name":"comp-create-dataset"},"inputs":{"parameters":{"content":{"componentInputParameter":"char"}}},"taskInfo":{"name":"create-dataset"}}}},"inputDefinitions":{"parameters":{"char":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: components-comp-for-loop-2
       value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--read-single-dataset-generate-model-results":{"artifactSelectors":[{"outputArtifactKey":"results","producerSubtask":"read-single-dataset-generate-model"}]},"pipelinechannel--single-node-dag-Output":{"artifactSelectors":[{"outputArtifactKey":"Output","producerSubtask":"single-node-dag"}]}}},"tasks":{"read-single-dataset-generate-model":{"cachingOptions":{},"componentRef":{"name":"comp-read-single-dataset-generate-model"},"dependentTasks":["single-node-dag"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"single-node-dag"}}},"parameters":{"id":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"read-single-dataset-generate-model"}},"single-node-dag":{"cachingOptions":{},"componentRef":{"name":"comp-single-node-dag"},"inputs":{"parameters":{"char":{"componentInputParameter":"pipelinechannel--split-chars-Output-loop-item"}}},"taskInfo":{"name":"single-node-dag"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--split-chars-Output":{"parameterType":"LIST"},"pipelinechannel--split-chars-Output-loop-item":{"parameterType":"STRING"},"pipelinechannel--split-ids-Output-loop-item":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--read-single-dataset-generate-model-results":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"},"isArtifactList":true},"pipelinechannel--single-node-dag-Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
-    - name: components-f13f4d96d8af0136b7ec2fd8bb04bf61e6936dec4fb6215eb91ac03b7800c8f9
+    - name: components-d4b6b9e1cff17ea3ca93d63109e65319f3c20876c7867400587cb270fceed458
       value: '{"executorLabel":"exec-read-datasets","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-f13f4d96d8af0136b7ec2fd8bb04bf61e6936dec4fb6215eb91ac03b7800c8f9
+    - name: implementations-d4b6b9e1cff17ea3ca93d63109e65319f3c20876c7867400587cb270fceed458
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_datasets"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -69,9 +69,9 @@ spec:
         read_datasets(data: List[Dataset]) -\u003e str:\n    for d in data:\n        print(f''Reading
         dataset {d.name} file: {d.path}'')\n        with open(d.path, ''r'') as f:\n            print(f.read())\n\n    return
         ''files read''\n\n"],"image":"python:3.11"}'
-    - name: components-a20411795c50176906ce97cafe2d672030b0584c63cc3f061d6b5fa4d8d18702
+    - name: components-36399431fc5940f221467d3cd76e824ebecf7385e9634fda1cf2b1ded43ffbe3
       value: '{"executorLabel":"exec-read-models","inputDefinitions":{"artifacts":{"models":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-a20411795c50176906ce97cafe2d672030b0584c63cc3f061d6b5fa4d8d18702
+    - name: implementations-36399431fc5940f221467d3cd76e824ebecf7385e9634fda1cf2b1ded43ffbe3
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_models"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -85,9 +85,9 @@ spec:
         model {m.name} file: {m.path}'')\n        with open(m.path, ''r'') as f:\n            info
         = f.read()\n            print(f\"Model raw data: {info}\")\n            print(f\"Model
         metadata: {m.metadata}\")\n    return ''models read''\n\n"],"image":"python:3.11"}'
-    - name: components-99e3dc1afb3392e03ef7e4ef8b3f63c142e5fbc03c571b8879a6e9429b814760
+    - name: components-cb38e5430ba66f0db667b439264d51cf1757fcf432fc9ea4fe8e38fbd468cd1a
       value: '{"executorLabel":"exec-read-single-file","inputDefinitions":{"artifacts":{"file":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-99e3dc1afb3392e03ef7e4ef8b3f63c142e5fbc03c571b8879a6e9429b814760
+    - name: implementations-cb38e5430ba66f0db667b439264d51cf1757fcf432fc9ea4fe8e38fbd468cd1a
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_single_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -102,9 +102,9 @@ spec:
         file.uri\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-1
       value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--read-single-dataset-generate-model-results":{"artifactSelectors":[{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerSubtask":"for-loop-2"}]}}},"tasks":{"create-file":{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"create-file"}},"for-loop-2":{"componentRef":{"name":"comp-for-loop-2"},"inputs":{"parameters":{"pipelinechannel--split-chars-Output":{"componentInputParameter":"pipelinechannel--split-chars-Output"},"pipelinechannel--split-ids-Output-loop-item":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"parameterIterator":{"itemInput":"pipelinechannel--split-chars-Output-loop-item","items":{"inputParameter":"pipelinechannel--split-chars-Output"}},"taskInfo":{"name":"for-loop-2"}},"read-datasets":{"cachingOptions":{},"componentRef":{"name":"comp-read-datasets"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--single-node-dag-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-datasets"}},"read-models":{"cachingOptions":{},"componentRef":{"name":"comp-read-models"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"models":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-models"}},"read-single-file":{"cachingOptions":{},"componentRef":{"name":"comp-read-single-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"read-single-file"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--split-chars-Output":{"parameterType":"LIST"},"pipelinechannel--split-ids-Output":{"parameterType":"LIST"},"pipelinechannel--split-ids-Output-loop-item":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--read-single-dataset-generate-model-results":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
-    - name: components-194a4bfb844b1828b520d4f1d24304bbdba6a0c71f95c1e315dfbfa4e171f4ea
+    - name: components-be1feef4ec8e00ce2e55f9604db9c6b0cca05dcfeaf633230ca6bf0723babac8
       value: '{"executorLabel":"exec-split-chars","inputDefinitions":{"parameters":{"model_ids":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
-    - name: implementations-194a4bfb844b1828b520d4f1d24304bbdba6a0c71f95c1e315dfbfa4e171f4ea
+    - name: implementations-be1feef4ec8e00ce2e55f9604db9c6b0cca05dcfeaf633230ca6bf0723babac8
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","split_chars"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -115,9 +115,9 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         split_chars(model_ids: str) -\u003e list:\n    return model_ids.split('','')\n\n"],"image":"python:3.11"}'
-    - name: components-b7700b8f98f5bc8b5097b759b614a5652ffb5baa093a27ca516cd10ce62e33de
+    - name: components-e8b2565c05c3de8bb0b7d77062539f34be122f1b8169f7198d40d58499d26d4e
       value: '{"executorLabel":"exec-split-ids","inputDefinitions":{"parameters":{"model_ids":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
-    - name: implementations-b7700b8f98f5bc8b5097b759b614a5652ffb5baa093a27ca516cd10ce62e33de
+    - name: implementations-e8b2565c05c3de8bb0b7d77062539f34be122f1b8169f7198d40d58499d26d4e
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","split_ids"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -312,11 +312,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-110fc7a806182548336d0e41ebf637176c62d600d89da66d667e5241685993a3}}'
+            value: '{{workflow.parameters.components-acfe6b8e77458ff7c9eb4a10a23639b58364c808c1c39d8c4c1235861d099dbf}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-dataset"},"inputs":{"parameters":{"content":{"componentInputParameter":"char"}}},"taskInfo":{"name":"create-dataset"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-110fc7a806182548336d0e41ebf637176c62d600d89da66d667e5241685993a3}}'
+            value: '{{workflow.parameters.implementations-acfe6b8e77458ff7c9eb4a10a23639b58364c808c1c39d8c4c1235861d099dbf}}'
           - name: task-name
             value: create-dataset
           - name: parent-dag-id
@@ -421,11 +421,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8de1f97f1c6fbc2c49f794738b59fedba4bfc0367ad809393ff85e905f70886d}}'
+            value: '{{workflow.parameters.components-f1c1eb97565294e29b1a6409078e07ca9d3302c9ccdacd7751eaa032a7d99f43}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-single-dataset-generate-model"},"dependentTasks":["single-node-dag"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"single-node-dag"}}},"parameters":{"id":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"read-single-dataset-generate-model"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8de1f97f1c6fbc2c49f794738b59fedba4bfc0367ad809393ff85e905f70886d}}'
+            value: '{{workflow.parameters.implementations-f1c1eb97565294e29b1a6409078e07ca9d3302c9ccdacd7751eaa032a7d99f43}}'
           - name: task-name
             value: read-single-dataset-generate-model
           - name: parent-dag-id
@@ -534,11 +534,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-454f675bb7800adf80b4227cf4afab17ccd8f2158391d6c83b382a19f6c06d20}}'
+            value: '{{workflow.parameters.components-ec1f774a9791d5bf8f1f6f2d765e693d12aa053c0068a46d18df151f5a9a8545}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-create-file"},"inputs":{"parameters":{"content":{"componentInputParameter":"pipelinechannel--split-ids-Output-loop-item"}}},"taskInfo":{"name":"create-file"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-454f675bb7800adf80b4227cf4afab17ccd8f2158391d6c83b382a19f6c06d20}}'
+            value: '{{workflow.parameters.implementations-ec1f774a9791d5bf8f1f6f2d765e693d12aa053c0068a46d18df151f5a9a8545}}'
           - name: task-name
             value: create-file
           - name: parent-dag-id
@@ -564,11 +564,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-f13f4d96d8af0136b7ec2fd8bb04bf61e6936dec4fb6215eb91ac03b7800c8f9}}'
+            value: '{{workflow.parameters.components-d4b6b9e1cff17ea3ca93d63109e65319f3c20876c7867400587cb270fceed458}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-datasets"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--single-node-dag-Output","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-datasets"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-f13f4d96d8af0136b7ec2fd8bb04bf61e6936dec4fb6215eb91ac03b7800c8f9}}'
+            value: '{{workflow.parameters.implementations-d4b6b9e1cff17ea3ca93d63109e65319f3c20876c7867400587cb270fceed458}}'
           - name: task-name
             value: read-datasets
           - name: parent-dag-id
@@ -589,11 +589,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a20411795c50176906ce97cafe2d672030b0584c63cc3f061d6b5fa4d8d18702}}'
+            value: '{{workflow.parameters.components-36399431fc5940f221467d3cd76e824ebecf7385e9634fda1cf2b1ded43ffbe3}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-models"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"models":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--read-single-dataset-generate-model-results","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"read-models"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a20411795c50176906ce97cafe2d672030b0584c63cc3f061d6b5fa4d8d18702}}'
+            value: '{{workflow.parameters.implementations-36399431fc5940f221467d3cd76e824ebecf7385e9634fda1cf2b1ded43ffbe3}}'
           - name: task-name
             value: read-models
           - name: parent-dag-id
@@ -614,11 +614,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-99e3dc1afb3392e03ef7e4ef8b3f63c142e5fbc03c571b8879a6e9429b814760}}'
+            value: '{{workflow.parameters.components-cb38e5430ba66f0db667b439264d51cf1757fcf432fc9ea4fe8e38fbd468cd1a}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-single-file"},"dependentTasks":["create-file"],"inputs":{"artifacts":{"file":{"taskOutputArtifact":{"outputArtifactKey":"file","producerTask":"create-file"}}}},"taskInfo":{"name":"read-single-file"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-99e3dc1afb3392e03ef7e4ef8b3f63c142e5fbc03c571b8879a6e9429b814760}}'
+            value: '{{workflow.parameters.implementations-cb38e5430ba66f0db667b439264d51cf1757fcf432fc9ea4fe8e38fbd468cd1a}}'
           - name: task-name
             value: read-single-file
           - name: parent-dag-id
@@ -713,11 +713,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-194a4bfb844b1828b520d4f1d24304bbdba6a0c71f95c1e315dfbfa4e171f4ea}}'
+            value: '{{workflow.parameters.components-be1feef4ec8e00ce2e55f9604db9c6b0cca05dcfeaf633230ca6bf0723babac8}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-split-chars"},"inputs":{"parameters":{"model_ids":{"componentInputParameter":"model_chars"}}},"taskInfo":{"name":"split-chars"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-194a4bfb844b1828b520d4f1d24304bbdba6a0c71f95c1e315dfbfa4e171f4ea}}'
+            value: '{{workflow.parameters.implementations-be1feef4ec8e00ce2e55f9604db9c6b0cca05dcfeaf633230ca6bf0723babac8}}'
           - name: task-name
             value: split-chars
           - name: parent-dag-id
@@ -737,11 +737,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-b7700b8f98f5bc8b5097b759b614a5652ffb5baa093a27ca516cd10ce62e33de}}'
+            value: '{{workflow.parameters.components-e8b2565c05c3de8bb0b7d77062539f34be122f1b8169f7198d40d58499d26d4e}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-split-ids"},"inputs":{"parameters":{"model_ids":{"componentInputParameter":"model_ids"}}},"taskInfo":{"name":"split-ids"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-b7700b8f98f5bc8b5097b759b614a5652ffb5baa093a27ca516cd10ce62e33de}}'
+            value: '{{workflow.parameters.implementations-e8b2565c05c3de8bb0b7d77062539f34be122f1b8169f7198d40d58499d26d4e}}'
           - name: task-name
             value: split-ids
           - name: parent-dag-id
@@ -790,11 +790,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-a20411795c50176906ce97cafe2d672030b0584c63cc3f061d6b5fa4d8d18702}}'
+            value: '{{workflow.parameters.components-36399431fc5940f221467d3cd76e824ebecf7385e9634fda1cf2b1ded43ffbe3}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-models-2"},"dependentTasks":["collecting-artifacts"],"inputs":{"artifacts":{"models":{"taskOutputArtifact":{"outputArtifactKey":"Output","producerTask":"collecting-artifacts"}}}},"taskInfo":{"name":"read-models"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-a20411795c50176906ce97cafe2d672030b0584c63cc3f061d6b5fa4d8d18702}}'
+            value: '{{workflow.parameters.implementations-36399431fc5940f221467d3cd76e824ebecf7385e9634fda1cf2b1ded43ffbe3}}'
           - name: task-name
             value: read-models
           - name: parent-dag-id

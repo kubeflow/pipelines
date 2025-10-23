@@ -169,7 +169,7 @@ func TestMutatePodIfCached(t *testing.T) {
 
 func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 	executionCache := &model.ExecutionCache{
-		ExecutionCacheKey: "1933d178a14bc415466cfd1b3ca2100af975e8c59e1ff9d502fcf18eb5cbd7f7",
+		ExecutionCacheKey: "07f2c42567af4f141a52887e0a113c9aefdfdfd5e6b06b9908f7fdb0b43739af",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.11"}}`,
 		MaxCacheStaleness: -1,
@@ -188,7 +188,7 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 
 func TestDefaultImage(t *testing.T) {
 	executionCache := &model.ExecutionCache{
-		ExecutionCacheKey: "1933d178a14bc415466cfd1b3ca2100af975e8c59e1ff9d502fcf18eb5cbd7f7",
+		ExecutionCacheKey: "07f2c42567af4f141a52887e0a113c9aefdfdfd5e6b06b9908f7fdb0b43739af",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.11"}}`,
 		MaxCacheStaleness: -1,
@@ -239,7 +239,7 @@ func TestCacheNodeRestriction(t *testing.T) {
 
 func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 	executionCache := &model.ExecutionCache{
-		ExecutionCacheKey: "c81988503d55a5817d79bd972017d95c37f72b024e522b4d79787d9f599c0725",
+		ExecutionCacheKey: "4b868c5d0b64e4d93e529eadaa04f0451eb5ae5c652dd79c08bdc47a6a1fe67a",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"python:3.11"},"outputs":"anything"}`,
 		MaxCacheStaleness: -1,

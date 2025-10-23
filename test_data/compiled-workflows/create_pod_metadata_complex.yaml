@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-c78f6e9b1302a8641c86310a2b303eb6fe40bc7225ccb38e15cd89cd412a77e1
+    - name: components-ddf5c44b745eff77bd01b2badb8eb0ad37a114f732779104288f59e67701512f
       value: '{"executorLabel":"exec-validate-no-pod-metadata","inputDefinitions":{"parameters":{"annotation_path":{"parameterType":"STRING"},"label_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-c78f6e9b1302a8641c86310a2b303eb6fe40bc7225ccb38e15cd89cd412a77e1
+    - name: implementations-ddf5c44b745eff77bd01b2badb8eb0ad37a114f732779104288f59e67701512f
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","validate_no_pod_metadata"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -26,9 +26,9 @@ spec:
         is supposed to be None.\"\n        )\n    return True\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-validate-pod-metadata
       value: '{"fieldPathAsEnv":[{"fieldPath":"metadata.annotations[''task-annotation'']","name":"POD_TASK_ANNOTATION"},{"fieldPath":"metadata.labels[''task-label-1'']","name":"POD_TASK_LABEL_1"},{"fieldPath":"metadata.labels[''task-label-2'']","name":"POD_TASK_LABEL_2"}],"podMetadata":{"annotations":{"task-annotation":"annotation"},"labels":{"task-label-1":"label-1","task-label-2":"label-2"}}}'
-    - name: components-41f6db675508ce85c4c81ffc8f4f63358027f85ec0bf31f36946cf1ede3c43cc
+    - name: components-c18d45fda14ac35e1b8c0d82357e972f4d416ae8d9ce79aef5cd5f31cb0e7735
       value: '{"executorLabel":"exec-validate-pod-metadata","inputDefinitions":{"parameters":{"annotation_exp_val_1":{"isOptional":true,"parameterType":"STRING"},"annotation_exp_val_2":{"isOptional":true,"parameterType":"STRING"},"annotation_path_1":{"isOptional":true,"parameterType":"STRING"},"annotation_path_2":{"isOptional":true,"parameterType":"STRING"},"label_exp_val_1":{"isOptional":true,"parameterType":"STRING"},"label_exp_val_2":{"isOptional":true,"parameterType":"STRING"},"label_path_1":{"isOptional":true,"parameterType":"STRING"},"label_path_2":{"isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"BOOLEAN"}}}}'
-    - name: implementations-41f6db675508ce85c4c81ffc8f4f63358027f85ec0bf31f36946cf1ede3c43cc
+    - name: implementations-c18d45fda14ac35e1b8c0d82357e972f4d416ae8d9ce79aef5cd5f31cb0e7735
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","validate_pod_metadata"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -473,11 +473,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c78f6e9b1302a8641c86310a2b303eb6fe40bc7225ccb38e15cd89cd412a77e1}}'
+            value: '{{workflow.parameters.components-ddf5c44b745eff77bd01b2badb8eb0ad37a114f732779104288f59e67701512f}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-no-pod-metadata"},"inputs":{"parameters":{"annotation_path":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION"}},"label_path":{"runtimeValue":{"constant":"POD_TASK_LABEL"}}}},"taskInfo":{"name":"validate-no-pod-metadata"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c78f6e9b1302a8641c86310a2b303eb6fe40bc7225ccb38e15cd89cd412a77e1}}'
+            value: '{{workflow.parameters.implementations-ddf5c44b745eff77bd01b2badb8eb0ad37a114f732779104288f59e67701512f}}'
           - name: task-name
             value: validate-no-pod-metadata
           - name: parent-dag-id
@@ -497,11 +497,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-41f6db675508ce85c4c81ffc8f4f63358027f85ec0bf31f36946cf1ede3c43cc}}'
+            value: '{{workflow.parameters.components-c18d45fda14ac35e1b8c0d82357e972f4d416ae8d9ce79aef5cd5f31cb0e7735}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata"},"inputs":{"parameters":{"annotation_exp_val_1":{"runtimeValue":{"constant":"annotation"}},"annotation_path_1":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION"}},"label_exp_val_1":{"runtimeValue":{"constant":"label-1"}},"label_exp_val_2":{"runtimeValue":{"constant":"label-2"}},"label_path_1":{"runtimeValue":{"constant":"POD_TASK_LABEL_1"}},"label_path_2":{"runtimeValue":{"constant":"POD_TASK_LABEL_2"}}}},"taskInfo":{"name":"validate-pod-metadata"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-41f6db675508ce85c4c81ffc8f4f63358027f85ec0bf31f36946cf1ede3c43cc}}'
+            value: '{{workflow.parameters.implementations-c18d45fda14ac35e1b8c0d82357e972f4d416ae8d9ce79aef5cd5f31cb0e7735}}'
           - name: task-name
             value: validate-pod-metadata
           - name: parent-dag-id
@@ -535,11 +535,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-41f6db675508ce85c4c81ffc8f4f63358027f85ec0bf31f36946cf1ede3c43cc}}'
+            value: '{{workflow.parameters.components-c18d45fda14ac35e1b8c0d82357e972f4d416ae8d9ce79aef5cd5f31cb0e7735}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-validate-pod-metadata-2"},"inputs":{"parameters":{"annotation_exp_val_1":{"runtimeValue":{"constant":"annotation-1"}},"annotation_exp_val_2":{"runtimeValue":{"constant":"annotation-2"}},"annotation_path_1":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_1"}},"annotation_path_2":{"runtimeValue":{"constant":"POD_TASK_ANNOTATION_2"}}}},"taskInfo":{"name":"validate-pod-metadata-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-41f6db675508ce85c4c81ffc8f4f63358027f85ec0bf31f36946cf1ede3c43cc}}'
+            value: '{{workflow.parameters.implementations-c18d45fda14ac35e1b8c0d82357e972f4d416ae8d9ce79aef5cd5f31cb0e7735}}'
           - name: task-name
             value: validate-pod-metadata-2
           - name: parent-dag-id

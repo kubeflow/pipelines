@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-8cf797f23380487bd1f1fb96644cbde025b64d18dae83a7b814083646a23230b
+    - name: components-548fb7a269f053e3060d5a7b3eee8d609d93eccb623ab5a9b4913b8e62a3d71c
       value: '{"executorLabel":"exec-take-nap","inputDefinitions":{"parameters":{"naptime_secs":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-8cf797f23380487bd1f1fb96644cbde025b64d18dae83a7b814083646a23230b
+    - name: implementations-548fb7a269f053e3060d5a7b3eee8d609d93eccb623ab5a9b4913b8e62a3d71c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","take_nap"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,9 +22,9 @@ spec:
         time import sleep  # noqa: PLC0415\n\n    print(f\"Sleeping for {naptime_secs}
         seconds: Zzzzzz ...\")\n    sleep(naptime_secs)\n    return \"I''m awake now.
         Did I snore?\"\n\n"],"image":"python:3.11"}'
-    - name: components-5d8466fde111ff505f28c4c8a093c971b044637d9e786d6aa26ff7e24346b224
+    - name: components-578a199df014da25449b2880c39c343872ba3c2c790e062fd52bbfd871d14775
       value: '{"executorLabel":"exec-wake-up","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-5d8466fde111ff505f28c4c8a093c971b044637d9e786d6aa26ff7e24346b224
+    - name: implementations-578a199df014da25449b2880c39c343872ba3c2c790e062fd52bbfd871d14775
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","wake_up"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -217,11 +217,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8cf797f23380487bd1f1fb96644cbde025b64d18dae83a7b814083646a23230b}}'
+            value: '{{workflow.parameters.components-548fb7a269f053e3060d5a7b3eee8d609d93eccb623ab5a9b4913b8e62a3d71c}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-take-nap"},"inputs":{"parameters":{"naptime_secs":{"componentInputParameter":"naptime_secs"}}},"taskInfo":{"name":"take-nap"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8cf797f23380487bd1f1fb96644cbde025b64d18dae83a7b814083646a23230b}}'
+            value: '{{workflow.parameters.implementations-548fb7a269f053e3060d5a7b3eee8d609d93eccb623ab5a9b4913b8e62a3d71c}}'
           - name: task-name
             value: take-nap
           - name: parent-dag-id
@@ -241,11 +241,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-5d8466fde111ff505f28c4c8a093c971b044637d9e786d6aa26ff7e24346b224}}'
+            value: '{{workflow.parameters.components-578a199df014da25449b2880c39c343872ba3c2c790e062fd52bbfd871d14775}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-wake-up"},"dependentTasks":["take-nap"],"inputs":{"parameters":{"message":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"take-nap"}}}},"taskInfo":{"name":"wake-up"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-5d8466fde111ff505f28c4c8a093c971b044637d9e786d6aa26ff7e24346b224}}'
+            value: '{{workflow.parameters.implementations-578a199df014da25449b2880c39c343872ba3c2c790e062fd52bbfd871d14775}}'
           - name: task-name
             value: wake-up
           - name: parent-dag-id

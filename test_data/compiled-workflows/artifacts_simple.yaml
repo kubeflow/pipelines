@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1
+    - name: components-fe3df0f6fa90face22ffbe395cfab1dc3052f996d7af9c457c592a156a228e9c
       value: '{"executorLabel":"exec-add","inputDefinitions":{"artifacts":{"in_datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1
+    - name: implementations-fe3df0f6fa90face22ffbe395cfab1dc3052f996d7af9c457c592a156a228e9c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,9 +22,9 @@ spec:
         = []\n    for dataset in in_datasets:\n        with open(dataset.path) as
         f:\n            nums.append(int(f.read()))\n    with open(out_dataset.path,
         ''w'') as f:\n        f.write(str(sum(nums)))\n\n"],"image":"python:3.11"}'
-    - name: components-699e6289d2b910228c41f94be6dd87fc0851d8dd1e68d93412ad045a9db72279
+    - name: components-10160d6ed5205864573d7fc5ab62e00d8b050cf985d80b0bbaae43ba7d32c6c4
       value: '{"executorLabel":"exec-add-container","inputDefinitions":{"artifacts":{"in_datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-699e6289d2b910228c41f94be6dd87fc0851d8dd1e68d93412ad045a9db72279
+    - name: implementations-10160d6ed5205864573d7fc5ab62e00d8b050cf985d80b0bbaae43ba7d32c6c4
       value: '{"args":["\nimport argparse\nimport json\nimport os\n\ndef main(in_datasets,
         out_dataset_uri):\n    in_dicts = json.loads(in_datasets)\n    uris = [d[''uri'']
         for d in in_dicts]\n    total = 0\n    for uri in uris:\n        with open(uri.replace(''gs://'',
@@ -32,9 +32,9 @@ spec:
         ''/gcs/'')\n    os.makedirs(os.path.dirname(outpath), exist_ok=True)\n    with
         open(outpath, ''w'') as f:\n        f.write(str(total))\n\nparser = argparse.ArgumentParser()\nparser.add_argument(''in_datasets'')\nparser.add_argument(''out_dataset_uri'')\nargs
         = parser.parse_args()\n\nmain(args.in_datasets, args.out_dataset_uri)\n","{{$.inputs.artifacts[''in_datasets'']}}","{{$.outputs.artifacts[''out_dataset''].uri}}"],"command":["python","-c"],"image":"python:3.11"}'
-    - name: components-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b
+    - name: components-0242e2764b7c7b68c6cabf3e21fd30e2eebe9df2d233c19bf4b4c103b3ff7560
       value: '{"executorLabel":"exec-double","inputDefinitions":{"parameters":{"num":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"artifacts":{"out_dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b
+    - name: implementations-0242e2764b7c7b68c6cabf3e21fd30e2eebe9df2d233c19bf4b4c103b3ff7560
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","double"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -231,11 +231,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b}}'
+            value: '{{workflow.parameters.components-0242e2764b7c7b68c6cabf3e21fd30e2eebe9df2d233c19bf4b4c103b3ff7560}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-double"},"inputs":{"parameters":{"num":{"componentInputParameter":"pipelinechannel--loop-item-param-1"}}},"taskInfo":{"name":"double"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-bd592e219a10055cde863d9b28fdaf17dfe7658370d390ac470bb7be0cf58b9b}}'
+            value: '{{workflow.parameters.implementations-0242e2764b7c7b68c6cabf3e21fd30e2eebe9df2d233c19bf4b4c103b3ff7560}}'
           - name: task-name
             value: double
           - name: parent-dag-id
@@ -401,11 +401,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1}}'
+            value: '{{workflow.parameters.components-fe3df0f6fa90face22ffbe395cfab1dc3052f996d7af9c457c592a156a228e9c}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"in_datasets":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-out_dataset","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-80d990c0f4b48d97644425ebeb33e4614a065cb6fef18de932c1a962063f9ed1}}'
+            value: '{{workflow.parameters.implementations-fe3df0f6fa90face22ffbe395cfab1dc3052f996d7af9c457c592a156a228e9c}}'
           - name: task-name
             value: add
           - name: parent-dag-id
@@ -426,11 +426,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-699e6289d2b910228c41f94be6dd87fc0851d8dd1e68d93412ad045a9db72279}}'
+            value: '{{workflow.parameters.components-10160d6ed5205864573d7fc5ab62e00d8b050cf985d80b0bbaae43ba7d32c6c4}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-container"},"dependentTasks":["for-loop-2"],"inputs":{"artifacts":{"in_datasets":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--double-out_dataset","producerTask":"for-loop-2"}}}},"taskInfo":{"name":"add-container"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-699e6289d2b910228c41f94be6dd87fc0851d8dd1e68d93412ad045a9db72279}}'
+            value: '{{workflow.parameters.implementations-10160d6ed5205864573d7fc5ab62e00d8b050cf985d80b0bbaae43ba7d32c6c4}}'
           - name: task-name
             value: add-container
           - name: parent-dag-id

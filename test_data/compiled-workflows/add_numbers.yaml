@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-97747bd2a90b59d576dc436e2ecaa2956d4e20b1642cea8581b61483a4f73496
+    - name: components-a06e49d55601ed1e78432721afac56c959e05f0346dc650f749ccab33c0e425e
       value: '{"executorLabel":"exec-add-numbers","inputDefinitions":{"parameters":{"a":{"parameterType":"NUMBER_INTEGER"},"b":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-97747bd2a90b59d576dc436e2ecaa2956d4e20b1642cea8581b61483a4f73496
+    - name: implementations-a06e49d55601ed1e78432721afac56c959e05f0346dc650f749ccab33c0e425e
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","add_numbers"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -201,11 +201,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-97747bd2a90b59d576dc436e2ecaa2956d4e20b1642cea8581b61483a4f73496}}'
+            value: '{{workflow.parameters.components-a06e49d55601ed1e78432721afac56c959e05f0346dc650f749ccab33c0e425e}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-add-numbers"},"inputs":{"parameters":{"a":{"componentInputParameter":"a"},"b":{"componentInputParameter":"b"}}},"taskInfo":{"name":"add-numbers"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-97747bd2a90b59d576dc436e2ecaa2956d4e20b1642cea8581b61483a4f73496}}'
+            value: '{{workflow.parameters.implementations-a06e49d55601ed1e78432721afac56c959e05f0346dc650f749ccab33c0e425e}}'
           - name: task-name
             value: add-numbers
           - name: parent-dag-id

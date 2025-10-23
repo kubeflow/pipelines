@@ -8,9 +8,9 @@ spec:
     parameters:
     - name: kubernetes-comp-consumer
       value: '{"pvcMount":[{"componentInputParameter":"pvc_name","mountPath":"/data","pvcNameParameter":{"componentInputParameter":"pvc_name"}}]}'
-    - name: components-dc9efe4dbc12a5d21a9be59b86f7103d95eaa794480a8f8d10d5199a0badc9d4
+    - name: components-ce3e01089ee23e8efa89e03cf85a7ac0e7d23e8c90eb9480c0ba530606857c31
       value: '{"executorLabel":"exec-consumer"}'
-    - name: implementations-dc9efe4dbc12a5d21a9be59b86f7103d95eaa794480a8f8d10d5199a0badc9d4
+    - name: implementations-ce3e01089ee23e8efa89e03cf85a7ac0e7d23e8c90eb9480c0ba530606857c31
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","consumer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -23,9 +23,9 @@ spec:
         consumer() -\u003e None:\n    with open(''/data/file.txt'', ''r'') as f:\n        print(f.read())\n\n"],"image":"python:3.11"}'
     - name: kubernetes-comp-producer
       value: '{"pvcMount":[{"componentInputParameter":"pvc_name","mountPath":"/data","pvcNameParameter":{"componentInputParameter":"pvc_name"}}]}'
-    - name: components-ad6bd24309f0be281c426daa392d4491a6d223e3a5a56f10dfb7ae7c162f9f26
+    - name: components-e666b1854737f2a7cd7fb811fc0fca9cd637782450adc694b816d1980f0b2bd2
       value: '{"executorLabel":"exec-producer","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-ad6bd24309f0be281c426daa392d4491a6d223e3a5a56f10dfb7ae7c162f9f26
+    - name: implementations-e666b1854737f2a7cd7fb811fc0fca9cd637782450adc694b816d1980f0b2bd2
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","producer"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -219,11 +219,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-dc9efe4dbc12a5d21a9be59b86f7103d95eaa794480a8f8d10d5199a0badc9d4}}'
+            value: '{{workflow.parameters.components-ce3e01089ee23e8efa89e03cf85a7ac0e7d23e8c90eb9480c0ba530606857c31}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-consumer"},"dependentTasks":["producer"],"taskInfo":{"name":"consumer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-dc9efe4dbc12a5d21a9be59b86f7103d95eaa794480a8f8d10d5199a0badc9d4}}'
+            value: '{{workflow.parameters.implementations-ce3e01089ee23e8efa89e03cf85a7ac0e7d23e8c90eb9480c0ba530606857c31}}'
           - name: task-name
             value: consumer
           - name: parent-dag-id
@@ -246,11 +246,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ad6bd24309f0be281c426daa392d4491a6d223e3a5a56f10dfb7ae7c162f9f26}}'
+            value: '{{workflow.parameters.components-e666b1854737f2a7cd7fb811fc0fca9cd637782450adc694b816d1980f0b2bd2}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-producer"},"taskInfo":{"name":"producer"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ad6bd24309f0be281c426daa392d4491a6d223e3a5a56f10dfb7ae7c162f9f26}}'
+            value: '{{workflow.parameters.implementations-e666b1854737f2a7cd7fb811fc0fca9cd637782450adc694b816d1980f0b2bd2}}'
           - name: task-name
             value: producer
           - name: parent-dag-id

@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92
+    - name: components-b5cadd2bcc71c6f13dc450182b4eb137eb62b94bdd5a170d964d6f8dec0260a5
       value: '{"executorLabel":"exec-run-train-notebook","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}}}'
-    - name: implementations-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92
+    - name: implementations-b5cadd2bcc71c6f13dc450182b4eb137eb62b94bdd5a170d964d6f8dec0260a5
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","run_train_notebook"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -299,11 +299,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92}}'
+            value: '{{workflow.parameters.components-b5cadd2bcc71c6f13dc450182b4eb137eb62b94bdd5a170d964d6f8dec0260a5}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-run-train-notebook"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"run-train-notebook"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6cb96369cb79941c813048ffcedc1b2b4dc48a280367899eadca221221c54b92}}'
+            value: '{{workflow.parameters.implementations-b5cadd2bcc71c6f13dc450182b4eb137eb62b94bdd5a170d964d6f8dec0260a5}}'
           - name: task-name
             value: run-train-notebook
           - name: parent-dag-id

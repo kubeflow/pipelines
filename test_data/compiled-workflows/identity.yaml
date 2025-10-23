@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-ba6f3c33ed7f8f19467251611934d428f27109368234070d61411c092f2ccf11
+    - name: components-4f72b1b68ec8567b06989de2c1a51aa5a00125003bb0b1c7dd1bb2eb07970287
       value: '{"executorLabel":"exec-identity","inputDefinitions":{"parameters":{"value":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-ba6f3c33ed7f8f19467251611934d428f27109368234070d61411c092f2ccf11
+    - name: implementations-4f72b1b68ec8567b06989de2c1a51aa5a00125003bb0b1c7dd1bb2eb07970287
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","identity"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -201,11 +201,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ba6f3c33ed7f8f19467251611934d428f27109368234070d61411c092f2ccf11}}'
+            value: '{{workflow.parameters.components-4f72b1b68ec8567b06989de2c1a51aa5a00125003bb0b1c7dd1bb2eb07970287}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-identity"},"inputs":{"parameters":{"value":{"componentInputParameter":"value"}}},"taskInfo":{"name":"identity"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ba6f3c33ed7f8f19467251611934d428f27109368234070d61411c092f2ccf11}}'
+            value: '{{workflow.parameters.implementations-4f72b1b68ec8567b06989de2c1a51aa5a00125003bb0b1c7dd1bb2eb07970287}}'
           - name: task-name
             value: identity
           - name: parent-dag-id
