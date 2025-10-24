@@ -306,9 +306,7 @@ var platformSpec = &specPB.PlatformSpec{
 				},
 			},
 			PipelineConfig: &specPB.PipelineConfig{
-				SemaphoreKey: "test-key",
-				MutexName:    "test-mutex",
-				ResourceTtl:  24,
+				ResourceTtl: 24,
 			},
 		},
 	},
