@@ -102,6 +102,7 @@ class Executor:
                     self.func,
                 )
                 self.output_artifacts[name] = output_artifact
+                #todo: I think this is where we are creating artifact files in local container storage.
                 makedirs_recursively(output_artifact.path)
 
     def make_artifact(
@@ -303,6 +304,7 @@ class Executor:
             write_file = cluster_spec['task']['type'] in CHIEF_NODE_LABELS
 
         if write_file:
+            #todo. this method is called by execute(), and here is where it is dumping the artifact output locally.
             makedirs_recursively(self.executor_output_path)
             with open(self.executor_output_path, 'w') as f:
                 f.write(json.dumps(self.excutor_output))
