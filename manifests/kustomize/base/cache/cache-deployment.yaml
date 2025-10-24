@@ -14,6 +14,19 @@ spec:
       labels:
         app: cache-server
     spec:
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        searches:
+        - kubeflow.svc.cluster.local
+        - svc.cluster.local
+        - cluster.local
+        options:
+        - name: timeout
+          value: "2"
+        - name: attempts
+          value: "3"
+        - name: ndots
+          value: "2"
       securityContext:
         seccompProfile:
           type: RuntimeDefault

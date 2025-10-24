@@ -17,7 +17,7 @@ def add(nums: List[int]) -> int:
 @dsl.container_component
 def add_container(nums: List[int], sum: dsl.OutputPath(int)):
     return dsl.ContainerSpec(
-        image='stedolan/jq',
+        image='jetbrainsinfra/jq',
         command=['sh', '-c'],
         args=[
             f"""

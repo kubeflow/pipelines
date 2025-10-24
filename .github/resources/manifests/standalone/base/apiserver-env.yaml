@@ -5,12 +5,25 @@ metadata:
 spec:
   template:
     spec:
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        searches:
+          - kubeflow.svc.cluster.local
+          - svc.cluster.local
+          - cluster.local
+        options:
+          - name: timeout
+            value: "2"
+          - name: attempts
+            value: "3"
+          - name: ndots
+            value: "2"
       containers:
         - name: ml-pipeline-api-server
           env:
             - name: V2_DRIVER_IMAGE
-              value: kind-registry:5000/driver:latest
+              value: kind-registry:5000/driver
             - name: V2_LAUNCHER_IMAGE
-              value: kind-registry:5000/launcher:latest
+              value: kind-registry:5000/launcher
             - name: LOG_LEVEL
               value: "debug"
