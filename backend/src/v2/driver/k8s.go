@@ -17,6 +17,7 @@ package driver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -178,22 +179,31 @@ func extendPodSpecPatch(
 	// Get node selector information
 	if kubernetesExecutorConfig.GetNodeSelector() != nil {
 		var nodeSelector map[string]string
+		// skipNodeSelector marks when the node selector input resolved to a null optional
+		// value. In that case we avoid appending an empty selector to the pod spec.
+		skipNodeSelector := false
 		if kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson() != nil {
 			err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
 				kubernetesExecutorConfig.GetNodeSelector().GetNodeSelectorJson(), inputParams, &nodeSelector)
 			if err != nil {
-				return fmt.Errorf("failed to resolve node selector: %w", err)
+				if errors.Is(err, ErrResolvedParameterNull) {
+					skipNodeSelector = true
+				} else {
+					return fmt.Errorf("failed to resolve node selector: %w", err)
+				}
 			}
 		} else {
 			nodeSelector = kubernetesExecutorConfig.GetNodeSelector().GetLabels()
 		}
 
-		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
-			taskConfig.NodeSelector = nodeSelector
-		}
+		if !skipNodeSelector {
+			if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
+				taskConfig.NodeSelector = nodeSelector
+			}
 
-		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
-			podSpec.NodeSelector = nodeSelector
+			if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR] {
+				podSpec.NodeSelector = nodeSelector
+			}
 		}
 	}
 
@@ -209,6 +219,9 @@ func extendPodSpecPatch(
 					resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
 						toleration.GetTolerationJson(), inputParams)
 					if err != nil {
+						if errors.Is(err, ErrResolvedParameterNull) {
+							continue // Skip applying the patch for this null/optional parameter
+						}
 						return fmt.Errorf("failed to resolve toleration: %w", err)
 					}
 
@@ -278,6 +291,9 @@ func extendPodSpecPatch(
 			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 				secretAsVolume.SecretNameParameter, inputParams)
 			if err != nil {
+				if errors.Is(err, ErrResolvedParameterNull) {
+					continue
+				}
 				return fmt.Errorf("failed to resolve secret name: %w", err)
 			}
 			secretName = resolvedSecretName.GetStringValue()
@@ -337,6 +353,9 @@ func extendPodSpecPatch(
 				resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 					secretAsEnv.SecretNameParameter, inputParams)
 				if err != nil {
+					if errors.Is(err, ErrResolvedParameterNull) {
+						continue
+					}
 					return fmt.Errorf("failed to resolve secret name: %w", err)
 				}
 				secretName = resolvedSecretName.GetStringValue()
@@ -363,12 +382,15 @@ func extendPodSpecPatch(
 	for _, configMapAsVolume := range kubernetesExecutorConfig.GetConfigMapAsVolume() {
 		var configMapName string
 		if configMapAsVolume.ConfigMapNameParameter != nil {
-			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
+			resolvedConfigMapName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 				configMapAsVolume.ConfigMapNameParameter, inputParams)
 			if err != nil {
+				if errors.Is(err, ErrResolvedParameterNull) {
+					continue
+				}
 				return fmt.Errorf("failed to resolve configmap name: %w", err)
 			}
-			configMapName = resolvedSecretName.GetStringValue()
+			configMapName = resolvedConfigMapName.GetStringValue()
 		} else if configMapAsVolume.ConfigMapName != "" {
 			configMapName = configMapAsVolume.ConfigMapName
 		} else {
@@ -424,12 +446,15 @@ func extendPodSpecPatch(
 
 			var configMapName string
 			if configMapAsEnv.ConfigMapNameParameter != nil {
-				resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
+				resolvedConfigMapName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 					configMapAsEnv.ConfigMapNameParameter, inputParams)
 				if err != nil {
+					if errors.Is(err, ErrResolvedParameterNull) {
+						continue
+					}
 					return fmt.Errorf("failed to resolve configmap name: %w", err)
 				}
-				configMapName = resolvedSecretName.GetStringValue()
+				configMapName = resolvedConfigMapName.GetStringValue()
 			} else if configMapAsEnv.ConfigMapName != "" {
 				configMapName = configMapAsEnv.ConfigMapName
 			} else {
@@ -456,6 +481,9 @@ func extendPodSpecPatch(
 			resolvedSecretName, err := resolveInputParameterStr(ctx, dag, pipeline, opts, mlmd,
 				imagePullSecret.SecretNameParameter, inputParams)
 			if err != nil {
+				if errors.Is(err, ErrResolvedParameterNull) {
+					continue
+				}
 				return fmt.Errorf("failed to resolve image pull secret name: %w", err)
 			}
 			secretName = resolvedSecretName.GetStringValue()
@@ -588,6 +616,9 @@ func extendPodSpecPatch(
 				err := resolveK8sJsonParameter(ctx, opts, dag, pipeline, mlmd,
 					nodeAffinityTerm.GetNodeAffinityJson(), inputParams, &k8sNodeAffinity)
 				if err != nil {
+					if errors.Is(err, ErrResolvedParameterNull) {
+						continue
+					}
 					return fmt.Errorf("failed to resolve node affinity json: %w", err)
 				}
 
