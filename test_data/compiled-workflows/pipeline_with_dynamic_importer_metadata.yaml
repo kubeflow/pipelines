@@ -14,9 +14,9 @@ spec:
       value: '{"executorLabel":"exec-importer-2","inputDefinitions":{"parameters":{"metadata":{"parameterType":"STRING"},"metadata-2":{"parameterType":"STRING"},"metadata-3":{"parameterType":"NUMBER_INTEGER"},"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer-2
       value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"metadata":{"containerSpec":{"imageUri":"us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest"},"list-of-data":["{{$.inputs.parameters[''metadata'']}}","{{$.inputs.parameters[''metadata-2'']}}","{{$.inputs.parameters[''metadata-3'']}}"],"name":"prefix-{{$.inputs.parameters[''metadata'']}}","{{$.inputs.parameters[''metadata'']}}":"{{$.inputs.parameters[''metadata'']}}","{{$.inputs.parameters[''metadata-2'']}}":"us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
-    - name: components-958372f93b012956585660b34fdee7e4ee56bc8305edc68a225e8d9fd0e274f2
+    - name: components-1f5c6ec51212707117cf959e66eed87794baf9ac92c3f57c43a8e3ce06397f03
       value: '{"executorLabel":"exec-make-name","inputDefinitions":{"parameters":{"name":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-958372f93b012956585660b34fdee7e4ee56bc8305edc68a225e8d9fd0e274f2
+    - name: implementations-1f5c6ec51212707117cf959e66eed87794baf9ac92c3f57c43a8e3ce06397f03
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","make_name"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -26,7 +26,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        make_name(name: str) -\u003e str:\n    return name\n\n"],"image":"python:3.9"}'
+        make_name(name: str) -\u003e str:\n    return name\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"metadata":{"componentInputParameter":"name"},"metadata-2":{"componentInputParameter":"pipeline_input_image_uri"},"uri":{"componentInputParameter":"pipeline_input_artifact_uri"}}},"taskInfo":{"name":"importer"}},"importer-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"dependentTasks":["make-name"],"inputs":{"parameters":{"metadata":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"make-name"}},"metadata-2":{"componentInputParameter":"name"},"metadata-3":{"componentInputParameter":"int_input"},"uri":{"runtimeValue":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"}}}},"taskInfo":{"name":"importer-2"}},"make-name":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-name"},"inputs":{"parameters":{"name":{"runtimeValue":{"constant":"a-different-name"}}}},"taskInfo":{"name":"make-name"}}}},"inputDefinitions":{"parameters":{"int_input":{"defaultValue":1,"isOptional":true,"parameterType":"NUMBER_INTEGER"},"name":{"defaultValue":"default-name","isOptional":true,"parameterType":"STRING"},"pipeline_input_artifact_uri":{"defaultValue":"gs://ml-pipeline-playground/shakespeare1.txt","isOptional":true,"parameterType":"STRING"},"pipeline_input_image_uri":{"defaultValue":"us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest","isOptional":true,"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
@@ -290,11 +290,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-958372f93b012956585660b34fdee7e4ee56bc8305edc68a225e8d9fd0e274f2}}'
+            value: '{{workflow.parameters.components-1f5c6ec51212707117cf959e66eed87794baf9ac92c3f57c43a8e3ce06397f03}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-name"},"inputs":{"parameters":{"name":{"runtimeValue":{"constant":"a-different-name"}}}},"taskInfo":{"name":"make-name"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-958372f93b012956585660b34fdee7e4ee56bc8305edc68a225e8d9fd0e274f2}}'
+            value: '{{workflow.parameters.implementations-1f5c6ec51212707117cf959e66eed87794baf9ac92c3f57c43a8e3ce06397f03}}'
           - name: task-name
             value: make-name
           - name: parent-dag-id

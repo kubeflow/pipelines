@@ -76,7 +76,7 @@ describe('StaticNodeDetailsV2', () => {
     expect(screen.getAllByText('STRING').length).toEqual(2);
 
     screen.getByText('Image');
-    screen.getByText('python:3.9');
+    screen.getByText('python:3.11');
 
     screen.getByText('Command');
     expect(screen.getAllByText('sh').length).toEqual(2);
@@ -131,7 +131,7 @@ describe('StaticNodeDetailsV2', () => {
     expect(screen.getAllByText('STRING').length).toEqual(1);
 
     screen.getByText('Image');
-    screen.getByText('python:3.9');
+    screen.getByText('python:3.11');
 
     screen.getByText('Command');
     expect(screen.getAllByText('sh').length).toEqual(2);

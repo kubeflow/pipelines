@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-228cf9424bf53a0e969ad4299e33fa7d2c0cebe754627c59bd00c710b00f88fa
+    - name: components-ffbce4c56102eddc51d0cb2aaa352ac140f1bbf010042621313e0144a79c7a20
       value: '{"executorLabel":"exec-read-embedded-artifact-dir"}'
-    - name: implementations-228cf9424bf53a0e969ad4299e33fa7d2c0cebe754627c59bd00c710b00f88fa
+    - name: implementations-ffbce4c56102eddc51d0cb2aaa352ac140f1bbf010042621313e0144a79c7a20
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_embedded_artifact_dir"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -32,10 +32,10 @@ spec:
         __KFP_EMBEDDED_ASSET_DIR)\n\n\n\n\ndef read_embedded_artifact_dir(artifact:
         dsl.EmbeddedInput[dsl.Dataset]):\n    import os\n\n    with open(os.path.join(artifact.path,
         \"log.txt\"), \"r\", encoding=\"utf-8\") as f:\n        log = f.read()\n\n    assert
-        log == \"Hello, world!\"\n\n"],"image":"python:3.9"}'
-    - name: components-302f28ee42e44910a1eb45593566a12b430150b643fb02ded3ae7838c0cea331
+        log == \"Hello, world!\"\n\n"],"image":"python:3.11"}'
+    - name: components-51efdf1bda01221dc8fa240e519ad3100e7bd478949411c505a8925e19f655a1
       value: '{"executorLabel":"exec-read-embedded-artifact-file"}'
-    - name: implementations-302f28ee42e44910a1eb45593566a12b430150b643fb02ded3ae7838c0cea331
+    - name: implementations-51efdf1bda01221dc8fa240e519ad3100e7bd478949411c505a8925e19f655a1
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_embedded_artifact_file"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -59,7 +59,7 @@ spec:
         __KFP_EMBEDDED_ASSET_DIR)\n\n__KFP_EMBEDDED_ASSET_FILE = __kfp_os.path.join(__KFP_EMBEDDED_ASSET_DIR,
         ''log.txt'')\n\n\n\n\ndef read_embedded_artifact_file(artifact: dsl.EmbeddedInput[dsl.Dataset]):\n    with
         open(artifact.path, \"r\", encoding=\"utf-8\") as f:\n        log = f.read()\n\n    assert
-        log == \"Hello, world!\"\n\n"],"image":"python:3.9"}'
+        log == \"Hello, world!\"\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"read-embedded-artifact-dir":{"cachingOptions":{},"componentRef":{"name":"comp-read-embedded-artifact-dir"},"taskInfo":{"name":"read-embedded-artifact-dir"}},"read-embedded-artifact-file":{"cachingOptions":{},"componentRef":{"name":"comp-read-embedded-artifact-file"},"taskInfo":{"name":"read-embedded-artifact-file"}}}}}'
   entrypoint: entrypoint
@@ -242,11 +242,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-228cf9424bf53a0e969ad4299e33fa7d2c0cebe754627c59bd00c710b00f88fa}}'
+            value: '{{workflow.parameters.components-ffbce4c56102eddc51d0cb2aaa352ac140f1bbf010042621313e0144a79c7a20}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-embedded-artifact-dir"},"taskInfo":{"name":"read-embedded-artifact-dir"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-228cf9424bf53a0e969ad4299e33fa7d2c0cebe754627c59bd00c710b00f88fa}}'
+            value: '{{workflow.parameters.implementations-ffbce4c56102eddc51d0cb2aaa352ac140f1bbf010042621313e0144a79c7a20}}'
           - name: task-name
             value: read-embedded-artifact-dir
           - name: parent-dag-id
@@ -266,11 +266,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-302f28ee42e44910a1eb45593566a12b430150b643fb02ded3ae7838c0cea331}}'
+            value: '{{workflow.parameters.components-51efdf1bda01221dc8fa240e519ad3100e7bd478949411c505a8925e19f655a1}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-read-embedded-artifact-file"},"taskInfo":{"name":"read-embedded-artifact-file"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-302f28ee42e44910a1eb45593566a12b430150b643fb02ded3ae7838c0cea331}}'
+            value: '{{workflow.parameters.implementations-51efdf1bda01221dc8fa240e519ad3100e7bd478949411c505a8925e19f655a1}}'
           - name: task-name
             value: read-embedded-artifact-file
           - name: parent-dag-id

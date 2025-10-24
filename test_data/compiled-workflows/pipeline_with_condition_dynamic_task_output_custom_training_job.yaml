@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-4ff7c4319829a8830447ba783584f0f40734ff010482a6b9b234ceda17ba214c
+    - name: components-b644111ca20a6ae3d9e716f9eda564a01b648ac879e153b674558d9c9a9da6e8
       value: '{"executorLabel":"exec-accelerator-count","outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-4ff7c4319829a8830447ba783584f0f40734ff010482a6b9b234ceda17ba214c
+    - name: implementations-b644111ca20a6ae3d9e716f9eda564a01b648ac879e153b674558d9c9a9da6e8
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","accelerator_count"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -18,10 +18,10 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        accelerator_count() -\u003e int:\n    return 1\n\n"],"image":"python:3.9"}'
-    - name: components-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b
+        accelerator_count() -\u003e int:\n    return 1\n\n"],"image":"python:3.11"}'
+    - name: components-f9a25b0b0eb8f4240e030d4007d8ba04dd922f7ac266816c8751d15ad42c5236
       value: '{"executorLabel":"exec-accelerator-type","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b
+    - name: implementations-f9a25b0b0eb8f4240e030d4007d8ba04dd922f7ac266816c8751d15ad42c5236
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","accelerator_type"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -31,7 +31,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.9"}'
+        accelerator_type() -\u003e str:\n    return ''NVIDIA_TESLA_P4''\n\n"],"image":"python:3.11"}'
     - name: components-5c3db471413bc5e6b0f2f0865964176bec80d4d3e1dca8ac3332029d1bd0e525
       value: '{"executorLabel":"exec-custom-training-job","inputDefinitions":{"parameters":{"base_output_directory":{"defaultValue":"","description":"The
         Cloud Storage location to store the output of this CustomJob or HyperparameterTuningJob.
@@ -107,9 +107,9 @@ spec:
         \"{{$.inputs.parameters[''encryption_spec_key_name'']}}\"}}","--project","{{$.inputs.parameters[''project'']}}","--location","{{$.inputs.parameters[''location'']}}","--gcp_resources","{{$.outputs.parameters[''gcp_resources''].output_file}}"],"command":["python3","-u","-m","google_cloud_pipeline_components.container.v1.custom_job.launcher"],"image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.21.0"}'
     - name: components-comp-condition-1
       value: '{"dag":{"tasks":{"custom-training-job":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-custom-training-job"},"inputs":{"parameters":{"display_name":{"runtimeValue":{"constant":"add-numbers"}},"encryption_spec_key_name":{"componentInputParameter":"pipelinechannel--encryption_spec_key_name"},"location":{"componentInputParameter":"pipelinechannel--location"},"pipelinechannel--accelerator-count-Output":{"componentInputParameter":"pipelinechannel--accelerator-count-Output"},"pipelinechannel--accelerator-type-Output":{"componentInputParameter":"pipelinechannel--accelerator-type-Output"},"pipelinechannel--machine-type-Output":{"componentInputParameter":"pipelinechannel--machine-type-Output"},"project":{"componentInputParameter":"pipelinechannel--project"},"worker_pool_specs":{"runtimeValue":{"constant":[{"container_spec":{"args":["foo"],"command":["echo"],"image_uri":"gcr.io/ml-pipeline/google-cloud-pipeline-components:2.5.0"},"machine_spec":{"accelerator_count":"{{$.inputs.parameters[''pipelinechannel--accelerator-count-Output'']}}","accelerator_type":"{{$.inputs.parameters[''pipelinechannel--accelerator-type-Output'']}}","machine_type":"{{$.inputs.parameters[''pipelinechannel--machine-type-Output'']}}"},"replica_count":1}]}}}},"taskInfo":{"name":"custom-training-job"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--accelerator-count-Output":{"parameterType":"NUMBER_INTEGER"},"pipelinechannel--accelerator-type-Output":{"parameterType":"STRING"},"pipelinechannel--encryption_spec_key_name":{"parameterType":"STRING"},"pipelinechannel--flip-biased-coin-op-Output":{"parameterType":"STRING"},"pipelinechannel--location":{"parameterType":"STRING"},"pipelinechannel--machine-type-Output":{"parameterType":"STRING"},"pipelinechannel--project":{"parameterType":"STRING"}}}}'
-    - name: components-51b3f8664f2ff23be29076a65342b8eb091ec17bd73e4295c973baea3dd5f073
+    - name: components-0c259210b1fb84dd1577b42a94ae79f0619227d7d05e5f54ffe040c596a5439c
       value: '{"executorLabel":"exec-flip-biased-coin-op","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-51b3f8664f2ff23be29076a65342b8eb091ec17bd73e4295c973baea3dd5f073
+    - name: implementations-0c259210b1fb84dd1577b42a94ae79f0619227d7d05e5f54ffe040c596a5439c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_biased_coin_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -120,10 +120,10 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         flip_biased_coin_op() -\u003e str:\n    \"\"\"Flip a coin and output heads.\"\"\"\n    return
-        ''heads''\n\n"],"image":"python:3.9"}'
-    - name: components-cc24d59ed416d6169227e7ef954078b09337657b6eb903c1ee2afe6e0d9a5972
+        ''heads''\n\n"],"image":"python:3.11"}'
+    - name: components-a8764ade5a7c2d0a4863791e694b80370ee266ca37f2aa429d49e94e203e1715
       value: '{"executorLabel":"exec-machine-type","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-cc24d59ed416d6169227e7ef954078b09337657b6eb903c1ee2afe6e0d9a5972
+    - name: implementations-a8764ade5a7c2d0a4863791e694b80370ee266ca37f2aa429d49e94e203e1715
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","machine_type"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -133,7 +133,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        machine_type() -\u003e str:\n    return ''n1-standard-4''\n\n"],"image":"python:3.9"}'
+        machine_type() -\u003e str:\n    return ''n1-standard-4''\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"accelerator-count":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-count"},"taskInfo":{"name":"accelerator-count"}},"accelerator-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}},"condition-1":{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["accelerator-count","accelerator-type","flip-biased-coin-op","machine-type"],"inputs":{"parameters":{"pipelinechannel--accelerator-count-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-count"}},"pipelinechannel--accelerator-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"accelerator-type"}},"pipelinechannel--encryption_spec_key_name":{"componentInputParameter":"encryption_spec_key_name"},"pipelinechannel--flip-biased-coin-op-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-biased-coin-op"}},"pipelinechannel--location":{"componentInputParameter":"location"},"pipelinechannel--machine-type-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"machine-type"}},"pipelinechannel--project":{"componentInputParameter":"project"}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-biased-coin-op-Output'']
         == ''heads''"}},"flip-biased-coin-op":{"cachingOptions":{},"componentRef":{"name":"comp-flip-biased-coin-op"},"taskInfo":{"name":"flip-biased-coin-op"}},"machine-type":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-machine-type"},"taskInfo":{"name":"machine-type"}}}},"inputDefinitions":{"parameters":{"encryption_spec_key_name":{"defaultValue":"","isOptional":true,"parameterType":"STRING"},"location":{"parameterType":"STRING"},"project":{"parameterType":"STRING"}}}}'
@@ -426,11 +426,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-4ff7c4319829a8830447ba783584f0f40734ff010482a6b9b234ceda17ba214c}}'
+            value: '{{workflow.parameters.components-b644111ca20a6ae3d9e716f9eda564a01b648ac879e153b674558d9c9a9da6e8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-count"},"taskInfo":{"name":"accelerator-count"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-4ff7c4319829a8830447ba783584f0f40734ff010482a6b9b234ceda17ba214c}}'
+            value: '{{workflow.parameters.implementations-b644111ca20a6ae3d9e716f9eda564a01b648ac879e153b674558d9c9a9da6e8}}'
           - name: task-name
             value: accelerator-count
           - name: parent-dag-id
@@ -450,11 +450,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b}}'
+            value: '{{workflow.parameters.components-f9a25b0b0eb8f4240e030d4007d8ba04dd922f7ac266816c8751d15ad42c5236}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-accelerator-type"},"taskInfo":{"name":"accelerator-type"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-2212d778fdcf0682a268c7b100e165b811b818a3b68c0bfd48dd5681e999936b}}'
+            value: '{{workflow.parameters.implementations-f9a25b0b0eb8f4240e030d4007d8ba04dd922f7ac266816c8751d15ad42c5236}}'
           - name: task-name
             value: accelerator-type
           - name: parent-dag-id
@@ -499,11 +499,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-51b3f8664f2ff23be29076a65342b8eb091ec17bd73e4295c973baea3dd5f073}}'
+            value: '{{workflow.parameters.components-0c259210b1fb84dd1577b42a94ae79f0619227d7d05e5f54ffe040c596a5439c}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-flip-biased-coin-op"},"taskInfo":{"name":"flip-biased-coin-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-51b3f8664f2ff23be29076a65342b8eb091ec17bd73e4295c973baea3dd5f073}}'
+            value: '{{workflow.parameters.implementations-0c259210b1fb84dd1577b42a94ae79f0619227d7d05e5f54ffe040c596a5439c}}'
           - name: task-name
             value: flip-biased-coin-op
           - name: parent-dag-id
@@ -523,11 +523,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-cc24d59ed416d6169227e7ef954078b09337657b6eb903c1ee2afe6e0d9a5972}}'
+            value: '{{workflow.parameters.components-a8764ade5a7c2d0a4863791e694b80370ee266ca37f2aa429d49e94e203e1715}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-machine-type"},"taskInfo":{"name":"machine-type"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-cc24d59ed416d6169227e7ef954078b09337657b6eb903c1ee2afe6e0d9a5972}}'
+            value: '{{workflow.parameters.implementations-a8764ade5a7c2d0a4863791e694b80370ee266ca37f2aa429d49e94e203e1715}}'
           - name: task-name
             value: machine-type
           - name: parent-dag-id

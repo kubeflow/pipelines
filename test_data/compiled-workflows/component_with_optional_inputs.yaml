@@ -6,10 +6,10 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-305fccf43860a79b150cabe2f8d8140dd3c6539588f7e9c3f1788e775bd62887
+    - name: components-8a37febc0bf19dffb0c33aa550ff8996f9e410b3f2b4c7f8f527b0c40618bb22
       value: '{"executorLabel":"exec-component-op","inputDefinitions":{"parameters":{"input1":{"defaultValue":"default
         value","isOptional":true,"parameterType":"STRING"},"input2":{"isOptional":true,"parameterType":"STRING"},"input3":{"isOptional":true,"parameterType":"STRING"}}}}'
-    - name: implementations-305fccf43860a79b150cabe2f8d8140dd3c6539588f7e9c3f1788e775bd62887
+    - name: implementations-8a37febc0bf19dffb0c33aa550ff8996f9e410b3f2b4c7f8f527b0c40618bb22
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -22,7 +22,7 @@ spec:
         component_op(\n    input1: str = ''default value'',\n    input2: Optional[str]
         = None,\n    input3: Optional[str] = None,\n):\n    print(f''input1: {input1},
         type: {type(input1)}'')\n    print(f''input2: {input2}, type: {type(input2)}'')\n    print(f''input3:
-        {input3}, type: {type(input3)}'')\n\n"],"image":"python:3.9"}'
+        {input3}, type: {type(input3)}'')\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"component-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-op"},"inputs":{"parameters":{"input1":{"runtimeValue":{"constant":"Hello"}},"input2":{"runtimeValue":{"constant":"World"}}}},"taskInfo":{"name":"component-op"}}}}}'
   entrypoint: entrypoint
@@ -205,11 +205,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-305fccf43860a79b150cabe2f8d8140dd3c6539588f7e9c3f1788e775bd62887}}'
+            value: '{{workflow.parameters.components-8a37febc0bf19dffb0c33aa550ff8996f9e410b3f2b4c7f8f527b0c40618bb22}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-op"},"inputs":{"parameters":{"input1":{"runtimeValue":{"constant":"Hello"}},"input2":{"runtimeValue":{"constant":"World"}}}},"taskInfo":{"name":"component-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-305fccf43860a79b150cabe2f8d8140dd3c6539588f7e9c3f1788e775bd62887}}'
+            value: '{{workflow.parameters.implementations-8a37febc0bf19dffb0c33aa550ff8996f9e410b3f2b4c7f8f527b0c40618bb22}}'
           - name: task-name
             value: component-op
           - name: parent-dag-id

@@ -112,7 +112,7 @@ deploymentSpec:
           \    label = os.getenv(label_path)\n    if label != \"\":\n        raise\
           \ ValueError(\n            f\"Pod label is {label} but is supposed to be\
           \ None.\"\n        )\n    return True\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-validate-pod-metadata:
       container:
         args:
@@ -166,7 +166,7 @@ deploymentSpec:
           \ is supposed to be {label_exp_val_2}.\"\n            )\n        validated_metadata_count+=1\n\
           \    if validated_metadata_count <1:\n        raise RuntimeError(f\"No pod\
           \ metadata found to validate.\")\n    return True\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-validate-pod-metadata-2:
       container:
         args:
@@ -220,7 +220,7 @@ deploymentSpec:
           \ is supposed to be {label_exp_val_2}.\"\n            )\n        validated_metadata_count+=1\n\
           \    if validated_metadata_count <1:\n        raise RuntimeError(f\"No pod\
           \ metadata found to validate.\")\n    return True\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: pipeline-with-pod-metadata
 root:

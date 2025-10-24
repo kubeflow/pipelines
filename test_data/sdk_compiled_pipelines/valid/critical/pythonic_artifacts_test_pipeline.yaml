@@ -55,7 +55,7 @@ deploymentSpec:
           \    with open(dataset.path, \"w\") as f:\n        f.write(\"some data\"\
           )\n\n    dataset.metadata[\"length\"] = len(\"some data\")\n    return dataset\n\
           \n"
-        image: python:3.9
+        image: python:3.11
     exec-train-model:
       container:
         args:
@@ -88,7 +88,7 @@ deploymentSpec:
           \ = Model(uri=dsl.get_uri(\"model\"))\n    with open(model_artifact.path,\
           \ \"w\") as f:\n        f.write(\"model trained\")\n\n    return model_artifact\n\
           \n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: pythonic-artifacts-test
 root:

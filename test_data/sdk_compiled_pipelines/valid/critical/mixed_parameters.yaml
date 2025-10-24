@@ -82,7 +82,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef core_comp() -> int:\n    return 1\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-crust-comp:
       container:
         args:
@@ -110,7 +110,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef crust_comp(x: int, y: int):\n    print('sum :', x + y)\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: mixed-parameters-pipeline
 root:

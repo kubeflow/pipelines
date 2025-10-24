@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-66f7b70943b22b0e93ab97e737d33d87c19e743933c63d7573ec6f55617cb766
+    - name: components-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582
       value: '{"executorLabel":"exec-print-msg","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}}}'
-    - name: implementations-66f7b70943b22b0e93ab97e737d33d87c19e743933c63d7573ec6f55617cb766
+    - name: implementations-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_msg"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_msg(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\n"],"image":"python:3.9"}'
+        print_msg(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-2
       value: '{"dag":{"tasks":{"print-msg":{"cachingOptions":{},"componentRef":{"name":"comp-print-msg"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
         and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}} \u003e
@@ -27,9 +27,9 @@ spec:
       value: '{"dag":{"tasks":{"print-msg-2":{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-2"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
         and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}} \u003c=
         5!"}},"pipelinechannel--random-num-Output":{"componentInputParameter":"pipelinechannel--random-num-Output"}}},"taskInfo":{"name":"print-msg-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"},"pipelinechannel--random-num-Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: components-e6fdb657c103ed2cbd67c3611182d3961f70724e37166e8b94304cf95b0c736b
+    - name: components-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0
       value: '{"executorLabel":"exec-random-num","inputDefinitions":{"parameters":{"high":{"parameterType":"NUMBER_INTEGER"},"low":{"parameterType":"NUMBER_INTEGER"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"NUMBER_INTEGER"}}}}'
-    - name: implementations-e6fdb657c103ed2cbd67c3611182d3961f70724e37166e8b94304cf95b0c736b
+    - name: implementations-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","random_num"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -41,7 +41,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         random_num(low: int, high: int) -\u003e int:\n    \"\"\"Generate a random
         number between low and high.\"\"\"\n    import random  # noqa: PLC0415\n\n    result
-        = random.randint(low, high)\n    print(result)\n    return result\n\n"],"image":"python:3.9"}'
+        = random.randint(low, high)\n    print(result)\n    return result\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-1
       value: '{"dag":{"tasks":{"condition-2":{"componentRef":{"name":"comp-condition-2"},"dependentTasks":["random-num"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num"}}}},"taskInfo":{"name":"condition-2"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-Output''])
         \u003e 5"}},"condition-3":{"componentRef":{"name":"comp-condition-3"},"dependentTasks":["random-num"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num"}}}},"taskInfo":{"name":"condition-3"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-Output''])
@@ -58,9 +58,9 @@ spec:
       value: '{"dag":{"tasks":{"condition-5":{"componentRef":{"name":"comp-condition-5"},"dependentTasks":["random-num-2"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num-2"}}}},"taskInfo":{"name":"condition-5"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-2-Output''])
         \u003e 15"}},"condition-6":{"componentRef":{"name":"comp-condition-6"},"dependentTasks":["random-num-2"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"componentInputParameter":"pipelinechannel--flip-coin-Output"},"pipelinechannel--random-num-2-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"random-num-2"}}}},"taskInfo":{"name":"condition-6"},"triggerPolicy":{"condition":"int(inputs.parameter_values[''pipelinechannel--random-num-2-Output''])
         \u003c= 15"}},"random-num-2":{"cachingOptions":{},"componentRef":{"name":"comp-random-num-2"},"inputs":{"parameters":{"high":{"runtimeValue":{"constant":19}},"low":{"runtimeValue":{"constant":10}}}},"taskInfo":{"name":"random-num-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--flip-coin-Output":{"parameterType":"STRING"}}}}'
-    - name: components-8febb76ff31d4bcdea4ae0c2f886b818c1d766cfe9bec311de0f57970d0ccb9b
+    - name: components-6175eb183c8ba935a4c42b40e65a5c3e4623a9c16b38fd5c4bbfc23275f0e9bd
       value: '{"executorLabel":"exec-flip-coin","outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-8febb76ff31d4bcdea4ae0c2f886b818c1d766cfe9bec311de0f57970d0ccb9b
+    - name: implementations-6175eb183c8ba935a4c42b40e65a5c3e4623a9c16b38fd5c4bbfc23275f0e9bd
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","flip_coin"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -73,7 +73,7 @@ spec:
         flip_coin() -\u003e str:\n    \"\"\"Flip a coin and output heads or tails
         randomly.\"\"\"\n    import random  # noqa: PLC0415\n\n    result = \"heads\"
         if random.randint(0, 1) == 0 else \"tails\"\n    print(result)\n    return
-        result\n\n"],"image":"python:3.9"}'
+        result\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"condition-1":{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
         == ''heads''"}},"condition-4":{"componentRef":{"name":"comp-condition-4"},"dependentTasks":["flip-coin"],"inputs":{"parameters":{"pipelinechannel--flip-coin-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"flip-coin"}}}},"taskInfo":{"name":"condition-4"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--flip-coin-Output'']
@@ -258,13 +258,13 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-66f7b70943b22b0e93ab97e737d33d87c19e743933c63d7573ec6f55617cb766}}'
+            value: '{{workflow.parameters.components-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
               and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}}
               \u003e 5!"}},"pipelinechannel--random-num-Output":{"componentInputParameter":"pipelinechannel--random-num-Output"}}},"taskInfo":{"name":"print-msg"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-66f7b70943b22b0e93ab97e737d33d87c19e743933c63d7573ec6f55617cb766}}'
+            value: '{{workflow.parameters.implementations-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
           - name: task-name
             value: print-msg
           - name: parent-dag-id
@@ -292,13 +292,13 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-66f7b70943b22b0e93ab97e737d33d87c19e743933c63d7573ec6f55617cb766}}'
+            value: '{{workflow.parameters.components-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-2"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"heads
               and {{$.inputs.parameters[''pipelinechannel--random-num-Output'']}}
               \u003c= 5!"}},"pipelinechannel--random-num-Output":{"componentInputParameter":"pipelinechannel--random-num-Output"}}},"taskInfo":{"name":"print-msg-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-66f7b70943b22b0e93ab97e737d33d87c19e743933c63d7573ec6f55617cb766}}'
+            value: '{{workflow.parameters.implementations-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
           - name: task-name
             value: print-msg-2
           - name: parent-dag-id
@@ -451,11 +451,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e6fdb657c103ed2cbd67c3611182d3961f70724e37166e8b94304cf95b0c736b}}'
+            value: '{{workflow.parameters.components-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-random-num"},"inputs":{"parameters":{"high":{"runtimeValue":{"constant":9}},"low":{"runtimeValue":{"constant":0}}}},"taskInfo":{"name":"random-num"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e6fdb657c103ed2cbd67c3611182d3961f70724e37166e8b94304cf95b0c736b}}'
+            value: '{{workflow.parameters.implementations-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0}}'
           - name: task-name
             value: random-num
           - name: parent-dag-id
@@ -483,13 +483,13 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-66f7b70943b22b0e93ab97e737d33d87c19e743933c63d7573ec6f55617cb766}}'
+            value: '{{workflow.parameters.components-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-3"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"tails
               and {{$.inputs.parameters[''pipelinechannel--random-num-2-Output'']}}
               \u003e 15!"}},"pipelinechannel--random-num-2-Output":{"componentInputParameter":"pipelinechannel--random-num-2-Output"}}},"taskInfo":{"name":"print-msg-3"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-66f7b70943b22b0e93ab97e737d33d87c19e743933c63d7573ec6f55617cb766}}'
+            value: '{{workflow.parameters.implementations-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
           - name: task-name
             value: print-msg-3
           - name: parent-dag-id
@@ -517,13 +517,13 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-66f7b70943b22b0e93ab97e737d33d87c19e743933c63d7573ec6f55617cb766}}'
+            value: '{{workflow.parameters.components-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-print-msg-4"},"inputs":{"parameters":{"msg":{"runtimeValue":{"constant":"tails
               and {{$.inputs.parameters[''pipelinechannel--random-num-2-Output'']}}
               \u003c= 15!"}},"pipelinechannel--random-num-2-Output":{"componentInputParameter":"pipelinechannel--random-num-2-Output"}}},"taskInfo":{"name":"print-msg-4"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-66f7b70943b22b0e93ab97e737d33d87c19e743933c63d7573ec6f55617cb766}}'
+            value: '{{workflow.parameters.implementations-6d9fd4a4d18480bfc98d1bbb174a6aaea617e354b4ed0efcc0eadc2414b1e582}}'
           - name: task-name
             value: print-msg-4
           - name: parent-dag-id
@@ -599,11 +599,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e6fdb657c103ed2cbd67c3611182d3961f70724e37166e8b94304cf95b0c736b}}'
+            value: '{{workflow.parameters.components-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-random-num-2"},"inputs":{"parameters":{"high":{"runtimeValue":{"constant":19}},"low":{"runtimeValue":{"constant":10}}}},"taskInfo":{"name":"random-num-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e6fdb657c103ed2cbd67c3611182d3961f70724e37166e8b94304cf95b0c736b}}'
+            value: '{{workflow.parameters.implementations-2c52a38e80b2a374e3ca25334ecf08a91b2565a0eb9fe88129b5d3b4392493b0}}'
           - name: task-name
             value: random-num-2
           - name: parent-dag-id
@@ -679,11 +679,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-8febb76ff31d4bcdea4ae0c2f886b818c1d766cfe9bec311de0f57970d0ccb9b}}'
+            value: '{{workflow.parameters.components-6175eb183c8ba935a4c42b40e65a5c3e4623a9c16b38fd5c4bbfc23275f0e9bd}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-flip-coin"},"taskInfo":{"name":"flip-coin"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-8febb76ff31d4bcdea4ae0c2f886b818c1d766cfe9bec311de0f57970d0ccb9b}}'
+            value: '{{workflow.parameters.implementations-6175eb183c8ba935a4c42b40e65a5c3e4623a9c16b38fd5c4bbfc23275f0e9bd}}'
           - name: task-name
             value: flip-coin
           - name: parent-dag-id

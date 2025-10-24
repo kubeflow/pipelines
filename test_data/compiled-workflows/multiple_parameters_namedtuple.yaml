@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-54461b7769754ecea4f755e24938448cd07c365048c2ee6e16271652b11205d8
+    - name: components-4e3e2b26bcc3e5ebd2165f67c13916a89b3269c76c31b39a2e59f15e82b89020
       value: '{"executorLabel":"exec-crust-comp","inputDefinitions":{"parameters":{"val1":{"parameterType":"STRING"},"val2":{"parameterType":"STRING"}}}}'
-    - name: implementations-54461b7769754ecea4f755e24938448cd07c365048c2ee6e16271652b11205d8
+    - name: implementations-4e3e2b26bcc3e5ebd2165f67c13916a89b3269c76c31b39a2e59f15e82b89020
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","crust_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -19,10 +19,10 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         crust_comp(val1: str, val2: str):\n    print(''val1: '', val1)\n    print(''val2:
-        '', val2)\n\n"],"image":"python:3.9"}'
-    - name: components-6d13d1db365eee59a2cdc2d89bfaa4a0c32572a64b1743f50115e2614b7b60bd
+        '', val2)\n\n"],"image":"python:3.11"}'
+    - name: components-1ebf161b377e2baf7660119b69476134f6b72ee853a2bf59b5c77ae20d35e4df
       value: '{"executorLabel":"exec-core-comp","outputDefinitions":{"parameters":{"val1":{"parameterType":"STRING"},"val2":{"parameterType":"STRING"}}}}'
-    - name: implementations-6d13d1db365eee59a2cdc2d89bfaa4a0c32572a64b1743f50115e2614b7b60bd
+    - name: implementations-1ebf161b377e2baf7660119b69476134f6b72ee853a2bf59b5c77ae20d35e4df
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","core_comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -34,7 +34,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         core_comp() -\u003e NamedTuple(''outputs'', val1=str, val2=str):  # type:
         ignore\n    outputs = NamedTuple(''outputs'', val1=str, val2=str)\n    return
-        outputs(''foo'', ''bar'')\n\n"],"image":"python:3.9"}'
+        outputs(''foo'', ''bar'')\n\n"],"image":"python:3.11"}'
     - name: components-comp-core
       value: '{"dag":{"outputs":{"parameters":{"val1":{"valueFromParameter":{"outputParameterKey":"val1","producerSubtask":"core-comp"}},"val2":{"valueFromParameter":{"outputParameterKey":"val2","producerSubtask":"core-comp"}}}},"tasks":{"core-comp":{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}}},"outputDefinitions":{"parameters":{"val1":{"parameterType":"STRING"},"val2":{"parameterType":"STRING"}}}}'
     - name: components-comp-mantle
@@ -221,11 +221,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-6d13d1db365eee59a2cdc2d89bfaa4a0c32572a64b1743f50115e2614b7b60bd}}'
+            value: '{{workflow.parameters.components-1ebf161b377e2baf7660119b69476134f6b72ee853a2bf59b5c77ae20d35e4df}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-core-comp"},"taskInfo":{"name":"core-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-6d13d1db365eee59a2cdc2d89bfaa4a0c32572a64b1743f50115e2614b7b60bd}}'
+            value: '{{workflow.parameters.implementations-1ebf161b377e2baf7660119b69476134f6b72ee853a2bf59b5c77ae20d35e4df}}'
           - name: task-name
             value: core-comp
           - name: parent-dag-id
@@ -359,11 +359,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-54461b7769754ecea4f755e24938448cd07c365048c2ee6e16271652b11205d8}}'
+            value: '{{workflow.parameters.components-4e3e2b26bcc3e5ebd2165f67c13916a89b3269c76c31b39a2e59f15e82b89020}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-crust-comp"},"dependentTasks":["mantle"],"inputs":{"parameters":{"val1":{"taskOutputParameter":{"outputParameterKey":"val1","producerTask":"mantle"}},"val2":{"taskOutputParameter":{"outputParameterKey":"val2","producerTask":"mantle"}}}},"taskInfo":{"name":"crust-comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-54461b7769754ecea4f755e24938448cd07c365048c2ee6e16271652b11205d8}}'
+            value: '{{workflow.parameters.implementations-4e3e2b26bcc3e5ebd2165f67c13916a89b3269c76c31b39a2e59f15e82b89020}}'
           - name: task-name
             value: crust-comp
           - name: parent-dag-id

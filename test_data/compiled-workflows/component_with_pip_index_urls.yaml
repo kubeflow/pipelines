@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-193733112d59e5469b4142adfbe2c9deed6bad8e824a72821f68347f1923663f
+    - name: components-47cfdcdf2aba86202a9b65c5f3a504c58eeb1fbd3e74c26e64e10f9fd0f3b8b9
       value: '{"executorLabel":"exec-component-op"}'
-    - name: implementations-193733112d59e5469b4142adfbe2c9deed6bad8e824a72821f68347f1923663f
+    - name: implementations-47cfdcdf2aba86202a9b65c5f3a504c58eeb1fbd3e74c26e64e10f9fd0f3b8b9
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -20,7 +20,7 @@ spec:
         -d)\n\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true
         python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        component_op():\n    import yapf\n    print(dir(yapf))\n\n"],"image":"python:3.9"}'
+        component_op():\n    import yapf\n    print(dir(yapf))\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"component-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-op"},"taskInfo":{"name":"component-op"}}}}}'
   entrypoint: entrypoint
@@ -203,11 +203,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-193733112d59e5469b4142adfbe2c9deed6bad8e824a72821f68347f1923663f}}'
+            value: '{{workflow.parameters.components-47cfdcdf2aba86202a9b65c5f3a504c58eeb1fbd3e74c26e64e10f9fd0f3b8b9}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-op"},"taskInfo":{"name":"component-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-193733112d59e5469b4142adfbe2c9deed6bad8e824a72821f68347f1923663f}}'
+            value: '{{workflow.parameters.implementations-47cfdcdf2aba86202a9b65c5f3a504c58eeb1fbd3e74c26e64e10f9fd0f3b8b9}}'
           - name: task-name
             value: component-op
           - name: parent-dag-id

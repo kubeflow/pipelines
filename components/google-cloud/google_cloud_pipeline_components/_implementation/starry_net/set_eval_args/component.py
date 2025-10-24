@@ -18,7 +18,7 @@ from typing import List, NamedTuple
 from kfp import dsl
 
 
-@dsl.component(base_image='python:3.9')
+@dsl.component(base_image='python:3.11')
 def set_eval_args(
     big_query_source: dsl.Input[dsl.Artifact], quantiles: List[float]
 ) -> NamedTuple(

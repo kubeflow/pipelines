@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-9206f02c3bc8c7317ae618f681a47d92020ce2a4461722611ba616d3ca7af069
+    - name: components-70e868fc6ce044c86e37af5f3bcd230d34c20381b89800a6273edd2f80a3798a
       value: '{"executorLabel":"exec-nested-return","outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
-    - name: implementations-9206f02c3bc8c7317ae618f681a47d92020ce2a4461722611ba616d3ca7af069
+    - name: implementations-70e868fc6ce044c86e37af5f3bcd230d34c20381b89800a6273edd2f80a3798a
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","nested_return"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -19,7 +19,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         nested_return() -\u003e List[Dict[str, str]]:\n    return [{''A_a'': ''1'',
-        ''B_b'': ''2''}, {''A_a'': ''10'', ''B_b'': ''20''}]\n\n"],"image":"python:3.9"}'
+        ''B_b'': ''2''}, {''A_a'': ''10'', ''B_b'': ''20''}]\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"nested-return"}}}},"tasks":{"nested-return":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-nested-return"},"taskInfo":{"name":"nested-return"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"LIST"}}}}'
   entrypoint: entrypoint
@@ -202,11 +202,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-9206f02c3bc8c7317ae618f681a47d92020ce2a4461722611ba616d3ca7af069}}'
+            value: '{{workflow.parameters.components-70e868fc6ce044c86e37af5f3bcd230d34c20381b89800a6273edd2f80a3798a}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-nested-return"},"taskInfo":{"name":"nested-return"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-9206f02c3bc8c7317ae618f681a47d92020ce2a4461722611ba616d3ca7af069}}'
+            value: '{{workflow.parameters.implementations-70e868fc6ce044c86e37af5f3bcd230d34c20381b89800a6273edd2f80a3798a}}'
           - name: task-name
             value: nested-return
           - name: parent-dag-id

@@ -11,9 +11,9 @@ spec:
     - name: implementations-507ec52d0dba96e88845f3ca614b4262d4b5b44fa204a91cd13cb60c8a78d4fe
       value: '{"command":["sh","-c","set -e -x\necho \"$ENV1\"\necho \"$ENV2\"\necho
         \"$ENV3\"\n"],"env":[{"name":"ENV1","value":"val0"},{"name":"ENV2","value":"val2"},{"name":"ENV3","value":"val3"}],"image":"alpine"}'
-    - name: components-62080971c5693dd5ee364f93012c4d84ed64ae7e434d0b5b1e61b3ab408ccc53
+    - name: components-dba9846467b474d60f2e0c7f2251f75735fc65a98ecebf7ffcedbd015595be80
       value: '{"executorLabel":"exec-print-env-op"}'
-    - name: implementations-62080971c5693dd5ee364f93012c4d84ed64ae7e434d0b5b1e61b3ab408ccc53
+    - name: implementations-dba9846467b474d60f2e0c7f2251f75735fc65a98ecebf7ffcedbd015595be80
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_env_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -24,7 +24,7 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         print_env_op():\n    import os\n    print(''ENV1'', os.environ.get(''ENV1''))\n    print(''ENV2'',
-        os.environ.get(''ENV2''))\n\n"],"env":[{"name":"ENV1","value":"val1"}],"image":"python:3.9"}'
+        os.environ.get(''ENV2''))\n\n"],"env":[{"name":"ENV1","value":"val1"}],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"print-env":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-env"},"taskInfo":{"name":"print-env"}},"print-env-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-env-op"},"taskInfo":{"name":"print-env-op"}}}}}'
   entrypoint: entrypoint
@@ -231,11 +231,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-62080971c5693dd5ee364f93012c4d84ed64ae7e434d0b5b1e61b3ab408ccc53}}'
+            value: '{{workflow.parameters.components-dba9846467b474d60f2e0c7f2251f75735fc65a98ecebf7ffcedbd015595be80}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-env-op"},"taskInfo":{"name":"print-env-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-62080971c5693dd5ee364f93012c4d84ed64ae7e434d0b5b1e61b3ab408ccc53}}'
+            value: '{{workflow.parameters.implementations-dba9846467b474d60f2e0c7f2251f75735fc65a98ecebf7ffcedbd015595be80}}'
           - name: task-name
             value: print-env-op
           - name: parent-dag-id

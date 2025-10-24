@@ -97,7 +97,7 @@ deploymentSpec:
           \ *\n\ndef component_bool(componentInput: bool = None):\n    if componentInput\
           \ is not None:\n        raise ValueError(f\"componentInput should be None\
           \ but is {componentInput}\")\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-component-int:
       container:
         args:
@@ -127,7 +127,7 @@ deploymentSpec:
           \ *\n\ndef component_int(componentInput: int = None):\n    if componentInput\
           \ is not None:\n        raise ValueError(f\"componentInput should be None\
           \ but is {componentInput}\")\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-component-str:
       container:
         args:
@@ -157,7 +157,7 @@ deploymentSpec:
           \ *\n\ndef component_str(componentInput: str = None):\n    if componentInput\
           \ is not None:\n        raise ValueError(f\"componentInput should be None\
           \ but is {componentInput}\")\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: nested-pipeline-opt-inputs-nil
 root:

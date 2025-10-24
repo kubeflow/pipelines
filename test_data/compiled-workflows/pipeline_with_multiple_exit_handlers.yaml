@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-de343ed68bcc74a4b31b2b5a8230f35dfb47ca8d90eabe51d37dc3849d7acecf
+    - name: components-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8
       value: '{"executorLabel":"exec-fail-op","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-de343ed68bcc74a4b31b2b5a8230f35dfb47ca8d90eabe51d37dc3849d7acecf
+    - name: implementations-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","fail_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -18,10 +18,10 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.9"}'
-    - name: components-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d
+        fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.11"}'
+    - name: components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8
       value: '{"executorLabel":"exec-print-op-2","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d
+    - name: implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -31,7 +31,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.9"}'
+        print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.11"}'
     - name: components-comp-exit-handler-1
       value: '{"dag":{"tasks":{"fail-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
         failed."}}}},"taskInfo":{"name":"fail-op"}},"print-op-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op-2"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--message":{"parameterType":"STRING"}}}}'
@@ -225,12 +225,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-de343ed68bcc74a4b31b2b5a8230f35dfb47ca8d90eabe51d37dc3849d7acecf}}'
+            value: '{{workflow.parameters.components-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
               failed."}}}},"taskInfo":{"name":"fail-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-de343ed68bcc74a4b31b2b5a8230f35dfb47ca8d90eabe51d37dc3849d7acecf}}'
+            value: '{{workflow.parameters.implementations-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8}}'
           - name: task-name
             value: fail-op
           - name: parent-dag-id
@@ -250,11 +250,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op-2"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task-name
             value: print-op-2
           - name: parent-dag-id
@@ -282,11 +282,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-4"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op-4"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task-name
             value: print-op-4
           - name: parent-dag-id
@@ -314,11 +314,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-6"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op-6"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task-name
             value: print-op-6
           - name: parent-dag-id
@@ -346,12 +346,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"dependentTasks":["exit-handler-1"],"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"First
               exit handler has worked!"}}}},"taskInfo":{"name":"print-op"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task-name
             value: print-op
           - name: parent-dag-id
@@ -379,12 +379,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-3"},"dependentTasks":["exit-handler-2"],"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Second
               exit handler has worked!"}}}},"taskInfo":{"name":"print-op-3"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task-name
             value: print-op-3
           - name: parent-dag-id
@@ -412,12 +412,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-5"},"dependentTasks":["exit-handler-3"],"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Third
               exit handler has worked!"}}}},"taskInfo":{"name":"print-op-5"},"triggerPolicy":{"strategy":"ALL_UPSTREAM_TASKS_COMPLETED"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task-name
             value: print-op-5
           - name: parent-dag-id

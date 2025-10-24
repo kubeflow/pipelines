@@ -200,7 +200,7 @@
             "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('model', Model),\n]):\n    \"\"\"Dummy Training step.\"\"\"\n    with open(dataset.path) as f:\n        data = f.read()\n    print('Dataset:', data)\n\n    scalar = '123'\n    model = f'My model trained using data: {data}'\n\n    from collections import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar, model)\n\n"
           ],
-          "image": "python:3.9"
+          "image": "python:3.11"
         }
       },
       "exec-train-2": {
@@ -220,7 +220,7 @@
             "program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
             "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('model', Model),\n]):\n    \"\"\"Dummy Training step.\"\"\"\n    with open(dataset.path) as f:\n        data = f.read()\n    print('Dataset:', data)\n\n    scalar = '123'\n    model = f'My model trained using data: {data}'\n\n    from collections import namedtuple\n    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar, model)\n\n"
           ],
-          "image": "python:3.9"
+          "image": "python:3.11"
         }
       }
     }

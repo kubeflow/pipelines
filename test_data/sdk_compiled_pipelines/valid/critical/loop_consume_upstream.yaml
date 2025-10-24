@@ -104,7 +104,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef create_file(file: Output[Artifact], content: str):\n    with\
           \ open(file.path, 'w') as f:\n        f.write(content)\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-print-input:
       container:
         args:
@@ -133,7 +133,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_input(input: list):\n    for item in input:\n        print(f'Input\
           \ item: {item}')\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-read-file:
       container:
         args:
@@ -162,7 +162,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef read_file(file: Input[Artifact]) -> str:\n    with open(file.path,\
           \ 'r') as f:\n        print(f.read())\n    return file.path\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-split-input:
       container:
         args:
@@ -191,7 +191,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef split_input(input: str) -> list:\n    return input.split(',')\n\
           \n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   displayName: Loop Consume Upstream
   name: loop-consume-upstream

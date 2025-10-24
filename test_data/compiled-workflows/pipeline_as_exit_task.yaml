@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d
+    - name: components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8
       value: '{"executorLabel":"exec-print-op-2","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d
+    - name: implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -18,13 +18,13 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.9"}'
+        print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n    print(message)\n\n"],"image":"python:3.11"}'
     - name: components-comp-condition-1
       value: '{"dag":{"tasks":{"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"notify
         task failure."}}}},"taskInfo":{"name":"print-op"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--get-run-state-Output":{"parameterType":"STRING"}}}}'
-    - name: components-2784bcbcbd64b218e0f38de5fe3ce3aecd9c19875e77fb40612978303a5983b8
+    - name: components-c7345e051c66d30bc0fcd4558f91a01615e2e208dba34ad8d58d58c265056aa8
       value: '{"executorLabel":"exec-get-run-state","inputDefinitions":{"parameters":{"status":{"parameterType":"STRUCT"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-2784bcbcbd64b218e0f38de5fe3ce3aecd9c19875e77fb40612978303a5983b8
+    - name: implementations-c7345e051c66d30bc0fcd4558f91a01615e2e208dba34ad8d58d58c265056aa8
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","get_run_state"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -35,13 +35,13 @@ spec:
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         get_run_state(status: dict) -\u003e str:\n    print(''Pipeline status: '',
-        status)\n    return status[''state'']\n\n"],"image":"python:3.9"}'
+        status)\n    return status[''state'']\n\n"],"image":"python:3.11"}'
     - name: components-comp-conditional-notification
       value: '{"dag":{"tasks":{"condition-1":{"componentRef":{"name":"comp-condition-1"},"dependentTasks":["get-run-state"],"inputs":{"parameters":{"pipelinechannel--get-run-state-Output":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"get-run-state"}}}},"taskInfo":{"name":"condition-1"},"triggerPolicy":{"condition":"inputs.parameter_values[''pipelinechannel--get-run-state-Output'']
         == ''FAILED''"}},"get-run-state":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-get-run-state"},"inputs":{"parameters":{"status":{"componentInputParameter":"status"}}},"taskInfo":{"name":"get-run-state"}}}},"inputDefinitions":{"parameters":{"status":{"isOptional":true,"parameterType":"TASK_FINAL_STATUS"}}}}'
-    - name: components-de343ed68bcc74a4b31b2b5a8230f35dfb47ca8d90eabe51d37dc3849d7acecf
+    - name: components-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8
       value: '{"executorLabel":"exec-fail-op","inputDefinitions":{"parameters":{"message":{"parameterType":"STRING"}}}}'
-    - name: implementations-de343ed68bcc74a4b31b2b5a8230f35dfb47ca8d90eabe51d37dc3849d7acecf
+    - name: implementations-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","fail_op"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -51,7 +51,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.9"}'
+        fail_op(message: str):\n    \"\"\"Fails.\"\"\"\n    import sys\n    print(message)\n    sys.exit(1)\n\n"],"image":"python:3.11"}'
     - name: components-comp-exit-handler-1
       value: '{"dag":{"tasks":{"fail-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
         failed."}}}},"taskInfo":{"name":"fail-op"}},"print-op":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--message":{"parameterType":"STRING"}}}}'
@@ -238,12 +238,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op-2"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"notify
               task failure."}}}},"taskInfo":{"name":"print-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task-name
             value: print-op
           - name: parent-dag-id
@@ -372,11 +372,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-2784bcbcbd64b218e0f38de5fe3ce3aecd9c19875e77fb40612978303a5983b8}}'
+            value: '{{workflow.parameters.components-c7345e051c66d30bc0fcd4558f91a01615e2e208dba34ad8d58d58c265056aa8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-get-run-state"},"inputs":{"parameters":{"status":{"componentInputParameter":"status"}}},"taskInfo":{"name":"get-run-state"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-2784bcbcbd64b218e0f38de5fe3ce3aecd9c19875e77fb40612978303a5983b8}}'
+            value: '{{workflow.parameters.implementations-c7345e051c66d30bc0fcd4558f91a01615e2e208dba34ad8d58d58c265056aa8}}'
           - name: task-name
             value: get-run-state
           - name: parent-dag-id
@@ -404,12 +404,12 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-de343ed68bcc74a4b31b2b5a8230f35dfb47ca8d90eabe51d37dc3849d7acecf}}'
+            value: '{{workflow.parameters.components-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-fail-op"},"inputs":{"parameters":{"message":{"runtimeValue":{"constant":"Task
               failed."}}}},"taskInfo":{"name":"fail-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-de343ed68bcc74a4b31b2b5a8230f35dfb47ca8d90eabe51d37dc3849d7acecf}}'
+            value: '{{workflow.parameters.implementations-0e20296d1c94dd957c12f688261536d608c0a9430b71b2c67c664244a11161e8}}'
           - name: task-name
             value: fail-op
           - name: parent-dag-id
@@ -429,11 +429,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.components-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op"},"inputs":{"parameters":{"message":{"componentInputParameter":"pipelinechannel--message"}}},"taskInfo":{"name":"print-op"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-49c335a1a327c8628eed2e87d0e06fd7a9721bf1e50c93c2a624bd17d2277d8d}}'
+            value: '{{workflow.parameters.implementations-af17df745243f885d9854f1931988534c66b26d6c60c5279e354d6b3480dceb8}}'
           - name: task-name
             value: print-op
           - name: parent-dag-id

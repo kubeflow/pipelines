@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-539df5f72ca5a96ea4048c58d4da2d2582e1354734df9db466b2772e959f4b59
+    - name: components-8c43378018a8d9ed1a17d6cd02a579db5fa506abf47189a0385306301b7fa2c2
       value: '{"executorLabel":"exec-comp"}'
-    - name: implementations-539df5f72ca5a96ea4048c58d4da2d2582e1354734df9db466b2772e959f4b59
+    - name: implementations-8c43378018a8d9ed1a17d6cd02a579db5fa506abf47189a0385306301b7fa2c2
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","comp"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        comp():\n    pass\n\n"],"image":"python:3.9"}'
+        comp():\n    pass\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"comp":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp"},"taskInfo":{"name":"comp"}}}}}'
   entrypoint: entrypoint
@@ -201,11 +201,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-539df5f72ca5a96ea4048c58d4da2d2582e1354734df9db466b2772e959f4b59}}'
+            value: '{{workflow.parameters.components-8c43378018a8d9ed1a17d6cd02a579db5fa506abf47189a0385306301b7fa2c2}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-comp"},"taskInfo":{"name":"comp"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-539df5f72ca5a96ea4048c58d4da2d2582e1354734df9db466b2772e959f4b59}}'
+            value: '{{workflow.parameters.implementations-8c43378018a8d9ed1a17d6cd02a579db5fa506abf47189a0385306301b7fa2c2}}'
           - name: task-name
             value: comp
           - name: parent-dag-id
