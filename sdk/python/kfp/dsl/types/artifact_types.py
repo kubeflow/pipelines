@@ -14,6 +14,7 @@
 """Classes and utilities for using and creating artifacts in components."""
 
 import enum
+import math
 import os
 from typing import Dict, List, Optional, Type
 import warnings
@@ -121,8 +122,8 @@ def convert_local_path_to_remote_path(path: str) -> str:
         return RemotePrefix.S3.value + path[len(_S3_LOCAL_MOUNT_PREFIX):]
     elif path.startswith(_OCI_LOCAL_MOUNT_PREFIX):
         remote_path = path[len(_OCI_LOCAL_MOUNT_PREFIX):].replace('_', '/')
-        if remote_path.endswith("/models"):
-            remote_path = remote_path[:-len("/models")]
+        if remote_path.endswith('/models'):
+            remote_path = remote_path[:-len('/models')]
 
         return RemotePrefix.OCI.value + remote_path
 
@@ -148,10 +149,10 @@ class Model(Artifact):
 
     @property
     def path(self) -> str:
-        if self.uri.startswith("oci://"):
+        if self.uri.startswith('oci://'):
             # Modelcar container images are expected to have the model files stored in /models
             # https://github.com/kserve/kserve/blob/v0.14.1/pkg/webhook/admission/pod/storage_initializer_injector.go#L732
-            return self._get_path() + "/models"
+            return self._get_path() + '/models'
 
         return self._get_path()
 
@@ -191,6 +192,10 @@ class Metrics(Artifact):
           metric: The metric key.
           value: The metric value.
         """
+        if math.isnan(value):
+            warnings.warn(f'Metric "{metric}" is NaN and will be skipped.', stacklevel=2)
+            return
+
         self.metadata[metric] = value
 
 
