@@ -104,7 +104,7 @@ jobs:
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         run: |
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
-          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> $GITHUB_ENV
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
       - name: Configure Input Variables
         shell: bash
@@ -125,9 +125,11 @@ jobs:
             PROXY=false
           fi
           
-          echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
-          echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
-          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
+          {
+            echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
+            echo "TEST_LABEL=$TEST_LABEL"
+            echo "NAMESPACE=$NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -193,7 +195,6 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
-          proxy: ${{ matrix.proxy }}
           argo_version: ${{ matrix.argo_version }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
@@ -206,7 +207,6 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
-          proxy: ${{ matrix.proxy }}
           test_directory: ${{ env.API_TESTS_DIR }}
           test_label: ${{ env.TESTS_LABEL }}
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}

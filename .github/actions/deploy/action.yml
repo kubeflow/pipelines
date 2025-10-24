@@ -115,7 +115,7 @@ runs:
         if [ "${{inputs.pod_to_pod_tls_enabled }}" = "true" ]; then
           ARGS="${ARGS} --tls-enabled"
         fi
-        echo "ARGS=$ARGS" >> $GITHUB_OUTPUT
+        echo "ARGS=$ARGS" >> "$GITHUB_OUTPUT"
 
     - name: Deploy KFP
       id: deploy-kfp

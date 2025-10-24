@@ -44,7 +44,7 @@ jobs:
         run: ./.github/resources/scripts/free-disk-space.sh
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: 3.9
 
@@ -71,7 +71,7 @@ jobs:
         if: ${{ matrix.pod_to_pod_tls_enabled }}
         run: |
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
-          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> $GITHUB_ENV
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
       - name: Forward MLMD port
         id: forward-mlmd-port

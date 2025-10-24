@@ -25,7 +25,7 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -51,7 +51,7 @@ jobs:
         # Ensure Docker daemon is running and accessible
         sudo systemctl start docker
         sudo systemctl enable docker
-        sudo usermod -aG docker $USER
+        sudo usermod -aG docker "$USER"
         # Wait for Docker to be ready
         timeout 30 bash -c 'until docker info > /dev/null 2>&1; do sleep 1; done'
         docker info

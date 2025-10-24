@@ -1,4 +1,5 @@
 name: "Install kfp & kfp-kubernetes"
+description: "Install kfp & kfp-kubernetes"
 inputs:
   build_version:
     required: true
