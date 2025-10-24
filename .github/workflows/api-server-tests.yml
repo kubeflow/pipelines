@@ -58,16 +58,16 @@ jobs:
         k8s_version: [ "v1.31.0" ]
         cache_enabled: [ "true", "false" ]
         proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.1", "v3.6.10" ]
+        argo_version: [ "v3.7.3", "v3.6.7" ]
         pipeline_store: [ "database" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
-            argo_version: "v3.6.10"
+            argo_version: "v3.6.7"
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
-            argo_version: "v3.5.15"
+            argo_version: "v3.5.14"
           - k8s_version: "v1.31.0"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
@@ -162,7 +162,7 @@ jobs:
         k8s_version: [ "v1.31.0", "v1.29.2" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.1", "v3.6.10" ]
+        argo_version: [ "v3.7.3", "v3.6.7" ]
         pipeline_store: [ "kubernetes" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:

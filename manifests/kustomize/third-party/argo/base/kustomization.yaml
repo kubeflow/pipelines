@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- https://github.com/argoproj/argo-workflows/manifests/base/workflow-controller?ref=v3.6.7
+- https://github.com/argoproj/argo-workflows/manifests/base/workflow-controller?ref=v3.7.3
 
 patches:
 - path: workflow-controller-deployment-patch.yaml
