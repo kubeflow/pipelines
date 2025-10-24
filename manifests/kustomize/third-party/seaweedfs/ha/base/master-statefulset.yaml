@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: seaweedfs
+    component: master
+  name: seaweedfs-master
+spec:
+  serviceName: seaweedfs-master
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: seaweedfs
+      component: master
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        component: master
+        application-crd-id: kubeflow-pipelines
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: seaweedfs
+                component: master
+            topologyKey: kubernetes.io/hostname
+      serviceAccountName: seaweedfs
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        fsGroup: 1001
+      containers:
+      - name: seaweedfs-master
+        image: 'chrislusf/seaweedfs:3.92'
+        args:
+        - 'master'
+        - '-mdir=/data'
+        - '-defaultReplication=001'
+        - '-volumePreallocate=false'
+        - '-ip=$(POD_NAME).seaweedfs-master.$(NAMESPACE)'
+        - '-ip.bind=0.0.0.0'
+        - '-port=9333'
+        - '-peers=seaweedfs-master-0.seaweedfs-master.$(NAMESPACE):9333,seaweedfs-master-1.seaweedfs-master.$(NAMESPACE):9333,seaweedfs-master-2.seaweedfs-master.$(NAMESPACE):9333'
+        volumeMounts:
+          - name : data-master
+            mountPath: /data
+        ports:
+          - containerPort: 9333
+            name: http-master
+          - containerPort: 19333
+            name: grpc-master
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        readinessProbe:
+          httpGet:
+            path: /cluster/status
+            port: 9333
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 100
+          timeoutSeconds: 10
+        resources:
+          requests:
+            cpu: 128m
+            memory: 256Mi
+          limits:
+            memory: 256Mi
+        securityContext: # Using restricted profile
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          # image defaults to root user
+          runAsUser: 1001
+          runAsGroup: 1001
+          capabilities:
+            drop:
+            - ALL
+  volumeClaimTemplates:
+    - metadata:
+        name: data-master
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi

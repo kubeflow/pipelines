@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: seaweedfs
+    component: volume
+  name: seaweedfs-volume
+spec:
+  serviceName: seaweedfs-volume
+  replicas: 3
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: seaweedfs
+      component: volume
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        component: volume
+        application-crd-id: kubeflow-pipelines
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: seaweedfs
+                component: volume
+            topologyKey: kubernetes.io/hostname
+      serviceAccountName: seaweedfs
+      terminationGracePeriodSeconds: 150
+      securityContext:
+        fsGroup: 1001
+      containers:
+      - name: seaweedfs
+        image: chrislusf/seaweedfs:3.92
+        args:
+        - volume                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+        - -port=8080                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+        - -dir /data1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+        - -ip.bind=0.0.0.0                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+        - -ip=$(POD_NAME).seaweedfs-volume.$(NAMESPACE)
+        - -mserver=seaweedfs-master-0.seaweedfs-master.$(NAMESPACE):9333,seaweedfs-master-1.seaweedfs-master.$(NAMESPACE):9333,seaweedfs-master-2.seaweedfs-master.$(NAMESPACE):9333
+        volumeMounts:
+        - mountPath: /data1/
+          name: swfs-vol1
+        ports:
+        - containerPort: 8080
+          name: swfs-vol
+          protocol: TCP
+        - containerPort: 18080
+          name: swfs-vol-grpc
+          protocol: TCP
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: WEED_CLUSTER_SW_FILER
+          value: seaweedfs-filer:8888
+        - name: WEED_CLUSTER_SW_MASTER
+          value: seaweedfs-master:9333
+        readinessProbe:
+          failureThreshold: 100
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 30
+        resources:
+          requests:
+            cpu: 128m
+            memory: 256Mi
+          limits:
+            memory: 2Gi
+        securityContext: # Using restricted profile
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          # image defaults to root user
+          runAsUser: 1001
+          runAsGroup: 1001
+          capabilities:
+            drop:
+            - ALL
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: swfs-vol1
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 30Gi
+      volumeMode: Filesystem

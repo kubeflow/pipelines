@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: seaweedfs
+    component: filer
+  name: seaweedfs-filer
+spec:
+  serviceName: seaweedfs-filer
+  replicas: 2
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+        app: seaweedfs
+        component: filer
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+        component: filer
+        application-crd-id: kubeflow-pipelines
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: seaweedfs
+                component: filer
+            topologyKey: kubernetes.io/hostname
+      serviceAccountName: seaweedfs
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        fsGroup: 1001
+      containers:
+      - name: seaweedfs-filer
+        image: 'chrislusf/seaweedfs:3.92'
+        args:
+        - 'filer'
+        - '-port=8888'
+        - '-iam'
+        - '-master=seaweedfs-master-0.seaweedfs-master:9333,seaweedfs-master-1.seaweedfs-master:9333,seaweedfs-master-2.seaweedfs-master:9333'
+        volumeMounts:
+          - name: data-filer
+            mountPath: /data
+        ports:
+          - containerPort: 8888
+            name: http-filer
+          - containerPort: 18888
+            name: grpc-filer
+          - containerPort: 8333
+            name: http-s3
+          - containerPort: 8111
+            name: http-iam
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8888
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          successThreshold: 1
+          failureThreshold: 100
+          timeoutSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 2Gi
+        securityContext: # Using restricted profile
+          allowPrivilegeEscalation: false
+          privileged: false
+          runAsNonRoot: true
+          # image defaults to root user
+          runAsUser: 1001
+          runAsGroup: 1001
+          capabilities:
+            drop:
+            - ALL
+  volumeClaimTemplates:
+    - metadata:
+        name: data-filer
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 25Gi
