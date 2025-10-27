@@ -15,10 +15,10 @@
 """A pipeline that tests the importer with download_to_workspace for file and directory artifacts."""
 from kfp import dsl, compiler
 from typing import NamedTuple
-from kfp.dsl import importer
+from kfp.dsl import importer, Output
 import os
 
-@dsl.component
+@dsl.component(base_image='python:3.9')
 def train(
     dataset: dsl.Input[dsl.Dataset]
 ) -> NamedTuple('Outputs', [
@@ -26,7 +26,7 @@ def train(
     ('message', str),
 ]):
     """Dummy Training step."""
-    with open(dataset.path) as f:
+    with open(dataset.path, encoding="utf-8") as f:
         data = f.read()
     print('Dataset:', data)
 
@@ -37,7 +37,7 @@ def train(
     output = namedtuple('Outputs', ['scalar', 'message'])
     return output(scalar, message)
 
-@dsl.component
+@dsl.component(base_image='python:3.9')
 def read_dir(data: dsl.Input[dsl.Dataset]) -> str:
     """Walk the directory and return a summary of file names."""
     import os
@@ -62,6 +62,61 @@ def read_dir(data: dsl.Input[dsl.Dataset]) -> str:
     
     return "ERROR: Unknown path type"
 
+@dsl.component(base_image='python:3.9')
+def write_file_artifact(out_ds: Output[dsl.Dataset]):
+    import os
+    os.makedirs(os.path.dirname(out_ds.path), exist_ok=True)
+    with open(out_ds.path, "w", encoding="utf-8") as f:
+        f.write("Hello from producer file\n")
+
+@dsl.component(base_image='python:3.9')
+def write_dir_artifact(out_ds: Output[dsl.Dataset]):
+    import os
+    os.makedirs(out_ds.path, exist_ok=True)
+    with open(os.path.join(out_ds.path, "part-000.txt"), "w", encoding="utf-8") as f:
+        f.write("First file in directory.\n")
+    with open(os.path.join(out_ds.path, "part-001.txt"), "w", encoding="utf-8") as f:
+        f.write("Second file in directory.\n")
+
+@dsl.component(base_image='python:3.9')
+def get_uri(d: dsl.Input[dsl.Dataset]) -> str:
+    print(f"Artifact URI: {d.uri}")
+    return d.uri
+
+@dsl.pipeline(name="import-stage")
+def import_stage(
+    file_uri: str,
+    dir_uri: str,
+) -> NamedTuple('ImportOutputs', [('train_result', str), ('dir_result', str)]):
+    """Nested stage that imports by URI and runs consumers."""
+    importer1 = importer(
+        artifact_uri=file_uri,
+        artifact_class=dsl.Dataset,
+        reimport=False,
+        metadata={
+            'key': 'value',
+            'store_session_info': '{"Provider":"minio","Params":{"endpoint":"minio-service.kubeflow:9000","region":"us-east-1","disableSSL":"true","fromEnv":"false","secretName":"mlpipeline-minio-artifact","accessKeyKey":"accesskey","secretKeyKey":"secretkey","forcePathStyle":"true"}}',
+        },
+        download_to_workspace=True,
+    )
+
+    dir_import = importer(
+        artifact_uri=dir_uri,
+        artifact_class=dsl.Dataset,
+        reimport=True,
+        download_to_workspace=True,
+        metadata={
+            'source': 'directory',
+            'store_session_info': '{"Provider":"minio","Params":{"endpoint":"minio-service.kubeflow:9000","region":"us-east-1","disableSSL":"true","fromEnv":"false","secretName":"mlpipeline-minio-artifact","accessKeyKey":"accesskey","secretKeyKey":"secretkey","forcePathStyle":"true"}}',
+        },
+    )
+
+    train_task = train(dataset=importer1.output)
+    dir_task = read_dir(data=dir_import.output)
+
+    ImportOutputs = NamedTuple('ImportOutputs', [('train_result', str), ('dir_result', str)])
+    return ImportOutputs(train_task.outputs['scalar'], dir_task.output)
+
 @dsl.pipeline(
     name="pipeline-with-importer-workspace",
     description="Importer downloads an artifact into workspace; downstream reads it",
@@ -74,34 +129,23 @@ def read_dir(data: dsl.Input[dsl.Dataset]) -> str:
         ),
     ),
 )
-def pipeline_with_importer_workspace(    
-    dataset_dir: str = 'gs://ml-pipeline-playground',
-) -> NamedTuple('Outputs', [('train_result', str), ('dir_result', str)]):
+def pipeline_with_importer_workspace() -> NamedTuple('Outputs', [('train_result', str), ('dir_result', str)]):
     """Test pipeline for importer with download_to_workspace feature."""
     
-    # Import a file artifact from a constant URI    
-    importer1 = importer(
-        artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
-        artifact_class=dsl.Dataset,
-        reimport=False,
-        metadata={'key': 'value'},
-        download_to_workspace=True,
-    )
-    train_task = train(dataset=importer1.output)
+    # Produce a file artifact and compute its runtime URI
+    file_writer = write_file_artifact()
+    file_uri = get_uri(d=file_writer.outputs["out_ds"])    
 
-    # Import a directory artifact by URI
-    dir_import = importer(
-        artifact_uri=dataset_dir,
-        artifact_class=dsl.Dataset,
-        reimport=True,
-        download_to_workspace=True,
-        metadata={'source': 'directory'},
-    )
-    dir_task = read_dir(data=dir_import.output)
+    # Produce a directory artifact and compute its runtime URI
+    dir_writer = write_dir_artifact()
+    dir_uri = get_uri(d=dir_writer.outputs["out_ds"])    
+    
+    # Import and consume inside a nested sub-pipeline
+    stage = import_stage(file_uri=file_uri.output, dir_uri=dir_uri.output)
     
     # Return outputs for validation
     Outputs = NamedTuple('Outputs', [('train_result', str), ('dir_result', str)])
-    return Outputs(train_task.outputs['scalar'], dir_task.output)
+    return Outputs(stage.outputs['train_result'], stage.outputs['dir_result'])
 
 
 if __name__ == '__main__':
