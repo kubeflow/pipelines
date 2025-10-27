@@ -14,7 +14,11 @@
 
 package storage
 
-// Return the object store with faked minio client.
+import "gocloud.dev/blob/memblob"
+
+// Return the object store with blob storage for testing.
 func NewFakeObjectStore() ObjectStoreInterface {
-	return NewMinioObjectStore(NewFakeMinioClient(), "test-bucket", "pipelines", false)
+	// Use memory-based blob storage for testing
+	bucket := memblob.OpenBucket(nil)
+	return NewBlobObjectStore(bucket, "pipelines")
 }
