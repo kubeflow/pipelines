@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-2074f0535aaa76760a0be660778c79824ceacab159cd4d83a847c6a3876650e0
+    - name: components-153629da06fc36cdcd8f3c6e00a4b975ee79bcb08aac69fd0c9e23e727c0e838
       value: '{"executorLabel":"exec-component-with-pip-install"}'
-    - name: implementations-2074f0535aaa76760a0be660778c79824ceacab159cd4d83a847c6a3876650e0
+    - name: implementations-153629da06fc36cdcd8f3c6e00a4b975ee79bcb08aac69fd0c9e23e727c0e838
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","component_with_pip_install"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,7 +21,7 @@ spec:
         -d)\n\nprintf \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true
         python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        component_with_pip_install():\n    import yapf\n\n    print(dir(yapf))\n\n"],"image":"python:3.9"}'
+        component_with_pip_install():\n    import yapf\n\n    print(dir(yapf))\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"component-with-pip-install":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-pip-install"},"taskInfo":{"name":"component-with-pip-install"}}}}}'
   entrypoint: entrypoint
@@ -204,11 +204,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-2074f0535aaa76760a0be660778c79824ceacab159cd4d83a847c6a3876650e0}}'
+            value: '{{workflow.parameters.components-153629da06fc36cdcd8f3c6e00a4b975ee79bcb08aac69fd0c9e23e727c0e838}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-component-with-pip-install"},"taskInfo":{"name":"component-with-pip-install"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-2074f0535aaa76760a0be660778c79824ceacab159cd4d83a847c6a3876650e0}}'
+            value: '{{workflow.parameters.implementations-153629da06fc36cdcd8f3c6e00a4b975ee79bcb08aac69fd0c9e23e727c0e838}}'
           - name: task-name
             value: component-with-pip-install
           - name: parent-dag-id

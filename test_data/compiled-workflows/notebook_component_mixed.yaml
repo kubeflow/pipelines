@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-43c0d13fb84d9ca119bdf5124174bd3678698b085ea5c314339233390502736a
+    - name: components-5e4fe14151999fbde09ad1cf2ea1ef08988b5557bb7ffb2f26e71b48051a0b24
       value: '{"executorLabel":"exec-evaluate-model","inputDefinitions":{"artifacts":{"model_text":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"metrics":{"artifactType":{"schemaTitle":"system.Metrics","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-43c0d13fb84d9ca119bdf5124174bd3678698b085ea5c314339233390502736a
+    - name: implementations-5e4fe14151999fbde09ad1cf2ea1ef08988b5557bb7ffb2f26e71b48051a0b24
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","evaluate_model"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -119,10 +119,10 @@ spec:
         open(\"/tmp/kfp_nb_outputs/metrics.json\", \"r\", encoding=\"utf-8\") as f:\n        metrics_dict
         = json.load(f)\n\n    assert metrics_dict == {\"score\": float(len(model_text))}\n\n    for
         metric_name, metric_value in metrics_dict.items():\n        metrics.log_metric(metric_name,
-        metric_value)\n\n"],"image":"python:3.9"}'
-    - name: components-de426933840df1d5b1966245bfd35532f6a11ccaffa3dbb2311a6b7dbf3ec609
+        metric_value)\n\n"],"image":"python:3.11"}'
+    - name: components-a389d0c5411da97fdf7ec55aea7ffb8d99e46f46230c9b8890c6ee0fed4c920c
       value: '{"executorLabel":"exec-preprocess","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-de426933840df1d5b1966245bfd35532f6a11ccaffa3dbb2311a6b7dbf3ec609
+    - name: implementations-a389d0c5411da97fdf7ec55aea7ffb8d99e46f46230c9b8890c6ee0fed4c920c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","preprocess"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -134,10 +134,10 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\n\n\ndef
         preprocess(text: str, dataset: dsl.Output[dsl.Dataset]):\n    import re\n\n    cleaned_text
         = re.sub(r\"\\s+\", \" \", text).strip()\n    with open(dataset.path, \"w\",
-        encoding=\"utf-8\") as f:\n        f.write(cleaned_text)\n\n"],"image":"python:3.9"}'
-    - name: components-0e704495704924f0f854d4c513ac164f987781625d13c72aabf7e58c7fc1d08c
+        encoding=\"utf-8\") as f:\n        f.write(cleaned_text)\n\n"],"image":"python:3.11"}'
+    - name: components-428abe73fd2527425a6d4eba6c35314506906ee691a0dbe032573b8c130f58d1
       value: '{"executorLabel":"exec-train-model","inputDefinitions":{"artifacts":{"cleaned_text":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"artifacts":{"model":{"artifactType":{"schemaTitle":"system.Model","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-0e704495704924f0f854d4c513ac164f987781625d13c72aabf7e58c7fc1d08c
+    - name: implementations-428abe73fd2527425a6d4eba6c35314506906ee691a0dbe032573b8c130f58d1
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","train_model"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -247,7 +247,7 @@ spec:
         \"r\", encoding=\"utf-8\") as f:\n        cleaned_text = f.read()\n\n    dsl.run_notebook(cleaned_text=cleaned_text)\n\n    #
         Notebook writes its model into /tmp/kfp_nb_outputs/model.txt\n    shutil.copy(\"/tmp/kfp_nb_outputs/model.txt\",
         model.path)\n\n    with open(model.path, \"r\", encoding=\"utf-8\") as f:\n        model_text
-        = f.read()\n\n    assert model_text == cleaned_text.upper()\n\n"],"image":"python:3.9"}'
+        = f.read()\n\n    assert model_text == cleaned_text.upper()\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"evaluate-model":{"cachingOptions":{},"componentRef":{"name":"comp-evaluate-model"},"dependentTasks":["train-model"],"inputs":{"artifacts":{"model_text":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"train-model"}}}},"taskInfo":{"name":"evaluate-model"}},"preprocess":{"cachingOptions":{},"componentRef":{"name":"comp-preprocess"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"preprocess"}},"train-model":{"cachingOptions":{},"componentRef":{"name":"comp-train-model"},"dependentTasks":["preprocess"],"inputs":{"artifacts":{"cleaned_text":{"taskOutputArtifact":{"outputArtifactKey":"dataset","producerTask":"preprocess"}}}},"taskInfo":{"name":"train-model"}}}},"inputDefinitions":{"parameters":{"text":{"defaultValue":"Hello   world","isOptional":true,"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
@@ -430,11 +430,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-43c0d13fb84d9ca119bdf5124174bd3678698b085ea5c314339233390502736a}}'
+            value: '{{workflow.parameters.components-5e4fe14151999fbde09ad1cf2ea1ef08988b5557bb7ffb2f26e71b48051a0b24}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-evaluate-model"},"dependentTasks":["train-model"],"inputs":{"artifacts":{"model_text":{"taskOutputArtifact":{"outputArtifactKey":"model","producerTask":"train-model"}}}},"taskInfo":{"name":"evaluate-model"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-43c0d13fb84d9ca119bdf5124174bd3678698b085ea5c314339233390502736a}}'
+            value: '{{workflow.parameters.implementations-5e4fe14151999fbde09ad1cf2ea1ef08988b5557bb7ffb2f26e71b48051a0b24}}'
           - name: task-name
             value: evaluate-model
           - name: parent-dag-id
@@ -455,11 +455,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-de426933840df1d5b1966245bfd35532f6a11ccaffa3dbb2311a6b7dbf3ec609}}'
+            value: '{{workflow.parameters.components-a389d0c5411da97fdf7ec55aea7ffb8d99e46f46230c9b8890c6ee0fed4c920c}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-preprocess"},"inputs":{"parameters":{"text":{"componentInputParameter":"text"}}},"taskInfo":{"name":"preprocess"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-de426933840df1d5b1966245bfd35532f6a11ccaffa3dbb2311a6b7dbf3ec609}}'
+            value: '{{workflow.parameters.implementations-a389d0c5411da97fdf7ec55aea7ffb8d99e46f46230c9b8890c6ee0fed4c920c}}'
           - name: task-name
             value: preprocess
           - name: parent-dag-id
@@ -479,11 +479,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-0e704495704924f0f854d4c513ac164f987781625d13c72aabf7e58c7fc1d08c}}'
+            value: '{{workflow.parameters.components-428abe73fd2527425a6d4eba6c35314506906ee691a0dbe032573b8c130f58d1}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-train-model"},"dependentTasks":["preprocess"],"inputs":{"artifacts":{"cleaned_text":{"taskOutputArtifact":{"outputArtifactKey":"dataset","producerTask":"preprocess"}}}},"taskInfo":{"name":"train-model"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-0e704495704924f0f854d4c513ac164f987781625d13c72aabf7e58c7fc1d08c}}'
+            value: '{{workflow.parameters.implementations-428abe73fd2527425a6d4eba6c35314506906ee691a0dbe032573b8c130f58d1}}'
           - name: task-name
             value: train-model
           - name: parent-dag-id

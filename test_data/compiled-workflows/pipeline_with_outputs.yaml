@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-c83060295ab94fddb3f516b217b28974809d6b60bd538d1a56c520c6ed9b7ecb
+    - name: components-50751e65c3e6d87ebc6013c4afbd5fca5a399580ffb9de27fe21ca0af60f37ba
       value: '{"executorLabel":"exec-print-op1-2","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-c83060295ab94fddb3f516b217b28974809d6b60bd538d1a56c520c6ed9b7ecb
+    - name: implementations-50751e65c3e6d87ebc6013c4afbd5fca5a399580ffb9de27fe21ca0af60f37ba
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","print_op1"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        print_op1(msg: str) -\u003e str:\n    print(msg)\n    return msg\n\n"],"image":"python:3.9"}'
+        print_op1(msg: str) -\u003e str:\n    print(msg)\n    return msg\n\n"],"image":"python:3.11"}'
     - name: components-3f2ba2471e2638f8b27a01f4563316e6e3e8c02bae402875e95b5b86e8de1ddc
       value: '{"executorLabel":"exec-print-op2","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Artifact","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-3f2ba2471e2638f8b27a01f4563316e6e3e8c02bae402875e95b5b86e8de1ddc
@@ -208,11 +208,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c83060295ab94fddb3f516b217b28974809d6b60bd538d1a56c520c6ed9b7ecb}}'
+            value: '{{workflow.parameters.components-50751e65c3e6d87ebc6013c4afbd5fca5a399580ffb9de27fe21ca0af60f37ba}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op1-2"},"inputs":{"parameters":{"msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"print-op1"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c83060295ab94fddb3f516b217b28974809d6b60bd538d1a56c520c6ed9b7ecb}}'
+            value: '{{workflow.parameters.implementations-50751e65c3e6d87ebc6013c4afbd5fca5a399580ffb9de27fe21ca0af60f37ba}}'
           - name: task-name
             value: print-op1
           - name: parent-dag-id
@@ -363,11 +363,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-c83060295ab94fddb3f516b217b28974809d6b60bd538d1a56c520c6ed9b7ecb}}'
+            value: '{{workflow.parameters.components-50751e65c3e6d87ebc6013c4afbd5fca5a399580ffb9de27fe21ca0af60f37ba}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-print-op1"},"inputs":{"parameters":{"msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"print-op1"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-c83060295ab94fddb3f516b217b28974809d6b60bd538d1a56c520c6ed9b7ecb}}'
+            value: '{{workflow.parameters.implementations-50751e65c3e6d87ebc6013c4afbd5fca5a399580ffb9de27fe21ca0af60f37ba}}'
           - name: task-name
             value: print-op1
           - name: parent-dag-id

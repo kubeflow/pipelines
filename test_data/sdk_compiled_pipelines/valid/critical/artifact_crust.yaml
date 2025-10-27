@@ -89,7 +89,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef core_comp(dataset: dsl.Output[dsl.Dataset]):\n    with open(dataset.path,\
           \ 'w') as f:\n        f.write('foo')\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-crust-comp:
       container:
         args:
@@ -118,7 +118,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef crust_comp(input: dsl.Dataset):\n    with open(input.path, 'r')\
           \ as f:\n        print('input: ', f.read())\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: artifact-pipeline
 root:

@@ -392,7 +392,7 @@ deploymentSpec:
           \ *\n\ndef create_dataset(data: Output[Dataset], content: str):\n    print(f'Creating\
           \ file with content: {content}')\n    with open(data.path, 'w') as f:\n\
           \        f.write(content)\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-create-file:
       container:
         args:
@@ -422,7 +422,7 @@ deploymentSpec:
           \ *\n\ndef create_file(file: Output[Artifact], content: str):\n    print(f'Creating\
           \ file with content: {content}')\n    with open(file.path, 'w') as f:\n\
           \        f.write(content)\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-read-datasets:
       container:
         args:
@@ -453,7 +453,7 @@ deploymentSpec:
           \        print(f'Reading dataset {d.name} file: {d.path}')\n        with\
           \ open(d.path, 'r') as f:\n            print(f.read())\n\n    return 'files\
           \ read'\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-read-models:
       container:
         args:
@@ -485,7 +485,7 @@ deploymentSpec:
           \ 'r') as f:\n            info = f.read()\n            print(f\"Model raw\
           \ data: {info}\")\n            print(f\"Model metadata: {m.metadata}\")\n\
           \    return 'models read'\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-read-models-2:
       container:
         args:
@@ -517,7 +517,7 @@ deploymentSpec:
           \ 'r') as f:\n            info = f.read()\n            print(f\"Model raw\
           \ data: {info}\")\n            print(f\"Model metadata: {m.metadata}\")\n\
           \    return 'models read'\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-read-single-dataset-generate-model:
       container:
         args:
@@ -550,7 +550,7 @@ deploymentSpec:
           \ f2:\n            f2.write(f\"{info}-{id}\")\n            results.metadata['model']\
           \ = info\n            results.metadata['model_name'] = f\"model-artifact-inner-iteration-{info}-{id}\"\
           \n\n"
-        image: python:3.9
+        image: python:3.11
     exec-read-single-file:
       container:
         args:
@@ -580,7 +580,7 @@ deploymentSpec:
           \ *\n\ndef read_single_file(file: Artifact) -> str:\n    print(f'Reading\
           \ file: {file.path}')\n    with open(file.path, 'r') as f:\n        print(f.read())\n\
           \n    return file.uri\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-split-chars:
       container:
         args:
@@ -609,7 +609,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef split_chars(model_ids: str) -> list:\n    return model_ids.split(',')\n\
           \n"
-        image: python:3.9
+        image: python:3.11
     exec-split-ids:
       container:
         args:
@@ -638,7 +638,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef split_ids(model_ids: str) -> list:\n    return model_ids.split(',')\n\
           \n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: collected-artifact-pipeline
 root:

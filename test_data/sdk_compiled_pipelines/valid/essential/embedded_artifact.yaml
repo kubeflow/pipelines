@@ -49,7 +49,7 @@ deploymentSpec:
           \    import os\n\n    with open(os.path.join(artifact.path, \"log.txt\"\
           ), \"r\", encoding=\"utf-8\") as f:\n        log = f.read()\n\n    assert\
           \ log == \"Hello, world!\"\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-read-embedded-artifact-file:
       container:
         args:
@@ -92,7 +92,7 @@ deploymentSpec:
           \ 'log.txt')\n\n\n\n\ndef read_embedded_artifact_file(artifact: dsl.EmbeddedInput[dsl.Dataset]):\n\
           \    with open(artifact.path, \"r\", encoding=\"utf-8\") as f:\n       \
           \ log = f.read()\n\n    assert log == \"Hello, world!\"\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: nb-simple
 root:

@@ -62,7 +62,7 @@ deploymentSpec:
           \ dataset_name)\n    print(\"Downloaded Hugging Face data\")\n    print(f\"\
           Now saving to {output_dataset.path}\")\n    ds.save_to_disk(output_dataset.path)\n\
           \    print(f\"Saved to {output_dataset.path}\")\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-print-dataset-info:
       container:
         args:
@@ -94,7 +94,7 @@ deploymentSpec:
           \ dataset.uri)\n    assert \"download-dataset-and-upload-as-artifact\" in\
           \ dataset.uri, \"The URI of the downloaded artifact does not match the expected\
           \ function's name that generated it\"\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   description: Download Hugging Face Data Set, upload it as an artifact and print
     its metadata
