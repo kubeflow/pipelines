@@ -1679,6 +1679,12 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	return r.objectStore.GetFile(context.TODO(), artifactPath)
 }
 
+// ResolveArtifactPath is a public wrapper for resolveArtifactPath.
+// This allows other components to validate artifact paths without accessing the file.
+func (r *ResourceManager) ResolveArtifactPath(runID string, nodeID string, artifactName string) (string, error) {
+	return r.resolveArtifactPath(runID, nodeID, artifactName)
+}
+
 // StreamArtifact safely streams artifact content from object storage to the provided writer.
 // This prevents memory exhaustion attacks by streaming data directly without buffering.
 func (r *ResourceManager) StreamArtifact(ctx context.Context, runID string, nodeID string, artifactName string, w io.Writer) error {
@@ -1700,6 +1706,11 @@ func (r *ResourceManager) StreamArtifact(ctx context.Context, runID string, node
 	}
 
 	return nil
+}
+
+// ObjectStore returns the object store interface for direct access to object storage operations
+func (r *ResourceManager) ObjectStore() storage.ObjectStoreInterface {
+	return r.objectStore
 }
 
 
