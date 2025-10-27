@@ -41,7 +41,7 @@ func (c *FakeBadMinioClient) PutObject(ctx context.Context, bucketName, objectNa
 
 func (c *FakeBadMinioClient) GetObject(ctx context.Context, bucketName, objectName string,
 	opts minio.GetObjectOptions,
-) (io.Reader, error) {
+) (io.ReadCloser, error) {
 	return nil, errors.New("some error")
 }
 

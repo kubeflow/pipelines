@@ -24,7 +24,7 @@ import (
 // Create interface for minio client struct, making it more unit testable.
 type MinioClientInterface interface {
 	PutObject(ctx context.Context, bucketName, objectName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) (n int64, err error)
-	GetObject(ctx context.Context, bucketName, objectName string, opts minio.GetObjectOptions) (io.Reader, error)
+	GetObject(ctx context.Context, bucketName, objectName string, opts minio.GetObjectOptions) (io.ReadCloser, error)
 	DeleteObject(ctx context.Context, bucketName, objectName string) error
 }
 
@@ -40,7 +40,7 @@ func (c *MinioClient) PutObject(ctx context.Context, bucketName, objectName stri
 	return info.Size, nil
 }
 
-func (c *MinioClient) GetObject(ctx context.Context, bucketName, objectName string, opts minio.GetObjectOptions) (io.Reader, error) {
+func (c *MinioClient) GetObject(ctx context.Context, bucketName, objectName string, opts minio.GetObjectOptions) (io.ReadCloser, error) {
 	return c.Client.GetObject(ctx, bucketName, objectName, opts)
 }
 
