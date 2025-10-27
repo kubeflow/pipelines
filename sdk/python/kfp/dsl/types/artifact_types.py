@@ -96,21 +96,25 @@ class Artifact:
     def _get_path(self) -> Optional[str]:
         local_path = self.uri
         if self.uri.startswith(RemotePrefix.GCS.value):
-            local_path = _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.GCS.value):]
+            local_path = _GCS_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.GCS
+                                                                .value):]
         elif self.uri.startswith(RemotePrefix.MINIO.value):
-            local_path = _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.MINIO.value):]
+            local_path = _MINIO_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.
+                                                                  MINIO.value):]
         elif self.uri.startswith(RemotePrefix.S3.value):
-            local_path = _S3_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.S3.value):]
+            local_path = _S3_LOCAL_MOUNT_PREFIX + self.uri[len(RemotePrefix.S3
+                                                               .value):]
         elif self.uri.startswith(RemotePrefix.OCI.value):
             escaped_uri = self.uri[len(RemotePrefix.OCI.value):].replace(
                 '/', '_')
             local_path = _OCI_LOCAL_MOUNT_PREFIX + escaped_uri
-        
+
         # If the artifact is already present in the pipeline workspace, map to the workspace path.
         # This is indicated by backend setting metadata['_kfp_workspace'] = True.
         if self.metadata.get('_kfp_workspace') is True:
-            local_path = os.path.join(WORKSPACE_MOUNT_PATH, ".artifacts", local_path.lstrip("/"))
-        
+            local_path = os.path.join(WORKSPACE_MOUNT_PATH, ".artifacts",
+                                      local_path.lstrip("/"))
+
         return local_path
 
     def _set_path(self, path: str) -> None:

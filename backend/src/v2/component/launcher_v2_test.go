@@ -193,10 +193,10 @@ func Test_getPlaceholders_WorkspaceArtifactPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("getPlaceholders error: %v", err)
 	}
-	got := ph["{{$.inputs.artifacts['data'].path}}"]
-	want := filepath.Join(WorkspaceMountPath, ".artifacts", "sample", "sample.txt")
-	if got != want {
-		t.Fatalf("placeholder path mismatch: got=%q want=%q", got, want)
+	actual := ph["{{$.inputs.artifacts['data'].path}}"]
+	expected := filepath.Join(WorkspaceMountPath, ".artifacts", "minio", "mlpipeline", "sample", "sample.txt")
+	if actual != expected {
+		t.Fatalf("placeholder path mismatch: actual=%q expected=%q", actual, expected)
 	}
 }
 

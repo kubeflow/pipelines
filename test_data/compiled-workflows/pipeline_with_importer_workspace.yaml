@@ -9,24 +9,54 @@ spec:
     - name: components-comp-importer
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer
-      value: '{"artifactUri":{"constant":"minio://mlpipeline/sample/sample.txt"},"downloadToWorkspace":true,"metadata":{"source":"sample"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
-    - name: components-9ffedf4e2479eb43e7fee57b45f0a09698cb1b0a7313f57371726b58f07afb52
-      value: '{"executorLabel":"exec-read-imported","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-9ffedf4e2479eb43e7fee57b45f0a09698cb1b0a7313f57371726b58f07afb52
-      value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_imported"],"command":["sh","-c","\nif
+      value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"downloadToWorkspace":true,"metadata":{"key":"value"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
+    - name: components-comp-importer-2
+      value: '{"executorLabel":"exec-importer-2","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
+    - name: implementations-comp-importer-2
+      value: '{"artifactUri":{"runtimeParameter":"uri"},"downloadToWorkspace":true,"metadata":{"source":"directory"},"reimport":true,"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
+    - name: components-fdb727929b2be77348f126a5dee529ea510c18494fff066636b7b47c809c2bd4
+      value: '{"executorLabel":"exec-read-dir","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+    - name: implementations-fdb727929b2be77348f126a5dee529ea510c18494fff066636b7b47c809c2bd4
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_dir"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.3'' ''--no-deps''
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
         ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
         \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        read_imported(data: dsl.Input[dsl.Dataset]) -\u003e str:\n    with open(data.path,
-        \"r\") as f:\n        content = f.read()\n    print(f\"Imported content length:
-        {len(content)}\")\n    return content\n\n"],"image":"python:3.9"}'
+        read_dir(data: dsl.Input[dsl.Dataset]) -\u003e str:\n    \"\"\"Walk the directory
+        and return a summary of file names.\"\"\"\n    import os\n    path = data.path\n\n    if
+        not os.path.exists(path):\n        print(f\"ERROR: Path does not exist: {path}\")\n        return
+        \"ERROR: Path not found\"\n\n    if os.path.isdir(path):\n        names =
+        []\n        for root, _, files in os.walk(path):\n            for name in
+        files:\n                names.append(os.path.relpath(os.path.join(root, name),
+        path))\n        names.sort()\n        result = \",\".join(names) if names
+        else \"EMPTY_DIRECTORY\"\n        print(f\"Found {len(names)} files: {result}\")\n        return
+        result\n    elif os.path.isfile(path):\n        print(f\"Path is a single
+        file: {path}\")\n        return os.path.basename(path)\n\n    return \"ERROR:
+        Unknown path type\"\n\n"],"image":"python:3.9"}'
+    - name: components-78537f2c409754d8fe50b9b2796fa1de4f71bce3a2f68459d83d895bfc7657c5
+      value: '{"executorLabel":"exec-train","inputDefinitions":{"artifacts":{"dataset":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"message":{"parameterType":"STRING"},"scalar":{"parameterType":"STRING"}}}}'
+    - name: implementations-78537f2c409754d8fe50b9b2796fa1de4f71bce3a2f68459d83d895bfc7657c5
+      value: '{"args":["--executor_input","{{$}}","--function_to_execute","train"],"command":["sh","-c","\nif
+        ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
+        -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
+        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.14.6'' ''--no-deps''
+        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
+        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
+        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
+        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
+        train(\n    dataset: dsl.Input[dsl.Dataset]\n) -\u003e NamedTuple(''Outputs'',
+        [\n    (''scalar'', str),\n    (''message'', str),\n]):\n    \"\"\"Dummy Training
+        step.\"\"\"\n    with open(dataset.path) as f:\n        data = f.read()\n    print(''Dataset:'',
+        data)\n\n    scalar = ''123''\n    message = f''My model trained using data:
+        {data}''\n\n    from collections import namedtuple\n    output = namedtuple(''Outputs'',
+        [''scalar'', ''message''])\n    return output(scalar, message)\n\n"],"image":"python:3.9"}'
     - name: components-root
-      value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"read-imported"}}}},"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"minio://mlpipeline/sample/sample.txt"}}}},"taskInfo":{"name":"importer"}},"read-imported":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-imported"},"dependentTasks":["importer"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"read-imported"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
+      value: '{"dag":{"outputs":{"parameters":{"dir_result":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"read-dir"}},"train_result":{"valueFromParameter":{"outputParameterKey":"scalar","producerSubtask":"train"}}}},"tasks":{"importer":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"}}}},"taskInfo":{"name":"importer"}},"importer-2":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"inputs":{"parameters":{"uri":{"componentInputParameter":"dataset_dir"}}},"taskInfo":{"name":"importer-2"}},"read-dir":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-dir"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"read-dir"}},"train":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train"},"dependentTasks":["importer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"train"}}}},"inputDefinitions":{"parameters":{"dataset_dir":{"defaultValue":"gs://ml-pipeline-playground","isOptional":true,"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"dir_result":{"parameterType":"STRING"},"train_result":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
   podMetadata:
     annotations:
@@ -93,7 +123,7 @@ spec:
       - name: importer
       - name: parent-dag-id
     metadata: {}
-    name: system-importer
+    name: system-importer-workspace
     outputs: {}
     volumes:
     - name: kfp-workspace
@@ -271,7 +301,7 @@ spec:
       - arguments:
           parameters:
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"minio://mlpipeline/sample/sample.txt"}}}},"taskInfo":{"name":"importer"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer"},"inputs":{"parameters":{"uri":{"runtimeValue":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"}}}},"taskInfo":{"name":"importer"}}'
           - name: component
             value: '{{workflow.parameters.components-comp-importer}}'
           - name: importer
@@ -279,31 +309,68 @@ spec:
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
         name: importer
-        template: system-importer
+        template: system-importer-workspace
+      - arguments:
+          parameters:
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-importer-2"},"inputs":{"parameters":{"uri":{"componentInputParameter":"dataset_dir"}}},"taskInfo":{"name":"importer-2"}}'
+          - name: component
+            value: '{{workflow.parameters.components-comp-importer-2}}'
+          - name: importer
+            value: '{{workflow.parameters.implementations-comp-importer-2}}'
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        name: importer-2
+        template: system-importer-workspace
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-9ffedf4e2479eb43e7fee57b45f0a09698cb1b0a7313f57371726b58f07afb52}}'
+            value: '{{workflow.parameters.components-fdb727929b2be77348f126a5dee529ea510c18494fff066636b7b47c809c2bd4}}'
           - name: task
-            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-imported"},"dependentTasks":["importer"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"read-imported"}}'
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-dir"},"dependentTasks":["importer-2"],"inputs":{"artifacts":{"data":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer-2"}}}},"taskInfo":{"name":"read-dir"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-9ffedf4e2479eb43e7fee57b45f0a09698cb1b0a7313f57371726b58f07afb52}}'
+            value: '{{workflow.parameters.implementations-fdb727929b2be77348f126a5dee529ea510c18494fff066636b7b47c809c2bd4}}'
           - name: task-name
-            value: read-imported
+            value: read-dir
           - name: parent-dag-id
             value: '{{inputs.parameters.parent-dag-id}}'
-        depends: importer.Succeeded
-        name: read-imported-driver
+        depends: importer-2.Succeeded
+        name: read-dir-driver
         template: system-container-driver
       - arguments:
           parameters:
           - name: pod-spec-patch
-            value: '{{tasks.read-imported-driver.outputs.parameters.pod-spec-patch}}'
+            value: '{{tasks.read-dir-driver.outputs.parameters.pod-spec-patch}}'
           - default: "false"
             name: cached-decision
-            value: '{{tasks.read-imported-driver.outputs.parameters.cached-decision}}'
-        depends: read-imported-driver.Succeeded
-        name: read-imported
+            value: '{{tasks.read-dir-driver.outputs.parameters.cached-decision}}'
+        depends: read-dir-driver.Succeeded
+        name: read-dir
+        template: system-container-executor
+      - arguments:
+          parameters:
+          - name: component
+            value: '{{workflow.parameters.components-78537f2c409754d8fe50b9b2796fa1de4f71bce3a2f68459d83d895bfc7657c5}}'
+          - name: task
+            value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-train"},"dependentTasks":["importer"],"inputs":{"artifacts":{"dataset":{"taskOutputArtifact":{"outputArtifactKey":"artifact","producerTask":"importer"}}}},"taskInfo":{"name":"train"}}'
+          - name: container
+            value: '{{workflow.parameters.implementations-78537f2c409754d8fe50b9b2796fa1de4f71bce3a2f68459d83d895bfc7657c5}}'
+          - name: task-name
+            value: train
+          - name: parent-dag-id
+            value: '{{inputs.parameters.parent-dag-id}}'
+        depends: importer.Succeeded
+        name: train-driver
+        template: system-container-driver
+      - arguments:
+          parameters:
+          - name: pod-spec-patch
+            value: '{{tasks.train-driver.outputs.parameters.pod-spec-patch}}'
+          - default: "false"
+            name: cached-decision
+            value: '{{tasks.train-driver.outputs.parameters.cached-decision}}'
+        depends: train-driver.Succeeded
+        name: train
         template: system-container-executor
     inputs:
       parameters:
@@ -395,7 +462,7 @@ spec:
           - name: component
             value: '{{workflow.parameters.components-root}}'
           - name: runtime-config
-            value: '{}'
+            value: '{"parameterValues":{"dataset_dir":"gs://ml-pipeline-playground"}}'
           - name: driver-type
             value: ROOT_DAG
         name: root-driver
@@ -418,6 +485,8 @@ spec:
       creationTimestamp: null
       name: kfp-workspace
     spec:
+      accessModes:
+      - ReadWriteOnce
       resources:
         requests:
           storage: 1Gi

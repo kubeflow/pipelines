@@ -1,8 +1,11 @@
 # PIPELINE DEFINITION
 # Name: pipeline-with-importer-workspace
 # Description: Importer downloads an artifact into workspace; downstream reads it
+# Inputs:
+#    dataset_dir: str [Default: 'gs://ml-pipeline-playground']
 # Outputs:
-#    Output: str
+#    dir_result: str
+#    train_result: str
 components:
   comp-importer:
     executorLabel: exec-importer
@@ -16,8 +19,20 @@ components:
           artifactType:
             schemaTitle: system.Dataset
             schemaVersion: 0.0.1
-  comp-read-imported:
-    executorLabel: exec-read-imported
+  comp-importer-2:
+    executorLabel: exec-importer-2
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-read-dir:
+    executorLabel: exec-read-dir
     inputDefinitions:
       artifacts:
         data:
@@ -28,31 +43,56 @@ components:
       parameters:
         Output:
           parameterType: STRING
+  comp-train:
+    executorLabel: exec-train
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+        scalar:
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-importer:
       importer:
         artifactUri:
-          constant: minio://mlpipeline/sample/sample.txt
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
         downloadToWorkspace: true
         metadata:
-          source: sample
+          key: value
         typeSchema:
           schemaTitle: system.Dataset
           schemaVersion: 0.0.1
-    exec-read-imported:
+    exec-importer-2:
+      importer:
+        artifactUri:
+          runtimeParameter: uri
+        downloadToWorkspace: true
+        metadata:
+          source: directory
+        reimport: true
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+    exec-read-dir:
       container:
         args:
         - --executor_input
         - '{{$}}'
         - --function_to_execute
-        - read_imported
+        - read_dir
         command:
         - sh
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.3'\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
           \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
           $0\" \"$@\"\n"
         - sh
@@ -66,9 +106,52 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef read_imported(data: dsl.Input[dsl.Dataset]) -> str:\n    with\
-          \ open(data.path, \"r\") as f:\n        content = f.read()\n    print(f\"\
-          Imported content length: {len(content)}\")\n    return content\n\n"
+          \ *\n\ndef read_dir(data: dsl.Input[dsl.Dataset]) -> str:\n    \"\"\"Walk\
+          \ the directory and return a summary of file names.\"\"\"\n    import os\n\
+          \    path = data.path\n\n    if not os.path.exists(path):\n        print(f\"\
+          ERROR: Path does not exist: {path}\")\n        return \"ERROR: Path not\
+          \ found\"\n\n    if os.path.isdir(path):\n        names = []\n        for\
+          \ root, _, files in os.walk(path):\n            for name in files:\n   \
+          \             names.append(os.path.relpath(os.path.join(root, name), path))\n\
+          \        names.sort()\n        result = \",\".join(names) if names else\
+          \ \"EMPTY_DIRECTORY\"\n        print(f\"Found {len(names)} files: {result}\"\
+          )\n        return result\n    elif os.path.isfile(path):\n        print(f\"\
+          Path is a single file: {path}\")\n        return os.path.basename(path)\n\
+          \n    return \"ERROR: Unknown path type\"\n\n"
+        image: python:3.9
+    exec-train:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train(\n    dataset: dsl.Input[dsl.Dataset]\n) -> NamedTuple('Outputs',\
+          \ [\n    ('scalar', str),\n    ('message', str),\n]):\n    \"\"\"Dummy Training\
+          \ step.\"\"\"\n    with open(dataset.path) as f:\n        data = f.read()\n\
+          \    print('Dataset:', data)\n\n    scalar = '123'\n    message = f'My model\
+          \ trained using data: {data}'\n\n    from collections import namedtuple\n\
+          \    output = namedtuple('Outputs', ['scalar', 'message'])\n    return output(scalar,\
+          \ message)\n\n"
         image: python:3.9
 pipelineInfo:
   description: Importer downloads an artifact into workspace; downstream reads it
@@ -77,10 +160,14 @@ root:
   dag:
     outputs:
       parameters:
-        Output:
+        dir_result:
           valueFromParameter:
             outputParameterKey: Output
-            producerSubtask: read-imported
+            producerSubtask: read-dir
+        train_result:
+          valueFromParameter:
+            outputParameterKey: scalar
+            producerSubtask: train
     tasks:
       importer:
         cachingOptions:
@@ -91,30 +178,64 @@ root:
           parameters:
             uri:
               runtimeValue:
-                constant: minio://mlpipeline/sample/sample.txt
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
         taskInfo:
           name: importer
-      read-imported:
+      importer-2:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-read-imported
+          name: comp-importer-2
+        inputs:
+          parameters:
+            uri:
+              componentInputParameter: dataset_dir
+        taskInfo:
+          name: importer-2
+      read-dir:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-read-dir
         dependentTasks:
-        - importer
+        - importer-2
         inputs:
           artifacts:
             data:
               taskOutputArtifact:
                 outputArtifactKey: artifact
+                producerTask: importer-2
+        taskInfo:
+          name: read-dir
+      train:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train
+        dependentTasks:
+        - importer
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
                 producerTask: importer
         taskInfo:
-          name: read-imported
+          name: train
+  inputDefinitions:
+    parameters:
+      dataset_dir:
+        defaultValue: gs://ml-pipeline-playground
+        isOptional: true
+        parameterType: STRING
   outputDefinitions:
     parameters:
-      Output:
+      dir_result:
+        parameterType: STRING
+      train_result:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.14.3
+sdkVersion: kfp-2.14.6
 ---
 platforms:
   kubernetes:
@@ -122,5 +243,7 @@ platforms:
       workspace:
         kubernetes:
           pvcSpecPatch:
+            accessModes:
+            - ReadWriteOnce
             storageClassName: standard
         size: 1Gi
