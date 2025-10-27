@@ -368,7 +368,7 @@ func startHTTPProxy(resourceManager *resource.ResourceManager, usePipelinesKuber
 	runLogServer := server.NewRunLogServer(resourceManager)
 	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", runLogServer.ReadRunLogV1)
 
-	// SECURITY FIX: artifact streaming is provided via HTTP to prevent memory exhaustion attacks.
+	// Artifact streaming endpoints
 	runArtifactServer := server.NewRunArtifactServer(resourceManager)
 	topMux.HandleFunc("/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:stream", runArtifactServer.StreamArtifactV1)
 	topMux.HandleFunc("/apis/v2beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:stream", runArtifactServer.StreamArtifact)

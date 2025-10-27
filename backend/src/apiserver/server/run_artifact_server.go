@@ -36,9 +36,8 @@ type RunArtifactServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-// SECURITY FIX: Artifact streaming endpoint to prevent memory exhaustion attacks.
-// This endpoint streams artifacts directly from object storage to the HTTP response
-// without buffering the entire content in memory, preventing memory exhaustion attacks.
+// Artifact streaming endpoint that streams artifacts directly from object storage
+// to the HTTP response without buffering the entire content in memory.
 // No size limits are imposed - the streaming approach itself provides the security benefit.
 func (s *RunArtifactServer) StreamArtifactV1(w http.ResponseWriter, r *http.Request) {
 	glog.Infof("Stream artifact v1 called")
@@ -63,7 +62,7 @@ func (s *RunArtifactServer) StreamArtifactV1(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// SECURITY: Perform authorization check
+	// Perform authorization check
 	err := s.canAccessRun(r.Context(), runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReadArtifact})
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusForbidden, fmt.Errorf("unauthorized to read artifact: %v", err))
