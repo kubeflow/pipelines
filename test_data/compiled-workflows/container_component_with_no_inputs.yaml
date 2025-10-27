@@ -6,10 +6,10 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d
+    - name: components-38c5a29d4ca763681a94a05486f63b9b66ef520343be3e17ca8cd892801aa093
       value: '{"executorLabel":"exec-hello-world-container"}'
-    - name: implementations-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d
-      value: '{"command":["echo","hello world"],"image":"python:3.9"}'
+    - name: implementations-38c5a29d4ca763681a94a05486f63b9b66ef520343be3e17ca8cd892801aa093
+      value: '{"command":["echo","hello world"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"hello-world-container":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world-container"},"taskInfo":{"name":"hello-world-container"}}}}}'
   entrypoint: entrypoint
@@ -192,11 +192,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d}}'
+            value: '{{workflow.parameters.components-38c5a29d4ca763681a94a05486f63b9b66ef520343be3e17ca8cd892801aa093}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-hello-world-container"},"taskInfo":{"name":"hello-world-container"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-ae0b9ab0aaa00ff363a428841da1ae97c69c83b805b51d72258bd4cc91ad843d}}'
+            value: '{{workflow.parameters.implementations-38c5a29d4ca763681a94a05486f63b9b66ef520343be3e17ca8cd892801aa093}}'
           - name: task-name
             value: hello-world-container
           - name: parent-dag-id

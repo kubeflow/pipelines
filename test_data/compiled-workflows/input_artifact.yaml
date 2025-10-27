@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-da3c6808bf551f2963106f4d6e053e4d70b827b3960f6e6d581fa72f4c1191fe
+    - name: components-c0e9d1cc85ce81739c3677ec2338cb29b8bad1837b123a910f0aa723a5fde46c
       value: '{"executorLabel":"exec-input-artifact","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-da3c6808bf551f2963106f4d6e053e4d70b827b3960f6e6d581fa72f4c1191fe
+    - name: implementations-c0e9d1cc85ce81739c3677ec2338cb29b8bad1837b123a910f0aa723a5fde46c
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","input_artifact"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -18,7 +18,7 @@ spec:
         \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
         -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
-        input_artifact(data: Input[Dataset]):\n    print(data.name)\n    print(data.uri)\n    print(data.metadata)\n\n"],"image":"python:3.9"}'
+        input_artifact(data: Input[Dataset]):\n    print(data.name)\n    print(data.uri)\n    print(data.metadata)\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"input-artifact":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-input-artifact"},"inputs":{"artifacts":{"data":{"componentInputArtifact":"data"}}},"taskInfo":{"name":"input-artifact"}}}},"inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
   entrypoint: entrypoint
@@ -201,11 +201,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-da3c6808bf551f2963106f4d6e053e4d70b827b3960f6e6d581fa72f4c1191fe}}'
+            value: '{{workflow.parameters.components-c0e9d1cc85ce81739c3677ec2338cb29b8bad1837b123a910f0aa723a5fde46c}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-input-artifact"},"inputs":{"artifacts":{"data":{"componentInputArtifact":"data"}}},"taskInfo":{"name":"input-artifact"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-da3c6808bf551f2963106f4d6e053e4d70b827b3960f6e6d581fa72f4c1191fe}}'
+            value: '{{workflow.parameters.implementations-c0e9d1cc85ce81739c3677ec2338cb29b8bad1837b123a910f0aa723a5fde46c}}'
           - name: task-name
             value: input-artifact
           - name: parent-dag-id

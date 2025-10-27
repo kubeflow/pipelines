@@ -80,7 +80,7 @@ deploymentSpec:
           ) as f:\n        b = f.read(1)\n        print(\"read byte: %s\" % b)\n \
           \       f.close()\n\n    print(\"copying in %s to out %s\" % (incomingfile,\
           \ saveartifact))\n    shutil.copyfile(incomingfile, saveartifact)\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-send-file:
       container:
         args:
@@ -117,7 +117,7 @@ deploymentSpec:
           \ file...\")\n    file_path = \"/tmp/large_file.txt\"\n    create_large_file(file_path,\
           \ file_size_bytes)\n    zip_file(file_path, outgoingfile)\n    print(f\"\
           saved: {outgoingfile}\")\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-test-uploaded-artifact:
       container:
         args:
@@ -166,7 +166,7 @@ deploymentSpec:
           \ bytes_written)\n    diff = round((bytes_written / file_size_bytes) - 1,\
           \ 3)\n    print(diff)\n    # if not matching, the test will fail\n    assert\
           \ diff == 0\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: test-data-passing-pipeline-1
 root:

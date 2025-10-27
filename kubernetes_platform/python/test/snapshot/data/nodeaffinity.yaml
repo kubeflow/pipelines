@@ -38,7 +38,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_hello_with_empty_json():\n    pass\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-print-hello-with-json-affinity:
       container:
         args:
@@ -66,7 +66,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_hello_with_json_affinity():\n    pass\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-print-hello-with-json-affinity-2:
       container:
         args:
@@ -94,7 +94,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_hello_with_json_affinity():\n    pass\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-print-hello-with-preferred-affinity:
       container:
         args:
@@ -122,7 +122,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef print_hello_with_preferred_affinity():\n    pass\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: test-node-affinity
 root:

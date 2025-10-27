@@ -96,7 +96,7 @@ func TestGenerateCacheKey(t *testing.T) {
 				"output_parameter_two": "INT",
 			},
 			cmdArgs: []string{"sh", "ec", "test"},
-			image:   "python:3.9",
+			image:   "python:3.11",
 			want: &cachekey.CacheKey{
 				InputArtifactNames: map[string]*cachekey.ArtifactNameList{
 					"dataset_one": {ArtifactNames: []string{"1"}},
@@ -130,7 +130,7 @@ func TestGenerateCacheKey(t *testing.T) {
 				},
 				ContainerSpec: &cachekey.ContainerSpec{
 					CmdArgs: []string{"sh", "ec", "test"},
-					Image:   "python:3.9",
+					Image:   "python:3.11",
 				},
 			},
 
@@ -184,7 +184,7 @@ func TestGenerateCacheKey(t *testing.T) {
 				"output_parameter_one": "STRING",
 			},
 			cmdArgs:  []string{"sh", "ec", "test"},
-			image:    "python:3.9",
+			image:    "python:3.11",
 			pvcNames: []string{"workspace-pvc", "data-pvc"},
 			want: &cachekey.CacheKey{
 				InputArtifactNames: map[string]*cachekey.ArtifactNameList{
@@ -210,7 +210,7 @@ func TestGenerateCacheKey(t *testing.T) {
 				},
 				ContainerSpec: &cachekey.ContainerSpec{
 					CmdArgs:  []string{"sh", "ec", "test"},
-					Image:    "python:3.9",
+					Image:    "python:3.11",
 					PvcNames: []string{"workspace-pvc", "data-pvc"},
 				},
 			},
@@ -272,7 +272,7 @@ func TestGenerateFingerPrint(t *testing.T) {
 		},
 		ContainerSpec: &cachekey.ContainerSpec{
 			CmdArgs: []string{"sh", "ec", "test"},
-			Image:   "python:3.9",
+			Image:   "python:3.11",
 		},
 	}
 	tests := []struct {
@@ -316,11 +316,11 @@ func TestGenerateFingerPrint(t *testing.T) {
 				},
 				ContainerSpec: &cachekey.ContainerSpec{
 					CmdArgs: []string{"sh", "ec", "test"},
-					Image:   "python:3.9",
+					Image:   "python:3.11",
 				},
 			},
 			wantEqual:   true,
-			fingerPrint: "4e8a5d7d70997b0a35429fcd481af8fcd5b9f58ef4391bdb6ad900fd1c63622b",
+			fingerPrint: "b498530c9016917298999ec0b01f364a180f8a3862bea0fa672a383ca3f22e4e",
 		}, {
 			name: "Generated Different FingerPrint",
 			cacheKey: &cachekey.CacheKey{
@@ -332,11 +332,11 @@ func TestGenerateFingerPrint(t *testing.T) {
 				},
 				ContainerSpec: &cachekey.ContainerSpec{
 					CmdArgs: []string{"sh", "ec", "run"},
-					Image:   "python:3.9",
+					Image:   "python:3.11",
 				},
 			},
 			wantEqual:   false,
-			fingerPrint: "0a4cc1f15cdfad5170e1358518f7128c5278500a670db1b9a3f3d83b93db396e",
+			fingerPrint: "3d9a2a778fa3174c6cfc6e639c507c265b5f21ef6e5b1dd70b236462cc6da464",
 		},
 	}
 	cacheClient, err := NewClient(false, &tls.Config{})
@@ -363,7 +363,7 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 		},
 		ContainerSpec: &cachekey.ContainerSpec{
 			CmdArgs: []string{"sh", "ec", "test"},
-			Image:   "python:3.9",
+			Image:   "python:3.11",
 		},
 	}
 
@@ -376,7 +376,7 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 		},
 		ContainerSpec: &cachekey.ContainerSpec{
 			CmdArgs:  []string{"sh", "ec", "test"},
-			Image:    "python:3.9",
+			Image:    "python:3.11",
 			PvcNames: []string{"workspace-pvc", "data-pvc"},
 		},
 	}
@@ -390,7 +390,7 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 		},
 		ContainerSpec: &cachekey.ContainerSpec{
 			CmdArgs:  []string{"sh", "ec", "test"},
-			Image:    "python:3.9",
+			Image:    "python:3.11",
 			PvcNames: []string{"workspace-pvc", "data-pvc"},
 		},
 	}
@@ -404,7 +404,7 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 		},
 		ContainerSpec: &cachekey.ContainerSpec{
 			CmdArgs:  []string{"sh", "ec", "test"},
-			Image:    "python:3.9",
+			Image:    "python:3.11",
 			PvcNames: []string{"data-pvc", "workspace-pvc", "extra"},
 		},
 	}

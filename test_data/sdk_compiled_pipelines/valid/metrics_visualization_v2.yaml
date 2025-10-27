@@ -89,7 +89,7 @@ deploymentSpec:
           \    model.fit(X_train, y_train)\n\n    #accuracy on test set\n    result\
           \ = model.score(X_test, y_test)\n    metrics.log_metric('accuracy', (result\
           \ * 100.0))\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-html-visualization:
       container:
         args:
@@ -120,7 +120,7 @@ deploymentSpec:
           \ = '<!DOCTYPE html><html><body><h1>Hello world</h1></body></html>'\n  \
           \  with open(html_artifact.path, 'w') as f:\n        f.write(html_content)\n\
           \n"
-        image: python:3.9
+        image: python:3.11
     exec-iris-sgdclassifier:
       container:
         args:
@@ -161,7 +161,7 @@ deploymentSpec:
           \ 'Versicolour', 'Virginica'],\n        confusion_matrix(\n            train_y,\n\
           \            predictions).tolist()  # .tolist() to convert np array to list.\n\
           \    )\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-markdown-visualization:
       container:
         args:
@@ -192,7 +192,7 @@ deploymentSpec:
           \    markdown_content = '## Hello world \\n\\n Markdown content'\n    with\
           \ open(markdown_artifact.path, 'w') as f:\n        f.write(markdown_content)\n\
           \n"
-        image: python:3.9
+        image: python:3.11
     exec-wine-classification:
       container:
         args:
@@ -234,7 +234,7 @@ deploymentSpec:
           \ 1], pos_label=True)\n\n    # avoid inf thresholds\n    epsilon = 1e-6\n\
           \    thresholds = [1 - epsilon if t == float('inf') else t for t in thresholds]\n\
           \n    metrics.log_roc_curve(fpr, tpr, thresholds)\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: metrics-visualization-pipeline
 root:

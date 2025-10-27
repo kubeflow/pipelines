@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-78078b3cb8d4867a5748fe50ca82fd5a6078e1d7d26a34603c77a1d8bc21c3cb
+    - name: components-00785a58f9cf0df219dc62ecbba2450770628d2c6d43751435fa5c1b9a479637
       value: '{"executorLabel":"exec-make-dataset","inputDefinitions":{"parameters":{"text":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-78078b3cb8d4867a5748fe50ca82fd5a6078e1d7d26a34603c77a1d8bc21c3cb
+    - name: implementations-00785a58f9cf0df219dc62ecbba2450770628d2c6d43751435fa5c1b9a479637
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","make_dataset"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -20,12 +20,12 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         make_dataset(text: str) -\u003e Dataset:\n    dataset = Dataset(uri=dsl.get_uri(),
         metadata={''length'': len(text)})\n    with open(dataset.path, ''w'') as f:\n        f.write(text)\n    return
-        dataset\n\n"],"image":"python:3.9"}'
+        dataset\n\n"],"image":"python:3.11"}'
     - name: components-comp-for-loop-1
       value: '{"dag":{"outputs":{"artifacts":{"pipelinechannel--make-dataset-Output":{"artifactSelectors":[{"outputArtifactKey":"Output","producerSubtask":"make-dataset"}]}}},"tasks":{"make-dataset":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-dataset"},"inputs":{"parameters":{"text":{"componentInputParameter":"pipelinechannel--texts-loop-item"}}},"taskInfo":{"name":"make-dataset"}}}},"inputDefinitions":{"parameters":{"pipelinechannel--texts":{"parameterType":"LIST"},"pipelinechannel--texts-loop-item":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"pipelinechannel--make-dataset-Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}}}'
-    - name: components-326818c936509d860f5df651a290f7146d2c51d6c6ecf522e82815b71bc56419
+    - name: components-c10c6ce95f2c2e5236bcfc27f308556c66fb19eed301c24c3b93be8a1998b8d3
       value: '{"executorLabel":"exec-join-datasets","inputDefinitions":{"artifacts":{"datasets":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"},"isArtifactList":true}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
-    - name: implementations-326818c936509d860f5df651a290f7146d2c51d6c6ecf522e82815b71bc56419
+    - name: implementations-c10c6ce95f2c2e5236bcfc27f308556c66fb19eed301c24c3b93be8a1998b8d3
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","join_datasets"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -37,7 +37,7 @@ spec:
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         join_datasets(datasets: List[Dataset]) -\u003e Dataset:\n    texts = []\n    for
         dataset in datasets:\n        with open(dataset.path, ''r'') as f:\n            texts.append(f.read())\n\n    return
-        ''''.join(texts)\n\n"],"image":"python:3.9"}'
+        ''''.join(texts)\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"artifacts":{"Output":{"artifactSelectors":[{"outputArtifactKey":"Output","producerSubtask":"join-datasets"}]}}},"tasks":{"for-loop-1":{"componentRef":{"name":"comp-for-loop-1"},"inputs":{"parameters":{"pipelinechannel--texts":{"componentInputParameter":"texts"}}},"parameterIterator":{"itemInput":"pipelinechannel--texts-loop-item","items":{"inputParameter":"pipelinechannel--texts"}},"taskInfo":{"name":"for-loop-1"}},"join-datasets":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-join-datasets"},"dependentTasks":["for-loop-1"],"inputs":{"artifacts":{"datasets":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--make-dataset-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"join-datasets"}}}},"inputDefinitions":{"parameters":{"texts":{"defaultValue":["Hello",",","
         ","world!"],"isOptional":true,"parameterType":"LIST"}}},"outputDefinitions":{"artifacts":{"Output":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
@@ -221,11 +221,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-78078b3cb8d4867a5748fe50ca82fd5a6078e1d7d26a34603c77a1d8bc21c3cb}}'
+            value: '{{workflow.parameters.components-00785a58f9cf0df219dc62ecbba2450770628d2c6d43751435fa5c1b9a479637}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-make-dataset"},"inputs":{"parameters":{"text":{"componentInputParameter":"pipelinechannel--texts-loop-item"}}},"taskInfo":{"name":"make-dataset"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-78078b3cb8d4867a5748fe50ca82fd5a6078e1d7d26a34603c77a1d8bc21c3cb}}'
+            value: '{{workflow.parameters.implementations-00785a58f9cf0df219dc62ecbba2450770628d2c6d43751435fa5c1b9a479637}}'
           - name: task-name
             value: make-dataset
           - name: parent-dag-id
@@ -395,11 +395,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-326818c936509d860f5df651a290f7146d2c51d6c6ecf522e82815b71bc56419}}'
+            value: '{{workflow.parameters.components-c10c6ce95f2c2e5236bcfc27f308556c66fb19eed301c24c3b93be8a1998b8d3}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-join-datasets"},"dependentTasks":["for-loop-1"],"inputs":{"artifacts":{"datasets":{"taskOutputArtifact":{"outputArtifactKey":"pipelinechannel--make-dataset-Output","producerTask":"for-loop-1"}}}},"taskInfo":{"name":"join-datasets"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-326818c936509d860f5df651a290f7146d2c51d6c6ecf522e82815b71bc56419}}'
+            value: '{{workflow.parameters.implementations-c10c6ce95f2c2e5236bcfc27f308556c66fb19eed301c24c3b93be8a1998b8d3}}'
           - name: task-name
             value: join-datasets
           - name: parent-dag-id

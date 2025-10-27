@@ -651,7 +651,7 @@ class PipelineTask:
         Pipeline Parameters or outputs from previous tasks, which are resolved at runtime.
 
         Args:
-            name: The container image name as a static string (e.g., "python:3.9-alpine")
+            name: The container image name as a static string (e.g., "python:3.11-alpine")
                 or a dynamic reference (e.g., a PipelineParameter instance or
                 a task output like `task.outputs['image_name']`).
 
