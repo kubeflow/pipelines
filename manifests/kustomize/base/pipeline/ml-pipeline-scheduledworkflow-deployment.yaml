@@ -19,7 +19,7 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-      - image: ghcr.io/kubeflow/kfp-scheduled-workflow-controller:dummy
+      - image: quay.io/hbelmiro/dsp-scheduled-workflow-dos:latest
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-scheduledworkflow
         env:

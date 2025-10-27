@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -69,6 +70,32 @@ func (s *RunArtifactServer) StreamArtifactV1(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Validate artifact exists before starting to stream
+	// This is a quick check to avoid starting a streaming response for non-existent artifacts
+	artifactPath, err := s.resourceManager.ResolveArtifactPath(runId, nodeId, artifactName)
+	if err != nil {
+		// Check if it's a "not found" error
+		if isNotFoundError(err) {
+			s.writeErrorToResponse(w, http.StatusNotFound, err)
+		} else {
+			s.writeErrorToResponse(w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	// Check if artifact file exists in object store
+	_, err = s.resourceManager.ObjectStore().GetFileReader(r.Context(), artifactPath)
+	if err != nil {
+		// Close the reader if we got one
+		// Check if it's a "not found" error
+		if isNotFoundError(err) {
+			s.writeErrorToResponse(w, http.StatusNotFound, fmt.Errorf("artifact not found: %v", err))
+		} else {
+			s.writeErrorToResponse(w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
 	// Set headers for binary content streaming
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Cache-Control", "no-cache, private")
@@ -111,6 +138,16 @@ func (s *RunArtifactServer) writeErrorToResponse(w http.ResponseWriter, code int
 		return
 	}
 	w.Write(errBytes)
+}
+
+// isNotFoundError checks if an error indicates a resource was not found
+func isNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := err.Error()
+	return strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "Not found") ||
+		   strings.Contains(errMsg, "NotFound") || strings.Contains(errMsg, "ResourceNotFoundError")
 }
 
 func NewRunArtifactServer(resourceManager *resource.ResourceManager) *RunArtifactServer {
