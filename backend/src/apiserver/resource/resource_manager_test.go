@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -73,6 +74,10 @@ func (m *FakeBadObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, f
 
 func (m *FakeBadObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+func (m *FakeBadObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	return nil, util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
 func createPipelineV1(name string) *model.Pipeline {

@@ -462,24 +462,13 @@ func (s *RunServerV1) ReportRunMetricsV1(ctx context.Context, request *apiv1beta
 
 // Reads an artifact.
 // Supports v1beta1 behavior.
+// DEPRECATED: ReadArtifactV1 is vulnerable to memory exhaustion attacks and has been disabled.
+// Use the HTTP streaming endpoint instead: GET /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:stream
 func (s *RunServerV1) ReadArtifactV1(ctx context.Context, request *apiv1beta1.ReadArtifactRequest) (*apiv1beta1.ReadArtifactResponse, error) {
-	if s.options.CollectMetrics {
-		readArtifactRequests.Inc()
-	}
-
-	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReadArtifact})
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the request")
-	}
-
-	content, err := s.resourceManager.ReadArtifact(
-		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
-	if err != nil {
-		return nil, util.Wrapf(err, "failed to read artifact '%+v'", request)
-	}
-	return &apiv1beta1.ReadArtifactResponse{
-		Data: content,
-	}, nil
+	return nil, util.NewInvalidInputError(
+		"ReadArtifactV1 is deprecated due to security vulnerabilities. " +
+		"This GRPC method has been disabled to prevent memory exhaustion attacks. " +
+		"Use the HTTP streaming endpoint instead: GET /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:stream")
 }
 
 // Terminates a run.
