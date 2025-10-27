@@ -39,8 +39,6 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -1481,71 +1479,6 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 	)
 }
 
-func TestReadArtifacts_Succeed(t *testing.T) {
-	viper.Set(common.MultiUserMode, "true")
-	defer viper.Set(common.MultiUserMode, "false")
-
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-
-	expectedContent := "test"
-	filePath := "test/file.txt"
-	resourceManager, manager, run := initWithOneTimeRun(t)
-	resourceManager.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
-	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		TypeMeta: v1.TypeMeta{
-			APIVersion: "argoproj.io/v1alpha1",
-			Kind:       "Workflow",
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name:              "workflow-name",
-			Namespace:         "ns1",
-			UID:               "workflow1",
-			Labels:            map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
-			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
-			OwnerReferences: []v1.OwnerReference{{
-				APIVersion: "kubeflow.org/v1beta1",
-				Kind:       "Workflow",
-				Name:       "workflow-name",
-				UID:        types.UID(run.UUID),
-			}},
-		},
-		Status: v1alpha1.WorkflowStatus{
-			Nodes: map[string]v1alpha1.NodeStatus{
-				"node-1": {
-					Outputs: &v1alpha1.Outputs{
-						Artifacts: []v1alpha1.Artifact{
-							{
-								Name: "artifact-1",
-								ArtifactLocation: v1alpha1.ArtifactLocation{
-									S3: &v1alpha1.S3Artifact{
-										Key: filePath,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
-
-	runServer := createRunServer(manager)
-	artifact := &apiv2beta1.ReadArtifactRequest{
-		RunId:        run.UUID,
-		NodeId:       "node-1",
-		ArtifactName: "artifact-1",
-	}
-	response, err := runServer.ReadArtifact(ctx, artifact)
-	assert.Nil(t, err)
-
-	expectedResponse := &apiv2beta1.ReadArtifactResponse{
-		Data: []byte(expectedContent),
-	}
-	assert.Equal(t, expectedResponse, response)
-}
 
 func TestRetryRun(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
