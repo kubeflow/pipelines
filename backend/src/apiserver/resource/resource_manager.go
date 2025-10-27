@@ -1540,16 +1540,13 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 }
 
 // Fetches PipelineSpec as []byte array and a new URI of PipelineSpec.
-// SECURITY FIX: This function now uses streaming approach when accessing object storage
-// to prevent memory exhaustion attacks. It first tries database-stored PipelineSpec,
-// then falls back to streaming from object storage if needed.
 func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *model.PipelineVersion) ([]byte, string, error) {
 	if len(pipelineVersion.PipelineSpec) != 0 {
 		// Return pipeline spec that's already stored in the database
 		bytes := []byte(pipelineVersion.PipelineSpec)
 		return bytes, string(pipelineVersion.PipelineSpecURI), nil
 	} else {
-		// SECURITY FIX: Use streaming approach to fetch from object storage
+		// Use streaming approach to fetch from object storage
 		// Try reading object store from pipeline_spec_uri
 		template, errUri := r.streamingGetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
 		if errUri != nil {
@@ -1577,9 +1574,6 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 
 // streamingGetFile provides a streaming-based file retrieval that's memory-safe
 // but still returns []byte for compatibility with existing callers.
-// SECURITY: This uses streaming internally to avoid memory exhaustion, but the final
-// result is still returned as []byte. This is acceptable for pipeline specs which
-// are typically much smaller than artifacts and only read during creation.
 func (r *ResourceManager) streamingGetFile(ctx context.Context, filePath string) ([]byte, error) {
 	// Use the streaming GetFileReader to get a reader
 	reader, err := r.objectStore.GetFileReader(ctx, filePath)
@@ -1738,8 +1732,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline id")
 	}
 
-	// SECURITY FIX: Only use pipeline specs that are already provided in the request
-	// Do not download from URLs to prevent memory exhaustion attacks
+	// Only use pipeline specs that are already provided in the request
 	if len(pv.PipelineSpec) == 0 {
 		return nil, util.NewInvalidInputError(
 			"Pipeline specification must be provided directly in the request. " +
