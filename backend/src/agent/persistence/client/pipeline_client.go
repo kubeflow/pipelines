@@ -39,7 +39,7 @@ const (
 type PipelineClientInterface interface {
 	ReportWorkflow(workflow util.ExecutionSpec) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
-	ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error)
+	ReadArtifactForMetrics(request *util.ArtifactRequest) (*util.ArtifactResponse, error)
 	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
 }
 
@@ -187,9 +187,10 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 	return nil
 }
 
-// ReadArtifact reads artifact content from run service using HTTP streaming. If the artifact is not present, returns
-// nil response.
-func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
+
+// ReadArtifactForMetrics reads artifact content using the new util.ArtifactRequest/Response types.
+// This method is used by the metrics collection system.
+func (p *PipelineClient) ReadArtifactForMetrics(request *util.ArtifactRequest) (*util.ArtifactResponse, error) {
 	// Construct the HTTP streaming endpoint URL
 	// Format: /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:stream
 	url := fmt.Sprintf("%s/apis/v1beta1/runs/%s/nodes/%s/artifacts/%s:stream",
@@ -231,7 +232,7 @@ func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest) (*api.Re
 			return nil, util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT,
 				"Failed to read artifact data: %v", err.Error())
 		}
-		return &api.ReadArtifactResponse{Data: data}, nil
+		return &util.ArtifactResponse{Data: data}, nil
 
 	case http.StatusNotFound:
 		// Artifact not found - return nil as per original behavior
@@ -240,16 +241,26 @@ func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest) (*api.Re
 	case http.StatusUnauthorized:
 		// Unauthorized - refresh token and return transient error
 		p.tokenRefresher.RefreshToken()
-		return nil, util.NewCustomError(fmt.Errorf("unauthorized access"), util.CUSTOM_CODE_TRANSIENT,
-			"Unauthorized access to artifact")
+		return nil, util.NewCustomError(fmt.Errorf("HTTP 401"), util.CUSTOM_CODE_TRANSIENT,
+			"Failed to read artifact, unauthorized (token may have expired)")
 
 	case http.StatusForbidden:
-		// Forbidden - permanent error
-		return nil, util.NewCustomError(fmt.Errorf("forbidden access"), util.CUSTOM_CODE_PERMANENT,
-			"Forbidden access to artifact")
+		// Forbidden - return permanent error
+		return nil, util.NewCustomError(fmt.Errorf("HTTP 403"), util.CUSTOM_CODE_PERMANENT,
+			"Failed to read artifact, forbidden")
+
+	case http.StatusBadRequest:
+		// Bad request - return permanent error
+		return nil, util.NewCustomError(fmt.Errorf("HTTP 400"), util.CUSTOM_CODE_PERMANENT,
+			"Failed to read artifact, bad request")
+
+	case http.StatusInternalServerError:
+		// Internal server error - return transient error
+		return nil, util.NewCustomError(fmt.Errorf("HTTP 500"), util.CUSTOM_CODE_TRANSIENT,
+			"Failed to read artifact, internal server error")
 
 	default:
-		// Other errors - treat as permanent
+		// Other status codes - return permanent error
 		return nil, util.NewCustomError(fmt.Errorf("HTTP %d", resp.StatusCode), util.CUSTOM_CODE_PERMANENT,
 			"Failed to read artifact, HTTP status: %d", resp.StatusCode)
 	}

@@ -31,7 +31,24 @@ type NodeStatus struct {
 	Children    []string
 }
 
-type RetrieveArtifact func(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error)
+// Simple artifact request struct to replace the removed protobuf types
+type ArtifactRequest struct {
+	RunId        string
+	NodeId       string
+	ArtifactName string
+}
+
+// String returns a string representation for use as a map key
+func (r *ArtifactRequest) String() string {
+	return r.RunId + "/" + r.NodeId + "/" + r.ArtifactName
+}
+
+// Simple artifact response struct to replace the removed protobuf types
+type ArtifactResponse struct {
+	Data []byte
+}
+
+type RetrieveArtifact func(request *ArtifactRequest) (*ArtifactResponse, error)
 
 // Abstract interface to encapsulate the resources of the execution runtime specifically
 // for status information. This interface is mainly to access the status related information

@@ -24,8 +24,8 @@ type PipelineClientFake struct {
 	workflows                 map[string]util.ExecutionSpec
 	scheduledWorkflows        map[string]*util.ScheduledWorkflow
 	err                       error
-	artifacts                 map[string]*api.ReadArtifactResponse
-	readArtifactRequest       *api.ReadArtifactRequest
+	artifacts                 map[string]*util.ArtifactResponse
+	readArtifactRequest       *util.ArtifactRequest
 	reportedMetricsRequest    *api.ReportRunMetricsRequest
 	reportMetricsResponseStub *api.ReportRunMetricsResponse
 	reportMetricsErrorStub    error
@@ -36,7 +36,7 @@ func NewPipelineClientFake() *PipelineClientFake {
 		workflows:                 make(map[string]util.ExecutionSpec),
 		scheduledWorkflows:        make(map[string]*util.ScheduledWorkflow),
 		err:                       nil,
-		artifacts:                 make(map[string]*api.ReadArtifactResponse),
+		artifacts:                 make(map[string]*util.ArtifactResponse),
 		reportMetricsResponseStub: &api.ReportRunMetricsResponse{},
 	}
 }
@@ -57,7 +57,7 @@ func (p *PipelineClientFake) ReportScheduledWorkflow(swf *util.ScheduledWorkflow
 	return nil
 }
 
-func (p *PipelineClientFake) ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
+func (p *PipelineClientFake) ReadArtifactForMetrics(request *util.ArtifactRequest) (*util.ArtifactResponse, error) {
 	if p.err != nil {
 		return nil, p.err
 	}
@@ -82,11 +82,11 @@ func (p *PipelineClientFake) GetScheduledWorkflow(namespace string, name string)
 	return p.scheduledWorkflows[getKey(namespace, name)]
 }
 
-func (p *PipelineClientFake) StubArtifact(request *api.ReadArtifactRequest, response *api.ReadArtifactResponse) {
+func (p *PipelineClientFake) StubArtifact(request *util.ArtifactRequest, response *util.ArtifactResponse) {
 	p.artifacts[request.String()] = response
 }
 
-func (p *PipelineClientFake) GetReadArtifactRequest() *api.ReadArtifactRequest {
+func (p *PipelineClientFake) GetReadArtifactRequest() *util.ArtifactRequest {
 	return p.readArtifactRequest
 }
 
