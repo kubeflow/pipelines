@@ -388,16 +388,14 @@ index d986a048b..866696419 100644
 +  google.protobuf.Struct pvc_spec_patch = 1;
 +}
 +
- // Spec for pipeline-level config options. See PipelineConfig DSL class.
+// Spec for pipeline-level config options. See PipelineConfig DSL class.
  message PipelineConfig {
-   // Name of the semaphore key to control pipeline concurrency
-@@ -1115,4 +1128,7 @@ message PipelineConfig {
    // Time to live configuration after the pipeline run is completed for
    // ephemeral resources created by the pipeline run.
    int32 resource_ttl = 3;
-+
-+  // Configuration for the workspace
-+  optional WorkspaceConfig workspace = 4;
+
+   // Configuration for the workspace
+   optional WorkspaceConfig workspace = 4;
  }
 ```
 
