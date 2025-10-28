@@ -171,8 +171,8 @@ func TestReportMetrics_Succeed(t *testing.T) {
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
 		&util.ArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&util.ArtifactResponse{
@@ -234,8 +234,8 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 	artifactData, _ := util.ArchiveTgz(map[string]string{})
 	pipelineFake.StubArtifact(
 		&util.ArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&util.ArtifactResponse{
@@ -278,8 +278,8 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file1": validMetricsJSON, "file2": invalidMetricsJSON})
 	pipelineFake.StubArtifact(
 		&util.ArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&util.ArtifactResponse{
@@ -321,8 +321,8 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
 		&util.ArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&util.ArtifactResponse{
@@ -375,8 +375,8 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	// Stub two artifacts, node-1 is invalid, node-2 is valid.
 	pipelineFake.StubArtifact(
 		&util.ArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&util.ArtifactResponse{
@@ -384,8 +384,8 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 		})
 	pipelineFake.StubArtifact(
 		&util.ArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-2",
+			RunID:        "run-1",
+			NodeID:       "node-2",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&util.ArtifactResponse{
@@ -445,8 +445,8 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 	})
 	pipelineFake.StubArtifact(
 		&util.ArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&util.ArtifactResponse{
@@ -489,8 +489,8 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
 		&util.ArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&util.ArtifactResponse{
@@ -552,8 +552,8 @@ func TestReportMetrics_Unauthorized(t *testing.T) {
 	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
 	pipelineFake.StubArtifact(
 		&util.ArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
+			RunID:        "run-1",
+			NodeID:       "node-1",
 			ArtifactName: "mlpipeline-metrics",
 		},
 		&util.ArtifactResponse{

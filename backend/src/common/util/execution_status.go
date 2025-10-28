@@ -31,19 +31,19 @@ type NodeStatus struct {
 	Children    []string
 }
 
-// Simple artifact request struct to replace the removed protobuf types
+// ArtifactRequest is a simple artifact request struct to replace the removed protobuf types
 type ArtifactRequest struct {
-	RunId        string
-	NodeId       string
+	RunID        string
+	NodeID       string
 	ArtifactName string
 }
 
 // String returns a string representation for use as a map key
 func (r *ArtifactRequest) String() string {
-	return r.RunId + "/" + r.NodeId + "/" + r.ArtifactName
+	return r.RunID + "/" + r.NodeID + "/" + r.ArtifactName
 }
 
-// Simple artifact response struct to replace the removed protobuf types
+// ArtifactResponse is a simple artifact response struct to replace the removed protobuf types
 type ArtifactResponse struct {
 	Data []byte
 }

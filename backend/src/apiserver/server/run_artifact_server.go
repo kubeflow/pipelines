@@ -37,7 +37,7 @@ type RunArtifactServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-// Artifact streaming endpoint that streams artifacts directly from object storage
+// StreamArtifactV1 is an artifact streaming endpoint that streams artifacts directly from object storage
 // to the HTTP response without buffering the entire content in memory.
 // No size limits are imposed - the streaming approach itself provides the security benefit.
 func (s *RunArtifactServer) StreamArtifactV1(w http.ResponseWriter, r *http.Request) {
@@ -45,13 +45,13 @@ func (s *RunArtifactServer) StreamArtifactV1(w http.ResponseWriter, r *http.Requ
 
 	vars := mux.Vars(r)
 
-	runId, ok := vars[RunKey]
+	runID, ok := vars[RunKey]
 	if !ok {
 		s.writeErrorToResponse(w, http.StatusBadRequest, fmt.Errorf("missing path parameter: '%s'", RunKey))
 		return
 	}
 
-	nodeId, ok := vars[NodeKey]
+	nodeID, ok := vars[NodeKey]
 	if !ok {
 		s.writeErrorToResponse(w, http.StatusBadRequest, fmt.Errorf("missing path parameter: '%s'", NodeKey))
 		return
@@ -64,7 +64,7 @@ func (s *RunArtifactServer) StreamArtifactV1(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Perform authorization check
-	err := s.canAccessRun(r.Context(), runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReadArtifact})
+	err := s.canAccessRun(r.Context(), runID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReadArtifact})
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusForbidden, fmt.Errorf("unauthorized to read artifact: %v", err))
 		return
@@ -72,7 +72,7 @@ func (s *RunArtifactServer) StreamArtifactV1(w http.ResponseWriter, r *http.Requ
 
 	// Validate artifact exists before starting to stream
 	// This is a quick check to avoid starting a streaming response for non-existent artifacts
-	artifactPath, err := s.resourceManager.ResolveArtifactPath(runId, nodeId, artifactName)
+	artifactPath, err := s.resourceManager.ResolveArtifactPath(runID, nodeID, artifactName)
 	if err != nil {
 		// Check if it's a "not found" error
 		if isNotFoundError(err) {
@@ -103,7 +103,7 @@ func (s *RunArtifactServer) StreamArtifactV1(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 
 	// Stream the artifact directly to the response
-	err = s.resourceManager.StreamArtifact(r.Context(), runId, nodeId, artifactName, w)
+	err = s.resourceManager.StreamArtifact(r.Context(), runID, nodeID, artifactName, w)
 	if err != nil {
 		glog.Errorf("Failed to stream artifact: %v", err)
 		// Since we've already started writing the response, we can't change the status code
@@ -119,7 +119,7 @@ func (s *RunArtifactServer) StreamArtifact(w http.ResponseWriter, r *http.Reques
 }
 
 // canAccessRun checks if the user can access the specified run
-func (s *RunArtifactServer) canAccessRun(ctx context.Context, runId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+func (s *RunArtifactServer) canAccessRun(ctx context.Context, runID string, resourceAttributes *authorizationv1.ResourceAttributes) error {
 	// This is a simplified authorization check. In a real implementation,
 	// you would need to integrate with the proper authorization system.
 	// For now, we'll just return nil to allow access.
@@ -147,7 +147,7 @@ func isNotFoundError(err error) bool {
 	}
 	errMsg := err.Error()
 	return strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "Not found") ||
-		   strings.Contains(errMsg, "NotFound") || strings.Contains(errMsg, "ResourceNotFoundError")
+		strings.Contains(errMsg, "NotFound") || strings.Contains(errMsg, "ResourceNotFoundError")
 }
 
 func NewRunArtifactServer(resourceManager *resource.ResourceManager) *RunArtifactServer {

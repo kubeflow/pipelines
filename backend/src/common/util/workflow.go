@@ -580,8 +580,8 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 	}
 
 	artifactRequest := &ArtifactRequest{
-		RunId:        runID,
-		NodeId:       nodeStatus.ID,
+		RunID:        runID,
+		NodeID:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
 	}
 	artifactResponse, err := retrieveArtifact(artifactRequest)
