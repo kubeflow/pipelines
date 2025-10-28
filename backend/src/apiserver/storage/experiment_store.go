@@ -334,6 +334,21 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	// 2. All the runs in the experiment getting archived no matter what previous storage state they are in
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
+
+	// Reusable subquery template for resource_references lookups.
+	// We use ? placeholders instead of calling ToSql() on a SelectBuilder to avoid
+	// PostgreSQL $N placeholder conflicts in UPDATE statements. When UPDATE has a SET clause
+	// consuming $1, an embedded subquery with $1,$2,$3 from ToSql() would cause conflicts.
+	// Keeping ? placeholders inline allows Squirrel to renumber all placeholders correctly.
+	resourceReferenceSubquery := fmt.Sprintf(
+		"SELECT %s FROM %s WHERE %s = ? AND %s = ? AND %s = ?",
+		q("ResourceUUID"),
+		q("resource_references"),
+		q("ReferenceType"),
+		q("ReferenceUUID"),
+		q("ResourceType"),
+	)
+
 	sql, args, err := qb.
 		Update(q("experiments")).
 		SetMap(sq.Eq{
@@ -342,33 +357,22 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 		Where(sq.Eq{q("UUID"): expId}).
 		ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to archive experiment %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to create query to archive experiment")
 	}
 
-	// UPDATE run_details SET StorageState = 'ARCHIVED' WHERE UUID IN (subquery)
-	// Use sq.Expr() to properly handle placeholder numbering when embedding the subquery.
-	// This avoids placeholder collision where $1 in the outer query conflicts with $1 in the subquery.
+	// Archive runs via resource_references
 	updateRunsSQL, updateRunsArgs, err := qb.
 		Update(q("run_details")).
-		Set(q("StorageState"), model.StorageStateArchived.ToString()).
+		SetMap(sq.Eq{q("StorageState"): model.StorageStateArchived.ToString()}).
 		Where(sq.Expr(
-			fmt.Sprintf("%s IN (SELECT %s FROM %s WHERE %s = ? AND %s = ? AND %s = ?)",
-				q("UUID"),
-				q("ResourceUUID"),
-				q("resource_references"),
-				q("ReferenceType"),
-				q("ReferenceUUID"),
-				q("ResourceType"),
-			),
-			model.ExperimentResourceType, // ReferenceType = 'Experiment'
-			expId,                        // ReferenceUUID = <experiment-id>
-			model.RunResourceType,        // ResourceType = 'Run'
+			fmt.Sprintf("%s IN (%s)", q("UUID"), resourceReferenceSubquery),
+			model.ExperimentResourceType, // ReferenceType
+			expId,                        // ReferenceUUID
+			model.RunResourceType,        // ResourceType
 		)).
 		ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to archive runs with experiment reference being %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to create query to archive runs")
 	}
 
 	updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs, err := qb.
@@ -380,76 +384,63 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 		Where(sq.NotEq{q("StorageState"): model.StorageStateArchived.ToString()}).
 		ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to archive the runs in an experiment %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to create query to archive runs by ExperimentUUID")
 	}
 
+	// Disable jobs via resource_references
 	now := s.time.Now().Unix()
 	// TODO(gkcalat): deprecate resource_references table once we migrate to v2beta1 and switch to filtering on Job's `experiment_id' instead.
-	// UPDATE jobs SET Enabled=false, UpdatedAtInSec=now WHERE UUID IN (subquery)
-	// Use sq.Expr() to properly handle placeholder numbering when embedding the subquery.
-	// This avoids placeholder collision where $1,$2 in the outer query conflict with $1,$2,$3 in the subquery.
 	updateJobsSQL, updateJobsArgs, err := qb.
 		Update(q("jobs")).
-		Set(q("Enabled"), false).
-		Set(q("UpdatedAtInSec"), now).
+		SetMap(sq.Eq{
+			q("Enabled"):        false,
+			q("UpdatedAtInSec"): now,
+		}).
 		Where(sq.Expr(
-			fmt.Sprintf("%s IN (SELECT %s FROM %s WHERE %s = ? AND %s = ? AND %s = ?)",
-				q("UUID"),
-				q("ResourceUUID"),
-				q("resource_references"),
-				q("ReferenceType"),
-				q("ReferenceUUID"),
-				q("ResourceType"),
-			),
-			model.ExperimentResourceType, // ReferenceType = 'Experiment'
-			expId,                        // ReferenceUUID = <experiment-id>
-			model.JobResourceType,        // ResourceType = 'Job'
+			fmt.Sprintf("%s IN (%s)", q("UUID"), resourceReferenceSubquery),
+			model.ExperimentResourceType, // ReferenceType
+			expId,                        // ReferenceUUID
+			model.JobResourceType,        // ResourceType
 		)).
 		ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to disable jobs in experiment %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to create query to disable jobs")
 	}
 
 	// In a single transaction, we update experiments, run_details and jobs tables.
 	tx, err := s.db.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to create a new transaction to archive an experiment")
+		return util.NewInternalServerError(err, "Failed to create transaction to archive experiment")
 	}
 
 	_, err = tx.Exec(sql, args...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to archive experiment %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to archive experiment")
 	}
 
 	_, err = tx.Exec(updateRunsSQL, updateRunsArgs...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to archive runs with experiment reference being %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to archive runs via resource_references")
 	}
 
 	_, err = tx.Exec(updateRunsWithExperimentUUIDSql, updateRunsWithExperimentUUIDArgs...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to archive runs with ExperimentUUID being %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to archive runs via ExperimentUUID")
 	}
 
 	_, err = tx.Exec(updateJobsSQL, updateJobsArgs...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
-			"Failed to disable all jobs in an experiment %s. error: '%v'", expId, err.Error())
+		return util.NewInternalServerError(err, "Failed to disable jobs")
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to archive an experiment %s and its runs", expId)
+		return util.NewInternalServerError(err, "Failed to commit transaction")
 	}
 
 	return nil
