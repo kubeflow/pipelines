@@ -260,4 +260,3 @@ func TestStreamArtifactV1_MissingParameters(t *testing.T) {
 		})
 	}
 }
-

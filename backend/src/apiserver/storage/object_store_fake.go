@@ -16,7 +16,7 @@ package storage
 
 import "gocloud.dev/blob/memblob"
 
-// Return the object store with blob storage for testing.
+// NewFakeObjectStore returns the object store with blob storage for testing.
 func NewFakeObjectStore() ObjectStoreInterface {
 	// Use memory-based blob storage for testing
 	bucket := memblob.OpenBucket(nil)

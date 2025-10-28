@@ -1548,20 +1548,20 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 	} else {
 		// Use streaming approach to fetch from object storage
 		// Try reading object store from pipeline_spec_uri
-		template, errUri := r.streamingGetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
-		if errUri != nil {
+		template, errURI := r.streamingGetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
+		if errURI != nil {
 			// Try reading object store from pipeline_version_id
 			template, errUUID := r.streamingGetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineId := r.streamingGetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
-				if errPipelineId != nil {
+				template, errPipelineID := r.streamingGetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				if errPipelineID != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
-							util.Wrap(errUri, "Failed to read a file from pipeline_spec_uri"),
+							util.Wrap(errURI, "Failed to read a file from pipeline_spec_uri"),
 							util.Wrap(errUUID, "Failed to read a file from OS with pipeline_version_id").Error(),
 						),
-						util.Wrap(errPipelineId, "Failed to read a file from OS with pipeline_id").Error(),
+						util.Wrap(errPipelineID, "Failed to read a file from OS with pipeline_id").Error(),
 					)
 				}
 				return template, r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)), nil

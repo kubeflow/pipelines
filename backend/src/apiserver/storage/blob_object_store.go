@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package storage provides blob storage implementation using gocloud.dev/blob for provider-agnostic object storage.
 package storage
 
 import (

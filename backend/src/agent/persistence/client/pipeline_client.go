@@ -187,14 +187,13 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 	return nil
 }
 
-
 // ReadArtifactForMetrics reads artifact content using the new util.ArtifactRequest/Response types.
 // This method is used by the metrics collection system.
 func (p *PipelineClient) ReadArtifactForMetrics(request *util.ArtifactRequest) (*util.ArtifactResponse, error) {
 	// Construct the HTTP streaming endpoint URL
 	// Format: /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:stream
 	url := fmt.Sprintf("%s/apis/v1beta1/runs/%s/nodes/%s/artifacts/%s:stream",
-		p.httpBaseURL, request.RunId, request.NodeId, request.ArtifactName)
+		p.httpBaseURL, request.RunID, request.NodeID, request.ArtifactName)
 
 	// Create HTTP request with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
