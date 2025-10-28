@@ -1646,7 +1646,7 @@ func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
 }
 
 // resolveArtifactPath resolves the object storage path for an artifact.
-// This function contains the common logic shared between ReadArtifact and StreamArtifact.
+// This function contains the common logic shared by StreamArtifact and other artifact operations.
 func (r *ResourceManager) resolveArtifactPath(runID string, nodeID string, artifactName string) (string, error) {
 	run, err := r.runStore.GetRun(runID)
 	if err != nil {
@@ -1669,15 +1669,6 @@ func (r *ResourceManager) resolveArtifactPath(runID string, nodeID string, artif
 	return artifactPath, nil
 }
 
-// DEPRECATED: ReadArtifact buffers entire artifacts in memory and is vulnerable to memory exhaustion attacks.
-// Use StreamArtifact instead for safe streaming access.
-func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName string) ([]byte, error) {
-	artifactPath, err := r.resolveArtifactPath(runID, nodeID, artifactName)
-	if err != nil {
-		return nil, err
-	}
-	return r.objectStore.GetFile(context.TODO(), artifactPath)
-}
 
 // ResolveArtifactPath is a public wrapper for resolveArtifactPath.
 // This allows other components to validate artifact paths without accessing the file.
