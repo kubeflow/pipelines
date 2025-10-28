@@ -18,6 +18,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +40,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -284,9 +286,7 @@ func (c *ClientManager) init(options *Options) error {
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
-	glog.Info("Initializing Object store client...")
-	c.objectStore = initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout))
-	glog.Info("Object store client initialized successfully")
+
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	clientParams := util.ClientParameters{
@@ -299,6 +299,22 @@ func (c *ClientManager) init(options *Options) error {
 	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+
+	// Create full Kubernetes client for blob storage
+	restConfig, err := util.GetKubernetesConfig()
+	if err != nil {
+		return err
+	}
+	restConfig.QPS = float32(clientParams.QPS)
+	restConfig.Burst = clientParams.Burst
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return util.Wrap(err, "Failed to create Kubernetes client for blob storage")
+	}
+
+	glog.Info("Initializing Object store client...")
+	c.objectStore = initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout), k8sClient)
+	glog.Info("Object store client initialized successfully")
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
@@ -935,7 +951,7 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 	})
 }
 
-func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
+func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration, k8sClient kubernetes.Interface) storage.ObjectStoreInterface {
 	// Create blob storage client using v2 objectstore for consistency
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
@@ -944,7 +960,7 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	config := buildBlobStorageConfig()
 
 	// Open bucket using gocloud.dev/blob
-	bucket, err := openBucketWithRetry(ctx, config, initConnectionTimeout)
+	bucket, err := openBucketWithRetry(ctx, config, initConnectionTimeout, k8sClient)
 	if err != nil {
 		glog.Fatalf("Failed to open blob storage bucket: %v", err)
 	}
@@ -963,6 +979,17 @@ func buildBlobStorageConfig() *objectstore.Config {
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
 
+	// Set AWS environment variables that gocloud.dev/blob expects
+	if accessKey != "" {
+		os.Setenv("AWS_ACCESS_KEY_ID", accessKey)
+	}
+	if secretKey != "" {
+		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
+	}
+	if region != "" {
+		os.Setenv("AWS_REGION", region)
+	}
+
 	// Build configuration for s3 compatible storage (including MinIO)
 	var scheme string
 	var queryString string
@@ -976,7 +1003,14 @@ func buildBlobStorageConfig() *objectstore.Config {
 		}
 
 		// Build query string for MinIO/S3 compatible storage
-		queryString = fmt.Sprintf("endpoint=%s&disableSSL=%t&s3ForcePathStyle=true", endpoint, !secure)
+		// Use correct gocloud.dev/blob S3 driver parameter names
+		// For gocloud.dev/blob, endpoint should include the protocol
+		protocol := "https://"
+		if !secure {
+			protocol = "http://"
+		}
+		endpointWithProtocol := protocol + endpoint
+		queryString = fmt.Sprintf("endpoint=%s&disable_https=%t&use_path_style=true", endpointWithProtocol, !secure)
 		if region != "" {
 			queryString = fmt.Sprintf("%s&region=%s", queryString, region)
 		}
@@ -988,35 +1022,29 @@ func buildBlobStorageConfig() *objectstore.Config {
 		}
 	}
 
-	// Create session info with parameters in the Params map
-	sessionInfo := &objectstore.SessionInfo{
-		Provider: "s3", // Use s3 provider for compatibility
-		Params: map[string]string{
-			"AccessKey":      accessKey,
-			"SecretKey":      secretKey,
-			"Region":         region,
-			"Endpoint":       host,
-			"DisableSSL":     fmt.Sprintf("%t", !secure),
-			"ForcePathStyle": "true",
-		},
-	}
-
 	return &objectstore.Config{
 		Scheme:      scheme,
 		BucketName:  bucketName,
 		QueryString: queryString,
-		SessionInfo: sessionInfo,
+		SessionInfo: nil, // Use environment variables directly
 	}
 }
 
 // openBucketWithRetry attempts to open the blob bucket with retry logic
-func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeout time.Duration) (*blob.Bucket, error) {
+func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeout time.Duration, k8sClient kubernetes.Interface) (*blob.Bucket, error) {
 	var bucket *blob.Bucket
 	var err error
 
 	// Use exponential backoff to retry bucket initialization
 	operation := func() error {
-		bucket, err = objectstore.OpenBucket(ctx, nil, "", config)
+		// Bypass objectstore.OpenBucket completely and use blob.OpenBucket directly
+		// This ensures we use environment variables without any SessionInfo interference
+		bucketURL := config.Scheme + config.BucketName
+		if config.QueryString != "" {
+			bucketURL += "?" + config.QueryString
+		}
+		glog.Infof("Opening bucket with URL: %s", bucketURL)
+		bucket, err = blob.OpenBucket(ctx, bucketURL)
 		if err != nil {
 			glog.Warningf("Failed to open blob bucket, retrying: %v", err)
 			return err
