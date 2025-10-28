@@ -3308,7 +3308,6 @@ func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	assert.Contains(t, err.(*util.UserError).String(), "database is closed")
 }
 
-
 const (
 	v2compatPipeline = `
 apiVersion: argoproj.io/v1alpha1
