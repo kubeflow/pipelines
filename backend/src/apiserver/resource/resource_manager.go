@@ -1743,15 +1743,19 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline id")
 	}
 
-	// Only use pipeline specs that are already provided in the request
+	// Get pipeline spec from URL if needed
 	if len(pv.PipelineSpec) == 0 {
-		return nil, util.NewInvalidInputError(
-			"Pipeline specification must be provided directly in the request. " +
-			"Fetching pipeline specs from external URLs is not supported for security reasons. " +
-			"Please include the pipeline specification content in your request.")
+		if len(pv.PipelineSpecURI) == 0 {
+			return nil, util.NewInvalidInputError("Pipeline version must have a pipeline spec or a valid source code's URL. PipelineSpec: %s. PipelineSpecURI: %s. CodeSourceUrl: %s. At least one of them must have a valid pipeline spec", pv.PipelineSpec, pv.PipelineSpecURI, pv.CodeSourceUrl)
+		}
+
+		template, err := r.objectStore.GetFile(context.TODO(), string(pv.PipelineSpecURI))
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to read pipeline spec from object store")
+		}
+		pv.PipelineSpec = model.LargeText(template)
 	}
 
-	// Use the provided pipeline spec
 	pipelineSpecBytes := []byte(pv.PipelineSpec)
 
 	// Create a template

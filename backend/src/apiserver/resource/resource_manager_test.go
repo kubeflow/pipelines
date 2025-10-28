@@ -1048,15 +1048,16 @@ func TestGetPipelineTemplate_FromPipelineVersionId(t *testing.T) {
 		UUID:            "1000",
 		PipelineId:      p.UUID,
 		Name:            "new_version",
-		PipelineSpecURI: model.LargeText(p.UUID),
+		PipelineSpecURI: model.LargeText(manager.objectStore.GetPipelineKey(p.UUID)),
 	}
 
 	pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
 	assert.True(t, ok)
 
-	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey("1000"))
-	pv2, _ := manager.CreatePipelineVersion(pv)
+	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey(p.UUID))
+	pv2, err := manager.CreatePipelineVersion(pv)
+	require.Nil(t, err, "CreatePipelineVersion failed: %v", err)
 	assert.NotEqual(t, p.UUID, pv2.UUID)
 
 	tmpl, err := manager.GetPipelineLatestTemplate(p.UUID)
@@ -1075,7 +1076,7 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 	pv := &model.PipelineVersion{
 		PipelineId:      p.UUID,
 		Name:            "new_version",
-		PipelineSpecURI: model.LargeText(p.UUID),
+		PipelineSpecURI: model.LargeText(manager.objectStore.GetPipelineKey(p.UUID)),
 	}
 
 	manager.objectStore.AddFile(context.TODO(), []byte(testWorkflow.ToStringForStore()), manager.objectStore.GetPipelineKey(p.UUID))
@@ -1083,7 +1084,8 @@ func TestGetPipelineTemplate_FromPipelineId(t *testing.T) {
 	pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
 	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
-	pv2, _ := manager.CreatePipelineVersion(pv)
+	pv2, err := manager.CreatePipelineVersion(pv)
+	require.Nil(t, err, "CreatePipelineVersion failed: %v", err)
 	assert.NotEqual(t, p.UUID, pv2.UUID)
 
 	tmpl, err := manager.GetPipelineLatestTemplate(p.UUID)
