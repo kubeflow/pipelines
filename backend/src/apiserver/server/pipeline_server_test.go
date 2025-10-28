@@ -33,6 +33,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -134,14 +135,14 @@ func TestCreatePipelineV1_LargeFile(t *testing.T) {
 		},
 	})
 
-	assert.Nil(t, err)
-	assert.NotNil(t, pipeline)
+	require.Nil(t, err)
+	require.NotNil(t, pipeline)
 	assert.Equal(t, "xgboost-url", pipeline.Name)
 	newPipeline, err := resourceManager.GetPipeline(pipeline.Id)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	newPipelineVersion, err := resourceManager.GetLatestPipelineVersion(pipeline.Id)
-	assert.Nil(t, err)
-	assert.NotNil(t, newPipeline)
+	require.Nil(t, err)
+	require.NotNil(t, newPipeline)
 	assert.Equal(t, "pipeline description", string(newPipeline.Description))
 	assert.Equal(t, newPipeline.UUID, newPipelineVersion.PipelineId)
 }
