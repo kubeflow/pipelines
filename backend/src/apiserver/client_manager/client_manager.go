@@ -990,6 +990,11 @@ func buildBlobStorageConfig() *objectstore.Config {
 		os.Setenv("AWS_REGION", region)
 	}
 
+	// For MinIO/S3 compatible storage, ensure we have default region if not specified
+	if host != "" && region == "" {
+		os.Setenv("AWS_REGION", "us-east-1")
+	}
+
 	// Build configuration for s3 compatible storage (including MinIO)
 	var scheme string
 	var queryString string
@@ -1022,11 +1027,22 @@ func buildBlobStorageConfig() *objectstore.Config {
 		}
 	}
 
+	// Create SessionInfo for v2 compatibility when credentials are available
+	var sessionInfo *objectstore.SessionInfo
+	if accessKey != "" || secretKey != "" {
+		sessionInfo = &objectstore.SessionInfo{
+			Provider: "minio",
+			Params: map[string]string{
+				"fromEnv": "true",
+			},
+		}
+	}
+
 	return &objectstore.Config{
 		Scheme:      scheme,
 		BucketName:  bucketName,
 		QueryString: queryString,
-		SessionInfo: nil, // Use environment variables directly
+		SessionInfo: sessionInfo,
 	}
 }
 
@@ -1037,8 +1053,18 @@ func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeou
 
 	// Use exponential backoff to retry bucket initialization
 	operation := func() error {
-		// Bypass objectstore.OpenBucket completely and use blob.OpenBucket directly
-		// This ensures we use environment variables without any SessionInfo interference
+		// Try objectstore.OpenBucket first for compatibility with v2 components
+		if config.SessionInfo != nil {
+			glog.Infof("Opening bucket using objectstore.OpenBucket with SessionInfo")
+			bucket, err = objectstore.OpenBucket(ctx, k8sClient, "", config)
+			if err != nil {
+				glog.Warningf("Failed to open bucket with SessionInfo, trying direct approach: %v", err)
+			} else {
+				return nil
+			}
+		}
+
+		// Fallback to direct blob.OpenBucket approach using environment variables
 		bucketURL := config.Scheme + config.BucketName
 		if config.QueryString != "" {
 			bucketURL += "?" + config.QueryString
