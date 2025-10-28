@@ -95,7 +95,6 @@ def import_stage(
         reimport=False,
         metadata={
             'key': 'value',
-            'store_session_info': '{"Provider":"minio","Params":{"endpoint":"minio-service.kubeflow:9000","region":"us-east-1","disableSSL":"true","fromEnv":"false","secretName":"mlpipeline-minio-artifact","accessKeyKey":"accesskey","secretKeyKey":"secretkey","forcePathStyle":"true"}}',
         },
         download_to_workspace=True,
     )
@@ -107,7 +106,6 @@ def import_stage(
         download_to_workspace=True,
         metadata={
             'source': 'directory',
-            'store_session_info': '{"Provider":"minio","Params":{"endpoint":"minio-service.kubeflow:9000","region":"us-east-1","disableSSL":"true","fromEnv":"false","secretName":"mlpipeline-minio-artifact","accessKeyKey":"accesskey","secretKeyKey":"secretkey","forcePathStyle":"true"}}',
         },
     )
 

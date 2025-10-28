@@ -239,7 +239,6 @@ deploymentSpec:
         downloadToWorkspace: true
         metadata:
           key: value
-          store_session_info: '{"Provider":"minio","Params":{"endpoint":"minio-service.kubeflow:9000","region":"us-east-1","disableSSL":"true","fromEnv":"false","secretName":"mlpipeline-minio-artifact","accessKeyKey":"accesskey","secretKeyKey":"secretkey","forcePathStyle":"true"}}'
         typeSchema:
           schemaTitle: system.Dataset
           schemaVersion: 0.0.1
@@ -250,7 +249,6 @@ deploymentSpec:
         downloadToWorkspace: true
         metadata:
           source: directory
-          store_session_info: '{"Provider":"minio","Params":{"endpoint":"minio-service.kubeflow:9000","region":"us-east-1","disableSSL":"true","fromEnv":"false","secretName":"mlpipeline-minio-artifact","accessKeyKey":"accesskey","secretKeyKey":"secretkey","forcePathStyle":"true"}}'
         reimport: true
         typeSchema:
           schemaTitle: system.Dataset

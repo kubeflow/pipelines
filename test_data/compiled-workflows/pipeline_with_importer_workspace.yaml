@@ -23,11 +23,11 @@ spec:
     - name: components-comp-importer
       value: '{"executorLabel":"exec-importer","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer
-      value: '{"artifactUri":{"runtimeParameter":"uri"},"downloadToWorkspace":true,"metadata":{"key":"value","store_session_info":"{\"Provider\":\"minio\",\"Params\":{\"endpoint\":\"minio-service.kubeflow:9000\",\"region\":\"us-east-1\",\"disableSSL\":\"true\",\"fromEnv\":\"false\",\"secretName\":\"mlpipeline-minio-artifact\",\"accessKeyKey\":\"accesskey\",\"secretKeyKey\":\"secretkey\",\"forcePathStyle\":\"true\"}}"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
+      value: '{"artifactUri":{"runtimeParameter":"uri"},"downloadToWorkspace":true,"metadata":{"key":"value"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
     - name: components-comp-importer-2
       value: '{"executorLabel":"exec-importer-2","inputDefinitions":{"parameters":{"uri":{"parameterType":"STRING"}}},"outputDefinitions":{"artifacts":{"artifact":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}}}'
     - name: implementations-comp-importer-2
-      value: '{"artifactUri":{"runtimeParameter":"uri"},"downloadToWorkspace":true,"metadata":{"source":"directory","store_session_info":"{\"Provider\":\"minio\",\"Params\":{\"endpoint\":\"minio-service.kubeflow:9000\",\"region\":\"us-east-1\",\"disableSSL\":\"true\",\"fromEnv\":\"false\",\"secretName\":\"mlpipeline-minio-artifact\",\"accessKeyKey\":\"accesskey\",\"secretKeyKey\":\"secretkey\",\"forcePathStyle\":\"true\"}}"},"reimport":true,"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
+      value: '{"artifactUri":{"runtimeParameter":"uri"},"downloadToWorkspace":true,"metadata":{"source":"directory"},"reimport":true,"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
     - name: components-fdb727929b2be77348f126a5dee529ea510c18494fff066636b7b47c809c2bd4
       value: '{"executorLabel":"exec-read-dir","inputDefinitions":{"artifacts":{"data":{"artifactType":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
     - name: implementations-fdb727929b2be77348f126a5dee529ea510c18494fff066636b7b47c809c2bd4
