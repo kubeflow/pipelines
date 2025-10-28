@@ -15,8 +15,6 @@
         "project":  "test-project"
       },
       "pipelineConfig":  {
-        "semaphore_key":  "test-key",
-        "mutex_name":  "test-mutex",
         "resource_ttl":  24
       }
     }
