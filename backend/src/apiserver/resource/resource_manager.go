@@ -1669,7 +1669,6 @@ func (r *ResourceManager) resolveArtifactPath(runID string, nodeID string, artif
 	return artifactPath, nil
 }
 
-
 // ResolveArtifactPath is a public wrapper for resolveArtifactPath.
 // This allows other components to validate artifact paths without accessing the file.
 func (r *ResourceManager) ResolveArtifactPath(runID string, nodeID string, artifactName string) (string, error) {
@@ -1703,7 +1702,6 @@ func (r *ResourceManager) StreamArtifact(ctx context.Context, runID string, node
 func (r *ResourceManager) ObjectStore() storage.ObjectStoreInterface {
 	return r.objectStore
 }
-
 
 // Fetches the default experiment id.
 func (r *ResourceManager) GetDefaultExperimentId() (string, error) {
