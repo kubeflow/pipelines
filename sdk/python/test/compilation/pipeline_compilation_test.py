@@ -213,8 +213,6 @@ from test_data.sdk_compiled_pipelines.valid.pipeline_with_retry import \
     my_pipeline as retry_pipeline
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_secret_as_volume import \
     pipeline_secret_volume
-from test_data.sdk_compiled_pipelines.valid.pipeline_with_semphore import \
-    pipeline_with_semaphore
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_string_machine_fields_pipeline_input import \
     pipeline as pipeline_with_string_machine_fields_pipeline_input
 from test_data.sdk_compiled_pipelines.valid.pipeline_with_string_machine_fields_task_output import \
@@ -1010,13 +1008,6 @@ class TestPipelineCompilation:
                 pipline_func_args=None,
                 compiled_file_name='pythonic_artifact_with_single_return.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/pythonic_artifact_with_single_return.yaml'
-            ),
-            TestData(
-                pipeline_name='pipeline-with-semaphore',
-                pipeline_func=pipeline_with_semaphore,
-                pipline_func_args=None,
-                compiled_file_name='pipeline_with_semaphore.yaml',
-                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/pipeline_with_semaphore.yaml'
             ),
             TestData(
                 pipeline_name='pipeline-with-condition-dynamic-task-output',

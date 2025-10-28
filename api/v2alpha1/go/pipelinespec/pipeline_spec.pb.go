@@ -2755,10 +2755,6 @@ func (x *KubernetesWorkspaceConfig) GetPvcSpecPatch() *structpb.Struct {
 // Spec for pipeline-level config options. See PipelineConfig DSL class.
 type PipelineConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Name of the semaphore key to control pipeline concurrency
-	SemaphoreKey string `protobuf:"bytes,1,opt,name=semaphore_key,json=semaphoreKey,proto3" json:"semaphore_key,omitempty"`
-	// Name of the mutex to ensure mutual exclusion
-	MutexName string `protobuf:"bytes,2,opt,name=mutex_name,json=mutexName,proto3" json:"mutex_name,omitempty"`
 	// Time to live configuration after the pipeline run is completed for
 	// ephemeral resources created by the pipeline run.
 	ResourceTtl int32 `protobuf:"varint,3,opt,name=resource_ttl,json=resourceTtl,proto3" json:"resource_ttl,omitempty"`
@@ -2797,20 +2793,6 @@ func (x *PipelineConfig) ProtoReflect() protoreflect.Message {
 // Deprecated: Use PipelineConfig.ProtoReflect.Descriptor instead.
 func (*PipelineConfig) Descriptor() ([]byte, []int) {
 	return file_pipeline_spec_proto_rawDescGZIP(), []int{34}
-}
-
-func (x *PipelineConfig) GetSemaphoreKey() string {
-	if x != nil {
-		return x.SemaphoreKey
-	}
-	return ""
-}
-
-func (x *PipelineConfig) GetMutexName() string {
-	if x != nil {
-		return x.MutexName
-	}
-	return ""
 }
 
 func (x *PipelineConfig) GetResourceTtl() int32 {
@@ -6117,11 +6099,8 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\v_kubernetes\"r\n" +
 	"\x19KubernetesWorkspaceConfig\x12B\n" +
 	"\x0epvc_spec_patch\x18\x01 \x01(\v2\x17.google.protobuf.StructH\x00R\fpvcSpecPatch\x88\x01\x01B\x11\n" +
-	"\x0f_pvc_spec_patch\"\xc7\x01\n" +
-	"\x0ePipelineConfig\x12#\n" +
-	"\rsemaphore_key\x18\x01 \x01(\tR\fsemaphoreKey\x12\x1d\n" +
-	"\n" +
-	"mutex_name\x18\x02 \x01(\tR\tmutexName\x12!\n" +
+	"\x0f_pvc_spec_patch\"\x83\x01\n" +
+	"\x0ePipelineConfig\x12!\n" +
 	"\fresource_ttl\x18\x03 \x01(\x05R\vresourceTtl\x12@\n" +
 	"\tworkspace\x18\x04 \x01(\v2\x1d.ml_pipelines.WorkspaceConfigH\x00R\tworkspace\x88\x01\x01B\f\n" +
 	"\n" +
