@@ -18,6 +18,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -38,9 +39,17 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	// Blob storage imports
+	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
+	"gocloud.dev/blob"
+	_ "gocloud.dev/blob/gcsblob" // Import GCS driver
+	_ "gocloud.dev/blob/s3blob"  // Import S3 driver
 )
 
 const (
@@ -278,9 +287,7 @@ func (c *ClientManager) init(options *Options) error {
 	c.resourceReferenceStore = storage.NewResourceReferenceStore(db, pipelineStoreForRef)
 	c.dBStatusStore = storage.NewDBStatusStore(db)
 	c.defaultExperimentStore = storage.NewDefaultExperimentStore(db)
-	glog.Info("Initializing Object store client...")
-	c.objectStore = initMinioClient(options.Context, common.GetDurationConfig(initConnectionTimeout))
-	glog.Info("Object store client initialized successfully")
+
 	// Use default value of client QPS (5) & burst (10) defined in
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	clientParams := util.ClientParameters{
@@ -293,6 +300,22 @@ func (c *ClientManager) init(options *Options) error {
 	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+
+	// Create full Kubernetes client for blob storage
+	restConfig, err := util.GetKubernetesConfig()
+	if err != nil {
+		return err
+	}
+	restConfig.QPS = float32(clientParams.QPS)
+	restConfig.Burst = clientParams.Burst
+	k8sClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return util.Wrap(err, "Failed to create Kubernetes client for blob storage")
+	}
+
+	glog.Info("Initializing Object store client...")
+	c.objectStore = initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout), k8sClient)
+	glog.Info("Object store client initialized successfully")
 
 	runStore := storage.NewRunStore(db, c.time)
 	c.runStore = runStore
@@ -929,23 +952,187 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 	})
 }
 
-func initMinioClient(ctx context.Context, initConnectionTimeout time.Duration) storage.ObjectStoreInterface {
-	// Create minio client.
-	minioServiceHost := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
-	minioServicePort := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
-	minioServiceRegion := common.GetStringConfigWithDefault("ObjectStoreConfig.Region", "")
-	minioServiceSecure := common.GetBoolConfigWithDefault("ObjectStoreConfig.Secure", false)
-	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
-	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
+func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration, k8sClient kubernetes.Interface) storage.ObjectStoreInterface {
+	// Create blob storage client using v2 objectstore for consistency
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
-	disableMultipart := common.GetBoolConfigWithDefault("ObjectStoreConfig.Multipart.Disable", true)
 
-	minioClient := client.CreateMinioClientOrFatal(minioServiceHost, minioServicePort, accessKey,
-		secretKey, minioServiceSecure, minioServiceRegion, initConnectionTimeout)
-	createMinioBucket(ctx, minioClient, bucketName, minioServiceRegion)
+	// Build blob storage configuration from environment and Kubernetes secrets
+	config := buildBlobStorageConfig(ctx, k8sClient)
 
-	return storage.NewMinioObjectStore(&storage.MinioClient{Client: minioClient}, bucketName, pipelinePath, disableMultipart)
+	// Open bucket using gocloud.dev/blob
+	bucket, err := openBucketWithRetry(ctx, config, initConnectionTimeout, k8sClient)
+	if err != nil {
+		glog.Fatalf("Failed to open blob storage bucket: %v", err)
+	}
+
+	glog.Infof("Successfully initialized blob storage for bucket: %s", bucketName)
+	return storage.NewBlobObjectStore(bucket, pipelinePath)
+}
+
+// buildBlobStorageConfig creates a blob storage configuration from environment variables and Kubernetes secrets
+func buildBlobStorageConfig(ctx context.Context, k8sClient kubernetes.Interface) *objectstore.Config {
+	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
+	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
+	port := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
+	secure := common.GetBoolConfigWithDefault("ObjectStoreConfig.Secure", false)
+	region := common.GetStringConfigWithDefault("ObjectStoreConfig.Region", "")
+	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
+	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
+
+	// Constants for MinIO secret (consistent with v2 config)
+	const minioArtifactSecretName = "mlpipeline-minio-artifact"
+	const minioArtifactAccessKeyKey = "accesskey"
+	const minioArtifactSecretKeyKey = "secretkey"
+
+	// Try to read from Kubernetes secret first (multi-user mode)
+	if k8sClient != nil && accessKey == "" && secretKey == "" {
+		// Use the current pod's namespace for secret lookup
+		secretNamespace := common.GetPodNamespace()
+		if secretNamespace == "" {
+			// Fallback to kubeflow namespace if POD_NAMESPACE is not set
+			secretNamespace = "kubeflow"
+		}
+
+		glog.Infof("Attempting to read MinIO credentials from Kubernetes secret %s in namespace %s", minioArtifactSecretName, secretNamespace)
+		secret, err := k8sClient.CoreV1().Secrets(secretNamespace).Get(ctx, minioArtifactSecretName, metav1.GetOptions{})
+		if err == nil {
+			if accessKeyBytes, ok := secret.Data[minioArtifactAccessKeyKey]; ok {
+				accessKey = string(accessKeyBytes)
+				glog.Infof("Successfully read accesskey from Kubernetes secret")
+			}
+			if secretKeyBytes, ok := secret.Data[minioArtifactSecretKeyKey]; ok {
+				secretKey = string(secretKeyBytes)
+				glog.Infof("Successfully read secretkey from Kubernetes secret")
+			}
+		} else {
+			glog.Warningf("Failed to read secret %s from namespace %s: %v", minioArtifactSecretName, secretNamespace, err)
+		}
+	}
+
+	// Set AWS environment variables that gocloud.dev/blob expects
+	if accessKey != "" {
+		os.Setenv("AWS_ACCESS_KEY_ID", accessKey)
+	}
+	if secretKey != "" {
+		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
+	}
+	if region != "" {
+		os.Setenv("AWS_REGION", region)
+	}
+
+	// For MinIO/S3 compatible storage, ensure we have default region if not specified
+	if host != "" && region == "" {
+		os.Setenv("AWS_REGION", "us-east-1")
+	}
+
+	// Disable EC2 metadata service queries to prevent MinIO initialization timeouts
+	// This prevents AWS SDK from trying to contact 169.254.169.254 which can hang for 5-10 seconds
+	// Helber - I'm not sure this is needed
+	os.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+
+	// Build configuration for s3 compatible storage (including MinIO)
+	var scheme string
+	var queryString string
+
+	if host != "" {
+		// Use MinIO/S3 compatible storage
+		scheme = "s3://"
+		endpoint := host
+		if port != "" {
+			endpoint = fmt.Sprintf("%s:%s", host, port)
+		}
+
+		// Build query string for MinIO/S3 compatible storage
+		// Use correct gocloud.dev/blob S3 driver parameter names
+		// For gocloud.dev/blob, endpoint should include the protocol
+		protocol := "https://"
+		if !secure {
+			protocol = "http://"
+		}
+		endpointWithProtocol := protocol + endpoint
+		queryString = fmt.Sprintf("endpoint=%s&disable_https=%t&use_path_style=true", endpointWithProtocol, !secure)
+		if region != "" {
+			queryString = fmt.Sprintf("%s&region=%s", queryString, region)
+		}
+	} else {
+		// Default to s3:// scheme for AWS S3
+		scheme = "s3://"
+		if region != "" {
+			queryString = fmt.Sprintf("region=%s", region)
+		}
+	}
+
+	// Create SessionInfo for v2 compatibility
+	var sessionInfo *objectstore.SessionInfo
+	if accessKey != "" || secretKey != "" {
+		sessionInfo = &objectstore.SessionInfo{
+			Provider: "minio",
+			Params: map[string]string{
+				"fromEnv": "true",
+			},
+		}
+		// In multi-user mode, also specify the secret information for v2 components
+		if k8sClient != nil {
+			secretNamespace := common.GetPodNamespace()
+			if secretNamespace == "" {
+				secretNamespace = "kubeflow"
+			}
+			sessionInfo.Params["secretName"] = minioArtifactSecretName
+			sessionInfo.Params["namespace"] = secretNamespace
+		}
+	}
+
+	return &objectstore.Config{
+		Scheme:      scheme,
+		BucketName:  bucketName,
+		QueryString: queryString,
+		SessionInfo: sessionInfo,
+	}
+}
+
+// openBucketWithRetry attempts to open the blob bucket with retry logic
+func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeout time.Duration, k8sClient kubernetes.Interface) (*blob.Bucket, error) {
+	var bucket *blob.Bucket
+	var err error
+
+	// Use exponential backoff to retry bucket initialization
+	operation := func() error {
+		// Try objectstore.OpenBucket first for compatibility with v2 components
+		if config.SessionInfo != nil {
+			glog.Infof("Opening bucket using objectstore.OpenBucket with SessionInfo")
+			bucket, err = objectstore.OpenBucket(ctx, k8sClient, "", config)
+			if err != nil {
+				glog.Warningf("Failed to open bucket with SessionInfo, trying direct approach: %v", err)
+			} else {
+				return nil
+			}
+		}
+
+		// Fallback to direct blob.OpenBucket approach using environment variables
+		bucketURL := config.Scheme + config.BucketName
+		if config.QueryString != "" {
+			bucketURL += "?" + config.QueryString
+		}
+		glog.Infof("Opening bucket with URL: %s", bucketURL)
+		bucket, err = blob.OpenBucket(ctx, bucketURL)
+		if err != nil {
+			glog.Warningf("Failed to open blob bucket, retrying: %v", err)
+			return err
+		}
+		return nil
+	}
+
+	// Configure backoff with the specified timeout
+	expBackoff := backoff.NewExponentialBackOff()
+	expBackoff.MaxElapsedTime = timeout
+
+	err = backoff.Retry(operation, expBackoff)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open blob bucket after retries: %w", err)
+	}
+
+	return bucket, nil
 }
 
 func createMinioBucket(ctx context.Context, minioClient *minio.Client, bucketName, region string) {

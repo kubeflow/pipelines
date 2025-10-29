@@ -579,20 +579,20 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 		return "", nil // No metrics artifact, skip the reporting
 	}
 
-	artifactRequest := &api.ReadArtifactRequest{
-		RunId:        runID,
-		NodeId:       nodeStatus.ID,
+	artifactRequest := &ArtifactRequest{
+		RunID:        runID,
+		NodeID:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
 	}
 	artifactResponse, err := retrieveArtifact(artifactRequest)
 	if err != nil {
 		return "", err
 	}
-	if artifactResponse == nil || artifactResponse.GetData() == nil || len(artifactResponse.GetData()) == 0 {
+	if artifactResponse == nil || artifactResponse.Data == nil || len(artifactResponse.Data) == 0 {
 		// If artifact is not found or empty content, skip the reporting.
 		return "", nil
 	}
-	archivedFiles, err := ExtractTgz(string(artifactResponse.GetData()))
+	archivedFiles, err := ExtractTgz(string(artifactResponse.Data))
 	if err != nil {
 		// Invalid tgz file. This should never happen unless there is a bug in the system and
 		// it is a unrecoverable error.
