@@ -958,7 +958,7 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
 
 	// Build blob storage configuration from environment and Kubernetes secrets
-	config := buildBlobStorageConfig(k8sClient)
+	config := buildBlobStorageConfig(ctx, k8sClient)
 
 	// Open bucket using gocloud.dev/blob
 	bucket, err := openBucketWithRetry(ctx, config, initConnectionTimeout, k8sClient)
@@ -971,7 +971,7 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 }
 
 // buildBlobStorageConfig creates a blob storage configuration from environment variables and Kubernetes secrets
-func buildBlobStorageConfig(k8sClient kubernetes.Interface) *objectstore.Config {
+func buildBlobStorageConfig(ctx context.Context, k8sClient kubernetes.Interface) *objectstore.Config {
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
 	port := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
@@ -995,7 +995,7 @@ func buildBlobStorageConfig(k8sClient kubernetes.Interface) *objectstore.Config 
 		}
 
 		glog.Infof("Attempting to read MinIO credentials from Kubernetes secret %s in namespace %s", minioArtifactSecretName, secretNamespace)
-		secret, err := k8sClient.CoreV1().Secrets(secretNamespace).Get(context.TODO(), minioArtifactSecretName, metav1.GetOptions{})
+		secret, err := k8sClient.CoreV1().Secrets(secretNamespace).Get(ctx, minioArtifactSecretName, metav1.GetOptions{})
 		if err == nil {
 			if accessKeyBytes, ok := secret.Data[minioArtifactAccessKeyKey]; ok {
 				accessKey = string(accessKeyBytes)
