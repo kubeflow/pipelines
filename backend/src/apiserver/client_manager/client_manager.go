@@ -39,6 +39,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -956,8 +957,8 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
 
-	// Build blob storage configuration from environment
-	config := buildBlobStorageConfig()
+	// Build blob storage configuration from environment and Kubernetes secrets
+	config := buildBlobStorageConfig(k8sClient)
 
 	// Open bucket using gocloud.dev/blob
 	bucket, err := openBucketWithRetry(ctx, config, initConnectionTimeout, k8sClient)
@@ -969,8 +970,8 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	return storage.NewBlobObjectStore(bucket, pipelinePath)
 }
 
-// buildBlobStorageConfig creates a blob storage configuration from environment variables
-func buildBlobStorageConfig() *objectstore.Config {
+// buildBlobStorageConfig creates a blob storage configuration from environment variables and Kubernetes secrets
+func buildBlobStorageConfig(k8sClient kubernetes.Interface) *objectstore.Config {
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
 	port := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
@@ -978,6 +979,36 @@ func buildBlobStorageConfig() *objectstore.Config {
 	region := common.GetStringConfigWithDefault("ObjectStoreConfig.Region", "")
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
+
+	// Constants for MinIO secret (consistent with v2 config)
+	const minioArtifactSecretName = "mlpipeline-minio-artifact"
+	const minioArtifactAccessKeyKey = "accesskey"
+	const minioArtifactSecretKeyKey = "secretkey"
+
+	// Try to read from Kubernetes secret first (multi-user mode)
+	if k8sClient != nil && accessKey == "" && secretKey == "" {
+		// Use the current pod's namespace for secret lookup
+		secretNamespace := common.GetPodNamespace()
+		if secretNamespace == "" {
+			// Fallback to kubeflow namespace if POD_NAMESPACE is not set
+			secretNamespace = "kubeflow"
+		}
+
+		glog.Infof("Attempting to read MinIO credentials from Kubernetes secret %s in namespace %s", minioArtifactSecretName, secretNamespace)
+		secret, err := k8sClient.CoreV1().Secrets(secretNamespace).Get(context.TODO(), minioArtifactSecretName, metav1.GetOptions{})
+		if err == nil {
+			if accessKeyBytes, ok := secret.Data[minioArtifactAccessKeyKey]; ok {
+				accessKey = string(accessKeyBytes)
+				glog.Infof("Successfully read accesskey from Kubernetes secret")
+			}
+			if secretKeyBytes, ok := secret.Data[minioArtifactSecretKeyKey]; ok {
+				secretKey = string(secretKeyBytes)
+				glog.Infof("Successfully read secretkey from Kubernetes secret")
+			}
+		} else {
+			glog.Warningf("Failed to read secret %s from namespace %s: %v", minioArtifactSecretName, secretNamespace, err)
+		}
+	}
 
 	// Set AWS environment variables that gocloud.dev/blob expects
 	if accessKey != "" {
@@ -1027,7 +1058,7 @@ func buildBlobStorageConfig() *objectstore.Config {
 		}
 	}
 
-	// Create SessionInfo for v2 compatibility when credentials are available
+	// Create SessionInfo for v2 compatibility
 	var sessionInfo *objectstore.SessionInfo
 	if accessKey != "" || secretKey != "" {
 		sessionInfo = &objectstore.SessionInfo{
@@ -1035,6 +1066,15 @@ func buildBlobStorageConfig() *objectstore.Config {
 			Params: map[string]string{
 				"fromEnv": "true",
 			},
+		}
+		// In multi-user mode, also specify the secret information for v2 components
+		if k8sClient != nil {
+			secretNamespace := common.GetPodNamespace()
+			if secretNamespace == "" {
+				secretNamespace = "kubeflow"
+			}
+			sessionInfo.Params["secretName"] = minioArtifactSecretName
+			sessionInfo.Params["namespace"] = secretNamespace
 		}
 	}
 
