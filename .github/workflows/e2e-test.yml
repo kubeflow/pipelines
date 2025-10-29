@@ -158,6 +158,40 @@ jobs:
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
+      - name: Collect Pod logs on test failure
+        id: collect-failure-logs
+        shell: bash
+        if: ${{ steps.test-run.outcome == 'failure' }}
+        run: |
+          echo "=== Collecting enhanced logs after test failure ==="
+          NAMESPACE=${{ steps.configure.outputs.NAMESPACE }}
+          TEST_START_TIME=$(date -u -d '30 minutes ago' '+%Y-%m-%dT%H:%M:%SZ')
+          TEST_CONTEXT="${{ matrix.test_label}}_K8s-${{ matrix.k8s_version }}_cache-${{ matrix.cache_enabled }}"
+
+          # Create enhanced log collection
+          chmod +x ./.github/resources/scripts/collect-enhanced-logs.sh
+          ./.github/resources/scripts/collect-enhanced-logs.sh \
+            --ns $NAMESPACE \
+            --output /tmp/enhanced_failure_logs.txt \
+            --test-context "$TEST_CONTEXT" \
+            --start-time "$TEST_START_TIME"
+
+          # Also collect Ginkgo test output if available
+          if [ -f "${{ env.E2E_TESTS_DIR }}/reports/junit.xml" ]; then
+            echo "=== GINKGO TEST RESULTS ===" >> /tmp/enhanced_failure_logs.txt
+            cat "${{ env.E2E_TESTS_DIR }}/reports/junit.xml" >> /tmp/enhanced_failure_logs.txt 2>/dev/null || true
+          fi
+        continue-on-error: true
+
+      - name: Upload Pod logs on test failure
+        uses: actions/upload-artifact@v4
+        if: ${{ steps.test-run.outcome == 'failure' && steps.collect-failure-logs.outcome == 'success' }}
+        with:
+          name: failure-logs-${{ matrix.test_label}}-K8s-${{ matrix.k8s_version }}-cache-${{ matrix.cache_enabled }}-argo-${{ matrix.argo_version}}-proxy-${{ matrix.proxy }}-storage-${{ matrix.storage }}
+          path: /tmp/enhanced_failure_logs.txt
+          retention-days: 30
+        continue-on-error: true
+
       - name: Notify test reports
         shell: bash
         if: ${{ steps.test-run.outcome == 'success' }}
@@ -263,6 +297,52 @@ jobs:
           python_version: ${{ env.PYTHON_VERSION }}
           user_namespace: ${{ env.USER_NAMESPACE }}
           report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_storage=${{ matrix.storage }}"
+
+      - name: Collect Pod logs on test failure
+        id: collect-failure-logs
+        shell: bash
+        if: ${{ steps.test-run.outcome == 'failure' }}
+        run: |
+          echo "=== Collecting enhanced logs after test failure ==="
+          NAMESPACE=${{ steps.configure.outputs.NAMESPACE }}
+          TEST_START_TIME=$(date -u -d '30 minutes ago' '+%Y-%m-%dT%H:%M:%SZ')
+          TEST_CONTEXT="MultiUser_K8s-${{ matrix.k8s_version }}_cache-${{ matrix.cache_enabled }}_storage-${{ matrix.storage }}"
+
+          # Create enhanced log collection
+          chmod +x ./.github/resources/scripts/collect-enhanced-logs.sh
+          ./.github/resources/scripts/collect-enhanced-logs.sh \
+            --ns $NAMESPACE \
+            --output /tmp/enhanced_failure_logs.txt \
+            --test-context "$TEST_CONTEXT" \
+            --start-time "$TEST_START_TIME"
+
+          # Also collect user namespace logs for multi-user tests
+          USER_NS="${{ env.USER_NAMESPACE }}"
+          if [ "$USER_NS" != "$NAMESPACE" ]; then
+            echo "=== USER NAMESPACE LOGS ===" >> /tmp/enhanced_failure_logs.txt
+            ./.github/resources/scripts/collect-enhanced-logs.sh \
+              --ns "$USER_NS" \
+              --output /tmp/user_ns_logs.txt \
+              --test-context "$TEST_CONTEXT" \
+              --start-time "$TEST_START_TIME"
+            cat /tmp/user_ns_logs.txt >> /tmp/enhanced_failure_logs.txt 2>/dev/null || true
+          fi
+
+          # Also collect Ginkgo test output if available
+          if [ -f "${{ env.E2E_TESTS_DIR }}/reports/junit.xml" ]; then
+            echo "=== GINKGO TEST RESULTS ===" >> /tmp/enhanced_failure_logs.txt
+            cat "${{ env.E2E_TESTS_DIR }}/reports/junit.xml" >> /tmp/enhanced_failure_logs.txt 2>/dev/null || true
+          fi
+        continue-on-error: true
+
+      - name: Upload Pod logs on test failure
+        uses: actions/upload-artifact@v4
+        if: ${{ steps.test-run.outcome == 'failure' && steps.collect-failure-logs.outcome == 'success' }}
+        with:
+          name: failure-logs-multiuser-K8s-${{ matrix.k8s_version }}-cache-${{ matrix.cache_enabled }}-storage-${{ matrix.storage }}
+          path: /tmp/enhanced_failure_logs.txt
+          retention-days: 30
+        continue-on-error: true
 
       - name: Notify test reports
         shell: bash
