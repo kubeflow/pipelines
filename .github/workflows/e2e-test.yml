@@ -10,7 +10,11 @@ env:
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - main
+      - stable
+      - 'rhoai-*'
 
   pull_request:
     paths:

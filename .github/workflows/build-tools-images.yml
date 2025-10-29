@@ -4,7 +4,10 @@ on:
   push:
     branches:
       - master
+      - main
+      - stable
       - 'release-*'
+      - 'rhoai-*'
   pull_request:
     branches:
       - master

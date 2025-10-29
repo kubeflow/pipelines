@@ -7,7 +7,11 @@ env:
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - main
+      - stable
+      - 'rhoai-*'
 
   workflow_dispatch:
     inputs:
