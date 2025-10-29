@@ -1,139 +1,15 @@
 # PIPELINE DEFINITION
 # Name: missing-kubernetes-optional-inputs-pipeline
 # Inputs:
-#    enable_affinity: bool [Default: False]
-#    enable_config_map_env: bool [Default: False]
-#    enable_secret_env: bool [Default: False]
-#    enable_selector: bool [Default: False]
-#    enable_tolerations: bool [Default: False]
 #    optional_affinity: dict
 #    optional_config_map_name: str
+#    optional_image_pull_secret_name: str
 #    optional_secret_name: str
 #    optional_selector: dict
 #    optional_tolerations: list
 components:
-  comp-condition-1:
-    dag:
-      tasks:
-        log-message-2:
-          cachingOptions: {}
-          componentRef:
-            name: comp-log-message-2
-          inputs:
-            parameters:
-              message:
-                runtimeValue:
-                  constant: node affinity applied
-          taskInfo:
-            name: log-message-2
-    inputDefinitions:
-      parameters:
-        pipelinechannel--enable_affinity:
-          parameterType: BOOLEAN
-  comp-condition-2:
-    dag:
-      tasks:
-        log-message-3:
-          cachingOptions: {}
-          componentRef:
-            name: comp-log-message-3
-          inputs:
-            parameters:
-              message:
-                runtimeValue:
-                  constant: node selector applied
-          taskInfo:
-            name: log-message-3
-    inputDefinitions:
-      parameters:
-        pipelinechannel--enable_selector:
-          parameterType: BOOLEAN
-  comp-condition-3:
-    dag:
-      tasks:
-        log-message-4:
-          cachingOptions: {}
-          componentRef:
-            name: comp-log-message-4
-          inputs:
-            parameters:
-              message:
-                runtimeValue:
-                  constant: secret env applied
-          taskInfo:
-            name: log-message-4
-    inputDefinitions:
-      parameters:
-        pipelinechannel--enable_secret_env:
-          parameterType: BOOLEAN
-  comp-condition-4:
-    dag:
-      tasks:
-        log-message-5:
-          cachingOptions: {}
-          componentRef:
-            name: comp-log-message-5
-          inputs:
-            parameters:
-              message:
-                runtimeValue:
-                  constant: configmap env applied
-          taskInfo:
-            name: log-message-5
-    inputDefinitions:
-      parameters:
-        pipelinechannel--enable_config_map_env:
-          parameterType: BOOLEAN
-  comp-condition-5:
-    dag:
-      tasks:
-        log-message-6:
-          cachingOptions: {}
-          componentRef:
-            name: comp-log-message-6
-          inputs:
-            parameters:
-              message:
-                runtimeValue:
-                  constant: tolerations applied
-          taskInfo:
-            name: log-message-6
-    inputDefinitions:
-      parameters:
-        pipelinechannel--enable_tolerations:
-          parameterType: BOOLEAN
   comp-log-message:
     executorLabel: exec-log-message
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-  comp-log-message-2:
-    executorLabel: exec-log-message-2
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-  comp-log-message-3:
-    executorLabel: exec-log-message-3
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-  comp-log-message-4:
-    executorLabel: exec-log-message-4
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-  comp-log-message-5:
-    executorLabel: exec-log-message-5
-    inputDefinitions:
-      parameters:
-        message:
-          parameterType: STRING
-  comp-log-message-6:
-    executorLabel: exec-log-message-6
     inputDefinitions:
       parameters:
         message:
@@ -168,211 +44,11 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef log_message(message: str) -> None:\n    print(message)\n\n"
         image: python:3.9
-    exec-log-message-2:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - log_message
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.4'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef log_message(message: str) -> None:\n    print(message)\n\n"
-        image: python:3.9
-    exec-log-message-3:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - log_message
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.4'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef log_message(message: str) -> None:\n    print(message)\n\n"
-        image: python:3.9
-    exec-log-message-4:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - log_message
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.4'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef log_message(message: str) -> None:\n    print(message)\n\n"
-        image: python:3.9
-    exec-log-message-5:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - log_message
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.4'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef log_message(message: str) -> None:\n    print(message)\n\n"
-        image: python:3.9
-    exec-log-message-6:
-      container:
-        args:
-        - --executor_input
-        - '{{$}}'
-        - --function_to_execute
-        - log_message
-        command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.4'\
-          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
-          $0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef log_message(message: str) -> None:\n    print(message)\n\n"
-        image: python:3.9
 pipelineInfo:
   name: missing-kubernetes-optional-inputs-pipeline
 root:
   dag:
     tasks:
-      condition-1:
-        componentRef:
-          name: comp-condition-1
-        inputs:
-          parameters:
-            pipelinechannel--enable_affinity:
-              componentInputParameter: enable_affinity
-        taskInfo:
-          name: condition-1
-        triggerPolicy:
-          condition: inputs.parameter_values['pipelinechannel--enable_affinity'] ==
-            true
-      condition-2:
-        componentRef:
-          name: comp-condition-2
-        inputs:
-          parameters:
-            pipelinechannel--enable_selector:
-              componentInputParameter: enable_selector
-        taskInfo:
-          name: condition-2
-        triggerPolicy:
-          condition: inputs.parameter_values['pipelinechannel--enable_selector'] ==
-            true
-      condition-3:
-        componentRef:
-          name: comp-condition-3
-        inputs:
-          parameters:
-            pipelinechannel--enable_secret_env:
-              componentInputParameter: enable_secret_env
-        taskInfo:
-          name: condition-3
-        triggerPolicy:
-          condition: inputs.parameter_values['pipelinechannel--enable_secret_env']
-            == true
-      condition-4:
-        componentRef:
-          name: comp-condition-4
-        inputs:
-          parameters:
-            pipelinechannel--enable_config_map_env:
-              componentInputParameter: enable_config_map_env
-        taskInfo:
-          name: condition-4
-        triggerPolicy:
-          condition: inputs.parameter_values['pipelinechannel--enable_config_map_env']
-            == true
-      condition-5:
-        componentRef:
-          name: comp-condition-5
-        inputs:
-          parameters:
-            pipelinechannel--enable_tolerations:
-              componentInputParameter: enable_tolerations
-        taskInfo:
-          name: condition-5
-        triggerPolicy:
-          condition: inputs.parameter_values['pipelinechannel--enable_tolerations']
-            == true
       log-message:
         cachingOptions: {}
         componentRef:
@@ -386,30 +62,13 @@ root:
           name: log-message
   inputDefinitions:
     parameters:
-      enable_affinity:
-        defaultValue: false
-        isOptional: true
-        parameterType: BOOLEAN
-      enable_config_map_env:
-        defaultValue: false
-        isOptional: true
-        parameterType: BOOLEAN
-      enable_secret_env:
-        defaultValue: false
-        isOptional: true
-        parameterType: BOOLEAN
-      enable_selector:
-        defaultValue: false
-        isOptional: true
-        parameterType: BOOLEAN
-      enable_tolerations:
-        defaultValue: false
-        isOptional: true
-        parameterType: BOOLEAN
       optional_affinity:
         isOptional: true
         parameterType: STRUCT
       optional_config_map_name:
+        isOptional: true
+        parameterType: STRING
+      optional_image_pull_secret_name:
         isOptional: true
         parameterType: STRING
       optional_secret_name:
@@ -428,29 +87,38 @@ platforms:
   kubernetes:
     deploymentSpec:
       executors:
-        exec-log-message-2:
-          nodeAffinity:
-          - nodeAffinityJson:
-              componentInputParameter: optional_affinity
-        exec-log-message-3:
-          nodeSelector:
-            nodeSelectorJson:
-              componentInputParameter: optional_selector
-        exec-log-message-4:
-          secretAsEnv:
-          - keyToEnv:
-            - envVar: PASSWORD
-              secretKey: password
-            secretNameParameter:
-              componentInputParameter: optional_secret_name
-        exec-log-message-5:
+        exec-log-message:
           configMapAsEnv:
           - configMapNameParameter:
               componentInputParameter: optional_config_map_name
             keyToEnv:
             - configMapKey: setting
               envVar: SETTING
-        exec-log-message-6:
+          configMapAsVolume:
+          - configMapNameParameter:
+              componentInputParameter: optional_config_map_name
+            mountPath: /mnt/config
+            optional: false
+          imagePullSecret:
+          - secretNameParameter:
+              componentInputParameter: optional_image_pull_secret_name
+          nodeAffinity:
+          - nodeAffinityJson:
+              componentInputParameter: optional_affinity
+          nodeSelector:
+            nodeSelectorJson:
+              componentInputParameter: optional_selector
+          secretAsEnv:
+          - keyToEnv:
+            - envVar: PASSWORD
+              secretKey: password
+            secretNameParameter:
+              componentInputParameter: optional_secret_name
+          secretAsVolume:
+          - mountPath: /mnt/secret
+            optional: false
+            secretNameParameter:
+              componentInputParameter: optional_secret_name
           tolerations:
           - tolerationJson:
               componentInputParameter: optional_tolerations
