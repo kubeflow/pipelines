@@ -614,6 +614,10 @@ def build_importer_spec_for_task(
         metadata_protobuf_struct.update(task.importer_spec.metadata)
         importer_spec.metadata.CopyFrom(metadata_protobuf_struct)
 
+    # Emit download_to_workspace if set on the task
+    if getattr(task.importer_spec, 'download_to_workspace', False):
+        importer_spec.download_to_workspace = task.importer_spec.download_to_workspace
+
     if isinstance(task.importer_spec.artifact_uri,
                   pipeline_channel.PipelineChannel):
         importer_spec.artifact_uri.runtime_parameter = 'uri'
