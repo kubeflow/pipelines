@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	"google.golang.org/grpc/metadata"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -39,7 +40,7 @@ const (
 type PipelineClientInterface interface {
 	ReportWorkflow(workflow util.ExecutionSpec) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
-	ReadArtifactForMetrics(request *util.ArtifactRequest) (*util.ArtifactResponse, error)
+	ReadArtifact(request *util.ReadArtifactRequest) (*util.ReadArtifactResponse, error)
 	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
 }
 
@@ -122,7 +123,10 @@ func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
 				workflow.ToStringForStore())
 		} else if statusCode.Code() == codes.Unauthenticated && strings.Contains(err.Error(), "service account token has expired") {
 			// If unauthenticated because SA token is expired, re-read/refresh the token and try again
-			p.tokenRefresher.RefreshToken()
+			if refreshErr := p.tokenRefresher.RefreshToken(); refreshErr != nil {
+				return util.NewCustomError(refreshErr, util.CUSTOM_CODE_PERMANENT,
+					"Failed to refresh token: %v", refreshErr.Error())
+			}
 			return util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
 				"Error while reporting workflow resource (code: %v, message: %v): %v, %+v",
 				statusCode.Code(),
@@ -167,7 +171,10 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 				swf.ScheduledWorkflow)
 		} else if statusCode.Code() == codes.Unauthenticated && strings.Contains(err.Error(), "service account token has expired") {
 			// If unauthenticated because SA token is expired, re-read/refresh the token and try again
-			p.tokenRefresher.RefreshToken()
+			if refreshErr := p.tokenRefresher.RefreshToken(); refreshErr != nil {
+				return util.NewCustomError(refreshErr, util.CUSTOM_CODE_PERMANENT,
+					"Failed to refresh token: %v", refreshErr.Error())
+			}
 			return util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
 				"Error while reporting workflow resource (code: %v, message: %v): %v, %+v",
 				statusCode.Code(),
@@ -187,15 +194,17 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 	return nil
 }
 
-// ReadArtifactForMetrics reads artifact content using the new util.ArtifactRequest/Response types.
-// This method is used by the metrics collection system.
-func (p *PipelineClient) ReadArtifactForMetrics(request *util.ArtifactRequest) (*util.ArtifactResponse, error) {
-	// Construct the HTTP streaming endpoint URL
-	// Format: /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:stream
+// ReadArtifact reads artifact content using HTTP streaming.
+//
+// Error Handling:
+// - Returns nil for artifacts that don't exist (HTTP 404)
+// - Returns CUSTOM_CODE_PERMANENT for client errors (400, 403) and unexpected failures
+// - Returns CUSTOM_CODE_TRANSIENT for retryable errors (401, 500, network issues)
+// - Automatically refreshes tokens on expiry; callers should retry transient errors
+func (p *PipelineClient) ReadArtifact(request *util.ReadArtifactRequest) (*util.ReadArtifactResponse, error) {
 	url := fmt.Sprintf("%s/apis/v1beta1/runs/%s/nodes/%s/artifacts/%s:stream",
 		p.httpBaseURL, request.RunID, request.NodeID, request.ArtifactName)
 
-	// Create HTTP request with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
@@ -205,61 +214,65 @@ func (p *PipelineClient) ReadArtifactForMetrics(request *util.ArtifactRequest) (
 			"Failed to create HTTP request: %v", err.Error())
 	}
 
-	// Add authorization header
 	req.Header.Set("Authorization", "Bearer "+p.tokenRefresher.GetToken())
 
-	// Make the HTTP request
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		if strings.Contains(err.Error(), "service account token has expired") {
-			// If unauthenticated because SA token is expired, re-read/refresh the token and try again
-			p.tokenRefresher.RefreshToken()
+			// If unauthenticated because SA token is expired, refresh the token and the caller should retry
+			if refreshErr := p.tokenRefresher.RefreshToken(); refreshErr != nil {
+				return nil, util.NewCustomError(refreshErr, util.CUSTOM_CODE_PERMANENT,
+					"Failed to refresh token: %v", refreshErr.Error())
+			}
 			return nil, util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
 				"Error while reading artifact due to token expiry: %v", err.Error())
 		}
 		return nil, util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT,
 			"Failed to make HTTP request: %v", err.Error())
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			glog.Warningf("Failed to close response body: %v", closeErr)
+		}
+	}()
 
-	// Handle HTTP status codes
 	switch resp.StatusCode {
 	case http.StatusOK:
-		// Success case - read the artifact data
 		data, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT,
 				"Failed to read artifact data: %v", err.Error())
 		}
-		return &util.ArtifactResponse{Data: data}, nil
+		return &util.ReadArtifactResponse{Data: data}, nil
 
 	case http.StatusNotFound:
-		// Artifact not found - return nil as per original behavior
 		return nil, nil
 
 	case http.StatusUnauthorized:
 		// Unauthorized - refresh token and return transient error
-		p.tokenRefresher.RefreshToken()
+		if refreshErr := p.tokenRefresher.RefreshToken(); refreshErr != nil {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				glog.Warningf("Failed to close response body: %v", closeErr)
+			}
+			return nil, util.NewCustomError(refreshErr, util.CUSTOM_CODE_PERMANENT,
+				"Failed to refresh token: %v", refreshErr.Error())
+		}
 		return nil, util.NewCustomError(fmt.Errorf("HTTP 401"), util.CUSTOM_CODE_TRANSIENT,
 			"Failed to read artifact, unauthorized (token may have expired)")
 
 	case http.StatusForbidden:
-		// Forbidden - return permanent error
 		return nil, util.NewCustomError(fmt.Errorf("HTTP 403"), util.CUSTOM_CODE_PERMANENT,
 			"Failed to read artifact, forbidden")
 
 	case http.StatusBadRequest:
-		// Bad request - return permanent error
 		return nil, util.NewCustomError(fmt.Errorf("HTTP 400"), util.CUSTOM_CODE_PERMANENT,
 			"Failed to read artifact, bad request")
 
 	case http.StatusInternalServerError:
-		// Internal server error - return transient error
 		return nil, util.NewCustomError(fmt.Errorf("HTTP 500"), util.CUSTOM_CODE_TRANSIENT,
 			"Failed to read artifact, internal server error")
 
 	default:
-		// Other status codes - return permanent error
 		return nil, util.NewCustomError(fmt.Errorf("HTTP %d", resp.StatusCode), util.CUSTOM_CODE_PERMANENT,
 			"Failed to read artifact, HTTP status: %d", resp.StatusCode)
 	}

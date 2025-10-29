@@ -579,7 +579,7 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 		return "", nil // No metrics artifact, skip the reporting
 	}
 
-	artifactRequest := &ArtifactRequest{
+	artifactRequest := &ReadArtifactRequest{
 		RunID:        runID,
 		NodeID:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
