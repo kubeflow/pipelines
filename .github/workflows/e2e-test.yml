@@ -161,7 +161,7 @@ jobs:
       - name: Collect Pod logs on test failure
         id: collect-failure-logs
         shell: bash
-        if: ${{ steps.test-run.outcome == 'failure' }}
+        if: ${{ always() && steps.test-run.outcome != 'success' && steps.configure.outcome == 'success' }}
         run: |
           echo "=== Collecting enhanced logs after test failure ==="
           NAMESPACE=${{ steps.configure.outputs.NAMESPACE }}
@@ -185,7 +185,7 @@ jobs:
 
       - name: Upload Pod logs on test failure
         uses: actions/upload-artifact@v4
-        if: ${{ steps.test-run.outcome == 'failure' && steps.collect-failure-logs.outcome == 'success' }}
+        if: ${{ always() && steps.test-run.outcome != 'success' && steps.collect-failure-logs.outcome == 'success' }}
         with:
           name: failure-logs-${{ matrix.test_label}}-K8s-${{ matrix.k8s_version }}-cache-${{ matrix.cache_enabled }}-argo-${{ matrix.argo_version}}-proxy-${{ matrix.proxy }}-storage-${{ matrix.storage }}
           path: /tmp/enhanced_failure_logs.txt
@@ -301,7 +301,7 @@ jobs:
       - name: Collect Pod logs on test failure
         id: collect-failure-logs
         shell: bash
-        if: ${{ steps.test-run.outcome == 'failure' }}
+        if: ${{ always() && steps.test-run.outcome != 'success' && steps.configure.outcome == 'success' }}
         run: |
           echo "=== Collecting enhanced logs after test failure ==="
           NAMESPACE=${{ steps.configure.outputs.NAMESPACE }}
@@ -337,7 +337,7 @@ jobs:
 
       - name: Upload Pod logs on test failure
         uses: actions/upload-artifact@v4
-        if: ${{ steps.test-run.outcome == 'failure' && steps.collect-failure-logs.outcome == 'success' }}
+        if: ${{ always() && steps.test-run.outcome != 'success' && steps.collect-failure-logs.outcome == 'success' }}
         with:
           name: failure-logs-multiuser-K8s-${{ matrix.k8s_version }}-cache-${{ matrix.cache_enabled }}-storage-${{ matrix.storage }}
           path: /tmp/enhanced_failure_logs.txt
