@@ -55,8 +55,8 @@ spec:
             - name: MYSQL_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: pipeline-install-config
                   key: dbHost
+                  name: namespace-config
             - name: MYSQL_PORT
               valueFrom:
                 configMapKeyRef:

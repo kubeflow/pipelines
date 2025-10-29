@@ -59,7 +59,7 @@ spec:
             - name: DBCONFIG_HOST_NAME
               valueFrom:
                 configMapKeyRef:
-                  name: pipeline-install-config
+                  name: namespace-config
                   key: dbHost
             - name: DBCONFIG_PORT
               valueFrom:
