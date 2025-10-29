@@ -36,6 +36,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	k8sapi "github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -966,6 +967,18 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 		glog.Fatalf("Failed to open blob storage bucket: %v", err)
 	}
 
+	// For MinIO, ensure the bucket exists (create if it doesn't)
+	// This is needed because MinIO doesn't auto-create buckets like SeaweedFS does
+	if bucketName != "" && config.SessionInfo != nil {
+		switch config.SessionInfo.Provider {
+		case "minio", "s3":
+			// Try to create bucket using the existing MinIO client
+			if err := ensureMinioBucketExists(ctx, config, bucketName, k8sClient); err != nil {
+				glog.Warningf("Failed to ensure MinIO bucket exists (may already exist): %v", err)
+			}
+		}
+	}
+
 	glog.Infof("Successfully initialized blob storage for bucket: %s", bucketName)
 	return storage.NewBlobObjectStore(bucket, pipelinePath)
 }
@@ -1146,6 +1159,66 @@ func createMinioBucket(ctx context.Context, minioClient *minio.Client, bucketNam
 		glog.Fatalf("Failed to create object store bucket. Error: %v", err)
 	}
 	glog.Infof("Successfully created bucket %s\n", bucketName)
+}
+
+// ensureMinioBucketExists creates a MinIO bucket if it doesn't exist, using configuration
+func ensureMinioBucketExists(ctx context.Context, config *objectstore.Config, bucketName string, k8sClient kubernetes.Interface) error {
+	// Create MinIO client using the same configuration as the blob storage
+	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
+	port := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
+	secure := common.GetBoolConfigWithDefault("ObjectStoreConfig.Secure", false)
+	region := common.GetStringConfigWithDefault("ObjectStoreConfig.Region", "")
+	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
+	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
+
+	// Default region for MinIO
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	// Try to get credentials from Kubernetes secret if not in env
+	if k8sClient != nil && accessKey == "" && secretKey == "" {
+		secretNamespace := common.GetPodNamespace()
+		if secretNamespace == "" {
+			secretNamespace = "kubeflow"
+		}
+
+		secret, err := k8sClient.CoreV1().Secrets(secretNamespace).Get(ctx, "mlpipeline-minio-artifact", metav1.GetOptions{})
+		if err == nil {
+			if accessKeyBytes, ok := secret.Data["accesskey"]; ok {
+				accessKey = string(accessKeyBytes)
+			}
+			if secretKeyBytes, ok := secret.Data["secretkey"]; ok {
+				secretKey = string(secretKeyBytes)
+			}
+		}
+	}
+
+	if accessKey == "" || secretKey == "" {
+		return fmt.Errorf("MinIO credentials not available")
+	}
+
+	// Build MinIO endpoint
+	endpoint := host
+	if port != "" {
+		endpoint = fmt.Sprintf("%s:%s", host, port)
+	}
+	if endpoint == "" {
+		return fmt.Errorf("MinIO host not configured")
+	}
+
+	// Create MinIO client
+	minioClient, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Secure: secure,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create MinIO client: %w", err)
+	}
+
+	// Use the existing createMinioBucket function
+	createMinioBucket(ctx, minioClient, bucketName, region)
+	return nil
 }
 
 func initLogArchive() (logArchive archive.LogArchiveInterface) {
