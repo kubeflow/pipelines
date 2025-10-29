@@ -264,19 +264,73 @@ function collect_comprehensive_logs {
                 echo "Found user namespace: $user_ns" >> "$OUTPUT_FILE"
                 kubectl get pods -n "$user_ns" -o wide --show-labels >> "$OUTPUT_FILE" 2>&1 || true
 
-                # Get user namespace workflow pods
+                # Get ALL user namespace pods (not just pattern matches)
+                echo "=== ALL USER NAMESPACE PODS WITH STATUS ===" >> "$OUTPUT_FILE"
+                kubectl get pods -n "$user_ns" -o wide >> "$OUTPUT_FILE" 2>&1 || echo "Failed to get pods in $user_ns" >> "$OUTPUT_FILE"
+                echo "" >> "$OUTPUT_FILE"
+
+                # Get user namespace workflow pods (broader patterns)
                 local USER_WORKFLOW_PODS
-                USER_WORKFLOW_PODS=$(kubectl get pods -n "$user_ns" -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer)" || echo "")
+                USER_WORKFLOW_PODS=$(kubectl get pods -n "$user_ns" -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer|dag-driver|system)" || echo "")
 
                 if [[ -n "$USER_WORKFLOW_PODS" ]]; then
-                    echo "User namespace workflow pods:" >> "$OUTPUT_FILE"
+                    echo "User namespace workflow/execution pods:" >> "$OUTPUT_FILE"
                     for pod_name in $USER_WORKFLOW_PODS; do
                         pod_name=$(echo "$pod_name" | sed 's|pod/||')
                         echo "--- User NS Pod: $pod_name ---" >> "$OUTPUT_FILE"
-                        kubectl logs "$pod_name" -n "$user_ns" --tail=100 >> "$OUTPUT_FILE" 2>&1 || echo "No logs for $pod_name" >> "$OUTPUT_FILE"
+
+                        # Get pod status first
+                        kubectl describe pod "$pod_name" -n "$user_ns" >> "$OUTPUT_FILE" 2>&1 || echo "Failed to describe $pod_name" >> "$OUTPUT_FILE"
+                        echo "" >> "$OUTPUT_FILE"
+
+                        # Get all logs
+                        echo "Pod logs for $pod_name:" >> "$OUTPUT_FILE"
+                        kubectl logs "$pod_name" -n "$user_ns" >> "$OUTPUT_FILE" 2>&1 || echo "No logs for $pod_name" >> "$OUTPUT_FILE"
+
+                        # Get previous logs if pod restarted
+                        echo "Previous logs for $pod_name (if restarted):" >> "$OUTPUT_FILE"
+                        kubectl logs "$pod_name" -n "$user_ns" --previous >> "$OUTPUT_FILE" 2>&1 || echo "No previous logs for $pod_name" >> "$OUTPUT_FILE"
                         echo "" >> "$OUTPUT_FILE"
                     done
                 fi
+
+                # Specifically look for failed/pending/error pods
+                echo "=== FAILED/PENDING/ERROR PODS IN USER NAMESPACE ===" >> "$OUTPUT_FILE"
+                local FAILED_PODS
+                FAILED_PODS=$(kubectl get pods -n "$user_ns" --field-selector=status.phase!=Running,status.phase!=Succeeded -o name 2>/dev/null || echo "")
+                if [[ -n "$FAILED_PODS" ]]; then
+                    echo "Found non-running pods:" >> "$OUTPUT_FILE"
+                    for pod_name in $FAILED_PODS; do
+                        pod_name=$(echo "$pod_name" | sed 's|pod/||')
+                        echo "--- Failed/Pending Pod: $pod_name ---" >> "$OUTPUT_FILE"
+
+                        # Detailed pod information
+                        kubectl describe pod "$pod_name" -n "$user_ns" >> "$OUTPUT_FILE" 2>&1 || echo "Failed to describe $pod_name" >> "$OUTPUT_FILE"
+                        echo "" >> "$OUTPUT_FILE"
+
+                        # All container logs
+                        echo "Logs for failed pod $pod_name:" >> "$OUTPUT_FILE"
+                        kubectl logs "$pod_name" -n "$user_ns" --all-containers=true >> "$OUTPUT_FILE" 2>&1 || echo "No logs for $pod_name" >> "$OUTPUT_FILE"
+                        echo "" >> "$OUTPUT_FILE"
+                    done
+                else
+                    echo "No failed/pending pods found in user namespace" >> "$OUTPUT_FILE"
+                fi
+                echo "" >> "$OUTPUT_FILE"
+
+                # Check resource quotas and limits
+                echo "=== USER NAMESPACE RESOURCE QUOTAS ===" >> "$OUTPUT_FILE"
+                kubectl get resourcequota -n "$user_ns" -o yaml >> "$OUTPUT_FILE" 2>&1 || echo "No resource quotas in $user_ns" >> "$OUTPUT_FILE"
+                echo "" >> "$OUTPUT_FILE"
+
+                echo "=== USER NAMESPACE LIMIT RANGES ===" >> "$OUTPUT_FILE"
+                kubectl get limitrange -n "$user_ns" -o yaml >> "$OUTPUT_FILE" 2>&1 || echo "No limit ranges in $user_ns" >> "$OUTPUT_FILE"
+                echo "" >> "$OUTPUT_FILE"
+
+                # Check events in user namespace
+                echo "=== USER NAMESPACE EVENTS (last 30 events) ===" >> "$OUTPUT_FILE"
+                kubectl get events -n "$user_ns" --sort-by='.lastTimestamp' | tail -30 >> "$OUTPUT_FILE" 2>&1 || echo "No events in $user_ns" >> "$OUTPUT_FILE"
+                echo "" >> "$OUTPUT_FILE"
 
                 # Also check for workflows in user namespace
                 echo "--- USER NAMESPACE WORKFLOWS ---" >> "$OUTPUT_FILE"

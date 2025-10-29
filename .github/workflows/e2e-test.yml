@@ -176,10 +176,20 @@ jobs:
           # Capture any pipeline/workflow pods that exist right now
           kubectl get pods -n $NAMESPACE | grep -E "(pipeline|workflow|producer|consumer)" >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No pipeline pods found" >> /tmp/immediate_pod_logs.txt
 
-          # Get logs from any pods matching pipeline patterns
-          for pod in $(kubectl get pods -n $NAMESPACE -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer)" | sed 's|pod/||'); do
+          # Get logs from any pods matching pipeline patterns (broader search)
+          for pod in $(kubectl get pods -n $NAMESPACE -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer|dag-driver|system)" | sed 's|pod/||'); do
             echo "--- Immediate Pod Logs: $pod ---" >> /tmp/immediate_pod_logs.txt
-            kubectl logs "$pod" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
+            kubectl describe pod "$pod" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "Failed to describe $pod" >> /tmp/immediate_pod_logs.txt
+            kubectl logs "$pod" -n $NAMESPACE --all-containers=true >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
+            echo "" >> /tmp/immediate_pod_logs.txt
+          done
+
+          # Also capture any failed/pending pods in main namespace
+          echo "--- Main namespace failed/pending pods ---" >> /tmp/immediate_pod_logs.txt
+          for pod in $(kubectl get pods -n $NAMESPACE --field-selector=status.phase!=Running,status.phase!=Succeeded -o name 2>/dev/null | sed 's|pod/||'); do
+            echo "--- FAILED/PENDING Pod: $pod ---" >> /tmp/immediate_pod_logs.txt
+            kubectl describe pod "$pod" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "Failed to describe $pod" >> /tmp/immediate_pod_logs.txt
+            kubectl logs "$pod" -n $NAMESPACE --all-containers=true >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
             echo "" >> /tmp/immediate_pod_logs.txt
           done
 
@@ -365,14 +375,30 @@ jobs:
 
           # Check user namespace if different
           if [ "$USER_NS" != "$NAMESPACE" ]; then
-            echo "--- User namespace ($USER_NS) ---" >> /tmp/immediate_pod_logs.txt
-            kubectl get pods -n "$USER_NS" | grep -E "(pipeline|workflow|producer|consumer)" >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No pipeline pods found in $USER_NS" >> /tmp/immediate_pod_logs.txt
+            echo "--- User namespace ($USER_NS) ALL PODS ---" >> /tmp/immediate_pod_logs.txt
+            kubectl get pods -n "$USER_NS" -o wide >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No pods found in $USER_NS" >> /tmp/immediate_pod_logs.txt
 
-            for pod in $(kubectl get pods -n "$USER_NS" -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer)" | sed 's|pod/||'); do
+            # Look for ALL workflow-related pods with broader patterns
+            echo "--- User namespace workflow/execution pods ---" >> /tmp/immediate_pod_logs.txt
+            for pod in $(kubectl get pods -n "$USER_NS" -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer|dag-driver|system)" | sed 's|pod/||'); do
               echo "--- Immediate Pod Logs ($USER_NS): $pod ---" >> /tmp/immediate_pod_logs.txt
-              kubectl logs "$pod" -n "$USER_NS" >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
+              kubectl describe pod "$pod" -n "$USER_NS" >> /tmp/immediate_pod_logs.txt 2>&1 || echo "Failed to describe $pod" >> /tmp/immediate_pod_logs.txt
+              kubectl logs "$pod" -n "$USER_NS" --all-containers=true >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
               echo "" >> /tmp/immediate_pod_logs.txt
             done
+
+            # Specifically capture failed/pending pods
+            echo "--- User namespace failed/pending pods ---" >> /tmp/immediate_pod_logs.txt
+            for pod in $(kubectl get pods -n "$USER_NS" --field-selector=status.phase!=Running,status.phase!=Succeeded -o name 2>/dev/null | sed 's|pod/||'); do
+              echo "--- FAILED/PENDING Pod ($USER_NS): $pod ---" >> /tmp/immediate_pod_logs.txt
+              kubectl describe pod "$pod" -n "$USER_NS" >> /tmp/immediate_pod_logs.txt 2>&1 || echo "Failed to describe $pod" >> /tmp/immediate_pod_logs.txt
+              kubectl logs "$pod" -n "$USER_NS" --all-containers=true >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
+              echo "" >> /tmp/immediate_pod_logs.txt
+            done
+
+            # Capture recent events in user namespace
+            echo "--- User namespace recent events ---" >> /tmp/immediate_pod_logs.txt
+            kubectl get events -n "$USER_NS" --sort-by='.lastTimestamp' | tail -20 >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No events in $USER_NS" >> /tmp/immediate_pod_logs.txt
           fi
 
           # CRITICAL: Immediately capture workflow controller logs for debugging
