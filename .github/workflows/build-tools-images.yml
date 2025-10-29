@@ -1,18 +1,19 @@
 name: Build tools images
 
-on:
-  push:
-    branches:
-      - master
-      - main
-      - stable
-      - 'release-*'
-      - 'rhoai-*'
-  pull_request:
-    branches:
-      - master
-      - 'release-*'
-  workflow_dispatch: {}
+# This workflow is disabled in downstream.
+on: []
+#  push:
+#    branches:
+#      - master
+#      - main
+#      - stable
+#      - 'release-*'
+#      - 'rhoai-*'
+#  pull_request:
+#    branches:
+#      - master
+#      - 'release-*'
+#  workflow_dispatch: {}
 
 permissions:
   contents: read
