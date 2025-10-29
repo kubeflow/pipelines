@@ -1,6 +1,6 @@
 name: Build tools images
 
-# This workflow is disabled in downstream.
+# This workflow is disabled for downstream.
 on: []
 #  push:
 #    branches:
