@@ -258,6 +258,12 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	if err != nil {
 		return nil, err
 	}
+
+	// Disable EC2 metadata service queries to prevent MinIO initialization timeouts
+	// This prevents AWS SDK from trying to contact 169.254.169.254 which can hang for 5-10 seconds
+	// Helber - I'm not sure this is needed
+	os.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+
 	s3Config, err := config.LoadDefaultConfig(ctx,
 		config.WithRetryer(func() aws.Retryer {
 			// Use standard retry logic with exponential backoff for transient S3 connection failures.

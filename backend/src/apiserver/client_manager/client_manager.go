@@ -1026,6 +1026,11 @@ func buildBlobStorageConfig(ctx context.Context, k8sClient kubernetes.Interface)
 		os.Setenv("AWS_REGION", "us-east-1")
 	}
 
+	// Disable EC2 metadata service queries to prevent MinIO initialization timeouts
+	// This prevents AWS SDK from trying to contact 169.254.169.254 which can hang for 5-10 seconds
+	// Helber - I'm not sure this is needed
+	os.Setenv("AWS_EC2_METADATA_DISABLED", "true")
+
 	// Build configuration for s3 compatible storage (including MinIO)
 	var scheme string
 	var queryString string
