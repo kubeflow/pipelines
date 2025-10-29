@@ -169,7 +169,93 @@ function collect_comprehensive_logs {
     fi
     echo "" >> "$OUTPUT_FILE"
 
-    # 8. Collect all pod logs from user namespace if different and in multi-user mode
+    # 8. Collect critical KFP infrastructure logs for workflow debugging
+    echo "===== CRITICAL KFP INFRASTRUCTURE LOGS =====" >> "$OUTPUT_FILE"
+
+    # Workflow Controller - Critical for understanding why workflows aren't created
+    echo "--- WORKFLOW CONTROLLER LOGS (ALL LOGS) ---" >> "$OUTPUT_FILE"
+    local WF_CONTROLLER_POD
+    WF_CONTROLLER_POD=$(kubectl get pods -n "${NAMESPACE}" -l app=workflow-controller -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+    if [[ -n "$WF_CONTROLLER_POD" ]]; then
+        echo "Workflow Controller Pod: $WF_CONTROLLER_POD" >> "$OUTPUT_FILE"
+        echo "Getting ALL logs from container startup..." >> "$OUTPUT_FILE"
+        kubectl logs "$WF_CONTROLLER_POD" -n "${NAMESPACE}" >> "$OUTPUT_FILE" 2>&1 || echo "No logs for workflow controller" >> "$OUTPUT_FILE"
+
+        # Also get previous logs if the pod restarted
+        echo "--- WORKFLOW CONTROLLER PREVIOUS LOGS (if restarted) ---" >> "$OUTPUT_FILE"
+        kubectl logs "$WF_CONTROLLER_POD" -n "${NAMESPACE}" --previous >> "$OUTPUT_FILE" 2>&1 || echo "No previous logs (pod did not restart)" >> "$OUTPUT_FILE"
+    else
+        echo "No workflow controller pod found" >> "$OUTPUT_FILE"
+    fi
+    echo "" >> "$OUTPUT_FILE"
+
+    # Persistence Agent - Handles workflow submission
+    echo "--- PERSISTENCE AGENT LOGS (ALL LOGS) ---" >> "$OUTPUT_FILE"
+    local PERSISTENCE_POD
+    PERSISTENCE_POD=$(kubectl get pods -n "${NAMESPACE}" -l app=ml-pipeline-persistenceagent -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+    if [[ -n "$PERSISTENCE_POD" ]]; then
+        echo "Persistence Agent Pod: $PERSISTENCE_POD" >> "$OUTPUT_FILE"
+        echo "Getting ALL logs from container startup..." >> "$OUTPUT_FILE"
+        kubectl logs "$PERSISTENCE_POD" -n "${NAMESPACE}" >> "$OUTPUT_FILE" 2>&1 || echo "No logs for persistence agent" >> "$OUTPUT_FILE"
+
+        # Also get previous logs if the pod restarted
+        echo "--- PERSISTENCE AGENT PREVIOUS LOGS (if restarted) ---" >> "$OUTPUT_FILE"
+        kubectl logs "$PERSISTENCE_POD" -n "${NAMESPACE}" --previous >> "$OUTPUT_FILE" 2>&1 || echo "No previous logs (pod did not restart)" >> "$OUTPUT_FILE"
+    else
+        echo "No persistence agent pod found" >> "$OUTPUT_FILE"
+    fi
+    echo "" >> "$OUTPUT_FILE"
+
+    # Scheduled Workflow Controller - Handles scheduled runs
+    echo "--- SCHEDULED WORKFLOW CONTROLLER LOGS (ALL LOGS) ---" >> "$OUTPUT_FILE"
+    local SWF_POD
+    SWF_POD=$(kubectl get pods -n "${NAMESPACE}" -l app=ml-pipeline-scheduledworkflow -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+    if [[ -n "$SWF_POD" ]]; then
+        echo "Scheduled Workflow Controller Pod: $SWF_POD" >> "$OUTPUT_FILE"
+        echo "Getting ALL logs from container startup..." >> "$OUTPUT_FILE"
+        kubectl logs "$SWF_POD" -n "${NAMESPACE}" >> "$OUTPUT_FILE" 2>&1 || echo "No logs for scheduled workflow controller" >> "$OUTPUT_FILE"
+
+        # Also get previous logs if the pod restarted
+        echo "--- SCHEDULED WORKFLOW CONTROLLER PREVIOUS LOGS (if restarted) ---" >> "$OUTPUT_FILE"
+        kubectl logs "$SWF_POD" -n "${NAMESPACE}" --previous >> "$OUTPUT_FILE" 2>&1 || echo "No previous logs (pod did not restart)" >> "$OUTPUT_FILE"
+    else
+        echo "No scheduled workflow controller pod found" >> "$OUTPUT_FILE"
+    fi
+    echo "" >> "$OUTPUT_FILE"
+
+    # API Server logs - Complete logs for full context
+    echo "--- API SERVER LOGS (ALL LOGS) ---" >> "$OUTPUT_FILE"
+    local API_SERVER_POD
+    API_SERVER_POD=$(kubectl get pods -n "${NAMESPACE}" -l app=ml-pipeline -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+    if [[ -n "$API_SERVER_POD" ]]; then
+        echo "API Server Pod: $API_SERVER_POD" >> "$OUTPUT_FILE"
+        echo "Getting ALL logs from container startup..." >> "$OUTPUT_FILE"
+        kubectl logs "$API_SERVER_POD" -n "${NAMESPACE}" >> "$OUTPUT_FILE" 2>&1 || echo "No logs for API server" >> "$OUTPUT_FILE"
+
+        # Also get previous logs if the pod restarted
+        echo "--- API SERVER PREVIOUS LOGS (if restarted) ---" >> "$OUTPUT_FILE"
+        kubectl logs "$API_SERVER_POD" -n "${NAMESPACE}" --previous >> "$OUTPUT_FILE" 2>&1 || echo "No previous logs (pod did not restart)" >> "$OUTPUT_FILE"
+    else
+        echo "No API server pod found" >> "$OUTPUT_FILE"
+    fi
+    echo "" >> "$OUTPUT_FILE"
+
+    # Check for any workflow-related Custom Resources
+    echo "--- WORKFLOW CUSTOM RESOURCES ---" >> "$OUTPUT_FILE"
+    kubectl get workflows -n "${NAMESPACE}" -o yaml >> "$OUTPUT_FILE" 2>&1 || echo "No workflows found or CRD not available" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # Check for WorkflowTemplate resources
+    echo "--- WORKFLOW TEMPLATES ---" >> "$OUTPUT_FILE"
+    kubectl get workflowtemplates -n "${NAMESPACE}" >> "$OUTPUT_FILE" 2>&1 || echo "No workflow templates found or CRD not available" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # Check Argo Workflow Controller configuration
+    echo "--- ARGO WORKFLOW CONTROLLER CONFIG ---" >> "$OUTPUT_FILE"
+    kubectl get configmap -n "${NAMESPACE}" | grep -E "(workflow|argo)" >> "$OUTPUT_FILE" 2>&1 || echo "No Argo-related ConfigMaps found" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+
+    # 9. Collect all pod logs from user namespace if different and in multi-user mode
     if [[ -n "$TEST_CONTEXT" && "$TEST_CONTEXT" == *"MultiUser"* ]]; then
         echo "===== CHECKING USER NAMESPACE PODS =====" >> "$OUTPUT_FILE"
         # Common user namespace patterns
@@ -191,6 +277,11 @@ function collect_comprehensive_logs {
                         echo "" >> "$OUTPUT_FILE"
                     done
                 fi
+
+                # Also check for workflows in user namespace
+                echo "--- USER NAMESPACE WORKFLOWS ---" >> "$OUTPUT_FILE"
+                kubectl get workflows -n "$user_ns" >> "$OUTPUT_FILE" 2>&1 || echo "No workflows found in user namespace $user_ns" >> "$OUTPUT_FILE"
+                echo "" >> "$OUTPUT_FILE"
             fi
         done
     fi

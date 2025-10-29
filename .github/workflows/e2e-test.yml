@@ -183,6 +183,27 @@ jobs:
             echo "" >> /tmp/immediate_pod_logs.txt
           done
 
+          # CRITICAL: Immediately capture workflow controller logs for debugging
+          echo "=== IMMEDIATE INFRASTRUCTURE LOGS ===" >> /tmp/immediate_pod_logs.txt
+
+          # Workflow Controller - most critical for pipeline execution
+          WF_CONTROLLER=$(kubectl get pods -n $NAMESPACE -l app=workflow-controller -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ -n "$WF_CONTROLLER" ]; then
+            echo "--- Workflow Controller: $WF_CONTROLLER (ALL LOGS) ---" >> /tmp/immediate_pod_logs.txt
+            kubectl logs "$WF_CONTROLLER" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs" >> /tmp/immediate_pod_logs.txt
+          else
+            echo "--- No Workflow Controller found ---" >> /tmp/immediate_pod_logs.txt
+          fi
+
+          # Persistence Agent - handles workflow submission
+          PERSISTENCE_AGENT=$(kubectl get pods -n $NAMESPACE -l app=ml-pipeline-persistenceagent -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ -n "$PERSISTENCE_AGENT" ]; then
+            echo "--- Persistence Agent: $PERSISTENCE_AGENT (ALL LOGS) ---" >> /tmp/immediate_pod_logs.txt
+            kubectl logs "$PERSISTENCE_AGENT" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs" >> /tmp/immediate_pod_logs.txt
+          else
+            echo "--- No Persistence Agent found ---" >> /tmp/immediate_pod_logs.txt
+          fi
+
           # Create enhanced log collection
           chmod +x ./.github/resources/scripts/collect-enhanced-logs.sh
           ./.github/resources/scripts/collect-enhanced-logs.sh \
@@ -352,6 +373,27 @@ jobs:
               kubectl logs "$pod" -n "$USER_NS" >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
               echo "" >> /tmp/immediate_pod_logs.txt
             done
+          fi
+
+          # CRITICAL: Immediately capture workflow controller logs for debugging
+          echo "=== IMMEDIATE INFRASTRUCTURE LOGS ===" >> /tmp/immediate_pod_logs.txt
+
+          # Workflow Controller - most critical for pipeline execution
+          WF_CONTROLLER=$(kubectl get pods -n $NAMESPACE -l app=workflow-controller -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ -n "$WF_CONTROLLER" ]; then
+            echo "--- Workflow Controller: $WF_CONTROLLER (ALL LOGS) ---" >> /tmp/immediate_pod_logs.txt
+            kubectl logs "$WF_CONTROLLER" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs" >> /tmp/immediate_pod_logs.txt
+          else
+            echo "--- No Workflow Controller found ---" >> /tmp/immediate_pod_logs.txt
+          fi
+
+          # Persistence Agent - handles workflow submission
+          PERSISTENCE_AGENT=$(kubectl get pods -n $NAMESPACE -l app=ml-pipeline-persistenceagent -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+          if [ -n "$PERSISTENCE_AGENT" ]; then
+            echo "--- Persistence Agent: $PERSISTENCE_AGENT (ALL LOGS) ---" >> /tmp/immediate_pod_logs.txt
+            kubectl logs "$PERSISTENCE_AGENT" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs" >> /tmp/immediate_pod_logs.txt
+          else
+            echo "--- No Persistence Agent found ---" >> /tmp/immediate_pod_logs.txt
           fi
 
           # Create enhanced log collection
