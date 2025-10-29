@@ -158,7 +158,7 @@ jobs:
           tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           ca_cert_path: ${{ env.CA_CERT_PATH }}
 
-      - name: Collect Pod logs on test failure
+      - name: Collect enhanced logs on test failure
         id: collect-failure-logs
         shell: bash
         if: ${{ always() && steps.test-run.outcome != 'success' && steps.configure.outcome == 'success' }}
@@ -168,64 +168,15 @@ jobs:
           TEST_START_TIME=$(date -u -d '30 minutes ago' '+%Y-%m-%dT%H:%M:%SZ')
           TEST_CONTEXT="${{ matrix.test_label}}_K8s-${{ matrix.k8s_version }}_cache-${{ matrix.cache_enabled }}"
 
-          # First, immediately capture any pipeline pods that might still exist
-          echo "=== IMMEDIATE PIPELINE POD CAPTURE ===" > /tmp/immediate_pod_logs.txt
-          echo "Timestamp: $(date)" >> /tmp/immediate_pod_logs.txt
-          echo "Searching for pipeline pods immediately after test failure..." >> /tmp/immediate_pod_logs.txt
-
-          # Capture any pipeline/workflow pods that exist right now
-          kubectl get pods -n $NAMESPACE | grep -E "(pipeline|workflow|producer|consumer)" >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No pipeline pods found" >> /tmp/immediate_pod_logs.txt
-
-          # Get logs from any pods matching pipeline patterns (broader search)
-          for pod in $(kubectl get pods -n $NAMESPACE -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer|dag-driver|system)" | sed 's|pod/||'); do
-            echo "--- Immediate Pod Logs: $pod ---" >> /tmp/immediate_pod_logs.txt
-            kubectl describe pod "$pod" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "Failed to describe $pod" >> /tmp/immediate_pod_logs.txt
-            kubectl logs "$pod" -n $NAMESPACE --all-containers=true >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
-            echo "" >> /tmp/immediate_pod_logs.txt
-          done
-
-          # Also capture any failed/pending pods in main namespace
-          echo "--- Main namespace failed/pending pods ---" >> /tmp/immediate_pod_logs.txt
-          for pod in $(kubectl get pods -n $NAMESPACE --field-selector=status.phase!=Running,status.phase!=Succeeded -o name 2>/dev/null | sed 's|pod/||'); do
-            echo "--- FAILED/PENDING Pod: $pod ---" >> /tmp/immediate_pod_logs.txt
-            kubectl describe pod "$pod" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "Failed to describe $pod" >> /tmp/immediate_pod_logs.txt
-            kubectl logs "$pod" -n $NAMESPACE --all-containers=true >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
-            echo "" >> /tmp/immediate_pod_logs.txt
-          done
-
-          # CRITICAL: Immediately capture workflow controller logs for debugging
-          echo "=== IMMEDIATE INFRASTRUCTURE LOGS ===" >> /tmp/immediate_pod_logs.txt
-
-          # Workflow Controller - most critical for pipeline execution
-          WF_CONTROLLER=$(kubectl get pods -n $NAMESPACE -l app=workflow-controller -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
-          if [ -n "$WF_CONTROLLER" ]; then
-            echo "--- Workflow Controller: $WF_CONTROLLER (ALL LOGS) ---" >> /tmp/immediate_pod_logs.txt
-            kubectl logs "$WF_CONTROLLER" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs" >> /tmp/immediate_pod_logs.txt
-          else
-            echo "--- No Workflow Controller found ---" >> /tmp/immediate_pod_logs.txt
-          fi
-
-          # Persistence Agent - handles workflow submission
-          PERSISTENCE_AGENT=$(kubectl get pods -n $NAMESPACE -l app=ml-pipeline-persistenceagent -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
-          if [ -n "$PERSISTENCE_AGENT" ]; then
-            echo "--- Persistence Agent: $PERSISTENCE_AGENT (ALL LOGS) ---" >> /tmp/immediate_pod_logs.txt
-            kubectl logs "$PERSISTENCE_AGENT" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs" >> /tmp/immediate_pod_logs.txt
-          else
-            echo "--- No Persistence Agent found ---" >> /tmp/immediate_pod_logs.txt
-          fi
-
-          # Create enhanced log collection
+          # Run enhanced log collection script
           chmod +x ./.github/resources/scripts/collect-enhanced-logs.sh
           ./.github/resources/scripts/collect-enhanced-logs.sh \
-            --ns $NAMESPACE \
+            --ns "$NAMESPACE" \
             --output /tmp/enhanced_failure_logs.txt \
             --test-context "$TEST_CONTEXT" \
             --start-time "$TEST_START_TIME"
 
-          # Combine immediate logs with enhanced logs
-          cat /tmp/immediate_pod_logs.txt >> /tmp/enhanced_failure_logs.txt
-
-          # Also collect Ginkgo test output if available
+          # Append test results if available
           if [ -f "${{ env.E2E_TESTS_DIR }}/reports/junit.xml" ]; then
             echo "=== GINKGO TEST RESULTS ===" >> /tmp/enhanced_failure_logs.txt
             cat "${{ env.E2E_TESTS_DIR }}/reports/junit.xml" >> /tmp/enhanced_failure_logs.txt 2>/dev/null || true
@@ -347,7 +298,7 @@ jobs:
           user_namespace: ${{ env.USER_NAMESPACE }}
           report_name: "E2EMultiUserTests_K8s=${{ matrix.k8s_version }}_cacheEnabled=${{ matrix.cache_enabled }}_multiUser=${{ matrix.multi_user }}_storage=${{ matrix.storage }}"
 
-      - name: Collect Pod logs on test failure
+      - name: Collect enhanced logs on test failure
         id: collect-failure-logs
         shell: bash
         if: ${{ always() && steps.test-run.outcome != 'success' && steps.configure.outcome == 'success' }}
@@ -358,93 +309,15 @@ jobs:
           TEST_START_TIME=$(date -u -d '30 minutes ago' '+%Y-%m-%dT%H:%M:%SZ')
           TEST_CONTEXT="MultiUser_K8s-${{ matrix.k8s_version }}_cache-${{ matrix.cache_enabled }}_storage-${{ matrix.storage }}"
 
-          # First, immediately capture any pipeline pods that might still exist in both namespaces
-          echo "=== IMMEDIATE PIPELINE POD CAPTURE ===" > /tmp/immediate_pod_logs.txt
-          echo "Timestamp: $(date)" >> /tmp/immediate_pod_logs.txt
-          echo "Searching for pipeline pods immediately after test failure..." >> /tmp/immediate_pod_logs.txt
-
-          # Check main namespace
-          echo "--- Main namespace ($NAMESPACE) ---" >> /tmp/immediate_pod_logs.txt
-          kubectl get pods -n $NAMESPACE | grep -E "(pipeline|workflow|producer|consumer)" >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No pipeline pods found in $NAMESPACE" >> /tmp/immediate_pod_logs.txt
-
-          for pod in $(kubectl get pods -n $NAMESPACE -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer)" | sed 's|pod/||'); do
-            echo "--- Immediate Pod Logs ($NAMESPACE): $pod ---" >> /tmp/immediate_pod_logs.txt
-            kubectl logs "$pod" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
-            echo "" >> /tmp/immediate_pod_logs.txt
-          done
-
-          # Check user namespace if different
-          if [ "$USER_NS" != "$NAMESPACE" ]; then
-            echo "--- User namespace ($USER_NS) ALL PODS ---" >> /tmp/immediate_pod_logs.txt
-            kubectl get pods -n "$USER_NS" -o wide >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No pods found in $USER_NS" >> /tmp/immediate_pod_logs.txt
-
-            # Look for ALL workflow-related pods with broader patterns
-            echo "--- User namespace workflow/execution pods ---" >> /tmp/immediate_pod_logs.txt
-            for pod in $(kubectl get pods -n "$USER_NS" -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer|dag-driver|system)" | sed 's|pod/||'); do
-              echo "--- Immediate Pod Logs ($USER_NS): $pod ---" >> /tmp/immediate_pod_logs.txt
-              kubectl describe pod "$pod" -n "$USER_NS" >> /tmp/immediate_pod_logs.txt 2>&1 || echo "Failed to describe $pod" >> /tmp/immediate_pod_logs.txt
-              kubectl logs "$pod" -n "$USER_NS" --all-containers=true >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
-              echo "" >> /tmp/immediate_pod_logs.txt
-            done
-
-            # Specifically capture failed/pending pods
-            echo "--- User namespace failed/pending pods ---" >> /tmp/immediate_pod_logs.txt
-            for pod in $(kubectl get pods -n "$USER_NS" --field-selector=status.phase!=Running,status.phase!=Succeeded -o name 2>/dev/null | sed 's|pod/||'); do
-              echo "--- FAILED/PENDING Pod ($USER_NS): $pod ---" >> /tmp/immediate_pod_logs.txt
-              kubectl describe pod "$pod" -n "$USER_NS" >> /tmp/immediate_pod_logs.txt 2>&1 || echo "Failed to describe $pod" >> /tmp/immediate_pod_logs.txt
-              kubectl logs "$pod" -n "$USER_NS" --all-containers=true >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs for $pod" >> /tmp/immediate_pod_logs.txt
-              echo "" >> /tmp/immediate_pod_logs.txt
-            done
-
-            # Capture recent events in user namespace
-            echo "--- User namespace recent events ---" >> /tmp/immediate_pod_logs.txt
-            kubectl get events -n "$USER_NS" --sort-by='.lastTimestamp' | tail -20 >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No events in $USER_NS" >> /tmp/immediate_pod_logs.txt
-          fi
-
-          # CRITICAL: Immediately capture workflow controller logs for debugging
-          echo "=== IMMEDIATE INFRASTRUCTURE LOGS ===" >> /tmp/immediate_pod_logs.txt
-
-          # Workflow Controller - most critical for pipeline execution
-          WF_CONTROLLER=$(kubectl get pods -n $NAMESPACE -l app=workflow-controller -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
-          if [ -n "$WF_CONTROLLER" ]; then
-            echo "--- Workflow Controller: $WF_CONTROLLER (ALL LOGS) ---" >> /tmp/immediate_pod_logs.txt
-            kubectl logs "$WF_CONTROLLER" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs" >> /tmp/immediate_pod_logs.txt
-          else
-            echo "--- No Workflow Controller found ---" >> /tmp/immediate_pod_logs.txt
-          fi
-
-          # Persistence Agent - handles workflow submission
-          PERSISTENCE_AGENT=$(kubectl get pods -n $NAMESPACE -l app=ml-pipeline-persistenceagent -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
-          if [ -n "$PERSISTENCE_AGENT" ]; then
-            echo "--- Persistence Agent: $PERSISTENCE_AGENT (ALL LOGS) ---" >> /tmp/immediate_pod_logs.txt
-            kubectl logs "$PERSISTENCE_AGENT" -n $NAMESPACE >> /tmp/immediate_pod_logs.txt 2>&1 || echo "No logs" >> /tmp/immediate_pod_logs.txt
-          else
-            echo "--- No Persistence Agent found ---" >> /tmp/immediate_pod_logs.txt
-          fi
-
-          # Create enhanced log collection
+          # Run enhanced log collection script
           chmod +x ./.github/resources/scripts/collect-enhanced-logs.sh
           ./.github/resources/scripts/collect-enhanced-logs.sh \
-            --ns $NAMESPACE \
+            --ns "$NAMESPACE" \
             --output /tmp/enhanced_failure_logs.txt \
             --test-context "$TEST_CONTEXT" \
             --start-time "$TEST_START_TIME"
 
-          # Also collect user namespace logs for multi-user tests
-          if [ "$USER_NS" != "$NAMESPACE" ]; then
-            echo "=== USER NAMESPACE LOGS ===" >> /tmp/enhanced_failure_logs.txt
-            ./.github/resources/scripts/collect-enhanced-logs.sh \
-              --ns "$USER_NS" \
-              --output /tmp/user_ns_logs.txt \
-              --test-context "$TEST_CONTEXT" \
-              --start-time "$TEST_START_TIME"
-            cat /tmp/user_ns_logs.txt >> /tmp/enhanced_failure_logs.txt 2>/dev/null || true
-          fi
-
-          # Combine immediate logs with enhanced logs
-          cat /tmp/immediate_pod_logs.txt >> /tmp/enhanced_failure_logs.txt
-
-          # Also collect Ginkgo test output if available
+          # Append test results if available
           if [ -f "${{ env.E2E_TESTS_DIR }}/reports/junit.xml" ]; then
             echo "=== GINKGO TEST RESULTS ===" >> /tmp/enhanced_failure_logs.txt
             cat "${{ env.E2E_TESTS_DIR }}/reports/junit.xml" >> /tmp/enhanced_failure_logs.txt 2>/dev/null || true
