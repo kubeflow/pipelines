@@ -384,11 +384,11 @@ spec:
       creationTimestamp: null
       name: kfp-workspace
     spec:
+      accessModes:
+      - ReadWriteOnce
       resources:
         requests:
           storage: 1Gi
-      accessModes:
-      - ReadWriteOnce
       storageClassName: standard
     status: {}
 status:
