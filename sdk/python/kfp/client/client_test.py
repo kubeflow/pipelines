@@ -547,6 +547,210 @@ class TestClient(parameterized.TestCase):
 
             self.assertEqual(result, expected_result)
 
+class TestGetLogs(parameterized.TestCase):
+
+    def setUp(self):
+        self.client = client.Client(namespace='ns1')
+
+    def test_get_logs_method_exists(self):
+        """Verify get_logs method exists on Client."""
+        self.assertTrue(hasattr(self.client, 'get_logs'))
+        self.assertTrue(callable(self.client.get_logs))
+
+    @patch('kfp.client.client.k8s_config')
+    @patch('kfp.client.client.k8s_client.CoreV1Api')
+    def test_get_logs_raises_on_missing_run(self, mock_core_v1,
+                                            mock_k8s_config):
+        """Test get_logs raises ValueError for non-existent run."""
+        with patch.object(self.client, 'get_run', return_value=None):
+            with self.assertRaisesRegex(
+                    ValueError, "Run with ID 'nonexistent-run' not found."):
+                self.client.get_logs(run_id='nonexistent-run')
+
+    @patch('kfp.client.client.k8s_config')
+    @patch('kfp.client.client.k8s_client.CoreV1Api')
+    def test_get_logs_no_pods_found(self, mock_core_v1, mock_k8s_config):
+        """Test get_logs raises ValueError when no pods found."""
+        mock_run = Mock()
+        mock_run.run_id = 'test-run-123'
+
+        mock_pod_list = Mock()
+        mock_pod_list.items = []
+
+        with patch.object(self.client, 'get_run', return_value=mock_run):
+            with patch.object(
+                    self.client,
+                    '_get_workflow_name_from_run',
+                    return_value='workflow-123'):
+                with patch.object(
+                        self.client, 'get_user_namespace', return_value='ns1'):
+                    mock_core_v1.return_value.list_namespaced_pod.return_value = mock_pod_list
+
+                    with self.assertRaisesRegex(
+                            ValueError, "No pods found for run 'test-run-123'"):
+                        self.client.get_logs(run_id='test-run-123')
+
+    @patch('kfp.client.client.k8s_config')
+    @patch('kfp.client.client.k8s_client.CoreV1Api')
+    def test_get_logs_component_not_found(self, mock_core_v1, mock_k8s_config):
+        """Test get_logs raises ValueError when component not found."""
+        mock_run = Mock()
+        mock_run.run_id = 'test-run-123'
+
+        mock_pod = Mock()
+        mock_pod.metadata.name = 'test-pod'
+        mock_pod.metadata.annotations = {
+            'pipelines.kubeflow.org/task_display_name': 'other-component'
+        }
+        mock_pod.spec.containers = [Mock(name='main')]
+
+        mock_pod_list = Mock()
+        mock_pod_list.items = [mock_pod]
+
+        with patch.object(self.client, 'get_run', return_value=mock_run):
+            with patch.object(
+                    self.client,
+                    '_get_workflow_name_from_run',
+                    return_value='workflow-123'):
+                with patch.object(
+                        self.client, 'get_user_namespace', return_value='ns1'):
+                    mock_core_v1.return_value.list_namespaced_pod.return_value = mock_pod_list
+
+                    with self.assertRaisesRegex(
+                            ValueError, "Component 'test-component' not found"):
+                        self.client.get_logs(
+                            run_id='test-run-123',
+                            component_name='test-component')
+
+    @patch('kfp.client.client.k8s_config')
+    @patch('kfp.client.client.k8s_client.CoreV1Api')
+    def test_get_logs_success_single_component(self, mock_core_v1,
+                                               mock_k8s_config):
+        """Test get_logs successfully retrieves logs for single component."""
+        mock_run = Mock()
+        mock_run.run_id = 'test-run-123'
+
+        mock_pod = Mock()
+        mock_pod.metadata.name = 'test-pod'
+        mock_pod.metadata.annotations = {
+            'pipelines.kubeflow.org/task_display_name': 'test-component'
+        }
+        mock_pod.spec.containers = [Mock(name='main')]
+
+        mock_pod_list = Mock()
+        mock_pod_list.items = [mock_pod]
+
+        expected_logs = "Component logs here"
+
+        with patch.object(self.client, 'get_run', return_value=mock_run):
+            with patch.object(
+                    self.client,
+                    '_get_workflow_name_from_run',
+                    return_value='workflow-123'):
+                with patch.object(
+                        self.client, 'get_user_namespace', return_value='ns1'):
+                    mock_core_v1_instance = mock_core_v1.return_value
+                    mock_core_v1_instance.list_namespaced_pod.return_value = mock_pod_list
+                    mock_core_v1_instance.read_namespaced_pod_log.return_value = expected_logs
+
+                    result = self.client.get_logs(
+                        run_id='test-run-123', component_name='test-component')
+
+                    self.assertEqual(result, expected_logs)
+
+    @patch('kfp.client.client.k8s_config')
+    @patch('kfp.client.client.k8s_client.CoreV1Api')
+    def test_get_logs_success_all_components(self, mock_core_v1,
+                                             mock_k8s_config):
+        """Test get_logs successfully retrieves logs for all components."""
+        mock_run = Mock()
+        mock_run.run_id = 'test-run-123'
+
+        mock_pod1 = Mock()
+        mock_pod1.metadata.name = 'test-pod-1'
+        mock_pod1.metadata.annotations = {
+            'pipelines.kubeflow.org/task_display_name': 'component-1'
+        }
+        mock_pod1.spec.containers = [Mock(name='main')]
+
+        mock_pod2 = Mock()
+        mock_pod2.metadata.name = 'test-pod-2'
+        mock_pod2.metadata.annotations = {
+            'pipelines.kubeflow.org/task_display_name': 'component-2'
+        }
+        mock_pod2.spec.containers = [Mock(name='main')]
+
+        mock_pod_list = Mock()
+        mock_pod_list.items = [mock_pod1, mock_pod2]
+
+        with patch.object(self.client, 'get_run', return_value=mock_run):
+            with patch.object(
+                    self.client,
+                    '_get_workflow_name_from_run',
+                    return_value='workflow-123'):
+                with patch.object(
+                        self.client, 'get_user_namespace', return_value='ns1'):
+                    mock_core_v1_instance = mock_core_v1.return_value
+                    mock_core_v1_instance.list_namespaced_pod.return_value = mock_pod_list
+                    mock_core_v1_instance.read_namespaced_pod_log.side_effect = [
+                        'logs from component-1', 'logs from component-2'
+                    ]
+
+                    result = self.client.get_logs(run_id='test-run-123')
+
+                    self.assertIsInstance(result, dict)
+                    self.assertEqual(len(result), 2)
+                    self.assertIn('component-1', result)
+                    self.assertIn('component-2', result)
+
+    def test_get_workflow_name_from_run_with_run_id(self):
+        """Test _get_workflow_name_from_run extracts from run_id."""
+        mock_run = Mock()
+        mock_run.run_id = 'workflow-abc-123'
+
+        result = self.client._get_workflow_name_from_run(mock_run)
+        self.assertEqual(result, 'workflow-abc-123')
+
+    def test_get_workflow_name_from_run_raises_on_invalid(self):
+        """Test _get_workflow_name_from_run raises on invalid run."""
+        mock_run = Mock(spec=[])
+
+        with self.assertRaisesRegex(
+                ValueError, 'Could not extract workflow name from run details'):
+            self.client._get_workflow_name_from_run(mock_run)
+
+    def test_extract_component_name_from_pod_with_annotation(self):
+        """Test _extract_component_name_from_pod extracts from annotation."""
+        mock_pod = Mock()
+        mock_pod.metadata.name = 'pod-123'
+        mock_pod.metadata.annotations = {
+            'pipelines.kubeflow.org/task_display_name': 'my-component'
+        }
+
+        result = self.client._extract_component_name_from_pod(mock_pod)
+        self.assertEqual(result, 'my-component')
+
+    def test_extract_component_name_from_pod_with_argo_template(self):
+        """Test _extract_component_name_from_pod extracts from Argo template."""
+        mock_pod = Mock()
+        mock_pod.metadata.name = 'pod-123'
+        mock_pod.metadata.annotations = {
+            'workflows.argoproj.io/template': 'argo-component'
+        }
+
+        result = self.client._extract_component_name_from_pod(mock_pod)
+        self.assertEqual(result, 'argo-component')
+
+    def test_extract_component_name_from_pod_fallback_to_name(self):
+        """Test _extract_component_name_from_pod falls back to pod name."""
+        mock_pod = Mock()
+        mock_pod.metadata.name = 'pod-123'
+        mock_pod.metadata.annotations = None
+        mock_pod.metadata.labels = None
+
+        result = self.client._extract_component_name_from_pod(mock_pod)
+        self.assertEqual(result, 'pod-123')
+
 
 if __name__ == '__main__':
     unittest.main()
