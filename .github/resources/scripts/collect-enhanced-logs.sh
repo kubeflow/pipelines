@@ -120,6 +120,81 @@ function collect_comprehensive_logs {
     kubectl get runs -n "${NAMESPACE}" -o wide --show-labels >> "$OUTPUT_FILE" 2>&1 || echo "No pipeline runs found or CRD not available" >> "$OUTPUT_FILE"
     echo "" >> "$OUTPUT_FILE"
 
+    # 7. Collect logs from recently failed/completed workflow pods
+    echo "===== WORKFLOW/PIPELINE POD LOGS =====" >> "$OUTPUT_FILE"
+
+    # Get pods that look like pipeline execution pods (containing workflow-like names)
+    local WORKFLOW_PODS
+    WORKFLOW_PODS=$(kubectl get pods -n "${NAMESPACE}" -o jsonpath='{range .items[?(@.metadata.labels.workflows\.argoproj\.io/workflow)]}{.metadata.name}{" "}{.status.phase}{" "}{.metadata.labels.workflows\.argoproj\.io/workflow}{"\n"}{end}' 2>/dev/null || echo "")
+
+    if [[ -n "$WORKFLOW_PODS" ]]; then
+        echo "Found Argo Workflow pods:" >> "$OUTPUT_FILE"
+        echo "$WORKFLOW_PODS" >> "$OUTPUT_FILE"
+        echo "" >> "$OUTPUT_FILE"
+
+        # Collect logs from workflow pods
+        while IFS= read -r line; do
+            if [[ -n "$line" ]]; then
+                local pod_name=$(echo "$line" | awk '{print $1}')
+                local pod_phase=$(echo "$line" | awk '{print $2}')
+                local workflow_name=$(echo "$line" | awk '{print $3}')
+
+                echo "--- Workflow Pod: $pod_name (Phase: $pod_phase, Workflow: $workflow_name) ---" >> "$OUTPUT_FILE"
+                kubectl logs "$pod_name" -n "${NAMESPACE}" --previous=false >> "$OUTPUT_FILE" 2>&1 || echo "No current logs for $pod_name" >> "$OUTPUT_FILE"
+
+                # Also try to get previous logs if pod restarted
+                kubectl logs "$pod_name" -n "${NAMESPACE}" --previous=true >> "$OUTPUT_FILE" 2>&1 || echo "No previous logs for $pod_name" >> "$OUTPUT_FILE"
+                echo "" >> "$OUTPUT_FILE"
+            fi
+        done <<< "$WORKFLOW_PODS"
+    else
+        echo "No Argo Workflow pods found with workflow labels" >> "$OUTPUT_FILE"
+
+        # Fallback: look for pods with workflow-like naming patterns
+        echo "Searching for pods with workflow-like names..." >> "$OUTPUT_FILE"
+        local PATTERN_PODS
+        PATTERN_PODS=$(kubectl get pods -n "${NAMESPACE}" -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer)" || echo "")
+
+        if [[ -n "$PATTERN_PODS" ]]; then
+            echo "Found workflow-pattern pods:" >> "$OUTPUT_FILE"
+            for pod_name in $PATTERN_PODS; do
+                pod_name=$(echo "$pod_name" | sed 's|pod/||')
+                echo "--- Pattern Pod: $pod_name ---" >> "$OUTPUT_FILE"
+                kubectl logs "$pod_name" -n "${NAMESPACE}" --tail=100 >> "$OUTPUT_FILE" 2>&1 || echo "No logs for $pod_name" >> "$OUTPUT_FILE"
+                echo "" >> "$OUTPUT_FILE"
+            done
+        else
+            echo "No workflow-pattern pods found" >> "$OUTPUT_FILE"
+        fi
+    fi
+    echo "" >> "$OUTPUT_FILE"
+
+    # 8. Collect all pod logs from user namespace if different and in multi-user mode
+    if [[ -n "$TEST_CONTEXT" && "$TEST_CONTEXT" == *"MultiUser"* ]]; then
+        echo "===== CHECKING USER NAMESPACE PODS =====" >> "$OUTPUT_FILE"
+        # Common user namespace patterns
+        for user_ns in "kubeflow-user-example-com" "kubeflow-user-test" "default"; do
+            if kubectl get namespace "$user_ns" &>/dev/null && [[ "$user_ns" != "$NAMESPACE" ]]; then
+                echo "Found user namespace: $user_ns" >> "$OUTPUT_FILE"
+                kubectl get pods -n "$user_ns" -o wide --show-labels >> "$OUTPUT_FILE" 2>&1 || true
+
+                # Get user namespace workflow pods
+                local USER_WORKFLOW_PODS
+                USER_WORKFLOW_PODS=$(kubectl get pods -n "$user_ns" -o name 2>/dev/null | grep -E "(pipeline|workflow|producer|consumer)" || echo "")
+
+                if [[ -n "$USER_WORKFLOW_PODS" ]]; then
+                    echo "User namespace workflow pods:" >> "$OUTPUT_FILE"
+                    for pod_name in $USER_WORKFLOW_PODS; do
+                        pod_name=$(echo "$pod_name" | sed 's|pod/||')
+                        echo "--- User NS Pod: $pod_name ---" >> "$OUTPUT_FILE"
+                        kubectl logs "$pod_name" -n "$user_ns" --tail=100 >> "$OUTPUT_FILE" 2>&1 || echo "No logs for $pod_name" >> "$OUTPUT_FILE"
+                        echo "" >> "$OUTPUT_FILE"
+                    done
+                fi
+            fi
+        done
+    fi
+
     echo "Enhanced log collection completed. Output saved to: $OUTPUT_FILE"
 }
 
