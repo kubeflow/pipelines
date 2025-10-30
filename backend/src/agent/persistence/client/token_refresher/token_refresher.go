@@ -27,7 +27,6 @@ func (r *FileReaderImpl) ReadFile(filename string) ([]byte, error) {
 	return os.ReadFile(filename)
 }
 
-// NewTokenRefresher creates a new token refresher
 func NewTokenRefresher(interval time.Duration, fileReader FileReader) *TokenRefresher {
 	if fileReader == nil {
 		fileReader = &FileReaderImpl{}
@@ -50,10 +49,12 @@ func (tr *TokenRefresher) StartTokenRefreshTicker() error {
 	ticker := time.NewTicker(*tr.interval)
 	go func() {
 		for range ticker.C {
-			tr.RefreshToken()
+			if err := tr.RefreshToken(); err != nil {
+				log.Errorf("Failed to refresh token: %v", err)
+			}
 		}
 	}()
-	return err
+	return nil
 }
 
 func (tr *TokenRefresher) GetToken() string {
