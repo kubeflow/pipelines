@@ -14,7 +14,7 @@
 
 package artifact
 
-// ClientFake is a fake implementation of ClientInterface for testing
+// ClientFake is a fake implementation of Client for testing
 type ClientFake struct {
 	artifacts           map[string]*ReadArtifactResponse
 	readArtifactRequest *ReadArtifactRequest

@@ -91,6 +91,6 @@ func (p *PipelineClientFake) GetReportedMetricsRequest() *api.ReportRunMetricsRe
 	return p.reportedMetricsRequest
 }
 
-func (p *PipelineClientFake) ArtifactClient() artifact.ClientInterface {
+func (p *PipelineClientFake) ArtifactClient() artifact.Client {
 	return p.artifactClient
 }

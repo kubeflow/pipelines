@@ -79,21 +79,23 @@ func NewError(code ErrorCode, cause error, format string, args ...interface{}) *
 	}
 }
 
-// ClientInterface defines the interface for artifact operations
-type ClientInterface interface {
+// Client defines the interface for artifact operations
+type Client interface {
 	ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactResponse, error)
 }
 
-// Client handles artifact operations using HTTP streaming
-type Client struct {
+// client handles artifact operations using HTTP streaming
+type client struct {
 	httpBaseURL    string
 	httpClient     *http.Client
 	tokenRefresher *token_refresher.TokenRefresher
 }
 
+var _ Client = &client{}
+
 // NewClient creates a new artifact client
-func NewClient(httpBaseURL string, httpClient *http.Client, tokenRefresher *token_refresher.TokenRefresher) *Client {
-	return &Client{
+func NewClient(httpBaseURL string, httpClient *http.Client, tokenRefresher *token_refresher.TokenRefresher) Client {
+	return &client{
 		httpBaseURL:    httpBaseURL,
 		httpClient:     httpClient,
 		tokenRefresher: tokenRefresher,
@@ -107,7 +109,7 @@ func NewClient(httpBaseURL string, httpClient *http.Client, tokenRefresher *toke
 // - Returns CUSTOM_CODE_PERMANENT for client errors (400, 403) and unexpected failures
 // - Returns CUSTOM_CODE_TRANSIENT for retryable errors (401, 500, network issues)
 // - Automatically refreshes tokens on expiry; callers should retry transient errors
-func (a *Client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactResponse, error) {
+func (a *client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactResponse, error) {
 	url := fmt.Sprintf("%s/apis/v1beta1/runs/%s/nodes/%s/artifacts/%s:stream",
 		a.httpBaseURL, request.RunID, request.NodeID, request.ArtifactName)
 
@@ -120,14 +122,12 @@ func (a *Client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactRespon
 			"Failed to create HTTP request: %v", err.Error())
 	}
 
-	// Add authorization header
 	req.Header.Set("Authorization", "Bearer "+a.tokenRefresher.GetToken())
 
-	// Make the HTTP request
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		if strings.Contains(err.Error(), "service account token has expired") {
-			// If unauthenticated because SA token is expired, re-read/refresh the token and try again
+			// If unauthenticated because SA token is expired, refresh token and return transient error
 			if refreshErr := a.tokenRefresher.RefreshToken(); refreshErr != nil {
 				return nil, NewError(ErrorCodePermanent, refreshErr,
 					"Failed to refresh token: %v", refreshErr.Error())
@@ -144,10 +144,8 @@ func (a *Client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactRespon
 		}
 	}()
 
-	// Handle HTTP status codes
 	switch resp.StatusCode {
 	case http.StatusOK:
-		// Success case - read the artifact data
 		data, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, NewError(ErrorCodePermanent, err,
@@ -156,14 +154,12 @@ func (a *Client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactRespon
 		return &ReadArtifactResponse{Data: data}, nil
 
 	case http.StatusNotFound:
-		// Artifact not found - return nil as per original behavior
 		return nil, nil
 
 	case http.StatusUnauthorized:
 		// Unauthorized - refresh token and return transient error
 		if refreshErr := a.tokenRefresher.RefreshToken(); refreshErr != nil {
 			if closeErr := resp.Body.Close(); closeErr != nil {
-				// Log the close error but prioritize the refresh error
 				glog.Warningf("Failed to close response body: %v", closeErr)
 			}
 			return nil, NewError(ErrorCodePermanent, refreshErr,
@@ -173,22 +169,18 @@ func (a *Client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactRespon
 			"Failed to read artifact, unauthorized (token may have expired)")
 
 	case http.StatusForbidden:
-		// Forbidden - return permanent error
 		return nil, NewError(ErrorCodePermanent, fmt.Errorf("HTTP 403"),
 			"Failed to read artifact, forbidden")
 
 	case http.StatusBadRequest:
-		// Bad request - return permanent error
 		return nil, NewError(ErrorCodePermanent, fmt.Errorf("HTTP 400"),
 			"Failed to read artifact, bad request")
 
 	case http.StatusInternalServerError:
-		// Internal server error - return transient error
 		return nil, NewError(ErrorCodeTransient, fmt.Errorf("HTTP 500"),
 			"Failed to read artifact, internal server error")
 
 	default:
-		// Other status codes - return permanent error
 		return nil, NewError(ErrorCodePermanent, fmt.Errorf("HTTP %d", resp.StatusCode),
 			"Failed to read artifact, HTTP status: %d", resp.StatusCode)
 	}

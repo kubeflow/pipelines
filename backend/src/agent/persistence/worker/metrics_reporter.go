@@ -33,11 +33,11 @@ const (
 // MetricsReporter reports metrics of a workflow to pipeline server.
 type MetricsReporter struct {
 	pipelineClient client.PipelineClientInterface
-	artifactClient artifact.ClientInterface
+	artifactClient artifact.Client
 }
 
 // NewMetricsReporter creates a new instance of NewMetricsReporter.
-func NewMetricsReporter(pipelineClient client.PipelineClientInterface, artifactClient artifact.ClientInterface) *MetricsReporter {
+func NewMetricsReporter(pipelineClient client.PipelineClientInterface, artifactClient artifact.Client) *MetricsReporter {
 	return &MetricsReporter{
 		pipelineClient: pipelineClient,
 		artifactClient: artifactClient,

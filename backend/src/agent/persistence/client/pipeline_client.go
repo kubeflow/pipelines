@@ -51,7 +51,7 @@ type PipelineClient struct {
 	tokenRefresher      *token_refresher.TokenRefresher
 	httpClient          *http.Client
 	httpBaseURL         string
-	artifactClient      artifact.ClientInterface
+	artifactClient      artifact.Client
 }
 
 func NewPipelineClient(
@@ -228,6 +228,6 @@ func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest) 
 }
 
 // ArtifactClient returns the artifact client for dependency injection
-func (p *PipelineClient) ArtifactClient() artifact.ClientInterface {
+func (p *PipelineClient) ArtifactClient() artifact.Client {
 	return p.artifactClient
 }
