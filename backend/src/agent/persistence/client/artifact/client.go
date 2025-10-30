@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package artifact provides client functionality for reading pipeline artifacts
+// using HTTP streaming.
 package artifact
 
 import (
