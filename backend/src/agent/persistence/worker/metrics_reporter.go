@@ -20,7 +20,6 @@ import (
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
-	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifact"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -33,14 +32,12 @@ const (
 // MetricsReporter reports metrics of a workflow to pipeline server.
 type MetricsReporter struct {
 	pipelineClient client.PipelineClientInterface
-	artifactClient artifact.Client
 }
 
 // NewMetricsReporter creates a new instance of NewMetricsReporter.
-func NewMetricsReporter(pipelineClient client.PipelineClientInterface, artifactClient artifact.Client) *MetricsReporter {
+func NewMetricsReporter(pipelineClient client.PipelineClientInterface) *MetricsReporter {
 	return &MetricsReporter{
 		pipelineClient: pipelineClient,
-		artifactClient: artifactClient,
 	}
 }
 
@@ -55,7 +52,7 @@ func (r MetricsReporter) ReportMetrics(workflow util.ExecutionSpec) error {
 		// Skip reporting if the workflow doesn't have the run id label
 		return nil
 	}
-	runMetrics, partialFailures := workflow.ExecutionStatus().CollectionMetrics(r.artifactClient.ReadArtifact)
+	runMetrics, partialFailures := workflow.ExecutionStatus().CollectionMetrics(r.pipelineClient.ArtifactClient().ReadArtifact)
 	if len(runMetrics) == 0 {
 		return aggregateErrors(partialFailures)
 	}

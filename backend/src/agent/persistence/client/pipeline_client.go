@@ -41,6 +41,7 @@ type PipelineClientInterface interface {
 	ReportWorkflow(workflow util.ExecutionSpec) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
 	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
+	ArtifactClient() artifact.Client
 }
 
 type PipelineClient struct {

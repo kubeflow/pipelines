@@ -14,22 +14,22 @@
 
 package artifact
 
-// clientFake is a fake implementation of Client for testing
-type clientFake struct {
+// ClientFake is a fake implementation of Client for testing
+type ClientFake struct {
 	artifacts           map[string]*ReadArtifactResponse
 	readArtifactRequest *ReadArtifactRequest
 	err                 error
 }
 
 // NewClientFake creates a new fake artifact client
-func NewClientFake() Client {
-	return &clientFake{
+func NewClientFake() *ClientFake {
+	return &ClientFake{
 		artifacts: make(map[string]*ReadArtifactResponse),
 	}
 }
 
 // ReadArtifact implements the fake artifact reading
-func (a *clientFake) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactResponse, error) {
+func (a *ClientFake) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactResponse, error) {
 	if a.err != nil {
 		return nil, a.err
 	}
@@ -38,16 +38,16 @@ func (a *clientFake) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactRe
 }
 
 // SetError sets an error to be returned by ReadArtifact
-func (a *clientFake) SetError(err error) {
+func (a *ClientFake) SetError(err error) {
 	a.err = err
 }
 
 // StubArtifact stubs an artifact response for a given request
-func (a *clientFake) StubArtifact(request *ReadArtifactRequest, response *ReadArtifactResponse) {
+func (a *ClientFake) StubArtifact(request *ReadArtifactRequest, response *ReadArtifactResponse) {
 	a.artifacts[request.String()] = response
 }
 
 // GetReadArtifactRequest returns the last artifact request made
-func (a *clientFake) GetReadArtifactRequest() *ReadArtifactRequest {
+func (a *ClientFake) GetReadArtifactRequest() *ReadArtifactRequest {
 	return a.readArtifactRequest
 }

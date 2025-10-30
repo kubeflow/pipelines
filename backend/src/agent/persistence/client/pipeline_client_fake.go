@@ -25,7 +25,7 @@ type PipelineClientFake struct {
 	workflows                 map[string]util.ExecutionSpec
 	scheduledWorkflows        map[string]*util.ScheduledWorkflow
 	err                       error
-	artifactClient            artifact.Client
+	artifactClient            *artifact.ClientFake
 	reportedMetricsRequest    *api.ReportRunMetricsRequest
 	reportMetricsResponseStub *api.ReportRunMetricsResponse
 	reportMetricsErrorStub    error
