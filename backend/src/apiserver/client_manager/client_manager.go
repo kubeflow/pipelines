@@ -46,11 +46,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	// Blob storage imports
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"gocloud.dev/blob"
-	_ "gocloud.dev/blob/gcsblob" // Import GCS driver
-	_ "gocloud.dev/blob/s3blob"  // Import S3 driver
+	_ "gocloud.dev/blob/gcsblob"
+	_ "gocloud.dev/blob/s3blob"
 )
 
 const (
@@ -302,7 +301,6 @@ func (c *ClientManager) init(options *Options) error {
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
-	// Create full Kubernetes client for blob storage
 	restConfig, err := util.GetKubernetesConfig()
 	if err != nil {
 		return err
@@ -954,14 +952,11 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 }
 
 func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration, k8sClient kubernetes.Interface) storage.ObjectStoreInterface {
-	// Create blob storage client using v2 objectstore for consistency
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
 
-	// Build blob storage configuration from environment and Kubernetes secrets
 	config := buildBlobStorageConfig(ctx, k8sClient)
 
-	// Open bucket using gocloud.dev/blob
 	bucket, err := openBucketWithRetry(ctx, config, initConnectionTimeout, k8sClient)
 	if err != nil {
 		glog.Fatalf("Failed to open blob storage bucket: %v", err)
