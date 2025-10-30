@@ -16,7 +16,9 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -56,20 +58,25 @@ func NewPipelineClient(
 	mlPipelineServiceName string,
 	mlPipelineServiceHttpPort string,
 	mlPipelineServiceGRPCPort string,
-	mlPipelineServiceTLSEnabled bool,
-	caCertPath string) (*PipelineClient, error) {
+	tlsCfg *tls.Config) (*PipelineClient, error) {
 	httpAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, mlPipelineServiceHttpPort)
 	grpcAddress := fmt.Sprintf(addressTemp, mlPipelineServiceName, mlPipelineServiceGRPCPort)
 	scheme := "http"
-	if mlPipelineServiceTLSEnabled {
+	var httpClient *http.Client
+	if tlsCfg != nil {
 		scheme = "https"
+		tr := &http.Transport{TLSClientConfig: tlsCfg}
+		httpClient = &http.Client{Transport: tr}
+	} else {
+		httpClient = http.DefaultClient
 	}
-	err := util.WaitForAPIAvailable(initializeTimeout, basePath, httpAddress, scheme)
+	healthURL := fmt.Sprintf("%s://%s%s/healthz", scheme, httpAddress, basePath)
+	err := util.WaitForAPIAvailable(initializeTimeout, healthURL, httpClient)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"Failed to initialize pipeline client. Error: %s", err.Error())
 	}
-	connection, err := util.GetRpcConnection(grpcAddress, mlPipelineServiceTLSEnabled, caCertPath)
+	connection, err := util.GetRPCConnection(grpcAddress, tlsCfg)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"Failed to get RPC connection. Error: %s", err.Error())

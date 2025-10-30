@@ -58,7 +58,7 @@ func TokenToAuthInfo(userToken string) runtime.ClientAuthInfoWriter {
 		})
 }
 
-func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
+func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool, tlsCfg *tls.Config) (
 	*httptransport.Runtime, error,
 ) {
 	if !*testconfig.InClusterRun {
@@ -75,14 +75,24 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 		if testconfig.ApiScheme != nil {
 			scheme = append(scheme, *testconfig.ApiScheme)
 		}
-		if *testconfig.DisableTlsCheck {
+		if *testconfig.DisableTLSCheck {
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
 			httpClient = &http.Client{Transport: tr}
 		}
-
-		runtimeClient := httptransport.NewWithClient(host, "", scheme, httpClient)
+		var runtimeClient *httptransport.Runtime
+		if tlsCfg != nil {
+			scheme = []string{"https"}
+			tr := &http.Transport{
+				TLSClientConfig: tlsCfg,
+			}
+			httpClient = &http.Client{Transport: tr}
+		} else {
+			scheme = []string{"http"}
+			httpClient = &http.Client{}
+		}
+		runtimeClient = httptransport.NewWithClient(host, "", scheme, httpClient)
 		if debug {
 			runtimeClient.SetDebug(true)
 		}
@@ -108,10 +118,18 @@ func NewHTTPRuntime(clientConfig clientcmd.ClientConfig, debug bool) (
 	return runtimeClient, err
 }
 
-func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool) *httptransport.Runtime {
-	schemes := []string{"http"}
-	httpClient := http.Client{}
-	runtimeClient := httptransport.NewWithClient(fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, &httpClient)
+func NewKubeflowInClusterHTTPRuntime(namespace string, debug bool, tlsCfg *tls.Config) *httptransport.Runtime {
+	var schemes []string
+	var httpClient *http.Client
+	if tlsCfg != nil {
+		tr := &http.Transport{TLSClientConfig: tlsCfg}
+		httpClient = &http.Client{Transport: tr}
+	} else {
+		schemes = []string{"http"}
+		httpClient = &http.Client{}
+	}
+	runtimeClient := httptransport.NewWithClient(
+		fmt.Sprintf(apiServerKubeflowInClusterBasePath, namespace), "/", schemes, httpClient)
 	runtimeClient.SetDebug(debug)
 	return runtimeClient
 }

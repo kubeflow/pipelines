@@ -116,7 +116,7 @@ func createPipelineVersion(pipelineId string, name string, description string, u
 	}
 	paramsJSON := "[{\"name\":\"param1\"}]"
 	spec := pipelineSpec
-	tmpl, err := template.New([]byte(pipelineSpec), false, nil)
+	tmpl, err := template.New([]byte(pipelineSpec), template.TemplateOptions{})
 	if err != nil {
 		spec = pipelineSpec
 	} else {
@@ -693,13 +693,13 @@ func TestCreatePipelineOrVersion_V2PipelineName(t *testing.T) {
 			require.Nil(t, err)
 			bytes, err := manager.GetPipelineVersionTemplate(version.UUID)
 			require.Nil(t, err)
-			tmpl, err := template.New(bytes, true, nil)
+			tmpl, err := template.New(bytes, template.TemplateOptions{CacheDisabled: true})
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 
 			bytes, err = manager.GetPipelineLatestTemplate(createdPipeline.UUID)
 			require.Nil(t, err)
-			tmpl, err = template.New(bytes, true, nil)
+			tmpl, err = template.New(bytes, template.TemplateOptions{CacheDisabled: true})
 			require.Nil(t, err)
 			assert.Equal(t, test.pipelineName, tmpl.V2PipelineName())
 		})
@@ -4073,7 +4073,7 @@ func TestCreateTask(t *testing.T) {
 	task := &model.Task{
 		Namespace:         "",
 		PipelineName:      "pipeline/my-pipeline",
-		RunId:             runDetail.UUID,
+		RunID:             runDetail.UUID,
 		MLMDExecutionID:   "1",
 		CreatedTimestamp:  1462875553,
 		FinishedTimestamp: 1462875663,
@@ -4083,7 +4083,7 @@ func TestCreateTask(t *testing.T) {
 	expectedTask := &model.Task{
 		UUID:              DefaultFakeUUID,
 		PipelineName:      "pipeline/my-pipeline",
-		RunId:             runDetail.UUID,
+		RunID:             runDetail.UUID,
 		MLMDExecutionID:   "1",
 		CreatedTimestamp:  1462875553,
 		FinishedTimestamp: 1462875663,

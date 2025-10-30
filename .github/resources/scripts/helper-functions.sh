@@ -61,6 +61,17 @@ wait_for_pods () {
     python "${C_DIR}"/kfp-readiness/wait_for_pods.py
 }
 
+wait_for_seaweedfs_init () {
+    # Wait for SeaweedFS init job to complete to ensure S3 auth is configured
+    local namespace="$1"
+    local timeout="$2"
+    if kubectl -n "$namespace" get job init-seaweedfs > /dev/null 2>&1; then
+        if ! kubectl -n "$namespace" wait --for=condition=complete --timeout="$timeout" job/init-seaweedfs; then
+            return 1
+        fi
+    fi
+}
+
 deploy_with_retries () {
     if [[ $# -ne 4 ]]
     then

@@ -16,6 +16,7 @@ package clientmanager
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -116,6 +117,7 @@ type Options struct {
 	GlobalKubernetesWebhookMode  bool
 	Context                      context.Context
 	WaitGroup                    *sync.WaitGroup
+	CaCertPath                   string
 }
 
 func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
@@ -300,7 +302,15 @@ func (c *ClientManager) init(options *Options) error {
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
-	newClient, err := metadata.NewClient(common.GetMetadataGrpcServiceServiceHost(), common.GetMetadataGrpcServiceServicePort(), common.GetMetadataTLSEnabled(), common.GetCaCertPath())
+	var tlsCfg *tls.Config
+	var err error
+	if common.GetMetadataTLSEnabled() {
+		tlsCfg, err = util.GetTLSConfig(options.CaCertPath)
+		if err != nil {
+			return err
+		}
+	}
+	newClient, err := metadata.NewClient(common.GetMetadataGrpcServiceServiceHost(), common.GetMetadataGrpcServiceServicePort(), tlsCfg)
 
 	if err != nil {
 		glog.Fatalf("Failed to create metadata client. Error: %v", err)

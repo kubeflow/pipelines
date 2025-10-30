@@ -206,15 +206,23 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),
-		"--mlPipelineServiceTLSEnabled", strconv.FormatBool(c.mlPipelineServiceTLSEnabled),
-		"--mlmd_server_address", common.GetMetadataGrpcServiceServiceHost(),
-		"--mlmd_server_port", common.GetMetadataGrpcServiceServicePort(),
-		"--metadataTLSEnabled", strconv.FormatBool(common.GetMetadataTLSEnabled()),
-		"--ca_cert_path", common.GetCaCertPath(),
 	}
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	if c.mlPipelineTLSEnabled {
+		args = append(args, "--ml_pipeline_tls_enabled")
+	}
+	if common.GetMetadataTLSEnabled() {
+		args = append(args, "--metadata_tls_enabled")
+	}
+
+	setCABundle := false
+	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+		args = append(args, "--ca_cert_path", common.TLSCertCAPath)
+		setCABundle = true
+	}
+
 	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
 		args = append(args, "--log_level", value)
 	}
@@ -247,12 +255,13 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 			Command:   c.driverCommand,
 			Args:      args,
 			Resources: driverResources,
-			Env:       append(proxy.GetConfig().GetEnvVars(), MLPipelineServiceEnv...),
+			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
-
-	ConfigureCABundle(t)
-
+	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
+	if setCABundle {
+		ConfigureCustomCABundle(t)
+	}
 	c.templates[name] = t
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *t)
 	return name
@@ -532,10 +541,14 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 				},
 			},
 			EnvFrom: []k8score.EnvFromSource{metadataEnvFrom},
-			Env:     append(commonEnvs, MLPipelineServiceEnv...),
+			Env:     commonEnvs,
 		},
 	}
-	ConfigureCABundle(executor)
+	// If the apiserver is TLS-enabled, add the custom CA bundle to the executor.
+	if common.GetCaBundleSecretName() != "" && (c.mlPipelineTLSEnabled || common.GetMetadataTLSEnabled()) {
+		ConfigureCustomCABundle(executor)
+	}
+
 	// If retry policy is set, add retryStrategy to executor
 	if taskRetrySpec != nil {
 		executor.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
@@ -547,59 +560,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	if k8sExecCfg.GetPodMetadata() != nil {
 		extendPodMetadata(&executor.Metadata, k8sExecCfg)
 	}
-	caBundleCfgMapName := os.Getenv("EXECUTOR_CABUNDLE_CONFIGMAP_NAME")
-	caBundleCfgMapKey := os.Getenv("EXECUTOR_CABUNDLE_CONFIGMAP_KEY")
-	caBundleMountPath := os.Getenv("EXECUTOR_CABUNDLE_MOUNTPATH")
-	if caBundleCfgMapName != "" && caBundleCfgMapKey != "" {
-		caFile := fmt.Sprintf("%s/%s", caBundleMountPath, caBundleCfgMapKey)
-		certDirectories := []string{
-			caBundleMountPath,
-			"/etc/ssl/certs",
-			"/etc/pki/tls/certs",
-		}
-		// Add to REQUESTS_CA_BUNDLE for python request library.
-		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
-			Name:  "REQUESTS_CA_BUNDLE",
-			Value: caFile,
-		})
-		// For AWS utilities like cli, and packages.
-		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
-			Name:  "AWS_CA_BUNDLE",
-			Value: caFile,
-		})
-		// OpenSSL default cert file env variable.
-		// https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
-		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
-			Name:  "SSL_CERT_FILE",
-			Value: caFile,
-		})
-		sslCertDir := strings.Join(certDirectories, ":")
-		executor.Container.Env = append(executor.Container.Env, k8score.EnvVar{
-			Name:  "SSL_CERT_DIR",
-			Value: sslCertDir,
-		})
-		volume := k8score.Volume{
-			Name: volumeNameCABundle,
-			VolumeSource: k8score.VolumeSource{
-				ConfigMap: &k8score.ConfigMapVolumeSource{
-					LocalObjectReference: k8score.LocalObjectReference{
-						Name: caBundleCfgMapName,
-					},
-				},
-			},
-		}
 
-		executor.Volumes = append(executor.Volumes, volume)
-
-		volumeMount := k8score.VolumeMount{
-			Name:      volumeNameCABundle,
-			MountPath: caFile,
-			SubPath:   caBundleCfgMapKey,
-		}
-
-		executor.Container.VolumeMounts = append(executor.Container.VolumeMounts, volumeMount)
-
-	}
 	c.templates[nameContainerImpl] = executor
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)
 	return nameContainerExecutor

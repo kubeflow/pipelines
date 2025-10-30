@@ -52,6 +52,7 @@ class Compiler:
         pipeline_func: base_component.BaseComponent,
         package_path: str,
         pipeline_name: Optional[str] = None,
+        pipeline_display_name: Optional[str] = None,
         pipeline_parameters: Optional[Dict[str, Any]] = None,
         type_check: bool = True,
         kubernetes_manifest_options: Optional[
@@ -64,6 +65,7 @@ class Compiler:
             pipeline_func: Pipeline function constructed with the ``@dsl.pipeline`` or component constructed with the ``@dsl.component`` decorator.
             package_path: Output YAML file path. For example, ``'~/my_pipeline.yaml'`` or ``'~/my_component.yaml'``.
             pipeline_name: Name of the pipeline.
+            pipeline_display_name: Display name of the pipeline
             pipeline_parameters: Map of parameter names to argument values.
             type_check: Whether to enable type checking of component interfaces during compilation.
             kubernetes_manifest_options: KubernetesManifestOptions object for Kubernetes manifest output during pipeline compilation.
@@ -82,7 +84,7 @@ class Compiler:
                 pipeline_spec=pipeline_func.pipeline_spec,
                 pipeline_name=pipeline_name,
                 pipeline_parameters=pipeline_parameters,
-            )
+                pipeline_display_name=pipeline_display_name)
 
             builder.write_pipeline_spec_to_file(
                 pipeline_spec=pipeline_spec,

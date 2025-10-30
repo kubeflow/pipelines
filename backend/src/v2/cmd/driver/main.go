@@ -16,6 +16,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -81,15 +82,14 @@ var (
 	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
 
 	// proxy
-	httpProxy         = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
-	httpsProxy        = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
-	noProxy           = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
-	publishLogs       = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
-	cacheDisabledFlag = flag.Bool("cache_disabled", false, "Disable cache globally.")
-
-	mlPipelineServiceTLSEnabledStr = flag.String("mlPipelineServiceTLSEnabled", "false", "Set to 'true' if mlpipeline api server serves over TLS (default: 'false').")
-	metadataTLSEnabledStr          = flag.String("metadataTLSEnabled", "false", "Set to 'true' if metadata server serves over TLS (default: 'false').")
-	caCertPath                     = flag.String("ca_cert_path", "", "The path to the CA certificate.")
+	httpProxy            = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
+	httpsProxy           = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
+	noProxy              = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
+	publishLogs          = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+	cacheDisabledFlag    = flag.Bool("cache_disabled", false, "Disable cache globally.")
+	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
+	metadataTLSEnabled   = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
+	caCertPath           = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -145,7 +145,6 @@ func drive() (err error) {
 	}
 
 	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)
-
 	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJson))
 	componentSpec := &pipelinespec.ComponentSpec{}
 	if err := util.UnmarshalString(*componentSpecJson, componentSpec); err != nil {
@@ -180,20 +179,18 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
-	client, err := newMlmdClient()
+	var tlsCfg *tls.Config
+	if *metadataTLSEnabled {
+		tlsCfg, err = util.GetTLSConfig(*caCertPath)
+		if err != nil {
+			return err
+		}
+	}
+	client, err := newMlmdClient(tlsCfg)
 	if err != nil {
 		return err
 	}
-	mlPipelineServiceTLSEnabled, err := strconv.ParseBool(*mlPipelineServiceTLSEnabledStr)
-	if err != nil {
-		return err
-	}
-
-	metadataTLSEnabled, err := strconv.ParseBool(*metadataTLSEnabledStr)
-	if err != nil {
-		return err
-	}
-	cacheClient, err := cacheutils.NewClient(*cacheDisabledFlag, mlPipelineServiceTLSEnabled)
+	cacheClient, err := cacheutils.NewClient(*cacheDisabledFlag, tlsCfg)
 	if err != nil {
 		return err
 	}
@@ -210,13 +207,13 @@ func drive() (err error) {
 		PipelineLogLevel:     *logLevel,
 		PublishLogs:          *publishLogs,
 		CacheDisabled:        *cacheDisabledFlag,
-		MLPipelineTLSEnabled: mlPipelineServiceTLSEnabled,
-		MLMDServerAddress:    *mlmdServerAddress,
-		MLMDServerPort:       *mlmdServerPort,
-		MLMDTLSEnabled:       metadataTLSEnabled,
-		CaCertPath:           *caCertPath,
 		DriverType:           *driverType,
 		TaskName:             *taskName,
+		MLMDServerAddress:    *mlmdServerAddress,
+		MLMDServerPort:       *mlmdServerPort,
+		MLPipelineTLSEnabled: *mlPipelineTLSEnabled,
+		MLMDTLSEnabled:       *metadataTLSEnabled,
+		CaCertPath:           *caCertPath,
 	}
 	var execution *driver.Execution
 	var driverErr error
@@ -349,17 +346,11 @@ func writeFile(path string, data []byte) (err error) {
 	return os.WriteFile(path, data, 0o644)
 }
 
-func newMlmdClient() (*metadata.Client, error) {
+func newMlmdClient(tlsCfg *tls.Config) (*metadata.Client, error) {
 	mlmdConfig := metadata.DefaultConfig()
 	if *mlmdServerAddress != "" && *mlmdServerPort != "" {
 		mlmdConfig.Address = *mlmdServerAddress
 		mlmdConfig.Port = *mlmdServerPort
 	}
-
-	tlsEnabled, err := strconv.ParseBool(*metadataTLSEnabledStr)
-	if err != nil {
-		return nil, err
-	}
-
-	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port, tlsEnabled, *caCertPath)
+	return metadata.NewClient(mlmdConfig.Address, mlmdConfig.Port, tlsCfg)
 }

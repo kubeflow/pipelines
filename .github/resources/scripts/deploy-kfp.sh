@@ -28,9 +28,12 @@ TEST_MANIFESTS=".github/resources/manifests"
 PIPELINES_STORE="database"
 USE_PROXY=false
 CACHE_DISABLED=false
+ARTIFACT_PROXY_ENABLED=false
 MULTI_USER=false
 STORAGE_BACKEND="seaweedfs"
 AWF_VERSION=""
+POD_TO_POD_TLS_ENABLED=false
+SEAWEEDFS_INIT_TIMEOUT=300s
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -53,6 +56,10 @@ while [ "$#" -gt 0 ]; do
       MULTI_USER=true
       shift
       ;;
+    --artifact-proxy)
+      ARTIFACT_PROXY_ENABLED=true
+      shift
+      ;;
     --storage)
       STORAGE_BACKEND="$2"
       shift 2
@@ -67,6 +74,10 @@ while [ "$#" -gt 0 ]; do
         exit 1
       fi
       ;;
+    --tls-enabled)
+      POD_TO_POD_TLS_ENABLED=true
+      shift
+      ;;
   esac
 done
 
@@ -77,11 +88,6 @@ fi
 
 if [ "${MULTI_USER}" == "true" ] && [ "${USE_PROXY}" == "true" ]; then
   echo "ERROR: Multi-user mode cannot be deployed with proxy support."
-  exit 1
-fi
-
-if [ "${STORAGE_BACKEND}" != "minio" ] && [ "${STORAGE_BACKEND}" != "seaweedfs" ]; then
-  echo "ERROR: Storage backend must be either 'minio' or 'seaweedfs'."
   exit 1
 fi
 
@@ -100,8 +106,8 @@ if [[ $EXIT_CODE -ne 0 ]]; then
   exit $EXIT_CODE
 fi
 
-# If pipelines store is set to 'kubernetes', cert-manager must be deployed
-if [ "${PIPELINES_STORE}" == "kubernetes" ]; then
+# If pipelines store is set to 'kubernetes' or pod-to-pod TLS is set to 'true', cert-manager must be deployed
+if [ "${PIPELINES_STORE}" == "kubernetes" ] || [ "${POD_TO_POD_TLS_ENABLED}" == "true" ]; then
   #Install cert-manager
   make -C ./backend install-cert-manager || EXIT_CODE=$?
   if [[ $EXIT_CODE -ne 0 ]]
@@ -128,15 +134,6 @@ if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Profile Controller Resources..."
   kubectl apply -k https://github.com/kubeflow/manifests/applications/profiles/upstream/overlays/kubeflow?ref=master
   kubectl -n kubeflow wait --for=condition=Ready pods -l kustomize.component=profiles --timeout 180s
-
-  echo "Creating KF Profile..."
-  kubectl apply -f test_data/kubernetes/seaweedfs/test-profiles.yaml
-
-  echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
-  kubectl apply -f test_data/kubernetes/seaweedfs/kubeflow-edit-clusterrole.yaml
-
-  echo "Applying network policy to allow user namespace access to kubeflow services..."
-  kubectl apply -f test_data/kubernetes/seaweedfs/allow-user-namespace-access.yaml
 fi
 
 # Manifests will be deployed according to the flag provided
@@ -156,6 +153,8 @@ if [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" != "kubernetes" ]; t
     TEST_MANIFESTS="${TEST_MANIFESTS}/proxy-minio"
   elif $CACHE_DISABLED && $USE_PROXY && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-proxy-minio"
+  elif $POD_TO_POD_TLS_ENABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/tls-enabled"
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
@@ -168,16 +167,19 @@ elif [ "${MULTI_USER}" == "false" ] && [ "${PIPELINES_STORE}" == "kubernetes" ];
   fi
 elif [ "${MULTI_USER}" == "true" ]; then
   TEST_MANIFESTS="${TEST_MANIFESTS}/multiuser"
-  if [ "${STORAGE_BACKEND}" == "minio" ]; then
+  if $ARTIFACT_PROXY_ENABLED && [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/artifact-proxy"
+  elif [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/minio"
-  elif $CACHE_DISABLED; then
-    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   elif $CACHE_DISABLED && [ "${STORAGE_BACKEND}" == "minio" ]; then
     TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled-minio"
+  elif $CACHE_DISABLED; then
+    TEST_MANIFESTS="${TEST_MANIFESTS}/cache-disabled"
   else
     TEST_MANIFESTS="${TEST_MANIFESTS}/default"
   fi
 fi
+
 
 echo "Deploying ${TEST_MANIFESTS}..."
 
@@ -194,6 +196,29 @@ if [[ $EXIT_CODE -ne 0 ]]
 then
   echo "Deploy unsuccessful. Not all pods running."
   exit 1
+fi
+
+# Ensure SeaweedFS S3 auth is configured before proceeding
+if [ "${STORAGE_BACKEND}" == "seaweedfs" ]; then
+  wait_for_seaweedfs_init kubeflow "${SEAWEEDFS_INIT_TIMEOUT}" || EXIT_CODE=$?
+  if [[ $EXIT_CODE -ne 0 ]]
+  then
+    echo "SeaweedFS init job did not complete successfully."
+    exit 1
+  fi
+  echo "SeaweedFS init job completed successfully."
+fi
+
+if [ "${MULTI_USER}" == "true" ]; then
+  echo "Creating KF Profile..."
+  kubectl apply -f test_data/kubernetes/seaweedfs/test-profiles.yaml
+  sleep 30 # Let the profile controler reconcile the namespace
+
+  echo "Applying kubeflow-edit ClusterRole with proper aggregation..."
+  kubectl apply -f test_data/kubernetes/seaweedfs/kubeflow-edit-clusterrole.yaml
+
+  echo "Applying network policy to allow user namespace access to kubeflow services..."
+  kubectl apply -f test_data/kubernetes/seaweedfs/allow-user-namespace-access.yaml
 fi
 
 # Verify pipeline integration for multi-user mode

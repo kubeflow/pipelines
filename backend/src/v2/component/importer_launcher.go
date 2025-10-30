@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
@@ -92,7 +94,11 @@ func NewImporterLauncher(ctx context.Context, componentSpecJSON, importerSpecJSO
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kubernetes client set: %w", err)
 	}
-	metadataClient, err := metadata.NewClient(launcherV2Opts.MLMDServerAddress, launcherV2Opts.MLMDServerPort, launcherV2Opts.MetadataTLSEnabled, launcherV2Opts.CaCertPath)
+	tlsCfg, err := util.GetTLSConfig(launcherV2Opts.CaCertPath)
+	if err != nil {
+		return nil, err
+	}
+	metadataClient, err := metadata.NewClient(launcherV2Opts.MLMDServerAddress, launcherV2Opts.MLMDServerPort, tlsCfg)
 	if err != nil {
 		return nil, err
 	}

@@ -31,7 +31,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -48,6 +47,7 @@ type Options struct {
 	// optional
 	DefaultWorkspace *k8score.PersistentVolumeClaimSpec
 	// TODO(Bobgy): add an option -- dev mode, ImagePullPolicy should only be Always in dev mode.
+	MLPipelineTLSEnabled bool
 }
 
 const (
@@ -167,16 +167,10 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		spec:            spec,
 		executors:       deploy.GetExecutors(),
 	}
-
-	mlPipelineTLSEnabled, err := GetMLPipelineServiceTLSEnabled()
-	if err != nil {
-		return nil, err
-	}
-	c.mlPipelineServiceTLSEnabled = mlPipelineTLSEnabled
-
 	if opts != nil {
 		c.cacheDisabled = opts.CacheDisabled
 		c.defaultWorkspace = opts.DefaultWorkspace
+		c.mlPipelineTLSEnabled = opts.MLPipelineTLSEnabled
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -190,8 +184,17 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 
 	// compile
 	err = compiler.Accept(job, kubernetesSpec, c)
+	if err != nil {
+		return nil, err
+	}
 
-	return c.wf, err
+	// Apply any workflow spec patches from environment variable
+	patchJSON := common.GetCompiledPipelineSpecPatch()
+	if err := c.ApplyWorkflowSpecPatch(patchJSON); err != nil {
+		return nil, fmt.Errorf("failed to apply workflow spec patch: %w", err)
+	}
+
+	return c.wf, nil
 }
 
 func retrieveLastValidString(s string) string {
@@ -205,15 +208,15 @@ type workflowCompiler struct {
 	spec      *pipelinespec.PipelineSpec
 	executors map[string]*pipelinespec.PipelineDeploymentConfig_ExecutorSpec
 	// state
-	wf                          *wfapi.Workflow
-	templates                   map[string]*wfapi.Template
-	driverImage                 string
-	driverCommand               []string
-	launcherImage               string
-	launcherCommand             []string
-	cacheDisabled               bool
-	mlPipelineServiceTLSEnabled bool
-	defaultWorkspace            *k8score.PersistentVolumeClaimSpec
+	wf                   *wfapi.Workflow
+	templates            map[string]*wfapi.Template
+	driverImage          string
+	driverCommand        []string
+	launcherImage        string
+	launcherCommand      []string
+	cacheDisabled        bool
+	defaultWorkspace     *k8score.PersistentVolumeClaimSpec
+	mlPipelineTLSEnabled bool
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
@@ -539,7 +542,7 @@ func GetWorkspacePVC(
 		}
 	}
 
-	quantity, err := resource.ParseQuantity(sizeStr)
+	quantity, err := k8sres.ParseQuantity(sizeStr)
 	if err != nil {
 		return k8score.PersistentVolumeClaim{}, fmt.Errorf("invalid size value for workspace PVC: %v", err)
 	}
@@ -547,7 +550,7 @@ func GetWorkspacePVC(
 		return k8score.PersistentVolumeClaim{}, fmt.Errorf("negative size value for workspace PVC: %v", sizeStr)
 	}
 	if pvcSpec.Resources.Requests == nil {
-		pvcSpec.Resources.Requests = make(map[k8score.ResourceName]resource.Quantity)
+		pvcSpec.Resources.Requests = make(map[k8score.ResourceName]k8sres.Quantity)
 	}
 	pvcSpec.Resources.Requests[k8score.ResourceStorage] = quantity
 

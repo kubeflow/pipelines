@@ -16,6 +16,7 @@ package metadata_test
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"runtime/debug"
 	"sync"
@@ -85,9 +86,9 @@ func Test_GetPipeline(t *testing.T) {
 	runUuid, err := uuid.NewRandom()
 	fatalIf(err)
 	runId := runUuid.String()
-	client, err := metadata.NewClient(testMlmdServerAddress, testMlmdServerPort, false, "unused-ca-cert-path")
+	client, err := metadata.NewClient(testMlmdServerAddress, testMlmdServerPort, &tls.Config{})
 	fatalIf(err)
-	mlmdClient, err := testutils.NewTestMlmdClient(testMlmdServerAddress, testMlmdServerPort)
+	mlmdClient, err := testutils.NewTestMlmdClient(testMlmdServerAddress, testMlmdServerPort, false, "")
 	fatalIf(err)
 
 	pipeline, err := client.GetPipeline(ctx, "get-pipeline-test", runId, namespace, runResource, pipelineRoot, "")
@@ -136,7 +137,7 @@ func Test_GetPipeline_Twice(t *testing.T) {
 	runUuid, err := uuid.NewRandom()
 	fatalIf(err)
 	runId := runUuid.String()
-	client, err := metadata.NewClient(testMlmdServerAddress, testMlmdServerPort, false, "unused-ca-cert-path")
+	client, err := metadata.NewClient(testMlmdServerAddress, testMlmdServerPort, &tls.Config{})
 	fatalIf(err)
 
 	pipeline, err := client.GetPipeline(ctx, "get-pipeline-test", runId, namespace, runResource, pipelineRoot, "")
@@ -178,7 +179,7 @@ func Test_GetPipelineConcurrently(t *testing.T) {
 	t.Skip("Temporarily disable the test that requires cluster connection.")
 
 	// This test depends on a MLMD grpc server running at localhost:8080.
-	client, err := metadata.NewClient("localhost", "8080", false, "unused-ca-cert-path")
+	client, err := metadata.NewClient("localhost", "8080", &tls.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +337,7 @@ func Test_DAG(t *testing.T) {
 
 func newLocalClientOrFatal(t *testing.T) *metadata.Client {
 	t.Helper()
-	client, err := metadata.NewClient("localhost", "8080", false, "unused-ca-cert-path")
+	client, err := metadata.NewClient("localhost", "8080", &tls.Config{})
 	if err != nil {
 		t.Fatalf("metadata.NewClient failed: %v", err)
 	}

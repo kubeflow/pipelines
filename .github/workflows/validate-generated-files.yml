@@ -20,8 +20,10 @@ on:
       - 'kubernetes_platform/**/*.go'
       - 'backend/src/crd/kubernetes/**/*.go'
       - 'manifests/kustomize/base/crds/*.yaml'
+      - 'sdk/**/*.py'
       - '!**/*.md'
       - '!**/OWNERS'
+      - 'VERSION'
 
 jobs:
   validate-generated-files:

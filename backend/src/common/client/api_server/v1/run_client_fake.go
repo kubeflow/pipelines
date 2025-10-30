@@ -15,6 +15,7 @@
 package api_server
 
 import (
+	"errors"
 	"fmt"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -50,7 +51,7 @@ func (c *RunClientFake) Get(params *runparams.RunServiceGetRunV1Params) (*runmod
 	*workflowapi.Workflow, error) {
 	switch params.RunID {
 	case RunForClientErrorTest:
-		return nil, nil, fmt.Errorf(ClientErrorString)
+		return nil, nil, errors.New(ClientErrorString)
 	default:
 		return getDefaultRun(params.RunID, "RUN_NAME"), getDefaultWorkflow(), nil
 	}
@@ -100,7 +101,7 @@ func (c *RunClientFake) Unarchive(params *runparams.RunServiceUnarchiveRunV1Para
 func (c *RunClientFake) Terminate(params *runparams.RunServiceTerminateRunV1Params) error {
 	switch params.RunID {
 	case RunForClientErrorTest:
-		return fmt.Errorf(ClientErrorString)
+		return errors.New(ClientErrorString)
 	case RunForDefaultTest:
 		return nil
 	default:

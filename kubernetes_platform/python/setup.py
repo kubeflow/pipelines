@@ -73,7 +73,7 @@ setuptools.setup(
     },
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
     python_requires='>=3.9.0',
-    install_requires=get_requirements('requirements.txt'),
+    install_requires=get_requirements('requirements.in'),
     include_package_data=True,
     extras_require={
         'dev': get_requirements('requirements-dev.txt'),

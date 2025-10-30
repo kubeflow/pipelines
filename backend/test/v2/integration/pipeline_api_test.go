@@ -15,6 +15,7 @@
 package integration
 
 import (
+	"crypto/tls"
 	"fmt"
 	"os"
 	"testing"
@@ -63,31 +64,37 @@ func (s *PipelineApiTest) SetupTest() {
 		}
 	}
 	s.namespace = *config.Namespace
-	s.repoName = *config.REPO_NAME
 
 	var newPipelineClient func() (*api_server.PipelineClient, error)
-
+	var tlsCfg *tls.Config
+	var err error
+	if *config.TLSEnabled {
+		tlsCfg, err = test.GetTLSConfig(*config.CaCertPath)
+		if err != nil {
+			glog.Exitf("Failed to get TLS config. Error: %s", err.Error())
+		}
+	}
 	if *isKubeflowMode {
 		s.resourceNamespace = *resourceNamespace
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode)
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *config.DebugMode, tlsCfg)
 		}
 	} else {
 		clientConfig := test.GetClientConfig(*config.Namespace)
 
 		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *config.DebugMode)
+			return api_server.NewPipelineClient(clientConfig, *config.DebugMode, tlsCfg)
 		}
 	}
 
-	var err error
 	s.pipelineUploadClient, err = test.GetPipelineUploadClient(
 		*uploadPipelinesWithKubernetes,
 		*isKubeflowMode,
 		*config.DebugMode,
 		s.namespace,
 		test.GetClientConfig(s.namespace),
+		tlsCfg,
 	)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
@@ -179,10 +186,10 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, "zip-arguments-parameters", argumentUploadPipeline.DisplayName)
 
 	/* ---------- Import pipeline tarball by URL ---------- */
-	pipelineURL := fmt.Sprintf("https://github.com/%s/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip", s.repoName)
+	pipelineURL := "https://github.com/opendatahub-io/data-science-pipelines/raw/refs/heads/master/backend/test/v2/resources/arguments.pipeline.zip"
 
 	if pullNumber := os.Getenv("PULL_NUMBER"); pullNumber != "" {
-		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", s.repoName, pullNumber)
+		pipelineURL = fmt.Sprintf("https://raw.githubusercontent.com/opendatahub-io/data-science-pipelines/pull/%s/head/backend/test/v2/resources/arguments.pipeline.zip", pullNumber)
 	}
 
 	time.Sleep(1 * time.Second)
