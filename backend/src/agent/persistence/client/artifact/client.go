@@ -27,7 +27,7 @@ import (
 	"github.com/golang/glog"
 )
 
-// ReadArtifactRequest is a simple artifact request struct to replace the removed protobuf types
+// ReadArtifactRequest represents a request to read artifact content
 type ReadArtifactRequest struct {
 	RunID        string
 	NodeID       string
@@ -39,7 +39,7 @@ func (r *ReadArtifactRequest) String() string {
 	return r.RunID + "/" + r.NodeID + "/" + r.ArtifactName
 }
 
-// ReadArtifactResponse is a simple artifact response struct to replace the removed protobuf types
+// ReadArtifactResponse contains the artifact content data
 type ReadArtifactResponse struct {
 	Data []byte
 }

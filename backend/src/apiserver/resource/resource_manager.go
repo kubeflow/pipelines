@@ -1583,7 +1583,7 @@ func (r *ResourceManager) streamingGetFile(ctx context.Context, filePath string)
 	defer reader.Close()
 
 	// Read the content using io.ReadAll
-	// This is still safer than the old GetFile because:
+	// This approach provides safe streaming because:
 	// 1. We're using a streaming reader internally
 	// 2. The minio client itself uses streaming
 	// 3. We only buffer the final result, not intermediate chunks
