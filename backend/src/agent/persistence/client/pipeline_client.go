@@ -37,10 +37,10 @@ const (
 )
 
 type PipelineClientInterface interface {
-	artifact.ClientInterface
 	ReportWorkflow(workflow util.ExecutionSpec) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
 	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
+	GetArtifactClient() artifact.ClientInterface
 }
 
 type PipelineClient struct {
@@ -198,23 +198,9 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 	return nil
 }
 
-// ReadArtifact delegates to the artifact client for reading artifact content
-func (p *PipelineClient) ReadArtifact(request *artifact.ReadArtifactRequest) (*artifact.ReadArtifactResponse, error) {
-	response, err := p.artifactClient.ReadArtifact(request)
-	if err != nil {
-		// Convert artifact error to util error for compatibility
-		if artifactErr, ok := err.(*artifact.Error); ok {
-			switch artifactErr.Code {
-			case artifact.ErrorCodeTransient:
-				return nil, util.NewCustomError(artifactErr.Cause, util.CUSTOM_CODE_TRANSIENT, "%s", artifactErr.Message)
-			case artifact.ErrorCodePermanent:
-				return nil, util.NewCustomError(artifactErr.Cause, util.CUSTOM_CODE_PERMANENT, "%s", artifactErr.Message)
-			}
-		}
-		// Fallback for non-artifact errors
-		return nil, util.NewCustomError(err, util.CUSTOM_CODE_PERMANENT, "Failed to read artifact: %v", err.Error())
-	}
-	return response, nil
+// GetArtifactClient returns the artifact client for reading artifacts
+func (p *PipelineClient) GetArtifactClient() artifact.ClientInterface {
+	return p.artifactClient
 }
 
 // ReportRunMetrics reports run metrics to run service.

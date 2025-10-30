@@ -60,7 +60,7 @@ type ExecutionStatus interface {
 	// This function was in metrics_reporter.go. Moved to here because it
 	// accesses the orchestration engine specific data struct. encapsulate the
 	// specific data struct and provide a abstract function here.
-	CollectionMetrics(artifactClient artifact.ClientInterface) ([]*api.RunMetric, []error)
+	CollectionMetrics(readArtifact func(*artifact.ReadArtifactRequest) (*artifact.ReadArtifactResponse, error)) ([]*api.RunMetric, []error)
 
 	// does ExecutionStatus contain any finished node or not
 	HasMetrics() bool

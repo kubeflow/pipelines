@@ -36,7 +36,7 @@ func NewWorkflowSaver(client client.WorkflowClientInterface,
 	return &WorkflowSaver{
 		client:                        client,
 		pipelineClient:                pipelineClient,
-		metricsReporter:               NewMetricsReporter(pipelineClient),
+		metricsReporter:               NewMetricsReporter(pipelineClient, pipelineClient.GetArtifactClient()),
 		ttlSecondsAfterWorkflowFinish: ttlSecondsAfterWorkflowFinish,
 	}
 }

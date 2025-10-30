@@ -37,7 +37,7 @@ import (
 func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
 
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -63,7 +63,7 @@ func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 func TestReportMetrics_NoRunID_NoOP(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
 
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -89,7 +89,7 @@ func TestReportMetrics_NoRunID_NoOP(t *testing.T) {
 func TestReportMetrics_NoArtifact_NoOP(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
 
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -117,7 +117,7 @@ func TestReportMetrics_NoArtifact_NoOP(t *testing.T) {
 func TestReportMetrics_NoMetricsArtifact_NoOP(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
 
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -147,7 +147,7 @@ func TestReportMetrics_NoMetricsArtifact_NoOP(t *testing.T) {
 
 func TestReportMetrics_Succeed(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
@@ -211,7 +211,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 
 func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
@@ -253,7 +253,7 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 
 func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
@@ -297,7 +297,7 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 
 func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
@@ -340,7 +340,7 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 
 func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
@@ -423,7 +423,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 
 func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
@@ -464,7 +464,7 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 
 func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
@@ -527,7 +527,7 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 
 func TestReportMetrics_Unauthorized(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
-	reporter := NewMetricsReporter(pipelineFake)
+	reporter := NewMetricsReporter(pipelineFake, pipelineFake.GetArtifactClient())
 
 	workflow := util.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{

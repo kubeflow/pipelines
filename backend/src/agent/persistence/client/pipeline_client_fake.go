@@ -57,13 +57,6 @@ func (p *PipelineClientFake) ReportScheduledWorkflow(swf *util.ScheduledWorkflow
 	return nil
 }
 
-func (p *PipelineClientFake) ReadArtifact(request *artifact.ReadArtifactRequest) (*artifact.ReadArtifactResponse, error) {
-	if p.err != nil {
-		return nil, p.err
-	}
-	return p.artifactClient.ReadArtifact(request)
-}
-
 func (p *PipelineClientFake) ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
 	p.reportedMetricsRequest = request
 	return p.reportMetricsResponseStub, p.reportMetricsErrorStub
@@ -91,9 +84,13 @@ func (p *PipelineClientFake) GetReadArtifactRequest() *artifact.ReadArtifactRequ
 
 func (p *PipelineClientFake) StubReportRunMetrics(response *api.ReportRunMetricsResponse, err error) {
 	p.reportMetricsResponseStub = response
-	p.err = err
+	p.reportMetricsErrorStub = err
 }
 
 func (p *PipelineClientFake) GetReportedMetricsRequest() *api.ReportRunMetricsRequest {
 	return p.reportedMetricsRequest
+}
+
+func (p *PipelineClientFake) GetArtifactClient() artifact.ClientInterface {
+	return p.artifactClient
 }

@@ -481,12 +481,12 @@ const (
 	maxMetricsCountLimit = 50
 )
 
-func (w *Workflow) CollectionMetrics(artifactClient artifact.ClientInterface) ([]*api.RunMetric, []error) {
+func (w *Workflow) CollectionMetrics(readArtifact func(*artifact.ReadArtifactRequest) (*artifact.ReadArtifactResponse, error)) ([]*api.RunMetric, []error) {
 	runID := w.Labels[LabelKeyWorkflowRunId]
 	runMetrics := make([]*api.RunMetric, 0, len(w.Status.Nodes))
 	partialFailures := make([]error, 0, len(w.Status.Nodes))
 	for _, nodeStatus := range w.Status.Nodes {
-		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, artifactClient, *w.Workflow)
+		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, readArtifact, *w.Workflow)
 		if err != nil {
 			partialFailures = append(partialFailures, err)
 			continue
@@ -505,13 +505,13 @@ func (w *Workflow) CollectionMetrics(artifactClient artifact.ClientInterface) ([
 	return runMetrics, partialFailures
 }
 
-func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, artifactClient artifact.ClientInterface, wf workflowapi.Workflow) (
+func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, readArtifact func(*artifact.ReadArtifactRequest) (*artifact.ReadArtifactResponse, error), wf workflowapi.Workflow) (
 	[]*api.RunMetric, error,
 ) {
 	if !nodeStatus.Completed() {
 		return nil, nil
 	}
-	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, artifactClient, &wf)
+	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, readArtifact, &wf)
 	if err != nil || metricsJSON == "" {
 		return nil, err
 	}
@@ -564,7 +564,7 @@ func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
 }
 
 func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,
-	artifactClient artifact.ClientInterface, wf *workflowapi.Workflow,
+	readArtifact func(*artifact.ReadArtifactRequest) (*artifact.ReadArtifactResponse, error), wf *workflowapi.Workflow,
 ) (string, error) {
 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
 		return "", nil // No output artifacts, skip the reporting
@@ -585,7 +585,7 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 		NodeID:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
 	}
-	artifactResponse, err := artifactClient.ReadArtifact(artifactRequest)
+	artifactResponse, err := readArtifact(artifactRequest)
 	if err != nil {
 		return "", err
 	}
