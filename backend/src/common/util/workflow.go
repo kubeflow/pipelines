@@ -33,6 +33,7 @@ import (
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifact"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -480,7 +481,7 @@ const (
 	maxMetricsCountLimit = 50
 )
 
-func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.RunMetric, []error) {
+func (w *Workflow) CollectionMetrics(retrieveArtifact artifact.RetrieveArtifact) ([]*api.RunMetric, []error) {
 	runID := w.Labels[LabelKeyWorkflowRunId]
 	runMetrics := make([]*api.RunMetric, 0, len(w.Status.Nodes))
 	partialFailures := make([]error, 0, len(w.Status.Nodes))
@@ -504,7 +505,7 @@ func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact) ([]*api.
 	return runMetrics, partialFailures
 }
 
-func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, retrieveArtifact RetrieveArtifact, wf workflowapi.Workflow) (
+func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, retrieveArtifact artifact.RetrieveArtifact, wf workflowapi.Workflow) (
 	[]*api.RunMetric, error,
 ) {
 	if !nodeStatus.Completed() {
@@ -563,7 +564,7 @@ func transformJSONForBackwardCompatibility(jsonStr string) (string, error) {
 }
 
 func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,
-	retrieveArtifact RetrieveArtifact, wf *workflowapi.Workflow,
+	retrieveArtifact artifact.RetrieveArtifact, wf *workflowapi.Workflow,
 ) (string, error) {
 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
 		return "", nil // No output artifacts, skip the reporting
@@ -579,7 +580,7 @@ func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus
 		return "", nil // No metrics artifact, skip the reporting
 	}
 
-	artifactRequest := &ReadArtifactRequest{
+	artifactRequest := &artifact.ReadArtifactRequest{
 		RunID:        runID,
 		NodeID:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
