@@ -1,4 +1,4 @@
-package client
+package token_refresher
 
 import (
 	"os"
@@ -8,18 +8,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type TokenRefresherInterface interface {
-	GetToken() string
-	RefreshToken() error
-}
-
 const SaTokenFile = "/var/run/secrets/kubeflow/tokens/persistenceagent-sa-token"
 
 type FileReader interface {
 	ReadFile(filename string) ([]byte, error)
 }
 
-type tokenRefresher struct {
+type TokenRefresher struct {
 	mu         sync.RWMutex
 	interval   *time.Duration
 	token      string
@@ -32,12 +27,13 @@ func (r *FileReaderImpl) ReadFile(filename string) ([]byte, error) {
 	return os.ReadFile(filename)
 }
 
-func NewTokenRefresher(interval time.Duration, fileReader FileReader) *tokenRefresher {
+// NewTokenRefresher creates a new token refresher
+func NewTokenRefresher(interval time.Duration, fileReader FileReader) *TokenRefresher {
 	if fileReader == nil {
 		fileReader = &FileReaderImpl{}
 	}
 
-	tokenRefresher := &tokenRefresher{
+	tokenRefresher := &TokenRefresher{
 		interval:   &interval,
 		fileReader: &fileReader,
 	}
@@ -45,7 +41,7 @@ func NewTokenRefresher(interval time.Duration, fileReader FileReader) *tokenRefr
 	return tokenRefresher
 }
 
-func (tr *tokenRefresher) StartTokenRefreshTicker() error {
+func (tr *TokenRefresher) StartTokenRefreshTicker() error {
 	err := tr.RefreshToken()
 	if err != nil {
 		return err
@@ -60,13 +56,13 @@ func (tr *tokenRefresher) StartTokenRefreshTicker() error {
 	return err
 }
 
-func (tr *tokenRefresher) GetToken() string {
+func (tr *TokenRefresher) GetToken() string {
 	tr.mu.RLock()
 	defer tr.mu.RUnlock()
 	return tr.token
 }
 
-func (tr *tokenRefresher) RefreshToken() error {
+func (tr *TokenRefresher) RefreshToken() error {
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
 	b, err := (*tr.fileReader).ReadFile(SaTokenFile)

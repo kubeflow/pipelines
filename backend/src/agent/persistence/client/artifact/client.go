@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/token_refresher"
 )
 
 // ReadArtifactRequest represents a request to read artifact content
@@ -78,12 +79,6 @@ func NewError(code ErrorCode, cause error, format string, args ...interface{}) *
 	}
 }
 
-// TokenRefresher defines the minimal interface needed for token management
-type TokenRefresher interface {
-	GetToken() string
-	RefreshToken() error
-}
-
 // ClientInterface defines the interface for artifact operations
 type ClientInterface interface {
 	ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactResponse, error)
@@ -93,11 +88,11 @@ type ClientInterface interface {
 type Client struct {
 	httpBaseURL    string
 	httpClient     *http.Client
-	tokenRefresher TokenRefresher
+	tokenRefresher *token_refresher.TokenRefresher
 }
 
 // NewClient creates a new artifact client
-func NewClient(httpBaseURL string, httpClient *http.Client, tokenRefresher TokenRefresher) *Client {
+func NewClient(httpBaseURL string, httpClient *http.Client, tokenRefresher *token_refresher.TokenRefresher) *Client {
 	return &Client{
 		httpBaseURL:    httpBaseURL,
 		httpClient:     httpClient,

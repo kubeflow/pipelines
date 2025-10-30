@@ -26,6 +26,7 @@ import (
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifact"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/token_refresher"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
@@ -47,7 +48,7 @@ type PipelineClient struct {
 	timeout             time.Duration
 	reportServiceClient api.ReportServiceClient
 	runServiceClient    api.RunServiceClient
-	tokenRefresher      TokenRefresherInterface
+	tokenRefresher      *token_refresher.TokenRefresher
 	httpClient          *http.Client
 	httpBaseURL         string
 	artifactClient      artifact.ClientInterface
@@ -56,7 +57,7 @@ type PipelineClient struct {
 func NewPipelineClient(
 	initializeTimeout time.Duration,
 	timeout time.Duration,
-	tokenRefresher TokenRefresherInterface,
+	tokenRefresher *token_refresher.TokenRefresher,
 	basePath string,
 	mlPipelineServiceName string,
 	mlPipelineServiceHttpPort string,
