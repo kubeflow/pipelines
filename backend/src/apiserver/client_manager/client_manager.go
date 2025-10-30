@@ -1074,20 +1074,44 @@ func buildBlobStorageConfig(ctx context.Context, k8sClient kubernetes.Interface)
 	// Create SessionInfo for v2 compatibility
 	var sessionInfo *objectstore.SessionInfo
 	if accessKey != "" || secretKey != "" {
-		sessionInfo = &objectstore.SessionInfo{
-			Provider: "minio",
-			Params: map[string]string{
-				"fromEnv": "true",
-			},
+		params := map[string]string{
+			"fromEnv": "false",
 		}
+
 		// In multi-user mode, also specify the secret information for v2 components
 		if k8sClient != nil {
 			secretNamespace := common.GetPodNamespace()
 			if secretNamespace == "" {
 				secretNamespace = "kubeflow"
 			}
-			sessionInfo.Params["secretName"] = minioArtifactSecretName
-			sessionInfo.Params["namespace"] = secretNamespace
+			params["secretName"] = minioArtifactSecretName
+			params["namespace"] = secretNamespace
+			params["accessKeyKey"] = minioArtifactAccessKeyKey
+			params["secretKeyKey"] = minioArtifactSecretKeyKey
+		}
+
+		// Add S3-compatible storage configuration parameters
+		if host != "" {
+			endpoint := host
+			if port != "" {
+				endpoint = fmt.Sprintf("%s:%s", host, port)
+			}
+			params["endpoint"] = endpoint
+			params["disableSSL"] = fmt.Sprintf("%t", !secure)
+			params["forcePathStyle"] = "true"
+		}
+
+		// Add region if specified
+		if region != "" {
+			params["region"] = region
+		} else if host != "" {
+			// Default region for MinIO/S3-compatible storage
+			params["region"] = "us-east-1"
+		}
+
+		sessionInfo = &objectstore.SessionInfo{
+			Provider: "minio",
+			Params:   params,
 		}
 	}
 
