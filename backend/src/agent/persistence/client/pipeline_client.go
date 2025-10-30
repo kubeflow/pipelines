@@ -37,9 +37,9 @@ const (
 )
 
 type PipelineClientInterface interface {
+	artifact.ClientInterface
 	ReportWorkflow(workflow util.ExecutionSpec) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
-	ReadArtifact(request *artifact.ReadArtifactRequest) (*artifact.ReadArtifactResponse, error)
 	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
 }
 

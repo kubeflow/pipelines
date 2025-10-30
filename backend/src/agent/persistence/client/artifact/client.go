@@ -44,9 +44,6 @@ type ReadArtifactResponse struct {
 	Data []byte
 }
 
-// RetrieveArtifact is a function type for artifact retrieval operations
-type RetrieveArtifact func(request *ReadArtifactRequest) (*ReadArtifactResponse, error)
-
 // ErrorCode represents different types of errors
 type ErrorCode int
 
