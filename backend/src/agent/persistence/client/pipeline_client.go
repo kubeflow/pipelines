@@ -40,7 +40,6 @@ type PipelineClientInterface interface {
 	ReportWorkflow(workflow util.ExecutionSpec) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
 	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
-	GetArtifactClient() artifact.ClientInterface
 }
 
 type PipelineClient struct {
@@ -198,11 +197,6 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 	return nil
 }
 
-// GetArtifactClient returns the artifact client for reading artifacts
-func (p *PipelineClient) GetArtifactClient() artifact.ClientInterface {
-	return p.artifactClient
-}
-
 // ReportRunMetrics reports run metrics to run service.
 func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
 	pctx := context.Background()
@@ -230,4 +224,9 @@ func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest) 
 			"Error while reporting metrics (%+v): %+v", request, err)
 	}
 	return response, nil
+}
+
+// ArtifactClient returns the artifact client for dependency injection
+func (p *PipelineClient) ArtifactClient() artifact.ClientInterface {
+	return p.artifactClient
 }

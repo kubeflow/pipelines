@@ -66,7 +66,7 @@ func NewPersistenceAgent(
 
 	workflowWorker, err := worker.NewPersistenceWorker(time, workflowregister.WorkflowKind,
 		execInformer, true,
-		worker.NewWorkflowSaver(workflowClient, pipelineClient, ttlSecondsAfterWorkflowFinish))
+		worker.NewWorkflowSaver(workflowClient, pipelineClient, pipelineClient.ArtifactClient(), ttlSecondsAfterWorkflowFinish))
 	if err != nil {
 		return nil, err
 	}

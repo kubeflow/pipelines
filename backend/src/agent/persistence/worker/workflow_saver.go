@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifact"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -32,11 +33,11 @@ type WorkflowSaver struct {
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
-	pipelineClient client.PipelineClientInterface, ttlSecondsAfterWorkflowFinish int64) *WorkflowSaver {
+	pipelineClient client.PipelineClientInterface, artifactClient artifact.ClientInterface, ttlSecondsAfterWorkflowFinish int64) *WorkflowSaver {
 	return &WorkflowSaver{
 		client:                        client,
 		pipelineClient:                pipelineClient,
-		metricsReporter:               NewMetricsReporter(pipelineClient, pipelineClient.GetArtifactClient()),
+		metricsReporter:               NewMetricsReporter(pipelineClient, artifactClient),
 		ttlSecondsAfterWorkflowFinish: ttlSecondsAfterWorkflowFinish,
 	}
 }

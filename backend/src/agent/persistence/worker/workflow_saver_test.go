@@ -41,7 +41,7 @@ func TestWorkflow_Save_Success(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, pipelineFake.ArtifactClient(), 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -53,7 +53,7 @@ func TestWorkflow_Save_NotFoundDuringGet(t *testing.T) {
 	workflowFake := client.NewWorkflowClientFake()
 	pipelineFake := client.NewPipelineClientFake()
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, pipelineFake.ArtifactClient(), 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -68,7 +68,7 @@ func TestWorkflow_Save_ErrorDuringGet(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", nil)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, pipelineFake.ArtifactClient(), 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -94,7 +94,7 @@ func TestWorkflow_Save_PermanentFailureWhileReporting(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, pipelineFake.ArtifactClient(), 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -120,7 +120,7 @@ func TestWorkflow_Save_TransientFailureWhileReporting(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, pipelineFake.ArtifactClient(), 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -150,7 +150,7 @@ func TestWorkflow_Save_SkippedDueToFinalStatue(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, pipelineFake.ArtifactClient(), 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 
@@ -182,7 +182,7 @@ func TestWorkflow_Save_FinalStatueNotSkippedDueToExceedTTL(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, 1)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, pipelineFake.ArtifactClient(), 1)
 
 	// Sleep 2 seconds to make sure workflow passed TTL
 	time.Sleep(2 * time.Second)
@@ -211,7 +211,7 @@ func TestWorkflow_Save_SkippedDDueToMissingRunID(t *testing.T) {
 
 	workflowFake.Put("MY_NAMESPACE", "MY_NAME", workflow)
 
-	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, pipelineFake.ArtifactClient(), 100)
 
 	err := saver.Save("MY_KEY", "MY_NAMESPACE", "MY_NAME", 20)
 

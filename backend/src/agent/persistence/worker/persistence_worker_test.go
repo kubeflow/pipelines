@@ -67,7 +67,7 @@ func TestPersistenceWorker_Success(t *testing.T) {
 	pipelineClient := client.NewPipelineClientFake()
 
 	// Set up persistence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, pipelineClient.ArtifactClient(), 100)
 	eventHandler := NewFakeEventHandler()
 	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -98,7 +98,7 @@ func TestPersistenceWorker_NotFoundError(t *testing.T) {
 	pipelineClient := client.NewPipelineClientFake()
 
 	// Set up persistence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, pipelineClient.ArtifactClient(), 100)
 	eventHandler := NewFakeEventHandler()
 	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -130,7 +130,7 @@ func TestPersistenceWorker_GetWorklowError(t *testing.T) {
 	pipelineClient := client.NewPipelineClientFake()
 
 	// Set up persistence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, pipelineClient.ArtifactClient(), 100)
 	eventHandler := NewFakeEventHandler()
 	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -165,7 +165,7 @@ func TestPersistenceWorker_ReportWorkflowRetryableError(t *testing.T) {
 		"My Retriable Error"))
 
 	// Set up persistence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, pipelineClient.ArtifactClient(), 100)
 	eventHandler := NewFakeEventHandler()
 	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -199,7 +199,7 @@ func TestPersistenceWorker_ReportWorkflowNonRetryableError(t *testing.T) {
 		"My Permanent Error"))
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, pipelineClient.ArtifactClient(), 100)
 	eventHandler := NewFakeEventHandler()
 	worker, err := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
