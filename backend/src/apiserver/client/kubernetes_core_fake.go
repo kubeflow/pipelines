@@ -20,6 +20,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	policyv1 "k8s.io/api/policy/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
@@ -32,6 +33,11 @@ func (c *FakeKuberneteCoreClient) PodClient(namespace string) v1.PodInterface {
 		panic(util.NewResourceNotFoundError("Namespace", namespace))
 	}
 	return c.podClientFake
+}
+
+func (c *FakeKuberneteCoreClient) GetClientSet() kubernetes.Interface {
+	// Return nil for fake implementation - tests that need this should use a mock
+	return nil
 }
 
 func NewFakeKuberneteCoresClient() *FakeKuberneteCoreClient {
@@ -48,6 +54,11 @@ func NewFakeKubernetesCoreClientWithBadPodClient() *FakeKubernetesCoreClientWith
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) PodClient(namespace string) v1.PodInterface {
 	return c.podClientFake
+}
+
+func (c *FakeKubernetesCoreClientWithBadPodClient) GetClientSet() kubernetes.Interface {
+	// Return nil for fake implementation
+	return nil
 }
 
 func (c *FakePodClient) EvictV1(context.Context, *policyv1.Eviction) error {

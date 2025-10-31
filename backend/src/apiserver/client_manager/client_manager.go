@@ -301,19 +301,8 @@ func (c *ClientManager) init(options *Options) error {
 
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
-	restConfig, err := util.GetKubernetesConfig()
-	if err != nil {
-		return err
-	}
-	restConfig.QPS = float32(clientParams.QPS)
-	restConfig.Burst = clientParams.Burst
-	k8sClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return util.Wrap(err, "Failed to create Kubernetes client for blob storage")
-	}
-
 	glog.Info("Initializing Object store client...")
-	c.objectStore = initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout), k8sClient)
+	c.objectStore = initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout), c.k8sCoreClient.GetClientSet())
 	glog.Info("Object store client initialized successfully")
 
 	runStore := storage.NewRunStore(db, c.time)
