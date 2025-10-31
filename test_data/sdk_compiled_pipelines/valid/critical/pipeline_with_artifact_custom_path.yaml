@@ -1,0 +1,122 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-custom-path-artifact
+# Description: pipeline with artifact with custom path
+components:
+  comp-component-output-artifact:
+    executorLabel: exec-component-output-artifact
+    outputDefinitions:
+      artifacts:
+        out_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-validate-input-artifact:
+    executorLabel: exec-validate-input-artifact
+    inputDefinitions:
+      artifacts:
+        in_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: BOOLEAN
+deploymentSpec:
+  executors:
+    exec-component-output-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_output_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_output_artifact(out_dataset: Output[Dataset]):\n  \
+          \  out_dataset.set_path('/tmp/out_dataset')\n\n    with open(out_dataset.path,\
+          \ 'w') as f:\n        f.write('Hello, World!')\n\n    if out_dataset.path\
+          \ != '/tmp/out_dataset':\n        raise ValueError(f\"File path is {out_dataset.path}\
+          \ but should be '/tmp/out_dataset'.\")\n    if out_dataset.custom_path !=\
+          \ '/tmp/out_dataset':\n        raise ValueError(f\"File uri is {out_dataset.custom_path}\
+          \ but should be '/tmp/out_dataset'.\")\n\n"
+        image: python:3.11
+    exec-validate-input-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - validate_input_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef validate_input_artifact(in_dataset: Input[Dataset]) -> bool:\n\
+          \    if in_dataset is None:\n        raise ValueError(\"Input artifact is\
+          \ None.\")\n    with open(in_dataset.path, 'r') as f:\n        for line\
+          \ in f:\n            if line != 'Hello, World!':\n                raise\
+          \ ValueError(f\"File content is {line} but should be 'Hello, World!'.\"\
+          )\n    return True\n\n"
+        image: python:3.11
+pipelineInfo:
+  description: pipeline with artifact with custom path
+  name: pipeline-with-custom-path-artifact
+root:
+  dag:
+    tasks:
+      component-output-artifact:
+        cachingOptions: {}
+        componentRef:
+          name: comp-component-output-artifact
+        taskInfo:
+          name: component-output-artifact
+      validate-input-artifact:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-validate-input-artifact
+        dependentTasks:
+        - component-output-artifact
+        inputs:
+          artifacts:
+            in_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: out_dataset
+                producerTask: component-output-artifact
+        taskInfo:
+          name: validate-input-artifact
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6
