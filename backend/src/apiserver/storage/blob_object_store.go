@@ -27,11 +27,12 @@ import (
 )
 
 // BlobObjectStore implements ObjectStoreInterface using gocloud.dev/blob
-// This replaces the MinIO-specific implementation with a provider-agnostic blob storage interface
 type BlobObjectStore struct {
 	bucket     *blob.Bucket
 	baseFolder string
 }
+
+var _ ObjectStoreInterface = &BlobObjectStore{}
 
 // GetPipelineKey adds the configured base folder to pipeline id.
 func (b *BlobObjectStore) GetPipelineKey(pipelineID string) string {
@@ -52,7 +53,7 @@ func (b *BlobObjectStore) AddFile(ctx context.Context, file []byte, filePath str
 		return util.NewInternalServerError(err, "Failed to write file %v", filePath)
 	}
 
-	return writer.Close()
+	return nil
 }
 
 func (b *BlobObjectStore) DeleteFile(ctx context.Context, filePath string) error {
