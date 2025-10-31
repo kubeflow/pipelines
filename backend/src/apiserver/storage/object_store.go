@@ -22,7 +22,7 @@ import (
 	"regexp"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	minio "github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7"
 	"sigs.k8s.io/yaml"
 )
 
