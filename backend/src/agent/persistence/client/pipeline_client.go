@@ -50,8 +50,6 @@ type PipelineClient struct {
 	reportServiceClient api.ReportServiceClient
 	runServiceClient    api.RunServiceClient
 	tokenRefresher      *tokenrefresher.TokenRefresher
-	httpClient          *http.Client
-	httpBaseURL         string
 	artifactClient      artifact.Client
 }
 
@@ -96,8 +94,6 @@ func NewPipelineClient(
 		reportServiceClient: api.NewReportServiceClient(connection),
 		tokenRefresher:      tokenRefresher,
 		runServiceClient:    api.NewRunServiceClient(connection),
-		httpClient:          httpClient,
-		httpBaseURL:         httpBaseURL,
 		artifactClient:      artifactClient,
 	}, nil
 }
