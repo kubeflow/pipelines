@@ -78,6 +78,8 @@ const (
 
 	clientQPS   = "ClientQPS"
 	clientBurst = "ClientBurst"
+
+	defaultRegion = "us-east-1"
 )
 
 var scheme *runtime.Scheme
@@ -302,7 +304,11 @@ func (c *ClientManager) init(options *Options) error {
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	glog.Info("Initializing Object store client...")
-	c.objectStore = initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout), c.k8sCoreClient.GetClientSet())
+	objectStore, err := initBlobObjectStore(options.Context, common.GetDurationConfig(initConnectionTimeout), c.k8sCoreClient.GetClientSet())
+	if err != nil {
+		return fmt.Errorf("failed to initialize object store: %w", err)
+	}
+	c.objectStore = objectStore
 	glog.Info("Object store client initialized successfully")
 
 	runStore := storage.NewRunStore(db, c.time)
@@ -940,17 +946,16 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 	})
 }
 
-func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration, k8sClient kubernetes.Interface) storage.ObjectStoreInterface {
+func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration, k8sClient kubernetes.Interface) (storage.ObjectStoreInterface, error) {
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
 
-	// Build configuration from environment variables for backward compatibility
-	config := buildConfigFromEnvVars(ctx, k8sClient)
+	blobConfig := buildConfigFromEnvVars()
+	config := blobConfig.config
 
-	// Open bucket using v2's OpenBucket with retry logic
 	bucket, err := openBucketWithRetry(ctx, config, initConnectionTimeout, k8sClient)
 	if err != nil {
-		glog.Fatalf("Failed to open blob storage bucket: %v", err)
+		return nil, fmt.Errorf("failed to open blob storage bucket: %w", err)
 	}
 
 	// For MinIO, ensure the bucket exists (create if it doesn't)
@@ -958,20 +963,28 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	if bucketName != "" && config.SessionInfo != nil {
 		switch config.SessionInfo.Provider {
 		case "minio", "s3":
-			if err := ensureMinioBucketExists(ctx, config, bucketName, k8sClient); err != nil {
+			if err := ensureMinioBucketExists(ctx, config, bucketName, blobConfig.accessKey, blobConfig.secretKey, k8sClient); err != nil {
 				glog.Warningf("Failed to ensure MinIO bucket exists (may already exist): %v", err)
 			}
 		}
 	}
 
 	glog.Infof("Successfully initialized blob storage for bucket: %s", bucketName)
-	return storage.NewBlobObjectStore(bucket, pipelinePath)
+	return storage.NewBlobObjectStore(bucket, pipelinePath), nil
+}
+
+// blobStorageConfig holds both the objectstore config and credentials
+type blobStorageConfig struct {
+	config    *objectstore.Config
+	accessKey string
+	secretKey string
 }
 
 // buildConfigFromEnvVars creates objectstore.Config from environment variables
 // This bridges the gap between API server's environment variable configuration
 // and the v2 objectstore package's expected configuration format.
-func buildConfigFromEnvVars(ctx context.Context, k8sClient kubernetes.Interface) *objectstore.Config {
+// Returns both the config and credentials to avoid re-reading them.
+func buildConfigFromEnvVars() *blobStorageConfig {
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
 	port := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
@@ -979,8 +992,6 @@ func buildConfigFromEnvVars(ctx context.Context, k8sClient kubernetes.Interface)
 	region := common.GetStringConfigWithDefault("ObjectStoreConfig.Region", "")
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
-
-	glog.Infof("Initial credential check - accessKey present: %v, secretKey present: %v", accessKey != "", secretKey != "")
 
 	// Constants for MinIO secret (consistent with v2 config)
 	const minioArtifactSecretName = "mlpipeline-minio-artifact"
@@ -991,11 +1002,9 @@ func buildConfigFromEnvVars(ctx context.Context, k8sClient kubernetes.Interface)
 	// This is critical for gocloud.dev/blob to work when using fromEnv=true
 	if accessKey != "" {
 		os.Setenv("AWS_ACCESS_KEY_ID", accessKey)
-		glog.Infof("Set AWS_ACCESS_KEY_ID from environment variable")
 	}
 	if secretKey != "" {
 		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
-		glog.Infof("Set AWS_SECRET_ACCESS_KEY from environment variable")
 	}
 	if region != "" {
 		os.Setenv("AWS_REGION", region)
@@ -1003,17 +1012,11 @@ func buildConfigFromEnvVars(ctx context.Context, k8sClient kubernetes.Interface)
 
 	// For MinIO/S3 compatible storage, ensure we have default region if not specified
 	if host != "" && region == "" {
-		region = "us-east-1"
-		os.Setenv("AWS_REGION", region)
+		os.Setenv("AWS_REGION", defaultRegion)
 	}
 
-	// Get namespace for SessionInfo
 	secretNamespace := common.GetPodNamespace()
-	if secretNamespace == "" {
-		secretNamespace = "kubeflow"
-	}
 
-	// Construct endpoint with port
 	endpoint := host
 	if port != "" {
 		endpoint = fmt.Sprintf("%s:%s", host, port)
@@ -1032,7 +1035,6 @@ func buildConfigFromEnvVars(ctx context.Context, k8sClient kubernetes.Interface)
 		params["fromEnv"] = "true"
 	} else {
 		// No credentials in environment, tell v2 to read from Kubernetes secret
-		// This might happen in certain deployment configurations
 		glog.Infof("No credentials in environment, configuring v2 to read from Kubernetes secret (fromEnv=false)")
 		params["fromEnv"] = "false"
 		params["secretName"] = minioArtifactSecretName
@@ -1048,7 +1050,6 @@ func buildConfigFromEnvVars(ctx context.Context, k8sClient kubernetes.Interface)
 		params["forcePathStyle"] = "true"
 	}
 
-	// Add region configuration
 	if region != "" {
 		params["region"] = region
 	}
@@ -1065,10 +1066,14 @@ func buildConfigFromEnvVars(ctx context.Context, k8sClient kubernetes.Interface)
 		Params:   params,
 	}
 
-	return &objectstore.Config{
-		Scheme:      "s3://",
-		BucketName:  bucketName,
-		SessionInfo: sessionInfo,
+	return &blobStorageConfig{
+		config: &objectstore.Config{
+			Scheme:      "s3://",
+			BucketName:  bucketName,
+			SessionInfo: sessionInfo,
+		},
+		accessKey: accessKey,
+		secretKey: secretKey,
 	}
 }
 
@@ -1077,15 +1082,9 @@ func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeou
 	var bucket *blob.Bucket
 	var err error
 
-	// Get the namespace for secret lookup
 	namespace := common.GetPodNamespace()
-	if namespace == "" {
-		namespace = "kubeflow"
-	}
 
-	// Use exponential backoff to retry bucket initialization
 	operation := func() error {
-		// Use v2's OpenBucket which handles SessionInfo and credentials
 		bucket, err = objectstore.OpenBucket(ctx, k8sClient, namespace, config)
 		if err != nil {
 			glog.Warningf("Failed to open blob bucket, retrying: %v", err)
@@ -1094,7 +1093,6 @@ func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeou
 		return nil
 	}
 
-	// Configure backoff with the specified timeout
 	expBackoff := backoff.NewExponentialBackOff()
 	expBackoff.MaxElapsedTime = timeout
 
@@ -1125,36 +1123,57 @@ func createMinioBucket(ctx context.Context, minioClient *minio.Client, bucketNam
 	glog.Infof("Successfully created bucket %s\n", bucketName)
 }
 
-// ensureMinioBucketExists creates a MinIO bucket if it doesn't exist, using configuration
-func ensureMinioBucketExists(ctx context.Context, config *objectstore.Config, bucketName string, k8sClient kubernetes.Interface) error {
-	// Create MinIO client using the same configuration as the blob storage
-	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
-	port := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
-	secure := common.GetBoolConfigWithDefault("ObjectStoreConfig.Secure", false)
-	region := common.GetStringConfigWithDefault("ObjectStoreConfig.Region", "")
-	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
-	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
-
-	// Default region for MinIO
-	if region == "" {
-		region = "us-east-1"
+// ensureMinioBucketExists creates a MinIO bucket if it doesn't exist, using the provided config and credentials
+func ensureMinioBucketExists(ctx context.Context, config *objectstore.Config, bucketName string, accessKey, secretKey string, k8sClient kubernetes.Interface) error {
+	if config.SessionInfo == nil {
+		return fmt.Errorf("SessionInfo not available in config")
 	}
 
-	// Try to get credentials from Kubernetes secret if not in env
-	if k8sClient != nil && accessKey == "" && secretKey == "" {
-		secretNamespace := common.GetPodNamespace()
-		if secretNamespace == "" {
-			secretNamespace = "kubeflow"
+	endpoint, ok := config.SessionInfo.Params["endpoint"]
+	if !ok || endpoint == "" {
+		return fmt.Errorf("MinIO endpoint not configured")
+	}
+
+	disableSSL := config.SessionInfo.Params["disableSSL"] == "true"
+	secure := !disableSSL
+
+	// If credentials weren't provided, try reading from Kubernetes secret
+	if accessKey == "" || secretKey == "" {
+		if k8sClient == nil {
+			return fmt.Errorf("MinIO credentials not available and no Kubernetes client")
 		}
 
-		secret, err := k8sClient.CoreV1().Secrets(secretNamespace).Get(ctx, "mlpipeline-minio-artifact", metav1.GetOptions{})
-		if err == nil {
-			if accessKeyBytes, ok := secret.Data["accesskey"]; ok {
-				accessKey = string(accessKeyBytes)
+		secretName := config.SessionInfo.Params["secretName"]
+		if secretName == "" {
+			secretName = "mlpipeline-minio-artifact"
+		}
+		secretNamespace := config.SessionInfo.Params["namespace"]
+		if secretNamespace == "" {
+			secretNamespace = common.GetPodNamespace()
+			if secretNamespace == "" {
+				secretNamespace = "kubeflow"
 			}
-			if secretKeyBytes, ok := secret.Data["secretkey"]; ok {
-				secretKey = string(secretKeyBytes)
-			}
+		}
+
+		secret, err := k8sClient.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to read MinIO credentials from secret: %w", err)
+		}
+
+		accessKeyKey := config.SessionInfo.Params["accessKeyKey"]
+		if accessKeyKey == "" {
+			accessKeyKey = "accesskey"
+		}
+		secretKeyKey := config.SessionInfo.Params["secretKeyKey"]
+		if secretKeyKey == "" {
+			secretKeyKey = "secretkey"
+		}
+
+		if accessKeyBytes, ok := secret.Data[accessKeyKey]; ok {
+			accessKey = string(accessKeyBytes)
+		}
+		if secretKeyBytes, ok := secret.Data[secretKeyKey]; ok {
+			secretKey = string(secretKeyBytes)
 		}
 	}
 
@@ -1162,16 +1181,6 @@ func ensureMinioBucketExists(ctx context.Context, config *objectstore.Config, bu
 		return fmt.Errorf("MinIO credentials not available")
 	}
 
-	// Build MinIO endpoint
-	endpoint := host
-	if port != "" {
-		endpoint = fmt.Sprintf("%s:%s", host, port)
-	}
-	if endpoint == "" {
-		return fmt.Errorf("MinIO host not configured")
-	}
-
-	// Create MinIO client
 	minioClient, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: secure,
@@ -1180,8 +1189,7 @@ func ensureMinioBucketExists(ctx context.Context, config *objectstore.Config, bu
 		return fmt.Errorf("failed to create MinIO client: %w", err)
 	}
 
-	// Use the existing createMinioBucket function
-	createMinioBucket(ctx, minioClient, bucketName, region)
+	createMinioBucket(ctx, minioClient, bucketName, config.SessionInfo.Params["region"])
 	return nil
 }
 
