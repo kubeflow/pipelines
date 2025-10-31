@@ -76,7 +76,7 @@ func (m *FakeBadObjectStore) GetFromYamlFile(ctx context.Context, o interface{},
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
-func (m *FakeBadObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+func (m *FakeBadObjectStore) GetFileReader(context.Context, string) (io.ReadCloser, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
 
