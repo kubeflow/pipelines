@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/token_refresher"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/tokenrefresher"
 )
 
 // ReadArtifactRequest represents a request to read artifact content
@@ -88,13 +88,13 @@ type Client interface {
 type client struct {
 	httpBaseURL    string
 	httpClient     *http.Client
-	tokenRefresher *token_refresher.TokenRefresher
+	tokenRefresher *tokenrefresher.TokenRefresher
 }
 
 var _ Client = &client{}
 
 // NewClient creates a new artifact client
-func NewClient(httpBaseURL string, httpClient *http.Client, tokenRefresher *token_refresher.TokenRefresher) Client {
+func NewClient(httpBaseURL string, httpClient *http.Client, tokenRefresher *tokenrefresher.TokenRefresher) Client {
 	return &client{
 		httpBaseURL:    httpBaseURL,
 		httpClient:     httpClient,

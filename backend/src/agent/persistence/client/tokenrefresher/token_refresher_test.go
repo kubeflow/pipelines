@@ -1,4 +1,4 @@
-package token_refresher
+package tokenrefresher
 
 import (
 	"fmt"

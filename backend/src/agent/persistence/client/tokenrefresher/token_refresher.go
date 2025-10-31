@@ -1,4 +1,6 @@
-package token_refresher
+// Package tokenrefresher provides functionality to periodically refresh service account tokens
+// from the filesystem for secure authentication in Kubernetes environments.
+package tokenrefresher
 
 import (
 	"os"
