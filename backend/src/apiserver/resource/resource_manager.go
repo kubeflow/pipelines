@@ -1627,9 +1627,8 @@ func (r *ResourceManager) ReportMetric(metric *model.RunMetric) error {
 	return nil
 }
 
-// resolveArtifactPath resolves the object storage path for an artifact.
-// This function contains the common logic shared by StreamArtifact and other artifact operations.
-func (r *ResourceManager) resolveArtifactPath(runID string, nodeID string, artifactName string) (string, error) {
+// ResolveArtifactPath resolves the object storage path for an artifact.
+func (r *ResourceManager) ResolveArtifactPath(runID string, nodeID string, artifactName string) (string, error) {
 	run, err := r.runStore.GetRun(runID)
 	if err != nil {
 		return "", err
@@ -1639,7 +1638,6 @@ func (r *ResourceManager) resolveArtifactPath(runID string, nodeID string, artif
 	}
 	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
 	if err != nil {
-		// This should never happen.
 		return "", util.NewInternalServerError(
 			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
 	}
@@ -1651,28 +1649,20 @@ func (r *ResourceManager) resolveArtifactPath(runID string, nodeID string, artif
 	return artifactPath, nil
 }
 
-// ResolveArtifactPath is a public wrapper for resolveArtifactPath.
-// This allows other components to validate artifact paths without accessing the file.
-func (r *ResourceManager) ResolveArtifactPath(runID string, nodeID string, artifactName string) (string, error) {
-	return r.resolveArtifactPath(runID, nodeID, artifactName)
-}
-
 // StreamArtifact safely streams artifact content from object storage to the provided writer.
-// This prevents memory exhaustion attacks by streaming data directly without buffering.
-func (r *ResourceManager) StreamArtifact(ctx context.Context, runID string, nodeID string, artifactName string, w io.Writer) error {
-	artifactPath, err := r.resolveArtifactPath(runID, nodeID, artifactName)
+func (r *ResourceManager) StreamArtifact(ctx context.Context, runID string, nodeID string, artifactName string, writer io.Writer) error {
+	artifactPath, err := r.ResolveArtifactPath(runID, nodeID, artifactName)
 	if err != nil {
 		return err
 	}
 
-	// Stream from object store
 	reader, err := r.objectStore.GetFileReader(ctx, artifactPath)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to get file reader for %v", artifactPath)
 	}
 	defer reader.Close()
 
-	_, err = io.Copy(w, reader)
+	_, err = io.Copy(writer, reader)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to stream artifact content")
 	}
@@ -1714,20 +1704,15 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 		return nil, util.NewInvalidInputError("Failed to create a pipeline version due to missing pipeline id")
 	}
 
-	// Get pipeline spec from URL if needed
-	if len(pv.PipelineSpec) == 0 {
-		if len(pv.PipelineSpecURI) == 0 {
-			return nil, util.NewInvalidInputError("Pipeline version must have a pipeline spec or a valid source code's URL. PipelineSpec: %s. PipelineSpecURI: %s. CodeSourceUrl: %s. At least one of them must have a valid pipeline spec", pv.PipelineSpec, pv.PipelineSpecURI, pv.CodeSourceUrl)
-		}
-
-		template, err := r.objectStore.GetFile(context.TODO(), string(pv.PipelineSpecURI))
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to read pipeline spec from object store")
-		}
-		pv.PipelineSpec = model.LargeText(template)
+	// Fetch pipeline spec
+	pipelineSpecBytes, pipelineSpecURI, err := r.fetchTemplateFromPipelineVersion(pv)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a pipeline version as template is broken")
 	}
-
-	pipelineSpecBytes := []byte(pv.PipelineSpec)
+	pv.PipelineSpec = model.LargeText(string(pipelineSpecBytes))
+	if pipelineSpecURI != "" {
+		pv.PipelineSpecURI = model.LargeText(pipelineSpecURI)
+	}
 
 	// Create a template
 	templateOptions := template.TemplateOptions{
