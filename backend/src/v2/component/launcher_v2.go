@@ -939,6 +939,9 @@ func mergeRuntimeArtifacts(src, dst *pipelinespec.RuntimeArtifact) {
 	if src.Metadata != nil {
 		if dst.Metadata == nil {
 			dst.Metadata = src.Metadata
+		}
+		if src.CustomPath != nil && *src.CustomPath != "" {
+			dst.CustomPath = src.CustomPath
 		} else {
 			for k, v := range src.Metadata.Fields {
 				dst.Metadata.Fields[k] = v
