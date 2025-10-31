@@ -31,7 +31,6 @@ from kfp_server_api.models.api_pipeline import ApiPipeline
 from kfp_server_api.models.api_pipeline_runtime import ApiPipelineRuntime
 from kfp_server_api.models.api_pipeline_spec import ApiPipelineSpec
 from kfp_server_api.models.api_pipeline_version import ApiPipelineVersion
-from kfp_server_api.models.api_read_artifact_response import ApiReadArtifactResponse
 from kfp_server_api.models.api_relationship import ApiRelationship
 from kfp_server_api.models.api_report_run_metrics_response import ApiReportRunMetricsResponse
 from kfp_server_api.models.api_resource_key import ApiResourceKey

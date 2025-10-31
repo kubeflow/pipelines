@@ -21,6 +21,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"gocloud.dev/blob/memblob"
 )
 
 type FakeClientManager struct {
@@ -33,7 +34,7 @@ type FakeClientManager struct {
 	resourceReferenceStore        storage.ResourceReferenceStoreInterface
 	dBStatusStore                 storage.DBStatusStoreInterface
 	defaultExperimentStore        storage.DefaultExperimentStoreInterface
-	objectStore                   storage.ObjectStoreInterface
+	objectStore                   storage.ObjectStore
 	ExecClientFake                *client.FakeExecClient
 	swfClientFake                 *client.FakeSwfClient
 	k8sCoreClientFake             *client.FakeKuberneteCoreClient
@@ -74,7 +75,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		resourceReferenceStore:        storage.NewResourceReferenceStore(db, nil),
 		dBStatusStore:                 storage.NewDBStatusStore(db),
 		defaultExperimentStore:        storage.NewDefaultExperimentStore(db),
-		objectStore:                   storage.NewFakeObjectStore(),
+		objectStore:                   newFakeObjectStore(),
 		swfClientFake:                 client.NewFakeSwfClient(),
 		k8sCoreClientFake:             client.NewFakeKuberneteCoresClient(),
 		SubjectAccessReviewClientFake: client.NewFakeSubjectAccessReviewClient(),
@@ -117,7 +118,7 @@ func (f *FakeClientManager) PipelineStore() storage.PipelineStoreInterface {
 	return f.pipelineStore
 }
 
-func (f *FakeClientManager) ObjectStore() storage.ObjectStoreInterface {
+func (f *FakeClientManager) ObjectStore() storage.ObjectStore {
 	return f.objectStore
 }
 
@@ -194,4 +195,10 @@ func (f *FakeClientManager) UpdateUUID(uuid util.UUIDGeneratorInterface) {
 	f.uuid = uuid
 	f.experimentStore = storage.NewExperimentStore(f.db, f.time, uuid)
 	f.pipelineStore = storage.NewPipelineStore(f.db, f.time, uuid)
+}
+
+// newFakeObjectStore returns an in-memory object store for testing.
+func newFakeObjectStore() storage.ObjectStore {
+	bucket := memblob.OpenBucket(nil)
+	return storage.NewBlobObjectStore(bucket, "pipelines")
 }
