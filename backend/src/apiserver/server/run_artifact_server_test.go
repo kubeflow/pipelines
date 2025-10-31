@@ -1,4 +1,4 @@
-// Copyright 2024 The Kubeflow Authors
+// Copyright 2025 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -40,7 +41,8 @@ func TestStreamArtifactV1_Succeed(t *testing.T) {
 	// Setup test data
 	resourceManager, manager, run := initWithOneTimeRun(t)
 	defer resourceManager.Close()
-	resourceManager.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
+	err := resourceManager.ObjectStore().AddFile(context.TODO(), []byte(expectedContent), filePath)
+	require.NoError(t, err, "Failed to add file to object store")
 
 	// Create workflow with artifact
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -80,38 +82,31 @@ func TestStreamArtifactV1_Succeed(t *testing.T) {
 			},
 		},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err, "Failed to report workflow resource")
 
-	// Create HTTP test server
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	// Setup HTTP request
 	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/artifact-1:stream", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
-	// Setup mux variables for the request
 	req = mux.SetURLVars(req, map[string]string{
 		"run_id":        run.UUID,
 		"node_id":       "node-1",
 		"artifact_name": "artifact-1",
 	})
 
-	// Create response recorder
 	rr := httptest.NewRecorder()
 
-	// Call the handler
 	runArtifactServer.StreamArtifactV1(rr, req)
 
-	// Verify response
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "application/octet-stream", rr.Header().Get("Content-Type"))
 	assert.Equal(t, "attachment; filename=\"artifact-1\"", rr.Header().Get("Content-Disposition"))
 
-	// Read and verify response body
 	responseBody, err := io.ReadAll(rr.Body)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedContent, string(responseBody))
+	require.NoError(t, err, "Failed to read response body")
+	require.Equal(t, expectedContent, string(responseBody))
 }
 
 func TestStreamArtifactV1_RunNotFound(t *testing.T) {
@@ -119,36 +114,28 @@ func TestStreamArtifactV1_RunNotFound(t *testing.T) {
 	defer clientManager.Close()
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	// Create HTTP test server
 	runArtifactServer := NewRunArtifactServer(resourceManager)
 
-	// Setup HTTP request with non-existent run ID
 	url := "/apis/v1beta1/runs/non-existent-run-id/nodes/node-1/artifacts/artifact-1:stream"
 	req := httptest.NewRequest("GET", url, nil)
 
-	// Setup mux variables for the request
 	req = mux.SetURLVars(req, map[string]string{
 		"run_id":        "non-existent-run-id",
 		"node_id":       "node-1",
 		"artifact_name": "artifact-1",
 	})
 
-	// Create response recorder
 	rr := httptest.NewRecorder()
 
-	// Call the handler
 	runArtifactServer.StreamArtifactV1(rr, req)
 
-	// Verify response - should return an error (not 200)
-	assert.NotEqual(t, http.StatusOK, rr.Code)
+	require.NotEqual(t, http.StatusOK, rr.Code)
 }
 
 func TestStreamArtifactV1_ArtifactNotFound(t *testing.T) {
-	// Setup test data without adding the artifact file
 	resourceManager, manager, run := initWithOneTimeRun(t)
 	defer resourceManager.Close()
 
-	// Create workflow with artifact reference but no actual file
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "argoproj.io/v1alpha1",
@@ -187,30 +174,24 @@ func TestStreamArtifactV1_ArtifactNotFound(t *testing.T) {
 		},
 	})
 	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
+	require.NoError(t, err, "Failed to report workflow resource")
 
-	// Create HTTP test server
 	runArtifactServer := NewRunArtifactServer(manager)
 
-	// Setup HTTP request
 	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/artifact-1:stream", run.UUID)
 	req := httptest.NewRequest("GET", url, nil)
 
-	// Setup mux variables for the request
 	req = mux.SetURLVars(req, map[string]string{
 		"run_id":        run.UUID,
 		"node_id":       "node-1",
 		"artifact_name": "artifact-1",
 	})
 
-	// Create response recorder
 	rr := httptest.NewRecorder()
 
-	// Call the handler
 	runArtifactServer.StreamArtifactV1(rr, req)
 
-	// Verify response - should return an error for missing artifact
-	assert.NotEqual(t, http.StatusOK, rr.Code)
+	require.NotEqual(t, http.StatusOK, rr.Code)
 }
 
 func TestStreamArtifactV1_MissingParameters(t *testing.T) {
@@ -218,7 +199,6 @@ func TestStreamArtifactV1_MissingParameters(t *testing.T) {
 	defer clientManager.Close()
 	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
 
-	// Create HTTP test server
 	runArtifactServer := NewRunArtifactServer(resourceManager)
 
 	testCases := []struct {
@@ -245,18 +225,14 @@ func TestStreamArtifactV1_MissingParameters(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Setup HTTP request
 			req := httptest.NewRequest("GET", "/test", nil)
 			req = mux.SetURLVars(req, tc.vars)
 
-			// Create response recorder
 			rr := httptest.NewRecorder()
 
-			// Call the handler
 			runArtifactServer.StreamArtifactV1(rr, req)
 
-			// Verify response
-			assert.Equal(t, http.StatusBadRequest, rr.Code)
+			require.Equal(t, http.StatusBadRequest, rr.Code)
 		})
 	}
 }
