@@ -105,7 +105,7 @@ type ClientManager struct {
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
-	objectStore               storage.ObjectStoreInterface
+	objectStore               storage.ObjectStore
 	execClient                util.ExecutionClient
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
@@ -167,7 +167,7 @@ func (c *ClientManager) DefaultExperimentStore() storage.DefaultExperimentStoreI
 	return c.defaultExperimentStore
 }
 
-func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
+func (c *ClientManager) ObjectStore() storage.ObjectStore {
 	return c.objectStore
 }
 
@@ -946,7 +946,7 @@ func addDisplayNameColumn(db *gorm.DB, mdl interface{}, dialect SQLDialect) erro
 	})
 }
 
-func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration, k8sClient kubernetes.Interface) (storage.ObjectStoreInterface, error) {
+func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duration, k8sClient kubernetes.Interface) (storage.ObjectStore, error) {
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
 

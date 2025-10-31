@@ -88,7 +88,7 @@ type ClientManagerInterface interface {
 	ResourceReferenceStore() storage.ResourceReferenceStoreInterface
 	DBStatusStore() storage.DBStatusStoreInterface
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
-	ObjectStore() storage.ObjectStoreInterface
+	ObjectStore() storage.ObjectStore
 	ExecClient() util.ExecutionClient
 	SwfClient() client.SwfClientInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
@@ -116,7 +116,7 @@ type ResourceManager struct {
 	resourceReferenceStore    storage.ResourceReferenceStoreInterface
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
-	objectStore               storage.ObjectStoreInterface
+	objectStore               storage.ObjectStore
 	execClient                util.ExecutionClient
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
@@ -1671,7 +1671,7 @@ func (r *ResourceManager) StreamArtifact(ctx context.Context, runID string, node
 }
 
 // ObjectStore returns the object store interface for direct access to object storage operations
-func (r *ResourceManager) ObjectStore() storage.ObjectStoreInterface {
+func (r *ResourceManager) ObjectStore() storage.ObjectStore {
 	return r.objectStore
 }
 

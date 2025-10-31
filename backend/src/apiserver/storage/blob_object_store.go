@@ -26,13 +26,13 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// BlobObjectStore implements ObjectStoreInterface using gocloud.dev/blob
+// BlobObjectStore implements ObjectStore using gocloud.dev/blob
 type BlobObjectStore struct {
 	bucket     *blob.Bucket
 	baseFolder string
 }
 
-var _ ObjectStoreInterface = &BlobObjectStore{}
+var _ ObjectStore = &BlobObjectStore{}
 
 // GetPipelineKey adds the configured base folder to pipeline id.
 func (b *BlobObjectStore) GetPipelineKey(pipelineID string) string {
