@@ -955,8 +955,10 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	pipelinePath := common.GetStringConfigWithDefault("ObjectStoreConfig.PipelinePath", "")
 
-	config := buildBlobStorageConfig(ctx, k8sClient)
+	// Build configuration from environment variables for backward compatibility
+	config := buildConfigFromEnvVars(ctx, k8sClient)
 
+	// Open bucket using v2's OpenBucket with retry logic
 	bucket, err := openBucketWithRetry(ctx, config, initConnectionTimeout, k8sClient)
 	if err != nil {
 		glog.Fatalf("Failed to open blob storage bucket: %v", err)
@@ -967,7 +969,6 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	if bucketName != "" && config.SessionInfo != nil {
 		switch config.SessionInfo.Provider {
 		case "minio", "s3":
-			// Try to create bucket using the existing MinIO client
 			if err := ensureMinioBucketExists(ctx, config, bucketName, k8sClient); err != nil {
 				glog.Warningf("Failed to ensure MinIO bucket exists (may already exist): %v", err)
 			}
@@ -978,8 +979,10 @@ func initBlobObjectStore(ctx context.Context, initConnectionTimeout time.Duratio
 	return storage.NewBlobObjectStore(bucket, pipelinePath)
 }
 
-// buildBlobStorageConfig creates a blob storage configuration from environment variables and Kubernetes secrets
-func buildBlobStorageConfig(ctx context.Context, k8sClient kubernetes.Interface) *objectstore.Config {
+// buildConfigFromEnvVars creates objectstore.Config from environment variables
+// This bridges the gap between API server's environment variable configuration
+// and the v2 objectstore package's expected configuration format.
+func buildConfigFromEnvVars(ctx context.Context, k8sClient kubernetes.Interface) *objectstore.Config {
 	bucketName := common.GetStringConfigWithDefault("ObjectStoreConfig.BucketName", "")
 	host := common.GetStringConfigWithDefault("ObjectStoreConfig.Host", "")
 	port := common.GetStringConfigWithDefault("ObjectStoreConfig.Port", "")
@@ -988,42 +991,22 @@ func buildBlobStorageConfig(ctx context.Context, k8sClient kubernetes.Interface)
 	accessKey := common.GetStringConfigWithDefault("ObjectStoreConfig.AccessKey", "")
 	secretKey := common.GetStringConfigWithDefault("ObjectStoreConfig.SecretAccessKey", "")
 
+	glog.Infof("Initial credential check - accessKey present: %v, secretKey present: %v", accessKey != "", secretKey != "")
+
 	// Constants for MinIO secret (consistent with v2 config)
 	const minioArtifactSecretName = "mlpipeline-minio-artifact"
 	const minioArtifactAccessKeyKey = "accesskey"
 	const minioArtifactSecretKeyKey = "secretkey"
 
-	// Try to read from Kubernetes secret first (multi-user mode)
-	if k8sClient != nil && accessKey == "" && secretKey == "" {
-		// Use the current pod's namespace for secret lookup
-		secretNamespace := common.GetPodNamespace()
-		if secretNamespace == "" {
-			// Fallback to kubeflow namespace if POD_NAMESPACE is not set
-			secretNamespace = "kubeflow"
-		}
-
-		glog.Infof("Attempting to read MinIO credentials from Kubernetes secret %s in namespace %s", minioArtifactSecretName, secretNamespace)
-		secret, err := k8sClient.CoreV1().Secrets(secretNamespace).Get(ctx, minioArtifactSecretName, metav1.GetOptions{})
-		if err == nil {
-			if accessKeyBytes, ok := secret.Data[minioArtifactAccessKeyKey]; ok {
-				accessKey = string(accessKeyBytes)
-				glog.Infof("Successfully read accesskey from Kubernetes secret")
-			}
-			if secretKeyBytes, ok := secret.Data[minioArtifactSecretKeyKey]; ok {
-				secretKey = string(secretKeyBytes)
-				glog.Infof("Successfully read secretkey from Kubernetes secret")
-			}
-		} else {
-			glog.Warningf("Failed to read secret %s from namespace %s: %v", minioArtifactSecretName, secretNamespace, err)
-		}
-	}
-
-	// Set AWS environment variables that gocloud.dev/blob expects
+	// Set AWS environment variables if we have credentials
+	// This is critical for gocloud.dev/blob to work when using fromEnv=true
 	if accessKey != "" {
 		os.Setenv("AWS_ACCESS_KEY_ID", accessKey)
+		glog.Infof("Set AWS_ACCESS_KEY_ID from environment variable")
 	}
 	if secretKey != "" {
 		os.Setenv("AWS_SECRET_ACCESS_KEY", secretKey)
+		glog.Infof("Set AWS_SECRET_ACCESS_KEY from environment variable")
 	}
 	if region != "" {
 		os.Setenv("AWS_REGION", region)
@@ -1031,118 +1014,90 @@ func buildBlobStorageConfig(ctx context.Context, k8sClient kubernetes.Interface)
 
 	// For MinIO/S3 compatible storage, ensure we have default region if not specified
 	if host != "" && region == "" {
-		os.Setenv("AWS_REGION", "us-east-1")
+		region = "us-east-1"
+		os.Setenv("AWS_REGION", region)
 	}
 
-	// Build configuration for s3 compatible storage (including MinIO)
-	var scheme string
-	var queryString string
+	// Get namespace for SessionInfo
+	secretNamespace := common.GetPodNamespace()
+	if secretNamespace == "" {
+		secretNamespace = "kubeflow"
+	}
 
-	if host != "" {
-		// Use MinIO/S3 compatible storage
-		scheme = "s3://"
-		endpoint := host
-		if port != "" {
-			endpoint = fmt.Sprintf("%s:%s", host, port)
-		}
+	// Construct endpoint with port
+	endpoint := host
+	if port != "" {
+		endpoint = fmt.Sprintf("%s:%s", host, port)
+	}
 
-		// Build query string for MinIO/S3 compatible storage
-		// Use correct gocloud.dev/blob S3 driver parameter names
-		// For gocloud.dev/blob, endpoint should include the protocol
-		protocol := "https://"
-		if !secure {
-			protocol = "http://"
-		}
-		endpointWithProtocol := protocol + endpoint
-		queryString = fmt.Sprintf("endpoint=%s&disable_https=%t&use_path_style=true", endpointWithProtocol, !secure)
-		if region != "" {
-			queryString = fmt.Sprintf("%s&region=%s", queryString, region)
-		}
+	// Build SessionInfo that v2/objectstore.OpenBucket expects
+	// The v2 package will use these parameters to configure the S3 client
+	params := map[string]string{}
+
+	// Decide whether to use environment variables or Kubernetes secret
+	if accessKey != "" && secretKey != "" {
+		// Credentials are available in environment variables
+		// This is the common case when K8s has already loaded the secret into env vars
+		// or when running in standalone mode with direct env var configuration
+		glog.Infof("Using credentials from environment variables (fromEnv=true)")
+		params["fromEnv"] = "true"
 	} else {
-		// Default to s3:// scheme for AWS S3
-		scheme = "s3://"
-		if region != "" {
-			queryString = fmt.Sprintf("region=%s", region)
-		}
+		// No credentials in environment, tell v2 to read from Kubernetes secret
+		// This might happen in certain deployment configurations
+		glog.Infof("No credentials in environment, configuring v2 to read from Kubernetes secret (fromEnv=false)")
+		params["fromEnv"] = "false"
+		params["secretName"] = minioArtifactSecretName
+		params["namespace"] = secretNamespace
+		params["accessKeyKey"] = minioArtifactAccessKeyKey
+		params["secretKeyKey"] = minioArtifactSecretKeyKey
 	}
 
-	// Create SessionInfo for v2 compatibility
-	var sessionInfo *objectstore.SessionInfo
-	if accessKey != "" || secretKey != "" {
-		params := map[string]string{
-			"fromEnv": "false",
-		}
+	// Add S3-compatible storage configuration if using MinIO/custom endpoint
+	if host != "" {
+		params["endpoint"] = endpoint
+		params["disableSSL"] = fmt.Sprintf("%t", !secure)
+		params["forcePathStyle"] = "true"
+	}
 
-		// In multi-user mode, also specify the secret information for v2 components
-		if k8sClient != nil {
-			secretNamespace := common.GetPodNamespace()
-			if secretNamespace == "" {
-				secretNamespace = "kubeflow"
-			}
-			params["secretName"] = minioArtifactSecretName
-			params["namespace"] = secretNamespace
-			params["accessKeyKey"] = minioArtifactAccessKeyKey
-			params["secretKeyKey"] = minioArtifactSecretKeyKey
-		}
+	// Add region configuration
+	if region != "" {
+		params["region"] = region
+	}
 
-		// Add S3-compatible storage configuration parameters
-		if host != "" {
-			endpoint := host
-			if port != "" {
-				endpoint = fmt.Sprintf("%s:%s", host, port)
-			}
-			params["endpoint"] = endpoint
-			params["disableSSL"] = fmt.Sprintf("%t", !secure)
-			params["forcePathStyle"] = "true"
-		}
+	// Determine provider based on configuration
+	provider := "minio"
+	if host == "" && accessKey != "" && secretKey != "" {
+		// If no custom host is specified but we have AWS credentials, assume S3
+		provider = "s3"
+	}
 
-		// Add region if specified
-		if region != "" {
-			params["region"] = region
-		} else if host != "" {
-			// Default region for MinIO/S3-compatible storage
-			params["region"] = "us-east-1"
-		}
-
-		sessionInfo = &objectstore.SessionInfo{
-			Provider: "minio",
-			Params:   params,
-		}
+	sessionInfo := &objectstore.SessionInfo{
+		Provider: provider,
+		Params:   params,
 	}
 
 	return &objectstore.Config{
-		Scheme:      scheme,
+		Scheme:      "s3://",
 		BucketName:  bucketName,
-		QueryString: queryString,
 		SessionInfo: sessionInfo,
 	}
 }
 
-// openBucketWithRetry attempts to open the blob bucket with retry logic
+// openBucketWithRetry opens a blob bucket using v2's objectstore.OpenBucket with retry logic
 func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeout time.Duration, k8sClient kubernetes.Interface) (*blob.Bucket, error) {
 	var bucket *blob.Bucket
 	var err error
 
+	// Get the namespace for secret lookup
+	namespace := common.GetPodNamespace()
+	if namespace == "" {
+		namespace = "kubeflow"
+	}
+
 	// Use exponential backoff to retry bucket initialization
 	operation := func() error {
-		// Try objectstore.OpenBucket first for compatibility with v2 components
-		if config.SessionInfo != nil {
-			glog.Infof("Opening bucket using objectstore.OpenBucket with SessionInfo")
-			bucket, err = objectstore.OpenBucket(ctx, k8sClient, "", config)
-			if err != nil {
-				glog.Warningf("Failed to open bucket with SessionInfo, trying direct approach: %v", err)
-			} else {
-				return nil
-			}
-		}
-
-		// Fallback to direct blob.OpenBucket approach using environment variables
-		bucketURL := config.Scheme + config.BucketName
-		if config.QueryString != "" {
-			bucketURL += "?" + config.QueryString
-		}
-		glog.Infof("Opening bucket with URL: %s", bucketURL)
-		bucket, err = blob.OpenBucket(ctx, bucketURL)
+		// Use v2's OpenBucket which handles SessionInfo and credentials
+		bucket, err = objectstore.OpenBucket(ctx, k8sClient, namespace, config)
 		if err != nil {
 			glog.Warningf("Failed to open blob bucket, retrying: %v", err)
 			return err
@@ -1159,6 +1114,7 @@ func openBucketWithRetry(ctx context.Context, config *objectstore.Config, timeou
 		return nil, fmt.Errorf("failed to open blob bucket after retries: %w", err)
 	}
 
+	glog.Infof("Successfully opened bucket: %s", config.BucketName)
 	return bucket, nil
 }
 
