@@ -1540,21 +1540,26 @@ func (r *ResourceManager) fetchTemplateFromPipelineSpec(pipelineSpec *model.Pipe
 }
 
 // Fetches PipelineSpec as []byte array and a new URI of PipelineSpec.
+// Returns empty string if PipelineSpec is found via PipelineSpecURI.
+// It attempts to fetch PipelineSpec in the following order:
+//  1. Directly read from pipeline versions's PipelineSpec field.
+//  2. Fetch a yaml file from object store based on pipeline versions's PipelineSpecURI field.
+//  3. Fetch a yaml file from object store based on pipeline versions's id.
+//  4. Fetch a yaml file from object store based on pipeline's id.
 func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *model.PipelineVersion) ([]byte, string, error) {
 	if len(pipelineVersion.PipelineSpec) != 0 {
-		// Return pipeline spec that's already stored in the database
+		// Check pipeline spec string first
 		bytes := []byte(pipelineVersion.PipelineSpec)
 		return bytes, string(pipelineVersion.PipelineSpecURI), nil
 	} else {
-		// Use streaming approach to fetch from object storage
 		// Try reading object store from pipeline_spec_uri
-		template, errURI := r.streamingGetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
+		template, errURI := r.objectStore.GetFile(context.TODO(), string(pipelineVersion.PipelineSpecURI))
 		if errURI != nil {
 			// Try reading object store from pipeline_version_id
-			template, errUUID := r.streamingGetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
+			template, errUUID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.UUID)))
 			if errUUID != nil {
 				// Try reading object store from pipeline_id
-				template, errPipelineID := r.streamingGetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
+				template, errPipelineID := r.objectStore.GetFile(context.TODO(), r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersion.PipelineId)))
 				if errPipelineID != nil {
 					return nil, "", util.Wrap(
 						util.Wrap(
@@ -1570,29 +1575,6 @@ func (r *ResourceManager) fetchTemplateFromPipelineVersion(pipelineVersion *mode
 		}
 		return template, "", nil
 	}
-}
-
-// streamingGetFile provides a streaming-based file retrieval that's memory-safe
-// but still returns []byte for compatibility with existing callers.
-func (r *ResourceManager) streamingGetFile(ctx context.Context, filePath string) ([]byte, error) {
-	// Use the streaming GetFileReader to get a reader
-	reader, err := r.objectStore.GetFileReader(ctx, filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer reader.Close()
-
-	// Read the content using io.ReadAll
-	// This approach provides safe streaming because:
-	// 1. We're using a streaming reader internally
-	// 2. The minio client itself uses streaming
-	// 3. We only buffer the final result, not intermediate chunks
-	content, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	return content, nil
 }
 
 // Creates the default experiment entry.
