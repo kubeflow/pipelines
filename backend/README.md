@@ -112,6 +112,12 @@ To provision the kind cluster, run the following from the Git repository's root 
 make -C backend dev-kind-cluster
 ```
 
+By default, this uses MySQL as the database backend. To use PostgreSQL instead, set the `DATABASE` environment variable:
+
+```bash
+make DATABASE=postgres -C backend dev-kind-cluster
+```
+
 This may take several minutes since there are many pods. Note that many pods will be in "CrashLoopBackOff" status until
 all the pods have started.
 
@@ -180,14 +186,14 @@ locally for debugging and faster development.
 The prerequisites are the same as the [MySQL version](#prerequisites) above, except:
 
 - Port **5432** (PostgreSQL) should be available instead of 3306 (MySQL)
-- Use [kind-config-pg.yaml](../tools/kind/kind-config-pg.yaml) for PostgreSQL-specific configuration
+- PostgreSQL-specific configuration is automatically selected via [kind-config-pg.yaml](../tools/kind/kind-config-pg.yaml)
 
 #### Provisioning the Cluster
 
-To provision the kind cluster with PostgreSQL, run the following from the Git repository's root directory:
+To provision the kind cluster with PostgreSQL, use the `DATABASE` environment variable:
 
 ```bash
-make -C backend dev-kind-cluster-pg
+make DATABASE=postgres -C backend dev-kind-cluster
 ```
 
 This may take several minutes since there are many pods. Note that many pods will be in "CrashLoopBackOff" status until
