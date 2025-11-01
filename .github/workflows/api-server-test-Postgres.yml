@@ -85,7 +85,7 @@ jobs:
           TEST_CMD="go test -v -timeout 30m ./backend/test/v2/integration/..."
 
           # Arguments for the test binary (passed after -args)
-          TEST_ARGS="-runIntegrationTests=true -namespace=$NAMESPACE -cacheEnabled=${{ matrix.cache_enabled }}"
+          TEST_ARGS="-runIntegrationTests=true -namespace=$NAMESPACE -cacheEnabled=${{ matrix.cache_enabled }} -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}"
 
           if [[ "${{ matrix.cache_enabled }}" == "false" ]]; then
             # When cache is disabled, we must skip the cache test itself.
@@ -95,6 +95,8 @@ jobs:
 
           # Execute the test command with arguments
           eval "$TEST_CMD -args $TEST_ARGS"
+        env:
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
 
       - name: Collect pod logs
         if: always()

@@ -430,6 +430,6 @@ func (s *CacheTestSuite) getContainerExecutionState(t *testing.T, runID string) 
 			return execution.GetLastKnownState()
 		}
 	}
-	t.Fatalf("no container execution found for run %s", runID)
+	require.FailNow(t, "no container execution found for run %s", runID)
 	return pb.Execution_UNKNOWN
 }

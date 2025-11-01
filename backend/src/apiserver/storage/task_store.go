@@ -313,7 +313,7 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 	sql, args, err := qb.
 		Select(quoteAll(q, taskColumns)...).
 		From(q("tasks")).
-		Where(sq.Eq{q("tasks") + "." + q("UUID"): id}).
+		Where(sq.Eq{fmt.Sprintf("%s.%s", q("tasks"), q("UUID")): id}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get task: %v", err.Error())
