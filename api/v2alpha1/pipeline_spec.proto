@@ -1166,11 +1166,8 @@ message KubernetesWorkspaceConfig {
 
 // Spec for pipeline-level config options. See PipelineConfig DSL class.
 message PipelineConfig {
-  // Name of the semaphore key to control pipeline concurrency
-  string semaphore_key = 1;
-
-  // Name of the mutex to ensure mutual exclusion
-  string mutex_name = 2;
+  reserved 1, 2;
+  reserved "semaphore_key", "mutex_name";
 
   // Time to live configuration after the pipeline run is completed for
   // ephemeral resources created by the pipeline run.
