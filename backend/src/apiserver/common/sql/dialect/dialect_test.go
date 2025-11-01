@@ -15,79 +15,46 @@
 package dialect
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetDialect_MySQL(t *testing.T) {
 	d := NewDBDialect("mysql")
-	if d.Name() != "mysql" {
-		t.Errorf("Expected mysql dialect, got %s", d.Name())
-	}
-	if d.QuoteIdentifier("abc") != "`abc`" {
-		t.Errorf("MySQL quote failed")
-	}
-	if d.LengthFunc() != "CHAR_LENGTH" {
-		t.Errorf("Expected CHAR_LENGTH, got %s", d.LengthFunc())
-	}
+	require.Equal(t, "mysql", d.Name())
+	require.Equal(t, "`abc`", d.QuoteIdentifier("abc"))
+	require.Equal(t, "CHAR_LENGTH", d.LengthFunc())
+
 	sql, _, err := d.QueryBuilder().Select("1").ToSql()
-	if err != nil {
-		t.Errorf("Failed to build SQL: %v", err)
-	}
-	if sql != "SELECT 1" {
-		t.Errorf("Expected 'SELECT 1', got '%s'", sql)
-	}
-	if d.ExistDatabaseErrHint() != "database exists" {
-		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint())
-	}
+	require.NoError(t, err)
+	require.Equal(t, "SELECT 1", sql)
+	require.Equal(t, "database exists", d.ExistDatabaseErrHint())
 }
 
 func TestGetDialect_Pgx(t *testing.T) {
 	d := NewDBDialect("pgx")
-	if d.Name() != "pgx" {
-		t.Errorf("Expected pgx dialect, got %s", d.Name())
-	}
-	if d.QuoteIdentifier("abc") != `"abc"` {
-		t.Errorf("Pgx quote failed")
-	}
-	if d.LengthFunc() != "CHAR_LENGTH" {
-		t.Errorf("Expected CHAR_LENGTH, got %s", d.LengthFunc())
-	}
+	require.Equal(t, "pgx", d.Name())
+	require.Equal(t, `"abc"`, d.QuoteIdentifier("abc"))
+	require.Equal(t, "CHAR_LENGTH", d.LengthFunc())
+
 	sql, _, err := d.QueryBuilder().Select("1").ToSql()
-	if err != nil {
-		t.Errorf("Failed to build SQL: %v", err)
-	}
-	if sql != "SELECT 1" {
-		t.Errorf("Expected 'SELECT 1', got '%s'", sql)
-	}
-	if d.ExistDatabaseErrHint() != "already exists" {
-		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint())
-	}
+	require.NoError(t, err)
+	require.Equal(t, "SELECT 1", sql)
+	require.Equal(t, "already exists", d.ExistDatabaseErrHint())
 }
 
 func TestGetDialect_SQLite(t *testing.T) {
 	d := NewDBDialect("sqlite")
-	if d.Name() != "sqlite" {
-		t.Errorf("Expected sqlite dialect, got %s", d.Name())
-	}
-	if d.QuoteIdentifier("abc") != `"abc"` {
-		t.Errorf("SQLite quote failed")
-	}
-	if d.LengthFunc() != "LENGTH" {
-		t.Errorf("Expected LENGTH, got %s", d.LengthFunc())
-	}
+	require.Equal(t, "sqlite", d.Name())
+	require.Equal(t, `"abc"`, d.QuoteIdentifier("abc"))
+	require.Equal(t, "LENGTH", d.LengthFunc())
+
 	sql, _, err := d.QueryBuilder().Select("1").ToSql()
-	if err != nil {
-		t.Errorf("Failed to build SQL: %v", err)
-	}
-	if sql != "SELECT 1" {
-		t.Errorf("Expected 'SELECT 1', got '%s'", sql)
-	}
-	if d.ExistDatabaseErrHint() != "" {
-		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint())
-	}
+	require.NoError(t, err)
+	require.Equal(t, "SELECT 1", sql)
+	require.Equal(t, "", d.ExistDatabaseErrHint())
 }
 
 // TestConcatAgg_TableDriven verifies the aggregation SQL snippet generation across dialects.
@@ -97,13 +64,14 @@ func TestConcatAgg_TableDriven(t *testing.T) {
 		dialectName string
 		distinct    bool
 		sep         string
+		want        string
 	}{
-		{"mysql_no_distinct_comma", "mysql", false, ","},
-		{"mysql_distinct_pipe", "mysql", true, "|"},
-		{"pgx_no_distinct_comma", "pgx", false, ","},
-		{"pgx_distinct_empty_sep", "pgx", true, ""},
-		{"sqlite_no_distinct_comma", "sqlite", false, ","},
-		{"sqlite_distinct_ignored", "sqlite", true, ","},
+		{"mysql_no_distinct_comma", "mysql", false, ",", "GROUP_CONCAT(`r`.`Payload` SEPARATOR ',')"},
+		{"mysql_distinct_pipe", "mysql", true, "|", "GROUP_CONCAT(DISTINCT `r`.`Payload` SEPARATOR '|')"},
+		{"pgx_no_distinct_comma", "pgx", false, ",", `string_agg("r"."Payload", ',')`},
+		{"pgx_distinct_empty_sep", "pgx", true, "", `string_agg(DISTINCT "r"."Payload", '')`},
+		{"sqlite_no_distinct_comma", "sqlite", false, ",", `GROUP_CONCAT("r"."Payload", ',')`},
+		{"sqlite_distinct_ignored", "sqlite", true, ",", `GROUP_CONCAT("r"."Payload", ',')`},
 	}
 
 	for _, tc := range cases {
@@ -114,29 +82,7 @@ func TestConcatAgg_TableDriven(t *testing.T) {
 
 			got := d.ConcatAgg(tc.distinct, expr, tc.sep)
 
-			var want string
-			switch tc.dialectName {
-			case "mysql":
-				if tc.distinct {
-					want = fmt.Sprintf("GROUP_CONCAT(DISTINCT %s SEPARATOR '%s')", expr, tc.sep)
-				} else {
-					want = fmt.Sprintf("GROUP_CONCAT(%s SEPARATOR '%s')", expr, tc.sep)
-				}
-			case "pgx":
-				if tc.distinct {
-					want = fmt.Sprintf("string_agg(DISTINCT %s, '%s')", expr, tc.sep)
-				} else {
-					want = fmt.Sprintf("string_agg(%s, '%s')", expr, tc.sep)
-				}
-			case "sqlite":
-				want = fmt.Sprintf("GROUP_CONCAT(%s, '%s')", expr, tc.sep)
-			default:
-				t.Fatalf("unknown dialect: %s", tc.dialectName)
-			}
-
-			if got != want {
-				t.Fatalf("ConcatAgg mismatch.\n got: %s\nwant: %s", got, want)
-			}
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -180,29 +126,27 @@ func TestConcatExprs(t *testing.T) {
 	}
 }
 
-// Additional coverage: when the separator is an empty string, ensure it renders as ” (consistent across all dialects)
+// Additional coverage: when the separator is an empty string, ensure it renders as " (consistent across all dialects)
 func TestConcatAgg_EmptySeparator(t *testing.T) {
-	for _, name := range []string{"mysql", "pgx", "sqlite"} {
-		t.Run(name, func(t *testing.T) {
-			d := NewDBDialect(name)
+	testCases := []struct {
+		name        string
+		dialectName string
+		want        string
+	}{
+		{"mysql_empty_sep", "mysql", "GROUP_CONCAT(`t`.`col` SEPARATOR '')"},
+		{"pgx_empty_sep", "pgx", `string_agg("t"."col", '')`},
+		{"sqlite_empty_sep", "sqlite", `GROUP_CONCAT("t"."col", '')`},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := NewDBDialect(tc.dialectName)
 			q := d.QuoteIdentifier
 			expr := q("t") + "." + q("col")
 
 			got := d.ConcatAgg(false, expr, "")
 
-			var want string
-			switch name {
-			case "mysql":
-				want = fmt.Sprintf("GROUP_CONCAT(%s SEPARATOR '')", expr)
-			case "pgx":
-				want = fmt.Sprintf("string_agg(%s, '')", expr)
-			case "sqlite":
-				want = fmt.Sprintf("GROUP_CONCAT(%s, '')", expr)
-			}
-
-			if got != want {
-				t.Fatalf("empty sep mismatch for %s.\n got: %s\nwant: %s", name, got, want)
-			}
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -223,7 +167,7 @@ func TestEscapeSQLString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, escapeSQLString(tc.input))
+			assert.Equal(t, tc.want, EscapeSQLString(tc.input))
 		})
 	}
 }

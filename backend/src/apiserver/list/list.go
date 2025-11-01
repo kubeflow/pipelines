@@ -94,11 +94,6 @@ func (t *token) marshal() (string, error) {
 type Options struct {
 	PageSize int
 	*token
-	quoteIdentifier func(string) string
-}
-
-func (o *Options) SetQuote(q func(string) string) {
-	o.quoteIdentifier = q
 }
 
 // SetSortByFieldPrefix sets the prefix for the sort-by field.
@@ -113,9 +108,8 @@ func (o *Options) SetKeyFieldPrefix(prefix string) {
 
 func EmptyOptions() *Options {
 	return &Options{
-		math.MaxInt32,
-		&token{},
-		func(s string) string { return s },
+		PageSize: math.MaxInt32,
+		token:    &token{},
 	}
 }
 
@@ -197,8 +191,10 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 // AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
-func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-	sqlBuilder = o.AddSortingToSelect(sqlBuilder)
+// The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
+// If quote is nil, identifiers are not quoted.
+func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string) sq.SelectBuilder {
+	sqlBuilder = o.AddSortingToSelect(sqlBuilder, quote)
 	// Add one more item than what is requested.
 	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
 
@@ -206,14 +202,24 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBu
 }
 
 // AddSortingToSelect adds Order By clause.
-func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-	quote := func(s string) string { return s }
-	if o.quoteIdentifier != nil {
-		quote = o.quoteIdentifier
+// The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
+// If quote is nil, identifiers are not quoted.
+func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string) sq.SelectBuilder {
+	if quote == nil {
+		quote = func(s string) string { return s }
 	}
 
-	sortByFieldNameWithPrefix := o.SortByFieldPrefix + quote(o.SortByFieldName)
-	keyFieldNameWithPrefix := o.KeyFieldPrefix + quote(o.KeyFieldName)
+	sortByFieldNameWithPrefix := o.SortByFieldPrefix
+	if sortByFieldNameWithPrefix != "" {
+		sortByFieldNameWithPrefix = quote(sortByFieldNameWithPrefix) + "."
+	}
+	sortByFieldNameWithPrefix += quote(o.SortByFieldName)
+
+	keyFieldNameWithPrefix := o.KeyFieldPrefix
+	if keyFieldNameWithPrefix != "" {
+		keyFieldNameWithPrefix = quote(keyFieldNameWithPrefix) + "."
+	}
+	keyFieldNameWithPrefix += quote(o.KeyFieldName)
 
 	// When sorting by a direct field in the listable model (i.e., name in Run or uuid in Pipeline), a sortByFieldPrefix can be specified; when sorting by a field in an array-typed dictionary (i.e., a run metric inside the metrics in Run), a sortByFieldPrefix is not needed.
 	// If next row's value is specified, set those values in the clause.
@@ -258,9 +264,11 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 // AddFilterToSelect adds WHERE clauses with the filtering criteria in the
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
-func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+// The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
+// If quote is nil, identifiers are not quoted.
+func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string) sq.SelectBuilder {
 	if o.Filter != nil {
-		sqlBuilder = o.Filter.AddToSelect(sqlBuilder, o.quoteIdentifier)
+		sqlBuilder = o.Filter.AddToSelect(sqlBuilder, quote)
 	}
 
 	return sqlBuilder
