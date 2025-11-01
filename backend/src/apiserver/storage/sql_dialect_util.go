@@ -22,7 +22,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
-	sqlite3 "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 )

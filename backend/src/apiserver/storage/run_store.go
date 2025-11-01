@@ -119,11 +119,6 @@ type RunStore struct {
 func (s *RunStore) ListRuns(
 	filterContext *model.FilterContext, opts *list.Options,
 ) ([]*model.Run, int, string, error) {
-	// dialect helpers
-	q := s.dbDialect.QuoteIdentifier
-	_ = q
-	// qb is used for queries created in this file; builders returned by list.* are kept as-is.
-	// Note: we intentionally do NOT wrap list.* builders with qb again to avoid breaking their internal composition.
 	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -218,8 +213,6 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Pagination and sorting are applied at the outermost level.
 	if !selectCount {
-		// Note: addMetricsResourceReferencesAndTasks now handles metric extraction for sorting,
-		// so we no longer need a separate addSortByRunMetricToSelect call
 		sqlBuilder = s.addMetricsResourceReferencesAndTasks(sqlBuilder, opts)
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
 		// Note: AddPaginationToSelect already calls AddSortingToSelect internally, so we don't need to call it again
@@ -859,30 +852,3 @@ func (s *RunStore) TerminateRun(runId string) error {
 	}
 	return nil
 }
-
-// Add a metric as a new field to the select clause by join the passed-in SQL query with run_metrics table.
-// With the metric as a field in the select clause enable sorting on this metric afterwards.
-// TODO(jingzhang36): example of resulting SQL query and explanation for it.
-func (s *RunStore) addSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
-	var r model.Run
-	if r.IsRegularField(opts.SortByFieldName) {
-		return sqlBuilder
-	}
-	// TODO(jingzhang36): address the case where runs doesn't have the specified metric.
-	// Note: opts.SortByFieldName is validated by IsRegularField() to ensure it's not a regular
-	// field, meaning it's a metric name. To prevent SQL injection, we escape single quotes.
-	escapedMetricName := escapeSQLString(opts.SortByFieldName)
-	return qb.
-		Select("selected_runs.*", "run_metrics."+q("NumberValue")+" AS "+q(opts.SortByFieldName)).
-		FromSelect(sqlBuilder, "selected_runs").
-		LeftJoin(
-			q("run_metrics") +
-				" ON selected_runs." + q("UUID") +
-				"=run_metrics." + q("RunUUID") +
-				" AND run_metrics." + q("Name") + "='" + escapedMetricName + "'",
-		)
-}
-
-// Removed unused function scanRowsToRunMetrics.

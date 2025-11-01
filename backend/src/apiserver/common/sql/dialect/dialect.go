@@ -19,6 +19,7 @@
 package dialect
 
 import (
+	"fmt"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
@@ -41,7 +42,7 @@ func NewDBDialect(name string) DBDialect {
 	case "mysql":
 		return DBDialect{
 			name:            "mysql",
-			quoteIdentifier: func(id string) string { return "`" + id + "`" },
+			quoteIdentifier: func(id string) string { return fmt.Sprintf("`%s`", id) },
 			lengthFunc:      "CHAR_LENGTH",
 			statementBuilder: sq.StatementBuilder.
 				PlaceholderFormat(sq.Question),
@@ -50,7 +51,7 @@ func NewDBDialect(name string) DBDialect {
 	case "pgx":
 		return DBDialect{
 			name:            "pgx",
-			quoteIdentifier: func(id string) string { return `"` + id + `"` },
+			quoteIdentifier: func(id string) string { return fmt.Sprintf(`"%s"`, id) },
 			lengthFunc:      "CHAR_LENGTH",
 			statementBuilder: sq.StatementBuilder.
 				PlaceholderFormat(sq.Dollar),
@@ -59,14 +60,14 @@ func NewDBDialect(name string) DBDialect {
 	case "sqlite": // only for tests
 		return DBDialect{
 			name:            "sqlite",
-			quoteIdentifier: func(id string) string { return `"` + id + `"` },
+			quoteIdentifier: func(id string) string { return fmt.Sprintf(`"%s"`, id) },
 			lengthFunc:      "LENGTH",
 			statementBuilder: sq.StatementBuilder.
 				PlaceholderFormat(sq.Question),
 			existDatabaseErrHint: "",
 		}
 	default:
-		panic("unsupported dialect: " + name)
+		panic(fmt.Sprintf("unsupported dialect: %s", name))
 	}
 }
 
@@ -98,16 +99,16 @@ func (d DBDialect) ConcatAgg(distinct bool, expr, sep string) string {
 	switch d.name {
 	case "mysql":
 		// GROUP_CONCAT(expr SEPARATOR ',')
-		return "GROUP_CONCAT(" + dist + expr + " SEPARATOR '" + sep + "')"
+		return fmt.Sprintf("GROUP_CONCAT(%s%s SEPARATOR '%s')", dist, expr, sep)
 	case "pgx":
 		// string_agg(expr, ',')
-		return "string_agg(" + dist + expr + ", '" + sep + "')"
+		return fmt.Sprintf("string_agg(%s%s, '%s')", dist, expr, sep)
 	case "sqlite":
 		// SQLite ignores DISTINCT: regardless of the distinct value, it should not contain DISTINCT
 		// group_concat(expr, ',')
 		return "GROUP_CONCAT(" + expr + ", '" + sep + "')"
 	default:
-		panic("unsupported dialect: " + d.name)
+		panic(fmt.Sprintf("unsupported dialect: %s", d.name))
 	}
 }
 
@@ -141,7 +142,7 @@ func (d DBDialect) ConcatExprs(exprs []string, sep string) string {
 	}
 	var lit string
 	if sep != "" {
-		lit = "'" + escapeSQLString(sep) + "'"
+		lit = fmt.Sprintf("'%s'", escapeSQLString(sep))
 	}
 
 	switch d.name {
@@ -154,7 +155,7 @@ func (d DBDialect) ConcatExprs(exprs []string, sep string) string {
 			}
 			parts = append(parts, e)
 		}
-		return "CONCAT(" + strings.Join(parts, ", ") + ")"
+		return fmt.Sprintf("CONCAT(%s)", strings.Join(parts, ", "))
 	case "pgx", "sqlite":
 		// expr1 || 'sep' || expr2 || 'sep' || ...
 		parts := make([]string, 0, n*2-1)
@@ -166,6 +167,6 @@ func (d DBDialect) ConcatExprs(exprs []string, sep string) string {
 		}
 		return strings.Join(parts, " || ")
 	default:
-		panic("unsupported dialect: " + d.name)
+		panic(fmt.Sprintf("unsupported dialect: %s", d.name))
 	}
 }
