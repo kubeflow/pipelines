@@ -25,23 +25,28 @@ from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_utils
 
 URI_KEY = 'uri'
-OUTPUT_KEY = 'artifact'
 METADATA_KEY = 'metadata'
+DEFAULT_OUTPUT_KEY = 'artifact'
+DEFAULT_COMPONENT_NAME = 'importer'
 
 
 def importer(
     artifact_uri: Union[pipeline_channel.PipelineParameterChannel, str],
     artifact_class: Type[artifact_types.Artifact],
+    output_key: Optional[str] = DEFAULT_OUTPUT_KEY,
     reimport: bool = False,
     metadata: Optional[Mapping[str, Any]] = None,
+    component_name: Optional[str] = DEFAULT_COMPONENT_NAME,
 ) -> pipeline_task.PipelineTask:
     """Imports an existing artifact for use in a downstream component.
 
     Args:
       artifact_uri: The URI of the artifact to import.
       artifact_class: The artifact class being imported.
+      output_key: The name given to the output artifact.
       reimport: Whether to reimport the artifact.
       metadata: Properties of the artifact.
+      component_name: The name of this importer component.
 
     Returns:
       A task with the artifact accessible via its ``.output`` attribute.
@@ -118,7 +123,7 @@ def importer(
         metadata)
 
     component_spec = structures.ComponentSpec(
-        name='importer',
+        name=component_name,
         implementation=structures.Implementation(
             importer=structures.ImporterSpec(
                 artifact_uri=placeholders.InputValuePlaceholder(
@@ -133,7 +138,7 @@ def importer(
             **component_inputs
         },
         outputs={
-            OUTPUT_KEY:
+            output_key:
                 structures.OutputSpec(
                     type=type_utils.create_bundled_artifact_type(
                         artifact_class.schema_title,
