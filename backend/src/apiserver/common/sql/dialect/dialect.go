@@ -112,9 +112,9 @@ func (d DBDialect) ConcatAgg(distinct bool, expr, sep string) string {
 	}
 }
 
-// escapeSQLString escapes single quotes for use in SQL string literals by doubling them.
+// EscapeSQLString escapes single quotes for use in SQL string literals by doubling them.
 // Example: O'Reilly -> O”Reilly
-func escapeSQLString(s string) string {
+func EscapeSQLString(s string) string {
 	return strings.ReplaceAll(s, "'", "''")
 }
 
@@ -142,7 +142,7 @@ func (d DBDialect) ConcatExprs(exprs []string, sep string) string {
 	}
 	var lit string
 	if sep != "" {
-		lit = fmt.Sprintf("'%s'", escapeSQLString(sep))
+		lit = fmt.Sprintf("'%s'", EscapeSQLString(sep))
 	}
 
 	switch d.name {

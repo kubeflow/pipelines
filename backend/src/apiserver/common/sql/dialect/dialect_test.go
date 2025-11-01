@@ -223,7 +223,7 @@ func TestEscapeSQLString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, escapeSQLString(tc.input))
+			assert.Equal(t, tc.want, EscapeSQLString(tc.input))
 		})
 	}
 }

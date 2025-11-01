@@ -17,7 +17,6 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -29,13 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/json"
 )
-
-// escapeSQLString escapes single quotes in a string for use in SQL literals.
-// This prevents SQL injection by doubling single quotes.
-// Example: O'Reilly -> O”Reilly
-func escapeSQLString(s string) string {
-	return strings.ReplaceAll(s, "'", "''")
-}
 
 var runColumns = []string{
 	"UUID",
@@ -328,7 +320,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		// Using MAX with CASE to get the value (there should be only one row per metric name per run)
 		// Note: opts.SortByFieldName is validated by IsRegularField() to ensure it's not a regular
 		// field, meaning it's a metric name. To prevent SQL injection, we escape single quotes.
-		escapedMetricName := escapeSQLString(opts.SortByFieldName)
+		escapedMetricName := dialect.EscapeSQLString(opts.SortByFieldName)
 		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s='%s' THEN rm.%s END)",
 			q("Name"), escapedMetricName, q("NumberValue"))
 		columnsAfterJoiningRunMetrics = append(columnsAfterJoiningRunMetrics,
