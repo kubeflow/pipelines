@@ -64,8 +64,8 @@ func (s *DBTestSuite) TestInitDBClient_PostgreSQL() {
 	t := s.T()
 	viper.Set("DBDriverName", "pgx")
 	viper.Set("DBConfig.PostgreSQLConfig.DBName", "mlpipeline")
-	// Using 127.0.0.1 to match MySQL behavior and Kind local development setup.
-	viper.SetDefault("DBConfig.PostgreSQLConfig.Host", "127.0.0.1")
+	// Using localhost to match MySQL behavior and port-forward default.
+	viper.SetDefault("DBConfig.PostgreSQLConfig.Host", "localhost")
 	viper.Set("DBConfig.PostgreSQLConfig.User", "user")
 	viper.Set("DBConfig.PostgreSQLConfig.Password", "password")
 	duration, _ := time.ParseDuration("1m")
