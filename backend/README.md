@@ -8,7 +8,9 @@ Pipelines backend.
 This README will help you set up your coding environment in order to build and run the Kubeflow Pipelines backend. The KFP backend powers the core functionality of the KFP platform, handling API requests, workflow management, and data persistence.
 
 ## Prerequisites
+
 Before you begin, ensure you have:
+
 - [Go installed](https://go.dev/doc/install)
 - Docker or Podman installed (for building container images)
 
@@ -41,18 +43,22 @@ go build -o /tmp/apiserver backend/src/apiserver/*.go
 ```
 
 The API server image can be built from the root folder of the repo using:
+
 ```
 export API_SERVER_IMAGE=api_server
 docker build -f backend/Dockerfile . --tag $API_SERVER_IMAGE
 ```
+
 ### Deploying the APIServer (from the image you built) on Kubernetes
 
 First, push your image to a registry that is accessible from your Kubernetes cluster.
 
 Then, run:
+
 ```
 kubectl edit deployment.v1.apps/ml-pipeline -n kubeflow
 ```
+
 You'll see the field reference the api server container image (`spec.containers[0].image: gcr.io/ml-pipeline/api-server:<image-version>`).
 Change it to point to your own build, after saving and closing the file, apiserver will restart with your change.
 
@@ -68,17 +74,17 @@ dependencies. To update dependencies, edit [requirements.in](requirements.in)
 and run `./update_requirements.sh` to update and pin the transitive
 dependencies.
 
-
 ### Building conformance tests (WIP)
 
 Run
+
 ```
 docker build . -f backend/Dockerfile.conformance -t <tag>
 ```
 
 ## API Server Development
 
-### Run the KFP Backend Locally With a Kind Cluster
+### Run the KFP Backend Locally With MySQL (Kind Cluster)
 
 This deploys a local Kubernetes cluster leveraging [kind](https://kind.sigs.k8s.io/), with all the components required
 to run the Kubeflow Pipelines API server. Note that the `ml-pipeline` `Deployment` (API server) has its replicas set to
@@ -122,7 +128,7 @@ server locally:
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch API Server (Kind)",
+      "name": "MySQL - API Server",
       "type": "go",
       "request": "launch",
       "mode": "debug",
@@ -163,6 +169,100 @@ You can also directly connect to the MariaDB database server with:
 mysql -h 127.0.0.1 -u root
 ```
 
+### Run the KFP Backend Locally With PostgreSQL (Kind Cluster)
+
+This deploys a local Kubernetes cluster leveraging [kind](https://kind.sigs.k8s.io/), with PostgreSQL as the database backend
+instead of MySQL. The `ml-pipeline` `Deployment` (API server) has its replicas set to 0 so that the API server can be run
+locally for debugging and faster development.
+
+#### Prerequisites
+
+The prerequisites are the same as the [MySQL version](#prerequisites) above, except:
+
+- Port **5432** (PostgreSQL) should be available instead of 3306 (MySQL)
+- Use [kind-config-pg.yaml](../tools/kind/kind-config-pg.yaml) for PostgreSQL-specific configuration
+
+#### Provisioning the Cluster
+
+To provision the kind cluster with PostgreSQL, run the following from the Git repository's root directory:
+
+```bash
+make -C backend dev-kind-cluster-pg
+```
+
+This may take several minutes since there are many pods. Note that many pods will be in "CrashLoopBackOff" status until
+all the pods have started.
+
+> [!NOTE]
+> The config in the `make` command above sets the `ml-pipeline` `Deployment` (api server) to have 0 replicas. The intent is to replace it with a locally running API server for debugging and faster development. See the following steps to run the API server locally, and connect it to the KFP backend on your Kind cluster. Note that other backend components (for example, the persistence agent) may show errors until the API server is brought up and connected to the cluster.
+
+#### Launching the API Server With VSCode
+
+After the cluster is provisioned, you may leverage the following sample `.vscode/launch.json` file to run the API
+server locally with PostgreSQL:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "PostgreSQL - API Server",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/backend/src/apiserver",
+      "env": {
+        "POD_NAMESPACE": "kubeflow",
+        "DBDRIVERNAME": "pgx",
+        "DBCONFIG_POSTGRESQLCONFIG_HOST": "127.0.0.1",
+        "DBCONFIG_POSTGRESQLCONFIG_DBNAME": "mlpipeline",
+        "OBJECTSTORECONFIG_HOST": "localhost",
+        "OBJECTSTORECONFIG_PORT": "9000",
+        "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
+        "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
+        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
+        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8889",
+        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
+        "V2_DRIVER_IMAGE": "ghcr.io/kubeflow/kfp-driver:master"
+      },
+      "args": [
+        "--config",
+        "${workspaceFolder}/backend/src/apiserver/config",
+        "-logtostderr=true"
+      ]
+    }
+  ]
+}
+```
+
+**Key differences from the MySQL configuration:**
+
+- `DBDRIVERNAME`: Set to `"pgx"` (PostgreSQL driver)
+- `DBCONFIG_POSTGRESQLCONFIG_HOST`: PostgreSQL connection host
+- `DBCONFIG_POSTGRESQLCONFIG_DBNAME`: PostgreSQL database name
+
+Note: The configuration uses default values for PostgreSQL port (5432), username (`user`), and password (`password`). If you need to customize these or other settings (e.g., object store credentials, client QPS), add the corresponding environment variables.
+
+#### Using the Environment
+
+The usage is similar to the [MySQL version](#using-the-environment) above. You can access the API server and web interface at the same URLs.
+
+To connect directly to the PostgreSQL database server:
+
+```bash
+psql -h 127.0.0.1 -p 5432 -U user -d mlpipeline
+```
+
+When prompted for a password, enter: `password`
+
+#### Deleting the Kind Cluster
+
+Run the following to delete the cluster (once you are finished):
+
+```bash
+kind delete clusters dev-pipelines-api
+```
+
 ### Scheduled Workflow Development
 
 If you also want to run the Scheduled Workflow controller locally, stop the controller on the cluster with:
@@ -175,24 +275,24 @@ Then you may leverage the following sample `.vscode/launch.json` file to run the
 
 ```json
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Launch Scheduled Workflow controller (Kind)",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "program": "${workspaceFolder}/backend/src/crd/controller/scheduledworkflow",
-            "env": {
-                "CRON_SCHEDULE_TIMEZONE": "UTC"
-            },
-            "args": [
-                "-namespace=kubeflow",
-                "-kubeconfig=${workspaceFolder}/kubeconfig_dev-pipelines-api",
-                "-mlPipelineAPIServerName=localhost"
-            ]
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Scheduled Workflow controller (Kind)",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/backend/src/crd/controller/scheduledworkflow",
+      "env": {
+        "CRON_SCHEDULE_TIMEZONE": "UTC"
+      },
+      "args": [
+        "-namespace=kubeflow",
+        "-kubeconfig=${workspaceFolder}/kubeconfig_dev-pipelines-api",
+        "-mlPipelineAPIServerName=localhost"
+      ]
+    }
+  ]
 }
 ```
 
@@ -231,52 +331,55 @@ You may use the following VS Code `launch.json` file to run the API server which
 command to use Delve and the Driver image to use debug image built previously.
 
 VSCode configuration:
+
 ```json
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Launch API server (Kind) (Debug Driver)",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "program": "${workspaceFolder}/backend/src/apiserver",
-            "env": {
-                "POD_NAMESPACE": "kubeflow",
-                "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
-                "OBJECTSTORECONFIG_HOST": "localhost",
-                "OBJECTSTORECONFIG_PORT": "9000",
-                "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
-                "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
-                "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
-                "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
-                "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
-                "V2_DRIVER_IMAGE": "kfp-driver:debug",
-                "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --"
-            }
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch API server (Kind) (Debug Driver)",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/backend/src/apiserver",
+      "env": {
+        "POD_NAMESPACE": "kubeflow",
+        "DBCONFIG_MYSQLCONFIG_HOST": "localhost",
+        "OBJECTSTORECONFIG_HOST": "localhost",
+        "OBJECTSTORECONFIG_PORT": "9000",
+        "METADATA_GRPC_SERVICE_SERVICE_HOST": "localhost",
+        "METADATA_GRPC_SERVICE_SERVICE_PORT": "8080",
+        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST": "localhost",
+        "ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT": "8888",
+        "V2_LAUNCHER_IMAGE": "ghcr.io/kubeflow/kfp-launcher:master",
+        "V2_DRIVER_IMAGE": "kfp-driver:debug",
+        "V2_DRIVER_COMMAND": "dlv exec --listen=:2345 --headless=true --api-version=2 --log /bin/driver --"
+      }
+    }
+  ]
 }
 ```
 
 GoLand configuration:
+
 1. Create a new Go Build configuration
 2. Set **Run Kind** to Directory and set **Directory** to /backend/src/apiserver absolute path
 3. Set the following environment variables
 
-   | Argument                                     | Value     |
-   |----------------------------------------------|-----------|
-   | POD_NAMESPACE                                | kubeflow  |
-   | DBCONFIG_MYSQLCONFIG_HOST                    | localhost |
-   | OBJECTSTORECONFIG_HOST                       | localhost |
-   | OBJECTSTORECONFIG_PORT                       | 9000      |
-   | METADATA_GRPC_SERVICE_SERVICE_HOST           | localhost |
-   | METADATA_GRPC_SERVICE_SERVICE_PORT           | 8080      |
-   | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST | localhost |
-   | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT | 8888      |
-   | V2_LAUNCHER_IMAGE                            | localhost |
-   | V2_DRIVER_IMAGE                              | localhost |
+   | Argument                                     | Value                                                                                       |
+   | -------------------------------------------- | ------------------------------------------------------------------------------------------- |
+   | POD_NAMESPACE                                | kubeflow                                                                                    |
+   | DBCONFIG_MYSQLCONFIG_HOST                    | localhost                                                                                   |
+   | OBJECTSTORECONFIG_HOST                       | localhost                                                                                   |
+   | OBJECTSTORECONFIG_PORT                       | 9000                                                                                        |
+   | METADATA_GRPC_SERVICE_SERVICE_HOST           | localhost                                                                                   |
+   | METADATA_GRPC_SERVICE_SERVICE_PORT           | 8080                                                                                        |
+   | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_HOST | localhost                                                                                   |
+   | ML_PIPELINE_VISUALIZATIONSERVER_SERVICE_PORT | 8888                                                                                        |
+   | V2_LAUNCHER_IMAGE                            | localhost                                                                                   |
+   | V2_DRIVER_IMAGE                              | localhost                                                                                   |
    | V2_DRIVER_COMMAND                            | dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec /bin/driver -- |
+
 4. Set the following program arguments: --config ./backend/src/apiserver/config -logtostderr=true --sampleconfig ./backend/src/apiserver/config/test_sample_config.json
 
 #### Starting a Remote Debug Session
@@ -300,27 +403,32 @@ Set a breakpoint on the Driver code in VS Code. Then remotely connect to the Del
 Code `launch.json` file:
 
 VSCode configuration:
+
 ```json
 {
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Connect to remote driver",
+      "type": "go",
+      "request": "attach",
+      "mode": "remote",
+      "remotePath": "/go/src/github.com/kubeflow/pipelines",
+      "port": 2345,
+      "host": "127.0.0.1",
+      "substitutePath": [
         {
-            "name": "Connect to remote driver",
-            "type": "go",
-            "request": "attach",
-            "mode": "remote",
-            "remotePath": "/go/src/github.com/kubeflow/pipelines",
-            "port": 2345,
-            "host": "127.0.0.1",
-            "substitutePath": [
-                { "from": "${workspaceFolder}", "to": "/go/src/github.com/kubeflow/pipelines" }
-            ]
+          "from": "${workspaceFolder}",
+          "to": "/go/src/github.com/kubeflow/pipelines"
         }
-    ]
+      ]
+    }
+  ]
 }
 ```
 
 GoLand configuration:
+
 1. Create a new Go Remote configuration and title it "Delve debug session"
 2. Set **Host** to localhost
 3. Set **Port** to 2345
@@ -350,6 +458,7 @@ kind delete clusters dev-pipelines-api
 ```
 
 ## Contributing
+
 ### Code Style
 
 Backend codebase follows the [Google's Go Style Guide](https://google.github.io/styleguide/go/). Please, take time to get familiar with the [best practices](https://google.github.io/styleguide/go/best-practices). It is not intended to be exhaustive, but it often helps minimizing guesswork among developers and keep codebase uniform and consistent.
