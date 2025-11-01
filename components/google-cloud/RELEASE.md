@@ -1,5 +1,6 @@
 ## Upcoming release
 
+* Fix for dataproc batch components pipeline failure.
 * Add `autotuning_config` and `cohort` parameters to Dataproc v1 batch components.
 
 ## Release 2.21.0

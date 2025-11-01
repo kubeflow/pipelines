@@ -18,7 +18,7 @@ from typing import List, NamedTuple
 from kfp import dsl
 
 
-@dsl.component(base_image='python:3.11')
+@dsl.component(base_image='python:3.9')
 def set_train_args(
     quantiles: List[float],
     model_blocks: List[str],
