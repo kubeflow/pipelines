@@ -6,10 +6,10 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-e3bf4dafebca73c53759f2310029cb3fc65ab6a05d870069f7c58096ff7bb483
+    - name: components-803698d03046363b60200c88f9fb6fbe12ba90770433b71b7ad2c377976b92fc
       value: '{"executorLabel":"exec-echo","inputDefinitions":{"parameters":{"param1":{"parameterType":"STRING"},"param2":{"parameterType":"STRING"}}}}'
-    - name: implementations-e3bf4dafebca73c53759f2310029cb3fc65ab6a05d870069f7c58096ff7bb483
-      value: '{"args":["{{$.inputs.parameters[''param1'']}}-{{$.inputs.parameters[''param2'']}}"],"command":["echo"],"image":"public.ecr.aws/docker/library/python:3.12"}'
+    - name: implementations-803698d03046363b60200c88f9fb6fbe12ba90770433b71b7ad2c377976b92fc
+      value: '{"args":["{{$.inputs.parameters[''param1'']}}-{{$.inputs.parameters[''param2'']}}"],"command":["echo"],"image":"registry.access.redhat.com/ubi9/python-311:latest"}'
     - name: components-root
       value: '{"dag":{"tasks":{"echo":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-echo"},"inputs":{"parameters":{"param1":{"componentInputParameter":"param1"},"param2":{"componentInputParameter":"param2"}}},"taskInfo":{"name":"echo"}}}},"inputDefinitions":{"parameters":{"param1":{"defaultValue":"hello","parameterType":"STRING"},"param2":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
@@ -58,12 +58,25 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
       - --mlmd_server_address
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port
       - "8080"
       command:
       - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -196,11 +209,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e3bf4dafebca73c53759f2310029cb3fc65ab6a05d870069f7c58096ff7bb483}}'
+            value: '{{workflow.parameters.components-803698d03046363b60200c88f9fb6fbe12ba90770433b71b7ad2c377976b92fc}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-echo"},"inputs":{"parameters":{"param1":{"componentInputParameter":"param1"},"param2":{"componentInputParameter":"param2"}}},"taskInfo":{"name":"echo"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e3bf4dafebca73c53759f2310029cb3fc65ab6a05d870069f7c58096ff7bb483}}'
+            value: '{{workflow.parameters.implementations-803698d03046363b60200c88f9fb6fbe12ba90770433b71b7ad2c377976b92fc}}'
           - name: task-name
             value: echo
           - name: parent-dag-id
@@ -259,6 +272,10 @@ spec:
       - ""
       - --no_proxy
       - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow
+      - --ml_pipeline_server_port
+      - "8887"
       - --mlmd_server_address
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port

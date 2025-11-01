@@ -150,3 +150,71 @@ func TestInsertUpsert(t *testing.T) {
 		})
 	}
 }
+
+func TestQualifyIdentifier(t *testing.T) {
+	mysqlQuote := func(s string) string { return "`" + s + "`" }
+	pgQuote := func(s string) string { return `"` + s + `"` }
+
+	testCases := []struct {
+		name  string
+		quote func(string) string
+		key   string
+		want  string
+	}{
+		{
+			name:  "Nil quoter returns key unchanged",
+			quote: nil,
+			key:   "table.column",
+			want:  "table.column",
+		},
+		{
+			name:  "Simple identifier with MySQL quote",
+			quote: mysqlQuote,
+			key:   "my_column",
+			want:  "`my_column`",
+		},
+		{
+			name:  "Qualified identifier with MySQL quote",
+			quote: mysqlQuote,
+			key:   "rf.ResourceType",
+			want:  "`rf`.`ResourceType`",
+		},
+		{
+			name:  "Simple identifier with Postgres quote",
+			quote: pgQuote,
+			key:   "my_column",
+			want:  `"my_column"`,
+		},
+		{
+			name:  "Qualified identifier with Postgres quote",
+			quote: pgQuote,
+			key:   "jobs.UUID",
+			want:  `"jobs"."UUID"`,
+		},
+		{
+			name:  "Multiple dots (schema.table.column)",
+			quote: pgQuote,
+			key:   "schema.table.column",
+			want:  `"schema"."table"."column"`,
+		},
+		{
+			name:  "Empty key with quote function",
+			quote: pgQuote,
+			key:   "",
+			want:  `""`,
+		},
+		{
+			name:  "Table alias with column (r.Payload)",
+			quote: mysqlQuote,
+			key:   "r.Payload",
+			want:  "`r`.`Payload`",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := qualifyIdentifier(tc.quote, tc.key)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
