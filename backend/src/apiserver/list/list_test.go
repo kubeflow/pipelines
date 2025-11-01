@@ -687,7 +687,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 
 	for _, test := range tests {
 		sql := sq.Select("*").From("MyTable")
-		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql)).ToSql()
+		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql, nil), nil).ToSql()
 
 		if gotSQL != test.wantSQL || !reflect.DeepEqual(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("BuildListSQLQuery(%+v) =\nGot: %q, %v, %v\nWant: %q, %v, nil",
@@ -882,7 +882,7 @@ func TestAddSortingToSelectWithPipelineVersionModel(t *testing.T) {
 	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("pipeline_versions")
-	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder).ToSql()
+	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder, nil).ToSql()
 	assert.Nil(t, err)
 
 	assert.Contains(t, sql, "pipeline_versions.Name") // sorting field
@@ -911,7 +911,7 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("run_details")
-	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder, nil).ToSql()
 	assert.Nil(t, err)
 	assert.Contains(t, sql, "WHERE (Conditions = ?)") // filtering on status, aka Conditions in db
 	assert.Contains(t, args, "Succeeded")
@@ -928,7 +928,7 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listableOptions, err = NewOptions(listable, 10, "name", newNotEqualFilter)
 	assert.Nil(t, err)
 	sqlBuilder = sq.Select("*").From("run_details")
-	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder).ToSql()
+	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder, nil).ToSql()
 	assert.Nil(t, err)
 	assert.Contains(t, sql, "WHERE (Conditions <> ?)") // filtering on status, aka Conditions in db
 	assert.Contains(t, args, "somevalue")

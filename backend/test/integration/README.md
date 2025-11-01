@@ -21,13 +21,40 @@ the tests with `make -C backend/test/integration test-webhook` from the root of 
 
 ### Run database tests with PostgreSQL
 
-To run this test, you need to first deploy the PostgreSQL images on your Kubernetes cluster. For how to deploy, 
+To run this test, you need to first deploy the PostgreSQL images on your Kubernetes cluster. For how to deploy,
 see [instructions here](../../../manifests/kustomize/third-party/postgresql/README.md).
 
-When testing against postgreSQL, all integration tests with MySQL will be disabled. Use an argument `postgres` to run 
+When testing against postgreSQL, all integration tests with MySQL will be disabled. Use an argument `postgres` to run
 test against a PostgreSQL database:
 ```
 NAMESPACE=<kfp-namespace> ./run_tests_locally.sh postgres
 ```
 
+### Test Resource Naming Guidelines
 
+When creating test files in `backend/test/resources/` or `backend/test/v2/resources/`
+that will be used in sorting tests, follow these guidelines to ensure database-agnostic behavior:
+
+#### ✅ DO: Use Consistent Separators
+- Use all hyphens (`-`) or all underscores (`_`) in related test files
+- Example: `arguments-parameters.yaml` and `arguments-parameters.zip`
+- Files will sort predictably by extension: `.yaml` < `.zip`
+
+#### ❌ DON'T: Mix Separators
+- Avoid mixing separators in files that will be compared in sorting tests
+- Example: `arguments-parameters.yaml` vs `arguments_parameters.zip`
+- This causes inconsistent sorting across MySQL and PostgreSQL
+
+#### Why This Matters
+
+Different databases handle punctuation differently during string comparison:
+
+- **MySQL** (utf8mb4_0900_ai_ci): Based on [Unicode Collation Algorithm 9.0.0](https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-sets.html)
+  - Punctuation adds primary differences but is mainly used for tie-breaking
+
+- **PostgreSQL** (locale-aware collations): Depends on [locale provider](https://www.postgresql.org/docs/current/collation.html)
+  - Punctuation may be ignored or weighted differently based on collation level
+  - Example: `en_US.UTF-8` may treat `'x-y'` and `'x_y'` as equivalent at lower collation levels
+
+Using consistent naming eliminates these ambiguities and ensures tests pass reliably
+across all database backends.

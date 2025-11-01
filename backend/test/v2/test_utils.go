@@ -42,6 +42,13 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
+const (
+	// defaultCleanupTimeout is the timeout for waiting for runs and recurring runs to be deleted in cleanup functions
+	defaultCleanupTimeout = 60 * time.Second
+	// pipelineVersionCleanupTimeout is the timeout for waiting for pipeline versions to be deleted
+	pipelineVersionCleanupTimeout = 5 * time.Second
+)
+
 func WaitForReady(initializeTimeout time.Duration) error {
 	operation := func() error {
 		response, err := http.Get("http://localhost:8888/apis/v2beta1/healthz")
@@ -139,7 +146,7 @@ func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T)
 	}
 	// Wait for runs to be deleted.
 	// Increased timeout for local dev environment where cleanup can be slow
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(60*time.Second))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(defaultCleanupTimeout))
 	defer cancel()
 
 	for {
@@ -150,9 +157,13 @@ func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T)
 			for _, r := range remainingRuns {
 				remainingRunNames = append(remainingRunNames, r.DisplayName)
 			}
-			require.FailNowf(t, "Runs were not deleted after 15 seconds", "Remaining runs: %v", remainingRunNames)
+			require.FailNowf(t, "Runs were not deleted after "+defaultCleanupTimeout.String(), "Remaining runs: %v", remainingRunNames)
 		default:
-			remainingRuns, _, _, _ := ListAllRuns(client, namespace)
+			remainingRuns, _, _, err := ListAllRuns(client, namespace)
+			if err != nil {
+				glog.Errorf("Error listing runs, will retry: %v", err)
+				continue
+			}
 			if len(remainingRuns) == 0 {
 				return
 			}
@@ -185,7 +196,7 @@ func DeleteAllRecurringRuns(client *api_server.RecurringRunClient, namespace str
 	}
 	// Wait for recurring runs to be deleted.
 	// Increased timeout for local dev environment where cleanup can be slow
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(60*time.Second))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(defaultCleanupTimeout))
 	defer cancel()
 
 	for {
@@ -196,9 +207,13 @@ func DeleteAllRecurringRuns(client *api_server.RecurringRunClient, namespace str
 			for _, r := range remainingRuns {
 				remainingRunNames = append(remainingRunNames, r.DisplayName)
 			}
-			require.FailNowf(t, "Recurring runs were not deleted after 15 seconds", "Remaining recurring runs: %v", remainingRunNames)
+			require.FailNowf(t, "Recurring runs were not deleted after "+defaultCleanupTimeout.String(), "Remaining recurring runs: %v", remainingRunNames)
 		default:
-			remainingRuns, _, _, _ := ListAllRecurringRuns(client, namespace)
+			remainingRuns, _, _, err := ListAllRecurringRuns(client, namespace)
+			if err != nil {
+				glog.Errorf("Error listing recurring runs, will retry: %v", err)
+				continue
+			}
 			if len(remainingRuns) == 0 {
 				return
 			}
@@ -230,14 +245,14 @@ func DeleteAllPipelineVersions(client *api_server.PipelineClient, t *testing.T, 
 
 	// Wait for pipeline versions to be deleted. In Kubernetes mode, there can be a slight delay before the cache is
 	// updated.
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(pipelineVersionCleanupTimeout))
 	defer cancel()
 
 	for {
 		select {
 		case <-ctx.Done():
 			// This should be a ContextDeadlineExceeded error and causes the test to fail.
-			require.Nil(t, ctx.Err(), "Pipeline versions have not been deleted after 5 seconds")
+			require.Nil(t, ctx.Err(), "Pipeline versions have not been deleted after "+pipelineVersionCleanupTimeout.String())
 
 			return
 		default:

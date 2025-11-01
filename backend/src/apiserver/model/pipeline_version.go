@@ -125,9 +125,9 @@ func (p *PipelineVersion) GetFieldValue(name string) interface{} {
 }
 
 func (p *PipelineVersion) GetSortByFieldPrefix(name string) string {
-	return "pipeline_versions."
+	return "pipeline_versions"
 }
 
 func (p *PipelineVersion) GetKeyFieldPrefix() string {
-	return "pipeline_versions."
+	return "pipeline_versions"
 }

@@ -2,8 +2,7 @@ name: KFP API Integration V2 (Legacy)
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
 
   pull_request:
     paths:

@@ -47,7 +47,7 @@ func TestCache(t *testing.T) {
 
 func (s *CacheTestSuite) SetupSuite() {
 	var err error
-	s.mlmdClient, err = testutils.NewTestMlmdClient("127.0.0.1", metadata.GetMetadataConfig().Port, *config.TLSEnabled, *config.CaCertPath)
+	s.mlmdClient, err = testutils.NewTestMlmdClient("localhost", metadata.GetMetadataConfig().Port, *config.TLSEnabled, *config.CaCertPath)
 	require.NoError(s.T(), err)
 	require.NotNil(s.T(), s.mlmdClient)
 }
@@ -430,6 +430,6 @@ func (s *CacheTestSuite) getContainerExecutionState(t *testing.T, runID string) 
 			return execution.GetLastKnownState()
 		}
 	}
-	t.Fatalf("no container execution found for run %s", runID)
+	require.FailNow(t, "no container execution found for run %s", runID)
 	return pb.Execution_UNKNOWN
 }

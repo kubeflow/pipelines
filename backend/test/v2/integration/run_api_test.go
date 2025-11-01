@@ -149,9 +149,7 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world experiment ---------- */
-	uuid, err := util.NewUUIDGenerator().NewRandom()
-	assert.Nil(t, err)
-	experiment := test.MakeExperiment(fmt.Sprintf("hello world experiment %s", uuid.String()), "", s.resourceNamespace)
+	experiment := test.MakeExperiment("hello world experiment", "", s.resourceNamespace)
 	helloWorldExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
 	assert.Nil(t, err)
 
@@ -176,9 +174,8 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	createExperimentRequest := &experiment_params.ExperimentServiceCreateExperimentParams{
-		Experiment: test.MakeExperiment(fmt.Sprintf("argument parameter experiment %s", uuid.String()), "", s.resourceNamespace),
+		Experiment: test.MakeExperiment("argument parameter experiment", "", s.resourceNamespace),
 	}
-	assert.Nil(t, err)
 	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
 	assert.Nil(t, err)
 

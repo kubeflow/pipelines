@@ -63,11 +63,6 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
 	q := s.dbDialect.QuoteIdentifier
-	opts.SetQuote(s.dbDialect.QuoteIdentifier)
-
-	// Fix for wrong sort key prefix.
-	opts.SetSortByFieldPrefix(q("experiments") + ".")
-	opts.SetKeyFieldPrefix(q("experiments") + ".")
 
 	// SQL for getting the filtered and paginated rows
 	qb := s.dbDialect.QueryBuilder()
@@ -79,9 +74,9 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("Namespace"): filterContext.ID})
 	}
-	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
+	sqlBuilder = opts.AddFilterToSelect(sqlBuilder, q)
 
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+	rowsSQL, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder, q).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -92,7 +87,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("Namespace"): filterContext.ID})
 	}
-	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
+	sizeSQL, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder, q).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -103,7 +98,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 		glog.Errorf("Failed to start transaction to list jobs")
 		return errorF(err)
 	}
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -119,7 +114,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 	}
 	defer rows.Close()
 
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)

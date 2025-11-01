@@ -93,7 +93,6 @@ func (s *JobStore) ListJobs(
 	errorF := func(err error) ([]*model.Job, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
-	opts.SetQuote(s.dbDialect.QuoteIdentifier)
 
 	rowsSql, rowsArgs, err := s.buildSelectJobsQuery(false, opts, filterContext)
 	if err != nil {
@@ -174,14 +173,14 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
-	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
+	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, q)
 
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Also add pagination.
 	if !selectCount {
 		sqlBuilder = s.addResourceReferences(sqlBuilder)
-		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
-		sqlBuilder = opts.AddSortingToSelect(sqlBuilder)
+		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder, q)
+		sqlBuilder = opts.AddSortingToSelect(sqlBuilder, q)
 	}
 	sql, args, err := sqlBuilder.ToSql()
 	if err != nil {
@@ -219,16 +218,17 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder) sq.SelectBuilder {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
-	agg := s.dbDialect.ConcatAgg(false, q("r")+"."+q("Payload"), ",")
+	agg := s.dbDialect.ConcatAgg(false, qualifyIdentifier(q, "r.Payload"), ",")
 	// Build correlated subquery. This is a correlated subquery that references
 	// the outer query's jobs.UUID, so we use string concatenation for the structure.
 	// The ResourceType value 'Job' is a constant (model.JobResourceType), not user input.
 	// While we could make this more "pure" by avoiding the literal, the performance
 	// and compatibility implications are minimal since this is a constant comparison.
-	sub := "SELECT " + agg +
-		" FROM " + q("resource_references") + " AS " + q("r") +
-		" WHERE " + q("r") + "." + q("ResourceType") + "='Job'" +
-		" AND " + q("r") + "." + q("ResourceUUID") + " = " + q("jobs") + "." + q("UUID")
+	sub := fmt.Sprintf("SELECT %s FROM %s AS %s WHERE %s='Job' AND %s = %s",
+		agg,
+		q("resource_references"), q("r"),
+		qualifyIdentifier(q, "r.ResourceType"),
+		qualifyIdentifier(q, "r.ResourceUUID"), qualifyIdentifier(q, "jobs.UUID"))
 	refsExpr := s.dbDialect.ConcatExprs(
 		[]string{"'['", "COALESCE((" + sub + "), '')", "']'"},
 		"",

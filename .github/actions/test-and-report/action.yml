@@ -4,31 +4,31 @@ description: "Step to set up a kind cluster and run tests against it"
 inputs:
   pipeline_store:
     description: "Flag to deploy KFP with K8s Native API"
-    default: 'database'
+    default: "database"
     required: false
   proxy:
     description: "If KFP should be deployed with proxy configuration"
     required: false
-    default: 'false'
+    default: "false"
   cache_enabled:
     description: "If KFP should be deployed with cache enabled globally"
     required: false
-    default: 'true'
+    default: "true"
   multi_user:
     description: "If KFP should be deployed in multi-user mode"
     required: false
-    default: 'false'
+    default: "false"
   user_namespace:
     description: "User namespace name if KFP was deployed in multi-user mode"
     required: false
-    default: 'kubeflow-user-example-com'
+    default: "kubeflow-user-example-com"
   default_namespace:
     description: "Default namespace when deploying KFP on a Kind Cluster"
     required: false
-    default: 'kubeflow'
+    default: "kubeflow"
   python_version:
     required: false
-    default: '3.9'
+    default: "3.9"
     description: "Python version to use"
   report_python_version:
     required: false
@@ -48,7 +48,7 @@ inputs:
     description: "Test Label to filter on, for e.g. Regression, Smoke, APIServerTests etc."
   upload_pipelines_with_kubernetes_client:
     required: false
-    default: 'false'
+    default: "false"
     description: "Set to true if you want to upload pipelines and pipeline versions with Native K8s API as CRDs"
   report_name:
     required: false
@@ -57,12 +57,11 @@ inputs:
   tls_enabled:
     description: "If KFP should be deployed with TLS pod-to-pod communication."
     required: false
-    default: 'false'
+    default: "false"
   ca_cert_path:
     description: "Path to the CA certificate file."
     required: false
     default: ""
-
 
 runs:
   using: "composite"
@@ -166,7 +165,7 @@ runs:
       uses: ./.github/actions/junit-summary
       if: always() && !cancelled()
       with:
-        xml_files: '${{ inputs.test_directory }}/reports'
+        xml_files: "${{ inputs.test_directory }}/reports"
         custom_data: '{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}'
       continue-on-error: true
 

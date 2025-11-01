@@ -213,7 +213,6 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 // total_size. The total_size does not reflect the page size. Total_size reflects the number of pipeline_versions (not pipelines).
 // This supports v1beta1 behavior.
 func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	opts.SetQuote(s.dbDialect.QuoteIdentifier)
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	subQuery := qb.Select("t1.pvid, t1.pid").FromSelect(
@@ -223,13 +222,13 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 		Where("rn = 1 OR rn IS NULL")
 
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-		query := opts.AddFilterToSelect(sqlBuilder).From(q("pipelines")).
+		query := opts.AddFilterToSelect(sqlBuilder, q).From(q("pipelines")).
 			JoinClause(subQuery.Prefix("LEFT JOIN (").Suffix(fmt.Sprintf(") t2 ON %s.%s = t2.pid", q("pipelines"), q("UUID")))).
 			LeftJoin(fmt.Sprintf("%s ON t2.pvid = %s.%s", q("pipeline_versions"), q("pipeline_versions"), q("UUID")))
 		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 			query = query.Where(
 				sq.Eq{
-					fmt.Sprintf("%s.%s", q("pipelines"), q("Namespace")): filterContext.ID,
+					fmt.Sprintf("%s.%s", q("pipelines"), q("Namespace")): filterContext.ReferenceKey.ID, //nolint:staticcheck
 				},
 			)
 		}
@@ -241,7 +240,7 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 	sqlBuilder := buildQuery(qb.Select(s.selectJoinedColumns()...))
 
 	// SQL for row list
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+	rowsSQL, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder, q).ToSql()
 	if err != nil {
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query to list pipelines")
 	}
@@ -261,7 +260,7 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 	}
 
 	// Get pipelines
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to execute SQL for listing pipelines")
@@ -314,11 +313,10 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 // total_size. The total_size does not reflect the page size.
 // This will not join with `pipeline_versions` table, hence, total_size is the size of pipelines, not pipeline_versions.
 func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
-	opts.SetQuote(s.dbDialect.QuoteIdentifier)
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-		query := opts.AddFilterToSelect(sqlBuilder).From(q("pipelines"))
+		query := opts.AddFilterToSelect(sqlBuilder, q).From(q("pipelines"))
 		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 			query = query.Where(
 				sq.Eq{
@@ -334,7 +332,7 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 
 	// SQL for row list
 	sqlSelect := buildQuery(qb.Select(s.selectPipelineColumns()...))
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlSelect).ToSql()
+	rowsSQL, rowsArgs, err := opts.AddPaginationToSelect(sqlSelect, q).ToSql()
 	if err != nil {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query to list pipelines")
 	}
@@ -354,7 +352,7 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 	}
 
 	// Get pipelines
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to execute SQL for listing pipelines")
@@ -1011,11 +1009,10 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 
 // Fetches pipeline versions for a specified pipeline id.
 func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Options) (versions []*model.PipelineVersion, totalSize int, nextPageToken string, err error) {
-	opts.SetQuote(s.dbDialect.QuoteIdentifier)
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-		return opts.AddFilterToSelect(sqlBuilder).
+		return opts.AddFilterToSelect(sqlBuilder, q).
 			From(q("pipeline_versions")).
 			Where(
 				sq.And{
@@ -1027,7 +1024,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Optio
 
 	// Prepare a SQL query
 	sqlSelect := buildQuery(qb.Select(s.selectPipelineVersionColumns()...))
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlSelect).ToSql()
+	rowsSQL, rowsArgs, err := opts.AddPaginationToSelect(sqlSelect, q).ToSql()
 	if err != nil {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to prepare a query for listing pipeline versions for pipeline %v", pipelineId)
 	}
@@ -1047,7 +1044,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineId string, opts *list.Optio
 	}
 
 	// Fetch the rows
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipeline versions for pipeline %v", pipelineId)

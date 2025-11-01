@@ -72,11 +72,11 @@ func (t Task) GetModelName() string {
 }
 
 func (t Task) GetSortByFieldPrefix(s string) string {
-	return "tasks."
+	return "tasks"
 }
 
 func (t Task) GetKeyFieldPrefix() string {
-	return "tasks."
+	return "tasks"
 }
 
 var taskAPIToModelFieldMap = map[string]string{

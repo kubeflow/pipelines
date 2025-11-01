@@ -2,12 +2,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base/installs/generic
-  - ../../base/metadata/base
-  - ../../third-party/argo/installs/namespace
-  - ../../third-party/seaweedfs/base
-  - ../../third-party/postgresql/base
+  - ../../../../base/installs/generic
+  - ../../../../base/metadata/base
+  - ../../../../third-party/argo/installs/namespace
+  - ../../../../third-party/seaweedfs/base
+  - ../../../../third-party/postgresql/base
   - ./forward-local-api-endpoint.yaml
+  - ./default-allow-same-namespace-networkpolicy.yaml
 
 patches:
   - path: mlmd-patch.yaml
@@ -121,34 +122,6 @@ patches:
                     value: "8888"
                   - name: DISABLE_GKE_METADATA
                     value: "true"
-  # NetworkPolicy - allow external access to services
-  - patch: |-
-      apiVersion: networking.k8s.io/v1
-      kind: NetworkPolicy
-      metadata:
-        name: default-allow-same-namespace
-        namespace: kubeflow
-      spec:
-        podSelector: {}
-        ingress:
-        - from:
-          - podSelector: {}
-        - from:
-          - ipBlock:
-              cidr: 0.0.0.0/0
-          ports:
-          - port: 3000
-            protocol: TCP
-          - port: 5432
-            protocol: TCP
-          - port: 8080
-            protocol: TCP
-          - port: 9000
-            protocol: TCP
-          - port: 8888
-            protocol: TCP
-        policyTypes:
-        - Ingress
   # SeaweedFS NetworkPolicy
   - patch: |-
       apiVersion: networking.k8s.io/v1
@@ -209,3 +182,12 @@ labels:
   - includeSelectors: false
     pairs:
       application-crd-id: kubeflow-pipelines
+
+images:
+  - name: ghcr.io/kubeflow/kfp-api-server
+    newTag: master
+  - name: ghcr.io/kubeflow/kfp-cache-server
+    newTag: master
+# TODO:Once a stable release (e.g., v2.15.0) includes PostgreSQL support:
+# 1. Update base/pipeline/kustomization.yaml to use the new version
+# 2. Remove this images override section from PostgreSQL overlays

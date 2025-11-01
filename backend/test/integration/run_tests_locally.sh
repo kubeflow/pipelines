@@ -21,9 +21,8 @@ if [ -z "${NAMESPACE}" ]; then
 fi
 
 # Define the IP address for port-forwarding the database for local testing.
-# This value should be kept in sync with the DB_FORWARD_IP in CI workflows.
-# Using 127.0.0.1 to match MySQL behavior and Kind local development setup.
-export DB_FORWARD_IP=${DB_FORWARD_IP:-"127.0.0.1"}
+# Using localhost for consistency with port-forward default behavior.
+export DB_FORWARD_IP=${DB_FORWARD_IP:-"localhost"}
 
 echo "The api integration tests run against the cluster your kubectl communicates to.";
 echo "It's currently '$(kubectl config current-context)'."

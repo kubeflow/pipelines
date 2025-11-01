@@ -129,9 +129,31 @@ func getPackagePath(subdir string) string {
 	return fmt.Sprintf("git+https://github.com/%s.git@%s#subdirectory=%s", repoName, *config.BRANCH_NAME, subdir)
 }
 
+// isBinaryFile checks if the data is a binary file (zip or tar.gz) by inspecting magic bytes
+func isBinaryFile(data []byte) bool {
+	if len(data) < 2 {
+		return false
+	}
+	// Check for zip file signature (PK)
+	if data[0] == 0x50 && data[1] == 0x4B {
+		return true
+	}
+	// Check for gzip file signature
+	if data[0] == 0x1F && data[1] == 0x8B {
+		return true
+	}
+	return false
+}
+
 func ReplaceSDKInPipelineSpec(pipelineFilePath string) []byte {
 	pipelineFileBytes, err := os.ReadFile(pipelineFilePath)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to read pipeline file: "+pipelineFilePath)
+
+	// Skip binary files (zip, tar.gz) - return unchanged
+	if isBinaryFile(pipelineFileBytes) {
+		return pipelineFileBytes
+	}
+
 	pipelineFileString := string(pipelineFileBytes)
 
 	// Define regex pattern to match kfp==[version] (e.g., kfp==2.8.0)
@@ -147,6 +169,12 @@ func ReplaceSDKInPipelineSpec(pipelineFilePath string) []byte {
 func ReplaceBaseImageInPipelineSpec(pipelineFilePath string) []byte {
 	pipelineFileBytes, err := os.ReadFile(pipelineFilePath)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "failed to read pipeline file: "+pipelineFilePath)
+
+	// Skip binary files (zip, tar.gz) - return unchanged
+	if isBinaryFile(pipelineFileBytes) {
+		return pipelineFileBytes
+	}
+
 	pipelineFileString := string(pipelineFileBytes)
 
 	// Define regex pattern to match image: python:3.9

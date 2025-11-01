@@ -2,8 +2,29 @@ BUILD=build
 MOD_ROOT=..
 KIND_NAME ?= dev-pipelines-api
 TLS_ENABLED ?= "false"
+DATABASE ?= mysql
 
 CERT_MANAGER_VERSION ?= v1.16.2
+
+# Validate DATABASE value
+VALID_DATABASES := mysql postgres
+ifeq ($(filter $(DATABASE),$(VALID_DATABASES)),)
+    $(error Invalid DATABASE value: $(DATABASE). Must be one of: $(VALID_DATABASES))
+endif
+
+# Auto-detect platform (linux or macOS)
+PLATFORM ?= $(shell uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/macOS/')
+
+# Validate PLATFORM value
+VALID_PLATFORMS := linux macOS
+ifeq ($(filter $(PLATFORM),$(VALID_PLATFORMS)),)
+    $(error Invalid PLATFORM value: $(PLATFORM). Must be one of: $(VALID_PLATFORMS))
+endif
+
+# Database-specific configuration
+KIND_CONFIG_SUFFIX = $(if $(filter postgres,$(DATABASE)),-pg,)
+KUSTOMIZE_ENV_SUFFIX = /$(PLATFORM)$(if $(filter postgres,$(DATABASE)),/postgres,/base)
+DB_DEPLOYMENT_NAME = $(if $(filter postgres,$(DATABASE)),postgres,mysql)
 
 # Container Build Params
 CONTAINER_ENGINE ?= $(shell \
@@ -110,34 +131,32 @@ kind-cluster-agnostic:
 kind-cluster-agnostic-tls:
 	$(MAKE) TLS_ENABLED="true" kind-cluster-agnostic
 
+# Creates a development Kind cluster for local API server debugging.
+# Supports DATABASE environment variable (mysql or postgres, defaults to mysql).
+# Example: make DATABASE=postgres dev-kind-cluster
 .PHONY: dev-kind-cluster
 dev-kind-cluster:
-	${CONTAINER_ENGINE} build -t ${IMG_TAG_WEBHOOK_PROXY} -f $(CURDIR)/../tools/kind/Dockerfile.webhook-proxy $(CURDIR)/../tools/kind
-	-kind create cluster --name $(KIND_NAME) --config $(CURDIR)/../tools/kind/kind-config.yaml
-	kubectl config use-context kind-$(KIND_NAME)
-	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
-	@if [ "${CONTAINER_ENGINE}" = "docker" ]; then \
-		kind --name ${KIND_NAME} load docker-image ${IMG_TAG_WEBHOOK_PROXY}; \
-	else \
-		bash -c "kind load --name ${KIND_NAME} image-archive <( ${CONTAINER_ENGINE} save ${IMG_TAG_WEBHOOK_PROXY})"; \
+	@if [ "$(DATABASE)" = "mysql" ]; then \
+		${CONTAINER_ENGINE} build -t ${IMG_TAG_WEBHOOK_PROXY} -f $(CURDIR)/../tools/kind/Dockerfile.webhook-proxy $(CURDIR)/../tools/kind; \
 	fi
-	$(MAKE) install-cert-manager
-	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
-	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
-	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind
-	kubectl apply -f $(CURDIR)/../tools/kind/webhook-proxy.yaml
-	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
-	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
-
-.PHONY: dev-kind-cluster-pg
-dev-kind-cluster-pg:
-	-kind create cluster --name $(KIND_NAME) --config $(CURDIR)/../tools/kind/kind-config-pg.yaml
+	-kind create cluster --name $(KIND_NAME) --config $(CURDIR)/../tools/kind/kind-config$(KIND_CONFIG_SUFFIX).yaml
 	kubectl config use-context kind-$(KIND_NAME)
 	kind get kubeconfig --name $(KIND_NAME) > $(CURDIR)/../kubeconfig_$(KIND_NAME)
+	@if [ "$(DATABASE)" = "mysql" ]; then \
+		if [ "${CONTAINER_ENGINE}" = "docker" ]; then \
+			kind --name ${KIND_NAME} load docker-image ${IMG_TAG_WEBHOOK_PROXY}; \
+		else \
+			bash -c "kind load --name ${KIND_NAME} image-archive <( ${CONTAINER_ENGINE} save ${IMG_TAG_WEBHOOK_PROXY})"; \
+		fi; \
+		$(MAKE) install-cert-manager; \
+	fi
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/cluster-scoped-resources
 	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
-	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind-postgresql
-	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/postgres
+	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind$(KUSTOMIZE_ENV_SUFFIX)
+	@if [ "$(DATABASE)" = "mysql" ]; then \
+		kubectl apply -f $(CURDIR)/../tools/kind/webhook-proxy.yaml; \
+	fi
+	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/$(DB_DEPLOYMENT_NAME)
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
 	kubectl config set-context --current --namespace=kubeflow
 

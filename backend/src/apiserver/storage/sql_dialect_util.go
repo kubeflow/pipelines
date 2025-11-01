@@ -22,7 +22,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
-	sqlite3 "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 )
@@ -54,7 +54,7 @@ func isDuplicateError(d dialect.DBDialect, err error) bool {
 		// Optional: for unit tests that still use sqlite.
 		var se sqlite3.Error
 		if errors.As(err, &se) {
-			return se.Code == sqlite3.ErrConstraint
+			return errors.Is(se.Code, sqlite3.ErrConstraint)
 		}
 		return false
 	}
@@ -111,4 +111,21 @@ func quoteAll(q func(string) string, cols []string) []string {
 		out[i] = q(c)
 	}
 	return out
+}
+
+// qualifyIdentifier quotes identifiers correctly when they are qualified with dots,
+// e.g. "experiments.Name" -> `"experiments"."Name"` (or the dialect's quote style).
+// If there is no dot, it simply quotes the key.
+func qualifyIdentifier(q func(string) string, key string) string {
+	if q == nil {
+		return key
+	}
+	if strings.Contains(key, ".") {
+		parts := strings.Split(key, ".")
+		for i := range parts {
+			parts[i] = q(parts[i])
+		}
+		return strings.Join(parts, ".")
+	}
+	return q(key)
 }
