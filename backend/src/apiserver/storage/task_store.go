@@ -220,7 +220,6 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	errorF := func(err error) ([]*model.Task, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list tasks: %v", err)
 	}
-	opts.SetQuote(s.dbDialect.QuoteIdentifier)
 
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
@@ -233,9 +232,9 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ID})
 	}
-	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
+	sqlBuilder = opts.AddFilterToSelect(sqlBuilder, q)
 
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+	rowsSQL, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder, q).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -249,7 +248,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ID})
 	}
-	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
+	sizeSQL, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder, q).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -261,7 +260,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		return errorF(err)
 	}
 
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -277,7 +276,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	}
 	defer rows.Close()
 
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -313,7 +312,7 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 	sql, args, err := qb.
 		Select(quoteAll(q, taskColumns)...).
 		From(q("tasks")).
-		Where(sq.Eq{q("tasks") + "." + q("UUID"): id}).
+		Where(sq.Eq{fmt.Sprintf("%s.%s", q("tasks"), q("UUID")): id}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get task: %v", err.Error())

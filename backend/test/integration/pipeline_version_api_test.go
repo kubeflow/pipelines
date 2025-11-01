@@ -171,7 +171,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	/* ---------- Upload pipeline version zip ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUploadPipelineVersion, err := s.pipelineUploadClient.UploadPipelineVersion(
-		"../resources/arguments_parameters.zip", &uploadParams.UploadPipelineVersionParams{
+		"../resources/arguments-parameters.zip", &uploadParams.UploadPipelineVersionParams{
 			Name:       util.StringPointer("zip-arguments-parameters"),
 			Pipelineid: util.StringPointer(pipelineId),
 		})
@@ -180,7 +180,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	pipelineURL, err = testutil.GetRepoBranchURLRAW(s.repoName, s.branchName, "backend/test/resources/arguments_parameters.zip")
+	pipelineURL, err = testutil.GetRepoBranchURLRAW(s.repoName, s.branchName, "backend/test/resources/arguments-parameters.zip")
 	require.Nil(t, err)
 
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.PipelineServiceCreatePipelineVersionV1Params{
