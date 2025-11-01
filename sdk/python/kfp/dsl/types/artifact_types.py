@@ -120,7 +120,7 @@ class Artifact:
         return self._custom_path
 
     def _set_path(self, path: str) -> None:
-        self.uri = convert_local_path_to_remote_path(path)
+        self._custom_path = path
 
     def _set_custom_path(self, value: str) -> None:
         self._custom_path = value

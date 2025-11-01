@@ -1,22 +1,27 @@
-from kfp.dsl import Output
-from kfp.dsl.types.artifact_types import Artifact
-from kfp.v2 import dsl
+from typing import List
+
+from kfp.dsl import Output, Input
+from kfp.dsl.types.artifact_types import Artifact, Dataset
+from kfp.v2 import dsl, compiler
 
 
-@dsl.component
-def generate_artifact() -> list:
-    return [1, 2, 3, 4]
+def validate_custom_artifact_path(num: int, out_dataset: Output[Dataset]):
+    with open(out_dataset.path, 'w') as f:
+        f.write(str(2 * num))
+    out_dataset._set_path('/etc/test/file/path')
 
-@dsl.component
-def validate_artifact_path(exp_path: str, input_list: Output[Artifact]) -> bool:
-    if input_list.path is not exp_path:
-        raise ValueError(f"File uri is {input_list.path} but should be {exp_path}.")
+    if out_dataset.path != '/etc/test/file/path':
+        raise ValueError(f"File path is {out_dataset.path} but should be '/etc/test/file/path'.")
+    if out_dataset.custom_path != '/etc/test/file/path':
+        raise ValueError(f"File uri is {out_dataset.custom_path} but should be '/etc/test/file/path'.")
 
-@dsl.pipeline
+@dsl.pipeline(description='custom path task')
 def pipeline_with_custom_path_artifact():
-    # Generate artifact, and set its custom path.
-    output_artifact_task = generate_artifact()
-    output_artifact_task.output.set_path('/etc/test/file/path')
+    # Generate an artifact, set a custom path and validate the path.
+    task = validate_custom_artifact_path(num=1).set_caching_options(False)
 
-    # Validate generated artifact's path.
-    validate_artifact_task = validate_artifact_path(path='/etc/test/file/path', input_list=output_artifact_task.output)
+if __name__ == '__main__':
+    compiler.Compiler().compile(
+        pipeline_func=pipeline_with_custom_path_artifact,
+        package_path=__file__.replace('.py', '.yaml'))
+
