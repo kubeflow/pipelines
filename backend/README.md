@@ -97,10 +97,11 @@ pods on the cluster using the `ml-pipeline` `Service`.
 * The following ports are available on your localhost: 3000, 3306, 8080, 9000, and 8889. If these are unavailable,
   modify [kind-config.yaml](../tools/kind/kind-config.yaml) and configure the API server with alternative ports when
   running locally.
-* If using a Mac, you will need to modify the
-  [Endpoints](../manifests/kustomize/env/dev-kind/forward-local-api-endpoint.yaml) manifest to leverage the bridge
-  network interface through Docker/Podman Desktop. See
-  [kind #1200](https://github.com/kubernetes-sigs/kind/issues/1200#issuecomment-1304855791) for an example manifest.
+* The setup automatically detects your platform (Linux or macOS) and uses the appropriate Docker bridge IP configuration:
+  - **Linux**: Uses `172.17.0.1` (docker0 bridge)
+  - **macOS**: Uses `192.168.65.254` (Docker Desktop host.docker.internal)
+
+  You can override the platform detection with `make PLATFORM=linux dev-kind-cluster` or `make PLATFORM=macOS dev-kind-cluster`.
 * Optional: VSCode is installed to leverage a sample `launch.json` file.
   * This relies on dlv: (go install -v github.com/go-delve/delve/cmd/dlv@latest)
 
@@ -110,6 +111,25 @@ To provision the kind cluster, run the following from the Git repository's root 
 
 ```bash
 make -C backend dev-kind-cluster
+```
+
+By default, this uses MySQL as the database backend. To use PostgreSQL instead, set the `DATABASE` environment variable:
+
+```bash
+make DATABASE=postgres -C backend dev-kind-cluster
+```
+
+The `PLATFORM` variable is automatically detected based on your operating system (Linux or macOS). You can explicitly specify it:
+
+```bash
+# Use Linux configuration (default on Linux systems)
+make PLATFORM=linux -C backend dev-kind-cluster
+
+# Use macOS configuration (default on macOS systems)
+make PLATFORM=macOS -C backend dev-kind-cluster
+
+# Combine platform and database selection
+make PLATFORM=macOS DATABASE=postgres -C backend dev-kind-cluster
 ```
 
 This may take several minutes since there are many pods. Note that many pods will be in "CrashLoopBackOff" status until
@@ -180,14 +200,14 @@ locally for debugging and faster development.
 The prerequisites are the same as the [MySQL version](#prerequisites) above, except:
 
 - Port **5432** (PostgreSQL) should be available instead of 3306 (MySQL)
-- Use [kind-config-pg.yaml](../tools/kind/kind-config-pg.yaml) for PostgreSQL-specific configuration
+- PostgreSQL-specific configuration is automatically selected via [kind-config-pg.yaml](../tools/kind/kind-config-pg.yaml)
 
 #### Provisioning the Cluster
 
-To provision the kind cluster with PostgreSQL, run the following from the Git repository's root directory:
+To provision the kind cluster with PostgreSQL, use the `DATABASE` environment variable:
 
 ```bash
-make -C backend dev-kind-cluster-pg
+make DATABASE=postgres -C backend dev-kind-cluster
 ```
 
 This may take several minutes since there are many pods. Note that many pods will be in "CrashLoopBackOff" status until
