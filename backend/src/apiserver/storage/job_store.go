@@ -225,10 +225,11 @@ func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 	// The ResourceType value 'Job' is a constant (model.JobResourceType), not user input.
 	// While we could make this more "pure" by avoiding the literal, the performance
 	// and compatibility implications are minimal since this is a constant comparison.
-	sub := "SELECT " + agg +
-		" FROM " + q("resource_references") + " AS " + q("r") +
-		" WHERE " + q("r") + "." + q("ResourceType") + "='Job'" +
-		" AND " + q("r") + "." + q("ResourceUUID") + " = " + q("jobs") + "." + q("UUID")
+	sub := fmt.Sprintf("SELECT %s FROM %s AS %s WHERE %s.%s='Job' AND %s.%s = %s.%s",
+		agg,
+		q("resource_references"), q("r"),
+		q("r"), q("ResourceType"),
+		q("r"), q("ResourceUUID"), q("jobs"), q("UUID"))
 	refsExpr := s.dbDialect.ConcatExprs(
 		[]string{"'['", "COALESCE((" + sub + "), '')", "']'"},
 		"",
