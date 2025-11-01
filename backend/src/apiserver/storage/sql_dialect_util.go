@@ -54,7 +54,7 @@ func isDuplicateError(d dialect.DBDialect, err error) bool {
 		// Optional: for unit tests that still use sqlite.
 		var se sqlite3.Error
 		if errors.As(err, &se) {
-			return se.Code == sqlite3.ErrConstraint
+			return errors.Is(se.Code, sqlite3.ErrConstraint)
 		}
 		return false
 	}
