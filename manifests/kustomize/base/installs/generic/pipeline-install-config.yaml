@@ -17,8 +17,6 @@ data:
   dbType: mysql
   mysqlHost: mysql
   mysqlPort: "3306"
-  postgreHost: postgres-service
-  postgrePort: "5432"
   mlmdDb: metadb
   cacheDb: cachedb
   pipelineDb: mlpipeline
