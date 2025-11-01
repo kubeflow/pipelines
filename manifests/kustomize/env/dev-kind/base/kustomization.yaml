@@ -2,8 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- ../cert-manager/platform-agnostic-k8s-native
-- ./forward-local-api-endpoint.yaml
+- ../../cert-manager/platform-agnostic-k8s-native
+- ./default-allow-same-namespace-networkpolicy.yaml
 
 # !!! If you want to customize the namespace,
 # please refer sample/cluster-scoped-resources to update the namespace for cluster-scoped-resources
@@ -164,33 +164,6 @@ patches:
       - ml-pipeline-reverse-proxy
       - ml-pipeline-reverse-proxy.$(kfp-namespace)
       - ml-pipeline-reverse-proxy.$(kfp-namespace).svc
-- patch: |-
-    apiVersion: networking.k8s.io/v1
-    kind: NetworkPolicy
-    metadata:
-      name: default-allow-same-namespace
-      namespace: kubeflow
-    spec:
-      podSelector: {}
-      ingress:
-      - from:
-        - podSelector: {}
-      - from:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-        ports:
-        - port: 3000
-          protocol: TCP
-        - port: 3306
-          protocol: TCP
-        - port: 8080
-          protocol: TCP
-        - port: 9000
-          protocol: TCP
-        - port: 8888
-          protocol: TCP
-      policyTypes:
-      - Ingress
 - patch: |-
     apiVersion: networking.k8s.io/v1
     kind: NetworkPolicy

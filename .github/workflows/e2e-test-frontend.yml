@@ -6,15 +6,15 @@ on:
 
   pull_request:
     paths:
-      - '.github/workflows/e2e-test-frontend.yml'
-      - '.github/workflows/image-builds.yml'
-      - '.github/actions/deploy/**'
-      - '.github/resources/**'
-      - 'frontend/**'
-      - 'manifests/kustomize/**'
-      - 'test/server-integration-test/**'
-      - '!**/*.md'
-      - '!**/OWNERS'
+      - ".github/workflows/e2e-test-frontend.yml"
+      - ".github/workflows/image-builds.yml"
+      - ".github/actions/deploy/**"
+      - ".github/resources/**"
+      - "frontend/**"
+      - "manifests/kustomize/**"
+      - "test/server-integration-test/**"
+      - "!**/*.md"
+      - "!**/OWNERS"
 
 jobs:
   build:
@@ -25,18 +25,16 @@ jobs:
     needs: build
     strategy:
       matrix:
-        k8s_version: [ "v1.29.2", "v1.34.0" ]
-        pod_to_pod_tls_enabled: [ "true", "false" ]
+        k8s_version: ["v1.29.2", "v1.34.0"]
+        pod_to_pod_tls_enabled: ["true", "false"]
     name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: 3.9
-
 
       - name: Create KFP cluster
         id: create-kfp-cluster

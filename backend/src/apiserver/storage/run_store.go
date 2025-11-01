@@ -17,7 +17,6 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -29,13 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/json"
 )
-
-// escapeSQLString escapes single quotes in a string for use in SQL literals.
-// This prevents SQL injection by doubling single quotes.
-// Example: O'Reilly -> O”Reilly
-func escapeSQLString(s string) string {
-	return strings.ReplaceAll(s, "'", "''")
-}
 
 var runColumns = []string{
 	"UUID",
@@ -119,15 +111,9 @@ type RunStore struct {
 func (s *RunStore) ListRuns(
 	filterContext *model.FilterContext, opts *list.Options,
 ) ([]*model.Run, int, string, error) {
-	// dialect helpers
-	q := s.dbDialect.QuoteIdentifier
-	_ = q
-	// qb is used for queries created in this file; builders returned by list.* are kept as-is.
-	// Note: we intentionally do NOT wrap list.* builders with qb again to avoid breaking their internal composition.
 	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
-	opts.SetQuote(s.dbDialect.QuoteIdentifier)
 
 	rowsSql, rowsArgs, err := s.buildSelectRunsQuery(false, opts, filterContext)
 	if err != nil {
@@ -213,15 +199,13 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
 
-	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder)
+	sqlBuilder := opts.AddFilterToSelect(filteredSelectBuilder, q)
 
 	// If we're not just counting, then also add select columns and perform a left join
 	// to get resource reference information. Pagination and sorting are applied at the outermost level.
 	if !selectCount {
-		// Note: addMetricsResourceReferencesAndTasks now handles metric extraction for sorting,
-		// so we no longer need a separate addSortByRunMetricToSelect call
 		sqlBuilder = s.addMetricsResourceReferencesAndTasks(sqlBuilder, opts)
-		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder)
+		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder, q)
 		// Note: AddPaginationToSelect already calls AddSortingToSelect internally, so we don't need to call it again
 	}
 	sql, args, err := sqlBuilder.ToSql()
@@ -288,7 +272,8 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		return qb.
 			Select(columnsAfterJoiningResourceReferences...).
 			FromSelect(filteredSelectBuilder, "filtered").
-			LeftJoin(q("resource_references") + " AS rr ON rr." + q("ResourceType") + "='Run' AND filtered." + q("UUID") + "=rr." + q("ResourceUUID")).
+			LeftJoin(fmt.Sprintf("%s AS rr ON rr.%s='Run' AND filtered.%s=rr.%s",
+				q("resource_references"), q("ResourceType"), q("UUID"), q("ResourceUUID"))).
 			GroupBy("filtered." + q("UUID"))
 	}()
 
@@ -307,7 +292,8 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		return qb.
 			Select(columnsAfterJoiningTasks...).
 			FromSelect(subQ, "rdref").
-			LeftJoin(q("tasks")+" AS tasks ON rdref."+q("UUID")+"=tasks."+q("RunUUID")).
+			LeftJoin(fmt.Sprintf("%s AS tasks ON rdref.%s=tasks.%s",
+				q("tasks"), q("UUID"), q("RunUUID"))).
 			GroupBy("rdref."+q("UUID"), "rdref."+q("refs"))
 	}()
 
@@ -333,8 +319,9 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		// Using MAX with CASE to get the value (there should be only one row per metric name per run)
 		// Note: opts.SortByFieldName is validated by IsRegularField() to ensure it's not a regular
 		// field, meaning it's a metric name. To prevent SQL injection, we escape single quotes.
-		escapedMetricName := escapeSQLString(opts.SortByFieldName)
-		metricValueExtract := "MAX(CASE WHEN rm." + q("Name") + "='" + escapedMetricName + "' THEN rm." + q("NumberValue") + " END)"
+		escapedMetricName := dialect.EscapeSQLString(opts.SortByFieldName)
+		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s='%s' THEN rm.%s END)",
+			q("Name"), escapedMetricName, q("NumberValue"))
 		columnsAfterJoiningRunMetrics = append(columnsAfterJoiningRunMetrics,
 			metricValueExtract+" AS "+q(opts.SortByFieldName))
 	}
@@ -343,14 +330,15 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		return qb.
 			Select(columnsAfterJoiningRunMetrics...).
 			FromSelect(subQ, "subq").
-			LeftJoin(q("run_metrics")+" AS rm ON subq."+q("UUID")+"=rm."+q("RunUUID")).
+			LeftJoin(fmt.Sprintf("%s AS rm ON subq.%s=rm.%s",
+				q("run_metrics"), q("UUID"), q("RunUUID"))).
 			GroupBy("subq."+q("UUID"), "subq."+q("refs"), "subq."+q("taskDetails"))
 	}()
 
 	// Final layer: JOIN back to run_details to get all runColumns
 	// We wrap this in a subquery to avoid column ambiguity issues with ORDER BY
 	joinedColumns := append(
-		quoteAll(func(column string) string { return "rd." + q(column) }, runColumns),
+		quoteAll(func(column string) string { return fmt.Sprintf("rd.%s", q(column)) }, runColumns),
 		"withmetrics."+q("refs"),
 		"withmetrics."+q("taskDetails"),
 		"withmetrics."+q("metrics"))
@@ -362,7 +350,8 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	joinedSubQ := qb.
 		Select(joinedColumns...).
 		FromSelect(subQWithMetrics, "withmetrics").
-		Join(q("run_details") + " AS rd ON withmetrics." + q("UUID") + "=rd." + q("UUID"))
+		Join(fmt.Sprintf("%s AS rd ON withmetrics.%s=rd.%s",
+			q("run_details"), q("UUID"), q("UUID")))
 
 	// Wrap in final SELECT to provide clean column names without table prefixes
 	// This avoids ambiguity in ORDER BY clauses added by pagination
@@ -859,30 +848,3 @@ func (s *RunStore) TerminateRun(runId string) error {
 	}
 	return nil
 }
-
-// Add a metric as a new field to the select clause by join the passed-in SQL query with run_metrics table.
-// With the metric as a field in the select clause enable sorting on this metric afterwards.
-// TODO(jingzhang36): example of resulting SQL query and explanation for it.
-func (s *RunStore) addSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
-	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
-	var r model.Run
-	if r.IsRegularField(opts.SortByFieldName) {
-		return sqlBuilder
-	}
-	// TODO(jingzhang36): address the case where runs doesn't have the specified metric.
-	// Note: opts.SortByFieldName is validated by IsRegularField() to ensure it's not a regular
-	// field, meaning it's a metric name. To prevent SQL injection, we escape single quotes.
-	escapedMetricName := escapeSQLString(opts.SortByFieldName)
-	return qb.
-		Select("selected_runs.*", "run_metrics."+q("NumberValue")+" AS "+q(opts.SortByFieldName)).
-		FromSelect(sqlBuilder, "selected_runs").
-		LeftJoin(
-			q("run_metrics") +
-				" ON selected_runs." + q("UUID") +
-				"=run_metrics." + q("RunUUID") +
-				" AND run_metrics." + q("Name") + "='" + escapedMetricName + "'",
-		)
-}
-
-// Removed unused function scanRowsToRunMetrics.
