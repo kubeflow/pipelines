@@ -19,75 +19,43 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetDialect_MySQL(t *testing.T) {
 	d := NewDBDialect("mysql")
-	if d.Name() != "mysql" {
-		t.Errorf("Expected mysql dialect, got %s", d.Name())
-	}
-	if d.QuoteIdentifier("abc") != "`abc`" {
-		t.Errorf("MySQL quote failed")
-	}
-	if d.LengthFunc() != "CHAR_LENGTH" {
-		t.Errorf("Expected CHAR_LENGTH, got %s", d.LengthFunc())
-	}
+	require.Equal(t, "mysql", d.Name())
+	require.Equal(t, "`abc`", d.QuoteIdentifier("abc"))
+	require.Equal(t, "CHAR_LENGTH", d.LengthFunc())
+
 	sql, _, err := d.QueryBuilder().Select("1").ToSql()
-	if err != nil {
-		t.Errorf("Failed to build SQL: %v", err)
-	}
-	if sql != "SELECT 1" {
-		t.Errorf("Expected 'SELECT 1', got '%s'", sql)
-	}
-	if d.ExistDatabaseErrHint() != "database exists" {
-		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint())
-	}
+	require.NoError(t, err)
+	require.Equal(t, "SELECT 1", sql)
+	require.Equal(t, "database exists", d.ExistDatabaseErrHint())
 }
 
 func TestGetDialect_Pgx(t *testing.T) {
 	d := NewDBDialect("pgx")
-	if d.Name() != "pgx" {
-		t.Errorf("Expected pgx dialect, got %s", d.Name())
-	}
-	if d.QuoteIdentifier("abc") != `"abc"` {
-		t.Errorf("Pgx quote failed")
-	}
-	if d.LengthFunc() != "CHAR_LENGTH" {
-		t.Errorf("Expected CHAR_LENGTH, got %s", d.LengthFunc())
-	}
+	require.Equal(t, "pgx", d.Name())
+	require.Equal(t, `"abc"`, d.QuoteIdentifier("abc"))
+	require.Equal(t, "CHAR_LENGTH", d.LengthFunc())
+
 	sql, _, err := d.QueryBuilder().Select("1").ToSql()
-	if err != nil {
-		t.Errorf("Failed to build SQL: %v", err)
-	}
-	if sql != "SELECT 1" {
-		t.Errorf("Expected 'SELECT 1', got '%s'", sql)
-	}
-	if d.ExistDatabaseErrHint() != "already exists" {
-		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint())
-	}
+	require.NoError(t, err)
+	require.Equal(t, "SELECT 1", sql)
+	require.Equal(t, "already exists", d.ExistDatabaseErrHint())
 }
 
 func TestGetDialect_SQLite(t *testing.T) {
 	d := NewDBDialect("sqlite")
-	if d.Name() != "sqlite" {
-		t.Errorf("Expected sqlite dialect, got %s", d.Name())
-	}
-	if d.QuoteIdentifier("abc") != `"abc"` {
-		t.Errorf("SQLite quote failed")
-	}
-	if d.LengthFunc() != "LENGTH" {
-		t.Errorf("Expected LENGTH, got %s", d.LengthFunc())
-	}
+	require.Equal(t, "sqlite", d.Name())
+	require.Equal(t, `"abc"`, d.QuoteIdentifier("abc"))
+	require.Equal(t, "LENGTH", d.LengthFunc())
+
 	sql, _, err := d.QueryBuilder().Select("1").ToSql()
-	if err != nil {
-		t.Errorf("Failed to build SQL: %v", err)
-	}
-	if sql != "SELECT 1" {
-		t.Errorf("Expected 'SELECT 1', got '%s'", sql)
-	}
-	if d.ExistDatabaseErrHint() != "" {
-		t.Errorf("Incorrect error hint: %s", d.ExistDatabaseErrHint())
-	}
+	require.NoError(t, err)
+	require.Equal(t, "SELECT 1", sql)
+	require.Equal(t, "", d.ExistDatabaseErrHint())
 }
 
 // TestConcatAgg_TableDriven verifies the aggregation SQL snippet generation across dialects.
@@ -134,9 +102,7 @@ func TestConcatAgg_TableDriven(t *testing.T) {
 				t.Fatalf("unknown dialect: %s", tc.dialectName)
 			}
 
-			if got != want {
-				t.Fatalf("ConcatAgg mismatch.\n got: %s\nwant: %s", got, want)
-			}
+			require.Equal(t, want, got)
 		})
 	}
 }
@@ -200,9 +166,7 @@ func TestConcatAgg_EmptySeparator(t *testing.T) {
 				want = fmt.Sprintf("GROUP_CONCAT(%s, '')", expr)
 			}
 
-			if got != want {
-				t.Fatalf("empty sep mismatch for %s.\n got: %s\nwant: %s", name, got, want)
-			}
+			require.Equal(t, want, got)
 		})
 	}
 }
