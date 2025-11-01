@@ -65,10 +65,6 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 	q := s.dbDialect.QuoteIdentifier
 	opts.SetQuote(s.dbDialect.QuoteIdentifier)
 
-	// Fix for wrong sort key prefix.
-	opts.SetSortByFieldPrefix(q("experiments") + ".")
-	opts.SetKeyFieldPrefix(q("experiments") + ".")
-
 	// SQL for getting the filtered and paginated rows
 	qb := s.dbDialect.QueryBuilder()
 	cols := make([]string, len(experimentColumns))

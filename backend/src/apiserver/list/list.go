@@ -212,8 +212,17 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 		quote = o.quoteIdentifier
 	}
 
-	sortByFieldNameWithPrefix := o.SortByFieldPrefix + quote(o.SortByFieldName)
-	keyFieldNameWithPrefix := o.KeyFieldPrefix + quote(o.KeyFieldName)
+	sortByFieldNameWithPrefix := o.SortByFieldPrefix
+	if sortByFieldNameWithPrefix != "" {
+		sortByFieldNameWithPrefix = quote(sortByFieldNameWithPrefix) + "."
+	}
+	sortByFieldNameWithPrefix += quote(o.SortByFieldName)
+
+	keyFieldNameWithPrefix := o.KeyFieldPrefix
+	if keyFieldNameWithPrefix != "" {
+		keyFieldNameWithPrefix = quote(keyFieldNameWithPrefix) + "."
+	}
+	keyFieldNameWithPrefix += quote(o.KeyFieldName)
 
 	// When sorting by a direct field in the listable model (i.e., name in Run or uuid in Pipeline), a sortByFieldPrefix can be specified; when sorting by a field in an array-typed dictionary (i.e., a run metric inside the metrics in Run), a sortByFieldPrefix is not needed.
 	// If next row's value is specified, set those values in the clause.

@@ -229,7 +229,7 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 			query = query.Where(
 				sq.Eq{
-					fmt.Sprintf("%s.%s", q("pipelines"), q("Namespace")): filterContext.ID,
+					fmt.Sprintf("%s.%s", q("pipelines"), q("Namespace")): filterContext.ReferenceKey.ID, //nolint:staticcheck
 				},
 			)
 		}

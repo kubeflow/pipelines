@@ -6,15 +6,15 @@ metadata:
   namespace: kubeflow
 subsets:
   - addresses:
-      - ip: 192.168.65.254 # host.docker.internal IPv4 (for Mac Docker Desktop)
+      - ip: 172.17.0.1 # docker0 bridge ip
     ports:
       - name: http
         appProtocol: http
-        port: 8888  # Fixed: http is 8888 (was 8887)
+        port: 8888
         protocol: TCP
       - name: grpc
         appProtocol: http
-        port: 8887  # Fixed: grpc is 8887 (was 8888)
+        port: 8887
         protocol: TCP
       - name: webhook
         appProtocol: http

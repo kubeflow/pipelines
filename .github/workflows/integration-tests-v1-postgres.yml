@@ -75,9 +75,10 @@ jobs:
       - name: API integration tests v1
         id: integration-tests
         working-directory: ./backend/test/integration
-        run: go test -v ./... -skip TestUpgrade -args -namespace="$NAMESPACE" -runIntegrationTests=true -runPostgreSQLTests=true
+        run: go test -v ./... -skip TestUpgrade -args -namespace="$NAMESPACE" -runIntegrationTests=true -runPostgreSQLTests=true -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}
         env:
           DBCONFIG_POSTGRESQLCONFIG_HOST: ${{ env.DB_FORWARD_IP }}
+          PULL_NUMBER: ${{ github.event.pull_request.number }}
         continue-on-error: true
 
       - name: Collect failed logs
