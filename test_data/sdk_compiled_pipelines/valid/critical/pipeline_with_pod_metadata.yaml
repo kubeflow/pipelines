@@ -135,7 +135,7 @@ deploymentSpec:
           \    if label != '' or label_2 != '':\n        raise ValueError(\n     \
           \       f'Pod label is {label} but is supposed to be None.'\n        )\n\
           \    return True\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-validate-pod-metadata-task-a:
       container:
         args:
@@ -176,7 +176,7 @@ deploymentSpec:
           \n    label_val_2 = os.getenv(label_path_2)\n    if label_val_2 != label_exp_val_2:\n\
           \        raise ValueError(\n            f'Pod label is {label_val_2} but\
           \ is supposed to be {label_exp_val_2}.'\n        )\n    return True\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-validate-pod-metadata-task-b:
       container:
         args:
@@ -235,7 +235,7 @@ deploymentSpec:
           \    label_val_3 = os.getenv(label_path_3)\n    if label_val_3 != label_exp_val_3:\n\
           \        raise ValueError(\n            f'Pod label is {label_val_3} but\
           \ is supposed to be {label_exp_val_3}.'\n        )\n    return True\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-validate-pod-metadata-task-c:
       container:
         args:
@@ -273,7 +273,7 @@ deploymentSpec:
           \        raise ValueError(\n            f'Pod annotation is {annotation_val_2}\
           \ but is supposed to be {annotation_exp_val_2}.'\n        )\n    return\
           \ True\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-validate-pod-metadata-task-d:
       container:
         args:
@@ -314,7 +314,7 @@ deploymentSpec:
           \ != label_exp_val_3:\n        raise ValueError(\n            f'Pod label\
           \ is {label_val_3} but is supposed to be {label_exp_val_3}.'\n        )\n\
           \    return True\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: pipeline-with-pod-metadata
 root:

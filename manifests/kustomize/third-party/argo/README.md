@@ -4,6 +4,14 @@ Kubeflow Pipelines uses [Argo Workflows](https://argoproj.github.io/argo-workflo
 
 This folder contains preconfigured Argo Workflows installations used in Kubeflow Pipelines distributions that use **remote references** to the upstream Argo Workflows repository instead of local copies.
 
+## Argo Workflows Dependency Documentation
+
+Refer to [Argo Workflows README.md](../../../../third_party/argo/README.md).
+
+## Upgrading Argo Workflows
+
+Refer to [Argo Workflows Upgrade documentation](../../../../third_party/argo/UPGRADE.md).
+
 ## Remote References Implementation
 
 KFP uses remote Git references to Argo Workflows manifests instead of maintaining local copies. This approach:
@@ -14,14 +22,3 @@ KFP uses remote Git references to Argo Workflows manifests instead of maintainin
 
 All kustomization files reference manifests directly from the [Argo Workflows repository](https://github.com/argoproj/argo-workflows) using versioned Git references.
 
-## Upgrade Argo Workflows
-
-Refer to [third_party/argo/README.md](../../../../third_party/argo/README.md).
-
-### Update Manifests
-
-To upgrade to a new Argo version:
-
-1. Update the version in [third_party/argo/VERSION](../../../../third_party/argo/VERSION)
-2. Run `make update` to automatically update all remote Git references to the new version
-3. Test the new configuration with your KFP deployment

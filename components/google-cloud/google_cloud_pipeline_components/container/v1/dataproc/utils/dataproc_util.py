@@ -77,7 +77,7 @@ class DataprocBatchRemoteRunner:
         total=_CONNECTION_ERROR_RETRY_LIMIT,
         status_forcelist=[429, 503],
         backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
-        method_whitelist=['GET', 'POST'],
+        allowed_methods=['GET', 'POST'],
     )
     adapter = HTTPAdapter(max_retries=retry)
     session = requests.Session()

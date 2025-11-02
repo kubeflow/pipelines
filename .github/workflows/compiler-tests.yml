@@ -52,7 +52,7 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             TEST_LABEL=${{ inputs.test_label }}
           fi
-          echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
+          echo "TEST_LABEL=$TEST_LABEL" >> "$GITHUB_OUTPUT"
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report

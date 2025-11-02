@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-72f73bfd1c06ca202f77c1bc36f3e0e5fba88ef0bca17fb76a71700051b8ac63
+    - name: components-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3
       value: '{"executorLabel":"exec-read-from-workspace","inputDefinitions":{"parameters":{"file_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-72f73bfd1c06ca202f77c1bc36f3e0e5fba88ef0bca17fb76a71700051b8ac63
+    - name: implementations-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","read_from_workspace"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -24,10 +24,10 @@ spec:
         = f.read()\n        print(f\"Read content from: {file_path}\")\n        print(f\"Content:
         {content}\")\n        assert content == \"Hello from workspace!\"\n        return
         content\n    else:\n        print(f\"File not found at: {file_path}\")\n        return
-        \"File not found\"\n\n"],"image":"python:3.9"}'
-    - name: components-64aebdd242571626248d5281bdedd9ce0fa8953ccf40f22c7d37ba51574f7e23
+        \"File not found\"\n\n"],"image":"python:3.11"}'
+    - name: components-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081
       value: '{"executorLabel":"exec-write-to-workspace","inputDefinitions":{"parameters":{"workspace_path":{"parameterType":"STRING"}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
-    - name: implementations-64aebdd242571626248d5281bdedd9ce0fa8953ccf40f22c7d37ba51574f7e23
+    - name: implementations-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","write_to_workspace"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -42,7 +42,7 @@ spec:
         = os.path.join(workspace_path, \"data\", \"test_file.txt\")\n    os.makedirs(os.path.dirname(file_path),
         exist_ok=True)\n\n    with open(file_path, \"w\") as f:\n        f.write(\"Hello
         from workspace!\")\n\n    print(f\"Wrote file to: {file_path}\")\n    return
-        file_path\n\n"],"image":"python:3.9"}'
+        file_path\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"outputs":{"parameters":{"Output":{"valueFromParameter":{"outputParameterKey":"Output","producerSubtask":"read-from-workspace"}}}},"tasks":{"read-from-workspace":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-from-workspace"},"dependentTasks":["write-to-workspace"],"inputs":{"parameters":{"file_path":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"write-to-workspace"}}}},"taskInfo":{"name":"read-from-workspace"}},"write-to-workspace":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-to-workspace"},"inputs":{"parameters":{"workspace_path":{"runtimeValue":{"constant":"{{$.workspace_path}}"}}}},"taskInfo":{"name":"write-to-workspace"}}}},"outputDefinitions":{"parameters":{"Output":{"parameterType":"STRING"}}}}'
   entrypoint: entrypoint
@@ -225,11 +225,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-72f73bfd1c06ca202f77c1bc36f3e0e5fba88ef0bca17fb76a71700051b8ac63}}'
+            value: '{{workflow.parameters.components-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-read-from-workspace"},"dependentTasks":["write-to-workspace"],"inputs":{"parameters":{"file_path":{"taskOutputParameter":{"outputParameterKey":"Output","producerTask":"write-to-workspace"}}}},"taskInfo":{"name":"read-from-workspace"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-72f73bfd1c06ca202f77c1bc36f3e0e5fba88ef0bca17fb76a71700051b8ac63}}'
+            value: '{{workflow.parameters.implementations-099322c2301dec986b734828a313953d589b6759b84e2204d3be55050a87abf3}}'
           - name: task-name
             value: read-from-workspace
           - name: parent-dag-id
@@ -250,11 +250,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-64aebdd242571626248d5281bdedd9ce0fa8953ccf40f22c7d37ba51574f7e23}}'
+            value: '{{workflow.parameters.components-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-write-to-workspace"},"inputs":{"parameters":{"workspace_path":{"runtimeValue":{"constant":"{{$.workspace_path}}"}}}},"taskInfo":{"name":"write-to-workspace"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-64aebdd242571626248d5281bdedd9ce0fa8953ccf40f22c7d37ba51574f7e23}}'
+            value: '{{workflow.parameters.implementations-d94cb6155685654cc8749b6be9ebf3fb71fe13a85b91fd244acdd09265f42081}}'
           - name: task-name
             value: write-to-workspace
           - name: parent-dag-id
@@ -387,6 +387,8 @@ spec:
       resources:
         requests:
           storage: 1Gi
+      accessModes:
+      - ReadWriteOnce
       storageClassName: standard
     status: {}
 status:

@@ -61,9 +61,11 @@ jobs:
         id: configure
         run: |
           mkdir -p ${{ env.ARTIFACTS_PATH }}
-          echo "artifact_path=${{ env.ARTIFACTS_PATH }}" >> $GITHUB_OUTPUT
-          echo "image_tag=${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
-          echo "registry=${{ env.REGISTRY }}" >> $GITHUB_OUTPUT
+          {
+            echo "artifact_path=${{ env.ARTIFACTS_PATH }}"
+            echo "image_tag=${{ env.IMAGE_TAG }}"
+            echo "registry=${{ env.REGISTRY }}"
+          } >> "$GITHUB_OUTPUT"
 
       # Check if the image tarball already exists or not, if yes, then skip building the image
       - name: Attempt to download the artifact

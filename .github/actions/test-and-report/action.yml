@@ -132,7 +132,7 @@ runs:
           uuid=$(uuidgen)
           REPORT_NAME="HTML Report - ${{ github.run_id }}_${{ github.job }}_$uuid"
         fi
-        echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_OUTPUT
+        echo "REPORT_NAME=$REPORT_NAME" >> "$GITHUB_OUTPUT"
 
     - name: Upload HTML Report
       id: upload

@@ -8,7 +8,7 @@ kind: Kustomization
 
 resources:
 - ../../base
-- https://github.com/argoproj/argo-workflows/manifests/namespace-install/workflow-controller-rbac?ref=v3.6.7
+- https://github.com/argoproj/argo-workflows/manifests/namespace-install/workflow-controller-rbac?ref=v3.7.3
 patches:
 - path: workflow-controller-deployment-patch.json
   target:

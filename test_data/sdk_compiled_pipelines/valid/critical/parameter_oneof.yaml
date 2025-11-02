@@ -214,7 +214,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef core_comp(input: str) -> str:\n    print('input :', input)\n\
           \    return input\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-core-output-comp:
       container:
         args:
@@ -244,7 +244,7 @@ deploymentSpec:
           \ *\n\ndef core_output_comp(input: str, output_key: dsl.OutputPath(str)):\n\
           \    print('input :', input)\n    with open(output_key, 'w') as f:\n   \
           \     f.write(input)\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-crust-comp:
       container:
         args:
@@ -272,7 +272,7 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef crust_comp(input: str):\n    print('input :', input)\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-flip-coin:
       container:
         args:
@@ -301,7 +301,7 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef flip_coin() -> str:\n    import random\n    return 'heads' if\
           \ random.randint(0, 1) == 0 else 'tails'\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: parameter-oneof-pipeline
 root:

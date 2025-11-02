@@ -58,16 +58,16 @@ jobs:
         k8s_version: [ "v1.31.0" ]
         cache_enabled: [ "true", "false" ]
         proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.1", "v3.6.10" ]
+        argo_version: [ "v3.7.3", "v3.6.7" ]
         pipeline_store: [ "database" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
-            argo_version: "v3.6.10"
+            argo_version: "v3.6.7"
           - k8s_version: "v1.29.2"
             cache_enabled: "true"
-            argo_version: "v3.5.15"
+            argo_version: "v3.5.14"
           - k8s_version: "v1.31.0"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
@@ -104,7 +104,7 @@ jobs:
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
         run: |
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
-          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> $GITHUB_ENV
+          echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
       - name: Configure Input Variables
         shell: bash
@@ -125,9 +125,11 @@ jobs:
             PROXY=false
           fi
           
-          echo "NUMBER_OF_NODES=$NUMBER_OF_NODES" >> $GITHUB_OUTPUT
-          echo "TEST_LABEL=$TEST_LABEL" >> $GITHUB_OUTPUT
-          echo "NAMESPACE=$NAMESPACE" >> $GITHUB_OUTPUT
+          {
+            echo "NUMBER_OF_NODES=$NUMBER_OF_NODES"
+            echo "TEST_LABEL=$TEST_LABEL"
+            echo "NAMESPACE=$NAMESPACE"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -162,7 +164,7 @@ jobs:
         k8s_version: [ "v1.31.0", "v1.29.2" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.1", "v3.6.10" ]
+        argo_version: [ "v3.7.3", "v3.6.7" ]
         pipeline_store: [ "kubernetes" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
@@ -193,7 +195,6 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
-          proxy: ${{ matrix.proxy }}
           argo_version: ${{ matrix.argo_version }}
           image_path: ${{ needs.build.outputs.IMAGE_PATH }}
           image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
@@ -206,7 +207,6 @@ jobs:
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
-          proxy: ${{ matrix.proxy }}
           test_directory: ${{ env.API_TESTS_DIR }}
           test_label: ${{ env.TESTS_LABEL }}
           num_parallel_nodes: ${{ env.NUMBER_OF_PARALLEL_NODES }}

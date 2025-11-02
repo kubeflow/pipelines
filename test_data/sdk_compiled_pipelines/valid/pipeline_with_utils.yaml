@@ -42,7 +42,7 @@ deploymentSpec:
           \n\n\ndef util_func2(msg: str) -> str:\n    return f\"{msg} from util_func2\"\
           \n\n\ndef echo(msg: str):\n    assert util_func(msg) == f\"{msg} from util_func\"\
           \n    assert util_func2(msg) == f\"{msg} from util_func2\"\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   description: A simple hello world pipeline
   name: pipeline-with-utils

@@ -628,7 +628,7 @@ func uploadOutputArtifacts(ctx context.Context, executorInput *pipelinespec.Exec
 			}
 
 			// Upload artifacts from local path to remote storages.
-			localDir, err := LocalPathForURI(outputArtifact.Uri)
+			localDir, err := retrieveArtifactPath(outputArtifact)
 			if err != nil {
 				glog.Warningf("Output Artifact %q does not have a recognized storage URI %q. Skipping uploading to remote storage.", name, outputArtifact.Uri)
 			} else if !strings.HasPrefix(outputArtifact.Uri, "oci://") {
@@ -992,6 +992,16 @@ func LocalPathForURI(uri string) (string, error) {
 		return "/oci/" + strings.ReplaceAll(strings.TrimPrefix(uri, "oci://"), "/", "_") + "/models", nil
 	}
 	return "", fmt.Errorf("failed to generate local path for URI %s: unsupported storage scheme", uri)
+}
+
+func retrieveArtifactPath(artifact *pipelinespec.RuntimeArtifact) (string, error) {
+	// If artifact custom path is set, use custom path. Otherwise, use URI.
+	customPath := artifact.CustomPath
+	if customPath != nil {
+		return *customPath, nil
+	} else {
+		return LocalPathForURI(artifact.Uri)
+	}
 }
 
 func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {

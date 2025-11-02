@@ -6,9 +6,9 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: components-257c3d2b996441cda9547359972f80c521a24efee58aff87d48282b55f7782bd
+    - name: components-f3dee78c44ac18676c4c12c69e34f993a82f0c5af39391208a5dcd57c54c24fc
       value: '{"executorLabel":"exec-echo","inputDefinitions":{"parameters":{"msg":{"parameterType":"STRING"}}}}'
-    - name: implementations-257c3d2b996441cda9547359972f80c521a24efee58aff87d48282b55f7782bd
+    - name: implementations-f3dee78c44ac18676c4c12c69e34f993a82f0c5af39391208a5dcd57c54c24fc
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","echo"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
@@ -21,7 +21,7 @@ spec:
         util_func(msg: str) -\u003e str:\n    return f\"{msg} from util_func\"\n\n\ndef
         util_func2(msg: str) -\u003e str:\n    return f\"{msg} from util_func2\"\n\n\ndef
         echo(msg: str):\n    assert util_func(msg) == f\"{msg} from util_func\"\n    assert
-        util_func2(msg) == f\"{msg} from util_func2\"\n\n"],"image":"python:3.9"}'
+        util_func2(msg) == f\"{msg} from util_func2\"\n\n"],"image":"python:3.11"}'
     - name: components-root
       value: '{"dag":{"tasks":{"echo":{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-echo"},"inputs":{"parameters":{"msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"echo"}}}},"inputDefinitions":{"parameters":{"msg":{"defaultValue":"Hello,
         World!","isOptional":true,"parameterType":"STRING"}}}}'
@@ -205,11 +205,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-257c3d2b996441cda9547359972f80c521a24efee58aff87d48282b55f7782bd}}'
+            value: '{{workflow.parameters.components-f3dee78c44ac18676c4c12c69e34f993a82f0c5af39391208a5dcd57c54c24fc}}'
           - name: task
             value: '{"cachingOptions":{"enableCache":true},"componentRef":{"name":"comp-echo"},"inputs":{"parameters":{"msg":{"componentInputParameter":"msg"}}},"taskInfo":{"name":"echo"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-257c3d2b996441cda9547359972f80c521a24efee58aff87d48282b55f7782bd}}'
+            value: '{{workflow.parameters.implementations-f3dee78c44ac18676c4c12c69e34f993a82f0c5af39391208a5dcd57c54c24fc}}'
           - name: task-name
             value: echo
           - name: parent-dag-id

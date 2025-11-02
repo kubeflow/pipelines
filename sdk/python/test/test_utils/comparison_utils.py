@@ -57,10 +57,14 @@ class ComparisonUtils:
                     # Override SDK Version in the args as well to match the current version
                     if key == 'command':
                         for index, command in enumerate(value):
-                            if re.search("kfp==[0-9].[0-9]+.[0-9]+",
-                                         command) is not None:
-                                value[index] = re.sub(
-                                    "kfp==[0-9].[0-9]+.[0-9]+",
-                                    f"kfp=={kfp.__version__}", command)
+                            value[index] = cls.override_sdk_version(command)
+                        for index, command in enumerate(actual[key]):
+                            actual[key][index] = cls.override_sdk_version(
+                                command)
                     assert value == actual[
                         key], f'Value for "{key}" is not the same'
+
+    @classmethod
+    def override_sdk_version(cls, text: str) -> str:
+        return re.sub("kfp==[0-9].[0-9]+.[0-9]+", f"kfp=={kfp.__version__}",
+                      text)

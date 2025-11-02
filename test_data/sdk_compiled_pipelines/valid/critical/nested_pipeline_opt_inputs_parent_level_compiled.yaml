@@ -173,7 +173,7 @@ deploymentSpec:
           \ *\n\ndef component_bool_default(componentInput: bool = False):\n    if\
           \ componentInput != True:\n        raise ValueError(f\"componentInput should\
           \ be True but is {componentInput}\")\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-component-int-default:
       container:
         args:
@@ -203,7 +203,7 @@ deploymentSpec:
           \ *\n\ndef component_int_default(componentInput: int = 0):\n    if componentInput\
           \ != 1:\n        raise ValueError(f\"componentInput should be 1 but is {componentInput}\"\
           )\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-component-nil-bool-default:
       container:
         args:
@@ -233,7 +233,7 @@ deploymentSpec:
           \ *\n\ndef component_nil_bool_default(componentInput: bool = None):\n  \
           \  if componentInput != True:\n        raise ValueError(f\"componentInput\
           \ should be True but is {componentInput}\")\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-component-nil-int-default:
       container:
         args:
@@ -263,7 +263,7 @@ deploymentSpec:
           \ *\n\ndef component_nil_int_default(componentInput: int = None):\n    if\
           \ componentInput != 1:\n        raise ValueError(f\"componentInput should\
           \ be 1 but is {componentInput}\")\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-component-nil-str-default:
       container:
         args:
@@ -294,7 +294,7 @@ deploymentSpec:
           \ componentInput != 'Input - parent pipeline':\n        raise ValueError(f\"\
           componentInput should be 'Input - parent pipeline' but is {componentInput}\"\
           )\n\n"
-        image: python:3.9
+        image: python:3.11
     exec-component-str-default:
       container:
         args:
@@ -325,7 +325,7 @@ deploymentSpec:
           \    if componentInput != 'Input - parent pipeline':\n        raise ValueError(f\"\
           componentInput should be 'Input - parent pipeline' but is {componentInput}\"\
           )\n\n"
-        image: python:3.9
+        image: python:3.11
 pipelineInfo:
   name: nested-pipeline-opt-inputs-parent-level
 root:
